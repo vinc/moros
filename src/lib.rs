@@ -1,13 +1,14 @@
 #![no_std]
 #![feature(abi_x86_interrupt)]
 
+pub mod clock;
 pub mod gdt;
-pub mod shell;
 pub mod interrupts;
-pub mod serial;
-pub mod vga;
 pub mod layouts;
+pub mod serial;
+pub mod shell;
 pub mod string;
+pub mod vga;
 
 pub fn init() {
     gdt::init();

@@ -1,4 +1,4 @@
-use crate::{shell, gdt, print};
+use crate::{shell, gdt, print, clock};
 use lazy_static::lazy_static;
 use pic8259_simple::ChainedPics;
 use spin;
@@ -10,8 +10,8 @@ pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum InterruptIndex {
-    Timer = PIC_1_OFFSET,
-    Keyboard,
+    Timer    = PIC_1_OFFSET,
+    Keyboard = PIC_1_OFFSET + 1
 }
 
 impl InterruptIndex {
@@ -32,9 +32,7 @@ lazy_static! {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         unsafe {
-            idt.double_fault
-                .set_handler_fn(double_fault_handler)
-                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+            idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
         idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler);
@@ -55,6 +53,8 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: &mut InterruptStackF
 }
 
 extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut InterruptStackFrame) {
+    clock::tick();
+
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }

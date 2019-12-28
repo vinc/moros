@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use crate::print;
+use crate::{clock, print};
 use crate::string::String;
 use spin::Mutex;
 
@@ -14,6 +14,9 @@ pub fn key_handle(c: char) {
         match stdin.as_str() {
             "help" => {
                 print!("< rtfm!");
+            },
+            "uptime" => {
+                print!("{:.6} seconds\n", clock::uptime());
             },
             _ => {
                 print!("?");
