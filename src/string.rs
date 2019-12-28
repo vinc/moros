@@ -19,6 +19,15 @@ impl String {
         self.len += 1;
     }
 
+    pub fn pop(&mut self) -> Option<u8> {
+       if self.len > 0 {
+           self.len -= 1;
+           Some(self.buffer[self.len + 1])
+       } else {
+           None
+       }
+    }
+
     pub fn clear(&mut self) {
         self.len = 0;
     }
