@@ -1,8 +1,12 @@
 [package]
 name = "moros"
+description = "MOROS: Omniscient Rust Operating System"
 version = "0.1.0"
 authors = ["Vincent Ollivier <v@vinc.cc>"]
 edition = "2018"
+license = "MIT"
+repository = "https://github.com/vinc/moros"
+readme = "README.md"
 
 [dependencies]
 bootloader = "0.8.0"
