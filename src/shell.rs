@@ -17,11 +17,10 @@ pub fn print_banner() {
     print!("|                       Omniscient Rust Operating System                       |\n");
     print!("|                                                                              |\n");
     print!("+------------------------------------------------------------------------------+\n");
-    print!("\n");
 }
 
 pub fn print_prompt() {
-    print!("> ");
+    print!("\n> ");
 }
 
 pub fn key_handle(c: char) {
@@ -30,10 +29,13 @@ pub fn key_handle(c: char) {
         print!("\n");
         match stdin.as_str() {
             "help" => {
-                print!("< rtfm!");
+                print!("RTFM!");
+            },
+            "version" => {
+                print!("MOROS v{}", env!("CARGO_PKG_VERSION"));
             },
             "uptime" => {
-                print!("{:.6} seconds\n", clock::uptime());
+                print!("{:.6} seconds", clock::uptime());
             },
             _ => {
                 print!("?");
