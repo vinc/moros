@@ -2,6 +2,7 @@ use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
+use x86_64::instructions::port::Port;
 
 lazy_static! {
     /// A global `Writer` instance that can be used for printing to the VGA text buffer.
@@ -79,6 +80,18 @@ pub struct Writer {
 }
 
 impl Writer {
+    pub fn write_cursor(&mut self) {
+        let cursor_y = BUFFER_HEIGHT - 1;
+        let cursor_x = self.column_position;
+        let pos =  cursor_y * BUFFER_WIDTH + cursor_x;
+        unsafe {
+            Port::new(0x3D4).write(0x0F as u8);
+            Port::new(0x3D5).write((pos & 0xFF) as u8);
+            Port::new(0x3D4).write(0x0E as u8);
+            Port::new(0x3D5).write(((pos >> 8) & 0xFF) as u8);
+        }
+    }
+
     /// Writes an ASCII byte to the buffer.
     ///
     /// Wraps lines at `BUFFER_WIDTH`. Supports the `\n` newline character.
@@ -158,6 +171,7 @@ impl Writer {
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
+        self.write_cursor();
         Ok(())
     }
 }
