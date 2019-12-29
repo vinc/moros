@@ -1,7 +1,8 @@
 #![no_std]
 #![no_main]
 
-use moros::{print, shell};
+use moros::print;
+use moros::user::shell;
 use core::panic::PanicInfo;
 
 #[no_mangle]

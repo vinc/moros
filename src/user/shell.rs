@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
-use crate::{clock, print};
+use crate::print;
+use crate::kernel::clock;
 use spin::Mutex;
 use heapless::{String, FnvIndexSet};
 use heapless::consts::*;
