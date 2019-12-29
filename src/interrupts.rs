@@ -62,7 +62,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut InterruptSt
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: &mut InterruptStackFrame) {
     use crate::layouts;
-    use pc_keyboard::{DecodedKey, Keyboard, ScancodeSet1, HandleControl};
+    use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl};
     use spin::Mutex;
     use x86_64::instructions::port::Port;
 
@@ -78,10 +78,8 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: &mut Interrup
     let scancode: u8 = unsafe { port.read() };
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
-            match key {
-                DecodedKey::Unicode(c) => shell::key_handle(c),
-                DecodedKey::RawKey(_) => {}
-            }
+            // print!("{:?}\n", key);
+            shell::key_handle(key);
         }
     }
 
