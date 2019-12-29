@@ -1,19 +1,14 @@
 #![no_std]
 #![no_main]
 
-use moros::print;
+use moros::{print, shell};
 use core::panic::PanicInfo;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    print!("********************************************************************************\n");
-    print!("*                           Welcome to MOROS v0.1.0                            *\n");
-    print!("********************************************************************************\n");
-    print!("\n");
-
     moros::init();
-
-    print!("> ");
+    shell::print_banner();
+    shell::print_prompt();
     moros::hlt_loop();
 }
 

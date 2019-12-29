@@ -1,4 +1,4 @@
-# MOROS Original Rust Operating System
+# MOROS: Omniscient Rust Operating System
 
 MOROS is a toy operating system written in Rust.
 
