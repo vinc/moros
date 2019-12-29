@@ -1,8 +1,8 @@
 use lazy_static::lazy_static;
 use crate::print;
-use crate::kernel::clock;
+use crate::user;
 use spin::Mutex;
-use heapless::{String, FnvIndexSet};
+use heapless::{String, FnvIndexSet, Vec};
 use heapless::consts::*;
 use pc_keyboard::{KeyCode, DecodedKey};
 
@@ -42,28 +42,26 @@ pub fn key_handle(key: DecodedKey) {
             if history.insert((*stdin).clone()).is_ok() {
                 *history_index = history.len();
             }
-            match stdin.as_str() {
-                "" => {
-                },
-                "help" => {
-                    print!("RTFM!\n");
-                },
-                "version" => {
-                    print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
-                },
-                "uptime" => {
-                    let uptime = clock::uptime();
-                    if uptime < 1000.0 {
-                        print!("{:.2} seconds\n", uptime);
-                    } else {
-                        print!("{:.2} kiloseconds\n", uptime / 1000.0);
+
+            if stdin.len() > 0 {
+                let line = stdin.clone();
+                let args: Vec<&str, U256> = line.split_whitespace().collect();
+                match args[0] {
+                    "help" => {
+                        print!("RTFM!\n");
+                    },
+                    "version" => {
+                        print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
+                    },
+                    "uptime" => {
+                        user::uptime::main(&args);
+                    },
+                    _ => {
+                        print!("?\n");
                     }
-                },
-                _ => {
-                    print!("?\n");
                 }
+                stdin.clear();
             }
-            stdin.clear();
             print_prompt();
         },
         DecodedKey::Unicode('\x08') => {
