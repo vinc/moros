@@ -42,21 +42,22 @@ pub fn key_handle(key: DecodedKey) {
                 *history_index = history.len();
             }
             match stdin.as_str() {
+                "" => {
+                },
                 "help" => {
-                    print!("RTFM!");
+                    print!("RTFM!\n");
                 },
                 "version" => {
-                    print!("MOROS v{}", env!("CARGO_PKG_VERSION"));
+                    print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
                 },
                 "uptime" => {
-                    print!("{:.6} seconds", clock::uptime());
+                    print!("{:.6} seconds\n", clock::uptime());
                 },
                 _ => {
-                    print!("?");
+                    print!("?\n");
                 }
             }
             stdin.clear();
-            print!("\n");
             print_prompt();
         },
         DecodedKey::Unicode('\x08') => {
