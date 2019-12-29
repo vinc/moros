@@ -80,15 +80,37 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn write_cursor(&mut self) {
+    fn cursor_position(&self) -> usize {
         let cursor_y = BUFFER_HEIGHT - 1;
         let cursor_x = self.column_position;
-        let pos =  cursor_y * BUFFER_WIDTH + cursor_x;
+
+        cursor_y * BUFFER_WIDTH + cursor_x
+    }
+
+    // TODO: check this
+    pub fn enable_cursor(&mut self) {
+        let pos = self.cursor_position();
+        let mut port_3d4 = Port::new(0x3D4);
+        let mut port_3d5 = Port::new(0x3D5);
         unsafe {
-            Port::new(0x3D4).write(0x0F as u8);
-            Port::new(0x3D5).write((pos & 0xFF) as u8);
-            Port::new(0x3D4).write(0x0E as u8);
-            Port::new(0x3D5).write(((pos >> 8) & 0xFF) as u8);
+            port_3d4.write(0x0A as u8);
+            let val = port_3d5.read();
+            port_3d5.write(((val & 0xC0) | pos as u8) as u8);
+            port_3d4.write(0x0B as u8);
+            let val = port_3d5.read();
+            port_3d5.write(((val & 0xE0) | pos as u8) as u8);
+        }
+    }
+
+    pub fn write_cursor(&mut self) {
+        let pos = self.cursor_position();
+        let mut port_3d4 = Port::new(0x3D4);
+        let mut port_3d5 = Port::new(0x3D5);
+        unsafe {
+            port_3d4.write(0x0F as u8);
+            port_3d5.write((pos & 0xFF) as u8);
+            port_3d4.write(0x0E as u8);
+            port_3d5.write(((pos >> 8) & 0xFF) as u8);
         }
     }
 
