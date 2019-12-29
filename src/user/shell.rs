@@ -53,6 +53,9 @@ pub fn key_handle(key: DecodedKey) {
                     "version" => {
                         print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
                     },
+                    "date" => {
+                        user::date::main(&args);
+                    },
                     "uptime" => {
                         user::uptime::main(&args);
                     },

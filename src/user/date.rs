@@ -2,7 +2,7 @@ use crate::print;
 use crate::kernel::clock;
 
 pub fn main(args: &[&str]) {
-    let time = clock::clock_monotonic();
+    let time = clock::clock_realtime();
 
     if args.len() == 2 && args[1] == "--metric" {
         if time < 1000.0 {
