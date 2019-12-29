@@ -51,7 +51,12 @@ pub fn key_handle(key: DecodedKey) {
                     print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
                 },
                 "uptime" => {
-                    print!("{:.6} seconds\n", clock::uptime());
+                    let uptime = clock::uptime();
+                    if uptime < 1000.0 {
+                        print!("{:.2} seconds\n", uptime);
+                    } else {
+                        print!("{:.2} kiloseconds\n", uptime / 1000.0);
+                    }
                 },
                 _ => {
                     print!("?\n");
