@@ -1,23 +1,14 @@
 use crate::print;
 use crate::kernel::clock;
+use crate::user::date::{print_time_in_seconds, print_time_in_days};
 
 pub fn main(args: &[&str]) {
     let time = clock::clock_monotonic();
-
-    if args.len() == 2 && args[1] == "--metric" {
-        if time < 1000.0 {
-            print!("{:.2} seconds\n", time);
-        } else {
-            print!("{:.2} kiloseconds\n", time / 1000.0);
-        }
+    if args.len() == 2 && args[1] == "--raw" {
+        print!("{:.6}\n", time);
+    } else if args.len() == 2 && args[1] == "--metric" {
+        print_time_in_seconds(time);
     } else {
-        let time = 0.0864 * time;
-        if time < 100.0 {
-            print!("{:.2} dimidays\n", time);
-        } else if time < 10_000.0 {
-            print!("{:.2} centidays\n", time / 100.0);
-        } else {
-            print!("{:.2} days\n", time / 10_000.0);
-        }
+        print_time_in_days(time / 86400.0);
     }
 }

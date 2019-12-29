@@ -14,12 +14,12 @@ enum Register {
 
 #[derive(Debug)]
 pub struct RTC {
-    pub second: u8,
-    pub minute: u8,
-    pub hour: u8,
-    pub day: u8,
+    pub year: u16,
     pub month: u8,
-    pub year: u8,
+    pub day: u8,
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
 }
 
 pub struct CMOS {
@@ -35,7 +35,7 @@ impl CMOS {
         }
     }
 
-    pub fn read(&mut self) -> RTC {
+    pub fn rtc(&mut self) -> RTC {
         while self.is_updating() {
             print!(""); // TODO: sleep
         }
@@ -44,7 +44,7 @@ impl CMOS {
         let mut hour = self.read_register(Register::Hour);
         let mut day = self.read_register(Register::Day);
         let mut month = self.read_register(Register::Month);
-        let mut year = self.read_register(Register::Year);
+        let mut year = self.read_register(Register::Year) as u16;
 
         let b = self.read_register(Register::B);
         if b & 0x04 == 0 {
@@ -56,7 +56,9 @@ impl CMOS {
             year = (year & 0x0F) + ((year / 16) * 10);
         }
 
-        RTC { second, minute, hour, day, month, year }
+        year += 2000; // TODO: Don't forget to change this next century
+
+        RTC { year, month, day, hour, minute, second }
     }
 
     fn is_updating(&mut self) -> bool {
