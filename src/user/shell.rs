@@ -47,21 +47,35 @@ pub fn key_handle(key: DecodedKey) {
                 let line = stdin.clone();
                 let args: Vec<&str, U256> = line.split_whitespace().collect();
                 match args[0] {
-                    "help" => {
-                        print!("RTFM!\n");
-                    },
-                    "version" => {
-                        print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
-                    },
-                    "date" => {
-                        user::date::main(&args);
-                    },
-                    "uptime" => {
-                        user::uptime::main(&args);
-                    },
-                    _ => {
-                        print!("?\n");
-                    }
+                    "a" | "alias"                       => print!("TODO\n"),
+                    "b"                                 => print!("?\n"),
+                    "c" | "copy" | "cp"                 => print!("TODO\n"),
+                    "d" | "del" | "delete" | "rm"       => print!("TODO\n"),
+                    "e" | "edit"                        => print!("TODO\n"),
+                    "f" | "find"                        => print!("TODO\n"),
+                    "g" | "gd" | "go" | "go-dir" | "cd" => print!("TODO\n"),
+                    "h" | "help"                        => print!("RTFM!\n"),
+                    "i"                                 => print!("?\n"),
+                    "j" | "jd" | "jump" | "jump-dir"    => print!("TODO\n"),
+                    "k" | "kill"                        => print!("TODO\n"),
+                    "l" | "list" | "ls"                 => print!("TODO\n"), // same as `rd`
+                    "m" | "move" | "mv"                 => print!("TODO\n"),
+                    "n"                                 => print!("?\n"),
+                    "o"                                 => print!("?\n"),
+                    "p" | "print"                       => print!("TODO\n"),
+                    "q" | "quit" | "exit"               => print!("QUIT\n"),
+                    "r" | "read"                        => user::read::main(&args),
+                    "s"                                 => print!("?\n"),
+                    "t" | "tag"                         => print!("TODO\n"),
+                    "u"                                 => print!("?\n"),
+                    "v"                                 => print!("?\n"),
+                    "w" | "write"                       => user::write::main(&args),
+                    "x"                                 => print!("?\n"),
+                    "y"                                 => print!("?\n"),
+                    "z"                                 => print!("?\n"),
+                    "rd" | "read-dir"                   => print!("TODO\n"),
+                    "wd" | "write-dir" | "mkdir"        => print!("TODO\n"),
+                    _ => print!("?\n"),
                 }
                 stdin.clear();
             }
