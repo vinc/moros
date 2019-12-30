@@ -16,7 +16,4 @@ x86_64 = "0.8.1"
 pic8259_simple = "0.1.1"
 pc-keyboard = "0.5.0"
 heapless = "0.5.1"
-
-[dependencies.lazy_static]
-version = "1.0"
-features = ["spin_no_std"]
+lazy_static = { version = "1.0", features = ["spin_no_std"] }
