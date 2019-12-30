@@ -59,7 +59,7 @@ pub fn key_handle(key: DecodedKey) {
                     "j" | "jd" | "jump" | "jump-dir"    => print!("TODO\n"),
                     "k" | "kill"                        => print!("TODO\n"),
                     "l" | "list" | "ls"                 => print!("TODO\n"), // same as `rd`
-                    "m" | "move" | "mv"                 => print!("TODO\n"),
+                    "m" | "move" | "mv"                 => user::r#move::main(&args),
                     "n"                                 => print!("?\n"),
                     "o"                                 => print!("?\n"),
                     "p" | "print"                       => print!("TODO\n"),
