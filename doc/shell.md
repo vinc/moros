@@ -89,13 +89,13 @@ double them.
 ### And
 
 ```
-r /user/v/a.txt & r /user/v/b.txt
+r /usr/v/a.txt & r /usr/v/b.txt
 ```
 
 ### Or
 
 ```
-r /user/v/a.txt | r /user/v/b.txt
+r /usr/v/a.txt | r /usr/v/b.txt
 ```
 
 ## Pipes
@@ -107,26 +107,26 @@ to `/dev/null`.
 Read file A and redirect stdout(1) to stdin(0) of write file B:
 
 ```
-r /user/v/a.txt > w /user/v/b.txt
-r /user/v/a.txt 1>0 w /user/v/b.txt
+r /usr/v/a.txt > w /usr/v/b.txt
+r /usr/v/a.txt 1>0 w /usr/v/b.txt
 ```
 
 Read file A and redirect stderr(2) to stdin(0) of write file B:
 
 ```
-r /user/v/a.txt 2> w /user/v/b.txt
-r /user/v/a.txt 2>0 w /user/v/b.txt
+r /usr/v/a.txt 2> w /usr/v/b.txt
+r /usr/v/a.txt 2>0 w /usr/v/b.txt
 ```
 
 Suppress errors by redirecting stderr(2) to stdnil(3):
 
 ```
-r /user/v/a.txt 2>3 w /user/v/b.txt
+r /usr/v/a.txt 2>3 w /usr/v/b.txt
 ```
 
 Redirect stdout(1) to stdin(0) and stderr(2) to stdnil(3):
 
 ```
-r /user/v/a.txt > 2>3 w /user/v/b.txt
-r /user/v/a.txt 1>0 2>3 w /user/v/b.txt
+r /usr/v/a.txt > 2>3 w /usr/v/b.txt
+r /usr/v/a.txt 1>0 2>3 w /usr/v/b.txt
 ```
