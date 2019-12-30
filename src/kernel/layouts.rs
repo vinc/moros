@@ -129,9 +129,9 @@ impl KeyboardLayout for Dvorak104Key {
                 if map_to_unicode && modifiers.is_ctrl() {
                     DecodedKey::Unicode('\u{0005}')
                 } else if modifiers.is_caps() {
-                    DecodedKey::Unicode('.')
-                } else {
                     DecodedKey::Unicode('>')
+                } else {
+                    DecodedKey::Unicode('.')
                 }
             }
             KeyCode::R => {
