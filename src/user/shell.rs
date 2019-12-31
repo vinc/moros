@@ -27,21 +27,20 @@ impl Shell {
                 }
                 '\n' => {
                     print!("\n");
-
-                    // Remove first command from history if full
-                    if self.history.len() == self.history.capacity() {
-                        let first = self.history.iter().next().unwrap().clone();
-                        self.history.remove(&first);
-                    }
-
-                    // Add or move command to history at the end
-                    let cmd = self.cmd.clone();
-                    self.history.remove(&cmd);
-                    if self.history.insert(cmd).is_ok() {
-                        self.history_index = self.history.len();
-                    }
-
                     if self.cmd.len() > 0 {
+                        // Remove first command from history if full
+                        if self.history.len() == self.history.capacity() {
+                            let first = self.history.iter().next().unwrap().clone();
+                            self.history.remove(&first);
+                        }
+
+                        // Add or move command to history at the end
+                        let cmd = self.cmd.clone();
+                        self.history.remove(&cmd);
+                        if self.history.insert(cmd).is_ok() {
+                            self.history_index = self.history.len();
+                        }
+
                         let line = self.cmd.clone();
                         let args: Vec<&str, U256> = line.split_whitespace().collect();
                         match args[0] {
