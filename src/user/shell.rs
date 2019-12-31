@@ -53,7 +53,7 @@ impl Shell {
                             "m" | "move" | "mv"                 => user::r#move::main(&args),
                             "n"                                 => print!("?\n"),
                             "o"                                 => print!("?\n"),
-                            "p" | "print"                       => print!("TODO\n"),
+                            "p" | "print" | "echo"              => user::print::main(&args),
                             "q" | "quit" | "exit"               => { return },
                             "r" | "read" | "cat"                => user::read::main(&args),
                             "s"                                 => print!("?\n"),
