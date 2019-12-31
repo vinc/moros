@@ -43,6 +43,7 @@ move a.txt b.txt
 ```
 p "Hi"
 print "Hi"
+echo "Hi"
 ```
 
 **Read** files:
@@ -50,6 +51,7 @@ print "Hi"
 ```
 r a.txt
 read a.txt
+cat a.txt
 ```
 
 **Write** files:
