@@ -42,4 +42,24 @@ pub fn get_char() -> char {
     }
 }
 
+pub fn get_line() -> String<U256> {
+    loop {
+        halt();
+        let res = interrupts::without_interrupts(|| {
+            let mut stdin = STDIN.lock();
+            match stdin.chars().next_back() {
+                Some('\n') => {
+                    let line = stdin.clone();
+                    stdin.clear();
+                    Some(line)
+                }
+                _ => {
+                    None
+                }
+            }
+        });
+        if let Some(line) = res {
+            return line;
+        }
+    }
 }

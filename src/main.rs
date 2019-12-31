@@ -11,6 +11,8 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     moros::init();
     kernel::vga::clear_screen();
     print_banner();
+    print!("\n\n");
+    user::login::login();
 
     let mut shell = user::shell::Shell::new();
     shell.run();
