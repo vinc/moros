@@ -18,14 +18,13 @@ impl Shell {
     }
 
     pub fn run(&mut self) {
-        self.print_banner();
         self.print_prompt();
         loop {
             match kernel::console::get_char() {
-                None => {
+                '\0' => {
                     continue;
                 }
-                Some('\n') => {
+                '\n' => {
                     print!("\n");
                     if self.history.len() == self.history.capacity() {
                         let first = self.history.iter().next().unwrap().clone();
@@ -56,7 +55,7 @@ impl Shell {
                             "o"                                 => print!("?\n"),
                             "p" | "print"                       => print!("TODO\n"),
                             "q" | "quit" | "exit"               => { return },
-                            "r" | "read"                        => user::read::main(&args),
+                            "r" | "read" | "cat"                => user::read::main(&args),
                             "s"                                 => print!("?\n"),
                             "t" | "tag"                         => print!("TODO\n"),
                             "u"                                 => print!("?\n"),
@@ -68,19 +67,20 @@ impl Shell {
                             "rd" | "read-dir"                   => print!("TODO\n"),
                             "wd" | "write-dir" | "mkdir"        => print!("TODO\n"),
                             "sleep"                             => user::sleep::main(&args),
+                            "clear"                             => kernel::vga::clear_screen(),
                             _ => print!("?\n"),
                         }
                         self.cmd.clear();
                     }
                     self.print_prompt();
                 },
-                Some('\x08') => { // Backspace
+                '\x08' => { // Backspace
                     if self.cmd.len() > 0 {
                         self.cmd.pop();
                         print!("\x08");
                     }
                 },
-                Some('↑') => { // Arrow up
+                '↑' => { // Arrow up
                     if self.history.len() > 0 {
                         if self.history_index > 0 {
                             self.history_index -= 1;
@@ -95,7 +95,7 @@ impl Shell {
                         }
                     }
                 },
-                Some('↓') => { // Arrow down
+                '↓' => { // Arrow down
                     if self.history.len() > 0 {
                         if self.history_index < self.history.len() - 1 {
                             self.history_index += 1;
@@ -110,25 +110,15 @@ impl Shell {
                         }
                     }
                 },
-                Some(c) => {
-                    if self.cmd.push(c).is_ok() {
-                        print!("{}", c);
+                c => {
+                    if c.is_ascii_graphic() || c.is_ascii_whitespace() {
+                        if self.cmd.push(c).is_ok() {
+                            print!("{}", c);
+                        }
                     }
                 },
             }
         }
-    }
-
-    fn print_banner(&self) {
-        print!("                                      _M_\n");
-        print!("                                     (o o)\n");
-        print!("+--------------------------------ooO--(_)--Ooo---------------------------------+\n");
-        print!("|                                                                              |\n");
-        print!("|                                    MOROS                                     |\n");
-        print!("|                                                                              |\n");
-        print!("|                       Omniscient Rust Operating System                       |\n");
-        print!("|                                                                              |\n");
-        print!("+------------------------------------------------------------------------------+\n");
     }
 
     fn print_prompt(&self) {

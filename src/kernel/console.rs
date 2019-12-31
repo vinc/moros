@@ -1,13 +1,13 @@
 use lazy_static::lazy_static;
 use pc_keyboard::{KeyCode, DecodedKey};
-use spin::RwLock;
+use spin::Mutex;
 use heapless::String;
 use heapless::consts::*;
 use crate::kernel::sleep::halt;
 use x86_64::instructions::interrupts;
 
 lazy_static! {
-    pub static ref STDIN: RwLock<String<U256>> = RwLock::new(String::new());
+    pub static ref STDIN: Mutex<String<U256>> = Mutex::new(String::new());
 }
 
 pub fn key_handle(key: DecodedKey) {
@@ -17,26 +17,29 @@ pub fn key_handle(key: DecodedKey) {
         DecodedKey::RawKey(KeyCode::ArrowDown) => '↓',
         DecodedKey::RawKey(_) => '\0'
     };
-    let mut stdin = STDIN.write();
+    let mut stdin = STDIN.lock();
     stdin.push(c);
 }
 
-// TODO: Add timeout
-pub fn get_char() -> Option<char> {
-    let mut c = None;
-
-    while c.is_none() {
+pub fn get_char() -> char {
+    loop {
         halt();
-        interrupts::without_interrupts(|| {
-            let stdin = STDIN.read();
-            c = stdin.chars().next_back();
+        let res = interrupts::without_interrupts(|| {
+            let mut stdin = STDIN.lock();
+            match stdin.chars().next_back() {
+                Some(c) => {
+                    stdin.clear();
+                    Some(c)
+                },
+                _ => {
+                    None
+                }
+            }
         });
+        if let Some(c) = res {
+            return c;
+        }
     }
+}
 
-    interrupts::without_interrupts(|| {
-        let mut stdin = STDIN.write();
-        stdin.clear();
-    });
-
-    c
 }
