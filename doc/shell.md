@@ -5,9 +5,7 @@
 The main commands have a long name, a one-letter alias, and may have
 additional common aliases.
 
-### Alias
-
-Alias commands:
+**Alias** commands:
 
 ```
 alias a alias
@@ -15,69 +13,57 @@ a d delete
 alias rm delete
 ```
 
-### Delete
-
-Delete file:
+**Delete** files:
 
 ```
-d /usr/v/a.txt
-del /usr/v/a.txt
-delete /usr/v/a.txt
-rm /usr/v/a.txt
+d a.txt
+del a.txt
+delete a.txt
+rm a.txt
 ```
 
-### Copy
-
-Copy file:
+**Copy** files:
 
 ```
-c /usr/v/a.txt /usr/v/b.txt
-cp /usr/v/a.txt /usr/v/b.txt
-copy /usr/v/a.txt /usr/v/b.txt
+c a.txt b.txt
+cp a.txt b.txt
+copy a.txt b.txt
 ```
 
-### Move
-
-Move file:
+**Move** files:
 
 ```
-m /usr/v/a.txt /usr/v/b.txt
-mv /usr/v/a.txt /usr/v/b.txt
-move /usr/v/a.txt /usr/v/b.txt
+m a.txt b.txt
+mv a.txt b.txt
+move a.txt b.txt
 ```
 
-### Print
-
-Print string:
+**Print** strings:
 
 ```
 p "Hi"
 print "Hi"
 ```
 
-### Read
-
-Read file:
+**Read** files:
 
 ```
-r /usr/v/a.txt
-read /usr/v/a.txt
+r a.txt
+read a.txt
 ```
 
-### Write
-
-Write file:
+**Write** files:
 
 ```
-w /usr/v/a.txt
-write /usr/v/a.txt
+w a.txt
+write a.txt
 ```
 
-Write dir:
+**Write** dirs:
 
 ```
-w /usr/v/ # note the trailing slash
-wd /usr/v
+w /usr/v/ # with a trailing slash to create a dir instead of a file
+wd /usr/v # no ambiguity here so no trailing slash required
 write-dir /usr/v
 ```
 
@@ -86,47 +72,48 @@ write-dir /usr/v
 The `&` and `|` symbols are used only for combiners so there's no needs to
 double them.
 
-### And
+**And combiner:**
 
 ```
-r /usr/v/a.txt & r /usr/v/b.txt
+r a.txt & r b.txt
 ```
 
-### Or
+**Or combiners:**
 
 ```
-r /usr/v/a.txt | r /usr/v/b.txt
+r a.txt | r b.txt
 ```
 
 ## Pipes
 
-The `|` symbol from UNIX is replaced by `>`, and `>` is replaced by `> w`.
-An additional standard stream stdnil(3) is added to simplify writing
-to `/dev/null`.
+The pipe symbol `|` from UNIX is replaced by `-->`, shortened to `>`, and `>`
+is replaced by `--> write` or `> w` in short. An additional standard stream
+stdnil(3) is added to simplify writing to `/dev/null`.
 
 Read file A and redirect stdout(1) to stdin(0) of write file B:
 
 ```
-r /usr/v/a.txt > w /usr/v/b.txt
-r /usr/v/a.txt 1>0 w /usr/v/b.txt
+r a.txt > w b.txt
+r a.txt 1>0 w b.txt # with implicit streams
+r a.txt --> w b.txt # with arrow
 ```
 
 Read file A and redirect stderr(2) to stdin(0) of write file B:
 
 ```
-r /usr/v/a.txt 2> w /usr/v/b.txt
-r /usr/v/a.txt 2>0 w /usr/v/b.txt
+r a.txt 2> w b.txt
+r a.txt 2>0 w b.txt
 ```
 
 Suppress errors by redirecting stderr(2) to stdnil(3):
 
 ```
-r /usr/v/a.txt 2>3 w /usr/v/b.txt
+r a.txt 2>3 w b.txt
 ```
 
 Redirect stdout(1) to stdin(0) and stderr(2) to stdnil(3):
 
 ```
-r /usr/v/a.txt > 2>3 w /usr/v/b.txt
-r /usr/v/a.txt 1>0 2>3 w /usr/v/b.txt
+r a.txt > 2>3 w b.txt
+r a.txt 1>0 2>3 w b.txt
 ```
