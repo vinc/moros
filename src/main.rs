@@ -11,13 +11,11 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     moros::init();
     kernel::vga::clear_screen();
     print_banner();
-    print!("\n\n");
-    user::login::login();
-
-    let mut shell = user::shell::Shell::new();
-    shell.run();
-
-    loop { kernel::sleep::sleep(10.0) }
+    loop {
+        user::login::login();
+        let mut shell = user::shell::Shell::new();
+        shell.run();
+    }
 }
 
 #[panic_handler]
@@ -43,4 +41,5 @@ fn print_banner() {
     print!("              |                     (v{})                     |              \n", env!("CARGO_PKG_VERSION"));
     print!("              |                                                  |              \n");
     print!("              +--------------------------------------------------+              \n");
+    print!("\n");
 }

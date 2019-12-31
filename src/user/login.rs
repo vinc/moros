@@ -1,11 +1,12 @@
 use crate::{print, kernel};
 
 pub fn login() {
-    print!("Username: ");
+    print!("\nUsername: ");
     let username = kernel::console::get_line();
     if username != "root\n" {
         kernel::sleep::sleep(1.0);
         login();
+        return;
     }
 
     print!("Password: ");

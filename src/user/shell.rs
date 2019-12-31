@@ -20,9 +20,7 @@ impl Shell {
     pub fn run(&mut self) {
         self.print_prompt();
         loop {
-            kernel::console::disable_echo();
             let c = kernel::console::get_char();
-            kernel::console::enable_echo();
             match c {
                 '\0' => {
                     continue;
