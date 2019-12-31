@@ -1,6 +1,4 @@
-use crate::print;
-use crate::kernel::fs;
-use crate::user;
+use crate::{print, kernel, user};
 
 pub fn main(args: &[&str]) {
     if args.len() != 2 {
@@ -15,7 +13,7 @@ pub fn main(args: &[&str]) {
         "/dev/clk/uptime" => user::uptime::main(&["uptime", "--raw"]),
         "/sys/version" => print!("MOROS v{}\n", env!("CARGO_PKG_VERSION")),
         _ => {
-            if let Some(file) = fs::File::open(pathname) {
+            if let Some(file) = kernel::fs::File::open(pathname) {
                 print!("{}\n", file.read());
             } else {
                 print!("File not found '{}'\n", pathname);

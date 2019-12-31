@@ -1,13 +1,28 @@
+use crate::{print, kernel};
+use heapless::String;
+use heapless::consts::*;
 use lazy_static::lazy_static;
 use pc_keyboard::{KeyCode, DecodedKey};
 use spin::Mutex;
-use heapless::String;
-use heapless::consts::*;
-use crate::kernel::sleep::halt;
 use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref STDIN: Mutex<String<U256>> = Mutex::new(String::new());
+    pub static ref ECHO: Mutex<bool> = Mutex::new(true);
+}
+
+pub fn disable_echo() {
+    let mut echo = ECHO.lock();
+    *echo = false;
+}
+
+pub fn enable_echo() {
+    let mut echo = ECHO.lock();
+    *echo = true;
+}
+
+pub fn is_echo_enabled() -> bool {
+    *ECHO.lock()
 }
 
 pub fn key_handle(key: DecodedKey) {
@@ -19,11 +34,14 @@ pub fn key_handle(key: DecodedKey) {
     };
     let mut stdin = STDIN.lock();
     stdin.push(c);
+    if is_echo_enabled() {
+        print!("{}", c);
+    }
 }
 
 pub fn get_char() -> char {
     loop {
-        halt();
+        kernel::sleep::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
@@ -44,7 +62,7 @@ pub fn get_char() -> char {
 
 pub fn get_line() -> String<U256> {
     loop {
-        halt();
+        kernel::sleep::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
