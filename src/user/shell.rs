@@ -74,6 +74,7 @@ impl Shell {
                             "wd" | "write-dir" | "mkdir"        => print!("TODO\n"),
                             "sleep"                             => user::sleep::main(&args),
                             "clear"                             => kernel::vga::clear_screen(),
+                            // "date"                              => user::date::main(&args),
                             _ => print!("?\n"),
                         }
                         self.cmd.clear();

@@ -25,18 +25,22 @@ pub fn print_time_in_days(time: f64) {
 }
 
 pub fn main(args: &[&str]) {
-    if args.len() == 2 && args[1] == "--iso-8601" {
+    if args.len() == 2 && args[1] == "--raw" {
+        print!("{:.6}\n", clock::clock_realtime());
+    } else if args.len() == 2 && args[1] == "--metric" {
+        print_time_in_seconds(clock::clock_realtime());
+    } else if args.len() == 2 && args[1] == "--iso-8601" {
         let rtc = CMOS::new().rtc();
         print!(
             "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}\n",
             rtc.year, rtc.day, rtc.month,
             rtc.hour, rtc.minute, rtc.second
         );
-    } else if args.len() == 2 && args[1] == "--raw" {
-        print!("{:.6}\n", clock::clock_realtime());
-    } else if args.len() == 2 && args[1] == "--metric" {
-        print_time_in_seconds(clock::clock_realtime());
     } else {
-        print_time_in_days(clock::clock_realtime() / 86400.0);
+        let rtc = CMOS::new().rtc();
+        let seconds_since_midnight = rtc.hour as f64 * 3600.0
+                                   + rtc.minute as f64 * 60.0
+                                   + rtc.second as f64;
+        print_time_in_days(seconds_since_midnight / 86400.0);
     }
 }
