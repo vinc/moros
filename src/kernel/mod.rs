@@ -1,4 +1,5 @@
 pub mod clock;
+pub mod console;
 pub mod fs;
 pub mod gdt;
 pub mod interrupts;

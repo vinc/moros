@@ -2,14 +2,16 @@
 #![no_main]
 
 use moros::print;
-use moros::user::shell;
+use moros::user::shell::Shell;
 use core::panic::PanicInfo;
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     moros::init();
-    shell::print_banner();
-    shell::print_prompt();
+
+    let mut shell = Shell::new();
+    shell.run();
+
     moros::hlt_loop();
 }
 
