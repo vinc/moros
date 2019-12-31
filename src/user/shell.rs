@@ -67,6 +67,7 @@ impl Shell {
                             "z"                                 => print!("?\n"),
                             "rd" | "read-dir"                   => print!("TODO\n"),
                             "wd" | "write-dir" | "mkdir"        => print!("TODO\n"),
+                            "sleep"                             => user::sleep::main(&args),
                             _ => print!("?\n"),
                         }
                         self.cmd.clear();

@@ -1,22 +1,25 @@
 #![no_std]
 #![no_main]
 
-use moros::print;
-use moros::user::shell::Shell;
+use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use moros::print;
+use moros::kernel::sleep::sleep;
+use moros::user::shell::Shell;
 
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
+entry_point!(main);
+
+fn main(_boot_info: &'static BootInfo) -> ! {
     moros::init();
 
     let mut shell = Shell::new();
     shell.run();
 
-    moros::hlt_loop();
+    loop { sleep(10.0) }
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     print!("{}\n", info);
-    moros::hlt_loop();
+    loop { sleep(10.0) }
 }

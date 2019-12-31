@@ -3,7 +3,8 @@ use pc_keyboard::{KeyCode, DecodedKey};
 use spin::RwLock;
 use heapless::String;
 use heapless::consts::*;
-use x86_64::instructions::{interrupts, hlt};
+use crate::kernel::sleep::halt;
+use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref STDIN: RwLock<String<U256>> = RwLock::new(String::new());
@@ -25,7 +26,7 @@ pub fn get_char() -> Option<char> {
     let mut c = None;
 
     while c.is_none() {
-        hlt();
+        halt();
         interrupts::without_interrupts(|| {
             let stdin = STDIN.read();
             c = stdin.chars().next_back();
