@@ -226,7 +226,6 @@ pub fn _print(args: fmt::Arguments) {
 }
 
 pub fn clear_screen() {
-    use core::fmt::Write;
     use x86_64::instructions::interrupts;
 
     interrupts::without_interrupts(|| {

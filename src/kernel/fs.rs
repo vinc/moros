@@ -36,7 +36,7 @@ impl File {
 
     pub fn write(&mut self, chunk: &str) {
         let mut fs = FS.lock();
-        self.contents.push_str(chunk);
-        fs.insert(String::from(self.pathname.clone()), self.clone());
+        self.contents.push_str(chunk).ok(); // TODO: File full
+        fs.insert(String::from(self.pathname.clone()), self.clone()).ok(); // TODO: Disk full
     }
 }

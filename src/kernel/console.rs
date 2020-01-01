@@ -62,8 +62,7 @@ pub fn key_handle(key: DecodedKey) {
             }
         }
     } else {
-        stdin.push(c);
-        if is_echo_enabled() {
+        if stdin.push(c).is_ok() && is_echo_enabled() {
             print!("{}", c);
         }
     }
