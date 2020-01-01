@@ -1,5 +1,6 @@
 pub mod clear;
 pub mod date;
+pub mod editor;
 pub mod login;
 pub mod print;
 pub mod r#move;

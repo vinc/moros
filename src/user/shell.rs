@@ -113,7 +113,7 @@ impl Shell {
             "b"                                 => ExitCode::CommandUnknown,
             "c" | "copy" | "cp"                 => ExitCode::CommandUnknown,
             "d" | "del" | "delete" | "rm"       => ExitCode::CommandUnknown,
-            "e" | "edit"                        => ExitCode::CommandUnknown,
+            "e" | "edit" | "editor"             => user::editor::main(&args),
             "f" | "find"                        => ExitCode::CommandUnknown,
             "g" | "gd" | "go" | "go-dir" | "cd" => ExitCode::CommandUnknown,
             "h" | "help"                        => ExitCode::CommandUnknown,
