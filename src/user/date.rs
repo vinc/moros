@@ -1,5 +1,4 @@
-use crate::print;
-use crate::kernel::clock;
+use crate::{print, kernel, user};
 use crate::kernel::cmos::CMOS;
 
 pub fn print_time_in_seconds(time: f64) {
@@ -24,11 +23,11 @@ pub fn print_time_in_days(time: f64) {
     }
 }
 
-pub fn main(args: &[&str]) {
+pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() == 2 && args[1] == "--raw" {
-        print!("{:.6}\n", clock::clock_realtime());
+        print!("{:.6}\n", kernel::clock::clock_realtime());
     } else if args.len() == 2 && args[1] == "--metric" {
-        print_time_in_seconds(clock::clock_realtime());
+        print_time_in_seconds(kernel::clock::clock_realtime());
     } else if args.len() == 2 && args[1] == "--iso-8601" {
         let rtc = CMOS::new().rtc();
         print!(
@@ -43,4 +42,5 @@ pub fn main(args: &[&str]) {
                                    + rtc.second as f64;
         print_time_in_days(seconds_since_midnight / 86400.0);
     }
+    user::shell::ExitCode::CommandSuccessful
 }

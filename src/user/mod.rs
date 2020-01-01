@@ -1,3 +1,4 @@
+pub mod clear;
 pub mod date;
 pub mod login;
 pub mod print;

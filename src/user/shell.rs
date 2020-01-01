@@ -2,6 +2,14 @@ use crate::{print, user, kernel};
 use heapless::{String, FnvIndexSet, Vec};
 use heapless::consts::*;
 
+#[repr(u8)]
+pub enum ExitCode {
+    CommandSuccessful = 0,
+    CommandUnknown    = 1,
+    CommandError      = 2,
+    ShellExit         = 255,
+}
+
 pub struct Shell {
     cmd: String<U256>,
     history: FnvIndexSet<String<U256>, U256>,
@@ -17,7 +25,7 @@ impl Shell {
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> user::shell::ExitCode {
         self.print_prompt();
         loop {
             let c = kernel::console::get_char();
@@ -42,40 +50,10 @@ impl Shell {
                         }
 
                         let line = self.cmd.clone();
-                        let args: Vec<&str, U256> = line.split_whitespace().collect();
-                        match args[0] {
-                            "a" | "alias"                       => print!("TODO\n"),
-                            "b"                                 => print!("?\n"),
-                            "c" | "copy" | "cp"                 => print!("TODO\n"),
-                            "d" | "del" | "delete" | "rm"       => print!("TODO\n"),
-                            "e" | "edit"                        => print!("TODO\n"),
-                            "f" | "find"                        => print!("TODO\n"),
-                            "g" | "gd" | "go" | "go-dir" | "cd" => print!("TODO\n"),
-                            "h" | "help"                        => print!("RTFM!\n"),
-                            "i"                                 => print!("?\n"),
-                            "j" | "jd" | "jump" | "jump-dir"    => print!("TODO\n"),
-                            "k" | "kill"                        => print!("TODO\n"),
-                            "l" | "list" | "ls"                 => print!("TODO\n"), // same as `rd`
-                            "m" | "move" | "mv"                 => user::r#move::main(&args),
-                            "n"                                 => print!("?\n"),
-                            "o"                                 => print!("?\n"),
-                            "p" | "print" | "echo"              => user::print::main(&args),
-                            "q" | "quit" | "exit"               => { return },
-                            "r" | "read" | "cat"                => user::read::main(&args),
-                            "s"                                 => print!("?\n"),
-                            "t" | "tag"                         => print!("TODO\n"),
-                            "u"                                 => print!("?\n"),
-                            "v"                                 => print!("?\n"),
-                            "w" | "write"                       => user::write::main(&args),
-                            "x"                                 => print!("?\n"),
-                            "y"                                 => print!("?\n"),
-                            "z"                                 => print!("?\n"),
-                            "rd" | "read-dir"                   => print!("TODO\n"),
-                            "wd" | "write-dir" | "mkdir"        => print!("TODO\n"),
-                            "sleep"                             => user::sleep::main(&args),
-                            "clear"                             => kernel::vga::clear_screen(),
-                            // "date"                              => user::date::main(&args),
-                            _ => print!("?\n"),
+                        match self.exec(&line) {
+                            ExitCode::CommandSuccessful => {},
+                            ExitCode::ShellExit => { return ExitCode::CommandSuccessful },
+                            _ => { print!("?\n") },
                         }
                         self.cmd.clear();
                     }
@@ -127,6 +105,44 @@ impl Shell {
             }
         }
     }
+
+    pub fn exec(&self, cmd: &str) -> ExitCode {
+        let args: Vec<&str, U256> = cmd.split_whitespace().collect();
+        match args[0] {
+            "a" | "alias"                       => ExitCode::CommandUnknown,
+            "b"                                 => ExitCode::CommandUnknown,
+            "c" | "copy" | "cp"                 => ExitCode::CommandUnknown,
+            "d" | "del" | "delete" | "rm"       => ExitCode::CommandUnknown,
+            "e" | "edit"                        => ExitCode::CommandUnknown,
+            "f" | "find"                        => ExitCode::CommandUnknown,
+            "g" | "gd" | "go" | "go-dir" | "cd" => ExitCode::CommandUnknown,
+            "h" | "help"                        => ExitCode::CommandUnknown,
+            "i"                                 => ExitCode::CommandUnknown,
+            "j" | "jd" | "jump" | "jump-dir"    => ExitCode::CommandUnknown,
+            "k" | "kill"                        => ExitCode::CommandUnknown,
+            "l" | "list" | "ls"                 => ExitCode::CommandUnknown,
+            "m" | "move" | "mv"                 => user::r#move::main(&args),
+            "n"                                 => ExitCode::CommandUnknown,
+            "o"                                 => ExitCode::CommandUnknown,
+            "p" | "print" | "echo"              => user::print::main(&args),
+            "q" | "quit" | "exit"               => ExitCode::ShellExit,
+            "r" | "read" | "cat"                => user::read::main(&args),
+            "s"                                 => ExitCode::CommandUnknown,
+            "t" | "tag"                         => ExitCode::CommandUnknown,
+            "u"                                 => ExitCode::CommandUnknown,
+            "v"                                 => ExitCode::CommandUnknown,
+            "w" | "write"                       => user::write::main(&args),
+            "x"                                 => ExitCode::CommandUnknown,
+            "y"                                 => ExitCode::CommandUnknown,
+            "z"                                 => ExitCode::CommandUnknown,
+            "rd" | "read-dir"                   => ExitCode::CommandUnknown,
+            "wd" | "write-dir" | "mkdir"        => ExitCode::CommandUnknown,
+            "sleep"                             => user::sleep::main(&args),
+            "clear"                             => user::clear::main(&args),
+            _                                   => ExitCode::CommandUnknown,
+        }
+    }
+
 
     fn print_prompt(&self) {
         print!("\n> ");

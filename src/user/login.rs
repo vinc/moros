@@ -1,12 +1,12 @@
-use crate::{print, kernel};
+use crate::{print, kernel, user};
 
-pub fn login() {
+// TODO: Add max number of attempts
+pub fn login() -> user::shell::ExitCode {
     print!("\nUsername: ");
     let username = kernel::console::get_line();
     if username != "root\n" {
         kernel::sleep::sleep(1.0);
-        login();
-        return;
+        return login();
     }
 
     print!("Password: ");
@@ -16,6 +16,7 @@ pub fn login() {
     print!("\n");
     if password != "root\n" {
         kernel::sleep::sleep(1.0);
-        login();
+        return login();
     }
+    user::shell::ExitCode::CommandSuccessful
 }

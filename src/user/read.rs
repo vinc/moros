@@ -1,22 +1,33 @@
 use crate::{print, kernel, user};
 
-pub fn main(args: &[&str]) {
+pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {
-        return;
+        return user::shell::ExitCode::CommandError;
     }
 
     let pathname = args[1];
 
     match pathname {
-        "/dev/rtc" => user::date::main(&["date", "--iso-8601"]),
-        "/dev/clk/realtime" => user::date::main(&["date", "--raw"]),
-        "/dev/clk/uptime" => user::uptime::main(&["uptime", "--raw"]),
-        "/sys/version" => print!("MOROS v{}\n", env!("CARGO_PKG_VERSION")),
+        "/dev/rtc" => {
+            user::date::main(&["date", "--iso-8601"])
+        },
+        "/dev/clk/realtime" => {
+            user::date::main(&["date", "--raw"])
+        },
+        "/dev/clk/uptime" => {
+            user::uptime::main(&["uptime", "--raw"])
+        },
+        "/sys/version" => {
+            print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
+            user::shell::ExitCode::CommandSuccessful
+        },
         _ => {
             if let Some(file) = kernel::fs::File::open(pathname) {
                 print!("{}\n", file.read());
+                user::shell::ExitCode::CommandSuccessful
             } else {
                 print!("File not found '{}'\n", pathname);
+                user::shell::ExitCode::CommandError
             }
         }
     }
