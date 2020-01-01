@@ -1,5 +1,9 @@
 use crate::{print, kernel, user};
 
+pub fn main(_args: &[&str]) -> user::shell::ExitCode {
+    login()
+}
+
 // TODO: Add max number of attempts
 pub fn login() -> user::shell::ExitCode {
     print!("\nUsername: ");

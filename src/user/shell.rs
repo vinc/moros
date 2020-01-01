@@ -140,10 +140,10 @@ impl Shell {
             "shell"                             => user::shell::main(&args),
             "sleep"                             => user::sleep::main(&args),
             "clear"                             => user::clear::main(&args),
+            "login"                             => user::login::main(&args),
             _                                   => ExitCode::CommandUnknown,
         }
     }
-
 
     fn print_prompt(&self) {
         print!("\n> ");
