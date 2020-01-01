@@ -160,7 +160,9 @@ pub fn main(args: &[&str]) -> ExitCode {
             let pathname = args[1];
             if let Some(file) = kernel::fs::File::open(pathname) {
                 for line in file.read().split("\n") {
-                    shell.exec(line);
+                    if line.len() > 0 {
+                        shell.exec(line);
+                    }
                 }
                 ExitCode::CommandSuccessful
             } else {

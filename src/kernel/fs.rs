@@ -4,13 +4,13 @@ use heapless::consts::*;
 use spin::Mutex;
 
 lazy_static! {
-    pub static ref FS: Mutex<LinearMap<String<U32>, File, U1024>> = Mutex::new(LinearMap::new());
+    pub static ref FS: Mutex<LinearMap<String<U32>, File, U2048>> = Mutex::new(LinearMap::new());
 }
 
 #[derive(Clone)]
 pub struct File {
     pathname: String<U32>,
-    contents: String<U1024>,
+    contents: String<U2048>,
 }
 
 impl File {
@@ -30,7 +30,7 @@ impl File {
         }
     }
 
-    pub fn read(&self) -> String<U1024> {
+    pub fn read(&self) -> String<U2048> {
         self.contents.clone()
     }
 
