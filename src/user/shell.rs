@@ -137,6 +137,7 @@ impl Shell {
             "z"                                 => ExitCode::CommandUnknown,
             "rd" | "read-dir"                   => ExitCode::CommandUnknown,
             "wd" | "write-dir" | "mkdir"        => ExitCode::CommandUnknown,
+            "shell"                             => user::shell::main(&args),
             "sleep"                             => user::sleep::main(&args),
             "clear"                             => user::clear::main(&args),
             _                                   => ExitCode::CommandUnknown,
@@ -146,5 +147,29 @@ impl Shell {
 
     fn print_prompt(&self) {
         print!("\n> ");
+    }
+}
+
+pub fn main(args: &[&str]) -> ExitCode {
+    let mut shell = Shell::new();
+    match args.len() {
+        1 => {
+            return shell.run();
+        },
+        2 => {
+            let pathname = args[1];
+            if let Some(file) = kernel::fs::File::open(pathname) {
+                for line in file.read().split("\n") {
+                    shell.exec(line);
+                }
+                ExitCode::CommandSuccessful
+            } else {
+                print!("File not found '{}'\n", pathname);
+                ExitCode::CommandError
+            }
+        },
+        _ => {
+            ExitCode::CommandError
+        },
     }
 }
