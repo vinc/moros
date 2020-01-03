@@ -1,3 +1,4 @@
+pub mod base64;
 pub mod clear;
 pub mod date;
 pub mod editor;
