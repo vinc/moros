@@ -61,8 +61,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut InterruptSt
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: &mut InterruptStackFrame) {
-    use crate::kernel::layouts;
-    use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl};
+    use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl, layouts};
     use spin::Mutex;
     use x86_64::instructions::port::Port;
 
