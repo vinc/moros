@@ -141,6 +141,7 @@ impl Shell {
             "sleep"                             => user::sleep::main(&args),
             "clear"                             => user::clear::main(&args),
             "login"                             => user::login::main(&args),
+            "base64"                            => user::base64::main(&args),
             _                                   => ExitCode::CommandUnknown,
         }
     }

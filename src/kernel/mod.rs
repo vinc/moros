@@ -4,5 +4,6 @@ pub mod console;
 pub mod fs;
 pub mod gdt;
 pub mod interrupts;
+pub mod random;
 pub mod sleep;
 pub mod vga;
