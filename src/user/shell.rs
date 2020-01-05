@@ -65,6 +65,9 @@ impl Shell {
                         print!("\x08");
                     }
                 },
+                '\x03' => { // Ctrl C
+                    return ExitCode::CommandSuccessful;
+                },
                 '↑' => { // Arrow up
                     if self.history.len() > 0 {
                         if self.history_index > 0 {
