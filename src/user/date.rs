@@ -32,7 +32,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         let rtc = CMOS::new().rtc();
         print!(
             "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}\n",
-            rtc.year, rtc.day, rtc.month,
+            rtc.year, rtc.month, rtc.day,
             rtc.hour, rtc.minute, rtc.second
         );
     } else {
