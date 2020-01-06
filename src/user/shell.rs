@@ -144,6 +144,10 @@ impl Shell {
     pub fn exec(&self, cmd: &str) -> ExitCode {
         let args = self.parse(cmd);
 
+        if args.len() == 0 {
+            return ExitCode::CommandSuccessful;
+        }
+
         match args[0] {
             "a" | "alias"                       => ExitCode::CommandUnknown,
             "b"                                 => ExitCode::CommandUnknown,
