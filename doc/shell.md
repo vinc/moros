@@ -8,9 +8,15 @@ additional common aliases.
 **Alias** commands:
 
 ```
-alias a alias
-a d delete
+alias d delete
 alias rm delete
+```
+
+**Append** to files:
+
+```
+a a.txt
+append a.txt
 ```
 
 **Delete** files:
