@@ -109,8 +109,41 @@ impl Shell {
         }
     }
 
+    pub fn parse<'a>(&self, cmd: &'a str) -> Vec<&'a str, U256> {
+        //let args: Vec<&str, U256> = cmd.split_whitespace().collect();
+        let mut args: Vec<&str, U256> = Vec::new();
+        let mut i = 0;
+        let mut n = cmd.len();
+        let mut is_quote = false;
+
+        for (j, c) in cmd.char_indices() {
+            if c == ' ' && !is_quote {
+                if i != j {
+                    args.push(&cmd[i..j]).unwrap();
+                }
+                i = j + 1;
+            } else if c == '"' {
+                is_quote = !is_quote;
+                if !is_quote {
+                    args.push(&cmd[i..j]).unwrap();
+                }
+                i = j + 1;
+            }
+        }
+
+        if i < n {
+            if is_quote {
+                n -= 1;
+            }
+            args.push(&cmd[i..n]).unwrap();
+        }
+
+        args
+    }
+
     pub fn exec(&self, cmd: &str) -> ExitCode {
-        let args: Vec<&str, U256> = cmd.split_whitespace().collect();
+        let args = self.parse(cmd);
+
         match args[0] {
             "a" | "alias"                       => ExitCode::CommandUnknown,
             "b"                                 => ExitCode::CommandUnknown,
