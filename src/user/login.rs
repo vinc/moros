@@ -78,7 +78,7 @@ pub fn hash(password: &str) -> String<U1024> {
 
     // Generating salt
     for i in 0..2 {
-        let num = kernel::random::rand64().unwrap();
+        let num = kernel::random::rand_u64();
         let buf = num.to_be_bytes();
         let n = buf.len();
         for j in 0..n {
