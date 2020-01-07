@@ -7,8 +7,8 @@ use x86_64::instructions::port::Port;
 lazy_static! {
     // NOTE: Replace `Dvorak104Key` with `Us104Key` for Qwerty keyboards
     // TODO: Support layout change from userspace
-    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Dvorak104Key, ScancodeSet1>> = Mutex::new(
-        Keyboard::new(layouts::Dvorak104Key, ScancodeSet1, HandleControl::MapLettersToUnicode)
+    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> = Mutex::new(
+        Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::MapLettersToUnicode)
     );
 }
 

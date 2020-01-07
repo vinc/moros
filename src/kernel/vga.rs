@@ -9,6 +9,7 @@ lazy_static! {
     ///
     /// Used by the `print!` and `println!` macros.
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        cursor: [0; 2],
         col_pos: 0,
         row_pos: 0,
         color_code: ColorCode::new(Color::LightGray, Color::Black),
@@ -75,6 +76,7 @@ struct Buffer {
 /// Wraps lines at `BUFFER_WIDTH`. Supports newline characters and implements the
 /// `core::fmt::Write` trait.
 pub struct Writer {
+    cursor: [usize; 2],
     col_pos: usize,
     row_pos: usize,
     color_code: ColorCode,
@@ -82,15 +84,27 @@ pub struct Writer {
 }
 
 impl Writer {
-    fn cursor_position(&self) -> usize {
-        let x = self.col_pos;
-        let y = self.row_pos;
-        x + y * BUFFER_WIDTH
+    pub fn writer_position(&self) -> (usize, usize) {
+        (self.col_pos, self.row_pos)
+    }
+
+    pub fn set_writer_position(&mut self, x: usize, y: usize) {
+        self.col_pos = x;
+        self.row_pos = y;
+    }
+
+    pub fn cursor_position(&self) -> (usize, usize) {
+        (self.cursor[0], self.cursor[1])
+    }
+
+    pub fn set_cursor_position(&mut self, x: usize, y: usize) {
+        self.cursor = [x, y];
+        self.write_cursor();
     }
 
     // TODO: check this
     pub fn enable_cursor(&mut self) {
-        let pos = self.cursor_position();
+        let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
         let mut port_3d4 = Port::new(0x3D4);
         let mut port_3d5 = Port::new(0x3D5);
         unsafe {
@@ -104,7 +118,7 @@ impl Writer {
     }
 
     pub fn write_cursor(&mut self) {
-        let pos = self.cursor_position();
+        let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
         let mut port_3d4 = Port::new(0x3D4);
         let mut port_3d5 = Port::new(0x3D5);
         unsafe {
@@ -138,10 +152,10 @@ impl Writer {
                     self.new_line();
                 }
 
-                let x = self.col_pos;
-                let y = self.row_pos;
+                let col = self.col_pos;
+                let row = self.row_pos;
                 let color_code = self.color_code;
-                self.buffer.chars[y][x].write(ScreenChar {
+                self.buffer.chars[row][col].write(ScreenChar {
                     ascii_character: byte,
                     color_code,
                 });
@@ -167,10 +181,10 @@ impl Writer {
         if self.row_pos < BUFFER_HEIGHT - 1 {
             self.row_pos += 1;
         } else {
-            for y in 1..BUFFER_HEIGHT {
-                for x in 0..BUFFER_WIDTH {
-                    let character = self.buffer.chars[y][x].read();
-                    self.buffer.chars[y - 1][x].write(character);
+            for row in 1..BUFFER_HEIGHT {
+                for col in 0..BUFFER_WIDTH {
+                    let character = self.buffer.chars[row][col].read();
+                    self.buffer.chars[row - 1][col].write(character);
                 }
             }
             self.clear_row(BUFFER_HEIGHT - 1);
@@ -195,14 +209,14 @@ impl Writer {
         }
         self.row_pos = 0;
         self.col_pos = 0;
-        self.write_cursor();
+        self.set_cursor_position(self.col_pos, self.row_pos);
     }
 }
 
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
-        self.write_cursor();
+        self.set_cursor_position(self.col_pos, self.row_pos);
         Ok(())
     }
 }
@@ -231,4 +245,54 @@ pub fn clear_screen() {
     interrupts::without_interrupts(|| {
         WRITER.lock().clear_screen();
     });
+}
+
+pub fn clear_row() {
+    use x86_64::instructions::interrupts;
+
+    let (_, y) = writer_position();
+    interrupts::without_interrupts(|| {
+        WRITER.lock().clear_row(y);
+    });
+    set_writer_position(0, y);
+}
+
+pub fn screen_width() -> usize {
+    BUFFER_WIDTH
+}
+
+pub fn screen_height() -> usize {
+    BUFFER_HEIGHT
+}
+
+pub fn set_cursor_position(x: usize, y: usize) {
+    use x86_64::instructions::interrupts;
+
+    interrupts::without_interrupts(|| {
+        WRITER.lock().set_cursor_position(x, y);
+    });
+}
+
+pub fn set_writer_position(x: usize, y: usize) {
+    use x86_64::instructions::interrupts;
+
+    interrupts::without_interrupts(|| {
+        WRITER.lock().set_writer_position(x, y);
+    });
+}
+
+pub fn cursor_position() -> (usize, usize) {
+    use x86_64::instructions::interrupts;
+
+    interrupts::without_interrupts(|| {
+        WRITER.lock().cursor_position()
+    })
+}
+
+pub fn writer_position() -> (usize, usize) {
+    use x86_64::instructions::interrupts;
+
+    interrupts::without_interrupts(|| {
+        WRITER.lock().writer_position()
+    })
 }

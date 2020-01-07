@@ -12,6 +12,7 @@ pub enum ExitCode {
 
 pub struct Shell {
     cmd: String<U256>,
+    prompt: String<U256>,
     history: FnvIndexSet<String<U256>, U256>,
     history_index: usize,
 }
@@ -20,6 +21,7 @@ impl Shell {
     pub fn new() -> Self {
         Shell {
             cmd: String::new(),
+            prompt: String::from("> "),
             history: FnvIndexSet::new(),
             history_index: 0,
         }
@@ -33,7 +35,10 @@ impl Shell {
                 '\0' => {
                     continue;
                 }
-                '\n' => {
+                '\x03' => { // Ctrl C
+                    return ExitCode::CommandSuccessful;
+                },
+                '\n' => { // Newline
                     print!("\n");
                     if self.cmd.len() > 0 {
                         // Remove first command from history if full
@@ -59,27 +64,15 @@ impl Shell {
                     }
                     self.print_prompt();
                 },
-                '\x08' => { // Backspace
-                    if self.cmd.len() > 0 {
-                        self.cmd.pop();
-                        print!("\x08");
-                    }
-                },
-                '\x03' => { // Ctrl C
-                    return ExitCode::CommandSuccessful;
-                },
                 '↑' => { // Arrow up
                     if self.history.len() > 0 {
                         if self.history_index > 0 {
                             self.history_index -= 1;
                         }
                         if let Some(cmd) = self.history.iter().nth(self.history_index) {
-                            let n = self.cmd.len();
-                            for _ in 0..n {
-                                print!("\x08");
-                            }
                             self.cmd = cmd.clone();
-                            print!("{}", cmd);
+                            kernel::vga::clear_row();
+                            print!("{}{}", self.prompt, self.cmd);
                         }
                     }
                 },
@@ -89,20 +82,57 @@ impl Shell {
                             self.history_index += 1;
                         }
                         if let Some(cmd) = self.history.iter().nth(self.history_index) {
-                            let n = self.cmd.len();
-                            for _ in 0..n {
-                                print!("\x08");
-                            }
                             self.cmd = cmd.clone();
-                            print!("{}", self.cmd);
+                            kernel::vga::clear_row();
+                            print!("{}{}", self.prompt, self.cmd);
                         }
+                    }
+                },
+                '←' => { // Arrow left
+                    let (x, y) = kernel::vga::cursor_position();
+                    if x > self.prompt.len() {
+                        kernel::vga::set_cursor_position(x - 1, y);
+                        kernel::vga::set_writer_position(x - 1, y);
+                    }
+                },
+                '→' => { // Arrow right
+                    let (x, y) = kernel::vga::cursor_position();
+                    if x < self.prompt.len() + self.cmd.len() {
+                        kernel::vga::set_cursor_position(x + 1, y);
+                        kernel::vga::set_writer_position(x + 1, y);
+                    }
+                },
+                '\x08' => { // Backspace
+                    let cmd = self.cmd.clone();
+                    let (x, y) = kernel::vga::cursor_position();
+
+                    if cmd.len() > 0 && x > 0 {
+                        let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
+                        if after_cursor.len() > 0 {
+                            after_cursor = &after_cursor[1..];
+                        }
+                        self.cmd.clear();
+                        self.cmd.push_str(before_cursor).unwrap();
+                        self.cmd.push_str(after_cursor).unwrap();
+                        kernel::vga::clear_row();
+                        print!("{}{}", self.prompt, self.cmd);
+                        kernel::vga::set_cursor_position(x - 1, y);
+                        kernel::vga::set_writer_position(x - 1, y);
                     }
                 },
                 c => {
                     if c.is_ascii_graphic() || c.is_ascii_whitespace() {
-                        if self.cmd.push(c).is_ok() {
-                            print!("{}", c);
-                        }
+                        let cmd = self.cmd.clone();
+                        let (x, y) = kernel::vga::cursor_position();
+                        let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
+                        self.cmd.clear();
+                        self.cmd.push_str(before_cursor).unwrap();
+                        self.cmd.push(c).unwrap();
+                        self.cmd.push_str(after_cursor).unwrap();
+                        kernel::vga::clear_row();
+                        print!("{}{}", self.prompt, self.cmd);
+                        kernel::vga::set_cursor_position(x + 1, y);
+                        kernel::vga::set_writer_position(x + 1, y);
                     }
                 },
             }
@@ -187,7 +217,7 @@ impl Shell {
     }
 
     fn print_prompt(&self) {
-        print!("\n> ");
+        print!("\n{}", self.prompt);
     }
 }
 

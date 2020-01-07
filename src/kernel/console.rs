@@ -43,8 +43,10 @@ pub fn is_raw_enabled() -> bool {
 pub fn key_handle(key: DecodedKey) {
     let c = match key {
         DecodedKey::Unicode(c) => c,
-        DecodedKey::RawKey(KeyCode::ArrowUp) => '↑',
-        DecodedKey::RawKey(KeyCode::ArrowDown) => '↓',
+        DecodedKey::RawKey(KeyCode::ArrowLeft)  => '←', // U+2190
+        DecodedKey::RawKey(KeyCode::ArrowUp)    => '↑', // U+2191
+        DecodedKey::RawKey(KeyCode::ArrowRight) => '→', // U+2192
+        DecodedKey::RawKey(KeyCode::ArrowDown)  => '↓', // U+2193
         DecodedKey::RawKey(_) => '\0'
     };
     let mut stdin = STDIN.lock();
