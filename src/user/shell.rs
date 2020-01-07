@@ -36,7 +36,13 @@ impl Shell {
                     continue;
                 }
                 '\x03' => { // Ctrl C
-                    return ExitCode::CommandSuccessful;
+                    if self.cmd.len() > 0 {
+                        self.cmd.clear();
+                        print!("\n");
+                        self.print_prompt();
+                    } else {
+                        return ExitCode::CommandSuccessful;
+                    }
                 },
                 '\n' => { // Newline
                     print!("\n");
