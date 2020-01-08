@@ -1,3 +1,4 @@
+pub mod ata_pio;
 pub mod clock;
 pub mod cmos;
 pub mod console;
