@@ -11,4 +11,4 @@ cd "$dir/.." && cargo bootimage --release
 
 # Launch qemu inside cool-retro-term
 cool-retro-term --fullscreen --profile "$dir/cool-retro-term.json" \
-  --workdir "$dir/.." -e sh -c "$qemu $image"
+  --workdir "$dir/.." -e sh -c "$qemu $image 2>/dev/null"
