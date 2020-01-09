@@ -45,6 +45,8 @@ pub fn login() -> user::shell::ExitCode {
             }
         }
     }
+
+    // TODO: load shell
     user::shell::ExitCode::CommandSuccessful
 }
 
