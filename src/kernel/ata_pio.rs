@@ -1,15 +1,19 @@
 use crate::{print, kernel};
-use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
+/*
 const REG_DATA       : u16 = 0x00;
 const REG_ERROR      : u16 = 0x01;
 const REG_FEATURES   : u16 = 0x01;
 const REG_SECCOUNT0  : u16 = 0x02;
 const REG_LBA0       : u16 = 0x03;
+*/
+
 const REG_LBA1       : u16 = 0x04;
 const REG_LBA2       : u16 = 0x05;
 const REG_DEVSEL     : u16 = 0x06;
+
+/*
 const REG_COMMAND    : u16 = 0x07;
 const REG_STATUS     : u16 = 0x07;
 const REG_SECCOUNT1  : u16 = 0x08;
@@ -33,42 +37,60 @@ const CMD_CACHE_FLUSH_EXT : u16 = 0xEA;
 const CMD_PACKET          : u16 = 0xA0;
 const CMD_IDENTIFY_PACKET : u16 = 0xA1;
 const CMD_IDENTIFY        : u16 = 0xEC;
+*/
+
+pub struct Bus {
+    pub id: u8,
+    pub io_base: u16,
+    pub ctrl_base: u16,
+    pub irq: u8,
+}
+
+impl Bus {
+    pub fn detect_drive(&self, drive: u8) {
+        // Drive #0 (primary) = 0xA0
+        // Drive #1 (secondary) = 0xB0
+        let drive_id = 0xA0 | (drive << 4);
+
+        let mut control_port: Port<u16> = Port::new(self.ctrl_base);
+        let mut devsel_port = Port::new(self.io_base + REG_DEVSEL);
+        let mut lba1_port = Port::new(self.io_base + REG_LBA1);
+        let mut lba2_port = Port::new(self.io_base + REG_LBA2);
+
+        unsafe {
+            control_port.write(0); // Reset bus
+            devsel_port.write(drive_id); // Select drive
+            control_port.read(); // Wait 400ns
+            control_port.read();
+            control_port.read();
+            control_port.read();
+        };
+
+        let lo: u8 = unsafe { lba1_port.read() }; // Cylinder low byte
+        let hi: u8 = unsafe { lba2_port.read() }; // Cylinder high byte
+
+        let uptime = kernel::clock::clock_monotonic();
+        let drive_number = self.id * 2 + drive;
+        print!("[{:.6}] DRIVE {} [{:02X}:{:02X}]\n", uptime, drive_number, lo, hi);
+    }
+}
 
 pub fn init() {
-    let ctrl_base = 0x1F0;
-    //let ctrl_dev_ctl = 0x3F6;
-    let slavebit = 1;
-
-    kernel::sleep::sleep(0.1);
-    let mut reg_devsel = Port::new(ctrl_base + REG_DEVSEL);
-    let mut reg_command = Port::new(ctrl_base + REG_COMMAND);
-    //let dev_ctl = Port::new(ctrl_dev_ctl);
-    let mut reg_lba1 = Port::new(ctrl_base + REG_LBA1);
-    let mut reg_lba2 = Port::new(ctrl_base + REG_LBA2);
-
-    //interrupts::without_interrupts(|| {
-        unsafe {
-            reg_devsel.write((0xA0 | (slavebit << 4)) as u8);
-        }
-    //});
-    kernel::sleep::sleep(0.1);
-    //interrupts::without_interrupts(|| {
-        unsafe {
-            reg_command.write(CMD_IDENTIFY);
-        }
-    //});
-    kernel::sleep::sleep(1.0);
-    //unsafe {
-        //dev_ctl.read();
-        //dev_ctl.read();
-        //dev_ctl.read();
-        //dev_ctl.read();
-    //};
-    let cl: u8 = unsafe {
-        reg_lba1.read()
+    let primary_bus = Bus {
+        id: 0,
+        io_base: 0x1F0,
+        ctrl_base: 0x3F6,
+        irq: 14,
     };
-    let ch: u8 = unsafe {
-        reg_lba2.read()
+    primary_bus.detect_drive(0);
+    primary_bus.detect_drive(1);
+
+    let secondary_bus = Bus {
+        id: 1,
+        io_base: 0x170,
+        ctrl_base: 0x376,
+        irq: 15,
     };
-    print!("disk: {:02X} {:02X}\n", cl, ch);
+    secondary_bus.detect_drive(0);
+    secondary_bus.detect_drive(1);
 }
