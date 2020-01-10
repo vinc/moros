@@ -14,7 +14,10 @@ lazy_static! {
 
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::kernel::vga::print_fmt(format_args!($($arg)*)));
+    ($($arg:tt)*) => ({
+        $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+    });
 }
 
 pub fn disable_echo() {

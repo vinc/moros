@@ -9,5 +9,6 @@ pub mod interrupts;
 pub mod keyboard;
 pub mod pci;
 pub mod random;
+pub mod serial;
 pub mod sleep;
 pub mod vga;

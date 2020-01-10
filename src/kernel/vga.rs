@@ -229,7 +229,7 @@ pub fn print_fmt(args: fmt::Arguments) {
     use x86_64::instructions::interrupts;
 
     interrupts::without_interrupts(|| {
-        WRITER.lock().write_fmt(args).unwrap();
+        WRITER.lock().write_fmt(args).expect("Could not print to VGA");
     });
 }
 
