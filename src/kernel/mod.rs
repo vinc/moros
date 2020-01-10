@@ -1,11 +1,15 @@
+pub mod acpi;
 pub mod ata_pio;
 pub mod clock;
 pub mod cmos;
 pub mod console;
+pub mod cpu;
 pub mod fs;
 pub mod gdt;
 pub mod interrupts;
 pub mod keyboard;
+pub mod pci;
 pub mod random;
+pub mod serial;
 pub mod sleep;
 pub mod vga;

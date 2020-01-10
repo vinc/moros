@@ -12,6 +12,14 @@ lazy_static! {
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
 }
 
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ({
+        $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+    });
+}
+
 pub fn disable_echo() {
     let mut echo = ECHO.lock();
     *echo = false;

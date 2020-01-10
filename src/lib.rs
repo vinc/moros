@@ -11,4 +11,6 @@ pub fn init() {
     unsafe { kernel::interrupts::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
     //kernel::ata_pio::init();
+    kernel::cpu::init();
+    kernel::pci::init();
 }
