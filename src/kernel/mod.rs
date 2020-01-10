@@ -1,3 +1,4 @@
+pub mod acpi;
 pub mod clock;
 pub mod cmos;
 pub mod console;

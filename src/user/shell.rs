@@ -218,6 +218,7 @@ impl Shell {
             "clear"                             => user::clear::main(&args),
             "login"                             => user::login::main(&args),
             "base64"                            => user::base64::main(&args),
+            "halt"                              => user::halt::main(&args),
             _                                   => ExitCode::CommandUnknown,
         }
     }
