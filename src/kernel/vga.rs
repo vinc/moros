@@ -221,16 +221,10 @@ impl fmt::Write for Writer {
     }
 }
 
-/// Like the `print!` macro in the standard library, but prints to the VGA text buffer.
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => ($crate::kernel::vga::_print(format_args!($($arg)*)));
-}
-
 /// Prints the given formatted string to the VGA text buffer
 /// through the global `WRITER` instance.
 #[doc(hidden)]
-pub fn _print(args: fmt::Arguments) {
+pub fn print_fmt(args: fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
 
