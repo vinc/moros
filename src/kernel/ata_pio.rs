@@ -1,7 +1,9 @@
 use bit_field::BitField;
 use crate::{print, kernel};
-use heapless::String;
+use lazy_static::lazy_static;
+use heapless::{String, Vec};
 use heapless::consts::*;
+use spin::Mutex;
 use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
 #[repr(u16)]
@@ -38,11 +40,10 @@ pub struct Bus {
     drive_register: Port<u8>,
     status_register: PortReadOnly<u8>,
     command_register: PortWriteOnly<u8>,
-    //command_register: PortWriteOnly<u32>,
 
     alternate_status_register: PortReadOnly<u8>,
     control_register: PortWriteOnly<u8>,
-    drive_address_register: PortReadOnly<u8>,
+    drive_blockess_register: PortReadOnly<u8>,
 }
 
 impl Bus {
@@ -63,7 +64,7 @@ impl Bus {
 
             alternate_status_register: PortReadOnly::new(ctrl_base + 0),
             control_register: PortWriteOnly::new(ctrl_base + 0),
-            drive_address_register: PortReadOnly::new(ctrl_base + 1),
+            drive_blockess_register: PortReadOnly::new(ctrl_base + 1),
         }
     }
 
@@ -183,35 +184,44 @@ impl Bus {
         Some(res)
     }
 
-    /*
-    pub fn read(&self, drive: u8, addr: u32, buf: &mut [u8]) {
+    pub fn read(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
+        let drive_id = 0xE0 | (drive << 4);
         unsafe {
-            devsel_port.write(drive_id | ((addr.get_bits(24..28) as u8) & 0x0F));
-            error_port.write(0u8);
-            sector_count_port.write(1u8);
+            self.drive_register.write(drive_id | ((block.get_bits(24..28) as u8) & 0x0F));
+            self.sector_count_register.write(1);
+            self.lba0_register.write(block.get_bits(0..8) as u8);
+            self.lba1_register.write(block.get_bits(8..16) as u8);
+            self.lba2_register.write(block.get_bits(16..24) as u8);
+        }
 
-            lba0_port.write(addr.get_bits(0..8) as u8);
-            lba1_port.write(addr.get_bits(8..16) as u8);
-            lba2_port.write(addr.get_bits(16..24) as u8);
-            command_port.write(CMD_READ_PIO as u32);
+        self.write_command(Command::Read);
 
-            while ((command_port.read() as u8) & 0x08) == 0 {}
+        for i in 0.. {
+            if i == 1000 {
+                self.reset();
+                return; // TODO: error
+            }
+            if !self.is_busy() {
+                break
+            }
         }
 
         for i in 0..256 {
-            let data = unsafe { data_port.read() };
+            let data = self.read_data();
             buf[i * 2] = data.get_bits(0..8) as u8;
             buf[i * 2 + 1] = data.get_bits(8..16) as u8;
         }
     }
-    */
+}
+
+lazy_static! {
+    pub static ref ATA_BUSES: Mutex<Vec<Bus, U2>> = Mutex::new(Vec::new());
 }
 
 pub fn init() {
-    let mut buses = [
-        Bus::new(0, 0x1F0, 0x3F6, 14),
-        Bus::new(1, 0x170, 0x376, 15),
-    ];
+    let mut buses = ATA_BUSES.lock();
+    buses.push(Bus::new(0, 0x1F0, 0x3F6, 14)).unwrap();
+    buses.push(Bus::new(1, 0x170, 0x376, 15)).unwrap();
 
     let bus = 1;
     let drive = 0;
@@ -233,11 +243,9 @@ pub fn init() {
         print!("[{:.6}] ATA {}:{} {} {}\n", uptime, bus, drive, model.trim(), serial.trim());
     }
 
-    /*
+    let block = 1;
     let mut buf = [0u8; 512];
-    interrupts::without_interrupts(|| {
-        primary_bus.read(1, 0, &mut buf);
-    });
+    buses[1].read(drive, block, &mut buf);
     for i in 0..256 {
         if i % 8 == 0 {
             print!("\n{:08X} ", i * 2);
@@ -245,5 +253,4 @@ pub fn init() {
         print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
     }
     print!("\n");
-    */
 }
