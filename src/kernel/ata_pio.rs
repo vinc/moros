@@ -1,96 +1,249 @@
+use bit_field::BitField;
 use crate::{print, kernel};
-use x86_64::instructions::port::Port;
+use heapless::String;
+use heapless::consts::*;
+use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
-/*
-const REG_DATA       : u16 = 0x00;
-const REG_ERROR      : u16 = 0x01;
-const REG_FEATURES   : u16 = 0x01;
-const REG_SECCOUNT0  : u16 = 0x02;
-const REG_LBA0       : u16 = 0x03;
-*/
+#[repr(u16)]
+enum Command {
+    Read = 0x20,
+    Identify = 0xEC,
+}
 
-const REG_LBA1       : u16 = 0x04;
-const REG_LBA2       : u16 = 0x05;
-const REG_DEVSEL     : u16 = 0x06;
+#[allow(dead_code)]
+#[repr(usize)]
+enum Status {
+    ERR = 0,
+    IDX = 1,
+    CORR = 2,
+    DRQ = 3,
+    SRV = 4,
+    DF = 5,
+    RDY = 6,
+    BSY = 7
+}
 
-/*
-const REG_COMMAND    : u16 = 0x07;
-const REG_STATUS     : u16 = 0x07;
-const REG_SECCOUNT1  : u16 = 0x08;
-const REG_LBA3       : u16 = 0x09;
-const REG_LBA4       : u16 = 0x0A;
-const REG_LBA5       : u16 = 0x0B;
-const REG_CONTROL    : u16 = 0x0C;
-const REG_ALTSTATUS  : u16 = 0x0C;
-const REG_DEVADDRESS : u16 = 0x0D;
-
-const CMD_READ_PIO        : u16 = 0x20;
-const CMD_READ_PIO_EXT    : u16 = 0x24;
-const CMD_READ_DMA        : u16 = 0xC8;
-const CMD_READ_DMA_EXT    : u16 = 0x25;
-const CMD_WRITE_PIO       : u16 = 0x30;
-const CMD_WRITE_PIO_EXT   : u16 = 0x34;
-const CMD_WRITE_DMA       : u16 = 0xCA;
-const CMD_WRITE_DMA_EXT   : u16 = 0x35;
-const CMD_CACHE_FLUSH     : u16 = 0xE7;
-const CMD_CACHE_FLUSH_EXT : u16 = 0xEA;
-const CMD_PACKET          : u16 = 0xA0;
-const CMD_IDENTIFY_PACKET : u16 = 0xA1;
-const CMD_IDENTIFY        : u16 = 0xEC;
-*/
-
+#[allow(dead_code)]
 pub struct Bus {
-    pub id: u8,
-    pub io_base: u16,
-    pub ctrl_base: u16,
-    pub irq: u8,
+    id: u8,
+    irq: u8,
+
+    data_register: Port<u16>,
+    error_register: PortReadOnly<u8>,
+    features_register: PortWriteOnly<u8>,
+    sector_count_register: Port<u8>,
+    lba0_register: Port<u8>,
+    lba1_register: Port<u8>,
+    lba2_register: Port<u8>,
+    drive_register: Port<u8>,
+    status_register: PortReadOnly<u8>,
+    command_register: PortWriteOnly<u8>,
+    //command_register: PortWriteOnly<u32>,
+
+    alternate_status_register: PortReadOnly<u8>,
+    control_register: PortWriteOnly<u8>,
+    drive_address_register: PortReadOnly<u8>,
 }
 
 impl Bus {
-    pub fn detect_drive(&self, drive: u8) {
+    pub fn new(id: u8, io_base: u16, ctrl_base: u16, irq: u8) -> Self {
+        Self {
+            id, irq,
+
+            data_register: Port::new(io_base + 0),
+            error_register: PortReadOnly::new(io_base + 1),
+            features_register: PortWriteOnly::new(io_base + 1),
+            sector_count_register: Port::new(io_base + 2),
+            lba0_register: Port::new(io_base + 3),
+            lba1_register: Port::new(io_base + 4),
+            lba2_register: Port::new(io_base + 5),
+            drive_register: Port::new(io_base + 6),
+            status_register: PortReadOnly::new(io_base + 7),
+            command_register: PortWriteOnly::new(io_base + 7),
+
+            alternate_status_register: PortReadOnly::new(ctrl_base + 0),
+            control_register: PortWriteOnly::new(ctrl_base + 0),
+            drive_address_register: PortReadOnly::new(ctrl_base + 1),
+        }
+    }
+
+    fn reset(&mut self) {
+        unsafe {
+            self.control_register.write(4);
+            self.control_register.write(0);
+        }
+    }
+
+    fn wait(&mut self) {
+        unsafe {
+            self.status_register.read();
+            self.status_register.read();
+            self.status_register.read();
+            self.status_register.read();
+        }
+    }
+
+    fn write_command(&mut self, cmd: Command) {
+        unsafe { self.command_register.write(cmd as u8); }
+        //unsafe { self.command_register.write(cmd as u32); }
+    }
+
+    fn status(&mut self) -> u8 {
+        unsafe { self.status_register.read() }
+    }
+
+    fn lba1(&mut self) -> u8 {
+        unsafe { self.lba1_register.read() }
+    }
+
+    fn lba2(&mut self) -> u8 {
+        unsafe { self.lba2_register.read() }
+    }
+
+    fn read_data(&mut self) -> u16 {
+        unsafe { self.data_register.read() }
+    }
+
+    fn is_busy(&mut self) -> bool {
+        self.status().get_bit(Status::BSY as usize)
+    }
+
+    fn is_error(&mut self) -> bool {
+        self.status().get_bit(Status::ERR as usize)
+    }
+
+    fn is_ready(&mut self) -> bool {
+        self.status().get_bit(Status::RDY as usize)
+    }
+
+    fn select_drive(&mut self, drive: u8) {
         // Drive #0 (primary) = 0xA0
         // Drive #1 (secondary) = 0xB0
         let drive_id = 0xA0 | (drive << 4);
-
-        let mut control_port: Port<u16> = Port::new(self.ctrl_base);
-        let mut devsel_port = Port::new(self.io_base + REG_DEVSEL);
-        let mut lba1_port = Port::new(self.io_base + REG_LBA1);
-        let mut lba2_port = Port::new(self.io_base + REG_LBA2);
-
         unsafe {
-            control_port.write(0); // Reset bus
-            devsel_port.write(drive_id); // Select drive
-            control_port.read(); // Wait 400ns
-            control_port.read();
-            control_port.read();
-            control_port.read();
-        };
-
-        let lo: u8 = unsafe { lba1_port.read() }; // Cylinder low byte
-        let hi: u8 = unsafe { lba2_port.read() }; // Cylinder high byte
-
-        let uptime = kernel::clock::clock_monotonic();
-        let drive_number = self.id * 2 + drive;
-        print!("[{:.6}] DRIVE {} [{:02X}:{:02X}]\n", uptime, drive_number, lo, hi);
+            self.drive_register.write(drive_id);
+        }
     }
+
+    #[allow(dead_code)]
+    fn debug(&mut self) {
+        self.wait();
+        unsafe { print!("drive register: 0b{:08b}\n", self.drive_register.read()); }
+        unsafe { print!("status:         0b{:08b}\n", self.status_register.read()); }
+    }
+
+    pub fn identify_drive(&mut self, drive: u8) -> Option<[u16; 256]> {
+        self.reset();
+        self.wait();
+        self.select_drive(drive);
+        unsafe {
+            self.sector_count_register.write(0);
+            self.lba0_register.write(0);
+            self.lba1_register.write(0);
+            self.lba2_register.write(0);
+        }
+
+        self.write_command(Command::Identify);
+
+        if self.status() == 0 {
+            return None;
+        }
+
+        for i in 0.. {
+            if i == 1000 {
+                self.reset();
+                return None;
+            }
+            if !self.is_busy() {
+                break
+            }
+        }
+
+        if self.lba1() != 0 || self.lba2() != 0 {
+            return None;
+        }
+
+        for i in 0.. {
+            if i == 1000 {
+                self.reset();
+                return None;
+            }
+            if self.is_error() {
+                return None;
+            }
+            if self.is_ready() {
+                break
+            }
+        }
+
+        let mut res = [0; 256];
+        for i in 0..256 {
+            res[i] = self.read_data();
+        }
+        Some(res)
+    }
+
+    /*
+    pub fn read(&self, drive: u8, addr: u32, buf: &mut [u8]) {
+        unsafe {
+            devsel_port.write(drive_id | ((addr.get_bits(24..28) as u8) & 0x0F));
+            error_port.write(0u8);
+            sector_count_port.write(1u8);
+
+            lba0_port.write(addr.get_bits(0..8) as u8);
+            lba1_port.write(addr.get_bits(8..16) as u8);
+            lba2_port.write(addr.get_bits(16..24) as u8);
+            command_port.write(CMD_READ_PIO as u32);
+
+            while ((command_port.read() as u8) & 0x08) == 0 {}
+        }
+
+        for i in 0..256 {
+            let data = unsafe { data_port.read() };
+            buf[i * 2] = data.get_bits(0..8) as u8;
+            buf[i * 2 + 1] = data.get_bits(8..16) as u8;
+        }
+    }
+    */
 }
 
 pub fn init() {
-    let primary_bus = Bus {
-        id: 0,
-        io_base: 0x1F0,
-        ctrl_base: 0x3F6,
-        irq: 14,
-    };
-    primary_bus.detect_drive(0);
-    primary_bus.detect_drive(1);
+    let mut buses = [
+        Bus::new(0, 0x1F0, 0x3F6, 14),
+        Bus::new(1, 0x170, 0x376, 15),
+    ];
 
-    let secondary_bus = Bus {
-        id: 1,
-        io_base: 0x170,
-        ctrl_base: 0x376,
-        irq: 15,
-    };
-    secondary_bus.detect_drive(0);
-    secondary_bus.detect_drive(1);
+    let bus = 1;
+    let drive = 0;
+    if let Some(buf) = buses[bus].identify_drive(drive) {
+        let mut serial = String::<U32>::new();
+        for i in 10..20 {
+            for &b in &buf[i].to_be_bytes() {
+                serial.push(b as char).unwrap();
+            }
+        }
+        let mut model = String::<U64>::new();
+        for i in 27..47 {
+            for &b in &buf[i].to_be_bytes() {
+                model.push(b as char).unwrap();
+            }
+        }
+        //let sectors = (buf[60] as u32) << 16 | (buf[61] as u32);
+        let uptime = kernel::clock::clock_monotonic();
+        print!("[{:.6}] ATA {}:{} {} {}\n", uptime, bus, drive, model.trim(), serial.trim());
+    }
+
+    /*
+    let mut buf = [0u8; 512];
+    interrupts::without_interrupts(|| {
+        primary_bus.read(1, 0, &mut buf);
+    });
+    for i in 0..256 {
+        if i % 8 == 0 {
+            print!("\n{:08X} ", i * 2);
+        }
+        print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
+    }
+    print!("\n");
+    */
 }
