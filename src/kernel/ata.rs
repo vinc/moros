@@ -27,7 +27,7 @@ enum Status {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Bus {
     id: u8,
     irq: u8,
@@ -288,4 +288,14 @@ pub fn init() {
     }
     print!("\n");
     */
+}
+
+pub fn read(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) {
+    let mut buses = ATA_BUSES.lock();
+    buses[bus as usize].read(drive, block, &mut buf);
+}
+
+pub fn write(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) {
+    let mut buses = ATA_BUSES.lock();
+    buses[bus as usize].write(drive, block, &mut buf);
 }

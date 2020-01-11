@@ -12,5 +12,5 @@ pub fn init() {
     x86_64::instructions::interrupts::enable();
     kernel::cpu::init();
     kernel::pci::init();
-    kernel::ata_pio::init();
+    kernel::ata::init();
 }
