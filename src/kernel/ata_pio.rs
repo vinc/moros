@@ -9,6 +9,7 @@ use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 #[repr(u16)]
 enum Command {
     Read = 0x20,
+    Write = 0x30,
     Identify = 0xEC,
 }
 
@@ -26,6 +27,7 @@ enum Status {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub struct Bus {
     id: u8,
     irq: u8,
@@ -103,6 +105,10 @@ impl Bus {
 
     fn read_data(&mut self) -> u16 {
         unsafe { self.data_register.read() }
+    }
+
+    fn write_data(&mut self, data: u16) {
+        unsafe { self.data_register.write(data) }
     }
 
     fn is_busy(&mut self) -> bool {
@@ -196,20 +202,34 @@ impl Bus {
 
         self.write_command(Command::Read);
 
-        for i in 0.. {
-            if i == 1000 {
-                self.reset();
-                return; // TODO: error
-            }
-            if !self.is_busy() {
-                break
-            }
-        }
+        while self.is_busy() {}
 
         for i in 0..256 {
             let data = self.read_data();
             buf[i * 2] = data.get_bits(0..8) as u8;
             buf[i * 2 + 1] = data.get_bits(8..16) as u8;
+        }
+    }
+
+    pub fn write(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
+        let drive_id = 0xE0 | (drive << 4);
+        unsafe {
+            self.drive_register.write(drive_id | ((block.get_bits(24..28) as u8) & 0x0F));
+            self.sector_count_register.write(1);
+            self.lba0_register.write(block.get_bits(0..8) as u8);
+            self.lba1_register.write(block.get_bits(8..16) as u8);
+            self.lba2_register.write(block.get_bits(16..24) as u8);
+        }
+
+        self.write_command(Command::Write);
+
+        while self.is_busy() {}
+
+        for i in 0..256 {
+            let mut data = 0 as u16;
+            data.set_bits(0..8, buf[i * 2] as u16);
+            data.set_bits(8..16, buf[i * 2 + 1] as u16);
+            self.write_data(data);
         }
     }
 }
@@ -243,6 +263,7 @@ pub fn init() {
         print!("[{:.6}] ATA {}:{} {} {}\n", uptime, bus, drive, model.trim(), serial.trim());
     }
 
+    /*
     let block = 1;
     let mut buf = [0u8; 512];
     buses[1].read(drive, block, &mut buf);
@@ -253,4 +274,29 @@ pub fn init() {
         print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
     }
     print!("\n");
+
+    buf[0x42] = 'H' as u8;
+    buf[0x43] = 'e' as u8;
+    buf[0x44] = 'l' as u8;
+    buf[0x45] = 'l' as u8;
+    buf[0x46] = 'o' as u8;
+    for i in 0..256 {
+        if i % 8 == 0 {
+            print!("\n{:08X} ", i * 2);
+        }
+        print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
+    }
+    print!("\n");
+    buses[1].write(drive, block, &mut buf);
+
+    let mut buf = [0u8; 512];
+    buses[1].read(drive, block, &mut buf);
+    for i in 0..256 {
+        if i % 8 == 0 {
+            print!("\n{:08X} ", i * 2);
+        }
+        print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
+    }
+    print!("\n");
+    */
 }
