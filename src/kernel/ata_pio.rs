@@ -139,6 +139,17 @@ impl Bus {
         unsafe { print!("status:         0b{:08b}\n", self.status_register.read()); }
     }
 
+    fn setup(&mut self, drive: u8, block: u32) {
+        let drive_id = 0xE0 | (drive << 4);
+        unsafe {
+            self.drive_register.write(drive_id | ((block.get_bits(24..28) as u8) & 0x0F));
+            self.sector_count_register.write(1);
+            self.lba0_register.write(block.get_bits(0..8) as u8);
+            self.lba1_register.write(block.get_bits(8..16) as u8);
+            self.lba2_register.write(block.get_bits(16..24) as u8);
+        }
+    }
+
     pub fn identify_drive(&mut self, drive: u8) -> Option<[u16; 256]> {
         self.reset();
         self.wait();
@@ -156,22 +167,14 @@ impl Bus {
             return None;
         }
 
-        for i in 0.. {
-            if i == 1000 {
-                self.reset();
-                return None;
-            }
-            if !self.is_busy() {
-                break
-            }
-        }
+        while self.is_busy() {}
 
         if self.lba1() != 0 || self.lba2() != 0 {
             return None;
         }
 
         for i in 0.. {
-            if i == 1000 {
+            if i == 256 {
                 self.reset();
                 return None;
             }
@@ -191,14 +194,7 @@ impl Bus {
     }
 
     pub fn read(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
-        let drive_id = 0xE0 | (drive << 4);
-        unsafe {
-            self.drive_register.write(drive_id | ((block.get_bits(24..28) as u8) & 0x0F));
-            self.sector_count_register.write(1);
-            self.lba0_register.write(block.get_bits(0..8) as u8);
-            self.lba1_register.write(block.get_bits(8..16) as u8);
-            self.lba2_register.write(block.get_bits(16..24) as u8);
-        }
+        self.setup(drive, block);
 
         self.write_command(Command::Read);
 
@@ -212,14 +208,7 @@ impl Bus {
     }
 
     pub fn write(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
-        let drive_id = 0xE0 | (drive << 4);
-        unsafe {
-            self.drive_register.write(drive_id | ((block.get_bits(24..28) as u8) & 0x0F));
-            self.sector_count_register.write(1);
-            self.lba0_register.write(block.get_bits(0..8) as u8);
-            self.lba1_register.write(block.get_bits(8..16) as u8);
-            self.lba2_register.write(block.get_bits(16..24) as u8);
-        }
+        self.setup(drive, block);
 
         self.write_command(Command::Write);
 
