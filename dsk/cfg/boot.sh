@@ -1,4 +1,4 @@
 read /cfg/banner.txt
-login
+# login
 shell
 clear

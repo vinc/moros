@@ -153,7 +153,10 @@ impl Shell {
         let mut is_quote = false;
 
         for (j, c) in cmd.char_indices() {
-            if c == ' ' && !is_quote {
+            if c == '#' && !is_quote {
+                n = j; // Discard comments
+                break;
+            } else if c == ' ' && !is_quote {
                 if i != j {
                     args.push(&cmd[i..j]).unwrap();
                 }
