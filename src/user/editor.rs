@@ -10,20 +10,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
     let pathname = args[1];
     let mut editor = Editor::new(pathname);
-    editor.run();
-    user::shell::ExitCode::CommandSuccessful
-}
-
-fn input() -> String<U2048> {
-    let mut output = String::new();
-    loop {
-        let line = kernel::console::get_line();
-        if line == ".\n" {
-            break;
-        }
-        output.push_str(&line).ok(); // TODO: File full
-    }
-    output
+    editor.run()
 }
 
 pub struct Editor {
@@ -33,15 +20,55 @@ pub struct Editor {
 
 impl Editor {
     pub fn new(pathname: &str) -> Self {
-        let pathname = pathname.into();
         let mut lines = Vec::new();
-        lines.push(String::new());
+
+        if let Some(mut file) = kernel::fs::File::open(pathname) {
+            let contents = file.read();
+            for line in contents.split("\n") {
+                lines.push(line.into());
+            }
+        } else {
+            lines.push(String::new());
+        }
+
+        let pathname = pathname.into();
 
         Self { pathname, lines }
     }
 
-    pub fn run(&mut self) {
+    pub fn save(&mut self) -> user::shell::ExitCode {
+        if self.pathname.starts_with("/dev") || self.pathname.starts_with("/sys") {
+            print!("Permission denied to write to '{}'\n", self.pathname);
+            user::shell::ExitCode::CommandError
+        } else if let Some(mut file) = kernel::fs::File::create(&self.pathname) {
+            let mut contents = String::<U2048>::new();
+            let n = self.lines.len();
+            for i in 0..n {
+                contents.push_str(&self.lines[i]);
+                if i < n - 1 {
+                    contents.push('\n');
+                }
+            }
+            file.write(&contents);
+            user::shell::ExitCode::CommandSuccessful
+        } else {
+            print!("Could not write to '{}'\n", self.pathname);
+            user::shell::ExitCode::CommandError
+        }
+    }
+
+    pub fn run(&mut self) -> user::shell::ExitCode {
         kernel::vga::clear_screen();
+        let n = self.lines.len();
+        for i in 0..n {
+            print!("{}", self.lines[i]);
+            if i < n - 1 {
+                print!("\n");
+            }
+        }
+        kernel::vga::set_cursor_position(0, 0);
+        kernel::vga::set_writer_position(0, 0);
+
         loop {
             let (x, y) = kernel::vga::cursor_position();
             let c = kernel::console::get_char();
@@ -49,8 +76,16 @@ impl Editor {
                 '\0' => {
                     continue;
                 }
-                '\x03' => { // Ctrl C
-                    return;
+                '\x11' => { // Ctrl Q
+                    kernel::vga::clear_screen();
+                    break;
+                },
+                '\x17' => { // Ctrl W
+                    self.save();
+                },
+                '\x18' => { // Ctrl X
+                    kernel::vga::clear_screen();
+                    return self.save();
                 },
                 '\n' => { // Newline
                     print!("{}", c);
@@ -127,5 +162,6 @@ impl Editor {
                 },
             }
         }
+        user::shell::ExitCode::CommandSuccessful
     }
 }
