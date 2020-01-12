@@ -22,13 +22,13 @@ impl Editor {
     pub fn new(pathname: &str) -> Self {
         let mut lines = Vec::new();
 
-        if let Some(mut file) = kernel::fs::File::open(pathname) {
+        if let Some(file) = kernel::fs::File::open(pathname) {
             let contents = file.read();
             for line in contents.split("\n") {
-                lines.push(line.into());
+                lines.push(line.into()).unwrap();
             }
         } else {
-            lines.push(String::new());
+            lines.push(String::new()).unwrap();
         }
 
         let pathname = pathname.into();
@@ -44,9 +44,9 @@ impl Editor {
             let mut contents = String::<U2048>::new();
             let n = self.lines.len();
             for i in 0..n {
-                contents.push_str(&self.lines[i]);
+                contents.push_str(&self.lines[i]).unwrap();
                 if i < n - 1 {
-                    contents.push('\n');
+                    contents.push('\n').unwrap();
                 }
             }
             file.write(&contents);
@@ -88,9 +88,12 @@ impl Editor {
                     return self.save();
                 },
                 '\n' => { // Newline
-                    print!("{}", c);
-                    if y == self.lines.len() - 1 {
-                        self.lines.push(String::new());
+                    // TODO: Allow more lines than screen height
+                    if y < kernel::vga::screen_height() - 1 {
+                        print!("{}", c);
+                        if y == self.lines.len() - 1 {
+                            self.lines.push(String::new()).unwrap();
+                        }
                     }
                 },
                 '↑' => { // Arrow up
@@ -121,6 +124,16 @@ impl Editor {
                         kernel::vga::set_writer_position(x + 1, y);
                     }
                 },
+                '\x01' => { // Ctrl A
+                    let x = 0;
+                    kernel::vga::set_cursor_position(x, y);
+                    kernel::vga::set_writer_position(x, y);
+                },
+                '\x05' => { // Ctrl E
+                    let x = self.lines[y].len() - 1;
+                    kernel::vga::set_cursor_position(x, y);
+                    kernel::vga::set_writer_position(x, y);
+                },
                 '\x08' => { // Backspace
                     if x > 0 {
                         let line = self.lines[y].clone();
@@ -147,17 +160,25 @@ impl Editor {
                     }
                 },
                 c => {
-                    if c.is_ascii_graphic() || c.is_ascii_whitespace() {
-                        let line = self.lines[y].clone();
-                        let (before_cursor, after_cursor) = line.split_at(x);
-                        self.lines[y].clear();
-                        self.lines[y].push_str(before_cursor).unwrap();
-                        self.lines[y].push(c).unwrap();
-                        self.lines[y].push_str(after_cursor).unwrap();
-                        kernel::vga::clear_row();
-                        print!("{}", self.lines[y]);
-                        kernel::vga::set_cursor_position(x + 1, y);
-                        kernel::vga::set_writer_position(x + 1, y);
+                    // TODO: Allow more chars than screen width
+                    if self.lines[y].len() < kernel::vga::screen_width() {
+                        if c.is_ascii_graphic() || c.is_ascii_whitespace() {
+                            let line = self.lines[y].clone();
+                            let (before_cursor, after_cursor) = line.split_at(x);
+                            self.lines[y].clear();
+                            self.lines[y].push_str(before_cursor).unwrap();
+                            self.lines[y].push(c).unwrap();
+                            self.lines[y].push_str(after_cursor).unwrap();
+                            kernel::vga::clear_row();
+                            print!("{}", self.lines[y]);
+                            if x == kernel::vga::screen_width() - 1 {
+                                kernel::vga::set_cursor_position(x, y);
+                                kernel::vga::set_writer_position(x, y);
+                            } else {
+                                kernel::vga::set_cursor_position(x + 1, y);
+                                kernel::vga::set_writer_position(x + 1, y);
+                            }
+                        }
                     }
                 },
             }
