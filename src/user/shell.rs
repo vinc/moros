@@ -30,6 +30,7 @@ impl Shell {
     pub fn run(&mut self) -> user::shell::ExitCode {
         self.print_prompt();
         loop {
+            let (x, y) = kernel::vga::cursor_position();
             let c = kernel::console::get_char();
             match c {
                 '\0' => {
@@ -95,14 +96,12 @@ impl Shell {
                     }
                 },
                 '←' => { // Arrow left
-                    let (x, y) = kernel::vga::cursor_position();
                     if x > self.prompt.len() {
                         kernel::vga::set_cursor_position(x - 1, y);
                         kernel::vga::set_writer_position(x - 1, y);
                     }
                 },
                 '→' => { // Arrow right
-                    let (x, y) = kernel::vga::cursor_position();
                     if x < self.prompt.len() + self.cmd.len() {
                         kernel::vga::set_cursor_position(x + 1, y);
                         kernel::vga::set_writer_position(x + 1, y);
@@ -110,8 +109,6 @@ impl Shell {
                 },
                 '\x08' => { // Backspace
                     let cmd = self.cmd.clone();
-                    let (x, y) = kernel::vga::cursor_position();
-
                     if cmd.len() > 0 && x > 0 {
                         let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
                         if after_cursor.len() > 0 {
@@ -129,7 +126,6 @@ impl Shell {
                 c => {
                     if c.is_ascii_graphic() || c.is_ascii_whitespace() {
                         let cmd = self.cmd.clone();
-                        let (x, y) = kernel::vga::cursor_position();
                         let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
                         self.cmd.clear();
                         self.cmd.push_str(before_cursor).unwrap();
