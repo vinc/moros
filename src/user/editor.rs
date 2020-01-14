@@ -14,6 +14,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 }
 
 pub struct Editor {
+    file: Option<kernel::fs::File>,
     pathname: String<U256>,
     lines: Vec<String<U256>, U256>,
 }
@@ -22,25 +23,30 @@ impl Editor {
     pub fn new(pathname: &str) -> Self {
         let mut lines = Vec::new();
 
-        if let Some(file) = kernel::fs::File::open(pathname) {
-            let contents = file.read();
-            for line in contents.split("\n") {
-                lines.push(line.into()).unwrap();
+        let file = match kernel::fs::File::open(pathname) {
+            Some(file) => {
+                let contents = file.read_to_string();
+                for line in contents.split('\n') {
+                    lines.push(line.into()).unwrap();
+                }
+                Some(file)
+            },
+            None => {
+                lines.push(String::new()).unwrap();
+                kernel::fs::File::create(pathname)
             }
-        } else {
-            lines.push(String::new()).unwrap();
-        }
+        };
 
         let pathname = pathname.into();
 
-        Self { pathname, lines }
+        Self { file, pathname, lines }
     }
 
-    pub fn save(&mut self) -> user::shell::ExitCode {
+    pub fn save(&self) -> user::shell::ExitCode {
         if self.pathname.starts_with("/dev") || self.pathname.starts_with("/sys") {
             print!("Permission denied to write to '{}'\n", self.pathname);
             user::shell::ExitCode::CommandError
-        } else if let Some(mut file) = kernel::fs::File::create(&self.pathname) {
+        } else if self.file.is_some() {
             let mut contents = String::<U2048>::new();
             let n = self.lines.len();
             for i in 0..n {
@@ -49,7 +55,7 @@ impl Editor {
                     contents.push('\n').unwrap();
                 }
             }
-            file.write(&contents);
+            self.file.unwrap().write(&contents.as_bytes()).unwrap();
             user::shell::ExitCode::CommandSuccessful
         } else {
             print!("Could not write to '{}'\n", self.pathname);

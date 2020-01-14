@@ -237,7 +237,7 @@ pub fn main(args: &[&str]) -> ExitCode {
         2 => {
             let pathname = args[1];
             if let Some(file) = kernel::fs::File::open(pathname) {
-                for line in file.read().split("\n") {
+                for line in file.read_to_string().split("\n") {
                     if line.len() > 0 {
                         shell.exec(line);
                     }

@@ -11,17 +11,23 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     moros::init();
     print!("\n");
 
+    kernel::fs::Dir::root().create("cfg");
+
     include_file("/cfg/boot.sh", include_str!("../dsk/cfg/boot.sh"));
     include_file("/cfg/banner.txt", include_str!("../dsk/cfg/banner.txt"));
     include_file("/cfg/passwords.csv", include_str!("../dsk/cfg/passwords.csv"));
     loop {
         user::shell::main(&["shell", "/cfg/boot.sh"]);
+        user::shell::main(&["shell"]);
     }
 }
 
 fn include_file(pathname: &str, contents: &str) {
+    if kernel::fs::File::open(pathname).is_some() {
+        return;
+    }
     if let Some(mut file) = kernel::fs::File::create(pathname) {
-        file.write(contents);
+        file.write(&contents.as_bytes()).unwrap();
     }
 }
 

@@ -12,9 +12,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         print!("Permission denied to write to '{}'\n", to);
         user::shell::ExitCode::CommandError
     } else {
-        if let Some(file_from) = kernel::fs::File::open(from) {
-            if let Some(mut file_to) = kernel::fs::File::create(to) {
-                file_to.write(&file_from.read());
+        if let Some(_file_from) = kernel::fs::File::open(from) {
+            if let Some(_file_to) = kernel::fs::File::create(to) {
+                // TODO
                 user::shell::ExitCode::CommandSuccessful
             } else {
                 print!("Permission denied to write to '{}'\n", to);

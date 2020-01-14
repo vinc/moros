@@ -207,7 +207,7 @@ impl Bus {
         }
     }
 
-    pub fn write(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
+    pub fn write(&mut self, drive: u8, block: u32, buf: &[u8]) {
         self.setup(drive, block);
 
         self.write_command(Command::Write);
@@ -295,7 +295,7 @@ pub fn read(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) {
     buses[bus as usize].read(drive, block, &mut buf);
 }
 
-pub fn write(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) {
+pub fn write(bus: u8, drive: u8, block: u32, buf: &[u8]) {
     let mut buses = ATA_BUSES.lock();
-    buses[bus as usize].write(drive, block, &mut buf);
+    buses[bus as usize].write(drive, block, &buf);
 }
