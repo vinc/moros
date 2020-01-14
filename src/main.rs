@@ -18,7 +18,6 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     include_file("/cfg/passwords.csv", include_str!("../dsk/cfg/passwords.csv"));
     loop {
         user::shell::main(&["shell", "/cfg/boot.sh"]);
-        user::shell::main(&["shell"]);
     }
 }
 
