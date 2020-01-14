@@ -18,6 +18,7 @@ Install tools:
     curl https://sh.rustup.rs -sSf | sh
     rustup install nightly
     rustup default nightly
+    rustup component add rust-src
     cargo install cargo-xbuild bootimage
 
 Run with:
