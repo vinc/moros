@@ -12,6 +12,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         return user::shell::ExitCode::CommandError;
     }
 
+    // The command `write /usr/alice/` with a trailing slash will create
+    // a directory, while the same command without a trailing slash will
+    // create a file.
     let success = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
         kernel::fs::Dir::create(pathname).is_some()
