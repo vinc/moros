@@ -316,12 +316,23 @@ impl Dir {
         Self { addr: DATA_ADDR_OFFSET }
     }
 
-    pub fn open(path: &str) -> Option<Self> {
+    pub fn create(pathname: &str) -> Option<Self> {
+        let dirname = dirname(pathname);
+        let filename = filename(pathname);
+        if let Some(dir) = Dir::open(dirname) {
+            if let Some(block) = dir.create_dir(filename) {
+                return Some(Self { addr: block.addr });
+            }
+        }
+        None
+    }
+
+    pub fn open(pathname: &str) -> Option<Self> {
         let mut dir = Dir::root();
-        if path == "/" {
+        if pathname == "/" {
             return Some(dir);
         }
-        for name in path.trim_start_matches('/').split('/') {
+        for name in pathname.trim_start_matches('/').split('/') {
             match dir.find(name) {
                 Some(dir_entry) => {
                     if dir_entry.is_dir() {
@@ -352,14 +363,14 @@ impl Dir {
     }
 
     pub fn create_file(&self, name: &str) -> Option<Block> {
-        self.create(FileType::File, name)
+        self.create_block(FileType::File, name)
     }
 
     pub fn create_dir(&self, name: &str) -> Option<Block> {
-        self.create(FileType::Dir, name)
+        self.create_block(FileType::Dir, name)
     }
 
-    pub fn create(&self, kind: FileType, name: &str) -> Option<Block> {
+    fn create_block(&self, kind: FileType, name: &str) -> Option<Block> {
         if self.find(name).is_some() {
             return None;
         }
