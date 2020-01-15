@@ -195,7 +195,7 @@ impl Shell {
             "i"                                 => ExitCode::CommandUnknown,
             "j" | "jd" | "jump" | "jump-dir"    => ExitCode::CommandUnknown,
             "k" | "kill"                        => ExitCode::CommandUnknown,
-            "l" | "list" | "ls"                 => ExitCode::CommandUnknown,
+            "l" | "list" | "ls"                 => user::list::main(&args),
             "m" | "move" | "mv"                 => user::r#move::main(&args),
             "n"                                 => ExitCode::CommandUnknown,
             "o"                                 => ExitCode::CommandUnknown,
