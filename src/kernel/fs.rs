@@ -9,11 +9,6 @@ pub enum FileType {
     File = 1,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct File {
-    addr: u32
-}
-
 pub fn dirname(pathname: &str) -> &str {
     let n = pathname.len();
     let i = match pathname.rfind('/') {
@@ -31,6 +26,11 @@ pub fn filename(pathname: &str) -> &str {
         None => 0,
     };
     &pathname[i..n] 
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct File {
+    addr: u32
 }
 
 impl File {
