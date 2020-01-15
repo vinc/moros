@@ -23,7 +23,25 @@ Install tools:
 
 Run with:
 
-    cargo xrun
+    cargo xrun --release -- \
+      -cpu max \
+      -rtc base=localtime \
+      -nic model=rtl8139 \
+      -hdc disk.img
+
+Or with a serial console:
+
+    cargo xrun --release -- \
+      -cpu max \
+      -rtc base=localtime \
+      -nic model=rtl8139 \
+      -hdc disk.img \
+      -display none \
+      -serial stdio
+
+Or with `cool-retro-term` for a retro console look:
+
+    sh run/cool-retro-term.sh
 
 
 ## LICENSE
