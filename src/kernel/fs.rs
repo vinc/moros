@@ -1,8 +1,13 @@
 use bit_field::BitField;
-//use crate::{print, kernel};
 use crate::kernel;
 use heapless::{String, Vec};
 use heapless::consts::*;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileType {
+    Dir = 0,
+    File = 1,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct File {
@@ -30,14 +35,10 @@ pub fn filename(pathname: &str) -> &str {
 
 impl File {
     pub fn create(pathname: &str) -> Option<Self> {
-        //print!("File::create('{}')\n", pathname);
         let dirname = dirname(pathname);
         let filename = filename(pathname);
-        //print!("dirname: '{}'\n", dirname);
-        //print!("filename: '{}'\n", filename);
         if let Some(dir) = Dir::open(dirname) {
-            if let Some(block) = dir.create(filename) {
-                //print!("block is at 0x{:08X}\n", block.addr);
+            if let Some(block) = dir.create_file(filename) {
                 return Some(Self { addr: block.addr });
             }
         }
@@ -45,14 +46,10 @@ impl File {
     }
 
     pub fn open(pathname: &str) -> Option<Self> {
-        //print!("File::open('{}')\n", pathname);
         let dirname = dirname(pathname);
         let filename = filename(pathname);
-        //print!("dirname: '{}'\n", dirname);
-        //print!("filename: '{}'\n", filename);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.find(filename) {
-                //print!("block is at 0x{:08X}\n", dir_entry.addr);
                 return Some(Self { addr: dir_entry.addr });
             }
         }
@@ -60,18 +57,15 @@ impl File {
     }
 
     pub fn read(&self, buf: &mut [u8]) -> usize {
-        //print!("file::read()\n");
         let buf_len = buf.len();
         let mut addr = self.addr;
         let mut i = 0;
-        //print!("buf_len: {}, addr: {}\n", buf_len, addr);
         loop {
             let block = Block::read(addr);
             let data = block.data();
             let data_len = data.len();
             for j in 0..data_len {
                 if i == buf_len {
-                    //print!("i: {}\n", i);
                     return i;
                 }
                 if data[j] == 0 { // TODO: Use filesize instead
@@ -93,12 +87,10 @@ impl File {
         buf.resize(2048, 0).unwrap();
         let bytes = self.read(&mut buf);
         buf.resize(bytes, 0).unwrap();
-        //print!("file.read() at 0x{:08X} -> {}\n", self.addr, bytes);
         String::from_utf8(buf).unwrap()
     }
 
     pub fn write(&mut self, buf: &[u8]) -> Result<(), ()> {
-        //print!("file::write()\n");
         let buf_len = buf.len();
         let mut addr = self.addr;
         let mut i = 0;
@@ -140,6 +132,10 @@ impl File {
         }
         Ok(())
     }
+
+    pub fn addr(&self) -> u32 {
+        self.addr
+    }
 }
 
 #[derive(Clone)]
@@ -151,8 +147,6 @@ pub struct Block {
 // Block structure:
 // 0..4 => next block address
 // 4..512 => block data
-// TODO: Add block kind (Bitmap, Dir, File)
-// TODO: Add file size
 impl Block {
     pub fn new(addr: u32) -> Self {
         let buf = [0; 512];
@@ -168,7 +162,6 @@ impl Block {
     }
 
     pub fn write(&self) {
-        //print!("block::write() at 0x{:08X}\n", self.addr);
         let bus = 1; // TODO
         let dsk = 0; // TODO
         kernel::ata::write(bus, dsk, self.addr, &self.buf);
@@ -280,14 +273,32 @@ impl BlockBitmap {
 }
 
 pub struct DirEntry {
+    kind: FileType,
     addr: u32,
+    size: u32,
     name: String<U256>,
 }
 
 impl DirEntry {
-    pub fn new(addr: u32, name: &str) -> Self {
+    pub fn new(kind: FileType, addr: u32, size: u32, name: &str) -> Self {
         let name = String::from(name);
-        Self { addr, name }
+        Self { kind, addr, size, name }
+    }
+
+    pub fn is_dir(&self) -> bool {
+        self.kind == FileType::Dir
+    }
+
+    pub fn is_file(&self) -> bool {
+        self.kind == FileType::File
+    }
+
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    pub fn name(&self) -> String<U256> {
+        self.name.clone()
     }
 
     pub fn to_dir(&self) -> Dir {
@@ -305,20 +316,20 @@ impl Dir {
     }
 
     pub fn open(path: &str) -> Option<Self> {
-        //print!("Dir::open('{}')\n", path);
         let mut dir = Dir::root();
         if path == "/" {
             return Some(dir);
         }
         for name in path.trim_start_matches('/').split('/') {
-            //print!("name: '{}'\n", name);
             match dir.find(name) {
                 Some(dir_entry) => {
-                    //print!("dir_entry.name: '{}'\n", dir_entry.name);
-                    dir = dir_entry.to_dir() // TODO: Check block type
+                    if dir_entry.is_dir() {
+                        dir = dir_entry.to_dir()
+                    } else {
+                        return None;
+                    }
                 },
                 None => {
-                    //print!("dir_entry.name: none\n");
                     return None
                 },
             }
@@ -339,17 +350,23 @@ impl Dir {
         None
     }
 
-    pub fn create(&self, name: &str) -> Option<Block> {
-        //print!("dir.create('{}')\n", name);
+    pub fn create_file(&self, name: &str) -> Option<Block> {
+        self.create(FileType::File, name)
+    }
+
+    pub fn create_dir(&self, name: &str) -> Option<Block> {
+        self.create(FileType::Dir, name)
+    }
+
+    pub fn create(&self, kind: FileType, name: &str) -> Option<Block> {
         if self.find(name).is_some() {
-            //print!("Error: dir '{}' exists!\n", name);
             return None;
         }
 
         let mut read_dir = self.read();
         while read_dir.next().is_some() {}
 
-        if read_dir.block.data().len() - read_dir.data_offset < name.len() + 5 {
+        if read_dir.block.data().len() - read_dir.data_offset < name.len() + 10 {
             let new_block = Block::alloc().unwrap(); // TODO
             read_dir.block.set_next(new_block.addr);
             read_dir.block.write();
@@ -359,19 +376,26 @@ impl Dir {
         
         let new_block = Block::alloc().unwrap();
 
+        let entry_kind = kind;
+        let entry_size = 0;
         let entry_addr = new_block.addr();
         let entry_name = name.as_bytes();
 
         let n = entry_name.len();
         let i = read_dir.data_offset;
         let data = read_dir.block.data_mut();
-        data[i + 0] = entry_addr.get_bits(24..32) as u8;
-        data[i + 1] = entry_addr.get_bits(16..24) as u8;
-        data[i + 2] = entry_addr.get_bits(8..16) as u8;
-        data[i + 3] = entry_addr.get_bits(0..8) as u8;
-        data[i + 4] = n as u8;
+        data[i + 0] = entry_kind as u8;
+        data[i + 1] = entry_addr.get_bits(24..32) as u8;
+        data[i + 2] = entry_addr.get_bits(16..24) as u8;
+        data[i + 3] = entry_addr.get_bits(8..16) as u8;
+        data[i + 4] = entry_addr.get_bits(0..8) as u8;
+        data[i + 5] = entry_size.get_bits(24..32) as u8;
+        data[i + 6] = entry_size.get_bits(16..24) as u8;
+        data[i + 7] = entry_size.get_bits(8..16) as u8;
+        data[i + 8] = entry_size.get_bits(0..8) as u8;
+        data[i + 9] = n as u8;
         for j in 0..n {
-            data[i + 5 + j] = entry_name[j];
+            data[i + 10 + j] = entry_name[j];
         }
         read_dir.block.write();
 
@@ -400,18 +424,27 @@ impl Iterator for ReadDir {
             let mut i = self.data_offset;
 
             loop {
-                if i == data.len() - 5 { // No space left for another entry in the block
+                if i == data.len() - 10 { // No space left for another entry in the block
                     break;
                 }
 
-                let entry_addr = (data[i + 0] as u32) << 24
-                               | (data[i + 1] as u32) << 16
-                               | (data[i + 2] as u32) << 8
-                               | (data[i + 3] as u32);
+                let entry_kind = match data[i + 0] {
+                    0 => FileType::Dir,
+                    1 => FileType::File,
+                    _ => break,
+                };
+                let entry_addr = (data[i + 1] as u32) << 24
+                               | (data[i + 2] as u32) << 16
+                               | (data[i + 3] as u32) << 8
+                               | (data[i + 4] as u32);
+                let entry_size = (data[i + 5] as u32) << 24
+                               | (data[i + 6] as u32) << 16
+                               | (data[i + 7] as u32) << 8
+                               | (data[i + 8] as u32);
                 if entry_addr == 0 {
                     break;
                 }
-                i += 4;
+                i += 9;
 
                 let mut n = data[i];
                 if n == 0 || n as usize >= data.len() - i {
@@ -431,7 +464,7 @@ impl Iterator for ReadDir {
                 }
 
                 self.data_offset = i;
-                return Some(DirEntry::new(entry_addr, &entry_name));
+                return Some(DirEntry::new(entry_kind, entry_addr, entry_size, &entry_name));
             }
 
             match self.block.next() {
@@ -457,7 +490,7 @@ pub fn init() {
 
     /*
     if root.find("test").is_none() {
-        match root.create("test") {
+        match File::create("/test") {
             Some(test) => {
                 print!("Created '/test' at block 0x{:08X}\n", test.addr());
             },
@@ -477,7 +510,7 @@ pub fn init() {
 
     if let Some(file) = File::open("/test") {
         print!("Reading '/test':\n");
-        print!("{}", file.read_to_string());
+        print!("{}\n", file.read_to_string());
     } else {
         print!("Could not open '/test'\n");
     }
