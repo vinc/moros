@@ -11,7 +11,11 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     moros::init();
     print!("\n");
 
-    kernel::fs::Dir::root().create_dir("cfg");
+    kernel::fs::Dir::create("/bin");
+    kernel::fs::Dir::create("/cfg");
+    kernel::fs::Dir::create("/lib");
+    kernel::fs::Dir::create("/usr");
+    kernel::fs::Dir::create("/usr/root");
 
     include_file("/cfg/boot.sh", include_str!("../dsk/cfg/boot.sh"));
     include_file("/cfg/banner.txt", include_str!("../dsk/cfg/banner.txt"));
