@@ -138,6 +138,16 @@ impl File {
     pub fn addr(&self) -> u32 {
         self.addr
     }
+
+    pub fn delete(pathname: &str) -> Result<(), ()> {
+        let dirname = dirname(pathname);
+        let filename = filename(pathname);
+        if let Some(mut dir) = Dir::open(dirname) {
+            dir.delete_entry(filename)
+        } else {
+            Err(())
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -202,6 +212,7 @@ impl Block {
         &mut self.buf[4..512]
     }
 
+    // TODO: Return addr instead of block?
     pub fn next(&self) -> Option<Self> {
         let addr = (self.buf[0] as u32) << 24
                  | (self.buf[1] as u32) << 16
@@ -308,6 +319,10 @@ impl DirEntry {
     pub fn to_dir(&self) -> Dir {
         Dir { addr: self.addr }
     }
+
+    pub fn len(&self) -> usize {
+        1 + 4 + 4 + 1 + self.name.len()
+    }
 }
 
 pub struct Dir {
@@ -366,14 +381,15 @@ impl Dir {
     }
 
     pub fn create_file(&self, name: &str) -> Option<Block> {
-        self.create_block(FileType::File, name)
+        self.create_entry(FileType::File, name)
     }
 
     pub fn create_dir(&self, name: &str) -> Option<Block> {
-        self.create_block(FileType::Dir, name)
+        self.create_entry(FileType::Dir, name)
     }
 
-    fn create_block(&self, kind: FileType, name: &str) -> Option<Block> {
+    // TODO: Return a DirEntry?
+    fn create_entry(&self, kind: FileType, name: &str) -> Option<Block> {
         if self.find(name).is_some() {
             return None;
         }
@@ -388,7 +404,7 @@ impl Dir {
             read_dir.block = new_block;
             read_dir.data_offset = 0;
         }
-        
+
         let new_block = Block::alloc().unwrap();
 
         let entry_kind = kind;
@@ -417,10 +433,51 @@ impl Dir {
         Some(new_block)
     }
 
+    // Deleting an entry is done by setting the entry address to 0
+    // TODO: If the entry is a directory, remove its entries recursively
+    pub fn delete_entry(&mut self, name: &str) -> Result<(), ()> {
+        let mut read_dir = self.read();
+        for entry in &mut read_dir {
+            if entry.name == name {
+                // Zeroing entry addr
+                let data = read_dir.block.data_mut();
+                let i = read_dir.data_offset - entry.len();
+                data[i + 1] = 0;
+                data[i + 2] = 0;
+                data[i + 3] = 0;
+                data[i + 4] = 0;
+                read_dir.block.write();
+
+                // Freeing entry blocks
+                let mut entry_block = Block::read(entry.addr);
+                loop {
+                    BlockBitmap::free(entry_block.addr);
+                    match entry_block.next() {
+                        Some(next_block) => entry_block = next_block,
+                        None => break,
+                    }
+                }
+
+                return Ok(());
+            }
+        }
+        Err(())
+    }
+
     pub fn read(&self) -> ReadDir {
         ReadDir {
             block: Block::read(self.addr),
             data_offset: 0,
+        }
+    }
+
+    pub fn delete(pathname: &str) -> Result<(), ()> {
+        let dirname = dirname(pathname);
+        let filename = filename(pathname);
+        if let Some(mut dir) = Dir::open(dirname) {
+            dir.delete_entry(filename)
+        } else {
+            Err(())
         }
     }
 }
@@ -432,7 +489,7 @@ pub struct ReadDir {
 
 impl Iterator for ReadDir {
     type Item = DirEntry;
-    
+
     fn next(&mut self) -> Option<DirEntry> {
         loop {
             let data = self.block.data();
@@ -456,9 +513,6 @@ impl Iterator for ReadDir {
                                | (data[i + 6] as u32) << 16
                                | (data[i + 7] as u32) << 8
                                | (data[i + 8] as u32);
-                if entry_addr == 0 {
-                    break;
-                }
                 i += 9;
 
                 let mut n = data[i];
@@ -479,6 +533,12 @@ impl Iterator for ReadDir {
                 }
 
                 self.data_offset = i;
+
+                // Skip deleted entries
+                if entry_addr == 0 {
+                    continue;
+                }
+
                 return Some(DirEntry::new(entry_kind, entry_addr, entry_size, &entry_name));
             }
 

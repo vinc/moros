@@ -187,7 +187,7 @@ impl Shell {
             "a" | "alias"                       => ExitCode::CommandUnknown,
             "b"                                 => ExitCode::CommandUnknown,
             "c" | "copy" | "cp"                 => ExitCode::CommandUnknown,
-            "d" | "del" | "delete" | "rm"       => ExitCode::CommandUnknown,
+            "d" | "del" | "delete" | "rm"       => user::delete::main(&args),
             "e" | "edit" | "editor"             => user::editor::main(&args),
             "f" | "find"                        => ExitCode::CommandUnknown,
             "g" | "gd" | "go" | "go-dir" | "cd" => ExitCode::CommandUnknown,
