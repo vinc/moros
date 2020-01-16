@@ -273,6 +273,7 @@ impl BlockBitmap {
     }
 }
 
+#[derive(Debug)]
 pub struct DirEntry {
     kind: FileType,
     addr: u32,
