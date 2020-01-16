@@ -11,10 +11,12 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     moros::init();
     print!("\n");
 
-    kernel::fs::Dir::create("/bin");
-    kernel::fs::Dir::create("/cfg");
-    kernel::fs::Dir::create("/lib");
-    kernel::fs::Dir::create("/usr");
+    kernel::fs::Dir::create("/bin"); // Binaries
+    kernel::fs::Dir::create("/cfg"); // Config files
+    kernel::fs::Dir::create("/dev"); // Devices
+    kernel::fs::Dir::create("/lib"); // Libraries
+    kernel::fs::Dir::create("/src"); // Sources
+    kernel::fs::Dir::create("/usr"); // User directories
     kernel::fs::Dir::create("/usr/root");
 
     include_file("/cfg/boot.sh", include_str!("../dsk/cfg/boot.sh"));
