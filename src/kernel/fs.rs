@@ -50,7 +50,9 @@ impl File {
         let filename = filename(pathname);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.find(filename) {
-                return Some(Self { addr: dir_entry.addr });
+                if dir_entry.is_file() {
+                    return Some(Self { addr: dir_entry.addr });
+                }
             }
         }
         None
