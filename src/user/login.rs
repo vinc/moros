@@ -17,7 +17,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 // TODO: Add max number of attempts
 pub fn login() -> user::shell::ExitCode {
     let mut hashed_passwords: FnvIndexMap<String<U256>, String<U1024>, U256> = FnvIndexMap::new();
-    if let Some(file) = kernel::fs::File::open("/cfg/passwords.csv") {
+    if let Some(file) = kernel::fs::File::open("/ini/passwords.csv") {
         for line in file.read_to_string().split("\n") {
             let mut rows = line.split(",");
             if let Some(username) = rows.next() {

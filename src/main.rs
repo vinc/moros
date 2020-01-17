@@ -12,18 +12,18 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     print!("\n");
 
     kernel::fs::Dir::create("/bin"); // Binaries
-    kernel::fs::Dir::create("/cfg"); // Config files
     kernel::fs::Dir::create("/dev"); // Devices
+    kernel::fs::Dir::create("/ini"); // Initializers
     kernel::fs::Dir::create("/lib"); // Libraries
     kernel::fs::Dir::create("/src"); // Sources
     kernel::fs::Dir::create("/usr"); // User directories
     kernel::fs::Dir::create("/usr/admin");
 
-    include_file("/cfg/boot.sh", include_str!("../dsk/cfg/boot.sh"));
-    include_file("/cfg/banner.txt", include_str!("../dsk/cfg/banner.txt"));
-    include_file("/cfg/passwords.csv", include_str!("../dsk/cfg/passwords.csv"));
+    include_file("/ini/boot.sh", include_str!("../dsk/ini/boot.sh"));
+    include_file("/ini/banner.txt", include_str!("../dsk/ini/banner.txt"));
+    include_file("/ini/passwords.csv", include_str!("../dsk/ini/passwords.csv"));
     loop {
-        user::shell::main(&["shell", "/cfg/boot.sh"]);
+        user::shell::main(&["shell", "/ini/boot.sh"]);
     }
 }
 
