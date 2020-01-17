@@ -13,4 +13,5 @@ pub fn init() {
     kernel::cpu::init();
     kernel::pci::init();
     kernel::ata::init();
+    kernel::fs::init();
 }

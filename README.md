@@ -21,6 +21,10 @@ Install tools:
     rustup component add rust-src
     cargo install cargo-xbuild bootimage
 
+Create disk:
+
+    qemu-img create disk.img 128M
+
 Run with:
 
     cargo xrun --release -- \

@@ -187,7 +187,7 @@ impl Shell {
             "a" | "alias"                       => ExitCode::CommandUnknown,
             "b"                                 => ExitCode::CommandUnknown,
             "c" | "copy" | "cp"                 => ExitCode::CommandUnknown,
-            "d" | "del" | "delete" | "rm"       => ExitCode::CommandUnknown,
+            "d" | "del" | "delete" | "rm"       => user::delete::main(&args),
             "e" | "edit" | "editor"             => user::editor::main(&args),
             "f" | "find"                        => ExitCode::CommandUnknown,
             "g" | "gd" | "go" | "go-dir" | "cd" => ExitCode::CommandUnknown,
@@ -195,7 +195,7 @@ impl Shell {
             "i"                                 => ExitCode::CommandUnknown,
             "j" | "jd" | "jump" | "jump-dir"    => ExitCode::CommandUnknown,
             "k" | "kill"                        => ExitCode::CommandUnknown,
-            "l" | "list" | "ls"                 => ExitCode::CommandUnknown,
+            "l" | "list" | "ls"                 => user::list::main(&args),
             "m" | "move" | "mv"                 => user::r#move::main(&args),
             "n"                                 => ExitCode::CommandUnknown,
             "o"                                 => ExitCode::CommandUnknown,
@@ -237,7 +237,7 @@ pub fn main(args: &[&str]) -> ExitCode {
         2 => {
             let pathname = args[1];
             if let Some(file) = kernel::fs::File::open(pathname) {
-                for line in file.read().split("\n") {
+                for line in file.read_to_string().split("\n") {
                     if line.len() > 0 {
                         shell.exec(line);
                     }

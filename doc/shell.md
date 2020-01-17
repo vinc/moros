@@ -75,7 +75,7 @@ wd /usr/v # no ambiguity here so no trailing slash required
 write-dir /usr/v
 ```
 
-## Combiners
+## Combiners (TODO)
 
 The `&` and `|` symbols are used only for combiners so there's no needs to
 double them.
@@ -92,7 +92,7 @@ r a.txt & r b.txt
 r a.txt | r b.txt
 ```
 
-## Pipes
+## Pipes (TODO)
 
 The pipe symbol `|` from UNIX is replaced by `-->`, shortened to `>`, and `>`
 is replaced by `--> write` or `> w` in short. An additional standard stream

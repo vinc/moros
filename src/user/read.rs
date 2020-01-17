@@ -22,8 +22,10 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             user::shell::ExitCode::CommandSuccessful
         },
         _ => {
-            if let Some(file) = kernel::fs::File::open(pathname) {
-                print!("{}", file.read());
+            if pathname.ends_with('/') {
+                user::list::main(args)
+            } else if let Some(file) = kernel::fs::File::open(pathname) {
+                print!("{}", file.read_to_string());
                 user::shell::ExitCode::CommandSuccessful
             } else {
                 print!("File not found '{}'\n", pathname);

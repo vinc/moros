@@ -1,9 +1,11 @@
 pub mod base64;
 pub mod clear;
 pub mod date;
+pub mod delete;
 pub mod editor;
 pub mod halt;
 pub mod hex;
+pub mod list;
 pub mod login;
 pub mod print;
 pub mod r#move;
