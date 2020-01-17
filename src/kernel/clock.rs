@@ -2,22 +2,11 @@ use crate::kernel::cmos::CMOS;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-const DAYS_IN_MONTH: [u16; 12] = [
-    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+const DAYS_BEFORE_MONTH: [u64; 13] = [
+    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
 ];
 
 lazy_static! {
-    static ref DAYS_SINCE_MONTH: [u16; 12] = {
-        let mut days_since_month = [0; 12];
-        for m in 0..12 {
-            days_since_month[m] = DAYS_IN_MONTH[m];
-            if m > 0 {
-                days_since_month[m] += days_since_month[m - 1]
-            }
-        }
-        days_since_month
-    };
-
     pub static ref TICKS: Mutex<usize> = Mutex::new(0);
 }
 
@@ -32,17 +21,37 @@ pub fn clock_monotonic() -> f64 {
 }
 
 pub fn clock_realtime() -> f64 {
-    let rtc = CMOS::new().rtc();
+    let rtc = CMOS::new().rtc(); // Assuming GMT
 
-    let days_since_year = 365.25 * (rtc.year - 1970) as f64;
-    let days_since_month = DAYS_SINCE_MONTH[(rtc.month as usize) - 1] as f64;
-
-    let t = 86400.0 * days_since_year
-          + 86400.0 * days_since_month
-          + 86400.0 * rtc.day as f64
-          +  3600.0 * rtc.hour as f64
-          +    60.0 * rtc.minute as f64
-          +           rtc.second as f64;
+    let t = 86400 * days_before_year(rtc.year as u64)
+          + 86400 * days_before_month(rtc.year as u64, rtc.month as u64)
+          + 86400 * (rtc.day - 1) as u64
+          +  3600 * rtc.hour as u64
+          +    60 * rtc.minute as u64
+          +         rtc.second as u64;
 
     t as f64
+}
+
+fn days_before_year(year: u64) -> u64 {
+    (1970..year).fold(0, |days, y| {
+        days + if is_leap_year(y) { 366 } else { 365 }
+    })
+}
+
+fn days_before_month(year: u64, month: u64) -> u64 {
+    let leap_day = is_leap_year(year) && month > 2;
+    DAYS_BEFORE_MONTH[(month as usize) - 1] + if leap_day { 1 } else { 0 }
+}
+
+fn is_leap_year(year: u64) -> bool {
+    if year % 4 != 0 {
+        false
+    } else if year % 100 != 0 {
+        true
+    } else if year % 400 != 0 {
+        false
+    } else {
+        true
+    }
 }
