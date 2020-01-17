@@ -186,7 +186,7 @@ impl Shell {
         match args[0] {
             "a" | "alias"                       => ExitCode::CommandUnknown,
             "b"                                 => ExitCode::CommandUnknown,
-            "c" | "copy" | "cp"                 => ExitCode::CommandUnknown,
+            "c" | "copy" | "cp"                 => user::copy::main(&args),
             "d" | "del" | "delete" | "rm"       => user::delete::main(&args),
             "e" | "edit" | "editor"             => user::editor::main(&args),
             "f" | "find"                        => ExitCode::CommandUnknown,

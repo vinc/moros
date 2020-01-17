@@ -1,5 +1,6 @@
 pub mod base64;
 pub mod clear;
+pub mod copy;
 pub mod date;
 pub mod delete;
 pub mod editor;
