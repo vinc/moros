@@ -191,7 +191,7 @@ impl Shell {
             "e" | "edit"           => user::editor::main(&args),
             "f" | "find"           => ExitCode::CommandUnknown,
             "g" | "go"             => ExitCode::CommandUnknown,
-            "h" | "help"           => ExitCode::CommandUnknown,
+            "h" | "help"           => user::help::main(&args),
             "i"                    => ExitCode::CommandUnknown,
             "j" | "jump"           => ExitCode::CommandUnknown,
             "k" | "kill"           => ExitCode::CommandUnknown,

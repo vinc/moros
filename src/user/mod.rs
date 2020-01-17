@@ -5,6 +5,7 @@ pub mod date;
 pub mod delete;
 pub mod editor;
 pub mod halt;
+pub mod help;
 pub mod hex;
 pub mod list;
 pub mod login;
