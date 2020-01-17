@@ -6,8 +6,12 @@ use core::str;
 use hmac::Hmac;
 use sha2::Sha256;
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    login()
+pub fn main(args: &[&str]) -> user::shell::ExitCode {
+    if args.len() > 1 && args[1] == "add" {
+        create()
+    } else {
+        login()
+    }
 }
 
 // TODO: Add max number of attempts
@@ -47,6 +51,35 @@ pub fn login() -> user::shell::ExitCode {
     }
 
     // TODO: load shell
+    user::shell::ExitCode::CommandSuccessful
+}
+
+// TODO: Move that to `user add` or something
+pub fn create() -> user::shell::ExitCode {
+    print!("\nUsername: ");
+    let mut username = kernel::console::get_line();
+    username.pop(); // Trim end of string
+
+    print!("Password: ");
+    kernel::console::disable_echo();
+    let mut password = kernel::console::get_line();
+    kernel::console::enable_echo();
+    print!("\n");
+    password.pop();
+
+    print!("Confirm: ");
+    kernel::console::disable_echo();
+    let mut confirm = kernel::console::get_line();
+    kernel::console::enable_echo();
+    print!("\n");
+    confirm.pop();
+
+    if password != confirm {
+        print!("Password confirmation failed\n");
+        return user::shell::ExitCode::CommandError;
+    }
+
+    print!("{}\n", hash(&password));
     user::shell::ExitCode::CommandSuccessful
 }
 
