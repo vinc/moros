@@ -16,7 +16,10 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     kernel::fs::Dir::create("/ini"); // Initializers
     kernel::fs::Dir::create("/lib"); // Libraries
     kernel::fs::Dir::create("/src"); // Sources
+    kernel::fs::Dir::create("/tmp"); // Temporaries
     kernel::fs::Dir::create("/usr"); // User directories
+    kernel::fs::Dir::create("/var"); // Variables
+
     kernel::fs::Dir::create("/usr/admin");
 
     include_file("/ini/boot.sh", include_str!("../dsk/ini/boot.sh"));
