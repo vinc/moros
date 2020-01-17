@@ -17,7 +17,7 @@ fn main(_boot_info: &'static BootInfo) -> ! {
     kernel::fs::Dir::create("/lib"); // Libraries
     kernel::fs::Dir::create("/src"); // Sources
     kernel::fs::Dir::create("/usr"); // User directories
-    kernel::fs::Dir::create("/usr/root");
+    kernel::fs::Dir::create("/usr/admin");
 
     include_file("/cfg/boot.sh", include_str!("../dsk/cfg/boot.sh"));
     include_file("/cfg/banner.txt", include_str!("../dsk/cfg/banner.txt"));
