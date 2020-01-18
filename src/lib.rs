@@ -18,7 +18,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     use x86_64::VirtAddr;
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mut mapper = unsafe { kernel::mem::init(phys_mem_offset) };
+    let mut mapper = unsafe { kernel::mem::mapper(phys_mem_offset) };
     let mut frame_allocator = unsafe { kernel::mem::BootInfoFrameAllocator::init(&boot_info.memory_map) };
     kernel::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
     kernel::cpu::init();
