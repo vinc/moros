@@ -1,14 +1,23 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use moros::{print, user, kernel};
+use x86_64::VirtAddr;
 
 entry_point!(main);
 
-fn main(_boot_info: &'static BootInfo) -> ! {
+fn main(boot_info: &'static BootInfo) -> ! {
     moros::init();
+
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let mut mapper = unsafe { kernel::mem::init(phys_mem_offset) };
+    let mut frame_allocator = unsafe { kernel::mem::BootInfoFrameAllocator::init(&boot_info.memory_map) };
+    kernel::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+
     print!("\n");
 
     kernel::fs::Dir::create("/bin"); // Binaries
