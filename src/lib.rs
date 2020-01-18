@@ -16,6 +16,8 @@ pub fn init(boot_info: &'static BootInfo) {
     unsafe { kernel::interrupts::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
 
+    print!("[{:.6}] MOROS version {}\n", kernel::clock::clock_monotonic(), env!("CARGO_PKG_VERSION"));
+
     kernel::mem::init(boot_info);
     kernel::cpu::init();
     kernel::pci::init();
