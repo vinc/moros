@@ -1,14 +1,16 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use moros::{print, user, kernel};
 
 entry_point!(main);
 
-fn main(_boot_info: &'static BootInfo) -> ! {
-    moros::init();
+fn main(boot_info: &'static BootInfo) -> ! {
+    moros::init(boot_info);
     print!("\n");
 
     kernel::fs::Dir::create("/bin"); // Binaries
