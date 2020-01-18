@@ -227,6 +227,15 @@ lazy_static! {
     pub static ref ATA_BUSES: Mutex<Vec<Bus, U2>> = Mutex::new(Vec::new());
 }
 
+fn disk_size(sectors: u32) -> (u32, String<U2>) {
+    let bytes = sectors * 512;
+    if bytes >> 20 < 1000 {
+        (bytes >> 20, String::from("MB"))
+    } else {
+        (bytes >> 30, String::from("GB"))
+    }
+}
+
 pub fn init() {
     let mut buses = ATA_BUSES.lock();
     buses.push(Bus::new(0, 0x1F0, 0x3F6, 14)).unwrap();
@@ -247,9 +256,10 @@ pub fn init() {
                 model.push(b as char).unwrap();
             }
         }
-        //let sectors = (buf[60] as u32) << 16 | (buf[61] as u32);
+        let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);
+        let (size, unit) = disk_size(sectors);
         let uptime = kernel::clock::clock_monotonic();
-        print!("[{:.6}] ATA {}:{} {} {}\n", uptime, bus, drive, model.trim(), serial.trim());
+        print!("[{:.6}] ATA {}:{} {} {} ({} {})\n", uptime, bus, drive, model.trim(), serial.trim(), size, unit);
     }
 
     /*
