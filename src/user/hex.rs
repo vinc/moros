@@ -1,12 +1,11 @@
 use crate::{print, kernel, user};
-use heapless::Vec;
-use heapless::consts::*;
+use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {
         return user::shell::ExitCode::CommandError;
     }
-    let path: Vec<_, U16> = args[1].split("/").collect();
+    let path: Vec<_> = args[1].split("/").collect();
     if path.len() != 8 || path[1] != "dev" || path[2] != "ata" || path[4] != "dsk" || path[6] != "blk" {
         return user::shell::ExitCode::CommandError;
     }

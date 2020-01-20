@@ -1,6 +1,5 @@
 use crate::{print, kernel, user};
-use heapless::Vec;
-use heapless::consts::*;
+use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {
@@ -16,7 +15,8 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     }
 
     if let Some(dir) = kernel::fs::Dir::open(pathname) {
-        let mut files: Vec<_, U256> = dir.read().collect();
+        //let mut files: Vec<_> = dir.read().collect();
+        let mut files: Vec<_> = dir.read().collect();
 
         // With `std::Vec` we would have used the following to sort the files:
         //
@@ -38,9 +38,11 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 // files[i] = files[min];
                 // files[min] = tmp;
                 let tmp = files.swap_remove(min);
-                files.push(tmp).unwrap();
+                //files.push(tmp);
+                files.push(tmp);
                 let tmp = files.swap_remove(i);
-                files.push(tmp).unwrap();
+                //files.push(tmp);
+                files.push(tmp);
             }
         }
 
