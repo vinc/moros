@@ -63,15 +63,15 @@ impl Editor {
         }
     }
 
-    pub fn run(&mut self) -> user::shell::ExitCode {
+    fn print_screen(&mut self) {
         kernel::vga::clear_screen();
-        let n = self.lines.len();
-        for i in 0..n {
-            print!("{}", self.lines[i]);
-            if i < n - 1 {
-                print!("\n");
-            }
+        for line in &self.lines {
+            print!("{}\n", line);
         }
+    }
+
+    pub fn run(&mut self) -> user::shell::ExitCode {
+        self.print_screen();
         kernel::vga::set_cursor_position(0, 0);
         kernel::vga::set_writer_position(0, 0);
 
@@ -96,10 +96,11 @@ impl Editor {
                 '\n' => { // Newline
                     // TODO: Allow more lines than screen height
                     if y < kernel::vga::screen_height() - 1 {
-                        print!("{}", c);
-                        if y == self.lines.len() - 1 {
-                            self.lines.push(String::new());
-                        }
+                        let new_line = self.lines[y].split_off(x);
+                        self.lines.insert(y + 1, new_line);
+                        self.print_screen();
+                        kernel::vga::set_cursor_position(0, y + 1);
+                        kernel::vga::set_writer_position(0, y + 1);
                     }
                 },
                 '↑' => { // Arrow up
@@ -156,12 +157,12 @@ impl Editor {
                         kernel::vga::set_writer_position(x - 1, y);
                     } else {
                         if y > 0 {
-                            // Remove last empty line
-                            if y == self.lines.len() - 1 && self.lines[y].len() == 0 {
-                                self.lines.pop();
-                            }
-                            kernel::vga::set_cursor_position(self.lines[y - 1].len(), y - 1);
-                            kernel::vga::set_writer_position(self.lines[y - 1].len(), y - 1);
+                            let x = self.lines[y - 1].len();
+                            let line = self.lines.remove(y);
+                            self.lines[y - 1].push_str(&line);
+                            self.print_screen();
+                            kernel::vga::set_cursor_position(x, y - 1);
+                            kernel::vga::set_writer_position(x, y - 1);
                         }
                     }
                 },
