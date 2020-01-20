@@ -70,7 +70,7 @@ impl File {
                 if i == buf_len {
                     return i;
                 }
-                if data[j] == 0 { // TODO: Use filesize instead
+                if data[j] == 0 { // TODO: Use filesize
                     return i;
                 }
                 buf[i] = data[j];
@@ -84,9 +84,8 @@ impl File {
     }
 
     pub fn read_to_string(&self) -> String {
-        // TODO: We could use [0; 2048] with real String instead of heapless
         let mut buf: Vec<u8> = Vec::new();
-        buf.resize(2048, 0);
+        buf.resize(2048, 0); // TODO: Use filesize
         let bytes = self.read(&mut buf);
         buf.resize(bytes, 0);
         String::from_utf8(buf).unwrap()
