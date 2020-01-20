@@ -1,6 +1,6 @@
 use crate::{print, user, kernel};
-use heapless::{String, FnvIndexSet, Vec};
-use heapless::consts::*;
+use alloc::vec::Vec;
+use alloc::string::String;
 
 #[repr(u8)]
 pub enum ExitCode {
@@ -11,9 +11,9 @@ pub enum ExitCode {
 }
 
 pub struct Shell {
-    cmd: String<U256>,
-    prompt: String<U256>,
-    history: FnvIndexSet<String<U256>, U256>,
+    cmd: String,
+    prompt: String,
+    history: Vec<String>,
     history_index: usize,
 }
 
@@ -22,7 +22,7 @@ impl Shell {
         Shell {
             cmd: String::new(),
             prompt: String::from("> "),
-            history: FnvIndexSet::new(),
+            history: Vec::new(),
             history_index: 0,
         }
     }
@@ -48,18 +48,13 @@ impl Shell {
                 '\n' => { // Newline
                     print!("\n");
                     if self.cmd.len() > 0 {
-                        // Remove first command from history if full
-                        if self.history.len() == self.history.capacity() {
-                            let first = self.history.iter().next().unwrap().clone();
-                            self.history.remove(&first);
-                        }
-
                         // Add or move command to history at the end
                         let cmd = self.cmd.clone();
-                        self.history.remove(&cmd);
-                        if self.history.insert(cmd).is_ok() {
-                            self.history_index = self.history.len();
+                        if let Some(pos) = self.history.iter().position(|s| *s == *cmd) {
+                            self.history.remove(pos);
                         }
+                        self.history.push(cmd);
+                        self.history_index = self.history.len();
 
                         let line = self.cmd.clone();
                         match self.exec(&line) {
@@ -115,8 +110,8 @@ impl Shell {
                             after_cursor = &after_cursor[1..];
                         }
                         self.cmd.clear();
-                        self.cmd.push_str(before_cursor).unwrap();
-                        self.cmd.push_str(after_cursor).unwrap();
+                        self.cmd.push_str(before_cursor);
+                        self.cmd.push_str(after_cursor);
                         kernel::vga::clear_row();
                         print!("{}{}", self.prompt, self.cmd);
                         kernel::vga::set_cursor_position(x - 1, y);
@@ -128,9 +123,9 @@ impl Shell {
                         let cmd = self.cmd.clone();
                         let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
                         self.cmd.clear();
-                        self.cmd.push_str(before_cursor).unwrap();
-                        self.cmd.push(c).unwrap();
-                        self.cmd.push_str(after_cursor).unwrap();
+                        self.cmd.push_str(before_cursor);
+                        self.cmd.push(c);
+                        self.cmd.push_str(after_cursor);
                         kernel::vga::clear_row();
                         print!("{}{}", self.prompt, self.cmd);
                         kernel::vga::set_cursor_position(x + 1, y);
@@ -141,9 +136,9 @@ impl Shell {
         }
     }
 
-    pub fn parse<'a>(&self, cmd: &'a str) -> Vec<&'a str, U256> {
-        //let args: Vec<&str, U256> = cmd.split_whitespace().collect();
-        let mut args: Vec<&str, U256> = Vec::new();
+    pub fn parse<'a>(&self, cmd: &'a str) -> Vec<&'a str> {
+        //let args: Vec<&str> = cmd.split_whitespace().collect();
+        let mut args: Vec<&str> = Vec::new();
         let mut i = 0;
         let mut n = cmd.len();
         let mut is_quote = false;
@@ -154,13 +149,13 @@ impl Shell {
                 break;
             } else if c == ' ' && !is_quote {
                 if i != j {
-                    args.push(&cmd[i..j]).unwrap();
+                    args.push(&cmd[i..j]);
                 }
                 i = j + 1;
             } else if c == '"' {
                 is_quote = !is_quote;
                 if !is_quote {
-                    args.push(&cmd[i..j]).unwrap();
+                    args.push(&cmd[i..j]);
                 }
                 i = j + 1;
             }
@@ -170,7 +165,7 @@ impl Shell {
             if is_quote {
                 n -= 1;
             }
-            args.push(&cmd[i..n]).unwrap();
+            args.push(&cmd[i..n]);
         }
 
         args

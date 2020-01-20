@@ -1,8 +1,8 @@
 use bit_field::BitField;
 use crate::{print, kernel};
 use lazy_static::lazy_static;
-use heapless::{String, Vec};
-use heapless::consts::*;
+use alloc::vec::Vec;
+use alloc::string::String;
 use spin::Mutex;
 use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
@@ -224,10 +224,10 @@ impl Bus {
 }
 
 lazy_static! {
-    pub static ref ATA_BUSES: Mutex<Vec<Bus, U2>> = Mutex::new(Vec::new());
+    pub static ref ATA_BUSES: Mutex<Vec<Bus>> = Mutex::new(Vec::new());
 }
 
-fn disk_size(sectors: u32) -> (u32, String<U2>) {
+fn disk_size(sectors: u32) -> (u32, String) {
     let bytes = sectors * 512;
     if bytes >> 20 < 1000 {
         (bytes >> 20, String::from("MB"))
@@ -238,22 +238,22 @@ fn disk_size(sectors: u32) -> (u32, String<U2>) {
 
 pub fn init() {
     let mut buses = ATA_BUSES.lock();
-    buses.push(Bus::new(0, 0x1F0, 0x3F6, 14)).unwrap();
-    buses.push(Bus::new(1, 0x170, 0x376, 15)).unwrap();
+    buses.push(Bus::new(0, 0x1F0, 0x3F6, 14));
+    buses.push(Bus::new(1, 0x170, 0x376, 15));
 
     let bus = 1;
     let drive = 0;
     if let Some(buf) = buses[bus].identify_drive(drive) {
-        let mut serial = String::<U32>::new();
+        let mut serial = String::new();
         for i in 10..20 {
             for &b in &buf[i].to_be_bytes() {
-                serial.push(b as char).unwrap();
+                serial.push(b as char);
             }
         }
-        let mut model = String::<U64>::new();
+        let mut model = String::new();
         for i in 27..47 {
             for &b in &buf[i].to_be_bytes() {
-                model.push(b as char).unwrap();
+                model.push(b as char);
             }
         }
         let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);

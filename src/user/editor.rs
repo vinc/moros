@@ -1,7 +1,7 @@
 use core::cmp;
 use crate::{print, kernel, user};
-use heapless::{String, Vec};
-use heapless::consts::*;
+use alloc::vec::Vec;
+use alloc::string::String;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {
@@ -15,8 +15,8 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
 pub struct Editor {
     file: Option<kernel::fs::File>,
-    pathname: String<U256>,
-    lines: Vec<String<U256>, U256>,
+    pathname: String,
+    lines: Vec<String>,
 }
 
 impl Editor {
@@ -27,12 +27,12 @@ impl Editor {
             Some(file) => {
                 let contents = file.read_to_string();
                 for line in contents.split('\n') {
-                    lines.push(line.into()).unwrap();
+                    lines.push(line.into());
                 }
                 Some(file)
             },
             None => {
-                lines.push(String::new()).unwrap();
+                lines.push(String::new());
                 kernel::fs::File::create(pathname)
             }
         };
@@ -47,12 +47,12 @@ impl Editor {
             print!("Permission denied to write to '{}'\n", self.pathname);
             user::shell::ExitCode::CommandError
         } else if self.file.is_some() {
-            let mut contents = String::<U2048>::new();
+            let mut contents = String::new();
             let n = self.lines.len();
             for i in 0..n {
-                contents.push_str(&self.lines[i]).unwrap();
+                contents.push_str(&self.lines[i]);
                 if i < n - 1 {
-                    contents.push('\n').unwrap();
+                    contents.push('\n');
                 }
             }
             self.file.unwrap().write(&contents.as_bytes()).unwrap();
@@ -98,7 +98,7 @@ impl Editor {
                     if y < kernel::vga::screen_height() - 1 {
                         print!("{}", c);
                         if y == self.lines.len() - 1 {
-                            self.lines.push(String::new()).unwrap();
+                            self.lines.push(String::new());
                         }
                     }
                 },
@@ -148,8 +148,8 @@ impl Editor {
                             after_cursor = &after_cursor[1..];
                         }
                         self.lines[y].clear();
-                        self.lines[y].push_str(before_cursor).unwrap();
-                        self.lines[y].push_str(after_cursor).unwrap();
+                        self.lines[y].push_str(before_cursor);
+                        self.lines[y].push_str(after_cursor);
                         kernel::vga::clear_row();
                         print!("{}", self.lines[y]);
                         kernel::vga::set_cursor_position(x - 1, y);
@@ -172,9 +172,9 @@ impl Editor {
                             let line = self.lines[y].clone();
                             let (before_cursor, after_cursor) = line.split_at(x);
                             self.lines[y].clear();
-                            self.lines[y].push_str(before_cursor).unwrap();
-                            self.lines[y].push(c).unwrap();
-                            self.lines[y].push_str(after_cursor).unwrap();
+                            self.lines[y].push_str(before_cursor);
+                            self.lines[y].push(c);
+                            self.lines[y].push_str(after_cursor);
                             kernel::vga::clear_row();
                             print!("{}", self.lines[y]);
                             if x == kernel::vga::screen_width() - 1 {

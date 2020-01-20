@@ -1,7 +1,6 @@
 use bit_field::BitField;
 use crate::{print, kernel};
-use heapless::Vec;
-use heapless::consts::*;
+use alloc::vec::Vec;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
@@ -20,7 +19,7 @@ pub struct DeviceConfig {
 }
 
 lazy_static! {
-    pub static ref PCI_DEVICES: Mutex<Vec<DeviceConfig, U32>> = Mutex::new(Vec::new());
+    pub static ref PCI_DEVICES: Mutex<Vec<DeviceConfig>> = Mutex::new(Vec::new());
 }
 
 pub fn init() {
@@ -69,7 +68,7 @@ fn add_device(bus: u8, device: u8, function: u8) {
     let uptime = kernel::clock::clock_monotonic();
     print!("[{:.6}] PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n", uptime, bus, device, function, vendor_id, device_id);
     let device_config = DeviceConfig { bus, device, function, vendor_id, device_id, base_addresses };
-    PCI_DEVICES.lock().push(device_config).expect("Too many devices");
+    PCI_DEVICES.lock().push(device_config);
 }
 
 fn get_vendor_id(bus: u8, device: u8, function: u8) -> u16 {

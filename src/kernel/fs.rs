@@ -1,7 +1,7 @@
 use bit_field::BitField;
 use crate::kernel;
-use heapless::{String, Vec};
-use heapless::consts::*;
+use alloc::vec::Vec;
+use alloc::string::String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
@@ -70,7 +70,7 @@ impl File {
                 if i == buf_len {
                     return i;
                 }
-                if data[j] == 0 { // TODO: Use filesize instead
+                if data[j] == 0 { // TODO: Use filesize
                     return i;
                 }
                 buf[i] = data[j];
@@ -83,12 +83,11 @@ impl File {
         }
     }
 
-    pub fn read_to_string(&self) -> String<U2048> {
-        // TODO: We could use [0; 2048] with real String instead of heapless
-        let mut buf = Vec::<u8, U2048>::new();
-        buf.resize(2048, 0).unwrap();
+    pub fn read_to_string(&self) -> String {
+        let mut buf: Vec<u8> = Vec::new();
+        buf.resize(2048, 0); // TODO: Use filesize
         let bytes = self.read(&mut buf);
-        buf.resize(bytes, 0).unwrap();
+        buf.resize(bytes, 0);
         String::from_utf8(buf).unwrap()
     }
 
@@ -291,7 +290,7 @@ pub struct DirEntry {
     kind: FileType,
     addr: u32,
     size: u32,
-    name: String<U256>,
+    name: String,
 }
 
 impl DirEntry {
@@ -312,7 +311,7 @@ impl DirEntry {
         self.size
     }
 
-    pub fn name(&self) -> String<U256> {
+    pub fn name(&self) -> String {
         self.name.clone()
     }
 
@@ -522,12 +521,12 @@ impl Iterator for ReadDir {
                 i += 1;
 
                 // The rest of the entry is the pathname string.
-                let mut entry_name = String::<U256>::new();
+                let mut entry_name = String::new();
                 loop {
                     if n == 0 {
                         break;
                     }
-                    entry_name.push(data[i] as char).expect("Name too long");
+                    entry_name.push(data[i] as char);
                     n -= 1;
                     i += 1;
                 }
