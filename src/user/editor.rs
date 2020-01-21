@@ -86,7 +86,12 @@ impl Editor {
                 '\0' => {
                     continue;
                 }
+                '\x03' => { // Ctrl C
+                    kernel::vga::clear_screen();
+                    break;
+                }
                 '\x11' => { // Ctrl Q
+                    // TODO: Warn if modifications have not been saved
                     kernel::vga::clear_screen();
                     break;
                 },
@@ -153,6 +158,19 @@ impl Editor {
                         kernel::vga::set_cursor_position(x + 1, y);
                         kernel::vga::set_writer_position(x + 1, y);
                     }
+                },
+                '\x14' => { // Ctrl T
+                    self.offset = 0;
+                    self.print_screen();
+                    kernel::vga::set_cursor_position(0, 0);
+                    kernel::vga::set_writer_position(0, 0);
+                },
+                '\x02' => { // Ctrl B
+                    let y = cmp::min(kernel::vga::screen_height() - 1, self.lines.len() - 1);
+                    self.offset = self.lines.len() - 1 - y;
+                    self.print_screen();
+                    kernel::vga::set_cursor_position(0, y);
+                    kernel::vga::set_writer_position(0, y);
                 },
                 '\x01' => { // Ctrl A
                     let x = 0;
