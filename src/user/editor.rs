@@ -80,7 +80,7 @@ impl Editor {
         kernel::vga::set_writer_position(0, 0);
 
         loop {
-            let (x, y) = kernel::vga::cursor_position();
+            let (mut x, mut y) = kernel::vga::cursor_position();
             let c = kernel::console::get_char();
             match c {
                 '\0' => {
@@ -183,7 +183,7 @@ impl Editor {
                     kernel::vga::set_writer_position(x, y);
                 },
                 '\x08' => { // Backspace
-                    if x > 0 {
+                    if x > 0 { // Remove char from line
                         let line = self.lines[self.offset + y].clone();
                         let (before_cursor, mut after_cursor) = line.split_at(x - 1);
                         if after_cursor.len() > 0 {
@@ -196,14 +196,19 @@ impl Editor {
                         print!("{}", self.lines[self.offset + y]);
                         kernel::vga::set_cursor_position(x - 1, y);
                         kernel::vga::set_writer_position(x - 1, y);
-                    } else {
-                        if y > 0 {
+                    } else { // Remove newline char from previous line
+                        if y > 0 || self.offset > 0 {
                             let x = self.lines[self.offset + y - 1].len();
                             let line = self.lines.remove(self.offset + y);
                             self.lines[self.offset + y - 1].push_str(&line);
+                            if y > 0 {
+                                y -= 1;
+                            } else {
+                                self.offset -= 1;
+                            }
                             self.print_screen();
-                            kernel::vga::set_cursor_position(x, y - 1);
-                            kernel::vga::set_writer_position(x, y - 1);
+                            kernel::vga::set_cursor_position(x, y);
+                            kernel::vga::set_writer_position(x, y);
                         }
                     }
                 },
