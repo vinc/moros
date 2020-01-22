@@ -38,8 +38,8 @@ impl File {
         let dirname = dirname(pathname);
         let filename = filename(pathname);
         if let Some(dir) = Dir::open(dirname) {
-            if let Some(block) = dir.create_file(filename) {
-                return Some(Self { addr: block.addr });
+            if let Some(dir_entry) = dir.create_file(filename) {
+                return Some(Self { addr: dir_entry.addr });
             }
         }
         None
@@ -337,8 +337,8 @@ impl Dir {
         let dirname = dirname(pathname);
         let filename = filename(pathname);
         if let Some(dir) = Dir::open(dirname) {
-            if let Some(block) = dir.create_dir(filename) {
-                return Some(Self { addr: block.addr });
+            if let Some(dir_entry) = dir.create_dir(filename) {
+                return Some(dir_entry.to_dir())
             }
         }
         None
@@ -379,16 +379,15 @@ impl Dir {
         None
     }
 
-    pub fn create_file(&self, name: &str) -> Option<Block> {
+    pub fn create_file(&self, name: &str) -> Option<DirEntry> {
         self.create_entry(FileType::File, name)
     }
 
-    pub fn create_dir(&self, name: &str) -> Option<Block> {
+    pub fn create_dir(&self, name: &str) -> Option<DirEntry> {
         self.create_entry(FileType::Dir, name)
     }
 
-    // TODO: Return a DirEntry?
-    fn create_entry(&self, kind: FileType, name: &str) -> Option<Block> {
+    fn create_entry(&self, kind: FileType, name: &str) -> Option<DirEntry> {
         if self.find(name).is_some() {
             return None;
         }
@@ -429,7 +428,7 @@ impl Dir {
         }
         read_dir.block.write();
 
-        Some(new_block)
+        Some(DirEntry::new(kind, entry_addr, entry_size, name))
     }
 
     // Deleting an entry is done by setting the entry address to 0
