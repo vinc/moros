@@ -45,10 +45,7 @@ impl Editor {
     }
 
     pub fn save(&self) -> user::shell::ExitCode {
-        if self.pathname.starts_with("/dev") || self.pathname.starts_with("/sys") {
-            print!("Permission denied to write to '{}'\n", self.pathname);
-            user::shell::ExitCode::CommandError
-        } else if self.file.is_some() {
+        if self.file.is_some() {
             let mut contents = String::new();
             let n = self.lines.len();
             for i in 0..n {
@@ -68,7 +65,7 @@ impl Editor {
     fn print_screen(&mut self) {
         kernel::vga::clear_screen();
         let from = self.offset;
-        let to = cmp::min(self.lines.len(), self.offset + kernel::vga::screen_height() - 1);
+        let to = cmp::min(self.lines.len(), self.offset + self.height() - 1);
         for line in &self.lines[from..to] {
             print!("{}\n", line);
         }
@@ -105,7 +102,7 @@ impl Editor {
                 '\n' => { // Newline
                     let new_line = self.lines[self.offset + y].split_off(x);
                     self.lines.insert(self.offset + y + 1, new_line);
-                    if y == kernel::vga::screen_height() - 1 {
+                    if y == self.height() - 1 {
                         self.offset += 1;
                     } else {
                         y += 1;
@@ -125,9 +122,9 @@ impl Editor {
                     x = cmp::min(x, self.lines[self.offset + y].len());
                 },
                 '↓' => { // Arrow down
-                    let is_bottom = y == kernel::vga::screen_height() - 1;
+                    let is_bottom = y == self.height() - 1;
                     let is_eof = self.offset + y == self.lines.len() - 1;
-                    if y < cmp::min(kernel::vga::screen_height(), self.lines.len() - 1) {
+                    if y < cmp::min(self.height(), self.lines.len() - 1) {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.offset += 1;
@@ -146,7 +143,8 @@ impl Editor {
                     x -= 1;
                 },
                 '→' => { // Arrow right
-                    if x == cmp::min(kernel::vga::screen_width() - 1, self.lines[self.offset + y].len()) {
+                    let line = &self.lines[self.offset + y];
+                    if x == cmp::min(self.width() - 1, line.len()) {
                         continue;
                     }
                     x += 1;
@@ -159,7 +157,7 @@ impl Editor {
                 },
                 '\x02' => { // Ctrl B
                     x = 0;
-                    y = cmp::min(kernel::vga::screen_height() - 1, self.lines.len() - 1);
+                    y = cmp::min(self.height(), self.lines.len()) - 1;
                     self.offset = self.lines.len() - 1 - y;
                     self.print_screen();
                 },
@@ -172,13 +170,13 @@ impl Editor {
                 '\x08' => { // Backspace
                     if x > 0 { // Remove char from line
                         let line = self.lines[self.offset + y].clone();
-                        let (before_cursor, mut after_cursor) = line.split_at(x - 1);
-                        if after_cursor.len() > 0 {
-                            after_cursor = &after_cursor[1..];
+                        let (before, mut after) = line.split_at(x - 1);
+                        if after.len() > 0 {
+                            after = &after[1..];
                         }
                         self.lines[self.offset + y].clear();
-                        self.lines[self.offset + y].push_str(before_cursor);
-                        self.lines[self.offset + y].push_str(after_cursor);
+                        self.lines[self.offset + y].push_str(before);
+                        self.lines[self.offset + y].push_str(after);
                         kernel::vga::clear_row();
                         print!("{}", self.lines[self.offset + y]);
                         x -= 1;
@@ -199,15 +197,16 @@ impl Editor {
                     }
                 },
                 c => {
+                    let line = self.lines[self.offset + y].clone();
+
                     // TODO: Allow more chars than screen width
-                    if self.lines[self.offset + y].len() == kernel::vga::screen_width() {
+                    if line.len() == self.width() {
                         continue;
                     }
                     if !c.is_ascii_graphic() && !c.is_ascii_whitespace() {
                         continue;
                     }
 
-                    let line = self.lines[self.offset + y].clone();
                     let (before_cursor, after_cursor) = line.split_at(x);
                     self.lines[self.offset + y].clear();
                     self.lines[self.offset + y].push_str(before_cursor);
@@ -215,7 +214,7 @@ impl Editor {
                     self.lines[self.offset + y].push_str(after_cursor);
                     kernel::vga::clear_row();
                     print!("{}", self.lines[self.offset + y]);
-                    if x < kernel::vga::screen_width() - 1 {
+                    if x < self.width() - 1 {
                         x += 1;
                     }
                 },
@@ -224,5 +223,13 @@ impl Editor {
             kernel::vga::set_writer_position(x, y);
         }
         user::shell::ExitCode::CommandSuccessful
+    }
+
+    fn height(&self) -> usize {
+        kernel::vga::screen_height()
+    }
+
+    fn width(&self) -> usize {
+        kernel::vga::screen_width()
     }
 }
