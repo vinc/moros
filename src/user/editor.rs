@@ -65,9 +65,9 @@ impl Editor {
     fn print_screen(&mut self) {
         kernel::vga::clear_screen();
         let from = self.offset;
-        let to = cmp::min(self.lines.len(), self.offset + self.height() - 1);
+        let to = cmp::min(self.lines.len(), self.offset + self.height());
         let lines = self.lines[from..to].join("\n");
-        print!("{}\n", lines);
+        print!("{}", lines);
     }
 
     pub fn run(&mut self) -> user::shell::ExitCode {
