@@ -1,8 +1,10 @@
 use core::fmt;
+use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
 use x86_64::instructions::port::Port;
+use x86_64::instructions::interrupts;
 
 lazy_static! {
     /// A global `Writer` instance that can be used for printing to the VGA text buffer.
@@ -225,25 +227,18 @@ impl fmt::Write for Writer {
 /// through the global `WRITER` instance.
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    use core::fmt::Write;
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().write_fmt(args).expect("Could not print to VGA");
     });
 }
 
 pub fn clear_screen() {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().clear_screen();
     });
 }
 
 pub fn clear_row() {
-    use x86_64::instructions::interrupts;
-
     let (_, y) = writer_position();
     interrupts::without_interrupts(|| {
         WRITER.lock().clear_row(y);
@@ -260,32 +255,24 @@ pub fn screen_height() -> usize {
 }
 
 pub fn set_cursor_position(x: usize, y: usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().set_cursor_position(x, y);
     });
 }
 
 pub fn set_writer_position(x: usize, y: usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().set_writer_position(x, y);
     });
 }
 
 pub fn cursor_position() -> (usize, usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().cursor_position()
     })
 }
 
 pub fn writer_position() -> (usize, usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().writer_position()
     })

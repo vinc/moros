@@ -50,7 +50,7 @@ impl CMOS {
         if b & 0x04 == 0 {
             second = (second & 0x0F) + ((second / 16) * 10);
             minute = (minute & 0x0F) + ((minute / 16) * 10);
-            hour = ( (hour & 0x0F) + (((hour & 0x70) / 16) * 10) ) | (hour & 0x80);
+            hour = ((hour & 0x0F) + (((hour & 0x70) / 16) * 10) ) | (hour & 0x80);
             day = (day & 0x0F) + ((day / 16) * 10);
             month = (month & 0x0F) + ((month / 16) * 10);
             year = (year & 0x0F) + ((year / 16) * 10);
