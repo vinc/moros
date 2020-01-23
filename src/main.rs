@@ -27,6 +27,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     include_file("/ini/boot.sh", include_str!("../dsk/ini/boot.sh"));
     include_file("/ini/banner.txt", include_str!("../dsk/ini/banner.txt"));
     include_file("/ini/passwords.csv", include_str!("../dsk/ini/passwords.csv"));
+    include_file("/tmp/alice.txt", include_str!("../dsk/tmp/alice.txt"));
     loop {
         user::shell::main(&["shell", "/ini/boot.sh"]);
     }
