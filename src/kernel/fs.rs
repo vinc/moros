@@ -28,9 +28,12 @@ pub fn filename(pathname: &str) -> &str {
     &pathname[i..n] 
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone)]
 pub struct File {
-    addr: u32
+    name: String,
+    addr: u32,
+    size: u32,
+    dir: Dir, // TODO: Replace with `parent: Some(Dir)` and also add it to `Dir`
 }
 
 impl File {
@@ -39,7 +42,7 @@ impl File {
         let filename = filename(pathname);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_file(filename) {
-                return Some(Self { addr: dir_entry.addr });
+                return Some(dir_entry.to_file());
             }
         }
         None
@@ -51,11 +54,15 @@ impl File {
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.find(filename) {
                 if dir_entry.is_file() {
-                    return Some(Self { addr: dir_entry.addr });
+                    return Some(dir_entry.to_file());
                 }
             }
         }
         None
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
     }
 
     pub fn read(&self, buf: &mut [u8]) -> usize {
@@ -67,10 +74,7 @@ impl File {
             let data = block.data();
             let data_len = data.len();
             for j in 0..data_len {
-                if i == buf_len {
-                    return i;
-                }
-                if data[j] == 0 { // TODO: Use filesize
+                if i == buf_len || i == self.size() {
                     return i;
                 }
                 buf[i] = data[j];
@@ -84,8 +88,8 @@ impl File {
     }
 
     pub fn read_to_string(&self) -> String {
-        let mut buf: Vec<u8> = Vec::new();
-        buf.resize(2048, 0); // TODO: Use filesize
+        let mut buf: Vec<u8> = Vec::with_capacity(self.size());
+        buf.resize(self.size(), 0);
         let bytes = self.read(&mut buf);
         buf.resize(bytes, 0);
         String::from_utf8(buf).unwrap()
@@ -131,6 +135,8 @@ impl File {
             block.set_next(addr);
             block.write();
         }
+        self.size = i as u32;
+        self.dir.update_entry_size(&self.name, self.size);
         Ok(())
     }
 
@@ -176,7 +182,6 @@ impl Block {
         let bus = 1; // TODO
         let dsk = 0; // TODO
         kernel::ata::write(bus, dsk, self.addr, &self.buf);
-        kernel::sleep::sleep(0.01);
     }
 
     pub fn alloc() -> Option<Self> {
@@ -285,8 +290,9 @@ impl BlockBitmap {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct DirEntry {
+    dir: Dir,
     kind: FileType,
     addr: u32,
     size: u32,
@@ -294,9 +300,9 @@ pub struct DirEntry {
 }
 
 impl DirEntry {
-    pub fn new(kind: FileType, addr: u32, size: u32, name: &str) -> Self {
+    pub fn new(dir: Dir, kind: FileType, addr: u32, size: u32, name: &str) -> Self {
         let name = String::from(name);
-        Self { kind, addr, size, name }
+        Self { dir, kind, addr, size, name }
     }
 
     pub fn is_dir(&self) -> bool {
@@ -316,7 +322,13 @@ impl DirEntry {
     }
 
     pub fn to_dir(&self) -> Dir {
+        assert!(self.kind == FileType::Dir);
         Dir { addr: self.addr }
+    }
+
+    pub fn to_file(&self) -> File {
+        assert!(self.kind == FileType::File);
+        File { name: self.name.clone(), addr: self.addr, size: self.size, dir: self.dir }
     }
 
     pub fn len(&self) -> usize {
@@ -324,6 +336,7 @@ impl DirEntry {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Dir {
     addr: u32,
 }
@@ -428,7 +441,7 @@ impl Dir {
         }
         read_dir.block.write();
 
-        Some(DirEntry::new(kind, entry_addr, entry_size, name))
+        Some(DirEntry::new(self.clone(), kind, entry_addr, entry_size, name))
     }
 
     // Deleting an entry is done by setting the entry address to 0
@@ -462,8 +475,25 @@ impl Dir {
         Err(())
     }
 
+    fn update_entry_size(&mut self, name: &str, size: u32) {
+        let mut read_dir = self.read();
+        for entry in &mut read_dir {
+            if entry.name == name {
+                let data = read_dir.block.data_mut();
+                let i = read_dir.data_offset - entry.len();
+                data[i + 5] = size.get_bits(24..32) as u8;
+                data[i + 6] = size.get_bits(16..24) as u8;
+                data[i + 7] = size.get_bits(8..16) as u8;
+                data[i + 8] = size.get_bits(0..8) as u8;
+                read_dir.block.write();
+                break;
+            }
+        }
+    }
+
     pub fn read(&self) -> ReadDir {
         ReadDir {
+            dir: self.clone(),
             block: Block::read(self.addr),
             data_offset: 0,
         }
@@ -481,6 +511,7 @@ impl Dir {
 }
 
 pub struct ReadDir {
+    dir: Dir,
     block: Block,
     data_offset: usize,
 }
@@ -537,7 +568,7 @@ impl Iterator for ReadDir {
                     continue;
                 }
 
-                return Some(DirEntry::new(entry_kind, entry_addr, entry_size, &entry_name));
+                return Some(DirEntry::new(self.dir, entry_kind, entry_addr, entry_size, &entry_name));
             }
 
             match self.block.next() {
