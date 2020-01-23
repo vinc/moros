@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use crate::{print, kernel, user};
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
@@ -15,7 +16,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
     if let Some(file_from) = kernel::fs::File::open(from) {
         if let Some(mut file_to) = kernel::fs::File::create(to) {
-            let mut buf = [0u8; 2048];
+            let filesize = file_from.size();
+            let mut buf = Vec::with_capacity(filesize);
+            buf.resize(filesize, 0);
             file_from.read(&mut buf);
             match file_to.write(&buf) {
                 Ok(()) => {

@@ -88,7 +88,7 @@ impl File {
     }
 
     pub fn read_to_string(&self) -> String {
-        let mut buf: Vec<u8> = Vec::new();
+        let mut buf: Vec<u8> = Vec::with_capacity(self.size());
         buf.resize(self.size(), 0);
         let bytes = self.read(&mut buf);
         buf.resize(bytes, 0);
