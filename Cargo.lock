@@ -201,7 +201,7 @@ dependencies = [
 [[package]]
 name = "pc-keyboard"
 version = "0.5.0"
-source = "git+https://github.com/vinc/pc-keyboard?branch=feature/add-dvorak-layout#918491ebb9c97c12abab90a19aa99fcda88fd67a"
+source = "git+https://github.com/thejpster/pc-keyboard#ea4f5ffbe61180e129cf261767e1c8269321565e"
 
 [[package]]
 name = "pic8259_simple"
