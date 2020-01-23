@@ -220,6 +220,8 @@ impl Bus {
             data.set_bits(8..16, buf[i * 2 + 1] as u16);
             self.write_data(data);
         }
+
+        while self.is_busy() {}
     }
 }
 

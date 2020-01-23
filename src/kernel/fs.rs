@@ -182,7 +182,6 @@ impl Block {
         let bus = 1; // TODO
         let dsk = 0; // TODO
         kernel::ata::write(bus, dsk, self.addr, &self.buf);
-        kernel::sleep::sleep(0.01);
     }
 
     pub fn alloc() -> Option<Self> {
