@@ -168,13 +168,10 @@ impl Writer {
 
     fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
-            match byte {
-                0x20..=0x7E | 0x08 | 0x0A => {
-                    self.write_byte(byte) // Printable chars, backspace, newline
-                },
-                _ => {
-                    self.write_byte(0xFE) // Square
-                }
+            if is_printable(byte) {
+                self.write_byte(byte) // Printable chars, backspace, newline
+            } else {
+                self.write_byte(0xFE) // Square
             }
         }
     }
@@ -276,4 +273,12 @@ pub fn writer_position() -> (usize, usize) {
     interrupts::without_interrupts(|| {
         WRITER.lock().writer_position()
     })
+}
+
+// Printable ascii chars + backspace + newline
+pub fn is_printable(c: u8) -> bool {
+    match c {
+        0x20..=0x7E | 0x08 | 0x0A => true,
+        _ => false,
+    }
 }

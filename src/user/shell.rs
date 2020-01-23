@@ -119,7 +119,7 @@ impl Shell {
                     }
                 },
                 c => {
-                    if c.is_ascii_graphic() || c.is_ascii_whitespace() {
+                    if c.is_ascii() && kernel::vga::is_printable(c as u8) {
                         let cmd = self.cmd.clone();
                         let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
                         self.cmd.clear();

@@ -203,7 +203,7 @@ impl Editor {
                     if line.len() == self.width() {
                         continue;
                     }
-                    if !c.is_ascii_graphic() && !c.is_ascii_whitespace() {
+                    if !c.is_ascii() || !kernel::vga::is_printable(c as u8) {
                         continue;
                     }
 
