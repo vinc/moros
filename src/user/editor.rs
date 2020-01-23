@@ -44,17 +44,18 @@ impl Editor {
         Self { file, pathname, lines, offset }
     }
 
-    pub fn save(&self) -> user::shell::ExitCode {
-        if self.file.is_some() {
-            let mut contents = String::new();
-            let n = self.lines.len();
-            for i in 0..n {
-                contents.push_str(&self.lines[i]);
-                if i < n - 1 {
-                    contents.push('\n');
-                }
+    pub fn save(&mut self) -> user::shell::ExitCode {
+        let mut contents = String::new();
+        let n = self.lines.len();
+        for i in 0..n {
+            contents.push_str(&self.lines[i]);
+            if i < n - 1 {
+                contents.push('\n');
             }
-            self.file.unwrap().write(&contents.as_bytes()).unwrap();
+        }
+
+        if let Some(file) = &mut self.file {
+            file.write(&contents.as_bytes()).unwrap();
             user::shell::ExitCode::CommandSuccessful
         } else {
             print!("Could not write to '{}'\n", self.pathname);
