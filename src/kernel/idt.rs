@@ -2,22 +2,8 @@ use crate::{print, kernel};
 use lazy_static::lazy_static;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
-#[derive(Debug, Clone, Copy)]
-#[repr(u8)]
-pub enum InterruptIndex {
-    Timer    = kernel::pic::PIC_1_OFFSET,
-    Keyboard = kernel::pic::PIC_1_OFFSET + 1
-}
-
-impl InterruptIndex {
-    pub fn as_u8(self) -> u8 {
-        self as u8
-    }
-
-    pub fn as_usize(self) -> usize {
-        usize::from(self.as_u8())
-    }
-}
+pub const IRQ0: u8 = kernel::pic::PIC_1_OFFSET + 0;
+pub const IRQ1: u8 = kernel::pic::PIC_1_OFFSET + 1;
 
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
@@ -26,8 +12,8 @@ lazy_static! {
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(kernel::gdt::DOUBLE_FAULT_IST_INDEX);
         }
-        idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
-        idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(kernel::keyboard::interrupt_handler);
+        idt[IRQ0 as usize].set_handler_fn(timer_interrupt_handler);
+        idt[IRQ1 as usize].set_handler_fn(kernel::keyboard::interrupt_handler);
         idt
     };
 }
@@ -48,6 +34,6 @@ extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: &mut InterruptSt
     kernel::clock::tick();
 
     unsafe {
-        kernel::pic::PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        kernel::pic::PICS.lock().notify_end_of_interrupt(IRQ0);
     }
 }

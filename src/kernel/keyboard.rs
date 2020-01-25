@@ -82,6 +82,6 @@ pub extern "x86-interrupt" fn interrupt_handler(_stack_frame: &mut InterruptStac
     }
 
     unsafe {
-        kernel::pic::PICS.lock().notify_end_of_interrupt(kernel::idt::InterruptIndex::Keyboard.as_u8());
+        kernel::pic::PICS.lock().notify_end_of_interrupt(kernel::idt::IRQ1);
     }
 }
