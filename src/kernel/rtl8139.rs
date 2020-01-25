@@ -49,13 +49,14 @@ pub fn init() {
         unsafe { ports.cmd.write(0x0C as u8) }
 
         // Read MAC addr
-        let mut mac: Vec<u8> = Vec::new();
-        mac.push(unsafe { ports.idr[0].read() } as u8);
-        mac.push(unsafe { ports.idr[1].read() } as u8);
-        mac.push(unsafe { ports.idr[2].read() } as u8);
-        mac.push(unsafe { ports.idr[3].read() } as u8);
-        mac.push(unsafe { ports.idr[4].read() } as u8);
-        mac.push(unsafe { ports.idr[5].read() } as u8);
+        let mac = [
+            unsafe { ports.idr[0].read() },
+            unsafe { ports.idr[1].read() },
+            unsafe { ports.idr[2].read() },
+            unsafe { ports.idr[3].read() },
+            unsafe { ports.idr[4].read() },
+            unsafe { ports.idr[5].read() },
+        ];
 
         let uptime = kernel::clock::clock_monotonic();
         print!(
