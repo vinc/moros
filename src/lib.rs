@@ -10,7 +10,6 @@ pub mod user;
 use bootloader::BootInfo;
 
 pub fn init(boot_info: &'static BootInfo) {
-    //kernel::keyboard::init();
     kernel::gdt::init();
     kernel::idt::init();
     unsafe { kernel::pic::PICS.lock().initialize() };
@@ -18,6 +17,8 @@ pub fn init(boot_info: &'static BootInfo) {
 
     print!("[{:.6}] MOROS version {}\n", kernel::clock::clock_monotonic(), env!("CARGO_PKG_VERSION"));
 
+    kernel::time::init();
+    kernel::keyboard::init();
     kernel::mem::init(boot_info);
     kernel::cpu::init();
     kernel::pci::init();

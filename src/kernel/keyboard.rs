@@ -3,7 +3,6 @@ use lazy_static::lazy_static;
 use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl, layouts};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
-use x86_64::structures::idt::InterruptStackFrame;
 
 lazy_static! {
     // NOTE: Replace `Dvorak104Key` with `Us104Key` for Qwerty keyboards
@@ -13,8 +12,8 @@ lazy_static! {
     );
 }
 
-/*
 pub fn init() {
+    /*
     let mut port = Port::new(0x60);
 
     // Identify
@@ -62,8 +61,9 @@ pub fn init() {
         return init();
     }
     print!("[{:.6}] keyboard: switch to scancode set 2\n", kernel::clock::clock_monotonic());
+    */
+    kernel::idt::set_irq_handler(1, interrupt_handler);
 }
-*/
 
 pub fn read_scancode() -> u8 {
     let mut port = Port::new(0x60);
@@ -72,16 +72,12 @@ pub fn read_scancode() -> u8 {
     }
 }
 
-pub extern "x86-interrupt" fn interrupt_handler(_stack_frame: &mut InterruptStackFrame) {
+fn interrupt_handler() {
     let mut keyboard = KEYBOARD.lock();
     let scancode = read_scancode();
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             kernel::console::key_handle(key);
         }
-    }
-
-    unsafe {
-        kernel::pic::PICS.lock().notify_end_of_interrupt(kernel::idt::IRQ1);
     }
 }
