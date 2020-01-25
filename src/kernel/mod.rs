@@ -15,5 +15,5 @@ pub mod pic;
 pub mod random;
 pub mod rtl8139;
 pub mod serial;
-pub mod sleep;
+pub mod time;
 pub mod vga;

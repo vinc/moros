@@ -84,7 +84,7 @@ pub fn get_char() -> char {
     kernel::console::disable_echo();
     kernel::console::enable_raw();
     loop {
-        kernel::sleep::halt();
+        kernel::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
@@ -107,7 +107,7 @@ pub fn get_char() -> char {
 
 pub fn get_line() -> String {
     loop {
-        kernel::sleep::halt();
+        kernel::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {

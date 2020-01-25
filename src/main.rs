@@ -45,5 +45,5 @@ fn include_file(pathname: &str, contents: &str) {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     print!("{}\n", info);
-    loop { kernel::sleep::sleep(10.0) }
+    loop { kernel::time::sleep(10.0) }
 }
