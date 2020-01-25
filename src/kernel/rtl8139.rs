@@ -35,6 +35,10 @@ pub fn init() {
         let io_addr = (device.base_addresses[0] as u16) & 0xFFF0;
         let mut ports = Ports::new(io_addr);
 
+        //print!("interrupt pin: 0x{:02X}\n", device.interrupt_pin);
+        //print!("IRQ: {}\n", device.interrupt_line);
+        kernel::idt::set_irq_handler(device.interrupt_line, interrupt_handler);
+
         // Power on
         unsafe { ports.config1.write(0x00 as u8) }
 
@@ -63,4 +67,8 @@ pub fn init() {
             uptime, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
         );
     }
+}
+
+pub fn interrupt_handler() {
+    print!("RTL8139 interrupt!");
 }

@@ -16,6 +16,8 @@ pub struct DeviceConfig {
     pub vendor_id: u16,
     pub device_id: u16,
     pub base_addresses: [u32; 6],
+    pub interrupt_pin: u8,
+    pub interrupt_line: u8,
 }
 
 lazy_static! {
@@ -74,9 +76,15 @@ fn add_device(bus: u8, device: u8, function: u8) {
         base_addresses[i] = read_config(bus, device, function, offset);
     }
 
+    let register = read_config(bus, device, function, 0x3C);
+    let interrupt_line = register.get_bits(0..8) as u8;
+    let interrupt_pin = register.get_bits(8..16) as u8;
+
     let uptime = kernel::clock::clock_monotonic();
     print!("[{:.6}] PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n", uptime, bus, device, function, vendor_id, device_id);
-    let device_config = DeviceConfig { bus, device, function, vendor_id, device_id, base_addresses };
+    let device_config = DeviceConfig {
+        bus, device, function, vendor_id, device_id, base_addresses, interrupt_pin, interrupt_line
+    };
     PCI_DEVICES.lock().push(device_config);
 }
 
