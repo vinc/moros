@@ -1,13 +1,15 @@
+use alloc::vec::Vec;
 use crate::{print, kernel};
 use x86_64::instructions::port::Port;
 
 pub struct Ports {
     pub idr: [Port<u8>; 6],
+    pub config1: Port<u8>,
     pub rbstart: Port<u32>,
     pub cmd: Port<u8>,
     pub imr: Port<u32>,
     pub isr: Port<u16>,
-    pub config1: Port<u8>
+    pub rcr: Port<u32>,
 }
 
 impl Ports {
@@ -69,9 +71,30 @@ pub fn init() {
             "[{:.6}] RTL8139 MAC {:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}\n",
             uptime, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
         );
+
+        let mut rx_buf: Vec<u8> = Vec::new();
+        rx_buf.resize(8192 + 16, 0);
+
+        let rx_addr = &rx_buf[0] as *const u8;
+        print!("rx_addr: 0x{:016X}\n", rx_addr as u64);
+        print!("rx_addr: 0x{:08X}\n", rx_addr as u32);
+
+        // Init Receive buffer
+        unsafe { ports.rbstart.write(rx_addr as u32) }
+
+        // Set IMR + ISR
+        unsafe { ports.imr.write(0x0005) }
+
+        // Configuring Receive buffer
+        unsafe { ports.rcr.write((0xF | (1 << 7)) as u32) }
     }
 }
 
 pub fn interrupt_handler() {
     print!("RTL8139 interrupt!");
+    if let Some(mut device) = kernel::pci::find_device(0x10EC, 0x8139) {
+        let io_addr = (device.base_addresses[0] as u16) & 0xFFF0;
+        let mut ports = Ports::new(io_addr);
+        unsafe { ports.isr.write(0x1) } // Clear the interrupt
+    }
 }
