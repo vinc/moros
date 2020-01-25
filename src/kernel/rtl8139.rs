@@ -33,10 +33,8 @@ impl Ports {
 
 pub fn init() {
     if let Some(device) = kernel::pci::find_device(0x10EC, 0x8139) {
-        let io_addr = device.base_addresses[0] as u16;
+        let io_addr = (device.base_addresses[0] as u16) & 0xFFF0;
         let mut ports = Ports::new(io_addr);
-
-        //print!("io_addr: 0x{:X}\n", io_addr);
 
         // Power on
         unsafe { ports.config1.write(0x00 as u8) }
