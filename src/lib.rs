@@ -23,6 +23,7 @@ pub fn init(boot_info: &'static BootInfo) {
     kernel::pci::init();
     kernel::ata::init();
     kernel::fs::init();
+    kernel::rtl8139::init();
 }
 
 #[alloc_error_handler]
