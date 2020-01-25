@@ -71,6 +71,8 @@ pub fn key_handle(key: DecodedKey) {
             }
         }
     } else {
+        // TODO: Replace non-ascii chars by ascii square symbol to keep length
+        // at 1 instead of being variable?
         stdin.push(c);
         if is_echo_enabled() {
             print!("{}", c);

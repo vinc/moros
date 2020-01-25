@@ -17,7 +17,7 @@ pub struct Editor {
     file: Option<kernel::fs::File>,
     pathname: String,
     lines: Vec<String>,
-    offset: usize,
+    offset: usize, // TODO: Call it `offset_y` and introduce `offset_x`
 }
 
 impl Editor {
@@ -64,11 +64,15 @@ impl Editor {
     }
 
     fn print_screen(&mut self) {
-        kernel::vga::clear_screen();
+        let mut lines: Vec<String> = Vec::new();
         let from = self.offset;
         let to = cmp::min(self.lines.len(), self.offset + self.height());
-        let lines = self.lines[from..to].join("\n");
-        print!("{}", lines);
+        for i in from..to {
+            let n = cmp::min(self.lines[i].len(), 80);
+            lines.push(self.lines[i][0..n].into()) // TODO: Use `offset_x .. offset_x + n`
+        }
+        kernel::vga::clear_screen();
+        print!("{}", lines.join("\n"));
     }
 
     pub fn run(&mut self) -> user::shell::ExitCode {
@@ -149,23 +153,26 @@ impl Editor {
                     }
                     x += 1;
                 },
-                '\x14' => { // Ctrl T
+                '\x14' => { // Ctrl T -> Go to top of file
                     x = 0;
                     y = 0;
                     self.offset = 0;
                     self.print_screen();
                 },
-                '\x02' => { // Ctrl B
+                '\x02' => { // Ctrl B -> Go to bottom of file
                     x = 0;
                     y = cmp::min(self.height(), self.lines.len()) - 1;
                     self.offset = self.lines.len() - 1 - y;
                     self.print_screen();
                 },
-                '\x01' => { // Ctrl A
+                '\x01' => { // Ctrl A -> Go to beginning of line
                     x = 0;
                 },
-                '\x05' => { // Ctrl E
-                    x = self.lines[self.offset + y].len() - 1;
+                '\x05' => { // Ctrl E -> Go to end of line
+                    let line_length = self.lines[self.offset + y].len();
+                    if line_length > 0 {
+                        x = cmp::min(line_length, self.width()) - 1;
+                    }
                 },
                 '\x08' => { // Backspace
                     if x > 0 { // Remove char from line
@@ -177,8 +184,11 @@ impl Editor {
                         self.lines[self.offset + y].clear();
                         self.lines[self.offset + y].push_str(before);
                         self.lines[self.offset + y].push_str(after);
+
+                        let mut line = self.lines[self.offset + y].clone();
+                        line.truncate(self.width());
                         kernel::vga::clear_row();
-                        print!("{}", self.lines[self.offset + y]);
+                        print!("{}", line);
                         x -= 1;
                     } else { // Remove newline char from previous line
                         if y == 0 && self.offset == 0 {
@@ -197,23 +207,21 @@ impl Editor {
                     }
                 },
                 c => {
-                    let line = self.lines[self.offset + y].clone();
-
-                    // TODO: Allow more chars than screen width
-                    if line.len() == self.width() {
-                        continue;
-                    }
                     if !c.is_ascii() || !kernel::vga::is_printable(c as u8) {
                         continue;
                     }
 
+                    let line = self.lines[self.offset + y].clone();
                     let (before_cursor, after_cursor) = line.split_at(x);
                     self.lines[self.offset + y].clear();
                     self.lines[self.offset + y].push_str(before_cursor);
                     self.lines[self.offset + y].push(c);
                     self.lines[self.offset + y].push_str(after_cursor);
+
+                    let mut line = self.lines[self.offset + y].clone();
+                    line.truncate(self.width());
                     kernel::vga::clear_row();
-                    print!("{}", self.lines[self.offset + y]);
+                    print!("{}", line);
                     if x < self.width() - 1 {
                         x += 1;
                     }
