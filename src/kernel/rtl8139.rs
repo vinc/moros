@@ -21,17 +21,20 @@ impl Ports {
                 Port::new(io_addr + 0x04),
                 Port::new(io_addr + 0x05),
             ],
+            config1: Port::new(io_addr + 0x52),
             rbstart: Port::new(io_addr + 0x30),
-            cmd : Port::new(io_addr + 0x37),
-            imr : Port::new(io_addr + 0x3C),
-            isr : Port::new(io_addr + 0x3E),
-            config1 : Port::new(io_addr + 0x52),
+            cmd: Port::new(io_addr + 0x37),
+            imr: Port::new(io_addr + 0x3C),
+            isr: Port::new(io_addr + 0x3E),
+            rcr: Port::new(io_addr + 0x44),
         }
     }
 }
 
 pub fn init() {
-    if let Some(device) = kernel::pci::find_device(0x10EC, 0x8139) {
+    if let Some(mut device) = kernel::pci::find_device(0x10EC, 0x8139) {
+        device.enable_bus_mastering();
+
         let io_addr = (device.base_addresses[0] as u16) & 0xFFF0;
         let mut ports = Ports::new(io_addr);
 
