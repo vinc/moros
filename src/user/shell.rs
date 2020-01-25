@@ -1,4 +1,5 @@
 use crate::{print, user, kernel};
+use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::String;
 
@@ -15,6 +16,8 @@ pub struct Shell {
     prompt: String,
     history: Vec<String>,
     history_index: usize,
+    autocomplete: Vec<String>,
+    autocomplete_index: usize,
 }
 
 impl Shell {
@@ -24,6 +27,8 @@ impl Shell {
             prompt: String::from("> "),
             history: Vec::new(),
             history_index: 0,
+            autocomplete: Vec::new(),
+            autocomplete_index: 0,
         }
     }
 
@@ -46,6 +51,7 @@ impl Shell {
                     }
                 },
                 '\n' => { // Newline
+                    self.update_autocomplete();
                     print!("\n");
                     if self.cmd.len() > 0 {
                         // Add or move command to history at the end
@@ -66,7 +72,11 @@ impl Shell {
                     }
                     self.print_prompt();
                 },
+                '\t' => { // Tab
+                    self.print_autocomplete();
+                },
                 '↑' => { // Arrow up
+                    self.update_autocomplete();
                     if self.history.len() > 0 {
                         if self.history_index > 0 {
                             self.history_index -= 1;
@@ -79,6 +89,7 @@ impl Shell {
                     }
                 },
                 '↓' => { // Arrow down
+                    self.update_autocomplete();
                     if self.history.len() > 0 {
                         if self.history_index < self.history.len() - 1 {
                             self.history_index += 1;
@@ -91,18 +102,21 @@ impl Shell {
                     }
                 },
                 '←' => { // Arrow left
+                    self.update_autocomplete();
                     if x > self.prompt.len() {
                         kernel::vga::set_cursor_position(x - 1, y);
                         kernel::vga::set_writer_position(x - 1, y);
                     }
                 },
                 '→' => { // Arrow right
+                    self.update_autocomplete();
                     if x < self.prompt.len() + self.cmd.len() {
                         kernel::vga::set_cursor_position(x + 1, y);
                         kernel::vga::set_writer_position(x + 1, y);
                     }
                 },
                 '\x08' => { // Backspace
+                    self.update_autocomplete();
                     let cmd = self.cmd.clone();
                     if cmd.len() > 0 && x > 0 {
                         let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
@@ -119,6 +133,7 @@ impl Shell {
                     }
                 },
                 c => {
+                    self.update_autocomplete();
                     if c.is_ascii() && kernel::vga::is_printable(c as u8) {
                         let cmd = self.cmd.clone();
                         let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
@@ -133,6 +148,61 @@ impl Shell {
                     }
                 },
             }
+        }
+    }
+
+    pub fn print_autocomplete(&mut self) {
+        let mut args = self.parse(&self.cmd);
+        let i = args.len() - 1;
+        if self.autocomplete_index == 0 {
+            if args.len() == 1 {
+                // Autocomplete command
+                let autocomplete_commands = vec![ // TODO: scan /bin
+                    "copy", "delete", "edit", "help", "move", "print", "quit", "read", "write", "sleep", "clear"
+                ];
+                self.autocomplete = vec![args[i].into()];
+                for cmd in autocomplete_commands {
+                    if cmd.starts_with(args[i]) {
+                        self.autocomplete.push(cmd.into());
+                    }
+                }
+            } else {
+                // Autocomplete path
+                let dirname = kernel::fs::dirname(args[i]);
+                let filename = kernel::fs::filename(args[i]);
+                if let Some(dir) = kernel::fs::Dir::open(dirname) {
+                    self.autocomplete = vec![args[i].into()];
+                    for entry in dir.read() {
+                        if entry.name().starts_with(filename) {
+                            let mut path = String::new();
+                            path.push_str(dirname);
+                            if path != "/" {
+                                path.push('/');
+                            }
+                            path.push_str(&entry.name());
+                            self.autocomplete.push(path);
+                        }
+                    }
+                }
+            }
+        }
+
+        self.autocomplete_index = (self.autocomplete_index + 1) % self.autocomplete.len();
+        args[i] = &self.autocomplete[self.autocomplete_index];
+
+        let cmd = args.join(" ");
+        kernel::vga::clear_row();
+        print!("{}{}", self.prompt, cmd);
+    }
+
+    pub fn update_autocomplete(&mut self) {
+        if self.autocomplete_index != 0 {
+            let mut args = self.parse(&self.cmd);
+            let i = args.len() - 1;
+            args[i] = &self.autocomplete[self.autocomplete_index];
+            self.cmd = args.join(" ");
+            self.autocomplete_index = 0;
+            self.autocomplete = vec!["".into()];
         }
     }
 
@@ -168,17 +238,18 @@ impl Shell {
             args.push(&cmd[i..n]);
         }
 
+        if n == 0 || cmd.chars().last().unwrap() == ' ' {
+            args.push("");
+        }
+
         args
     }
 
     pub fn exec(&self, cmd: &str) -> ExitCode {
         let args = self.parse(cmd);
 
-        if args.len() == 0 {
-            return ExitCode::CommandSuccessful;
-        }
-
         match args[0] {
+            ""                     => ExitCode::CommandSuccessful,
             "a" | "alias"          => ExitCode::CommandUnknown,
             "b"                    => ExitCode::CommandUnknown,
             "c" | "copy"           => user::copy::main(&args),
