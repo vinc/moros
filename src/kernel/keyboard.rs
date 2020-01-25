@@ -4,11 +4,18 @@ use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl, layouts};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
+// TODO: Support layout change from userspace
+#[cfg(feature="qwerty")]
 lazy_static! {
-    // NOTE: Replace `Dvorak104Key` with `Us104Key` for Qwerty keyboards
-    // TODO: Support layout change from userspace
     pub static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> = Mutex::new(
         Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::MapLettersToUnicode)
+    );
+}
+
+#[cfg(feature="dvorak")]
+lazy_static! {
+    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Dvorak104Key, ScancodeSet1>> = Mutex::new(
+        Keyboard::new(layouts::Dvorak104Key, ScancodeSet1, HandleControl::MapLettersToUnicode)
     );
 }
 

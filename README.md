@@ -28,20 +28,20 @@ Create disk:
 Run with:
 
     cargo xrun --release -- \
-      -cpu max \
+      -cpu phenom \
       -rtc base=localtime \
       -nic model=rtl8139 \
       -hdc disk.img
 
 Or with a serial console:
 
-    cargo xrun --release -- \
-      -cpu max \
+    cargo xrun --release --no-default-features --features serial,dvorak -- \
+      -cpu phenom \
       -rtc base=localtime \
       -nic model=rtl8139 \
-      -hdc disk.img \
+      -serial stdio \
       -display none \
-      -serial stdio
+      -hdc disk.img
 
 Or with `cool-retro-term` for a retro console look:
 

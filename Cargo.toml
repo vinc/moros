@@ -8,6 +8,13 @@ license = "MIT"
 repository = "https://github.com/vinc/moros"
 readme = "README.md"
 
+[features]
+default = ["vga", "qwerty"]
+vga = []
+serial = []
+qwerty = []
+dvorak = []
+
 [dependencies]
 bootloader = { version = "0.8.3", features = ["map_physical_memory"]}
 linked_list_allocator = "0.6.4"

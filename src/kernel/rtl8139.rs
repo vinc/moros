@@ -68,7 +68,7 @@ pub fn init() {
 
         let uptime = kernel::clock::clock_monotonic();
         print!(
-            "[{:.6}] RTL8139 MAC {:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}\n",
+            "[{:.6}] NET RTL8139 MAC {:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}\n",
             uptime, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
         );
 
@@ -76,8 +76,8 @@ pub fn init() {
         rx_buf.resize(8192 + 16, 0);
 
         let rx_addr = &rx_buf[0] as *const u8;
-        print!("rx_addr: 0x{:016X}\n", rx_addr as u64);
-        print!("rx_addr: 0x{:08X}\n", rx_addr as u32);
+        //print!("rx_addr: 0x{:016X}\n", rx_addr as u64);
+        //print!("rx_addr: 0x{:08X}\n", rx_addr as u32);
 
         // Init Receive buffer
         unsafe { ports.rbstart.write(rx_addr as u32) }
@@ -92,7 +92,7 @@ pub fn init() {
 
 pub fn interrupt_handler() {
     print!("RTL8139 interrupt!");
-    if let Some(mut device) = kernel::pci::find_device(0x10EC, 0x8139) {
+    if let Some(device) = kernel::pci::find_device(0x10EC, 0x8139) {
         let io_addr = (device.base_addresses[0] as u16) & 0xFFF0;
         let mut ports = Ports::new(io_addr);
         unsafe { ports.isr.write(0x1) } // Clear the interrupt

@@ -11,11 +11,19 @@ lazy_static! {
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
 }
 
+#[cfg(feature="vga")]
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
         $crate::kernel::vga::print_fmt(format_args!($($arg)*));
-        //$crate::kernel::serial::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[cfg(feature="serial")]
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ({
+        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
     });
 }
 
