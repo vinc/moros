@@ -12,8 +12,8 @@ use bootloader::BootInfo;
 pub fn init(boot_info: &'static BootInfo) {
     //kernel::keyboard::init();
     kernel::gdt::init();
-    kernel::interrupts::init_idt();
-    unsafe { kernel::interrupts::PICS.lock().initialize() };
+    kernel::idt::init();
+    unsafe { kernel::pic::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
 
     print!("[{:.6}] MOROS version {}\n", kernel::clock::clock_monotonic(), env!("CARGO_PKG_VERSION"));

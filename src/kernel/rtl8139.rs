@@ -1,4 +1,3 @@
-use alloc::vec::Vec;
 use crate::{print, kernel};
 use x86_64::instructions::port::Port;
 
