@@ -8,7 +8,7 @@ use x86_64::instructions::port::Port;
 const CONFIG_ADDR: u16 = 0xCF8;
 const CONFIG_DATA: u16 = 0xCFC;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct DeviceConfig {
     pub bus: u8,
     pub device: u8,
@@ -20,6 +20,15 @@ pub struct DeviceConfig {
 
 lazy_static! {
     pub static ref PCI_DEVICES: Mutex<Vec<DeviceConfig>> = Mutex::new(Vec::new());
+}
+
+pub fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
+    for &device in PCI_DEVICES.lock().iter() {
+        if device.vendor_id == vendor_id && device.device_id == device_id {
+            return Some(device);
+        }
+    }
+    None
 }
 
 pub fn init() {
