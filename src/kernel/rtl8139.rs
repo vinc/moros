@@ -2,12 +2,18 @@ use alloc::boxed::Box;
 use alloc::vec::Vec;
 use alloc::vec;
 use crate::{print, kernel};
+use lazy_static::lazy_static;
 use smoltcp::Result;
 use smoltcp::phy::{Device, DeviceCapabilities};
 use smoltcp::phy;
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
+use spin::Mutex;
 use x86_64::instructions::port::Port;
+
+lazy_static! {
+    pub static ref RTL8139_DEVICE: Mutex<Option<RTL8139>> = Mutex::new(None);
+}
 
 pub struct Ports {
     pub idr: [Port<u8>; 6],
@@ -163,14 +169,14 @@ pub fn init() {
             let uptime = kernel::clock::clock_monotonic();
             print!("[{:.6}] NET RTL8139 MAC {}\n", uptime, eth_addr);
         }
+
+        *RTL8139_DEVICE.lock() = Some(rtl8139_device);
     }
 }
 
 pub fn interrupt_handler() {
     print!("RTL8139 interrupt!");
-    if let Some(device) = kernel::pci::find_device(0x10EC, 0x8139) {
-        let io_addr = (device.base_addresses[0] as u16) & 0xFFF0;
-        let mut ports = Ports::new(io_addr);
-        unsafe { ports.isr.write(0x1) } // Clear the interrupt
+    if let Some(ref mut rtl8139_device) = *RTL8139_DEVICE.lock() {
+        unsafe { rtl8139_device.ports.isr.write(0x1) } // Clear the interrupt
     }
 }
