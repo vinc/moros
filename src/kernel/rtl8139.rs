@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 use crate::{print, kernel};
 use x86_64::instructions::port::Port;
+use smoltcp::wire::EthernetAddress;
 
 pub struct Ports {
     pub idr: [Port<u8>; 6],
@@ -57,20 +58,19 @@ pub fn init() {
         unsafe { ports.cmd.write(0x0C as u8) }
 
         // Read MAC addr
-        let mac = [
-            unsafe { ports.idr[0].read() },
-            unsafe { ports.idr[1].read() },
-            unsafe { ports.idr[2].read() },
-            unsafe { ports.idr[3].read() },
-            unsafe { ports.idr[4].read() },
-            unsafe { ports.idr[5].read() },
-        ];
-
+        let mac = unsafe {
+            [
+                ports.idr[0].read(),
+                ports.idr[1].read(),
+                ports.idr[2].read(),
+                ports.idr[3].read(),
+                ports.idr[4].read(),
+                ports.idr[5].read(),
+            ]
+        };
+        let eth_addr = EthernetAddress::from_bytes(&mac);
         let uptime = kernel::clock::clock_monotonic();
-        print!(
-            "[{:.6}] NET RTL8139 MAC {:02X}:{:02X}:{:02X}:{:02X}:{:02X}:{:02X}\n",
-            uptime, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]
-        );
+        print!("[{:.6}] NET RTL8139 MAC {}\n", uptime, eth_addr);
 
         let mut rx_buf: Vec<u8> = Vec::new();
         rx_buf.resize(8192 + 16, 0);
