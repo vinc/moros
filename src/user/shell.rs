@@ -283,6 +283,7 @@ impl Shell {
             "base64"               => user::base64::main(&args),
             "halt"                 => user::halt::main(&args),
             "hex"                  => user::hex::main(&args),
+            "net"                  => user::net::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }

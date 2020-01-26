@@ -1,19 +1,22 @@
 use alloc::boxed::Box;
+use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use alloc::vec;
 use crate::{print, kernel};
+use crate::user;
 use lazy_static::lazy_static;
 use smoltcp::Result;
+use smoltcp::iface::{EthernetInterface, EthernetInterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy::{Device, DeviceCapabilities};
 use smoltcp::phy;
 use smoltcp::time::Instant;
-use smoltcp::wire::EthernetAddress;
+use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::VirtAddr;
 
 lazy_static! {
-    pub static ref RTL8139_DEVICE: Mutex<Option<RTL8139>> = Mutex::new(None);
+    pub static ref IFACE: Mutex<Option<EthernetInterface<'static, 'static, 'static, RTL8139>>> = Mutex::new(None);
 }
 
 pub struct Ports {
@@ -107,6 +110,8 @@ impl RTL8139 {
     }
 }
 
+const RX_BUFFER_EMPTY: u8 = 0x01;
+
 impl<'a> Device<'a> for RTL8139 {
     type RxToken = RxToken;
     type TxToken = TxToken;
@@ -119,9 +124,20 @@ impl<'a> Device<'a> for RTL8139 {
     }
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        let rx = RxToken { buffer: self.rx_buffer.clone() };
-        let tx = TxToken { buffer: self.tx_buffer.clone() };
-        Some((rx, tx))
+        let cmd = unsafe { self.ports.cmd.read() };
+        if (cmd & RX_BUFFER_EMPTY) != RX_BUFFER_EMPTY {
+            print!("`-> RTL8139 received data (cmd=0x{:X})\n", cmd);
+            user::hex::print_hex(&self.rx_buffer);
+            /*
+            let header = (self.rx_buffer[0] as u16) << 8
+                       | (self.rx_buffer[1] as u16);
+            */
+            let rx = RxToken { buffer: self.rx_buffer.clone() };
+            let tx = TxToken { buffer: self.tx_buffer.clone() };
+            Some((rx, tx))
+        } else {
+            None
+        }
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
@@ -160,12 +176,9 @@ impl phy::TxToken for TxToken {
 pub fn init() {
     if let Some(mut pci_device) = kernel::pci::find_device(0x10EC, 0x8139) {
         pci_device.enable_bus_mastering();
-
+        let irq = pci_device.interrupt_line;
+        kernel::idt::set_irq_handler(irq, interrupt_handler);
         let io_addr = (pci_device.base_addresses[0] as u16) & 0xFFF0;
-
-        kernel::idt::set_irq_handler(pci_device.interrupt_line, interrupt_handler);
-
-
         let mut rtl8139_device = RTL8139::new(io_addr);
 
         rtl8139_device.init();
@@ -173,15 +186,26 @@ pub fn init() {
         if let Some(eth_addr) = rtl8139_device.eth_addr {
             let uptime = kernel::clock::clock_monotonic();
             print!("[{:.6}] NET RTL8139 MAC {}\n", uptime, eth_addr);
-        }
 
-        *RTL8139_DEVICE.lock() = Some(rtl8139_device);
+            let neighbor_cache = NeighborCache::new(BTreeMap::new());
+            let mut routes = Routes::new(BTreeMap::new());
+            let ip_addrs = [IpCidr::new(Ipv4Address::new(10, 0, 2, 15).into(), 24)];
+            routes.add_default_ipv4_route(Ipv4Address::new(10, 0, 2, 2)).unwrap();
+            let iface = EthernetInterfaceBuilder::new(rtl8139_device).
+                ethernet_addr(eth_addr).
+                neighbor_cache(neighbor_cache).
+                ip_addrs(ip_addrs).
+                routes(routes).
+                finalize();
+
+            *IFACE.lock() = Some(iface);
+        }
     }
 }
 
 pub fn interrupt_handler() {
     print!("RTL8139 interrupt!");
-    if let Some(ref mut rtl8139_device) = *RTL8139_DEVICE.lock() {
-        unsafe { rtl8139_device.ports.isr.write(0x1) } // Clear the interrupt
+    if let Some(ref mut iface) = *IFACE.lock() {
+        unsafe { iface.device_mut().ports.isr.write(0x1) } // Clear the interrupt
     }
 }

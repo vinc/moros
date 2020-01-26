@@ -9,6 +9,7 @@ pub mod help;
 pub mod hex;
 pub mod list;
 pub mod login;
+pub mod net;
 pub mod print;
 pub mod r#move;
 pub mod read;
