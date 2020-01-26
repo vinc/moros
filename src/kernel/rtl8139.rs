@@ -126,13 +126,14 @@ impl<'a> Device<'a> for RTL8139 {
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         let cmd = unsafe { self.ports.cmd.read() };
         if (cmd & RX_BUFFER_EMPTY) != RX_BUFFER_EMPTY {
-            print!("`-> RTL8139 received data (cmd=0x{:X})\n", cmd);
-            user::hex::print_hex(&self.rx_buffer);
-            /*
-            let header = (self.rx_buffer[0] as u16) << 8
-                       | (self.rx_buffer[1] as u16);
-            */
-            let rx = RxToken { buffer: self.rx_buffer.clone() };
+            let header = (self.rx_buffer[1] as u16) << 8
+                       | (self.rx_buffer[0] as u16);
+            let length = (self.rx_buffer[3] as u16) << 8
+                       | (self.rx_buffer[2] as u16);
+            print!("`-> RTL8139 received data (cmd=0x{:02X}, header=0x{:04X}, length={})\n", cmd, header, length);
+            let n = length as usize;
+            user::hex::print_hex(&self.rx_buffer[4..n]);
+            let rx = RxToken { buffer: Box::new(self.rx_buffer[4..n].to_vec()) };
             let tx = TxToken { buffer: self.tx_buffer.clone() };
             Some((rx, tx))
         } else {
