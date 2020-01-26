@@ -10,6 +10,7 @@ use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
+use x86_64::VirtAddr;
 
 lazy_static! {
     pub static ref RTL8139_DEVICE: Mutex<Option<RTL8139>> = Mutex::new(None);
@@ -89,7 +90,11 @@ impl RTL8139 {
         };
         self.eth_addr = Some(EthernetAddress::from_bytes(&mac));
 
-        let rx_addr = &self.rx_buffer[0] as *const u8;
+        // Get physical address of rx_buffer
+        let rx_ptr = &self.rx_buffer[0] as *const u8;
+        let virt_addr = VirtAddr::new(rx_ptr as u64);
+        let phys_addr = kernel::mem::translate_addr(virt_addr).unwrap();
+        let rx_addr = phys_addr.as_u64();
 
         // Init Receive buffer
         unsafe { self.ports.rbstart.write(rx_addr as u32) }
