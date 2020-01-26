@@ -156,6 +156,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "managed"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdcec5e97041c7f0f1c5b7d93f12e57293c831c646f4cc7a5db59460c7ea8de6"
+
+[[package]]
 name = "moros"
 version = "0.1.0"
 dependencies = [
@@ -170,6 +176,7 @@ dependencies = [
  "pic8259_simple",
  "raw-cpuid",
  "sha2",
+ "smoltcp",
  "spin",
  "uart_16550",
  "volatile",
@@ -257,6 +264,17 @@ dependencies = [
  "digest",
  "fake-simd",
  "opaque-debug",
+]
+
+[[package]]
+name = "smoltcp"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fe46639fd2ec79eadf8fe719f237a7a0bd4dac5d957f1ca5bbdbc1c3c39e53a"
+dependencies = [
+ "bitflags",
+ "byteorder",
+ "managed",
 ]
 
 [[package]]
