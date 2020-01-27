@@ -16,7 +16,9 @@ use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::VirtAddr;
 
+const RX_BUFFER_LEN: usize = 8192 + 16;
 const RX_BUFFER_EMPTY: u8 = 0x01;
+const ISR_ROK: u16 = 0x01;
 
 lazy_static! {
     pub static ref IFACE: Mutex<Option<EthernetInterface<'static, 'static, 'static, RTL8139>>> = Mutex::new(None);
@@ -26,6 +28,7 @@ pub struct Ports {
     pub idr: [Port<u8>; 6],
     pub config1: Port<u8>,
     pub rbstart: Port<u32>,
+    pub rx_ptr: Port<u16>,
     pub cmd: Port<u8>,
     pub imr: Port<u32>,
     pub isr: Port<u16>,
@@ -45,6 +48,7 @@ impl Ports {
             ],
             config1: Port::new(io_addr + 0x52),
             rbstart: Port::new(io_addr + 0x30),
+            rx_ptr: Port::new(io_addr + 0x38),
             cmd: Port::new(io_addr + 0x37),
             imr: Port::new(io_addr + 0x3C),
             isr: Port::new(io_addr + 0x3E),
@@ -58,6 +62,8 @@ pub struct RTL8139 {
     eth_addr: Option<EthernetAddress>,
     rx_buffer: Box<Vec<u8>>,
     tx_buffer: Box<Vec<u8>>,
+    rx_offset: usize,
+    //tx_offset: usize,
 }
 
 impl RTL8139 {
@@ -65,8 +71,10 @@ impl RTL8139 {
         Self {
             ports: Ports::new(io_addr),
             eth_addr: None,
-            rx_buffer: Box::new(vec![0; 8192 + 16]),
-            tx_buffer: Box::new(vec![0; 8192 + 16]),
+            rx_buffer: Box::new(vec![0; RX_BUFFER_LEN]),
+            tx_buffer: Box::new(vec![0; RX_BUFFER_LEN]), // FIXME
+            rx_offset: 0,
+            //tx_offset: 0,
         }
     }
 
@@ -131,24 +139,30 @@ impl<'a> Device<'a> for RTL8139 {
     // [crc               (4 bytes)]
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         let cmd = unsafe { self.ports.cmd.read() };
-        if (cmd & RX_BUFFER_EMPTY) != RX_BUFFER_EMPTY {
-            let header = u16::from_le_bytes(self.rx_buffer[0..2].try_into().unwrap());
-            let length = u16::from_le_bytes(self.rx_buffer[2..4].try_into().unwrap());
-            let n = length as usize;
-            let data = &self.rx_buffer[4..n];
-            let crc = u32::from_le_bytes(self.rx_buffer[n..n+4].try_into().unwrap());
-            print!("`-> RTL8139 received data:\n\n");
-            print!("cmd: 0x{:02X}\n", cmd);
-            print!("header: 0x{:04X}\n", header);
-            print!("length: {}\n", n - 4);
-            print!("crc: 0x{:08X}\n", crc);
-            user::hex::print_hex(&data);
-            let rx = RxToken { buffer: Box::new(data.to_vec()) };
-            let tx = TxToken { buffer: self.tx_buffer.clone() };
-            Some((rx, tx))
-        } else {
-            None
+        if (cmd & RX_BUFFER_EMPTY) == RX_BUFFER_EMPTY {
+            return None;
         }
+        print!("`-> RTL8139 received data:\n\n");
+        print!("cmd: 0x{:02X}\n", cmd);
+        let offset = self.rx_offset;
+        let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
+        print!("header: 0x{:04X}\n", header);
+        if header & ISR_ROK != ISR_ROK {
+            return None;
+        }
+        let length = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap());
+        let n = length as usize;
+        print!("length: {}\n", n - 4);
+        let data = &self.rx_buffer[(offset + 4)..(offset + n)];
+        let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
+        print!("crc: 0x{:08X}\n", crc);
+        self.rx_offset = (offset + n + 4 + 3) & !3;
+        unsafe { self.ports.rx_ptr.write((self.rx_offset - 16) as u16); }
+        self.rx_offset %= RX_BUFFER_LEN;
+        user::hex::print_hex(&data);
+        let rx = RxToken { buffer: Box::new(data.to_vec()) };
+        let tx = TxToken { buffer: self.tx_buffer.clone() };
+        Some((rx, tx))
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
