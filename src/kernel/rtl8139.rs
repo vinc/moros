@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use alloc::vec;
+use core::convert::TryInto;
 use crate::{print, kernel};
 use crate::user;
 use lazy_static::lazy_static;
@@ -14,6 +15,8 @@ use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::VirtAddr;
+
+const RX_BUFFER_EMPTY: u8 = 0x01;
 
 lazy_static! {
     pub static ref IFACE: Mutex<Option<EthernetInterface<'static, 'static, 'static, RTL8139>>> = Mutex::new(None);
@@ -110,8 +113,6 @@ impl RTL8139 {
     }
 }
 
-const RX_BUFFER_EMPTY: u8 = 0x01;
-
 impl<'a> Device<'a> for RTL8139 {
     type RxToken = RxToken;
     type TxToken = TxToken;
@@ -123,17 +124,26 @@ impl<'a> Device<'a> for RTL8139 {
         caps
     }
 
+    // RxToken buffer, when not empty, will contains:
+    // [header            (2 bytes)]
+    // [length            (2 bytes)]
+    // [packet   (length - 4 bytes)]
+    // [crc               (4 bytes)]
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         let cmd = unsafe { self.ports.cmd.read() };
         if (cmd & RX_BUFFER_EMPTY) != RX_BUFFER_EMPTY {
-            let header = (self.rx_buffer[1] as u16) << 8
-                       | (self.rx_buffer[0] as u16);
-            let length = (self.rx_buffer[3] as u16) << 8
-                       | (self.rx_buffer[2] as u16);
-            print!("`-> RTL8139 received data (cmd=0x{:02X}, header=0x{:04X}, length={})\n", cmd, header, length);
+            let header = u16::from_le_bytes(self.rx_buffer[0..2].try_into().unwrap());
+            let length = u16::from_le_bytes(self.rx_buffer[2..4].try_into().unwrap());
             let n = length as usize;
-            user::hex::print_hex(&self.rx_buffer[4..n]);
-            let rx = RxToken { buffer: Box::new(self.rx_buffer[4..n].to_vec()) };
+            let data = self.rx_buffer[4..n];
+            let crc = u32::from_le_bytes(self.rx_buffer[n..n+4].try_into().unwrap());
+            print!("`-> RTL8139 received data:\n\n");
+            print!("cmd: 0x{:02X}\n", cmd);
+            print!("header: 0x{:04X}\n", header);
+            print!("length: {}\n", n - 4);
+            print!("crc: 0x{:08X}\n", crc);
+            user::hex::print_hex(&data);
+            let rx = RxToken { buffer: Box::new(data.to_vec()) };
             let tx = TxToken { buffer: self.tx_buffer.clone() };
             Some((rx, tx))
         } else {
