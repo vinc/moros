@@ -135,7 +135,7 @@ impl<'a> Device<'a> for RTL8139 {
             let header = u16::from_le_bytes(self.rx_buffer[0..2].try_into().unwrap());
             let length = u16::from_le_bytes(self.rx_buffer[2..4].try_into().unwrap());
             let n = length as usize;
-            let data = self.rx_buffer[4..n];
+            let data = &self.rx_buffer[4..n];
             let crc = u32::from_le_bytes(self.rx_buffer[n..n+4].try_into().unwrap());
             print!("`-> RTL8139 received data:\n\n");
             print!("cmd: 0x{:02X}\n", cmd);
