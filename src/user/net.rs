@@ -40,21 +40,22 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         let _server_handle = sockets.add(server_socket);
 
         loop {
-            let time = kernel::clock::clock_monotonic();
-            print!("[{:.6}] Polling ethernet interface...\n", time);
-
-            match iface.poll(&mut sockets, Instant::from_millis((time * 1000.0) as i64)) {
+            let now = kernel::clock::clock_monotonic();
+            match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
                 Ok(true) => {
-                    print!("`-> Ok(true)\n");
+                    print!("------------------------------------------------------------------\n");
+                    print!("Polling result: Ok(true)\n");
                 },
                 Ok(false) => {
-                    print!("`-> Ok(false)\n");
+                    //print!("------------------------------------------------------------------\n");
+                    //print!("Polling Result: Ok(false)\n\n");
                 },
                 Err(e) => {
-                    print!("`-> Err({})\n", e);
+                    print!("------------------------------------------------------------------\n");
+                    print!("polling result: err({})\n", e);
                 }
             }
-            kernel::time::sleep(10.0);
+            kernel::time::sleep(1.0);
         }
     }
     user::shell::ExitCode::CommandSuccessful

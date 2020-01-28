@@ -122,7 +122,7 @@ impl RTL8139 {
 }
 
 impl<'a> Device<'a> for RTL8139 {
-    type RxToken = RxToken;
+    type RxToken = RxToken<'a>;
     type TxToken = TxToken;
 
     fn capabilities(&self) -> DeviceCapabilities {
@@ -142,45 +142,51 @@ impl<'a> Device<'a> for RTL8139 {
         if (cmd & RX_BUFFER_EMPTY) == RX_BUFFER_EMPTY {
             return None;
         }
-        print!("`-> RTL8139 received data:\n\n");
-        print!("cmd: 0x{:02X}\n", cmd);
+        print!("------------------------------------------------------------------\n");
+        let uptime = kernel::clock::clock_monotonic();
+        print!("[{:.6}] NET RTL8139 receiving frame:\n\n", uptime);
+        print!("Command Register: 0x{:02X}\n", cmd);
         let offset = self.rx_offset;
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
-        print!("header: 0x{:04X}\n", header);
+        print!("Header: 0x{:04X}\n", header);
         if header & ISR_ROK != ISR_ROK {
             return None;
         }
         let length = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap());
         let n = length as usize;
-        print!("length: {}\n", n - 4);
-        let data = &self.rx_buffer[(offset + 4)..(offset + n)];
+        print!("Length: {} bytes\n", n - 4);
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
-        print!("crc: 0x{:08X}\n", crc);
+        print!("CRC: 0x{:08X}\n", crc);
+
+        // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
         unsafe { self.ports.rx_ptr.write((self.rx_offset - 16) as u16); }
         self.rx_offset %= RX_BUFFER_LEN;
-        user::hex::print_hex(&data);
-        let rx = RxToken { buffer: Box::new(data.to_vec()) };
-        let tx = TxToken { buffer: self.tx_buffer.clone() };
+
+        user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
+        let rx = RxToken { frame: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
+        let tx = TxToken { buffer: self.tx_buffer.clone() }; // TODO
         Some((rx, tx))
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        print!("------------------------------------------------------------------\n");
+        let uptime = kernel::clock::clock_monotonic();
+        print!("[{:.6}] NET RTL8139 transmiting frame:\n\n", uptime);
         Some(TxToken { buffer: self.tx_buffer.clone() })
     }
 }
 
 #[doc(hidden)]
-pub struct RxToken {
-    buffer: Box<Vec<u8>>,
+pub struct RxToken<'a> {
+    frame: &'a mut [u8]
 }
 
-impl phy::RxToken for RxToken {
-    fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> Result<R>
+impl<'a> phy::RxToken for RxToken<'a> {
+    fn consume<R, F>(self, _timestamp: Instant, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
-        // TODO
-        f(&mut self.buffer)
+        f(self.frame)
     }
 }
 
