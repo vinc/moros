@@ -29,7 +29,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             });
             let mut success = false;
             config.map(|config| {
-                print!("DHCP config: {:?}\n", config);
+                //print!("DHCP config: {:?}\n", config);
                 match config.address {
                     Some(cidr) => if cidr != prev_cidr {
                         iface.update_ip_addrs(|addrs| {
