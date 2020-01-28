@@ -100,6 +100,8 @@ pub struct RTL8139 {
     //tx_offset: usize,
     tx_id: usize,
 
+    pub rx_count: u64,
+    pub tx_count: u64,
     pub debug_mode: bool,
 }
 
@@ -118,6 +120,8 @@ impl RTL8139 {
             ],
             //tx_offset: 0,
             tx_id: 0,
+            rx_count: 0,
+            tx_count: 0,
 
             debug_mode: false,
         }
@@ -213,6 +217,7 @@ impl<'a> Device<'a> for RTL8139 {
         if header & ISR_ROK != ISR_ROK {
             return None;
         }
+        self.rx_count += 1;
         let length = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap());
         let n = length as usize;
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
@@ -239,6 +244,7 @@ impl<'a> Device<'a> for RTL8139 {
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        self.tx_count += 1;
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
             let uptime = kernel::clock::clock_monotonic();
