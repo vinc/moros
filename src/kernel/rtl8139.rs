@@ -172,7 +172,7 @@ impl RTL8139 {
         unsafe { self.ports.rx_config.write((0xF | (1 << 7)) as u32) }
 
         // Configuring Transmit buffer (TCR)
-        unsafe { self.ports.tx_config.write(TCR_IFG); }
+        unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
     }
 }
 
@@ -290,9 +290,8 @@ pub fn init() {
             print!("[{:.6}] NET RTL8139 MAC {}\n", uptime, eth_addr);
 
             let neighbor_cache = NeighborCache::new(BTreeMap::new());
-            let mut routes = Routes::new(BTreeMap::new());
-            let ip_addrs = [IpCidr::new(Ipv4Address::new(10, 0, 2, 15).into(), 24)];
-            routes.add_default_ipv4_route(Ipv4Address::new(10, 0, 2, 2)).unwrap();
+            let routes = Routes::new(BTreeMap::new());
+            let ip_addrs = [IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)];
             let iface = EthernetInterfaceBuilder::new(rtl8139_device).
                 ethernet_addr(eth_addr).
                 neighbor_cache(neighbor_cache).

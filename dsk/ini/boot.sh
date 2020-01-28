@@ -1,5 +1,5 @@
 read /ini/banner.txt
-dhcpd
+# dhcp
 login
 shell
 clear

@@ -27,6 +27,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                 print!("DHCP: {:?}\n", e);
                 None
             });
+            let mut success = false;
             config.map(|config| {
                 print!("DHCP config: {:?}\n", config);
                 match config.address {
@@ -57,8 +58,15 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                         print!("- {}\n", dns_server);
                     }
                 }
+
+                success = true;
             });
+
+            if success {
+                return user::shell::ExitCode::CommandSuccessful;
+            }
         }
     }
-    user::shell::ExitCode::CommandSuccessful
+
+    user::shell::ExitCode::CommandError
 }
