@@ -18,7 +18,25 @@ use x86_64::VirtAddr;
 
 const RX_BUFFER_LEN: usize = 8192 + 16;
 const RX_BUFFER_EMPTY: u8 = 0x01;
+const TX_BUFFER_LEN: usize = 4096 + 16;
+const TX_BUFFERS_COUNT: usize = 4;
 const ISR_ROK: u16 = 0x01;
+
+// Interframe Gap Time
+const TCR_IFG: u32 = 3 << 24;
+
+// Max DMA Burst Size per Tx DMA Burst
+// 000 = 16 bytes
+// 001 = 32 bytes
+// 010 = 64 bytes
+// 011 = 128 bytes
+// 100 = 256 bytes
+// 101 = 512 bytes
+// 110 = 1024 bytes
+// 111 = 2048 bytes
+const TCR_MXDMA0: u32 = 1 << 8;
+const TCR_MXDMA2: u32 = 1 << 9;
+const TCR_MXDMA1: u32 = 1 << 10;
 
 lazy_static! {
     pub static ref IFACE: Mutex<Option<EthernetInterface<'static, 'static, 'static, RTL8139>>> = Mutex::new(None);
@@ -26,13 +44,16 @@ lazy_static! {
 
 pub struct Ports {
     pub idr: [Port<u8>; 6],
+    pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT],
+    pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT],
     pub config1: Port<u8>,
-    pub rbstart: Port<u32>,
+    pub rx_addr: Port<u32>,
     pub rx_ptr: Port<u16>,
     pub cmd: Port<u8>,
     pub imr: Port<u32>,
     pub isr: Port<u16>,
-    pub rcr: Port<u32>,
+    pub tx_config: Port<u32>,
+    pub rx_config: Port<u32>,
 }
 
 impl Ports {
@@ -46,13 +67,26 @@ impl Ports {
                 Port::new(io_addr + 0x04),
                 Port::new(io_addr + 0x05),
             ],
+            tx_cmds: [
+                Port::new(io_addr + 0x10),
+                Port::new(io_addr + 0x14),
+                Port::new(io_addr + 0x18),
+                Port::new(io_addr + 0x1C),
+            ],
+            tx_addrs: [
+                Port::new(io_addr + 0x20),
+                Port::new(io_addr + 0x24),
+                Port::new(io_addr + 0x28),
+                Port::new(io_addr + 0x2C),
+            ],
             config1: Port::new(io_addr + 0x52),
-            rbstart: Port::new(io_addr + 0x30),
+            rx_addr: Port::new(io_addr + 0x30),
             rx_ptr: Port::new(io_addr + 0x38),
             cmd: Port::new(io_addr + 0x37),
             imr: Port::new(io_addr + 0x3C),
             isr: Port::new(io_addr + 0x3E),
-            rcr: Port::new(io_addr + 0x44),
+            tx_config: Port::new(io_addr + 0x40),
+            rx_config: Port::new(io_addr + 0x44),
         }
     }
 }
@@ -61,9 +95,10 @@ pub struct RTL8139 {
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
     rx_buffer: Box<Vec<u8>>,
-    tx_buffer: Box<Vec<u8>>,
     rx_offset: usize,
+    tx_buffers: [Box<Vec<u8>>; TX_BUFFERS_COUNT],
     //tx_offset: usize,
+    tx_id: usize,
 }
 
 impl RTL8139 {
@@ -72,9 +107,15 @@ impl RTL8139 {
             ports: Ports::new(io_addr),
             eth_addr: None,
             rx_buffer: Box::new(vec![0; RX_BUFFER_LEN]),
-            tx_buffer: Box::new(vec![0; RX_BUFFER_LEN]), // FIXME
             rx_offset: 0,
+            tx_buffers: [
+                Box::new(vec![0; TX_BUFFER_LEN]),
+                Box::new(vec![0; TX_BUFFER_LEN]),
+                Box::new(vec![0; TX_BUFFER_LEN]),
+                Box::new(vec![0; TX_BUFFER_LEN]),
+            ],
             //tx_offset: 0,
+            tx_id: 0,
         }
     }
 
@@ -111,19 +152,33 @@ impl RTL8139 {
         let rx_addr = phys_addr.as_u64();
 
         // Init Receive buffer
-        unsafe { self.ports.rbstart.write(rx_addr as u32) }
+        unsafe { self.ports.rx_addr.write(rx_addr as u32) }
+
+        for i in 0..4 {
+            // Get physical address of each tx_buffer
+            let tx_ptr = &self.tx_buffers[i][0] as *const u8;
+            let virt_addr = VirtAddr::new(tx_ptr as u64);
+            let phys_addr = kernel::mem::translate_addr(virt_addr).unwrap();
+            let tx_addr = phys_addr.as_u64();
+
+            // Init Transmit buffer
+            unsafe { self.ports.tx_addrs[i].write(tx_addr as u32) }
+        }
 
         // Set IMR + ISR
         unsafe { self.ports.imr.write(0x0005) }
 
-        // Configuring Receive buffer
-        unsafe { self.ports.rcr.write((0xF | (1 << 7)) as u32) }
+        // Configuring Receive buffer (RCR)
+        unsafe { self.ports.rx_config.write((0xF | (1 << 7)) as u32) }
+
+        // Configuring Transmit buffer (TCR)
+        unsafe { self.ports.tx_config.write(TCR_IFG); }
     }
 }
 
 impl<'a> Device<'a> for RTL8139 {
     type RxToken = RxToken<'a>;
-    type TxToken = TxToken;
+    type TxToken = TxToken<'a>;
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
@@ -165,15 +220,24 @@ impl<'a> Device<'a> for RTL8139 {
 
         user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         let rx = RxToken { frame: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
-        let tx = TxToken { buffer: self.tx_buffer.clone() }; // TODO
+
+        print!("TX Buffer: {}\n", self.tx_id);
+        let port = self.ports.tx_cmds[self.tx_id].clone();
+        let buffer = &mut self.tx_buffers[self.tx_id];
+        let tx = TxToken { port, buffer };
+
         Some((rx, tx))
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
         print!("------------------------------------------------------------------\n");
         let uptime = kernel::clock::clock_monotonic();
-        print!("[{:.6}] NET RTL8139 transmiting frame:\n\n", uptime);
-        Some(TxToken { buffer: self.tx_buffer.clone() })
+        print!("[{:.6}] NET RTL8139 transmitting frame:\n\n", uptime);
+        print!("TX Buffer: {}\n", self.tx_id);
+        self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
+        let port = self.ports.tx_cmds[self.tx_id].clone();
+        let buffer = &mut self.tx_buffers[self.tx_id];
+        Some(TxToken { port, buffer })
     }
 }
 
@@ -191,16 +255,23 @@ impl<'a> phy::RxToken for RxToken<'a> {
 }
 
 #[doc(hidden)]
-pub struct TxToken {
-    buffer: Box<Vec<u8>>,
+pub struct TxToken<'a> {
+    port: Port<u32>,
+    buffer: &'a mut [u8]
 }
 
-impl phy::TxToken for TxToken {
-    fn consume<R, F>(mut self, _timestamp: Instant, _len: usize, f: F) -> Result<R>
+impl<'a> phy::TxToken for TxToken<'a> {
+    fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
-        // TODO
-        f(&mut self.buffer)
+        let res = f(&mut self.buffer[0..len]);
+
+        user::hex::print_hex(&self.buffer[0..len]);
+        if res.is_ok() {
+            unsafe { self.port.write(len as u32); }
+        }
+
+        res
     }
 }
 

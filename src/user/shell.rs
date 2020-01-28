@@ -284,6 +284,7 @@ impl Shell {
             "halt"                 => user::halt::main(&args),
             "hex"                  => user::hex::main(&args), // TODO: Rename to `dump`
             "net"                  => user::net::main(&args),
+            "dhcp"                 => user::dhcp::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }

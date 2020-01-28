@@ -3,6 +3,7 @@ pub mod clear;
 pub mod copy;
 pub mod date;
 pub mod delete;
+pub mod dhcp;
 pub mod editor;
 pub mod halt;
 pub mod help;
