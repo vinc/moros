@@ -99,6 +99,8 @@ pub struct RTL8139 {
     tx_buffers: [Box<Vec<u8>>; TX_BUFFERS_COUNT],
     //tx_offset: usize,
     tx_id: usize,
+
+    pub debug_mode: bool,
 }
 
 impl RTL8139 {
@@ -116,6 +118,8 @@ impl RTL8139 {
             ],
             //tx_offset: 0,
             tx_id: 0,
+
+            debug_mode: false,
         }
     }
 
@@ -197,47 +201,55 @@ impl<'a> Device<'a> for RTL8139 {
         if (cmd & RX_BUFFER_EMPTY) == RX_BUFFER_EMPTY {
             return None;
         }
-        print!("------------------------------------------------------------------\n");
-        let uptime = kernel::clock::clock_monotonic();
-        print!("[{:.6}] NET RTL8139 receiving frame:\n\n", uptime);
-        print!("Command Register: 0x{:02X}\n", cmd);
         let offset = self.rx_offset;
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
-        print!("Header: 0x{:04X}\n", header);
+        if self.debug_mode {
+            print!("------------------------------------------------------------------\n");
+            let uptime = kernel::clock::clock_monotonic();
+            print!("[{:.6}] NET RTL8139 receiving frame:\n\n", uptime);
+            print!("Command Register: 0x{:02X}\n", cmd);
+            print!("Header: 0x{:04X}\n", header);
+        }
         if header & ISR_ROK != ISR_ROK {
             return None;
         }
         let length = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap());
         let n = length as usize;
-        print!("Length: {} bytes\n", n - 4);
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
-        print!("CRC: 0x{:08X}\n", crc);
 
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
         unsafe { self.ports.rx_ptr.write((self.rx_offset - 16) as u16); }
         self.rx_offset %= RX_BUFFER_LEN;
 
-        user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
-        let rx = RxToken { frame: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
+        if self.debug_mode {
+            print!("Length: {} bytes\n", n - 4);
+            print!("CRC: 0x{:08X}\n", crc);
+            user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
+            print!("TX Buffer: {}\n", self.tx_id);
+        }
 
-        print!("TX Buffer: {}\n", self.tx_id);
+        let rx = RxToken { frame: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
         let port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id];
-        let tx = TxToken { port, buffer };
+        let debug_mode = self.debug_mode;
+        let tx = TxToken { port, buffer, debug_mode };
 
         Some((rx, tx))
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
-        print!("------------------------------------------------------------------\n");
-        let uptime = kernel::clock::clock_monotonic();
-        print!("[{:.6}] NET RTL8139 transmitting frame:\n\n", uptime);
-        print!("TX Buffer: {}\n", self.tx_id);
+        if self.debug_mode {
+            print!("------------------------------------------------------------------\n");
+            let uptime = kernel::clock::clock_monotonic();
+            print!("[{:.6}] NET RTL8139 transmitting frame:\n\n", uptime);
+            print!("TX Buffer: {}\n", self.tx_id);
+        }
         self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
         let port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id];
-        Some(TxToken { port, buffer })
+        let debug_mode = self.debug_mode;
+        Some(TxToken { port, buffer, debug_mode })
     }
 }
 
@@ -257,7 +269,8 @@ impl<'a> phy::RxToken for RxToken<'a> {
 #[doc(hidden)]
 pub struct TxToken<'a> {
     port: Port<u32>,
-    buffer: &'a mut [u8]
+    buffer: &'a mut [u8],
+    debug_mode: bool,
 }
 
 impl<'a> phy::TxToken for TxToken<'a> {
@@ -265,8 +278,9 @@ impl<'a> phy::TxToken for TxToken<'a> {
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
         let res = f(&mut self.buffer[0..len]);
-
-        user::hex::print_hex(&self.buffer[0..len]);
+        if self.debug_mode {
+            user::hex::print_hex(&self.buffer[0..len]);
+        }
         if res.is_ok() {
             unsafe { self.port.write(len as u32); }
         }

@@ -5,6 +5,8 @@ use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
+        iface.device_mut().debug_mode = true;
+
         let mut server_rx_buffer = [0; 2048];
         let mut server_tx_buffer = [0; 2048];
         let server_socket = TcpSocket::new(
