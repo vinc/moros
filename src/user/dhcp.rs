@@ -1,4 +1,6 @@
 use alloc::vec;
+use alloc::vec::Vec;
+use crate::alloc::string::ToString;
 use crate::{print, kernel, user};
 use smoltcp::dhcp::Dhcpv4Client;
 use smoltcp::socket::{SocketSet, RawSocketBuffer, RawPacketMetadata};
@@ -17,18 +19,26 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             [RawPacketMetadata::EMPTY; 1],
             vec![0; 600]
         );
+
         let now = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
         let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, now);
-        let mut prev_cidr = Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0);
+
+        let mut prev_cidr = match iface.ip_addrs().first() {
+            Some(IpCidr::Ipv4(ip_addr)) => ip_addr.clone().into(),
+            _ => Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0),
+        };
+
+        print!("DHCP Discovery transmitted\n");
         loop {
             let now = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
-            iface.poll(&mut sockets, now).map(|_| ()).unwrap_or_else(|e| print!("Poll: {:?}\n", e));
+            iface.poll(&mut sockets, now).map(|_| ()).unwrap_or_else(|e| print!("Error: {:?}\n", e));
             let config = dhcp.poll(&mut iface, &mut sockets, now).unwrap_or_else(|e| {
                 print!("DHCP: {:?}\n", e);
                 None
             });
             let mut success = false;
             config.map(|config| {
+                print!("DHCP Offer received\n");
                 //print!("DHCP config: {:?}\n", config);
                 match config.address {
                     Some(cidr) => if cidr != prev_cidr {
@@ -38,7 +48,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                             });
                         });
                         prev_cidr = cidr;
-                        print!("Assigned a new IPv4 address: {}\n", cidr);
+                        print!("Leased: {}\n", cidr);
                     }
                     _ => {}
                 }
@@ -48,15 +58,13 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                 });
                 iface.routes_mut().update(|routes_map| {
                     routes_map.get(&IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)).map(|default_route| {
-                        print!("Default gateway: {}\n", default_route.via_router);
+                        print!("Router: {}\n", default_route.via_router);
                     });
                 });
 
-                if config.dns_servers.iter().any(|s| s.is_some()) {
-                    print!("DNS servers:\n");
-                    for dns_server in config.dns_servers.iter().filter_map(|s| *s) {
-                        print!("- {}\n", dns_server);
-                    }
+                let dns_servers: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
+                if dns_servers.len() > 0 {
+                    print!("DNS: {}\n", dns_servers.join(", "));
                 }
 
                 success = true;
