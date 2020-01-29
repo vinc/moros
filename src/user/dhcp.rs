@@ -1,6 +1,6 @@
 use alloc::vec;
 use alloc::vec::Vec;
-use crate::alloc::string::ToString;
+use alloc::string::ToString;
 use crate::{print, kernel, user};
 use smoltcp::dhcp::Dhcpv4Client;
 use smoltcp::socket::{SocketSet, RawSocketBuffer, RawPacketMetadata};
