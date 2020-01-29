@@ -9,6 +9,7 @@ pub mod halt;
 pub mod help;
 pub mod hex;
 pub mod http;
+pub mod host;
 pub mod ip;
 pub mod list;
 pub mod login;
