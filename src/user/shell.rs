@@ -286,6 +286,7 @@ impl Shell {
             "net"                  => user::net::main(&args),
             "route"                => user::route::main(&args),
             "dhcp"                 => user::dhcp::main(&args),
+            "http"                 => user::http::main(&args),
             "ip"                   => user::ip::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
