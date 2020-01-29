@@ -41,6 +41,8 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         return user::shell::ExitCode::CommandError;
     }
 
+    let is_verbose = true;
+
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
         let url = "http://".to_owned() + args[1] + args[2];
         let url = URL::parse(&url).expect("invalid URL format");
@@ -70,30 +72,48 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
                 state = match state {
                     State::Connect if !socket.is_active() => {
-                        print!("connecting\n");
                         let local_port = 49152 + kernel::random::rand16().expect("random port") % 16384;
+                        if is_verbose {
+                            print!("* Connecting to {}:{}\n", address, url.port);
+                        }
                         socket.connect((address, url.port), local_port).unwrap();
                         State::Request
                     }
                     State::Request if socket.may_send() => {
-                        print!("sending request\n");
                         let http_get = "GET ".to_owned() + &url.path + " HTTP/1.1\r\n";
-                        socket.send_slice(http_get.as_ref()).expect("cannot send");
                         let http_host = "Host: ".to_owned() + &url.host + "\r\n";
+                        let http_connection = "Connection: close\r\n".to_owned();
+                        if is_verbose {
+                            print!("> {}", http_get);
+                            print!("> {}", http_host);
+                            print!("> {}", http_connection);
+                            print!(">\n");
+                        }
+                        socket.send_slice(http_get.as_ref()).expect("cannot send");
                         socket.send_slice(http_host.as_ref()).expect("cannot send");
-                        socket.send_slice(b"Connection: close\r\n").expect("cannot send");
+                        socket.send_slice(http_connection.as_ref()).expect("cannot send");
                         socket.send_slice(b"\r\n").expect("cannot send");
                         State::Response
                     }
                     State::Response if socket.can_recv() => {
                         socket.recv(|data| {
-                            print!("{}\n", str::from_utf8(data).unwrap_or("invalid UTF-8"));
+                            let contents = str::from_utf8(data).unwrap_or("invalid UTF-8");
+                            let mut is_header = true;
+                            for line in contents.lines() {
+                                if line.len() == 0 {
+                                    is_header = false;
+                                }
+                                if is_verbose && is_header {
+                                    print!("< {}\n", line);
+                                } else {
+                                    print!("{}\n", line);
+                                }
+                            }
                             (data.len(), ())
                         }).unwrap();
                         State::Response
                     }
                     State::Response if !socket.may_recv() => {
-                        print!("received complete response\n");
                         break
                     }
                     _ => state
