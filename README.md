@@ -1,4 +1,4 @@
-# MOROS: Omniscient Rust Operating System
+# MOROS: Obscure Rust Operating System
 
 ```
 .100  110.  .1100.  111110.  .1001.  .01000.

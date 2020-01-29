@@ -1,6 +1,6 @@
 [package]
 name = "moros"
-description = "MOROS: Omniscient Rust Operating System"
+description = "MOROS: Obscure Rust Operating System"
 version = "0.1.0"
 authors = ["Vincent Ollivier <v@vinc.cc>"]
 edition = "2018"
