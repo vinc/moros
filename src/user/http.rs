@@ -83,7 +83,14 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             }
             _ => {}
         }
+
+        let time = kernel::clock::clock_monotonic();
         loop {
+            if time - kernel::clock::clock_monotonic() > 5.0 {
+                print!("Timeout reached\n");
+                return user::shell::ExitCode::CommandError;
+            }
+
             let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Ok(_) => {},
@@ -143,7 +150,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         State::Response
                     }
                     State::Response if !socket.may_recv() => {
-                        break
+                        break;
                     }
                     _ => state
                 }
