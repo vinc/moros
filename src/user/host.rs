@@ -143,6 +143,15 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     enum State { Bind, Query, Response };
     let mut state = State::Bind;
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
+        match iface.ipv4_addr() {
+            None => {
+                return Err(ResponseCode::NetworkError);
+            }
+            Some(ip_addr) if ip_addr.is_unspecified() => {
+                return Err(ResponseCode::NetworkError);
+            }
+            _ => {}
+        }
         loop {
             let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
@@ -209,7 +218,8 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             print!("{} has address {}\n", name, ip_addr);
             user::shell::ExitCode::CommandSuccessful
         }
-        Err(_) => {
+        Err(e) => {
+            print!("Could not resolve host: {:?}\n", e);
             user::shell::ExitCode::CommandError
         }
     }

@@ -72,6 +72,17 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let mut state = State::Connect;
 
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
+        match iface.ipv4_addr() {
+            None => {
+                print!("Interface not ready\n");
+                return user::shell::ExitCode::CommandError;
+            }
+            Some(ip_addr) if ip_addr.is_unspecified() => {
+                print!("Interface not ready\n");
+                return user::shell::ExitCode::CommandError;
+            }
+            _ => {}
+        }
         loop {
             let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
