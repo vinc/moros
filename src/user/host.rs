@@ -1,10 +1,12 @@
-use core::str;
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::vec;
+use bit_field::BitField;
+use core::convert::TryInto;
+use core::str;
 use crate::{print, kernel, user};
 use smoltcp::socket::{SocketSet, UdpSocket, UdpSocketBuffer, UdpPacketMetadata};
 use smoltcp::time::Instant;
-use smoltcp::wire::{IpEndpoint, IpAddress};
+use smoltcp::wire::{IpEndpoint, IpAddress, Ipv4Address};
 
 // See RFC 1035 for implementation details
 
@@ -25,14 +27,33 @@ enum QueryClass {
     IN = 1,
 }
 
-struct Query {
+#[repr(u16)]
+pub enum ResponseCode {
+    NoError = 0,
+    FormatError = 1,
+    ServerFailure = 2,
+    NameError = 3,
+    NotImplemented = 4,
+    Refused = 5,
+
+    UnknownError,
+    NetworkError,
+}
+
+struct Message {
     pub datagram: Vec<u8>
 }
 
 const FLAG_RD: u16 = 0x0100; // Recursion desired
 
-impl Query {
-    pub fn new(qname: &str, qtype: QueryType, qclass: QueryClass) -> Self {
+impl Message {
+    pub fn from(datagram: &[u8]) -> Self {
+        Self {
+            datagram: Vec::from(datagram)
+        }
+    }
+
+    pub fn query(qname: &str, qtype: QueryType, qclass: QueryClass) -> Self {
         let mut datagram = Vec::new();
 
         let id = kernel::random::rand16().expect("random id");
@@ -66,16 +87,39 @@ impl Query {
             datagram
         }
     }
-}
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
-    if args.len() != 2 {
-        print!("Usage: host <name>\n");
-        return user::shell::ExitCode::CommandError;
+    pub fn id(&self) -> u16 {
+        u16::from_be_bytes(self.datagram[0..2].try_into().unwrap())
     }
 
-    //let is_verbose = true;
+    pub fn header(&self) -> u16 {
+        u16::from_be_bytes(self.datagram[2..4].try_into().unwrap())
+    }
 
+    pub fn is_response(&self) -> bool {
+        self.header().get_bit(15)
+    }
+
+    /*
+    pub fn is_query(&self) -> bool {
+        !self.is_response()
+    }
+    */
+
+    pub fn rcode(&self) -> ResponseCode {
+        match self.header().get_bits(11..15) {
+            0 => ResponseCode::NoError,
+            1 => ResponseCode::FormatError,
+            2 => ResponseCode::ServerFailure,
+            3 => ResponseCode::NameError,
+            4 => ResponseCode::NotImplemented,
+            5 => ResponseCode::Refused,
+            _ => ResponseCode::UnknownError,
+        }
+    }
+}
+
+pub fn resolve(name: &str) -> Result<Ipv4Address, ResponseCode> {
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
         let dns_address = IpAddress::v4(192, 168, 1, 3);
         let dns_port = 53;
@@ -84,10 +128,10 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         let local_port = 49152 + kernel::random::rand16().expect("random port") % 16384;
         let client = IpEndpoint::new(IpAddress::Unspecified, local_port);
 
-        let qname = args[1];
+        let qname = name;
         let qtype = QueryType::A;
         let qclass = QueryClass::IN;
-        let query = Query::new(qname, qtype, qclass);
+        let query = Message::query(qname, qtype, qclass);
 
         let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
         let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
@@ -96,7 +140,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         let mut sockets = SocketSet::new(vec![]);
         let udp_handle = sockets.add(udp_socket);
 
-        enum State { Bind, Query, Reply };
+        enum State { Bind, Query, Response };
         let mut state = State::Bind;
 
         loop {
@@ -118,12 +162,28 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                     }
                     State::Query if socket.can_send() => {
                         socket.send_slice(&query.datagram, server).expect("cannot send");
-                        State::Reply
+                        State::Response
                     }
-                    State::Reply if socket.can_recv() => {
+                    State::Response if socket.can_recv() => {
                         let (data, _) = socket.recv().expect("cannot receive");
-                        user::hex::print_hex(data);
-                        break;
+                        let message = Message::from(data);
+                        if message.id() == query.id() && message.is_response() {
+                            return match message.rcode() {
+                                ResponseCode::NoError => {
+                                    // TODO: Parse the datagram instead of
+                                    // extracting the last 4 bytes.
+                                    //let rdata = message.answer().rdata();
+                                    let n = message.datagram.len();
+                                    let rdata = &message.datagram[(n - 4)..];
+
+                                    Ok(Ipv4Address::from_bytes(rdata))
+                                }
+                                rcode => {
+                                    Err(rcode)
+                                }
+                            }
+                        }
+                        state
                     }
                     _ => state
                 }
@@ -133,8 +193,24 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 kernel::time::sleep(wait_duration.millis() as f64 / 1000.0);
             }
         }
-        user::shell::ExitCode::CommandSuccessful
     } else {
-        user::shell::ExitCode::CommandError
+        Err(ResponseCode::NetworkError)
+    }
+}
+
+pub fn main(args: &[&str]) -> user::shell::ExitCode {
+    if args.len() != 2 {
+        print!("Usage: host <name>\n");
+        return user::shell::ExitCode::CommandError;
+    }
+    let name = args[1];
+    match resolve(name) {
+        Ok(ip_addr) => {
+            print!("{} has address {}\n", name, ip_addr);
+            user::shell::ExitCode::CommandSuccessful
+        }
+        Err(_) => {
+            user::shell::ExitCode::CommandError
+        }
     }
 }
