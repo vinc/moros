@@ -39,12 +39,18 @@ impl URL {
 }
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
+    let mut is_verbose = false;
+    let args: Vec<_> = args.into_iter().filter(|arg| {
+        let arg = arg.to_string();
+        if arg == "--verbose" {
+            is_verbose = true;
+        }
+        !arg.starts_with("--")
+    }).collect();
     if args.len() != 3 {
         print!("Usage: http <server> <path>\n");
         return user::shell::ExitCode::CommandError;
     }
-
-    let is_verbose = true;
 
     let url = "http://".to_owned() + args[1] + args[2];
     let url = URL::parse(&url).expect("invalid URL format");
@@ -140,9 +146,14 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                             for line in contents.lines() {
                                 if line.len() == 0 {
                                     is_header = false;
+                                    if !is_verbose {
+                                        continue
+                                    }
                                 }
-                                if is_verbose && is_header {
-                                    print!("< {}\n", line);
+                                if is_header {
+                                    if is_verbose {
+                                        print!("< {}\n", line);
+                                    }
                                 } else {
                                     print!("{}\n", line);
                                 }
