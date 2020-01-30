@@ -27,6 +27,7 @@ enum QueryClass {
     IN = 1,
 }
 
+#[derive(Debug)]
 #[repr(u16)]
 pub enum ResponseCode {
     NoError = 0,
@@ -119,30 +120,29 @@ impl Message {
     }
 }
 
-pub fn resolve(name: &str) -> Result<Ipv4Address, ResponseCode> {
+pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
+    let dns_address = IpAddress::v4(192, 168, 1, 3);
+    let dns_port = 53;
+    let server = IpEndpoint::new(dns_address, dns_port);
+
+    let local_port = 49152 + kernel::random::rand16().expect("random port") % 16384;
+    let client = IpEndpoint::new(IpAddress::Unspecified, local_port);
+
+    let qname = name;
+    let qtype = QueryType::A;
+    let qclass = QueryClass::IN;
+    let query = Message::query(qname, qtype, qclass);
+
+    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
+    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
+    let udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
+
+    let mut sockets = SocketSet::new(vec![]);
+    let udp_handle = sockets.add(udp_socket);
+
+    enum State { Bind, Query, Response };
+    let mut state = State::Bind;
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
-        let dns_address = IpAddress::v4(192, 168, 1, 3);
-        let dns_port = 53;
-        let server = IpEndpoint::new(dns_address, dns_port);
-
-        let local_port = 49152 + kernel::random::rand16().expect("random port") % 16384;
-        let client = IpEndpoint::new(IpAddress::Unspecified, local_port);
-
-        let qname = name;
-        let qtype = QueryType::A;
-        let qclass = QueryClass::IN;
-        let query = Message::query(qname, qtype, qclass);
-
-        let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
-        let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
-        let udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
-
-        let mut sockets = SocketSet::new(vec![]);
-        let udp_handle = sockets.add(udp_socket);
-
-        enum State { Bind, Query, Response };
-        let mut state = State::Bind;
-
         loop {
             let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
@@ -176,7 +176,7 @@ pub fn resolve(name: &str) -> Result<Ipv4Address, ResponseCode> {
                                     let n = message.datagram.len();
                                     let rdata = &message.datagram[(n - 4)..];
 
-                                    Ok(Ipv4Address::from_bytes(rdata))
+                                    Ok(IpAddress::from(Ipv4Address::from_bytes(rdata)))
                                 }
                                 rcode => {
                                     Err(rcode)

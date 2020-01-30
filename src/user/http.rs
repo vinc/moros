@@ -7,6 +7,7 @@ use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
+#[derive(Debug)]
 struct URL {
     pub host: String,
     pub port: u16,
@@ -43,27 +44,41 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
     let is_verbose = true;
 
+    let url = "http://".to_owned() + args[1] + args[2];
+    let url = URL::parse(&url).expect("invalid URL format");
+
+    let address = if url.host.ends_with(char::is_numeric) {
+        IpAddress::from_str(&url.host).expect("invalid address format")
+    } else {
+        match user::host::resolve(&url.host) {
+            Ok(ip_addr) => {
+                ip_addr
+            }
+            Err(e) => {
+                print!("Could not resolve host: {:?}\n", e);
+                return user::shell::ExitCode::CommandError;
+            }
+        }
+    };
+
+    let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
+    let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
+    let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
+
+    let mut sockets = SocketSet::new(vec![]);
+    let tcp_handle = sockets.add(tcp_socket);
+
+    enum State { Connect, Request, Response };
+    let mut state = State::Connect;
+
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
-        let url = "http://".to_owned() + args[1] + args[2];
-        let url = URL::parse(&url).expect("invalid URL format");
-        let address = IpAddress::from_str(&url.host).expect("invalid address format");
-
-        let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
-        let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
-        let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-
-        let mut sockets = SocketSet::new(vec![]);
-        let tcp_handle = sockets.add(tcp_socket);
-
-        enum State { Connect, Request, Response };
-        let mut state = State::Connect;
-
         loop {
             let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Ok(_) => {},
                 Err(e) => {
-                    print!("poll error: {}\n", e);
+                    print!("Interface polling error: {}\n", e);
+                    return user::shell::ExitCode::CommandError;
                 }
             }
 
@@ -76,7 +91,10 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         if is_verbose {
                             print!("* Connecting to {}:{}\n", address, url.port);
                         }
-                        socket.connect((address, url.port), local_port).unwrap();
+                        if socket.connect((address, url.port), local_port).is_err() {
+                            print!("Could not connect to {}:{}\n", address, url.port);
+                            return user::shell::ExitCode::CommandError;
+                        }
                         State::Request
                     }
                     State::Request if socket.may_send() => {
