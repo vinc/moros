@@ -1,6 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::ToString;
+use core::time::Duration;
 use crate::{print, kernel, user};
 use smoltcp::dhcp::Dhcpv4Client;
 use smoltcp::socket::{SocketSet, RawSocketBuffer, RawPacketMetadata};
@@ -20,8 +21,8 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             vec![0; 600]
         );
 
-        let now = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
-        let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, now);
+        let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
+        let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, timestamp);
 
         let mut prev_cidr = match iface.ip_addrs().first() {
             Some(IpCidr::Ipv4(ip_addr)) => ip_addr.clone().into(),
@@ -29,10 +30,16 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         };
 
         print!("DHCP Discovery transmitted\n");
+        let time = kernel::clock::clock_monotonic();
         loop {
-            let now = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
-            iface.poll(&mut sockets, now).map(|_| ()).unwrap_or_else(|e| print!("Error: {:?}\n", e));
-            let config = dhcp.poll(&mut iface, &mut sockets, now).unwrap_or_else(|e| {
+            if time - kernel::clock::clock_monotonic() > 60.0 {
+                print!("Timeout reached\n");
+                return user::shell::ExitCode::CommandError;
+            }
+
+            let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
+            iface.poll(&mut sockets, timestamp).map(|_| ()).unwrap_or_else(|e| print!("Error: {:?}\n", e));
+            let config = dhcp.poll(&mut iface, &mut sockets, timestamp).unwrap_or_else(|e| {
                 print!("DHCP: {:?}\n", e);
                 None
             });
@@ -73,6 +80,11 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             if success {
                 return user::shell::ExitCode::CommandSuccessful;
             }
+
+            let mut timeout = dhcp.next_poll(timestamp);
+            iface.poll_delay(&sockets, timestamp).map(|sockets_timeout| timeout = sockets_timeout);
+            let wait_duration: Duration = timeout.into();
+            kernel::time::sleep(wait_duration.as_secs_f64());
         }
     }
 

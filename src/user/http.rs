@@ -1,7 +1,9 @@
-use core::str::{self, FromStr};
 use alloc::borrow::ToOwned;
-use alloc::string::String;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use alloc::vec;
+use core::str::{self, FromStr};
+use core::time::Duration;
 use crate::{print, kernel, user};
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
@@ -157,7 +159,8 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             }
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
-                kernel::time::sleep(wait_duration.millis() as f64 / 1000.0);
+                let wait_duration: Duration = wait_duration.into();
+                kernel::time::sleep(wait_duration.as_secs_f64());
             }
         }
         user::shell::ExitCode::CommandSuccessful

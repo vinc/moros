@@ -3,6 +3,7 @@ use alloc::vec;
 use bit_field::BitField;
 use core::convert::TryInto;
 use core::str;
+use core::time::Duration;
 use crate::{print, kernel, user};
 use smoltcp::socket::{SocketSet, UdpSocket, UdpSocketBuffer, UdpPacketMetadata};
 use smoltcp::time::Instant;
@@ -205,7 +206,8 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             }
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
-                kernel::time::sleep(wait_duration.millis() as f64 / 1000.0);
+                let wait_duration: Duration = wait_duration.into();
+                kernel::time::sleep(wait_duration.as_secs_f64());
             }
         }
     } else {
