@@ -2,6 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use alloc::vec;
+use core::cell::RefCell;
 use core::convert::TryInto;
 use crate::{print, kernel};
 use crate::user;
@@ -91,7 +92,15 @@ impl Ports {
     }
 }
 
+pub struct State {
+    rx_bytes_count: u64,
+    tx_bytes_count: u64,
+    rx_packets_count: u64,
+    tx_packets_count: u64,
+}
+
 pub struct RTL8139 {
+    state: RefCell<State>,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
     rx_buffer: Box<Vec<u8>>,
@@ -99,15 +108,19 @@ pub struct RTL8139 {
     tx_buffers: [Box<Vec<u8>>; TX_BUFFERS_COUNT],
     //tx_offset: usize,
     tx_id: usize,
-
-    pub rx_count: u64,
-    pub tx_count: u64,
     pub debug_mode: bool,
 }
 
 impl RTL8139 {
     pub fn new(io_addr: u16) -> Self {
+        let state = State {
+            rx_bytes_count: 0,
+            tx_bytes_count: 0,
+            rx_packets_count: 0,
+            tx_packets_count: 0,
+        };
         Self {
+            state: RefCell::new(state),
             ports: Ports::new(io_addr),
             eth_addr: None,
             rx_buffer: Box::new(vec![0; RX_BUFFER_LEN]),
@@ -120,9 +133,6 @@ impl RTL8139 {
             ],
             //tx_offset: 0,
             tx_id: 0,
-            rx_count: 0,
-            tx_count: 0,
-
             debug_mode: false,
         }
     }
@@ -182,6 +192,19 @@ impl RTL8139 {
         // Configuring Transmit buffer (TCR)
         unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
     }
+
+    pub fn rx_bytes_count(&self) -> u64 {
+        self.state.borrow().rx_bytes_count
+    }
+    pub fn tx_bytes_count(&self) -> u64 {
+        self.state.borrow().tx_bytes_count
+    }
+    pub fn rx_packets_count(&self) -> u64 {
+        self.state.borrow().rx_packets_count
+    }
+    pub fn tx_packets_count(&self) -> u64 {
+        self.state.borrow().tx_packets_count
+    }
 }
 
 impl<'a> Device<'a> for RTL8139 {
@@ -210,14 +233,13 @@ impl<'a> Device<'a> for RTL8139 {
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
             let uptime = kernel::clock::clock_monotonic();
-            print!("[{:.6}] NET RTL8139 receiving frame:\n\n", uptime);
+            print!("[{:.6}] NET RTL8139 receiving buffer:\n\n", uptime);
             print!("Command Register: 0x{:02X}\n", cmd);
             print!("Header: 0x{:04X}\n", header);
         }
         if header & ISR_ROK != ISR_ROK {
             return None;
         }
-        self.rx_count += 1;
         let length = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap());
         let n = length as usize;
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
@@ -234,46 +256,51 @@ impl<'a> Device<'a> for RTL8139 {
             print!("TX Buffer: {}\n", self.tx_id);
         }
 
-        let rx = RxToken { frame: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
+        let state = &self.state;
+        let rx = RxToken { state, buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
         let port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id];
         let debug_mode = self.debug_mode;
-        let tx = TxToken { port, buffer, debug_mode };
+        let tx = TxToken { state, port, buffer, debug_mode };
 
         Some((rx, tx))
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
-        self.tx_count += 1;
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
             let uptime = kernel::clock::clock_monotonic();
-            print!("[{:.6}] NET RTL8139 transmitting frame:\n\n", uptime);
+            print!("[{:.6}] NET RTL8139 transmitting buffer:\n\n", uptime);
             print!("TX Buffer: {}\n", self.tx_id);
         }
         self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
+        let state = &self.state;
         let port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id];
         let debug_mode = self.debug_mode;
-        Some(TxToken { port, buffer, debug_mode })
+        Some(TxToken { state, port, buffer, debug_mode })
     }
 }
 
 #[doc(hidden)]
 pub struct RxToken<'a> {
-    frame: &'a mut [u8]
+    state: &'a RefCell<State>,
+    buffer: &'a mut [u8]
 }
 
 impl<'a> phy::RxToken for RxToken<'a> {
     fn consume<R, F>(self, _timestamp: Instant, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
-        f(self.frame)
+        self.state.borrow_mut().rx_packets_count += 1;
+        self.state.borrow_mut().rx_bytes_count += self.buffer.len() as u64;
+        f(self.buffer)
     }
 }
 
 #[doc(hidden)]
 pub struct TxToken<'a> {
+    state: &'a RefCell<State>,
     port: Port<u32>,
     buffer: &'a mut [u8],
     debug_mode: bool,
@@ -284,6 +311,8 @@ impl<'a> phy::TxToken for TxToken<'a> {
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
         let res = f(&mut self.buffer[0..len]);
+        self.state.borrow_mut().tx_packets_count += 1;
+        self.state.borrow_mut().tx_bytes_count += len as u64;
         if self.debug_mode {
             user::hex::print_hex(&self.buffer[0..len]);
         }
