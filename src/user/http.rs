@@ -126,15 +126,18 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                     State::Request if socket.may_send() => {
                         let http_get = "GET ".to_owned() + &url.path + " HTTP/1.1\r\n";
                         let http_host = "Host: ".to_owned() + &url.host + "\r\n";
+                        let http_ua = "User-Agent: MOROS/".to_owned() + env!("CARGO_PKG_VERSION") + "\r\n";
                         let http_connection = "Connection: close\r\n".to_owned();
                         if is_verbose {
                             print!("> {}", http_get);
                             print!("> {}", http_host);
+                            print!("> {}", http_ua);
                             print!("> {}", http_connection);
                             print!(">\n");
                         }
                         socket.send_slice(http_get.as_ref()).expect("cannot send");
                         socket.send_slice(http_host.as_ref()).expect("cannot send");
+                        socket.send_slice(http_ua.as_ref()).expect("cannot send");
                         socket.send_slice(http_connection.as_ref()).expect("cannot send");
                         socket.send_slice(b"\r\n").expect("cannot send");
                         State::Response
