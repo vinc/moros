@@ -29,7 +29,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             _ => Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0),
         };
 
-        print!("DHCP Discovery transmitted\n");
+        print!("DHCP Discover transmitted\n");
         let time = kernel::clock::clock_monotonic();
         loop {
             if time - kernel::clock::clock_monotonic() > 60.0 {

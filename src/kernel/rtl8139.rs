@@ -265,32 +265,36 @@ impl<'a> Device<'a> for RTL8139 {
             print!("Length: {} bytes\n", n - 4);
             print!("CRC: 0x{:08X}\n", crc);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
-            print!("TX Buffer: {}\n", self.tx_id);
+            print!("RX Offset: {}\n", self.rx_offset);
         }
 
         let state = &self.state;
         let rx = RxToken { state, buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
-        let port = self.ports.tx_cmds[self.tx_id].clone();
+        let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id];
         let debug_mode = self.debug_mode;
-        let tx = TxToken { state, port, buffer, debug_mode };
+        let tx = TxToken { state, cmd_port, buffer, debug_mode };
 
         Some((rx, tx))
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
+
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
             let uptime = kernel::clock::clock_monotonic();
             print!("[{:.6}] NET RTL8139 transmitting buffer:\n\n", uptime);
             print!("TX Buffer: {}\n", self.tx_id);
         }
-        self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
+
         let state = &self.state;
-        let port = self.ports.tx_cmds[self.tx_id].clone();
+        let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id];
         let debug_mode = self.debug_mode;
-        Some(TxToken { state, port, buffer, debug_mode })
+        let tx = TxToken { state, cmd_port, buffer, debug_mode };
+
+        Some(tx)
     }
 }
 
@@ -313,23 +317,51 @@ impl<'a> phy::RxToken for RxToken<'a> {
 #[doc(hidden)]
 pub struct TxToken<'a> {
     state: &'a RefCell<State>,
-    port: Port<u32>,
+    cmd_port: Port<u32>,
     buffer: &'a mut [u8],
     debug_mode: bool,
 }
+
+const CRS: u32 = 1 << 31; // Carrier Sense Lost
+const TAB: u32 = 1 << 30; // Transmit Abort
+const OWC: u32 = 1 << 29; // Out of Window Collision
+const CDH: u32 = 1 << 28; // CD Heart Beat
+const TOK: u32 = 1 << 15; // Transmit OK
+const TUN: u32 = 1 << 15; // Transmit FIFO Underrun
+const OWN: u32 = 1 << 15; // DMA operation completed
 
 impl<'a> phy::TxToken for TxToken<'a> {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
+        // 1. Copy the packet to a physically continuous buffer in memory.
         let res = f(&mut self.buffer[0..len]);
+
+        // 2. Fill in Start Address(physical address) of this buffer.
+        // NOTE: This has was done during init
+
+        if res.is_ok() {
+            unsafe {
+                // 3. Fill in Transmit Status: the size of this packet, the
+                // early transmit threshold, and clear OWN bit in TSD (this
+                // starts the PCI operation).
+                // NOTE: the size of the packet fit the first 12 bits, and
+                // a value of 000000 for the early transmit threshold means
+                // 8 bytes. So we just write the size of the packet.
+                self.cmd_port.write(0xFFF & len as u32);
+
+                // 4. When the whole packet is moved to FIFO, the OWN bit is
+                // set to 1.
+                while self.cmd_port.read() & OWN != OWN {}
+                // 5. When the whole packet is moved to line, the TOK bit is
+                // set to 1.
+                while self.cmd_port.read() & TOK != TOK {}
+            }
+        }
         self.state.borrow_mut().tx_packets_count += 1;
         self.state.borrow_mut().tx_bytes_count += len as u64;
         if self.debug_mode {
             user::hex::print_hex(&self.buffer[0..len]);
-        }
-        if res.is_ok() {
-            unsafe { self.port.write(len as u32); }
         }
 
         res
