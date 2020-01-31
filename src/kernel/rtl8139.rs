@@ -17,6 +17,7 @@ use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::VirtAddr;
 
+const MTU: usize = 1500;
 const RX_BUFFER_LEN: usize = 8192 + 16;
 const RX_BUFFER_EMPTY: u8 = 0x01;
 const TX_BUFFER_LEN: usize = 4096 + 16;
@@ -105,8 +106,7 @@ pub struct RTL8139 {
     eth_addr: Option<EthernetAddress>,
     rx_buffer: Box<Vec<u8>>,
     rx_offset: usize,
-    tx_buffers: [Box<Vec<u8>>; TX_BUFFERS_COUNT],
-    //tx_offset: usize,
+    tx_buffers: [Box<Vec<u8>>; TX_BUFFERS_COUNT], // TODO: Remove this
     tx_id: usize,
     pub debug_mode: bool,
 }
@@ -123,7 +123,10 @@ impl RTL8139 {
             state: RefCell::new(state),
             ports: Ports::new(io_addr),
             eth_addr: None,
-            rx_buffer: Box::new(vec![0; RX_BUFFER_LEN]),
+
+            // Add MTU to RX_BUFFER_LEN if WRAP is set
+            rx_buffer: Box::new(vec![0; RX_BUFFER_LEN + MTU]),
+
             rx_offset: 0,
             tx_buffers: [
                 Box::new(vec![0; TX_BUFFER_LEN]),
@@ -186,8 +189,14 @@ impl RTL8139 {
         // Set IMR + ISR
         unsafe { self.ports.imr.write(0x0005) }
 
+        // When the WRAP bit is set, the nic will keep moving the rest
+        // of the packet data into the memory immediately after the end
+        // of the Rx buffer instead of going back to the begining of the
+        // buffer. So the buffer must have an additionnal 1500 bytes.
+        let wrap = 1 << 7;
+
         // Configuring Receive buffer (RCR)
-        unsafe { self.ports.rx_config.write((0xF | (1 << 7)) as u32) }
+        unsafe { self.ports.rx_config.write((0xF | wrap) as u32) }
 
         // Configuring Transmit buffer (TCR)
         unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
@@ -213,7 +222,7 @@ impl<'a> Device<'a> for RTL8139 {
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
-        caps.max_transmission_unit = 1536;
+        caps.max_transmission_unit = MTU;
         caps.max_burst_size = Some(1);
         caps
     }
