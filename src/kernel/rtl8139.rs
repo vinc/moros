@@ -134,8 +134,11 @@ impl RTL8139 {
                 Box::new(vec![0; TX_BUFFER_LEN]),
                 Box::new(vec![0; TX_BUFFER_LEN]),
             ],
-            //tx_offset: 0,
-            tx_id: 0,
+
+            // Before a transmission begin the id is incremented,
+            // so the first transimission will start at 0.
+            tx_id: TX_BUFFERS_COUNT - 1,
+
             debug_mode: false,
         }
     }
