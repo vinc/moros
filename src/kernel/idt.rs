@@ -73,11 +73,31 @@ pub fn init() {
     IDT.load();
 }
 
+use x86_64::instructions::port::Port;
+
 pub fn set_irq_handler(irq: u8, handler: fn()) {
     interrupts::without_interrupts(|| {
         let mut handlers = IRQ_HANDLERS.lock();
         handlers[irq as usize] = handler;
+
+        clear_irq_mask(irq);
     });
+}
+
+pub fn set_irq_mask(irq: u8) {
+    let mut port: Port<u8> = Port::new(if irq < 8 { 0x21 } else { 0xA1 } );
+    unsafe {
+        let value = port.read() & (1 << irq);
+        port.write(value);
+    }
+}
+
+pub fn clear_irq_mask(irq: u8) {
+    let mut port: Port<u8> = Port::new(if irq < 8 { 0x21 } else { 0xA1 } );
+    unsafe {
+        let value = port.read() & !(1 << irq);
+        port.write(value);
+    }
 }
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: &mut InterruptStackFrame) {
