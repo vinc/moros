@@ -1,7 +1,5 @@
 use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
-use alloc::vec::Vec;
-use alloc::vec;
 use core::cell::RefCell;
 use core::convert::TryInto;
 use crate::{print, kernel};
@@ -135,9 +133,9 @@ pub struct RTL8139 {
     state: RefCell<State>,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
-    rx_buffer: Box<Vec<u8>>,
+    rx_buffer: Box<[u8; RX_BUFFER_LEN + MTU]>,
     rx_offset: usize,
-    tx_buffers: [Box<Vec<u8>>; TX_BUFFERS_COUNT], // TODO: Remove this
+    tx_buffers: [Box<[u8; TX_BUFFER_LEN]>; TX_BUFFERS_COUNT], // TODO: Remove this
     tx_id: usize,
     pub debug_mode: bool,
 }
@@ -156,14 +154,14 @@ impl RTL8139 {
             eth_addr: None,
 
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
-            rx_buffer: Box::new(vec![0; RX_BUFFER_LEN + MTU]),
+            rx_buffer: Box::new([0; RX_BUFFER_LEN + MTU]),
 
             rx_offset: 0,
             tx_buffers: [
-                Box::new(vec![0; TX_BUFFER_LEN]),
-                Box::new(vec![0; TX_BUFFER_LEN]),
-                Box::new(vec![0; TX_BUFFER_LEN]),
-                Box::new(vec![0; TX_BUFFER_LEN]),
+                Box::new([0; TX_BUFFER_LEN]),
+                Box::new([0; TX_BUFFER_LEN]),
+                Box::new([0; TX_BUFFER_LEN]),
+                Box::new([0; TX_BUFFER_LEN]),
             ],
 
             // Before a transmission begin the id is incremented,
@@ -298,7 +296,7 @@ impl<'a> Device<'a> for RTL8139 {
         let state = &self.state;
         let rx = RxToken { state, buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
         let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
-        let buffer = &mut self.tx_buffers[self.tx_id];
+        let buffer = &mut self.tx_buffers[self.tx_id][..];
         let debug_mode = self.debug_mode;
         let tx = TxToken { state, cmd_port, buffer, debug_mode };
 
@@ -317,7 +315,7 @@ impl<'a> Device<'a> for RTL8139 {
 
         let state = &self.state;
         let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
-        let buffer = &mut self.tx_buffers[self.tx_id];
+        let buffer = &mut self.tx_buffers[self.tx_id][..];
         let debug_mode = self.debug_mode;
         let tx = TxToken { state, cmd_port, buffer, debug_mode };
 
