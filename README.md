@@ -19,6 +19,7 @@ Install tools:
     rustup install nightly
     rustup default nightly
     rustup component add rust-src
+    rustup component add llvm-tools-preview
     cargo install cargo-xbuild bootimage
 
 Create disk:
