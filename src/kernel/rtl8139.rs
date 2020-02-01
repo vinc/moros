@@ -265,7 +265,7 @@ impl<'a> Device<'a> for RTL8139 {
         if (cmd & CR_BUFE) == CR_BUFE {
             return None;
         }
-        //let isr = unsafe { self.ports.isr.read() };
+        let isr = unsafe { self.ports.isr.read() };
         let offset = self.rx_offset;
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if self.debug_mode {
@@ -273,7 +273,7 @@ impl<'a> Device<'a> for RTL8139 {
             let uptime = kernel::clock::clock_monotonic();
             print!("[{:.6}] NET RTL8139 receiving buffer:\n\n", uptime);
             print!("Command Register: 0x{:02X}\n", cmd);
-            //print!("Interrupt Status Register: 0x{:02X}\n", isr);
+            print!("Interrupt Status Register: 0x{:02X}\n", isr);
             print!("Header: 0x{:04X}\n", header);
         }
         if header & ROK != ROK {
@@ -400,7 +400,6 @@ pub fn init() {
     if let Some(mut pci_device) = kernel::pci::find_device(0x10EC, 0x8139) {
         pci_device.enable_bus_mastering();
 
-        let irq = pci_device.interrupt_line;
         let io_addr = (pci_device.base_addresses[0] as u16) & 0xFFF0;
         let mut rtl8139_device = RTL8139::new(io_addr);
 
@@ -423,13 +422,14 @@ pub fn init() {
             *IFACE.lock() = Some(iface);
         }
 
-        kernel::idt::set_irq_handler(irq, interrupt_handler);
+        //let irq = pci_device.interrupt_line;
+        //kernel::idt::set_irq_handler(irq, interrupt_handler);
     }
 }
 
 pub fn interrupt_handler() {
-    print!("RTL8139 interrupt!");
-    if let Some(ref mut iface) = *IFACE.lock() {
-        unsafe { iface.device_mut().ports.isr.write(0x1) } // Clear the interrupt
-    }
+    print!("RTL8139 interrupt!\n");
+    //if let Some(ref mut iface) = *IFACE.lock() {
+    //    unsafe { iface.device_mut().ports.isr.write(0x1) } // Clear the interrupt
+    //}
 }
