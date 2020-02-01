@@ -200,6 +200,18 @@ impl RTL8139 {
         };
         self.eth_addr = Some(EthernetAddress::from_bytes(&mac));
 
+        // FIXME: The buffers must be in a continuous physical memory
+        print!("rx_buffer[0000]=0x{:08X}\n", phys_addr(&self.rx_buffer[0000]));
+        print!("rx_buffer[1000]=0x{:08X}\n", phys_addr(&self.rx_buffer[1000]));
+        print!("rx_buffer[2000]=0x{:08X}\n", phys_addr(&self.rx_buffer[2000]));
+        print!("rx_buffer[3000]=0x{:08X}\n", phys_addr(&self.rx_buffer[3000]));
+        print!("rx_buffer[4000]=0x{:08X}\n", phys_addr(&self.rx_buffer[4000]));
+        print!("rx_buffer[5000]=0x{:08X}\n", phys_addr(&self.rx_buffer[5000]));
+        print!("rx_buffer[6000]=0x{:08X}\n", phys_addr(&self.rx_buffer[6000]));
+        //let buffer_len = self.rx_buffer.len();
+        //let memory_len = phys_addr(&self.rx_buffer[n - 1]) - phys_addr(&self.rx_buffer[0]);
+        //assert!(buffer_len == memory_len as usize, "{} != {}", buffer_len, memory_len);
+
         // Get physical address of rx_buffer
         let rx_addr = phys_addr(&self.rx_buffer[0]);
 
