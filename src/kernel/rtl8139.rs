@@ -62,8 +62,8 @@ const TCR_IFG: u32 = 3 << 24;
 // 110 = 1024 bytes
 // 111 = 2048 bytes
 const TCR_MXDMA0: u32 = 1 << 8;
-const TCR_MXDMA2: u32 = 1 << 9;
-const TCR_MXDMA1: u32 = 1 << 10;
+const TCR_MXDMA1: u32 = 1 << 9;
+const TCR_MXDMA2: u32 = 1 << 10;
 
 // Interrupt Mask Register
 const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
@@ -79,7 +79,8 @@ pub struct Ports {
     pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT], // Transmit Start Address of Descriptor0 (TSAD0 .. TSAD3)
     pub config1: Port<u8>, // Configuration Register 1 (CONFIG1)
     pub rx_addr: Port<u32>, // Receive (Rx) Buffer Start Address (RBSTART)
-    pub rx_ptr: Port<u16>, // Current Address of Packet Read (CAPR)
+    pub capr: Port<u16>, // Current Address of Packet Read (CAPR)
+    pub cbr: Port<u16>, // Current Buffer Address (CBR)
     pub cmd: Port<u8>, // Command Register (CR)
     pub imr: Port<u16>, // Interrupt Mask Register (IMR)
     pub isr: Port<u16>, // Interrupt Status Register (ISR)
@@ -112,7 +113,8 @@ impl Ports {
             ],
             config1: Port::new(io_addr + 0x52),
             rx_addr: Port::new(io_addr + 0x30),
-            rx_ptr: Port::new(io_addr + 0x38), // CAPR
+            capr: Port::new(io_addr + 0x38),
+            cbr: Port::new(io_addr + 0x3A),
             cmd: Port::new(io_addr + 0x37),
             imr: Port::new(io_addr + 0x3C),
             isr: Port::new(io_addr + 0x3E),
@@ -257,8 +259,13 @@ impl<'a> Device<'a> for RTL8139 {
         if (cmd & CR_BUFE) == CR_BUFE {
             return None;
         }
+
         let isr = unsafe { self.ports.isr.read() };
-        let offset = self.rx_offset;
+        let capr = unsafe { self.ports.capr.read() };
+        let cbr = unsafe { self.ports.cbr.read() };
+        // CAPR starts at 65520 and with the pad it overflows to 0
+        let offset = ((capr as usize) + RX_BUFFER_PAD) % (1 << 16);
+
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
@@ -266,11 +273,15 @@ impl<'a> Device<'a> for RTL8139 {
             print!("[{:.6}] NET RTL8139 receiving buffer:\n\n", uptime);
             print!("Command Register: 0x{:02X}\n", cmd);
             print!("Interrupt Status Register: 0x{:02X}\n", isr);
+            print!("CAPR: {}\n", capr);
+            print!("CBR: {}\n", cbr);
             print!("Header: 0x{:04X}\n", header);
         }
         if header & ROK != ROK {
+            unsafe { self.ports.capr.write(cbr) };
             return None;
         }
+
         let length = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap());
         let n = length as usize;
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
@@ -278,14 +289,13 @@ impl<'a> Device<'a> for RTL8139 {
         if self.debug_mode {
             print!("Length: {} bytes\n", n - 4);
             print!("CRC: 0x{:08X}\n", crc);
-            print!("RX Offset: {}\n", self.rx_offset);
+            print!("RX Offset: {}\n", offset);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         }
 
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
-        unsafe { self.ports.rx_ptr.write((self.rx_offset - RX_BUFFER_PAD) as u16); }
-        self.rx_offset %= RX_BUFFER_LEN;
+        unsafe { self.ports.capr.write((self.rx_offset - RX_BUFFER_PAD) as u16); }
 
         let state = &self.state;
         let rx = RxToken { state, buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
@@ -298,6 +308,7 @@ impl<'a> Device<'a> for RTL8139 {
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        let isr = unsafe { self.ports.isr.read() };
         self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
 
         if self.debug_mode {
@@ -305,6 +316,7 @@ impl<'a> Device<'a> for RTL8139 {
             let uptime = kernel::clock::clock_monotonic();
             print!("[{:.6}] NET RTL8139 transmitting buffer:\n\n", uptime);
             print!("TX Buffer: {}\n", self.tx_id);
+            print!("Interrupt Status Register: 0x{:02X}\n", isr);
         }
 
         let state = &self.state;
@@ -428,7 +440,9 @@ fn phys_addr(ptr: &u8) -> u64 {
 
 pub fn interrupt_handler() {
     print!("RTL8139 interrupt!\n");
-    //if let Some(ref mut iface) = *IFACE.lock() {
-    //    unsafe { iface.device_mut().ports.isr.write(0x1) } // Clear the interrupt
-    //}
+    if let Some(mut guard) = IFACE.try_lock() {
+        if let Some(ref mut iface) = *guard {
+            unsafe { iface.device_mut().ports.isr.write(0xffff) } // Clear the interrupt
+        }
+    }
 }
