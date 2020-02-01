@@ -156,7 +156,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
         let time = kernel::clock::clock_monotonic();
         loop {
-            if time - kernel::clock::clock_monotonic() > 5.0 {
+            if kernel::clock::clock_monotonic() - time > 5.0 {
                 return Err(ResponseCode::NetworkError);
             }
 

@@ -32,7 +32,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         print!("DHCP Discover transmitted\n");
         let time = kernel::clock::clock_monotonic();
         loop {
-            if time - kernel::clock::clock_monotonic() > 60.0 {
+            if kernel::clock::clock_monotonic() - time > 60.0 {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }

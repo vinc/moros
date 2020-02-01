@@ -94,7 +94,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
         let time = kernel::clock::clock_monotonic();
         loop {
-            if time - kernel::clock::clock_monotonic() > 5.0 {
+            if kernel::clock::clock_monotonic() - time > 5.0 {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
