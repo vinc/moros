@@ -4,6 +4,11 @@ use spin::Mutex;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use x86_64::instructions::interrupts;
 
+// Translate IRQ into system interrupt
+fn interrupt_index(irq: u8) -> u8 {
+    kernel::pic::PIC_1_OFFSET + irq
+}
+
 fn default_handler() {
     return;
 }
@@ -13,7 +18,7 @@ macro_rules! irq_handler {
         pub extern "x86-interrupt" fn $handler(_stack_frame: &mut InterruptStackFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
-            unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(kernel::pic::PIC_1_OFFSET + $irq); }
+            unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(interrupt_index($irq)); }
         }
     };
 }
@@ -44,22 +49,22 @@ lazy_static! {
         unsafe {
             idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(kernel::gdt::DOUBLE_FAULT_IST_INDEX);
         }
-        idt[0 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq0_handler);
-        idt[1 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq1_handler);
-        idt[2 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq2_handler);
-        idt[3 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq3_handler);
-        idt[4 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq4_handler);
-        idt[5 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq5_handler);
-        idt[6 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq6_handler);
-        idt[7 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq7_handler);
-        idt[8 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq8_handler);
-        idt[9 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq9_handler);
-        idt[10 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq10_handler);
-        idt[11 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq11_handler);
-        idt[12 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq12_handler);
-        idt[13 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq13_handler);
-        idt[14 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq14_handler);
-        idt[15 + kernel::pic::PIC_1_OFFSET as usize].set_handler_fn(irq15_handler);
+        idt[interrupt_index(0) as usize].set_handler_fn(irq0_handler);
+        idt[interrupt_index(1) as usize].set_handler_fn(irq1_handler);
+        idt[interrupt_index(2) as usize].set_handler_fn(irq2_handler);
+        idt[interrupt_index(3) as usize].set_handler_fn(irq3_handler);
+        idt[interrupt_index(4) as usize].set_handler_fn(irq4_handler);
+        idt[interrupt_index(5) as usize].set_handler_fn(irq5_handler);
+        idt[interrupt_index(6) as usize].set_handler_fn(irq6_handler);
+        idt[interrupt_index(7) as usize].set_handler_fn(irq7_handler);
+        idt[interrupt_index(8) as usize].set_handler_fn(irq8_handler);
+        idt[interrupt_index(9) as usize].set_handler_fn(irq9_handler);
+        idt[interrupt_index(10) as usize].set_handler_fn(irq10_handler);
+        idt[interrupt_index(11) as usize].set_handler_fn(irq11_handler);
+        idt[interrupt_index(12) as usize].set_handler_fn(irq12_handler);
+        idt[interrupt_index(13) as usize].set_handler_fn(irq13_handler);
+        idt[interrupt_index(14) as usize].set_handler_fn(irq14_handler);
+        idt[interrupt_index(15) as usize].set_handler_fn(irq15_handler);
         idt
     };
 }
