@@ -11,8 +11,9 @@ pub fn ticks() -> usize {
 }
 
 pub fn sleep(duration: f64) {
+    let interval = 1.0 / (1.193182 * 1000000.0 / 65536.0);
     let start = kernel::clock::clock_monotonic();
-    while kernel::clock::clock_monotonic() - start < duration {
+    while kernel::clock::clock_monotonic() - start < duration - interval {
         halt();
     }
 }
