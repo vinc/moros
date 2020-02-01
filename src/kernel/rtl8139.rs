@@ -28,10 +28,14 @@ const MTU: usize = 1500;
 const RX_BUFFER_PAD: usize = 16;
 const RX_BUFFER_LEN: usize = (8129 << RX_BUFFER_IDX) + RX_BUFFER_PAD;
 
-const RX_BUFFER_EMPTY: u8 = 0x01;
 const TX_BUFFER_LEN: usize = 4096;
 const TX_BUFFERS_COUNT: usize = 4;
 const ROK: u16 = 0x01;
+
+const CR_RST: u8 = 1 << 4; // Reset
+const CR_RE: u8 = 1 << 3; // Receiver Enable
+const CR_TE: u8 = 1 << 2; // Transmitter Enable
+const CR_BUFE: u8 = 1 << 0; // Buffer Empty
 
 // Rx Buffer Length
 const RCR_RBLEN: u32 = (RX_BUFFER_IDX << 11) as u32;
@@ -45,7 +49,7 @@ const RCR_WRAP: u32 = 1 << 7;
 const RCR_AB: u32 = 1 << 3; // Accept Broadcast packets
 const RCR_AM: u32 = 1 << 2; // Accept Multicast packets
 const RCR_APM: u32 = 1 << 1; // Accept Physical Match packets
-const RCR_AAP: u32 = 1; // Accept All Packets
+const RCR_AAP: u32 = 1 << 0; // Accept All Packets
 
 // Interframe Gap Time
 const TCR_IFG: u32 = 3 << 24;
@@ -63,22 +67,26 @@ const TCR_MXDMA0: u32 = 1 << 8;
 const TCR_MXDMA2: u32 = 1 << 9;
 const TCR_MXDMA1: u32 = 1 << 10;
 
+// Interrupt Mask Register
+const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
+const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
+
 lazy_static! {
     pub static ref IFACE: Mutex<Option<EthernetInterface<'static, 'static, 'static, RTL8139>>> = Mutex::new(None);
 }
 
 pub struct Ports {
-    pub idr: [Port<u8>; 6],
-    pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT],
-    pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT],
-    pub config1: Port<u8>,
-    pub rx_addr: Port<u32>,
-    pub rx_ptr: Port<u16>,
-    pub cmd: Port<u8>,
-    pub imr: Port<u32>,
-    pub isr: Port<u16>,
-    pub tx_config: Port<u32>,
-    pub rx_config: Port<u32>,
+    pub idr: [Port<u8>; 6], // ID Registers (IDR0 ... IDR5)
+    pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT], // Transmit Status of Descriptors (TSD0 .. TSD3)
+    pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT], // Transmit Start Address of Descriptor0 (TSAD0 .. TSAD3)
+    pub config1: Port<u8>, // Configuration Register 1 (CONFIG1)
+    pub rx_addr: Port<u32>, // Receive (Rx) Buffer Start Address (RBSTART)
+    pub rx_ptr: Port<u16>, // Current Address of Packet Read (CAPR)
+    pub cmd: Port<u8>, // Command Register (CR)
+    pub imr: Port<u16>, // Interrupt Mask Register (IMR)
+    pub isr: Port<u16>, // Interrupt Status Register (ISR)
+    pub tx_config: Port<u32>, // Transmit (Tx) Configuration Register (TCR)
+    pub rx_config: Port<u32>, // Receive (Rx) Configuration Register (RCR)
 }
 
 impl Ports {
@@ -168,16 +176,16 @@ impl RTL8139 {
 
     pub fn init(&mut self) {
         // Power on
-        unsafe { self.ports.config1.write(0x00 as u8) }
+        unsafe { self.ports.config1.write(0) }
 
         // Software reset
         unsafe {
-            self.ports.cmd.write(0x10 as u8);
-            while self.ports.cmd.read() & 0x10 != 0 {}
+            self.ports.cmd.write(CR_RST);
+            while self.ports.cmd.read() & CR_RST != 0 {}
         }
 
         // Enable Receive and Transmitter
-        unsafe { self.ports.cmd.write(0x0C as u8) }
+        unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
 
         // Read MAC addr
         let mac = unsafe {
@@ -212,13 +220,13 @@ impl RTL8139 {
             unsafe { self.ports.tx_addrs[i].write(tx_addr as u32) }
         }
 
-        // Set IMR + ISR
-        unsafe { self.ports.imr.write(0x0005) }
+        // Set interrupts
+        unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
 
-        // Configuring Receive buffer (RCR)
+        // Configure receive buffer (RCR)
         unsafe { self.ports.rx_config.write(RCR_RBLEN | RCR_WRAP | RCR_AB | RCR_AM | RCR_APM | RCR_AAP) }
 
-        // Configuring Transmit buffer (TCR)
+        // Configure transmit buffer (TCR)
         unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
     }
 
@@ -254,10 +262,10 @@ impl<'a> Device<'a> for RTL8139 {
     // [crc               (4 bytes)]
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         let cmd = unsafe { self.ports.cmd.read() };
-        if (cmd & RX_BUFFER_EMPTY) == RX_BUFFER_EMPTY {
+        if (cmd & CR_BUFE) == CR_BUFE {
             return None;
         }
-        let isr = unsafe { self.ports.isr.read() };
+        //let isr = unsafe { self.ports.isr.read() };
         let offset = self.rx_offset;
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if self.debug_mode {
@@ -265,7 +273,7 @@ impl<'a> Device<'a> for RTL8139 {
             let uptime = kernel::clock::clock_monotonic();
             print!("[{:.6}] NET RTL8139 receiving buffer:\n\n", uptime);
             print!("Command Register: 0x{:02X}\n", cmd);
-            print!("Interrupt Status Register: 0x{:02X}\n", isr);
+            //print!("Interrupt Status Register: 0x{:02X}\n", isr);
             print!("Header: 0x{:04X}\n", header);
         }
         if header & ROK != ROK {
@@ -391,8 +399,8 @@ impl<'a> phy::TxToken for TxToken<'a> {
 pub fn init() {
     if let Some(mut pci_device) = kernel::pci::find_device(0x10EC, 0x8139) {
         pci_device.enable_bus_mastering();
+
         let irq = pci_device.interrupt_line;
-        kernel::idt::set_irq_handler(irq, interrupt_handler);
         let io_addr = (pci_device.base_addresses[0] as u16) & 0xFFF0;
         let mut rtl8139_device = RTL8139::new(io_addr);
 
@@ -414,6 +422,8 @@ pub fn init() {
 
             *IFACE.lock() = Some(iface);
         }
+
+        kernel::idt::set_irq_handler(irq, interrupt_handler);
     }
 }
 
