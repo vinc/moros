@@ -199,20 +199,14 @@ impl RTL8139 {
         self.eth_addr = Some(EthernetAddress::from_bytes(&mac));
 
         // Get physical address of rx_buffer
-        let rx_ptr = &self.rx_buffer[0] as *const u8;
-        let virt_addr = VirtAddr::new(rx_ptr as u64);
-        let phys_addr = kernel::mem::translate_addr(virt_addr).unwrap();
-        let rx_addr = phys_addr.as_u64();
+        let rx_addr = phys_addr(&self.rx_buffer[0]);
 
         // Init Receive buffer
         unsafe { self.ports.rx_addr.write(rx_addr as u32) }
 
         for i in 0..4 {
             // Get physical address of each tx_buffer
-            let tx_ptr = &self.tx_buffers[i][0] as *const u8;
-            let virt_addr = VirtAddr::new(tx_ptr as u64);
-            let phys_addr = kernel::mem::translate_addr(virt_addr).unwrap();
-            let tx_addr = phys_addr.as_u64();
+            let tx_addr = phys_addr(&self.tx_buffers[i][0]);
 
             // Init Transmit buffer
             unsafe { self.ports.tx_addrs[i].write(tx_addr as u32) }
@@ -423,6 +417,13 @@ pub fn init() {
         //let irq = pci_device.interrupt_line;
         //kernel::idt::set_irq_handler(irq, interrupt_handler);
     }
+}
+
+fn phys_addr(ptr: &u8) -> u64 {
+    let rx_ptr = ptr as *const u8;
+    let virt_addr = VirtAddr::new(rx_ptr as u64);
+    let phys_addr = kernel::mem::translate_addr(virt_addr).unwrap();
+    phys_addr.as_u64()
 }
 
 pub fn interrupt_handler() {
