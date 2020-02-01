@@ -7,6 +7,13 @@ pub fn rand64() -> Option<u64> {
     }
 }
 
+pub fn rand32() -> Option<u32> {
+    match RdRand::new() {
+        Some(rand) => rand.get_u32(),
+        None => None
+    }
+}
+
 pub fn rand16() -> Option<u16> {
     match RdRand::new() {
         Some(rand) => rand.get_u16(),
