@@ -171,7 +171,7 @@ impl Editor {
                 '\x05' => { // Ctrl E -> Go to end of line
                     let line_length = self.lines[self.offset + y].len();
                     if line_length > 0 {
-                        x = cmp::min(line_length, self.width()) - 1;
+                        x = cmp::min(line_length, self.width() - 1);
                     }
                 },
                 '\x08' => { // Backspace
