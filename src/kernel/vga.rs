@@ -212,6 +212,10 @@ impl Writer {
         self.col_pos = 0;
         self.set_cursor_position(self.col_pos, self.row_pos);
     }
+
+    pub fn set_color(&mut self, foreground: Color, background: Color) {
+        self.color_code = ColorCode::new(foreground, background);
+    }
 }
 
 impl fmt::Write for Writer {
@@ -274,6 +278,12 @@ pub fn cursor_position() -> (usize, usize) {
 pub fn writer_position() -> (usize, usize) {
     interrupts::without_interrupts(|| {
         WRITER.lock().writer_position()
+    })
+}
+
+pub fn set_color(foreground: Color, background: Color) {
+    interrupts::without_interrupts(|| {
+        WRITER.lock().set_color(foreground, background)
     })
 }
 
