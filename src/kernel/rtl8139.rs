@@ -135,6 +135,7 @@ pub struct RTL8139 {
     state: RefCell<State>,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
+    xx_buffer: Box<[u8; 4 << 10]>, // TODO: Remove this
     rx_buffer: Box<[u8; RX_BUFFER_LEN + MTU]>,
     rx_offset: usize,
     tx_buffers: [Box<[u8; TX_BUFFER_LEN]>; TX_BUFFERS_COUNT], // TODO: Remove this
@@ -155,6 +156,7 @@ impl RTL8139 {
             ports: Ports::new(io_addr),
             eth_addr: None,
 
+            xx_buffer: Box::new([0; 4 << 10]), // TODO: Remove this
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
             rx_buffer: Box::new([0; RX_BUFFER_LEN + MTU]),
 
@@ -200,14 +202,22 @@ impl RTL8139 {
         };
         self.eth_addr = Some(EthernetAddress::from_bytes(&mac));
 
-        // FIXME: The buffers must be in a continuous physical memory
-        print!("rx_buffer[0000]=0x{:08X}\n", phys_addr(&self.rx_buffer[0000]));
-        print!("rx_buffer[1000]=0x{:08X}\n", phys_addr(&self.rx_buffer[1000]));
-        print!("rx_buffer[2000]=0x{:08X}\n", phys_addr(&self.rx_buffer[2000]));
-        print!("rx_buffer[3000]=0x{:08X}\n", phys_addr(&self.rx_buffer[3000]));
-        print!("rx_buffer[4000]=0x{:08X}\n", phys_addr(&self.rx_buffer[4000]));
-        print!("rx_buffer[5000]=0x{:08X}\n", phys_addr(&self.rx_buffer[5000]));
-        print!("rx_buffer[6000]=0x{:08X}\n", phys_addr(&self.rx_buffer[6000]));
+        // FIXME: The buffers must be in a contiguous physical memory
+        //print!("xx_buffer[0000]=0x{:08X}\n", phys_addr(&self.xx_buffer[0000]));
+        //print!("xx_buffer[1000]=0x{:08X}\n", phys_addr(&self.xx_buffer[1000]));
+        //print!("xx_buffer[2000]=0x{:08X}\n", phys_addr(&self.xx_buffer[2000]));
+        //print!("xx_buffer[3000]=0x{:08X}\n", phys_addr(&self.xx_buffer[3000]));
+        //print!("xx_buffer[4000]=0x{:08X}\n", phys_addr(&self.xx_buffer[4000]));
+        //print!("rx_buffer[0000]=0x{:08X}\n", phys_addr(&self.rx_buffer[0000]));
+        //print!("rx_buffer[1000]=0x{:08X}\n", phys_addr(&self.rx_buffer[1000]));
+        //print!("rx_buffer[2000]=0x{:08X}\n", phys_addr(&self.rx_buffer[2000]));
+        //print!("rx_buffer[3000]=0x{:08X}\n", phys_addr(&self.rx_buffer[3000]));
+        //print!("rx_buffer[4000]=0x{:08X}\n", phys_addr(&self.rx_buffer[4000]));
+        //print!("rx_buffer[5000]=0x{:08X}\n", phys_addr(&self.rx_buffer[5000]));
+        //print!("rx_buffer[6000]=0x{:08X}\n", phys_addr(&self.rx_buffer[6000]));
+        //print!("rx_buffer[7000]=0x{:08X}\n", phys_addr(&self.rx_buffer[7000]));
+        //print!("rx_buffer[8000]=0x{:08X}\n", phys_addr(&self.rx_buffer[8000]));
+        //print!("rx_buffer[9000]=0x{:08X}\n", phys_addr(&self.rx_buffer[9000]));
         //let buffer_len = self.rx_buffer.len();
         //let memory_len = phys_addr(&self.rx_buffer[n - 1]) - phys_addr(&self.rx_buffer[0]);
         //assert!(buffer_len == memory_len as usize, "{} != {}", buffer_len, memory_len);
@@ -377,7 +387,7 @@ impl<'a> phy::TxToken for TxToken<'a> {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
-        // 1. Copy the packet to a physically continuous buffer in memory.
+        // 1. Copy the packet to a physically contiguous buffer in memory.
         let res = f(&mut self.buffer[0..len]);
 
         // 2. Fill in Start Address(physical address) of this buffer.
