@@ -118,7 +118,7 @@ impl Shell {
                 '\x08' => { // Backspace
                     self.update_autocomplete();
                     let cmd = self.cmd.clone();
-                    if cmd.len() > 0 && x > 0 {
+                    if cmd.len() > 0 && x > self.prompt.len() {
                         let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
                         if after_cursor.len() > 0 {
                             after_cursor = &after_cursor[1..];
