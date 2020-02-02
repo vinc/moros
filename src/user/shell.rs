@@ -170,8 +170,8 @@ impl Shell {
                 // Autocomplete path
                 let dirname = kernel::fs::dirname(args[i]);
                 let filename = kernel::fs::filename(args[i]);
+                self.autocomplete = vec![args[i].into()];
                 if let Some(dir) = kernel::fs::Dir::open(dirname) {
-                    self.autocomplete = vec![args[i].into()];
                     for entry in dir.read() {
                         if entry.name().starts_with(filename) {
                             let mut path = String::new();
