@@ -1,5 +1,5 @@
 use bit_field::BitField;
-use crate::{print, kernel};
+use crate::log;
 use alloc::vec::Vec;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -110,11 +110,7 @@ fn add_device(bus: u8, device: u8, function: u8) {
     let config = DeviceConfig::new(bus, device, function);
     PCI_DEVICES.lock().push(config);
 
-    let uptime = kernel::clock::clock_monotonic();
-    print!(
-        "[{:.6}] PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n",
-        uptime, bus, device, function, config.vendor_id, config.device_id
-    );
+    log!("PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n", bus, device, function, config.vendor_id, config.device_id);
 }
 
 fn get_vendor_id(bus: u8, device: u8, function: u8) -> u16 {
