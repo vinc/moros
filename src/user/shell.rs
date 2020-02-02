@@ -118,7 +118,7 @@ impl Shell {
                 '\x08' => { // Backspace
                     self.update_autocomplete();
                     let cmd = self.cmd.clone();
-                    if cmd.len() > 0 && x > 0 {
+                    if cmd.len() > 0 && x > self.prompt.len() {
                         let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
                         if after_cursor.len() > 0 {
                             after_cursor = &after_cursor[1..];
@@ -170,8 +170,8 @@ impl Shell {
                 // Autocomplete path
                 let dirname = kernel::fs::dirname(args[i]);
                 let filename = kernel::fs::filename(args[i]);
+                self.autocomplete = vec![args[i].into()];
                 if let Some(dir) = kernel::fs::Dir::open(dirname) {
-                    self.autocomplete = vec![args[i].into()];
                     for entry in dir.read() {
                         if entry.name().starts_with(filename) {
                             let mut path = String::new();
