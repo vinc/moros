@@ -8,6 +8,13 @@ license = "MIT"
 repository = "https://github.com/vinc/moros"
 readme = "README.md"
 
+[features]
+default = ["vga", "qwerty"]
+vga = []
+serial = []
+qwerty = []
+dvorak = []
+
 [dependencies]
 bootloader = { version = "0.8.3", features = ["map_physical_memory"]}
 linked_list_allocator = "0.6.4"
@@ -24,3 +31,4 @@ base64 = { version = "0.11", default-features = false }
 pbkdf2 = { version = "0.3", default-features = false }
 sha2 = { version = "0.8", default-features = false }
 hmac = { version = "0.7", default-features = false }
+smoltcp = { version = "0.6", default-features = false, features = ["alloc", "ethernet", "socket-tcp", "socket-udp", "proto-ipv4", "proto-dhcpv4"] }

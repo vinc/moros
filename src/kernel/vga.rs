@@ -137,6 +137,8 @@ impl Writer {
             0x0A => { // Newline
                 self.new_line();
             },
+            0x0D => { // Carriage Return
+            },
             0x08 => { // Backspace
                 if self.col_pos > 0 {
                     self.col_pos -= 1;
@@ -278,7 +280,7 @@ pub fn writer_position() -> (usize, usize) {
 // Printable ascii chars + backspace + newline
 pub fn is_printable(c: u8) -> bool {
     match c {
-        0x20..=0x7E | 0x08 | 0x0A => true,
+        0x20..=0x7E | 0x08 | 0x0A | 0x0D => true,
         _ => false,
     }
 }

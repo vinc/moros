@@ -11,11 +11,19 @@ lazy_static! {
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
 }
 
+#[cfg(feature="vga")]
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
         $crate::kernel::vga::print_fmt(format_args!($($arg)*));
-        //$crate::kernel::serial::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[cfg(feature="serial")]
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ({
+        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
     });
 }
 
@@ -84,7 +92,7 @@ pub fn get_char() -> char {
     kernel::console::disable_echo();
     kernel::console::enable_raw();
     loop {
-        kernel::sleep::halt();
+        kernel::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
@@ -107,7 +115,7 @@ pub fn get_char() -> char {
 
 pub fn get_line() -> String {
     loop {
-        kernel::sleep::halt();
+        kernel::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {

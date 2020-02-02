@@ -34,7 +34,7 @@ pub fn login() -> user::shell::ExitCode {
     username.pop(); // Trim end of string
     match hashed_passwords.get(&username) {
         None => {
-            kernel::sleep::sleep(1.0);
+            kernel::time::sleep(1.0);
             return login();
         },
         Some(hashed_password) => {
@@ -45,7 +45,7 @@ pub fn login() -> user::shell::ExitCode {
             print!("\n");
             password.pop();
             if !check(&password, hashed_password) {
-                kernel::sleep::sleep(1.0);
+                kernel::time::sleep(1.0);
                 return login();
             }
         }

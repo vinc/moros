@@ -9,7 +9,30 @@
 11  10  10  `1001'  00   01  `0110'  `01101'
 ```
 
-MOROS is a toy operating system written in Rust.
+MOROS is a toy operating system written in Rust for the x86 architecture.
+
+## Implemented
+
+- [x] Hardware interrupts
+- [x] PS/2 Keyboard (qwerty and dvorak)
+- [x] VGA Text mode
+- [x] Paging
+- [x] Heap allocation
+- [x] RTC clock
+- [x] PCI enumeration
+- [x] ATA PIO mode
+- [x] Random number generator
+- [x] RTL8139 network card
+- [x] IP/TCP/UDP/DHCP/DNS/HTTP protocols
+- [x] Basic filesystem
+- [x] Basic shell
+- [x] Basic text editor
+- [x] Basic file and network commands
+- [x] A LOT OF SHORTCUTS TO GET EVERYTHING WORKING
+- [x] HERE BE DRAGONS
+- [ ] Processes
+- [ ] Multitasking
+- [ ] A real userspace
 
 ## Usage
 
@@ -19,6 +42,7 @@ Install tools:
     rustup install nightly
     rustup default nightly
     rustup component add rust-src
+    rustup component add llvm-tools-preview
     cargo install cargo-xbuild bootimage
 
 Create disk:
@@ -28,20 +52,20 @@ Create disk:
 Run with:
 
     cargo xrun --release -- \
-      -cpu max \
+      -cpu phenom \
       -rtc base=localtime \
       -nic model=rtl8139 \
       -hdc disk.img
 
 Or with a serial console:
 
-    cargo xrun --release -- \
-      -cpu max \
+    cargo xrun --release --no-default-features --features serial,dvorak -- \
+      -cpu phenom \
       -rtc base=localtime \
       -nic model=rtl8139 \
-      -hdc disk.img \
+      -serial stdio \
       -display none \
-      -serial stdio
+      -hdc disk.img
 
 Or with `cool-retro-term` for a retro console look:
 

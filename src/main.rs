@@ -17,6 +17,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     kernel::fs::Dir::create("/dev"); // Devices
     kernel::fs::Dir::create("/ini"); // Initializers
     kernel::fs::Dir::create("/lib"); // Libraries
+    kernel::fs::Dir::create("/net"); // Network
     kernel::fs::Dir::create("/src"); // Sources
     kernel::fs::Dir::create("/tmp"); // Temporaries
     kernel::fs::Dir::create("/usr"); // User directories
@@ -45,5 +46,5 @@ fn include_file(pathname: &str, contents: &str) {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     print!("{}\n", info);
-    loop { kernel::sleep::sleep(10.0) }
+    loop { kernel::time::sleep(10.0) }
 }

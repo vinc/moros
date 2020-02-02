@@ -1,23 +1,12 @@
+use crate::kernel;
 use crate::kernel::cmos::CMOS;
-use lazy_static::lazy_static;
-use spin::Mutex;
 
 const DAYS_BEFORE_MONTH: [u64; 13] = [
     0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
 ];
 
-lazy_static! {
-    pub static ref TICKS: Mutex<usize> = Mutex::new(0);
-}
-
-pub fn tick() {
-    let mut ticks = TICKS.lock();
-    *ticks += 1;
-}
-
 pub fn clock_monotonic() -> f64 {
-    let ticks = *TICKS.lock();
-    1.0 / (1.193182 * 1000000.0 / 65536.0) * ticks as f64
+    1.0 / (1.193182 * 1000000.0 / 65536.0) * kernel::time::ticks() as f64
 }
 
 pub fn clock_realtime() -> f64 {

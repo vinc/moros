@@ -1,12 +1,14 @@
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use crate::{print, kernel};
-use x86_64::{
-    structures::paging::{
-        FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB,
-        UnusedPhysFrame,
-    },
-    PhysAddr, VirtAddr,
-};
+use lazy_static::lazy_static;
+use spin::Mutex;
+use x86_64::structures::paging::mapper::MapperAllSizes;
+use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, UnusedPhysFrame};
+use x86_64::{PhysAddr, VirtAddr};
+
+lazy_static! {
+    static ref PHYS_MEM_OFFSET: Mutex<VirtAddr> = Mutex::new(VirtAddr::new(0));
+}
 
 pub fn init(boot_info: &'static BootInfo) {
     let mut mem_total = 0;
@@ -19,9 +21,17 @@ pub fn init(boot_info: &'static BootInfo) {
     print!("[{:.6}] MEM {} KB\n", kernel::clock::clock_monotonic(), mem_total >> 10);
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mut mapper = unsafe { kernel::mem::mapper(phys_mem_offset) };
-    let mut frame_allocator = unsafe { kernel::mem::BootInfoFrameAllocator::init(&boot_info.memory_map) };
+    let mut mapper = unsafe { mapper(phys_mem_offset) };
+    let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
     kernel::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+
+    *PHYS_MEM_OFFSET.lock() = phys_mem_offset;
+}
+
+pub fn translate_addr(addr: VirtAddr) -> Option<PhysAddr> {
+    let phys_mem_offset = *PHYS_MEM_OFFSET.lock();
+    let mapper = unsafe { mapper(phys_mem_offset) };
+    mapper.translate_addr(addr)
 }
 
 pub unsafe fn mapper(physical_memory_offset: VirtAddr) -> OffsetPageTable<'static> {
