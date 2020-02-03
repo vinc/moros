@@ -1,6 +1,7 @@
 pub mod base64;
 pub mod clear;
 pub mod copy;
+pub mod colors;
 pub mod date;
 pub mod delete;
 pub mod dhcp;

@@ -289,6 +289,7 @@ impl Shell {
             "http"                 => user::http::main(&args),
             "host"                 => user::host::main(&args),
             "ip"                   => user::ip::main(&args),
+            "colors"               => user::colors::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }
