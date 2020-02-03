@@ -1,3 +1,4 @@
+use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
@@ -41,6 +42,25 @@ pub enum Color {
     Yellow = 14,
     White = 15,
 }
+
+const COLORS: [Color; 16] = [
+    Color::Black,
+    Color::Blue,
+    Color::Green,
+    Color::Cyan,
+    Color::Red,
+    Color::Magenta,
+    Color::Brown,
+    Color::LightGray,
+    Color::DarkGray,
+    Color::LightBlue,
+    Color::LightGreen,
+    Color::LightCyan,
+    Color::LightRed,
+    Color::Pink,
+    Color::Yellow,
+    Color::White,
+];
 
 /// A combination of a foreground and a background color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -216,6 +236,13 @@ impl Writer {
     pub fn set_color(&mut self, foreground: Color, background: Color) {
         self.color_code = ColorCode::new(foreground, background);
     }
+
+    pub fn color(&self) -> (Color, Color) {
+        let cc = self.color_code.0;
+        let fg = COLORS[cc.get_bits(0..4) as usize];
+        let bg = COLORS[cc.get_bits(4..8) as usize];
+        (fg, bg)
+    }
 }
 
 impl fmt::Write for Writer {
@@ -281,10 +308,20 @@ pub fn writer_position() -> (usize, usize) {
     })
 }
 
+pub fn color() -> (Color, Color) {
+    interrupts::without_interrupts(|| {
+        WRITER.lock().color()
+    })
+}
+
 pub fn set_color(foreground: Color, background: Color) {
     interrupts::without_interrupts(|| {
         WRITER.lock().set_color(foreground, background)
     })
+}
+
+pub fn colors() -> [Color; 16] {
+    COLORS
 }
 
 // Printable ascii chars + backspace + newline
@@ -296,7 +333,7 @@ pub fn is_printable(c: u8) -> bool {
 }
 
 // Dark Gruvbox color palette
-const COLORS: [(u8, u8, u8, u8); 16] = [
+const PALETTE: [(u8, u8, u8, u8); 16] = [
     (0x00, 0x28, 0x28, 0x28), // Black
     (0x01, 0x45, 0x85, 0x88), // Blue
     (0x02, 0x98, 0x97, 0x1A), // Green
@@ -319,7 +356,7 @@ pub fn init() {
     //let mut isr: Port<u8> = Port::new(0x03DA); // Input Status Register
     let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
     let mut data: Port<u8> = Port::new(0x03C9); // Data Register
-    for (i, r, g, b) in COLORS.iter() {
+    for (i, r, g, b) in &PALETTE {
         unsafe {
             addr.write(*i);
             data.write(*r >> 2);

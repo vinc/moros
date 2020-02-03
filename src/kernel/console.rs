@@ -32,9 +32,10 @@ macro_rules! print {
 macro_rules! log {
     ($($arg:tt)*) => ({
         let uptime = $crate::kernel::clock::clock_monotonic();
-        $crate::kernel::vga::set_color($crate::kernel::vga::Color::Green, $crate::kernel::vga::Color::Black);
+        let (fg, bg) = $crate::kernel::vga::color();
+        $crate::kernel::vga::set_color($crate::kernel::vga::Color::Green, bg);
         $crate::kernel::vga::print_fmt(format_args!("[{:.6}] ", uptime));
-        $crate::kernel::vga::set_color($crate::kernel::vga::Color::LightGray, $crate::kernel::vga::Color::Black);
+        $crate::kernel::vga::set_color(fg, bg);
         $crate::kernel::vga::print_fmt(format_args!($($arg)*));
     });
 }
