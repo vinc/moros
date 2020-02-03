@@ -1,7 +1,7 @@
 use crate::{print, kernel, user};
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
-    let time = kernel::clock::clock_monotonic();
+    let time = kernel::clock::uptime();
     if args.len() == 2 && args[1] == "--raw" {
         print!("{:.6}\n", time);
     } else if args.len() == 2 && args[1] == "--metric" {

@@ -5,11 +5,13 @@ const DAYS_BEFORE_MONTH: [u64; 13] = [
     0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
 ];
 
-pub fn clock_monotonic() -> f64 {
+// NOTE: This clock is monotonic
+pub fn uptime() -> f64 {
     1.0 / (1.193182 * 1000000.0 / 65536.0) * kernel::time::ticks() as f64
 }
 
-pub fn clock_realtime() -> f64 {
+// NOTE: This clock is not monotonic
+pub fn realtime() -> f64 {
     let rtc = CMOS::new().rtc(); // Assuming GMT
 
     let t = 86400 * days_before_year(rtc.year as u64)

@@ -25,9 +25,9 @@ pub fn print_time_in_days(time: f64) {
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() == 2 && args[1] == "--raw" {
-        print!("{:.6}\n", kernel::clock::clock_realtime());
+        print!("{:.6}\n", kernel::clock::realtime());
     } else if args.len() == 2 && args[1] == "--metric" {
-        print_time_in_seconds(kernel::clock::clock_realtime());
+        print_time_in_seconds(kernel::clock::realtime());
     } else if args.len() == 2 && args[1] == "--iso-8601" {
         let rtc = CMOS::new().rtc();
         print!(

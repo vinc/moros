@@ -34,11 +34,11 @@ pub fn init() {
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify 0x{:X}\n", kernel::clock::clock_monotonic(), res);
+    print!("[{:.6}] keyboard: identify 0x{:X}\n", kernel::clock::uptime(), res);
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify 0x{:X}\n", kernel::clock::clock_monotonic(), res);
+    print!("[{:.6}] keyboard: identify 0x{:X}\n", kernel::clock::uptime(), res);
 
     // Self-test
     let res = unsafe {
@@ -52,9 +52,9 @@ pub fn init() {
         port.read()
     };
     if res == 0xAA { // 0xAA == Passed, 0xFC or 0xFD == Failed, 0xFE == Resend
-        print!("[{:.6}] keyboard: self test passed\n", kernel::clock::clock_monotonic());
+        print!("[{:.6}] keyboard: self test passed\n", kernel::clock::uptime());
     } else {
-        print!("[{:.6}] keyboard: self test failed (0x{:X})\n", kernel::clock::clock_monotonic(), res);
+        print!("[{:.6}] keyboard: self test failed (0x{:X})\n", kernel::clock::uptime(), res);
     }
 
     // Switch to scancode set 2
@@ -67,7 +67,7 @@ pub fn init() {
     if res != 0xFA { // 0xFA == ACK, 0xFE == Resend
         return init();
     }
-    print!("[{:.6}] keyboard: switch to scancode set 2\n", kernel::clock::clock_monotonic());
+    print!("[{:.6}] keyboard: switch to scancode set 2\n", kernel::clock::uptime());
     */
     kernel::idt::set_irq_handler(1, interrupt_handler);
 }

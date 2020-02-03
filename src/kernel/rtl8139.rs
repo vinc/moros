@@ -291,7 +291,7 @@ impl<'a> Device<'a> for RTL8139 {
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
-            let uptime = kernel::clock::clock_monotonic();
+            let uptime = kernel::clock::uptime();
             print!("[{:.6}] NET RTL8139 receiving buffer:\n\n", uptime);
             print!("Command Register: 0x{:02X}\n", cmd);
             print!("Interrupt Status Register: 0x{:02X}\n", isr);
@@ -335,7 +335,7 @@ impl<'a> Device<'a> for RTL8139 {
 
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
-            let uptime = kernel::clock::clock_monotonic();
+            let uptime = kernel::clock::uptime();
             print!("[{:.6}] NET RTL8139 transmitting buffer:\n\n", uptime);
             print!("TX Buffer: {}\n", self.tx_id);
             print!("Interrupt Status Register: 0x{:02X}\n", isr);

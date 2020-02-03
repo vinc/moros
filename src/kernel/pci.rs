@@ -109,7 +109,6 @@ fn check_device(bus: u8, device: u8) {
 fn add_device(bus: u8, device: u8, function: u8) {
     let config = DeviceConfig::new(bus, device, function);
     PCI_DEVICES.lock().push(config);
-
     log!("PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n", bus, device, function, config.vendor_id, config.device_id);
 }
 
