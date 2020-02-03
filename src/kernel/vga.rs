@@ -353,13 +353,25 @@ const PALETTE: [(u8, u8, u8, u8); 16] = [
 ];
 
 pub fn init() {
-    //let mut isr: Port<u8> = Port::new(0x03DA); // Input Status Register
+    let mut isr: Port<u8> = Port::new(0x03DA); // Input Status Register
+    let mut aadr: Port<u8> = Port::new(0x03C0); // Attribute Address/Data Register
+    let mut adrr: Port<u8> = Port::new(0x03C1); // Attribute Data Read Register
+
+    // Disable blinking
+    unsafe {
+        isr.read(); // Reset to address mode
+        aadr.write(0x30); // Select attribute mode control register
+        let value = adrr.read(); // Read attribute mode control register
+        aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
+    }
+
+    // Load color palette
     let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
     let mut data: Port<u8> = Port::new(0x03C9); // Data Register
     for (i, r, g, b) in &PALETTE {
         unsafe {
             addr.write(*i);
-            data.write(*r >> 2);
+            data.write(*r >> 2); // Convert 8-bit color to 6-bit color
             data.write(*g >> 2);
             data.write(*b >> 2);
         }
