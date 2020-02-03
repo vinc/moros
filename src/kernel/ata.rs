@@ -260,7 +260,7 @@ pub fn init() {
         }
         let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);
         let (size, unit) = disk_size(sectors);
-        let uptime = kernel::clock::clock_monotonic();
+        let uptime = kernel::clock::uptime();
         print!("[{:.6}] ATA {}:{} {} {} ({} {})\n", uptime, bus, drive, model.trim(), serial.trim(), size, unit);
     }
 

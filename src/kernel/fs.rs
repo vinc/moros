@@ -619,7 +619,7 @@ pub fn init() {
         print!("Could not open '/test'\n");
     }
 
-    let uptime = kernel::clock::clock_monotonic();
+    let uptime = kernel::clock::uptime();
     print!("[{:.6}] FS Reading root directory ({} entries)\n", uptime, root.read().count());
     */
 }

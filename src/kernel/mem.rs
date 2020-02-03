@@ -16,9 +16,9 @@ pub fn init(boot_info: &'static BootInfo) {
         let start_addr = region.range.start_addr();
         let end_addr = region.range.end_addr();
         mem_total += end_addr - start_addr;
-        print!("[{:.6}] MEM [0x{:016X}-0x{:016X}] {:?}\n", kernel::clock::clock_monotonic(), start_addr, end_addr, region.region_type);
+        print!("[{:.6}] MEM [0x{:016X}-0x{:016X}] {:?}\n", kernel::clock::uptime(), start_addr, end_addr, region.region_type);
     }
-    print!("[{:.6}] MEM {} KB\n", kernel::clock::clock_monotonic(), mem_total >> 10);
+    print!("[{:.6}] MEM {} KB\n", kernel::clock::uptime(), mem_total >> 10);
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     let mut mapper = unsafe { mapper(phys_mem_offset) };

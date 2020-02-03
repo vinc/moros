@@ -110,7 +110,7 @@ fn add_device(bus: u8, device: u8, function: u8) {
     let config = DeviceConfig::new(bus, device, function);
     PCI_DEVICES.lock().push(config);
 
-    let uptime = kernel::clock::clock_monotonic();
+    let uptime = kernel::clock::uptime();
     print!(
         "[{:.6}] PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n",
         uptime, bus, device, function, config.vendor_id, config.device_id

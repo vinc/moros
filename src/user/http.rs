@@ -92,14 +92,14 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             _ => {}
         }
 
-        let time = kernel::clock::clock_monotonic();
+        let time = kernel::clock::uptime();
         loop {
-            if kernel::clock::clock_monotonic() - time > 5.0 {
+            if kernel::clock::uptime() - time > 5.0 {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
 
-            let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((kernel::clock::uptime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Ok(_) => {},
                 Err(e) => {

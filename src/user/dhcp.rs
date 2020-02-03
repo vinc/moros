@@ -21,7 +21,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             vec![0; 600]
         );
 
-        let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
+        let timestamp = Instant::from_millis((kernel::clock::uptime() * 1000.0) as i64);
         let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, timestamp);
 
         let mut prev_cidr = match iface.ip_addrs().first() {
@@ -30,14 +30,14 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         };
 
         print!("DHCP Discover transmitted\n");
-        let time = kernel::clock::clock_monotonic();
+        let time = kernel::clock::uptime();
         loop {
-            if kernel::clock::clock_monotonic() - time > 60.0 {
+            if kernel::clock::uptime() - time > 60.0 {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
 
-            let timestamp = Instant::from_millis((kernel::clock::clock_monotonic() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((kernel::clock::uptime() * 1000.0) as i64);
             iface.poll(&mut sockets, timestamp).map(|_| ()).unwrap_or_else(|e| print!("Error: {:?}\n", e));
             let config = dhcp.poll(&mut iface, &mut sockets, timestamp).unwrap_or_else(|e| {
                 print!("DHCP: {:?}\n", e);

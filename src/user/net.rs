@@ -48,7 +48,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 let _server_handle = sockets.add(server_socket);
 
                 loop {
-                    let now = kernel::clock::clock_monotonic();
+                    let now = kernel::clock::uptime();
                     match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
                         Ok(true) => {
                             print!("------------------------------------------------------------------\n");
