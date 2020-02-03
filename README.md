@@ -60,7 +60,6 @@ Run with:
 
     cargo xrun --release -- \
       -cpu phenom \
-      -rtc base=localtime \
       -nic model=rtl8139 \
       -hdc disk.img
 
@@ -68,7 +67,6 @@ Or with a serial console:
 
     cargo xrun --release --no-default-features --features serial,dvorak -- \
       -cpu phenom \
-      -rtc base=localtime \
       -nic model=rtl8139 \
       -serial stdio \
       -display none \
