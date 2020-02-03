@@ -10,7 +10,8 @@ pub fn uptime() -> f64 {
     1.0 / (1.193182 * 1000000.0 / 65536.0) * kernel::time::ticks() as f64
 }
 
-pub fn clock_realtime() -> f64 {
+// NOTE: This clock is not monotonic
+pub fn realtime() -> f64 {
     let rtc = CMOS::new().rtc(); // Assuming GMT
 
     let t = 86400 * days_before_year(rtc.year as u64)

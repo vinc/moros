@@ -13,7 +13,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let timestamp = if args.len() == 3 {
         args[2].parse().expect("Could not parse timestamp")
     } else {
-        kernel::clock::clock_realtime()
+        kernel::clock::realtime()
     };
 
     let t = geotime(longitude, timestamp);
