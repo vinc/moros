@@ -10,6 +10,7 @@ pub mod user;
 use bootloader::BootInfo;
 
 pub fn init(boot_info: &'static BootInfo) {
+    kernel::vga::init();
     kernel::gdt::init();
     kernel::idt::init();
     unsafe { kernel::pic::PICS.lock().initialize() };
