@@ -1,5 +1,5 @@
 use bit_field::BitField;
-use crate::{print, kernel};
+use crate::{print, log};
 use lazy_static::lazy_static;
 use alloc::vec::Vec;
 use alloc::string::String;
@@ -260,8 +260,7 @@ pub fn init() {
         }
         let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);
         let (size, unit) = disk_size(sectors);
-        let uptime = kernel::clock::uptime();
-        print!("[{:.6}] ATA {}:{} {} {} ({} {})\n", uptime, bus, drive, model.trim(), serial.trim(), size, unit);
+        log!("ATA {}:{} {} {} ({} {})\n", bus, drive, model.trim(), serial.trim(), size, unit);
     }
 
     /*

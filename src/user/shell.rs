@@ -290,6 +290,7 @@ impl Shell {
             "host"                 => user::host::main(&args),
             "ip"                   => user::ip::main(&args),
             "geotime"              => user::geotime::main(&args),
+            "colors"               => user::colors::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }

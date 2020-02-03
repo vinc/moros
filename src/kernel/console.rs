@@ -27,6 +27,29 @@ macro_rules! print {
     });
 }
 
+#[cfg(feature="vga")]
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => ({
+        let uptime = $crate::kernel::clock::clock_monotonic();
+        let (fg, bg) = $crate::kernel::vga::color();
+        $crate::kernel::vga::set_color($crate::kernel::vga::Color::Green, bg);
+        $crate::kernel::vga::print_fmt(format_args!("[{:.6}] ", uptime));
+        $crate::kernel::vga::set_color(fg, bg);
+        $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[cfg(feature="serial")]
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => ({
+        let uptime = $crate::kernel::clock::clock_monotonic();
+        $crate::kernel::serial::print_fmt(format_args!("[{:.6}] ", uptime));
+        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+    });
+}
+
 pub fn disable_echo() {
     let mut echo = ECHO.lock();
     *echo = false;

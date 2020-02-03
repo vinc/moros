@@ -2,7 +2,7 @@ use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use core::cell::RefCell;
 use core::convert::TryInto;
-use crate::{print, kernel};
+use crate::{log, print, kernel};
 use crate::user;
 use lazy_static::lazy_static;
 use smoltcp::Result;
@@ -432,8 +432,7 @@ pub fn init() {
         rtl8139_device.init();
 
         if let Some(eth_addr) = rtl8139_device.eth_addr {
-            let uptime = kernel::clock::uptime();
-            print!("[{:.6}] NET RTL8139 MAC {}\n", uptime, eth_addr);
+            log!("NET RTL8139 MAC {}\n", eth_addr);
 
             let neighbor_cache = NeighborCache::new(BTreeMap::new());
             let routes = Routes::new(BTreeMap::new());

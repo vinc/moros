@@ -10,12 +10,13 @@ pub mod user;
 use bootloader::BootInfo;
 
 pub fn init(boot_info: &'static BootInfo) {
+    kernel::vga::init();
     kernel::gdt::init();
     kernel::idt::init();
     unsafe { kernel::pic::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
 
-    print!("[{:.6}] MOROS version {}\n", kernel::clock::uptime(), env!("CARGO_PKG_VERSION"));
+    log!("MOROS version {}\n", env!("CARGO_PKG_VERSION"));
 
     kernel::time::init();
     kernel::keyboard::init();
