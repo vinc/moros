@@ -41,7 +41,7 @@ This project started from the [seventh post][1] of the second edition of
 - [ ] Multitasking
 - [ ] A real userspace
 
-## Usage
+## Setup
 
 Install tools:
 
@@ -56,14 +56,16 @@ Create disk:
 
     qemu-img create disk.img 128M
 
-Run with:
+## Usage
+
+QEMU with VGA Text Mode:
 
     cargo xrun --release -- \
       -cpu phenom \
       -nic model=rtl8139 \
       -hdc disk.img
 
-Or with a serial console:
+QEMU with a serial console:
 
     cargo xrun --release --no-default-features --features serial,dvorak -- \
       -cpu phenom \
@@ -71,6 +73,10 @@ Or with a serial console:
       -serial stdio \
       -display none \
       -hdc disk.img
+
+Bochs instead of QEMU:
+
+    sh run/bochs.sh
 
 Or with `cool-retro-term` for a retro console look:
 
