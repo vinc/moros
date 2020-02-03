@@ -5,6 +5,7 @@ pub mod date;
 pub mod delete;
 pub mod dhcp;
 pub mod editor;
+pub mod geotime;
 pub mod halt;
 pub mod help;
 pub mod hex;
