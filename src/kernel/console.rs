@@ -31,7 +31,7 @@ macro_rules! print {
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => ({
-        let uptime = $crate::kernel::clock::clock_monotonic();
+        let uptime = $crate::kernel::clock::uptime();
         let (fg, bg) = $crate::kernel::vga::color();
         $crate::kernel::vga::set_color($crate::kernel::vga::Color::Green, bg);
         $crate::kernel::vga::print_fmt(format_args!("[{:.6}] ", uptime));
