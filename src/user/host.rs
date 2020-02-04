@@ -163,10 +163,11 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
             let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
-                Ok(_) => {},
-                Err(_) => {
-                    //print!("poll error: {}\n", e);
+                Err(smoltcp::Error::Unrecognized) => {}
+                Err(e) => {
+                    print!("Network Error: {}\n", e);
                 }
+                Ok(_) => {}
             }
 
             {

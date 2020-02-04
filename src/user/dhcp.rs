@@ -39,7 +39,13 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             }
 
             let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
-            iface.poll(&mut sockets, timestamp).map(|_| ()).unwrap_or_else(|e| print!("Error: {:?}\n", e));
+            match iface.poll(&mut sockets, timestamp) {
+                Err(smoltcp::Error::Unrecognized) => {}
+                Err(e) => {
+                    print!("Network Error: {}\n", e);
+                }
+                Ok(_) => {}
+            }
             let config = dhcp.poll(&mut iface, &mut sockets, timestamp).unwrap_or_else(|e| {
                 print!("DHCP: {:?}\n", e);
                 None

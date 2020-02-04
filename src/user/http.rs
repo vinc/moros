@@ -102,11 +102,11 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
             let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
-                Ok(_) => {},
+                Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    print!("Interface polling error: {}\n", e);
-                    return user::shell::ExitCode::CommandError;
+                    print!("Network Error: {}\n", e);
                 }
+                Ok(_) => {}
             }
 
             {
