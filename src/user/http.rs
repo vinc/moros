@@ -92,14 +92,15 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             _ => {}
         }
 
+        let timeout = 5.0;
         let time = kernel::clock::uptime();
         loop {
-            if kernel::clock::uptime() - time > 5.0 {
+            if kernel::clock::uptime() - time > timeout {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
 
-            let timestamp = Instant::from_millis((kernel::clock::uptime() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Ok(_) => {},
                 Err(e) => {
@@ -174,7 +175,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                kernel::time::sleep(wait_duration.as_secs_f64());
+                kernel::time::sleep(libm::fmin(wait_duration.as_secs_f64(), timeout));
             }
         }
         user::shell::ExitCode::CommandSuccessful
