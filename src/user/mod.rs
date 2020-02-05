@@ -22,5 +22,6 @@ pub mod read;
 pub mod route;
 pub mod shell;
 pub mod sleep;
+pub mod tcp;
 pub mod uptime;
 pub mod write;

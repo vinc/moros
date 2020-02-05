@@ -61,7 +61,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     }
 
     if args.len() != 3 {
-        print!("Usage: http <server> <path>\n");
+        print!("Usage: http <host> <path>\n");
         return user::shell::ExitCode::CommandError;
     }
 
