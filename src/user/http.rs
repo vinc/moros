@@ -159,8 +159,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                     }
                     State::Response if socket.can_recv() => {
                         socket.recv(|data| {
-                            let contents = str::from_utf8(data).unwrap_or("invalid UTF-8");
-                            let mut is_header = true;
+                            let contents = String::from_utf8_lossy(data);
                             for line in contents.lines() {
                                 if line.len() == 0 {
                                     is_header = false;
