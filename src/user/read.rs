@@ -28,12 +28,23 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 // Examples:
                 // > read /net/http/example.com/articles
                 // > read /net/http/example.com:8080/articles/index.html
+                // > read /net/daytime/time.nist.gov
+                // > read /net/tcp/time.nist.gov:13
                 let parts: Vec<_> = pathname.split('/').collect();
                 if parts.len() < 4 {
                     print!("Usage: read /net/http/<host>/<path>\n");
                     user::shell::ExitCode::CommandError
                 } else {
                     match parts[2] {
+                        "tcp" => {
+                            let host = parts[3];
+                            user::tcp::main(&["tcp", host])
+                        }
+                        "daytime" => {
+                            let host = parts[3];
+                            let port = "13";
+                            user::tcp::main(&["tcp", host, port])
+                        }
                         "http" => {
                             let host = parts[3];
                             let path = "/".to_owned() + &parts[4..].join("/");

@@ -1,6 +1,7 @@
-use alloc::string::String;
+use alloc::borrow::ToOwned;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use alloc::vec;
-use crate::kernel::vga::Color;
 use core::str::{self, FromStr};
 use core::time::Duration;
 use crate::{print, kernel, user};
@@ -9,20 +10,32 @@ use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
+    let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).collect();
+
+    // Split <host> and <port>
+    if args.len() == 2 {
+        if let Some(i) = args[1].find(':') {
+            let arg = args[1].clone();
+            let (host, path) = arg.split_at(i);
+            args[1] = host.to_string();
+            args.push(path[1..].to_string());
+        }
+    }
+
     if args.len() != 3 {
         print!("Usage: tcp <host> <port>\n");
         return user::shell::ExitCode::CommandError;
     }
 
-    let host = args[1];
+    let host = &args[1];
     let port: u16 = args[2].parse().expect("Could not parse port");
     let timeout = 5.0;
     let request = "";
 
     let address = if host.ends_with(char::is_numeric) {
-        IpAddress::from_str(host).expect("invalid address format")
+        IpAddress::from_str(&host).expect("invalid address format")
     } else {
-        match user::host::resolve(host) {
+        match user::host::resolve(&host) {
             Ok(ip_addr) => {
                 ip_addr
             }

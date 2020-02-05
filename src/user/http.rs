@@ -48,12 +48,12 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         !arg.starts_with("--")
     }).collect();
 
-    // Split <server> and <path>
+    // Split <host> and <path>
     if args.len() == 2 {
         if let Some(i) = args[1].find('/') {
             let arg = args[1].clone();
-            let (server, path) = arg.split_at(i);
-            args[1] = server.to_string();
+            let (host, path) = arg.split_at(i);
+            args[1] = host.to_string();
             args.push(path.to_string());
         } else {
             args.push("/".to_string());
