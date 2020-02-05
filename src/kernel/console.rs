@@ -44,7 +44,7 @@ macro_rules! log {
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => ({
-        let uptime = $crate::kernel::clock::clock_monotonic();
+        let uptime = $crate::kernel::clock::uptime();
         $crate::kernel::serial::print_fmt(format_args!("[{:.6}] ", uptime));
         $crate::kernel::serial::print_fmt(format_args!($($arg)*));
     });

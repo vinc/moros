@@ -39,20 +39,33 @@ impl URL {
 }
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
+    // Parse command line options
     let mut is_verbose = false;
-    let args: Vec<_> = args.into_iter().filter(|arg| {
-        let arg = arg.to_string();
+    let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).filter(|arg| {
         if arg == "--verbose" {
             is_verbose = true;
         }
         !arg.starts_with("--")
     }).collect();
+
+    // Split <server> and <path>
+    if args.len() == 2 {
+        if let Some(i) = args[1].find('/') {
+            let arg = args[1].clone();
+            let (server, path) = arg.split_at(i);
+            args[1] = server.to_string();
+            args.push(path.to_string());
+        } else {
+            args.push("/".to_string());
+        }
+    }
+
     if args.len() != 3 {
         print!("Usage: http <server> <path>\n");
         return user::shell::ExitCode::CommandError;
     }
 
-    let url = "http://".to_owned() + args[1] + args[2];
+    let url = "http://".to_owned() + &args[1] + &args[2];
     let url = URL::parse(&url).expect("invalid URL format");
 
     let address = if url.host.ends_with(char::is_numeric) {
@@ -92,20 +105,22 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             _ => {}
         }
 
+        let mut is_header = true;
+        let timeout = 5.0;
         let time = kernel::clock::uptime();
         loop {
-            if kernel::clock::uptime() - time > 5.0 {
+            if kernel::clock::uptime() - time > timeout {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
 
-            let timestamp = Instant::from_millis((kernel::clock::uptime() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
-                Ok(_) => {},
+                Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    print!("Interface polling error: {}\n", e);
-                    return user::shell::ExitCode::CommandError;
+                    print!("Network Error: {}\n", e);
                 }
+                Ok(_) => {}
             }
 
             {
@@ -144,8 +159,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                     }
                     State::Response if socket.can_recv() => {
                         socket.recv(|data| {
-                            let contents = str::from_utf8(data).unwrap_or("invalid UTF-8");
-                            let mut is_header = true;
+                            let contents = String::from_utf8_lossy(data);
                             for line in contents.lines() {
                                 if line.len() == 0 {
                                     is_header = false;
@@ -169,12 +183,12 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         break;
                     }
                     _ => state
-                }
+                };
             }
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                kernel::time::sleep(wait_duration.as_secs_f64());
+                kernel::time::sleep(libm::fmin(wait_duration.as_secs_f64(), timeout));
             }
         }
         user::shell::ExitCode::CommandSuccessful

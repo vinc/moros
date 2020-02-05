@@ -154,18 +154,20 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             _ => {}
         }
 
+        let timeout = 5.0;
         let time = kernel::clock::uptime();
         loop {
-            if kernel::clock::uptime() - time > 5.0 {
+            if kernel::clock::uptime() - time > timeout {
                 return Err(ResponseCode::NetworkError);
             }
 
-            let timestamp = Instant::from_millis((kernel::clock::uptime() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
-                Ok(_) => {},
+                Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    print!("poll error: {}\n", e);
+                    print!("Network Error: {}\n", e);
                 }
+                Ok(_) => {}
             }
 
             {
@@ -207,7 +209,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                kernel::time::sleep(wait_duration.as_secs_f64());
+                kernel::time::sleep(libm::fmin(wait_duration.as_secs_f64(), timeout));
             }
         }
     } else {

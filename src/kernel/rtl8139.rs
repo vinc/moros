@@ -1,9 +1,9 @@
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use core::cell::RefCell;
 use core::convert::TryInto;
 use crate::{log, print, kernel};
 use crate::user;
+use crate::kernel::allocator::PhysBuf;
 use lazy_static::lazy_static;
 use smoltcp::Result;
 use smoltcp::iface::{EthernetInterface, EthernetInterfaceBuilder, NeighborCache, Routes};
@@ -13,7 +13,6 @@ use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
-use x86_64::VirtAddr;
 
 // 00 = 8K + 16 bytes
 // 01 = 16K + 16 bytes
@@ -135,10 +134,9 @@ pub struct RTL8139 {
     state: RefCell<State>,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
-    xx_buffer: Box<[u8; 4 << 10]>, // TODO: Remove this
-    rx_buffer: Box<[u8; RX_BUFFER_LEN + MTU]>,
+    rx_buffer: PhysBuf,
     rx_offset: usize,
-    tx_buffers: [Box<[u8; TX_BUFFER_LEN]>; TX_BUFFERS_COUNT], // TODO: Remove this
+    tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
     tx_id: usize,
     pub debug_mode: bool,
 }
@@ -156,16 +154,15 @@ impl RTL8139 {
             ports: Ports::new(io_addr),
             eth_addr: None,
 
-            xx_buffer: Box::new([0; 4 << 10]), // TODO: Remove this
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
-            rx_buffer: Box::new([0; RX_BUFFER_LEN + MTU]),
+            rx_buffer: PhysBuf::new(RX_BUFFER_LEN + MTU),
 
             rx_offset: 0,
             tx_buffers: [
-                Box::new([0; TX_BUFFER_LEN]),
-                Box::new([0; TX_BUFFER_LEN]),
-                Box::new([0; TX_BUFFER_LEN]),
-                Box::new([0; TX_BUFFER_LEN]),
+                PhysBuf::new(TX_BUFFER_LEN),
+                PhysBuf::new(TX_BUFFER_LEN),
+                PhysBuf::new(TX_BUFFER_LEN),
+                PhysBuf::new(TX_BUFFER_LEN),
             ],
 
             // Before a transmission begin the id is incremented,
@@ -202,35 +199,15 @@ impl RTL8139 {
         };
         self.eth_addr = Some(EthernetAddress::from_bytes(&mac));
 
-        // FIXME: The buffers must be in a contiguous physical memory
-        //print!("xx_buffer[0000]=0x{:08X}\n", phys_addr(&self.xx_buffer[0000]));
-        //print!("xx_buffer[1000]=0x{:08X}\n", phys_addr(&self.xx_buffer[1000]));
-        //print!("xx_buffer[2000]=0x{:08X}\n", phys_addr(&self.xx_buffer[2000]));
-        //print!("xx_buffer[3000]=0x{:08X}\n", phys_addr(&self.xx_buffer[3000]));
-        //print!("xx_buffer[4000]=0x{:08X}\n", phys_addr(&self.xx_buffer[4000]));
-        //print!("rx_buffer[0000]=0x{:08X}\n", phys_addr(&self.rx_buffer[0000]));
-        //print!("rx_buffer[1000]=0x{:08X}\n", phys_addr(&self.rx_buffer[1000]));
-        //print!("rx_buffer[2000]=0x{:08X}\n", phys_addr(&self.rx_buffer[2000]));
-        //print!("rx_buffer[3000]=0x{:08X}\n", phys_addr(&self.rx_buffer[3000]));
-        //print!("rx_buffer[4000]=0x{:08X}\n", phys_addr(&self.rx_buffer[4000]));
-        //print!("rx_buffer[5000]=0x{:08X}\n", phys_addr(&self.rx_buffer[5000]));
-        //print!("rx_buffer[6000]=0x{:08X}\n", phys_addr(&self.rx_buffer[6000]));
-        //print!("rx_buffer[7000]=0x{:08X}\n", phys_addr(&self.rx_buffer[7000]));
-        //print!("rx_buffer[8000]=0x{:08X}\n", phys_addr(&self.rx_buffer[8000]));
-        //print!("rx_buffer[9000]=0x{:08X}\n", phys_addr(&self.rx_buffer[9000]));
-        //let buffer_len = self.rx_buffer.len();
-        //let memory_len = phys_addr(&self.rx_buffer[n - 1]) - phys_addr(&self.rx_buffer[0]);
-        //assert!(buffer_len == memory_len as usize, "{} != {}", buffer_len, memory_len);
-
         // Get physical address of rx_buffer
-        let rx_addr = phys_addr(&self.rx_buffer[0]);
+        let rx_addr = self.rx_buffer.addr();
 
         // Init Receive buffer
         unsafe { self.ports.rx_addr.write(rx_addr as u32) }
 
         for i in 0..4 {
             // Get physical address of each tx_buffer
-            let tx_addr = phys_addr(&self.tx_buffers[i][0]);
+            let tx_addr = self.tx_buffers[i].addr();
 
             // Init Transmit buffer
             unsafe { self.ports.tx_addrs[i].write(tx_addr as u32) }
@@ -450,13 +427,6 @@ pub fn init() {
         //let irq = pci_device.interrupt_line;
         //kernel::idt::set_irq_handler(irq, interrupt_handler);
     }
-}
-
-fn phys_addr(ptr: &u8) -> u64 {
-    let rx_ptr = ptr as *const u8;
-    let virt_addr = VirtAddr::new(rx_ptr as u64);
-    let phys_addr = kernel::mem::translate_addr(virt_addr).unwrap();
-    phys_addr.as_u64()
 }
 
 pub fn interrupt_handler() {
