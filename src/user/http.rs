@@ -39,20 +39,33 @@ impl URL {
 }
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
+    // Parse command line options
     let mut is_verbose = false;
-    let args: Vec<_> = args.into_iter().filter(|arg| {
-        let arg = arg.to_string();
+    let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).filter(|arg| {
         if arg == "--verbose" {
             is_verbose = true;
         }
         !arg.starts_with("--")
     }).collect();
+
+    // Split <server> and <path>
+    if args.len() == 2 {
+        if let Some(i) = args[1].find('/') {
+            let arg = args[1].clone();
+            let (server, path) = arg.split_at(i);
+            args[1] = server.to_string();
+            args.push(path.to_string());
+        } else {
+            args.push("/".to_string());
+        }
+    }
+
     if args.len() != 3 {
         print!("Usage: http <server> <path>\n");
         return user::shell::ExitCode::CommandError;
     }
 
-    let url = "http://".to_owned() + args[1] + args[2];
+    let url = "http://".to_owned() + &args[1] + &args[2];
     let url = URL::parse(&url).expect("invalid URL format");
 
     let address = if url.host.ends_with(char::is_numeric) {
@@ -170,7 +183,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         break;
                     }
                     _ => state
-                }
+                };
             }
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
