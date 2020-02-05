@@ -105,6 +105,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             _ => {}
         }
 
+        let mut is_header = true;
         let timeout = 5.0;
         let time = kernel::clock::uptime();
         loop {
