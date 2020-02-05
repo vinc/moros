@@ -13,7 +13,6 @@ pub fn ticks() -> usize {
 pub fn sleep(duration: f64) {
     let interval = 1.0 / (1.193182 * 1000000.0 / 65536.0);
     let start = kernel::clock::uptime();
-    halt();
     while kernel::clock::uptime() - start < duration - interval {
         halt();
     }
