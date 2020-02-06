@@ -1,4 +1,5 @@
 use crate::{print, user, kernel};
+use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::String;
@@ -33,6 +34,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> user::shell::ExitCode {
+        self.load_history();
         self.print_prompt();
         loop {
             let (x, y) = kernel::vga::cursor_position();
@@ -64,9 +66,15 @@ impl Shell {
 
                         let line = self.cmd.clone();
                         match self.exec(&line) {
-                            ExitCode::CommandSuccessful => {},
-                            ExitCode::ShellExit => { return ExitCode::CommandSuccessful },
-                            _ => { print!("?\n") },
+                            ExitCode::CommandSuccessful => {
+                                self.save_history();
+                            },
+                            ExitCode::ShellExit => {
+                                return ExitCode::CommandSuccessful
+                            },
+                            _ => {
+                                print!("?\n")
+                            },
                         }
                         self.cmd.clear();
                     }
@@ -93,12 +101,12 @@ impl Shell {
                     if self.history.len() > 0 {
                         if self.history_index < self.history.len() - 1 {
                             self.history_index += 1;
+                            self.cmd = self.history[self.history_index].clone();
+                        } else {
+                            self.cmd = String::new(); // TODO: Backup command before autocomplete
                         }
-                        if let Some(cmd) = self.history.iter().nth(self.history_index) {
-                            self.cmd = cmd.clone();
-                            kernel::vga::clear_row();
-                            print!("{}{}", self.prompt, self.cmd);
-                        }
+                        kernel::vga::clear_row();
+                        print!("{}{}", self.prompt, self.cmd);
                     }
                 },
                 '←' => { // Arrow left
@@ -149,6 +157,39 @@ impl Shell {
                 },
             }
         }
+    }
+
+    pub fn load_history(&mut self) {
+        let username = "admin"; // TODO: The login command should write the username somewhere
+        let pathname = format!("/usr/{}/.shell_history", username);
+
+        if let Some(file) = kernel::fs::File::open(&pathname) {
+            let contents = file.read_to_string();
+            for line in contents.split('\n') {
+                let cmd = line.trim();
+                if cmd.len() > 0 {
+                    self.history.push(cmd.into());
+                }
+            }
+        }
+        self.history_index = self.history.len();
+    }
+
+    pub fn save_history(&mut self) {
+        let username = "admin"; // TODO: The login command should write the username somewhere
+        let pathname = format!("/usr/{}/.shell_history", username);
+
+        let mut contents = String::new();
+        for cmd in &self.history {
+            contents.push_str(&format!("{}\n", cmd));
+        }
+
+        let mut file = match kernel::fs::File::open(&pathname) {
+            Some(file) => file,
+            None => kernel::fs::File::create(&pathname).unwrap(),
+        };
+
+        file.write(&contents.as_bytes()).unwrap();
     }
 
     pub fn print_autocomplete(&mut self) {
