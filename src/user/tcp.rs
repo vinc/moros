@@ -9,69 +9,33 @@ use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-#[derive(Debug)]
-struct URL {
-    pub host: String,
-    pub port: u16,
-    pub path: String,
-}
-
-impl URL {
-    pub fn parse(url: &str) -> Option<Self> {
-        if !url.starts_with("http://") {
-            return None;
-        }
-        let url = &url[7..];
-        let (server, path) = match url.find('/') {
-            Some(i) => url.split_at(i),
-            None => (url, "/"),
-        };
-        let (host, port) = match server.find(':') {
-            Some(i) => server.split_at(i),
-            None => (server, "80"),
-        };
-        Some(Self {
-            host: host.into(),
-            port: port.parse().unwrap_or(80),
-            path: path.into(),
-        })
-    }
-}
-
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
-    // Parse command line options
-    let mut is_verbose = false;
-    let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).filter(|arg| {
-        if arg == "--verbose" {
-            is_verbose = true;
-        }
-        !arg.starts_with("--")
-    }).collect();
+    let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).collect();
 
-    // Split <host> and <path>
+    // Split <host> and <port>
     if args.len() == 2 {
-        if let Some(i) = args[1].find('/') {
+        if let Some(i) = args[1].find(':') {
             let arg = args[1].clone();
             let (host, path) = arg.split_at(i);
             args[1] = host.to_string();
-            args.push(path.to_string());
-        } else {
-            args.push("/".to_string());
+            args.push(path[1..].to_string());
         }
     }
 
     if args.len() != 3 {
-        print!("Usage: http <host> <path>\n");
+        print!("Usage: tcp <host> <port>\n");
         return user::shell::ExitCode::CommandError;
     }
 
-    let url = "http://".to_owned() + &args[1] + &args[2];
-    let url = URL::parse(&url).expect("invalid URL format");
+    let host = &args[1];
+    let port: u16 = args[2].parse().expect("Could not parse port");
+    let timeout = 5.0;
+    let request = "";
 
-    let address = if url.host.ends_with(char::is_numeric) {
-        IpAddress::from_str(&url.host).expect("invalid address format")
+    let address = if host.ends_with(char::is_numeric) {
+        IpAddress::from_str(&host).expect("invalid address format")
     } else {
-        match user::host::resolve(&url.host) {
+        match user::host::resolve(&host) {
             Ok(ip_addr) => {
                 ip_addr
             }
@@ -105,8 +69,6 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             _ => {}
         }
 
-        let mut is_header = true;
-        let timeout = 5.0;
         let time = kernel::clock::uptime();
         loop {
             if kernel::clock::uptime() - time > timeout {
@@ -129,51 +91,24 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 state = match state {
                     State::Connect if !socket.is_active() => {
                         let local_port = 49152 + kernel::random::rand16().expect("random port") % 16384;
-                        if is_verbose {
-                            print!("* Connecting to {}:{}\n", address, url.port);
-                        }
-                        if socket.connect((address, url.port), local_port).is_err() {
-                            print!("Could not connect to {}:{}\n", address, url.port);
+                        print!("Connecting to {}:{}\n", address, port);
+                        if socket.connect((address, port), local_port).is_err() {
+                            print!("Could not connect to {}:{}\n", address, port);
                             return user::shell::ExitCode::CommandError;
                         }
                         State::Request
                     }
                     State::Request if socket.may_send() => {
-                        let http_get = "GET ".to_owned() + &url.path + " HTTP/1.1\r\n";
-                        let http_host = "Host: ".to_owned() + &url.host + "\r\n";
-                        let http_ua = "User-Agent: MOROS/".to_owned() + env!("CARGO_PKG_VERSION") + "\r\n";
-                        let http_connection = "Connection: close\r\n".to_owned();
-                        if is_verbose {
-                            print!("> {}", http_get);
-                            print!("> {}", http_host);
-                            print!("> {}", http_ua);
-                            print!("> {}", http_connection);
-                            print!(">\n");
+                        if request.len() > 0 {
+                            socket.send_slice(request.as_ref()).expect("cannot send");
                         }
-                        socket.send_slice(http_get.as_ref()).expect("cannot send");
-                        socket.send_slice(http_host.as_ref()).expect("cannot send");
-                        socket.send_slice(http_ua.as_ref()).expect("cannot send");
-                        socket.send_slice(http_connection.as_ref()).expect("cannot send");
-                        socket.send_slice(b"\r\n").expect("cannot send");
                         State::Response
                     }
                     State::Response if socket.can_recv() => {
                         socket.recv(|data| {
                             let contents = String::from_utf8_lossy(data);
                             for line in contents.lines() {
-                                if line.len() == 0 {
-                                    is_header = false;
-                                    if !is_verbose {
-                                        continue
-                                    }
-                                }
-                                if is_header {
-                                    if is_verbose {
-                                        print!("< {}\n", line);
-                                    }
-                                } else {
-                                    print!("{}\n", line);
-                                }
+                                print!("{}\n", line);
                             }
                             (data.len(), ())
                         }).unwrap();
