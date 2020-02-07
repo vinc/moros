@@ -3,7 +3,11 @@ use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let current_dir = kernel::process::dir();
-    let mut pathname = if args.len() == 2 { args[1] } else { &current_dir };
+    let mut pathname = if args.len() == 2 && args[1].len() > 0 {
+        args[1]
+    } else {
+        &current_dir
+    };
 
     // The commands `list /usr/alice/` and `list /usr/alice` are equivalent,
     // but `list /` should not be modified.
