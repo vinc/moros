@@ -1,5 +1,6 @@
 use crate::{print, kernel, user};
 use alloc::collections::btree_map::BTreeMap;
+use alloc::format;
 use alloc::vec::Vec;
 use alloc::string::String;
 use core::convert::TryInto;
@@ -50,6 +51,11 @@ pub fn login() -> user::shell::ExitCode {
             }
         }
     }
+
+    let home = format!("/usr/{}", username);
+    kernel::process::set_user(&username);
+    kernel::process::set_env("HOME", &home);
+    kernel::process::set_dir(&home);
 
     // TODO: load shell
     user::shell::ExitCode::CommandSuccessful
