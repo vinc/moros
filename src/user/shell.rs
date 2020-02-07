@@ -53,6 +53,7 @@ impl Shell {
                     }
                 },
                 '\n' => { // Newline
+                    self.update_history();
                     self.update_autocomplete();
                     print!("\n");
                     if self.cmd.len() > 0 {
@@ -81,6 +82,7 @@ impl Shell {
                     self.print_prompt();
                 },
                 '\t' => { // Tab
+                    self.update_history();
                     self.print_autocomplete();
                 },
                 '↑' => { // Arrow up
@@ -89,27 +91,26 @@ impl Shell {
                         if self.history_index > 0 {
                             self.history_index -= 1;
                         }
-                        if let Some(cmd) = self.history.iter().nth(self.history_index) {
-                            self.cmd = cmd.clone();
-                            kernel::vga::clear_row();
-                            print!("{}{}", self.prompt, self.cmd);
-                        }
+                        let cmd = &self.history[self.history_index];
+                        kernel::vga::clear_row();
+                        print!("{}{}", self.prompt, cmd);
                     }
                 },
                 '↓' => { // Arrow down
                     self.update_autocomplete();
-                    if self.history.len() > 0 {
-                        if self.history_index < self.history.len() - 1 {
-                            self.history_index += 1;
-                            self.cmd = self.history[self.history_index].clone();
+                    if self.history_index < self.history.len() {
+                        self.history_index += 1;
+                        let cmd = if self.history_index < self.history.len() {
+                            &self.history[self.history_index]
                         } else {
-                            self.cmd = String::new(); // TODO: Backup command before autocomplete
-                        }
+                            &self.cmd
+                        };
                         kernel::vga::clear_row();
-                        print!("{}{}", self.prompt, self.cmd);
+                        print!("{}{}", self.prompt, cmd);
                     }
                 },
                 '←' => { // Arrow left
+                    self.update_history();
                     self.update_autocomplete();
                     if x > self.prompt.len() {
                         kernel::vga::set_cursor_position(x - 1, y);
@@ -117,6 +118,7 @@ impl Shell {
                     }
                 },
                 '→' => { // Arrow right
+                    self.update_history();
                     self.update_autocomplete();
                     if x < self.prompt.len() + self.cmd.len() {
                         kernel::vga::set_cursor_position(x + 1, y);
@@ -124,6 +126,7 @@ impl Shell {
                     }
                 },
                 '\x08' => { // Backspace
+                    self.update_history();
                     self.update_autocomplete();
                     let cmd = self.cmd.clone();
                     if cmd.len() > 0 && x > self.prompt.len() {
@@ -141,6 +144,7 @@ impl Shell {
                     }
                 },
                 c => {
+                    self.update_history();
                     self.update_autocomplete();
                     if c.is_ascii() && kernel::vga::is_printable(c as u8) {
                         let cmd = self.cmd.clone();
@@ -156,6 +160,13 @@ impl Shell {
                     }
                 },
             }
+        }
+    }
+
+    pub fn update_history(&mut self) {
+        if self.history_index != self.history.len() {
+            self.cmd = self.history[self.history_index].clone();
+            self.history_index = self.history.len();
         }
     }
 
