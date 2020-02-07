@@ -226,8 +226,9 @@ impl Shell {
                 }
             } else {
                 // Autocomplete path
-                let dirname = kernel::fs::dirname(args[i]);
-                let filename = kernel::fs::filename(args[i]);
+                let pathname = kernel::fs::realpath(args[i]);
+                let dirname = kernel::fs::dirname(&pathname);
+                let filename = kernel::fs::filename(&pathname);
                 self.autocomplete = vec![args[i].into()];
                 if let Some(dir) = kernel::fs::Dir::open(dirname) {
                     for entry in dir.read() {
