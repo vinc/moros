@@ -318,7 +318,7 @@ impl Shell {
             "d" | "del" | "delete" => user::delete::main(&args),
             "e" | "edit"           => user::editor::main(&args),
             "f" | "find"           => ExitCode::CommandUnknown,
-            "g" | "go"             => ExitCode::CommandUnknown,
+            "g" | "go"             => self.change_dir(&args),
             "h" | "help"           => user::help::main(&args),
             "i"                    => ExitCode::CommandUnknown,
             "j" | "jump"           => ExitCode::CommandUnknown,
@@ -360,6 +360,28 @@ impl Shell {
 
     fn print_prompt(&self) {
         print!("\n{}", self.prompt);
+    }
+
+    fn change_dir(&self, args: &[&str]) -> ExitCode {
+        match args.len() {
+            1 => {
+                print!("{}\n", kernel::process::dir());
+                ExitCode::CommandSuccessful
+            },
+            2 => {
+                let pathname = kernel::fs::realpath(args[1]);
+                if kernel::fs::Dir::open(&pathname).is_some() {
+                    kernel::process::set_dir(&pathname);
+                    ExitCode::CommandSuccessful
+                } else {
+                    print!("File not found '{}'\n", pathname);
+                    ExitCode::CommandError
+                }
+            },
+            _ => {
+                ExitCode::CommandError
+            }
+        }
     }
 }
 
