@@ -1,7 +1,8 @@
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 use bit_field::BitField;
 use crate::kernel;
-use alloc::vec::Vec;
-use alloc::string::String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
@@ -26,6 +27,17 @@ pub fn filename(pathname: &str) -> &str {
         None => 0,
     };
     &pathname[i..n] 
+}
+
+// Transform "foo.txt" into "/path/to/foo.txt"
+pub fn realpath(pathname: &str) -> String {
+    if pathname.starts_with("/") {
+        pathname.into()
+    } else {
+        let base = kernel::process::dir();
+        let sep = if base.len() == 1 { "" } else { "/" };
+        format!("{}{}{}", base, sep, pathname)
+    }
 }
 
 #[derive(Clone)]
