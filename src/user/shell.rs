@@ -163,6 +163,10 @@ impl Shell {
         }
     }
 
+    // Called when a key other than up or down is pressed while in history
+    // mode. The history index point to a command that will be selected and
+    // the index will be reset to the length of the history vector to signify
+    // that the editor is no longer in history mode.
     pub fn update_history(&mut self) {
         if self.history_index != self.history.len() {
             self.cmd = self.history[self.history_index].clone();
@@ -247,6 +251,10 @@ impl Shell {
         print!("{}{}", self.prompt, cmd);
     }
 
+    // Called when a key other than tab is pressed while in autocomplete mode.
+    // The autocomplete index point to an argument that will be added to the
+    // command and the index will be reset to signify that the editor is no
+    // longer in autocomplete mode.
     pub fn update_autocomplete(&mut self) {
         if self.autocomplete_index != 0 {
             let mut args = self.parse(&self.cmd);
