@@ -175,36 +175,38 @@ impl Shell {
     }
 
     pub fn load_history(&mut self) {
-        let username = "admin"; // TODO: The login command should write the username somewhere
-        let pathname = format!("/usr/{}/.shell_history", username);
+        if let Some(home) = kernel::process::env("HOME") {
+            let pathname = format!("{}/.shell_history", home);
 
-        if let Some(file) = kernel::fs::File::open(&pathname) {
-            let contents = file.read_to_string();
-            for line in contents.split('\n') {
-                let cmd = line.trim();
-                if cmd.len() > 0 {
-                    self.history.push(cmd.into());
+            if let Some(file) = kernel::fs::File::open(&pathname) {
+                let contents = file.read_to_string();
+                for line in contents.split('\n') {
+                    let cmd = line.trim();
+                    if cmd.len() > 0 {
+                        self.history.push(cmd.into());
+                    }
                 }
             }
+            self.history_index = self.history.len();
         }
-        self.history_index = self.history.len();
     }
 
     pub fn save_history(&mut self) {
-        let username = "admin"; // TODO: The login command should write the username somewhere
-        let pathname = format!("/usr/{}/.shell_history", username);
+        if let Some(home) = kernel::process::env("HOME") {
+            let pathname = format!("{}/.shell_history", home);
 
-        let mut contents = String::new();
-        for cmd in &self.history {
-            contents.push_str(&format!("{}\n", cmd));
+            let mut contents = String::new();
+            for cmd in &self.history {
+                contents.push_str(&format!("{}\n", cmd));
+            }
+
+            let mut file = match kernel::fs::File::open(&pathname) {
+                Some(file) => file,
+                None => kernel::fs::File::create(&pathname).unwrap(),
+            };
+
+            file.write(&contents.as_bytes()).unwrap();
         }
-
-        let mut file = match kernel::fs::File::open(&pathname) {
-            Some(file) => file,
-            None => kernel::fs::File::create(&pathname).unwrap(),
-        };
-
-        file.write(&contents.as_bytes()).unwrap();
     }
 
     pub fn print_autocomplete(&mut self) {
