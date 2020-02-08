@@ -34,9 +34,9 @@ pub fn realpath(pathname: &str) -> String {
     if pathname.starts_with("/") {
         pathname.into()
     } else {
-        let base = kernel::process::dir();
-        let sep = if base.len() == 1 { "" } else { "/" };
-        format!("{}{}{}", base, sep, pathname)
+        let dirname = kernel::process::dir();
+        let sep = if dirname.ends_with("/") { "" } else { "/" };
+        format!("{}{}{}", dirname, sep, pathname)
     }
 }
 

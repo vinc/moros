@@ -231,15 +231,10 @@ impl Shell {
                 let filename = kernel::fs::filename(&pathname);
                 self.autocomplete = vec![args[i].into()];
                 if let Some(dir) = kernel::fs::Dir::open(dirname) {
+                    let sep = if dirname.ends_with("/") { "" } else { "/" };
                     for entry in dir.read() {
                         if entry.name().starts_with(filename) {
-                            let mut path = String::new();
-                            path.push_str(dirname);
-                            if path != "/" {
-                                path.push('/');
-                            }
-                            path.push_str(&entry.name());
-                            self.autocomplete.push(path);
+                            self.autocomplete.push(format!("{}{}{}", dirname, sep, entry.name()));
                         }
                     }
                 }
