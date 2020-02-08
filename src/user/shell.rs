@@ -314,7 +314,7 @@ impl Shell {
             "d" | "del" | "delete" => user::delete::main(&args),
             "e" | "edit"           => user::editor::main(&args),
             "f" | "find"           => ExitCode::CommandUnknown,
-            "g" | "go"             => self.change_dir(&args),
+            "g" | "go" | "goto"    => self.change_dir(&args),
             "h" | "help"           => user::help::main(&args),
             "i"                    => ExitCode::CommandUnknown,
             "j" | "jump"           => ExitCode::CommandUnknown,
