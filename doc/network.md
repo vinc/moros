@@ -1,4 +1,4 @@
-# MOROS Net
+# MOROS Network
 
 ## NET
 
