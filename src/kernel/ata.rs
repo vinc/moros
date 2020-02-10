@@ -243,62 +243,27 @@ pub fn init() {
     buses.push(Bus::new(0, 0x1F0, 0x3F6, 14));
     buses.push(Bus::new(1, 0x170, 0x376, 15));
 
-    let bus = 1;
-    let drive = 0;
-    if let Some(buf) = buses[bus].identify_drive(drive) {
-        let mut serial = String::new();
-        for i in 10..20 {
-            for &b in &buf[i].to_be_bytes() {
-                serial.push(b as char);
+    for bus in 0..2 {
+        for drive in 0..2 {
+            if let Some(buf) = buses[bus].identify_drive(drive) {
+                let mut serial = String::new();
+                for i in 10..20 {
+                    for &b in &buf[i].to_be_bytes() {
+                        serial.push(b as char);
+                    }
+                }
+                let mut model = String::new();
+                for i in 27..47 {
+                    for &b in &buf[i].to_be_bytes() {
+                        model.push(b as char);
+                    }
+                }
+                let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);
+                let (size, unit) = disk_size(sectors);
+                log!("ATA {}:{} {} {} ({} {})\n", bus, drive, model.trim(), serial.trim(), size, unit);
             }
         }
-        let mut model = String::new();
-        for i in 27..47 {
-            for &b in &buf[i].to_be_bytes() {
-                model.push(b as char);
-            }
-        }
-        let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);
-        let (size, unit) = disk_size(sectors);
-        log!("ATA {}:{} {} {} ({} {})\n", bus, drive, model.trim(), serial.trim(), size, unit);
     }
-
-    /*
-    let block = 1;
-    let mut buf = [0u8; 512];
-    buses[1].read(drive, block, &mut buf);
-    for i in 0..256 {
-        if i % 8 == 0 {
-            print!("\n{:08X} ", i * 2);
-        }
-        print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
-    }
-    print!("\n");
-
-    buf[0x42] = 'H' as u8;
-    buf[0x43] = 'e' as u8;
-    buf[0x44] = 'l' as u8;
-    buf[0x45] = 'l' as u8;
-    buf[0x46] = 'o' as u8;
-    for i in 0..256 {
-        if i % 8 == 0 {
-            print!("\n{:08X} ", i * 2);
-        }
-        print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
-    }
-    print!("\n");
-    buses[1].write(drive, block, &mut buf);
-
-    let mut buf = [0u8; 512];
-    buses[1].read(drive, block, &mut buf);
-    for i in 0..256 {
-        if i % 8 == 0 {
-            print!("\n{:08X} ", i * 2);
-        }
-        print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
-    }
-    print!("\n");
-    */
 }
 
 pub fn read(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) {
