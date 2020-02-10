@@ -603,45 +603,15 @@ impl Iterator for ReadDir {
 }
 
 pub fn init() {
-    let root = Dir::root();
-
     // TODO: Add a superblock to identify the FS on a disk.
     // Enumerate the disks to find which one to use.
 
-    // TODO: Move this to mkfs
     // Allocate root dir on new filesystems
+    // TODO: This should be done during filesystem creation
+    /*
+    let root = Dir::root();
     if BlockBitmap::is_free(root.addr()) {
         BlockBitmap::alloc(root.addr());
     }
-
-    /*
-    if root.find("test").is_none() {
-        match File::create("/test") {
-            Some(test) => {
-                print!("Created '/test' at block 0x{:08X}\n", test.addr());
-            },
-            None => {
-                print!("Could not create '/test'\n");
-            }
-        }
-    }
-
-    if let Some(mut file) = File::open("/test") {
-        let contents = "Yolo";
-        file.write(&contents.as_bytes()).unwrap();
-        print!("Wrote to '/test'\n");
-    } else {
-        print!("Could not open '/test'\n");
-    }
-
-    if let Some(file) = File::open("/test") {
-        print!("Reading '/test':\n");
-        print!("{}\n", file.read_to_string());
-    } else {
-        print!("Could not open '/test'\n");
-    }
-
-    let uptime = kernel::clock::uptime();
-    print!("[{:.6}] FS Reading root directory ({} entries)\n", uptime, root.read().count());
     */
 }
