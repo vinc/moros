@@ -30,7 +30,16 @@ fn main(boot_info: &'static BootInfo) -> ! {
     include_file("/ini/passwords.csv", include_str!("../dsk/ini/passwords.csv"));
     include_file("/tmp/alice.txt", include_str!("../dsk/tmp/alice.txt"));
     loop {
-        user::shell::main(&["shell", "/ini/boot.sh"]);
+        let bootrc = "/ini/boot.sh";
+        if kernel::fs::File::open(bootrc).is_some() {
+            user::shell::main(&["shell", bootrc]);
+        } else {
+            print!("Could not find '{}'\n", bootrc);
+            print!("Running console in diskless mode\n");
+            // TODO: Add `disk list` and `disk init <bus> <dsk>` commands to be used
+            // in this console to init the system.
+            user::shell::main(&["shell"]);
+        }
     }
 }
 

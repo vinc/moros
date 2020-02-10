@@ -272,7 +272,7 @@ impl BlockBitmap {
     pub fn is_free(addr: u32) -> bool {
         let block = Block::read(BITMAP_ADDR_OFFSET + ((addr - DATA_ADDR_OFFSET) / BITMAP_SIZE));
         let bitmap = block.data(); // TODO: Add block.buffer()
-        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] == 0
+        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] == 0 // TODO: bm[i / 8].get_bit(i % 8)
     }
 
     pub fn alloc(addr: u32) {
@@ -605,6 +605,10 @@ impl Iterator for ReadDir {
 pub fn init() {
     let root = Dir::root();
 
+    // TODO: Add a superblock to identify the FS on a disk.
+    // Enumerate the disks to find which one to use.
+
+    // TODO: Move this to mkfs
     // Allocate root dir on new filesystems
     if BlockBitmap::is_free(root.addr()) {
         BlockBitmap::alloc(root.addr());
