@@ -1,7 +1,8 @@
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
 use bit_field::BitField;
 use crate::kernel;
-use alloc::vec::Vec;
-use alloc::string::String;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
@@ -28,6 +29,17 @@ pub fn filename(pathname: &str) -> &str {
     &pathname[i..n] 
 }
 
+// Transform "foo.txt" into "/path/to/foo.txt"
+pub fn realpath(pathname: &str) -> String {
+    if pathname.starts_with("/") {
+        pathname.into()
+    } else {
+        let dirname = kernel::process::dir();
+        let sep = if dirname.ends_with("/") { "" } else { "/" };
+        format!("{}{}{}", dirname, sep, pathname)
+    }
+}
+
 #[derive(Clone)]
 pub struct File {
     name: String,
@@ -38,8 +50,9 @@ pub struct File {
 
 impl File {
     pub fn create(pathname: &str) -> Option<Self> {
-        let dirname = dirname(pathname);
-        let filename = filename(pathname);
+        let pathname = realpath(pathname);
+        let dirname = dirname(&pathname);
+        let filename = filename(&pathname);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_file(filename) {
                 return Some(dir_entry.to_file());
@@ -49,8 +62,9 @@ impl File {
     }
 
     pub fn open(pathname: &str) -> Option<Self> {
-        let dirname = dirname(pathname);
-        let filename = filename(pathname);
+        let pathname = realpath(pathname);
+        let dirname = dirname(&pathname);
+        let filename = filename(&pathname);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.find(filename) {
                 if dir_entry.is_file() {
@@ -145,8 +159,9 @@ impl File {
     }
 
     pub fn delete(pathname: &str) -> Result<(), ()> {
-        let dirname = dirname(pathname);
-        let filename = filename(pathname);
+        let pathname = realpath(pathname);
+        let dirname = dirname(&pathname);
+        let filename = filename(&pathname);
         if let Some(mut dir) = Dir::open(dirname) {
             dir.delete_entry(filename)
         } else {
@@ -347,8 +362,9 @@ impl Dir {
     }
 
     pub fn create(pathname: &str) -> Option<Self> {
-        let dirname = dirname(pathname);
-        let filename = filename(pathname);
+        let pathname = realpath(pathname);
+        let dirname = dirname(&pathname);
+        let filename = filename(&pathname);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_dir(filename) {
                 return Some(dir_entry.to_dir())
@@ -358,6 +374,7 @@ impl Dir {
     }
 
     pub fn open(pathname: &str) -> Option<Self> {
+        let pathname = realpath(pathname);
         let mut dir = Dir::root();
         if pathname == "/" {
             return Some(dir);
@@ -500,8 +517,9 @@ impl Dir {
     }
 
     pub fn delete(pathname: &str) -> Result<(), ()> {
-        let dirname = dirname(pathname);
-        let filename = filename(pathname);
+        let pathname = realpath(pathname);
+        let dirname = dirname(&pathname);
+        let filename = filename(&pathname);
         if let Some(mut dir) = Dir::open(dirname) {
             dir.delete_entry(filename)
         } else {

@@ -12,6 +12,7 @@ pub mod keyboard;
 pub mod mem;
 pub mod pci;
 pub mod pic;
+pub mod process;
 pub mod random;
 pub mod rtl8139;
 pub mod serial;

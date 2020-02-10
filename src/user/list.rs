@@ -2,11 +2,12 @@ use crate::{print, kernel, user};
 use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
-    if args.len() != 2 {
-        return user::shell::ExitCode::CommandError;
-    }
-
-    let mut pathname = args[1];
+    let current_dir = kernel::process::dir();
+    let mut pathname = if args.len() == 2 && args[1].len() > 0 {
+        args[1]
+    } else {
+        &current_dir
+    };
 
     // The commands `list /usr/alice/` and `list /usr/alice` are equivalent,
     // but `list /` should not be modified.
