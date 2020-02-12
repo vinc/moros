@@ -2,7 +2,9 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
-use crate::kernel;
+use crate::{kernel, log};
+use lazy_static::lazy_static;
+use spin::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
@@ -186,17 +188,17 @@ impl Block {
     }
 
     pub fn read(addr: u32) -> Self {
-        let bus = 1; // TODO
-        let dsk = 0; // TODO
         let mut buf = [0; 512];
-        kernel::ata::read(bus, dsk, addr, &mut buf);
+        if let Some(ref block_device) = *BLOCK_DEVICE.lock() {
+            block_device.read(addr, &mut buf);
+        }
         Self { addr, buf }
     }
 
     pub fn write(&self) {
-        let bus = 1; // TODO
-        let dsk = 0; // TODO
-        kernel::ata::write(bus, dsk, self.addr, &self.buf);
+        if let Some(ref block_device) = *BLOCK_DEVICE.lock() {
+            block_device.write(self.addr, &self.buf);
+        }
     }
 
     pub fn alloc() -> Option<Self> {
@@ -257,7 +259,9 @@ impl Block {
 const BITMAP_SIZE: u32 = 512 - 4; // TODO: Bitmap should use the full block
 const MAX_BLOCKS: u32 = 2 * 2048;
 
-const BITMAP_ADDR_OFFSET: u32 = 2048 + 2;
+const DISK_OFFSET: u32 = (1 << 20) / 512;
+const SUPERBLOCK_ADDR: u32 = DISK_OFFSET;
+const BITMAP_ADDR_OFFSET: u32 = DISK_OFFSET + 2;
 const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS;
 
 /* Disk Areas
@@ -602,16 +606,47 @@ impl Iterator for ReadDir {
     }
 }
 
-pub fn init() {
-    // TODO: Add a superblock to identify the FS on a disk.
-    // Enumerate the disks to find which one to use.
+pub struct BlockDevice {
+    bus: u8,
+    dsk: u8,
+}
 
-    // Allocate root dir on new filesystems
-    // TODO: This should be done during filesystem creation
-    /*
+impl BlockDevice {
+    pub fn new(bus: u8, dsk: u8) -> Self {
+        Self { bus, dsk }
+    }
+
+    pub fn read(&self, block: u32, mut buf: &mut [u8]) {
+        kernel::ata::read(self.bus, self.dsk, block, &mut buf);
+    }
+
+    pub fn write(&self, block: u32, buf: &[u8]) {
+        kernel::ata::write(self.bus, self.dsk, block, &buf);
+    }
+}
+
+lazy_static! {
+    pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
+}
+
+const MAGIC: &'static str = "MOROS FS";
+
+    // Allocate root dir
     let root = Dir::root();
     if BlockBitmap::is_free(root.addr()) {
         BlockBitmap::alloc(root.addr());
     }
-    */
+}
+
+pub fn init() {
+    for bus in 0..2 {
+        for dsk in 0..2 {
+            let mut buf = [0u8; 512];
+            kernel::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
+            if String::from_utf8(buf[0..8].to_vec()).unwrap() == MAGIC {
+                log!("FS Found superblock on ATA {}:{}\n", bus, dsk);
+                *BLOCK_DEVICE.lock() = Some(BlockDevice::new(bus, dsk));
+            }
+        }
+    }
 }
