@@ -58,30 +58,47 @@ Create disk:
 
 ## Usage
 
-QEMU with VGA Text Mode:
+Run QEMU with VGA Text Mode (and default qwerty keyboard):
 
     cargo xrun --release -- \
-      -cpu phenom \
-      -nic model=rtl8139 \
-      -hdc disk.img
+      -cpu max \
+      -nic model=rtl8139
 
-QEMU with a serial console:
+Run QEMU with a serial console (instead of vga screen):
 
     cargo xrun --release --no-default-features --features serial,dvorak -- \
-      -cpu phenom \
-      -nic model=rtl8139 \
-      -serial stdio \
       -display none \
-      -hdc disk.img
+      -serial stdio \
+      -cpu max \
+      -nic model=rtl8139
 
-Bochs instead of QEMU:
+Build disk image (with dvorak keyboard):
+
+    cargo bootimage --no-default-features --features vga,dvorak --release
+    qemu-img convert -f raw target/x86_64-moros/release/bootimage-moros.bin disk.img
+    qemu-img resize -f raw disk.img 32M
+
+Run QEMU with a filesystem on disk:
+
+    qemu-system-x86_64 \
+      -cpu max \
+      -nic model=rtl8139 \
+      -hda disk.img
+
+Then inside the diskless console run `mkfs /dev/ata/bus/0/dsk/0` and reboot.
+
+Run Bochs instead of QEMU:
 
     sh run/bochs.sh
 
-Or with `cool-retro-term` for a retro console look:
+Run `cool-retro-term` for a retro console look:
 
     sh run/cool-retro-term.sh
 
+Run on a native x86 computer:
+
+    sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdb && sync
+    sudo reboot
 
 ## LICENSE
 
