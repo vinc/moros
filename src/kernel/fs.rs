@@ -262,7 +262,7 @@ const MAX_BLOCKS: u32 = 2 * 2048;
 const DISK_OFFSET: u32 = (1 << 20) / 512;
 const SUPERBLOCK_ADDR: u32 = DISK_OFFSET;
 const BITMAP_ADDR_OFFSET: u32 = DISK_OFFSET + 2;
-const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS;
+const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS / 8;
 
 /* Disk Areas
  * 1 => Reserved
@@ -270,38 +270,54 @@ const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS;
  * 3 => Data (directories and files)
  */
 
+// A BlockBitmap store the allocation status of (512 -4) * 8 data blocks
 pub struct BlockBitmap {}
 
 impl BlockBitmap {
+    fn block_index(data_addr: u32) -> u32 {
+        let i = data_addr - DATA_ADDR_OFFSET;
+        BITMAP_ADDR_OFFSET + (i / BITMAP_SIZE / 8)
+    }
+
+    fn buffer_index(data_addr: u32) -> usize {
+        let i = data_addr - DATA_ADDR_OFFSET;
+        (i % BITMAP_SIZE) as usize
+    }
+
     pub fn is_free(addr: u32) -> bool {
-        let block = Block::read(BITMAP_ADDR_OFFSET + ((addr - DATA_ADDR_OFFSET) / BITMAP_SIZE));
+        let block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data(); // TODO: Add block.buffer()
-        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] == 0 // TODO: bm[i / 8].get_bit(i % 8)
+        let i = BlockBitmap::buffer_index(addr);
+        bitmap[i / 8].get_bit(i % 8)
     }
 
     pub fn alloc(addr: u32) {
-        let mut block = Block::read(BITMAP_ADDR_OFFSET + ((addr - DATA_ADDR_OFFSET) / BITMAP_SIZE));
+        let mut block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data_mut();
-        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] = 1;
+        let i = BlockBitmap::buffer_index(addr);
+        bitmap[i / 8].set_bit(i % 8, true);
         block.write();
     }
 
     pub fn free(addr: u32) {
-        let mut block = Block::read(BITMAP_ADDR_OFFSET + ((addr - DATA_ADDR_OFFSET) / BITMAP_SIZE));
+        let mut block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data_mut();
-        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] = 0;
+        let i = BlockBitmap::buffer_index(addr);
+        bitmap[i / 8].set_bit(i % 8, false);
         block.write();
     }
 
     pub fn next_free_addr() -> Option<u32> {
-        let n = MAX_BLOCKS / BITMAP_SIZE;
+        let n = MAX_BLOCKS / BITMAP_SIZE / 8;
         for i in 0..n {
             let block = Block::read(BITMAP_ADDR_OFFSET + i);
             let bitmap = block.data();
             for j in 0..BITMAP_SIZE {
-                if bitmap[j as usize] == 0 {
-                    let addr = DATA_ADDR_OFFSET + i * 512 + j;
-                    return Some(addr);
+                for k in 0..8 {
+                    if !bitmap[j as usize].get_bit(k) {
+                        let addr = DATA_ADDR_OFFSET + i * 512 * 8 + j * 8 + k as u32;
+                        return Some(addr);
+                    }
                 }
             }
         }
