@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+- Add process struct (#19)
+- Add PhysBuf for DMA (#16)
+- Add tcp command (#17)
+- Add geotime command (#14)
+- Use VGA color palette (#15)
+- Improve filesystem (#24)
+- Improve shell history (#18)
+
 ## 0.2.0 (2019-02-02)
 - Add network stack
 - Add heap allocation
