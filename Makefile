@@ -15,12 +15,14 @@ keyboard = qwerty
 bin=target/x86_64-moros/release/bootimage-moros.bin
 img=disk.img
 
+$(img):
+	qemu-img create $(img) 32M
+
 # Rebuild MOROS if the features list changed
-image:
+image: $(img)
 	touch src/lib.rs
 	cargo bootimage --no-default-features --features $(output),$(keyboard) --release
-	qemu-img convert -f raw $(bin) $(img)
-	qemu-img resize -f raw $(img) 32M
+	dd conv=notrunc if=$(bin) of=$(img)
 
 opts = -cpu max -nic model=rtl8139 -hda $(img)
 ifeq ($(output),serial)
