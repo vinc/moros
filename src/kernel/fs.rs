@@ -668,7 +668,7 @@ pub fn init() {
             let mut buf = [0u8; 512];
             kernel::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
             if String::from_utf8(buf[0..8].to_vec()).unwrap() == MAGIC {
-                log!("FS Found superblock on ATA {}:{}\n", bus, dsk);
+                log!("MFS Superblock found on ATA {}:{}\n", bus, dsk);
                 *BLOCK_DEVICE.lock() = Some(BlockDevice::new(bus, dsk));
             }
         }

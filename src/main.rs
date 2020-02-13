@@ -36,8 +36,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
         } else {
             print!("Could not find '{}'\n", bootrc);
             print!("Running console in diskless mode\n");
-            // TODO: Add `disk list` and `disk init <bus> <dsk>` commands to be used
-            // in this console to init the system.
+            //print!("Use `mkfs` and `reboot` to setup MOROS on disk\n");
             user::shell::main(&["shell"]);
         }
     }
