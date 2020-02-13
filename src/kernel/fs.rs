@@ -2,7 +2,9 @@ use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
-use crate::kernel;
+use crate::{kernel, log};
+use lazy_static::lazy_static;
+use spin::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
@@ -186,17 +188,17 @@ impl Block {
     }
 
     pub fn read(addr: u32) -> Self {
-        let bus = 1; // TODO
-        let dsk = 0; // TODO
         let mut buf = [0; 512];
-        kernel::ata::read(bus, dsk, addr, &mut buf);
+        if let Some(ref block_device) = *BLOCK_DEVICE.lock() {
+            block_device.read(addr, &mut buf);
+        }
         Self { addr, buf }
     }
 
     pub fn write(&self) {
-        let bus = 1; // TODO
-        let dsk = 0; // TODO
-        kernel::ata::write(bus, dsk, self.addr, &self.buf);
+        if let Some(ref block_device) = *BLOCK_DEVICE.lock() {
+            block_device.write(self.addr, &self.buf);
+        }
     }
 
     pub fn alloc() -> Option<Self> {
@@ -257,8 +259,10 @@ impl Block {
 const BITMAP_SIZE: u32 = 512 - 4; // TODO: Bitmap should use the full block
 const MAX_BLOCKS: u32 = 2 * 2048;
 
-const BITMAP_ADDR_OFFSET: u32 = 2048 + 2;
-const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS;
+const DISK_OFFSET: u32 = (1 << 20) / 512;
+const SUPERBLOCK_ADDR: u32 = DISK_OFFSET;
+const BITMAP_ADDR_OFFSET: u32 = DISK_OFFSET + 2;
+const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS / 8;
 
 /* Disk Areas
  * 1 => Reserved
@@ -266,38 +270,54 @@ const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS;
  * 3 => Data (directories and files)
  */
 
+// A BlockBitmap store the allocation status of (512 -4) * 8 data blocks
 pub struct BlockBitmap {}
 
 impl BlockBitmap {
+    fn block_index(data_addr: u32) -> u32 {
+        let i = data_addr - DATA_ADDR_OFFSET;
+        BITMAP_ADDR_OFFSET + (i / BITMAP_SIZE / 8)
+    }
+
+    fn buffer_index(data_addr: u32) -> usize {
+        let i = data_addr - DATA_ADDR_OFFSET;
+        (i % BITMAP_SIZE) as usize
+    }
+
     pub fn is_free(addr: u32) -> bool {
-        let block = Block::read(BITMAP_ADDR_OFFSET + ((addr - DATA_ADDR_OFFSET) / BITMAP_SIZE));
+        let block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data(); // TODO: Add block.buffer()
-        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] == 0
+        let i = BlockBitmap::buffer_index(addr);
+        bitmap[i / 8].get_bit(i % 8)
     }
 
     pub fn alloc(addr: u32) {
-        let mut block = Block::read(BITMAP_ADDR_OFFSET + ((addr - DATA_ADDR_OFFSET) / BITMAP_SIZE));
+        let mut block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data_mut();
-        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] = 1;
+        let i = BlockBitmap::buffer_index(addr);
+        bitmap[i / 8].set_bit(i % 8, true);
         block.write();
     }
 
     pub fn free(addr: u32) {
-        let mut block = Block::read(BITMAP_ADDR_OFFSET + ((addr - DATA_ADDR_OFFSET) / BITMAP_SIZE));
+        let mut block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data_mut();
-        bitmap[((addr - DATA_ADDR_OFFSET) % BITMAP_SIZE) as usize] = 0;
+        let i = BlockBitmap::buffer_index(addr);
+        bitmap[i / 8].set_bit(i % 8, false);
         block.write();
     }
 
     pub fn next_free_addr() -> Option<u32> {
-        let n = MAX_BLOCKS / BITMAP_SIZE;
+        let n = MAX_BLOCKS / BITMAP_SIZE / 8;
         for i in 0..n {
             let block = Block::read(BITMAP_ADDR_OFFSET + i);
             let bitmap = block.data();
             for j in 0..BITMAP_SIZE {
-                if bitmap[j as usize] == 0 {
-                    let addr = DATA_ADDR_OFFSET + i * 512 + j;
-                    return Some(addr);
+                for k in 0..8 {
+                    if !bitmap[j as usize].get_bit(k) {
+                        let addr = DATA_ADDR_OFFSET + i * 512 * 8 + j * 8 + k as u32;
+                        return Some(addr);
+                    }
                 }
             }
         }
@@ -602,42 +622,55 @@ impl Iterator for ReadDir {
     }
 }
 
-pub fn init() {
-    let root = Dir::root();
+pub struct BlockDevice {
+    bus: u8,
+    dsk: u8,
+}
 
-    // Allocate root dir on new filesystems
+impl BlockDevice {
+    pub fn new(bus: u8, dsk: u8) -> Self {
+        Self { bus, dsk }
+    }
+
+    pub fn read(&self, block: u32, mut buf: &mut [u8]) {
+        kernel::ata::read(self.bus, self.dsk, block, &mut buf);
+    }
+
+    pub fn write(&self, block: u32, buf: &[u8]) {
+        kernel::ata::write(self.bus, self.dsk, block, &buf);
+    }
+}
+
+lazy_static! {
+    pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
+}
+
+const MAGIC: &'static str = "MOROS FS";
+
+pub fn make(bus: u8, dsk: u8) {
+    // Write superblock
+    let mut buf = MAGIC.as_bytes().to_vec();
+    buf.resize(512, 0);
+    let block_device = BlockDevice::new(bus, dsk);
+    block_device.write(SUPERBLOCK_ADDR, &buf);
+    *BLOCK_DEVICE.lock() = Some(block_device);
+
+    // Allocate root dir
+    let root = Dir::root();
     if BlockBitmap::is_free(root.addr()) {
         BlockBitmap::alloc(root.addr());
     }
+}
 
-    /*
-    if root.find("test").is_none() {
-        match File::create("/test") {
-            Some(test) => {
-                print!("Created '/test' at block 0x{:08X}\n", test.addr());
-            },
-            None => {
-                print!("Could not create '/test'\n");
+pub fn init() {
+    for bus in 0..2 {
+        for dsk in 0..2 {
+            let mut buf = [0u8; 512];
+            kernel::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
+            if String::from_utf8(buf[0..8].to_vec()).unwrap() == MAGIC {
+                log!("MFS Superblock found on ATA {}:{}\n", bus, dsk);
+                *BLOCK_DEVICE.lock() = Some(BlockDevice::new(bus, dsk));
             }
         }
     }
-
-    if let Some(mut file) = File::open("/test") {
-        let contents = "Yolo";
-        file.write(&contents.as_bytes()).unwrap();
-        print!("Wrote to '/test'\n");
-    } else {
-        print!("Could not open '/test'\n");
-    }
-
-    if let Some(file) = File::open("/test") {
-        print!("Reading '/test':\n");
-        print!("{}\n", file.read_to_string());
-    } else {
-        print!("Could not open '/test'\n");
-    }
-
-    let uptime = kernel::clock::uptime();
-    print!("[{:.6}] FS Reading root directory ({} entries)\n", uptime, root.read().count());
-    */
 }

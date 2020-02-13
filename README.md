@@ -52,36 +52,26 @@ Install tools:
     rustup component add llvm-tools-preview
     cargo install cargo-xbuild bootimage
 
-Create disk:
-
-    qemu-img create disk.img 128M
-
 ## Usage
 
-QEMU with VGA Text Mode:
+Build image:
 
-    cargo xrun --release -- \
-      -cpu phenom \
-      -nic model=rtl8139 \
-      -hdc disk.img
+    make image output=vga keyboard=qwerty
 
-QEMU with a serial console:
+Run on QEMU:
 
-    cargo xrun --release --no-default-features --features serial,dvorak -- \
-      -cpu phenom \
-      -nic model=rtl8139 \
-      -serial stdio \
-      -display none \
-      -hdc disk.img
+    make qemu output=vga
 
-Bochs instead of QEMU:
+Run on a native x86 computer:
 
-    sh run/bochs.sh
+    sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
+    sudo reboot
 
-Or with `cool-retro-term` for a retro console look:
+MOROS will open a console in diskless mode after boot if no filesystem is
+detected. Use `mkfs` to create a filesystem on a disk.
 
-    sh run/cool-retro-term.sh
-
+**Be careful not to overwrite the disk of your OS when using `dd` inside your OS
+or `mkfs` inside MOROS.**
 
 ## LICENSE
 
