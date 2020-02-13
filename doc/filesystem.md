@@ -21,6 +21,15 @@ A location on the tree of dirs and files is named a path:
     $ qemu-img create disk.img 128M
     Formatting 'disk.img', fmt=raw size=134217728
 
+### Setup in diskless console
+
+During boot MOROS will detect the disks present on the ATA buses, then the
+filesystems on those disks. If no filesystem is found, MOROS will open a
+console in diskless mode to allow the user to create one with the `mkfs`
+command:
+
+    > mkfs /dev/ata/0/0
+
 ## Data
 
 ### BlockBitmap
