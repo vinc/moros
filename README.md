@@ -54,57 +54,21 @@ Install tools:
 
 ## Usage
 
-Run QEMU with VGA Text Mode (and default qwerty keyboard):
+Build image:
 
-    cargo xrun --release -- \
-      -cpu max \
-      -nic model=rtl8139 \
-      -hdc disk.img
+    make image output=vga keyboard=qwerty
 
-Run QEMU with a serial console (instead of vga screen):
+Run on QEMU:
 
-    cargo xrun --release --no-default-features --features serial,dvorak -- \
-      -display none \
-      -serial stdio \
-      -cpu max \
-      -nic model=rtl8139 \
-      -hdc disk.img
-
-Run QEMU with bootloader, kernel, and data on the same disk:
-
-    qemu-system-x86_64 \
-      -cpu max \
-      -nic model=rtl8139 \
-      -hda disk.img
-
-Run Bochs instead of QEMU:
-
-    sh run/bochs.sh
-
-Run `cool-retro-term` for a retro console look:
-
-    sh run/cool-retro-term.sh
+    make qemu output=vga
 
 Run on a native x86 computer:
 
-    sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdb && sync
+    sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
     sudo reboot
 
-### Disk image
-
-Create secondary disk for the data:
-
-    qemu-img create disk.img 32M
-
-Or combine bootloader, kernel (with dvorak keyboard), and data on the same disk:
-
-    cargo bootimage --no-default-features --features vga,dvorak --release
-    qemu-img convert -f raw target/x86_64-moros/release/bootimage-moros.bin disk.img
-    qemu-img resize -f raw disk.img 32M
-
-Then later inside the diskless console of MOROS you will have to create the
-filesystem with `mkfs /dev/ata/bus/1/dsk/0` or `mkfs /dev/ata/bus/0/dsk/0`
-respectively and reboot MOROS.
+MOROS will open a console in diskless mode after boot if no filesystem is
+detected. Use `mkfs` to create a filesystem on a disk.
 
 **Be careful not to overwrite the disk of your OS when using `dd` inside your OS
 or `mkfs` inside MOROS.**
