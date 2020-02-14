@@ -17,7 +17,8 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     };
 
     let t = geotime(longitude, timestamp);
-    print!("{}\n", format!("{:02.2}", t).replace(".", ":"));
+    let t = libm::floor(100.0 * t) / 100.0; // Avoid rounding up 99.996 to 100.00
+    print!("{}\n", format!("{:05.2}", t).replace(".", ":"));
 
     user::shell::ExitCode::CommandSuccessful
 }
@@ -38,5 +39,5 @@ pub fn geotime(longitude: f64, timestamp: f64) -> f64 {
 
     let seconds = libm::fmod(timestamp, 86400.0) + (longitude * 86400.0 / 360.0) + eot;
     
-    100.0 * seconds / 86400.0
+    libm::fmod(100.0 * seconds / 86400.0, 100.0)
 }
