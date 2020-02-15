@@ -65,8 +65,8 @@ will not be available):
 
     sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
 
-**Be careful not to overwrite the disk of your OS when using `dd` inside your OS
-or `mkfs` inside MOROS.**
+**Be careful not to overwrite the hard drive of your OS when using `dd` inside
+your OS or `mkfs` inside MOROS.**
 
 ## LICENSE
 

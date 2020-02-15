@@ -1,11 +1,11 @@
 # MOROS Filesystem
 
-## Disk
+## Hard drive
 
-A disk is separated in block of 512 bytes, grouped into three areas. The first
-is reserved for future uses, the second is used as a bitmap mapping the
-allocated blocks in the third area. The data stored on the disk use the blocks
-of the third area.
+A hard drive is separated in block of 512 bytes, grouped into three areas. The
+first is reserved for future uses, the second is used as a bitmap mapping the
+allocated blocks in the third area. The data stored on the hard drive use the
+blocks of the third area.
 
 During the first boot of the OS, the root dir will be allocated, using the
 first block of the data area.
@@ -23,9 +23,9 @@ A location on the tree of dirs and files is named a path:
 
 ### Setup in diskless console
 
-During boot MOROS will detect the disks present on the ATA buses, then the
-filesystems on those disks. If no filesystem is found, MOROS will open a
-console in diskless mode to allow the user to create one with the `mkfs`
+During boot MOROS will detect the hard drives present on the ATA buses, then
+the filesystems on those hard drives. If no filesystem is found, MOROS will
+open a console in diskless mode to allow the user to create one with the `mkfs`
 command:
 
     > mkfs /dev/ata/0/0
@@ -38,8 +38,8 @@ Bitmap of allocated blocks in the data area.
 
 ### Block
 
-A block is small area of 512 bytes on a disk, and it is also part of linked
-list representing a file or a directory.
+A block is small area of 512 bytes on a hard drive, and it is also part of
+linked list representing a file or a directory.
 
 The first 4 bytes of a block is the address of the next block on the list and
 the rest of block is the data stored in the block.
