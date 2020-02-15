@@ -1,12 +1,12 @@
 # MOROS: Obscure Rust Operating System
 
-![screenshot](screenshot.png)
-
 MOROS is a toy operating system written in Rust for the x86 architecture.
 
 This project started from the [seventh post][1] of the second edition of
 [Writing an OS in Rust][2] by Philipp Oppermann and by reading the
 [OSDev wiki][3] along with many open source kernels.
+
+![screenshot](screenshot.png)
 
 ## Features
 
@@ -55,13 +55,15 @@ Run on QEMU:
 
     make qemu output=vga
 
-Run on a native x86 computer:
+MOROS will open a console in diskless mode after boot if no filesystem is
+detected. Use `mkfs /dev/ata/0/0` to create a filesystem on the ATA hard drive
+that will be used on the next boot.
+
+Run on a native x86 computer by copying the bootloader and kernel to a hard
+drive or USB stick (but there is currently no USB driver so the filesystem
+will not be available):
 
     sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
-    sudo reboot
-
-MOROS will open a console in diskless mode after boot if no filesystem is
-detected. Use `mkfs` to create a filesystem on a disk.
 
 **Be careful not to overwrite the disk of your OS when using `dd` inside your OS
 or `mkfs` inside MOROS.**
