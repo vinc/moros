@@ -14,7 +14,7 @@
 - Add heap allocation
 - Add autocompletion to shell
 
-## 0.1.0 (2019-01-17)
+## 0.1.0 (2019-01-18)
 - Add shell
 - Add editor
 - Add filesystem
