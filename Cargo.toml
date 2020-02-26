@@ -16,7 +16,7 @@ qwerty = []
 dvorak = []
 
 [dependencies]
-bootloader = { version = "0.8.3", features = ["map_physical_memory"]}
+bootloader = { version = "0.8.8", features = ["map_physical_memory"]}
 linked_list_allocator = "0.6.4"
 volatile = "0.2.6"
 spin = "0.5.2"
