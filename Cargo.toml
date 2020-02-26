@@ -25,7 +25,7 @@ pic8259_simple = "0.1.1"
 pc-keyboard = { git = "https://github.com/thejpster/pc-keyboard" }
 bit_field = "0.10.0"
 raw-cpuid = "7.0.3"
-uart_16550 = "0.2.1"
+uart_16550 = "0.2.4"
 lazy_static = { version = "1.0", features = ["spin_no_std"] }
 base64 = { version = "0.11", default-features = false }
 pbkdf2 = { version = "0.3", default-features = false }
