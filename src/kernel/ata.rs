@@ -79,10 +79,10 @@ impl Bus {
 
     fn wait(&mut self) {
         unsafe {
-            self.status_register.read();
-            self.status_register.read();
-            self.status_register.read();
-            self.status_register.read();
+            self.alternate_status_register.read();
+            self.alternate_status_register.read();
+            self.alternate_status_register.read();
+            self.alternate_status_register.read();
         }
     }
 
