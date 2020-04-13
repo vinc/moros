@@ -79,10 +79,10 @@ impl Bus {
 
     fn wait(&mut self) {
         unsafe {
-            self.status_register.read();
-            self.status_register.read();
-            self.status_register.read();
-            self.status_register.read();
+            self.alternate_status_register.read();
+            self.alternate_status_register.read();
+            self.alternate_status_register.read();
+            self.alternate_status_register.read();
         }
     }
 
@@ -109,6 +109,11 @@ impl Bus {
 
     fn write_data(&mut self, data: u16) {
         unsafe { self.data_register.write(data) }
+    }
+
+    fn busy_loop(&mut self) {
+        self.wait();
+        while self.is_busy() {}
     }
 
     fn is_busy(&mut self) -> bool {
@@ -167,7 +172,7 @@ impl Bus {
             return None;
         }
 
-        while self.is_busy() {}
+        self.busy_loop();
 
         if self.lba1() != 0 || self.lba2() != 0 {
             return None;
@@ -195,13 +200,9 @@ impl Bus {
 
     pub fn read(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
         assert!(buf.len() == 512);
-
         self.setup(drive, block);
-
         self.write_command(Command::Read);
-
-        while self.is_busy() {}
-
+        self.busy_loop();
         for i in 0..256 {
             let data = self.read_data();
             buf[i * 2] = data.get_bits(0..8) as u8;
@@ -211,21 +212,16 @@ impl Bus {
 
     pub fn write(&mut self, drive: u8, block: u32, buf: &[u8]) {
         assert!(buf.len() == 512);
-
         self.setup(drive, block);
-
         self.write_command(Command::Write);
-
-        while self.is_busy() {}
-
+        self.busy_loop();
         for i in 0..256 {
             let mut data = 0 as u16;
             data.set_bits(0..8, buf[i * 2] as u16);
             data.set_bits(8..16, buf[i * 2 + 1] as u16);
             self.write_data(data);
         }
-
-        while self.is_busy() {}
+        self.busy_loop();
     }
 }
 
