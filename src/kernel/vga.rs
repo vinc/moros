@@ -1,8 +1,11 @@
+use bit_field::BitField;
 use core::fmt;
+use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
 use x86_64::instructions::port::Port;
+use x86_64::instructions::interrupts;
 
 lazy_static! {
     /// A global `Writer` instance that can be used for printing to the VGA text buffer.
@@ -39,6 +42,25 @@ pub enum Color {
     Yellow = 14,
     White = 15,
 }
+
+const COLORS: [Color; 16] = [
+    Color::Black,
+    Color::Blue,
+    Color::Green,
+    Color::Cyan,
+    Color::Red,
+    Color::Magenta,
+    Color::Brown,
+    Color::LightGray,
+    Color::DarkGray,
+    Color::LightBlue,
+    Color::LightGreen,
+    Color::LightCyan,
+    Color::LightRed,
+    Color::Pink,
+    Color::Yellow,
+    Color::White,
+];
 
 /// A combination of a foreground and a background color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -135,6 +157,8 @@ impl Writer {
             0x0A => { // Newline
                 self.new_line();
             },
+            0x0D => { // Carriage Return
+            },
             0x08 => { // Backspace
                 if self.col_pos > 0 {
                     self.col_pos -= 1;
@@ -166,13 +190,10 @@ impl Writer {
 
     fn write_string(&mut self, s: &str) {
         for byte in s.bytes() {
-            match byte {
-                0x20..=0x7E | 0x08 | 0x0A => {
-                    self.write_byte(byte) // Printable chars, backspace, newline
-                },
-                _ => {
-                    self.write_byte(0xFE) // Square
-                }
+            if is_printable(byte) {
+                self.write_byte(byte) // Printable chars, backspace, newline
+            } else {
+                self.write_byte(0xFE) // Square
             }
         }
     }
@@ -211,6 +232,17 @@ impl Writer {
         self.col_pos = 0;
         self.set_cursor_position(self.col_pos, self.row_pos);
     }
+
+    pub fn set_color(&mut self, foreground: Color, background: Color) {
+        self.color_code = ColorCode::new(foreground, background);
+    }
+
+    pub fn color(&self) -> (Color, Color) {
+        let cc = self.color_code.0;
+        let fg = COLORS[cc.get_bits(0..4) as usize];
+        let bg = COLORS[cc.get_bits(4..8) as usize];
+        (fg, bg)
+    }
 }
 
 impl fmt::Write for Writer {
@@ -221,35 +253,22 @@ impl fmt::Write for Writer {
     }
 }
 
-/// Like the `print!` macro in the standard library, but prints to the VGA text buffer.
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => ($crate::kernel::vga::_print(format_args!($($arg)*)));
-}
-
 /// Prints the given formatted string to the VGA text buffer
 /// through the global `WRITER` instance.
 #[doc(hidden)]
-pub fn _print(args: fmt::Arguments) {
-    use core::fmt::Write;
-    use x86_64::instructions::interrupts;
-
+pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {
-        WRITER.lock().write_fmt(args).unwrap();
+        WRITER.lock().write_fmt(args).expect("Could not print to VGA");
     });
 }
 
 pub fn clear_screen() {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().clear_screen();
     });
 }
 
 pub fn clear_row() {
-    use x86_64::instructions::interrupts;
-
     let (_, y) = writer_position();
     interrupts::without_interrupts(|| {
         WRITER.lock().clear_row(y);
@@ -266,33 +285,95 @@ pub fn screen_height() -> usize {
 }
 
 pub fn set_cursor_position(x: usize, y: usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().set_cursor_position(x, y);
     });
 }
 
 pub fn set_writer_position(x: usize, y: usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().set_writer_position(x, y);
     });
 }
 
 pub fn cursor_position() -> (usize, usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().cursor_position()
     })
 }
 
 pub fn writer_position() -> (usize, usize) {
-    use x86_64::instructions::interrupts;
-
     interrupts::without_interrupts(|| {
         WRITER.lock().writer_position()
     })
+}
+
+pub fn color() -> (Color, Color) {
+    interrupts::without_interrupts(|| {
+        WRITER.lock().color()
+    })
+}
+
+pub fn set_color(foreground: Color, background: Color) {
+    interrupts::without_interrupts(|| {
+        WRITER.lock().set_color(foreground, background)
+    })
+}
+
+pub fn colors() -> [Color; 16] {
+    COLORS
+}
+
+// Printable ascii chars + backspace + newline
+pub fn is_printable(c: u8) -> bool {
+    match c {
+        0x20..=0x7E | 0x08 | 0x0A | 0x0D => true,
+        _ => false,
+    }
+}
+
+// Dark Gruvbox color palette
+const PALETTE: [(u8, u8, u8, u8); 16] = [
+    (0x00, 0x28, 0x28, 0x28), // Black
+    (0x01, 0x45, 0x85, 0x88), // Blue
+    (0x02, 0x98, 0x97, 0x1A), // Green
+    (0x03, 0x68, 0x9D, 0x6A), // Cyan
+    (0x04, 0xCC, 0x24, 0x1D), // Red
+    (0x05, 0xB1, 0x62, 0x86), // Magenta
+    (0x07, 0xEB, 0xDB, 0xB2), // Light Gray
+    (0x14, 0xD7, 0x99, 0x21), // Brown (Dark Yellow)
+    (0x38, 0xA8, 0x99, 0x84), // Gray (Dark Gray)
+    (0x39, 0x83, 0xa5, 0x98), // Light Blue
+    (0x3A, 0xB8, 0xBB, 0x26), // Light Green
+    (0x3B, 0x8E, 0xC0, 0x7C), // Light Cyan
+    (0x3C, 0xFB, 0x49, 0x34), // Light Red
+    (0x3D, 0xD3, 0x86, 0x9B), // Pink (Light Magenta)
+    (0x3E, 0xFA, 0xBD, 0x2F), // Yellow (Light Yellow)
+    (0x3F, 0xFB, 0xF1, 0xF7), // White
+];
+
+pub fn init() {
+    let mut isr: Port<u8> = Port::new(0x03DA); // Input Status Register
+    let mut aadr: Port<u8> = Port::new(0x03C0); // Attribute Address/Data Register
+    let mut adrr: Port<u8> = Port::new(0x03C1); // Attribute Data Read Register
+
+    // Disable blinking
+    unsafe {
+        isr.read(); // Reset to address mode
+        aadr.write(0x30); // Select attribute mode control register
+        let value = adrr.read(); // Read attribute mode control register
+        aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
+    }
+
+    // Load color palette
+    let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
+    let mut data: Port<u8> = Port::new(0x03C9); // Data Register
+    for (i, r, g, b) in &PALETTE {
+        unsafe {
+            addr.write(*i);
+            data.write(*r >> 2); // Convert 8-bit color to 6-bit color
+            data.write(*g >> 2);
+            data.write(*b >> 2);
+        }
+    }
 }

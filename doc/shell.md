@@ -5,77 +5,88 @@
 The main commands have a long name, a one-letter alias, and may have
 additional common aliases.
 
-**Alias** commands:
+<!--
+**Alias** command:
 
 ```
 alias d delete
-alias rm delete
 ```
 
-**Append** to files:
+**Append** to file:
 
 ```
 a a.txt
 append a.txt
 ```
+-->
 
-**Delete** files:
+**Delete** file:
 
 ```
 d a.txt
 del a.txt
 delete a.txt
-rm a.txt
 ```
 
-**Copy** files:
+**Copy** file:
 
 ```
 c a.txt b.txt
-cp a.txt b.txt
 copy a.txt b.txt
 ```
 
-**Move** files:
+**Move** file:
 
 ```
 m a.txt b.txt
-mv a.txt b.txt
 move a.txt b.txt
 ```
 
-**Print** strings:
+**Print** string:
 
 ```
 p "Hi"
 print "Hi"
-echo "Hi"
 ```
 
-**Read** files:
+**Read** file:
 
 ```
 r a.txt
 read a.txt
-cat a.txt
 ```
 
-**Write** files:
+**Write** file:
 
 ```
 w a.txt
 write a.txt
 ```
 
-**Write** dirs:
+**Write** dir:
 
 ```
-w /usr/v/ # with a trailing slash to create a dir instead of a file
-wd /usr/v # no ambiguity here so no trailing slash required
-write-dir /usr/v
+write /usr/alice/ # with a trailing slash to create a dir instead of a file
 ```
 
-## Combiners
+**List** files in dir:
+
+```
+list /usr/alice
+```
+
+When executed without arguments, this command will list the files of the
+current directory.
+
+**Go to** dir:
+
+```
+goto /usr/alice
+```
+
+When executed without arguments, this command will print the current directory.
+
+## Combiners (TODO)
 
 The `&` and `|` symbols are used only for combiners so there's no needs to
 double them.
@@ -92,7 +103,7 @@ r a.txt & r b.txt
 r a.txt | r b.txt
 ```
 
-## Pipes
+## Pipes (TODO)
 
 The pipe symbol `|` from UNIX is replaced by `-->`, shortened to `>`, and `>`
 is replaced by `--> write` or `> w` in short. An additional standard stream

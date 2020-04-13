@@ -1,24 +1,30 @@
 use crate::{print, kernel, user};
-use heapless::{String, FnvIndexMap, Vec};
-use heapless::consts::*;
+use alloc::collections::btree_map::BTreeMap;
+use alloc::format;
+use alloc::vec::Vec;
+use alloc::string::String;
 use core::convert::TryInto;
 use core::str;
 use hmac::Hmac;
 use sha2::Sha256;
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    login()
+pub fn main(args: &[&str]) -> user::shell::ExitCode {
+    if args.len() > 1 && args[1] == "add" {
+        create()
+    } else {
+        login()
+    }
 }
 
 // TODO: Add max number of attempts
 pub fn login() -> user::shell::ExitCode {
-    let mut hashed_passwords: FnvIndexMap<String<U256>, String<U1024>, U256> = FnvIndexMap::new();
-    if let Some(file) = kernel::fs::File::open("/cfg/passwords.csv") {
-        for line in file.read().split("\n") {
+    let mut hashed_passwords: BTreeMap<String, String> = BTreeMap::new();
+    if let Some(file) = kernel::fs::File::open("/ini/passwords.csv") {
+        for line in file.read_to_string().split("\n") {
             let mut rows = line.split(",");
             if let Some(username) = rows.next() {
                 if let Some(hashed_password) = rows.next() {
-                    hashed_passwords.insert(username.into(), hashed_password.into()).unwrap();
+                    hashed_passwords.insert(username.into(), hashed_password.into());
                 }
             }
         }
@@ -29,7 +35,7 @@ pub fn login() -> user::shell::ExitCode {
     username.pop(); // Trim end of string
     match hashed_passwords.get(&username) {
         None => {
-            kernel::sleep::sleep(1.0);
+            kernel::time::sleep(1.0);
             return login();
         },
         Some(hashed_password) => {
@@ -40,16 +46,52 @@ pub fn login() -> user::shell::ExitCode {
             print!("\n");
             password.pop();
             if !check(&password, hashed_password) {
-                kernel::sleep::sleep(1.0);
+                kernel::time::sleep(1.0);
                 return login();
             }
         }
     }
+
+    let home = format!("/usr/{}", username);
+    kernel::process::set_user(&username);
+    kernel::process::set_env("HOME", &home);
+    kernel::process::set_dir(&home);
+
+    // TODO: load shell
+    user::shell::ExitCode::CommandSuccessful
+}
+
+// TODO: Move that to `user add` or something
+pub fn create() -> user::shell::ExitCode {
+    print!("\nUsername: ");
+    let mut username = kernel::console::get_line();
+    username.pop(); // Trim end of string
+
+    print!("Password: ");
+    kernel::console::disable_echo();
+    let mut password = kernel::console::get_line();
+    kernel::console::enable_echo();
+    print!("\n");
+    password.pop();
+
+    print!("Confirm: ");
+    kernel::console::disable_echo();
+    let mut confirm = kernel::console::get_line();
+    kernel::console::enable_echo();
+    print!("\n");
+    confirm.pop();
+
+    if password != confirm {
+        print!("Password confirmation failed\n");
+        return user::shell::ExitCode::CommandError;
+    }
+
+    print!("{}\n", hash(&password));
     user::shell::ExitCode::CommandSuccessful
 }
 
 pub fn check(password: &str, hashed_password: &str) -> bool {
-    let fields: Vec<_, U4> = hashed_password.split('$').collect();
+    let fields: Vec<_> = hashed_password.split('$').collect();
     if fields.len() != 4 || fields[0] != "1" {
         return false;
     }
@@ -70,7 +112,7 @@ pub fn check(password: &str, hashed_password: &str) -> bool {
 // Password hashing version 1 => PBKDF2-HMAC-SHA256 + BASE64
 // Fields: "<version>$<c>$<salt>$<hash>"
 // Example: "1$AAAQAA$PDkXP0I8O7SxNOxvUKmHHQ$BwIUWBxKs50BTpH6i4ImF3SZOxADv7dh4xtu3IKc3o8"
-pub fn hash(password: &str) -> String<U1024> {
+pub fn hash(password: &str) -> String {
     let v = "1"; // Password hashing version
     let c = 4096u32; // Number of iterations
     let mut salt = [0u8; 16];
@@ -91,12 +133,12 @@ pub fn hash(password: &str) -> String<U1024> {
 
     // Encoding in Base64 standard without padding
     let c = c.to_be_bytes();
-    let mut res: String<U1024> = String::from(v);
-    res.push('$').unwrap();
-    res.push_str(&String::from_utf8(user::base64::encode(&c)).unwrap()).unwrap();
-    res.push('$').unwrap();
-    res.push_str(&String::from_utf8(user::base64::encode(&salt)).unwrap()).unwrap();
-    res.push('$').unwrap();
-    res.push_str(&String::from_utf8(user::base64::encode(&hash)).unwrap()).unwrap();
+    let mut res: String = String::from(v);
+    res.push('$');
+    res.push_str(&String::from_utf8(user::base64::encode(&c)).unwrap());
+    res.push('$');
+    res.push_str(&String::from_utf8(user::base64::encode(&salt)).unwrap());
+    res.push('$');
+    res.push_str(&String::from_utf8(user::base64::encode(&hash)).unwrap());
     res
 }

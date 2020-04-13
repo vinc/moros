@@ -1,15 +1,53 @@
 use crate::{print, kernel};
-use heapless::String;
-use heapless::consts::*;
+use alloc::string::String;
 use lazy_static::lazy_static;
 use pc_keyboard::{KeyCode, DecodedKey};
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 
 lazy_static! {
-    pub static ref STDIN: Mutex<String<U256>> = Mutex::new(String::new());
+    pub static ref STDIN: Mutex<String> = Mutex::new(String::new());
     pub static ref ECHO: Mutex<bool> = Mutex::new(true);
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
+}
+
+#[cfg(feature="vga")]
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ({
+        $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[cfg(feature="serial")]
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ({
+        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[cfg(feature="vga")]
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => ({
+        let uptime = $crate::kernel::clock::uptime();
+        let (fg, bg) = $crate::kernel::vga::color();
+        $crate::kernel::vga::set_color($crate::kernel::vga::Color::Green, bg);
+        $crate::kernel::vga::print_fmt(format_args!("[{:.6}] ", uptime));
+        $crate::kernel::vga::set_color(fg, bg);
+        $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[cfg(feature="serial")]
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => ({
+        let uptime = $crate::kernel::clock::uptime();
+        $crate::kernel::serial::print_fmt(format_args!("[{:.6}] ", uptime));
+        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+    });
 }
 
 pub fn disable_echo() {
@@ -64,7 +102,10 @@ pub fn key_handle(key: DecodedKey) {
             }
         }
     } else {
-        if stdin.push(c).is_ok() && is_echo_enabled() {
+        // TODO: Replace non-ascii chars by ascii square symbol to keep length
+        // at 1 instead of being variable?
+        stdin.push(c);
+        if is_echo_enabled() {
             print!("{}", c);
         }
     }
@@ -74,7 +115,7 @@ pub fn get_char() -> char {
     kernel::console::disable_echo();
     kernel::console::enable_raw();
     loop {
-        kernel::sleep::halt();
+        kernel::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
@@ -95,9 +136,9 @@ pub fn get_char() -> char {
     }
 }
 
-pub fn get_line() -> String<U256> {
+pub fn get_line() -> String {
     loop {
-        kernel::sleep::halt();
+        kernel::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
