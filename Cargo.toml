@@ -22,7 +22,7 @@ bootloader = { version = "0.9.0", features = ["map_physical_memory"]}
 hmac = { version = "0.7", default-features = false }
 lazy_static = { version = "1.0", features = ["spin_no_std"] }
 libm = "0.2.1"
-linked_list_allocator = "0.8.2"
+linked_list_allocator = "0.8.3"
 pbkdf2 = { version = "0.3", default-features = false }
 pc-keyboard = { git = "https://github.com/thejpster/pc-keyboard" }
 pic8259_simple = "0.1.1"
