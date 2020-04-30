@@ -26,7 +26,7 @@ linked_list_allocator = "0.8.2"
 pbkdf2 = { version = "0.3", default-features = false }
 pc-keyboard = { git = "https://github.com/thejpster/pc-keyboard" }
 pic8259_simple = "0.1.1"
-raw-cpuid = "7.0.3"
+raw-cpuid = "8.0.0"
 sha2 = { version = "0.8", default-features = false }
 smoltcp = { version = "0.6", default-features = false, features = ["alloc", "ethernet", "socket-tcp", "socket-udp", "proto-ipv4", "proto-dhcpv4"] }
 spin = "0.5.2"
