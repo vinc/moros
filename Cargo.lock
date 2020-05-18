@@ -213,9 +213,9 @@ dependencies = [
 
 [[package]]
 name = "raw-cpuid"
-version = "7.0.3"
+version = "8.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4a349ca83373cfa5d6dbb66fd76e58b2cca08da71a5f6400de0a0a6a9bceeaf"
+checksum = "5ab01b333691cd32fa882476c0fd735e98a85bf080853728936210562d0cdca6"
 dependencies = [
  "bitflags",
  "cc",
