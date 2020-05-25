@@ -18,7 +18,7 @@ dvorak = []
 [dependencies]
 base64 = { version = "0.11", default-features = false }
 bit_field = "0.10.0"
-bootloader = { version = "0.9.0", features = ["map_physical_memory"]}
+bootloader = { version = "0.9.4", features = ["map_physical_memory"]}
 hmac = { version = "0.7", default-features = false }
 lazy_static = { version = "1.0", features = ["spin_no_std"] }
 libm = "0.2.1"
