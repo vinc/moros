@@ -16,7 +16,7 @@ qwerty = []
 dvorak = []
 
 [dependencies]
-base64 = { version = "0.11", default-features = false }
+base64 = { version = "0.12", default-features = false }
 bit_field = "0.10.0"
 bootloader = { version = "0.9.0", features = ["map_physical_memory"]}
 hmac = { version = "0.7", default-features = false }
