@@ -1,4 +1,5 @@
 use crate::{print, user, kernel};
+use crate::kernel::vga::Color;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -35,6 +36,7 @@ impl Shell {
 
     pub fn run(&mut self) -> user::shell::ExitCode {
         self.load_history();
+        print!("\n");
         self.print_prompt();
         loop {
             let (x, y) = kernel::vga::cursor_position();
@@ -46,7 +48,7 @@ impl Shell {
                 '\x03' => { // Ctrl C
                     if self.cmd.len() > 0 {
                         self.cmd.clear();
-                        print!("\n");
+                        print!("\n\n");
                         self.print_prompt();
                     } else {
                         return ExitCode::CommandSuccessful;
@@ -79,6 +81,7 @@ impl Shell {
                         }
                         self.cmd.clear();
                     }
+                    print!("\n");
                     self.print_prompt();
                 },
                 '\t' => { // Tab
@@ -93,7 +96,8 @@ impl Shell {
                         }
                         let cmd = &self.history[self.history_index];
                         kernel::vga::clear_row();
-                        print!("{}{}", self.prompt, cmd);
+                        self.print_prompt();
+                        print!("{}", cmd);
                     }
                 },
                 '↓' => { // Arrow down
@@ -106,7 +110,8 @@ impl Shell {
                             &self.cmd
                         };
                         kernel::vga::clear_row();
-                        print!("{}{}", self.prompt, cmd);
+                        self.print_prompt();
+                        print!("{}", cmd);
                     }
                 },
                 '←' => { // Arrow left
@@ -138,7 +143,8 @@ impl Shell {
                         self.cmd.push_str(before_cursor);
                         self.cmd.push_str(after_cursor);
                         kernel::vga::clear_row();
-                        print!("{}{}", self.prompt, self.cmd);
+                        self.print_prompt();
+                        print!("{}", self.cmd);
                         kernel::vga::set_cursor_position(x - 1, y);
                         kernel::vga::set_writer_position(x - 1, y);
                     }
@@ -154,7 +160,8 @@ impl Shell {
                         self.cmd.push(c);
                         self.cmd.push_str(after_cursor);
                         kernel::vga::clear_row();
-                        print!("{}{}", self.prompt, self.cmd);
+                        self.print_prompt();
+                        print!("{}", self.cmd);
                         kernel::vga::set_cursor_position(x + 1, y);
                         kernel::vga::set_writer_position(x + 1, y);
                     }
@@ -246,7 +253,8 @@ impl Shell {
 
         let cmd = args.join(" ");
         kernel::vga::clear_row();
-        print!("{}{}", self.prompt, cmd);
+        self.print_prompt();
+        print!("{}", cmd);
     }
 
     // Called when a key other than tab is pressed while in autocomplete mode.
@@ -356,7 +364,10 @@ impl Shell {
     }
 
     fn print_prompt(&self) {
-        print!("\n{}", self.prompt);
+        let (fg, bg) = kernel::vga::color();
+        kernel::vga::set_color(Color::Magenta, bg);
+        print!("{}", self.prompt);
+        kernel::vga::set_color(fg, bg);
     }
 
     fn change_dir(&self, args: &[&str]) -> ExitCode {
