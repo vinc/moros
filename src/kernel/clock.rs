@@ -14,14 +14,17 @@ pub fn uptime() -> f64 {
 pub fn realtime() -> f64 {
     let rtc = CMOS::new().rtc(); // Assuming GMT
 
-    let t = 86400 * days_before_year(rtc.year as u64)
-          + 86400 * days_before_month(rtc.year as u64, rtc.month as u64)
-          + 86400 * (rtc.day - 1) as u64
-          +  3600 * rtc.hour as u64
-          +    60 * rtc.minute as u64
-          +         rtc.second as u64;
+    let timestamp = 86400 * days_before_year(rtc.year as u64)
+                  + 86400 * days_before_month(rtc.year as u64, rtc.month as u64)
+                  + 86400 * (rtc.day - 1) as u64
+                  +  3600 * rtc.hour as u64
+                  +    60 * rtc.minute as u64
+                  +         rtc.second as u64;
 
-    t as f64
+    let fract = kernel::time::time_between_ticks()
+              * (kernel::time::ticks() - kernel::time::last_rtc_update()) as f64;
+
+    (timestamp as f64) + fract
 }
 
 fn days_before_year(year: u64) -> u64 {
