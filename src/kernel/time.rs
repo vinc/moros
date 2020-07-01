@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use crate::kernel::cmos::CMOS;
 
-const PIT_FREQUENCY: f64 = 1.193_182; // Mhz
+const PIT_FREQUENCY: f64 = 3.579_545 / 3.0; // 1.193_181_666 Mhz
 const PIT_INTERVAL: f64 = 1.0 / (PIT_FREQUENCY * 1_000_000.0 / 65_536.0);
 
 lazy_static! {
