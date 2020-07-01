@@ -89,11 +89,11 @@ impl CMOS {
         interrupts::without_interrupts(|| {
             self.disable_nmi();
             unsafe {
-                    self.addr.write(Register::A as u8);
-                    let prev = self.data.read();
-                    self.addr.write(Register::A as u8);
-                    self.data.write((prev & 0xF0) | rate);
-                }
+                self.addr.write(Register::A as u8);
+                let prev = self.data.read();
+                self.addr.write(Register::A as u8);
+                self.data.write((prev & 0xF0) | rate);
+            }
             self.enable_nmi();
             self.notify_end_of_interrupt();
         });
