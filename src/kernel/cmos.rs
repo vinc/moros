@@ -1,5 +1,6 @@
 use crate::print;
 use x86_64::instructions::port::Port;
+use x86_64::instructions::interrupts;
 
 #[repr(u8)]
 enum Register {
@@ -9,7 +10,16 @@ enum Register {
     Day = 0x07,
     Month = 0x08,
     Year = 0x09,
+    A = 0x0A,
     B = 0x0B,
+    C = 0x0C,
+}
+
+#[repr(u8)]
+enum Interrupt {
+    Periodic = 1 << 6,
+    Alarm = 1 << 5,
+    Update = 1 << 4,
 }
 
 #[derive(Debug)]
@@ -61,6 +71,55 @@ impl CMOS {
         RTC { year, month, day, hour, minute, second }
     }
 
+    pub fn enable_periodic_interrupt(&mut self) {
+        self.enable_interrupt(Interrupt::Periodic);
+    }
+
+    pub fn enable_alarm_interrupt(&mut self) {
+        self.enable_interrupt(Interrupt::Alarm);
+    }
+
+    pub fn enable_update_interrupt(&mut self) {
+        self.enable_interrupt(Interrupt::Update);
+    }
+
+    /// Rate must be between 3 and 15
+    /// Resulting in the following frequency: 32768 >> (rate - 1)
+    pub fn set_periodic_interrupt_rate(&mut self, rate: u8) {
+        interrupts::without_interrupts(|| {
+            self.disable_nmi();
+            unsafe {
+                    self.addr.write(Register::A as u8);
+                    let prev = self.data.read();
+                    self.addr.write(Register::A as u8);
+                    self.data.write((prev & 0xF0) | rate);
+                }
+            self.enable_nmi();
+            self.notify_end_of_interrupt();
+        });
+    }
+
+    fn enable_interrupt(&mut self, interrupt: Interrupt) {
+        interrupts::without_interrupts(|| {
+            self.disable_nmi();
+            unsafe {
+                self.addr.write(Register::B as u8);
+                let prev = self.data.read();
+                self.addr.write(Register::B as u8);
+                self.data.write(prev | interrupt as u8);
+            }
+            self.enable_nmi();
+            self.notify_end_of_interrupt();
+        });
+    }
+
+    pub fn notify_end_of_interrupt(&mut self) {
+        unsafe {
+            self.addr.write(Register::C as u8);
+            self.data.read();
+        }
+    }
+
     fn is_updating(&mut self) -> bool {
         unsafe {
             self.addr.write(0x0A as u8);
@@ -72,6 +131,20 @@ impl CMOS {
         unsafe {
             self.addr.write(reg as u8);
             self.data.read()
+        }
+    }
+
+    fn enable_nmi(&mut self) {
+        unsafe {
+            let prev = self.addr.read();
+            self.addr.write(prev & 0x7F);
+        }
+    }
+
+    fn disable_nmi(&mut self) {
+        unsafe {
+            let prev = self.addr.read();
+            self.addr.write(prev  | 0x80);
         }
     }
 }
