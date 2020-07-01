@@ -7,7 +7,7 @@ const DAYS_BEFORE_MONTH: [u64; 13] = [
 
 // NOTE: This clock is monotonic
 pub fn uptime() -> f64 {
-    1.0 / (1.193182 * 1000000.0 / 65536.0) * kernel::time::ticks() as f64
+    kernel::time::time_between_ticks() * kernel::time::ticks() as f64
 }
 
 // NOTE: This clock is not monotonic
