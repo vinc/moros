@@ -1,5 +1,4 @@
-use lazy_static::lazy_static;
-use spin::Mutex;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use crate::kernel::cmos::CMOS;
 use crate::kernel;
 use x86_64::instructions::interrupts;
@@ -13,13 +12,11 @@ const PIT_FREQUENCY: f64 = 3_579_545.0 / 3.0; // 1_193_181.666 Hz
 const PIT_DIVIDER: usize = 1193;
 const PIT_INTERVAL: f64 = (PIT_DIVIDER as f64) / PIT_FREQUENCY;
 
-lazy_static! {
-    pub static ref PIT_TICKS: Mutex<usize> = Mutex::new(0);
-    pub static ref LAST_RTC_UPDATE: Mutex<usize> = Mutex::new(0);
-}
+static PIT_TICKS: AtomicUsize = AtomicUsize::new(0);
+static LAST_RTC_UPDATE: AtomicUsize = AtomicUsize::new(0);
 
 pub fn ticks() -> usize {
-    *PIT_TICKS.lock()
+    PIT_TICKS.load(Ordering::Relaxed)
 }
 
 pub fn time_between_ticks() -> f64 {
@@ -27,7 +24,7 @@ pub fn time_between_ticks() -> f64 {
 }
 
 pub fn last_rtc_update() -> usize {
-    *LAST_RTC_UPDATE.lock()
+    LAST_RTC_UPDATE.load(Ordering::Relaxed)
 }
 
 pub fn sleep(duration: f64) {
@@ -67,13 +64,10 @@ fn set_pit_frequency_divider(divider: u16) {
 }
 
 pub fn pit_interrupt_handler() {
-    let mut ticks = PIT_TICKS.lock();
-    *ticks += 1;
+    PIT_TICKS.fetch_add(1, Ordering::Relaxed);
 }
 
 pub fn rtc_interrupt_handler() {
-    let ticks = PIT_TICKS.lock();
-    let mut last_update = LAST_RTC_UPDATE.lock();
-    *last_update = *ticks;
+    LAST_RTC_UPDATE.store(ticks(), Ordering::Relaxed);
     CMOS::new().notify_end_of_interrupt();
 }
