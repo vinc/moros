@@ -3,6 +3,10 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use x86_64::instructions::interrupts;
+use x86_64::instructions::port::Port;
+
+const PIC1: u16 = 0x21;
+const PIC2: u16 = 0xA1;
 
 // Translate IRQ into system interrupt
 fn interrupt_index(irq: u8) -> u8 {
@@ -73,8 +77,6 @@ pub fn init() {
     IDT.load();
 }
 
-use x86_64::instructions::port::Port;
-
 pub fn set_irq_handler(irq: u8, handler: fn()) {
     interrupts::without_interrupts(|| {
         let mut handlers = IRQ_HANDLERS.lock();
@@ -85,17 +87,17 @@ pub fn set_irq_handler(irq: u8, handler: fn()) {
 }
 
 pub fn set_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { 0x21 } else { 0xA1 } );
+    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 } );
     unsafe {
-        let value = port.read() & (1 << irq);
+        let value = port.read() | (1 << (if irq < 8 { irq } else { irq - 8 }));
         port.write(value);
     }
 }
 
 pub fn clear_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { 0x21 } else { 0xA1 } );
+    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 } );
     unsafe {
-        let value = port.read() & !(1 << irq);
+        let value = port.read() & !(1 << if irq < 8 { irq } else { irq - 8 });
         port.write(value);
     }
 }
