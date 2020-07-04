@@ -345,7 +345,6 @@ impl Shell {
             "shell"                => user::shell::main(&args),
             "sleep"                => user::sleep::main(&args),
             "clear"                => user::clear::main(&args),
-            "login"                => user::login::main(&args),
             "base64"               => user::base64::main(&args),
             "halt"                 => user::halt::main(&args),
             "hex"                  => user::hex::main(&args), // TODO: Rename to `dump`
@@ -360,6 +359,7 @@ impl Shell {
             "geotime"              => user::geotime::main(&args),
             "colors"               => user::colors::main(&args),
             "mkfs"                 => user::mkfs::main(&args),
+            "user"                 => user::user::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }

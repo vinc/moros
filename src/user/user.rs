@@ -9,26 +9,42 @@ use hmac::Hmac;
 use sha2::Sha256;
 
 const PASSWORDS: &'static str = "/ini/passwords.csv";
+const ACTIONS: [&'static str; 2] = ["create", "login"];
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
-    if args.len() > 1 && args[1] == "add" {
-        create()
+
+    if args.len() == 1 || !ACTIONS.contains(&args[1]) {
+        return usage();
+    }
+
+    let username: String = if args.len() == 2 {
+        print!("Username: ");
+        kernel::console::get_line().trim_end().into()
     } else {
-        login()
+        args[2].into()
+    };
+
+    match args[1] {
+        "create" => create(&username),
+        "login" => login(&username),
+        _ => usage(),
     }
 }
 
+fn usage() -> user::shell::ExitCode {
+    print!("Usage: user [{}] <username>\n", ACTIONS.join("|"));
+    return user::shell::ExitCode::CommandError;
+}
+
 // TODO: Add max number of attempts
-pub fn login() -> user::shell::ExitCode {
-    print!("Username: ");
-    let mut username = kernel::console::get_line();
-    username.pop(); // Trim end of string
+pub fn login(username: &str) -> user::shell::ExitCode {
+    if username.is_empty() {
+        print!("\n");
+        kernel::time::sleep(1.0);
+        return main(&["user", "login"]);
+    }
 
     match hashed_password(&username) {
-        None => {
-            kernel::time::sleep(1.0);
-            return login();
-        },
         Some(hash) => {
             print!("Password: ");
             kernel::console::disable_echo();
@@ -37,10 +53,16 @@ pub fn login() -> user::shell::ExitCode {
             print!("\n");
             password.pop();
             if !check(&password, &hash) {
+                print!("\n");
                 kernel::time::sleep(1.0);
-                return login();
+                return main(&["user", "login"]);
             }
-        }
+        },
+        None => {
+            print!("\n");
+            kernel::time::sleep(1.0);
+            return main(&["user", "login"]);
+        },
     }
 
     let home = format!("/usr/{}", username);
@@ -52,12 +74,7 @@ pub fn login() -> user::shell::ExitCode {
     user::shell::ExitCode::CommandSuccessful
 }
 
-// TODO: Move that to `user add` or something
-pub fn create() -> user::shell::ExitCode {
-    print!("Username: ");
-    let mut username = kernel::console::get_line();
-    username.pop(); // Trim end of string
-
+pub fn create(username: &str) -> user::shell::ExitCode {
     if username.is_empty() {
         return user::shell::ExitCode::CommandError;
     }
@@ -91,7 +108,7 @@ pub fn create() -> user::shell::ExitCode {
     }
 
     if save_hashed_password(&username, &hash(&password)).is_err() {
-        print!("Could not save login\n");
+        print!("Could not save user\n");
         return user::shell::ExitCode::CommandError;
     }
 

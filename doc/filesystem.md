@@ -38,7 +38,7 @@ check the presence of a filesystem on those hard drives. If no filesystem is
 found, MOROS will open a console in diskless mode to allow the user to create
 one with the `mkfs` command:
 
-    > mkfs /dev/ata/0/0
+    mkfs /dev/ata/0/0
 
 This command will write a magic string in the first superblock, mount the
 filesystem, and allocate the root directory.
@@ -47,11 +47,11 @@ The next step during setup is to create a directory structure and a boot script
 at `/ini/boot.sh` that MOROS will need to finish booting. The following command
 will automate that:
 
-    > install
+    install
 
 Finally a user required to log in can be created with the following command:
 
-    > login add
+    user add
 
 
 ## Data Structures

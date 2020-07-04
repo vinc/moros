@@ -71,7 +71,7 @@ and log in:
 
     mkfs /dev/ata/0/0
     install
-    login add
+    user add
 
 **Be careful not to overwrite the hard drive of your OS when using `dd` inside
 your OS or `mkfs` inside MOROS.**
