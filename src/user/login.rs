@@ -69,12 +69,20 @@ pub fn create() -> user::shell::ExitCode {
     let mut username = kernel::console::get_line();
     username.pop(); // Trim end of string
 
+    if username.is_empty() {
+        return user::shell::ExitCode::CommandError;
+    }
+
     print!("Password: ");
     kernel::console::disable_echo();
     let mut password = kernel::console::get_line();
     kernel::console::enable_echo();
     print!("\n");
     password.pop();
+
+    if password.is_empty() {
+        return user::shell::ExitCode::CommandError;
+    }
 
     print!("Confirm: ");
     kernel::console::disable_echo();
