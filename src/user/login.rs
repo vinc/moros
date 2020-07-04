@@ -104,6 +104,9 @@ pub fn create() -> user::shell::ExitCode {
     contents.push_str(&format!("{},{}\n", username, hash(&password)));
     file.write(&contents.as_bytes()).unwrap();
 
+    // Create home dir
+    kernel::fs::Dir::create(&format!("/usr/{}", username)).unwrap();
+
     user::shell::ExitCode::CommandSuccessful
 }
 
