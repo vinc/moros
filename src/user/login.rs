@@ -8,6 +8,8 @@ use core::str;
 use hmac::Hmac;
 use sha2::Sha256;
 
+const PASSWORDS: &'static str = "/ini/passwords.csv";
+
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() > 1 && args[1] == "add" {
         create()
@@ -19,7 +21,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 // TODO: Add max number of attempts
 pub fn login() -> user::shell::ExitCode {
     let mut hashed_passwords: BTreeMap<String, String> = BTreeMap::new();
-    if let Some(file) = kernel::fs::File::open("/ini/passwords.csv") {
+    if let Some(file) = kernel::fs::File::open(PASSWORDS) {
         for line in file.read_to_string().split("\n") {
             let mut rows = line.split(",");
             if let Some(username) = rows.next() {
@@ -86,7 +88,22 @@ pub fn create() -> user::shell::ExitCode {
         return user::shell::ExitCode::CommandError;
     }
 
-    print!("{}\n", hash(&password));
+    let mut file = match kernel::fs::File::open(PASSWORDS) {
+        Some(file) => file,
+        None => match kernel::fs::File::create(PASSWORDS) {
+            Some(file) => file,
+            None => {
+                print!("Could not open '{}'\n", PASSWORDS);
+                return user::shell::ExitCode::CommandError;
+            }
+        }
+    };
+
+    // Save password hash
+    let mut contents = file.read_to_string();
+    contents.push_str(&format!("{},{}\n", username, hash(&password)));
+    file.write(&contents.as_bytes()).unwrap();
+
     user::shell::ExitCode::CommandSuccessful
 }
 
