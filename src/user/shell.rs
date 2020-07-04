@@ -20,6 +20,7 @@ pub struct Shell {
     history_index: usize,
     autocomplete: Vec<String>,
     autocomplete_index: usize,
+    errored: bool,
 }
 
 impl Shell {
@@ -31,6 +32,7 @@ impl Shell {
             history_index: 0,
             autocomplete: Vec::new(),
             autocomplete_index: 0,
+            errored: false,
         }
     }
 
@@ -52,6 +54,7 @@ impl Shell {
                 },
                 '\x03' => { // Ctrl C
                     self.cmd.clear();
+                    self.errored = false;
                     print!("\n\n");
                     self.print_prompt();
                 },
@@ -71,16 +74,19 @@ impl Shell {
                         let line = self.cmd.clone();
                         match self.exec(&line) {
                             ExitCode::CommandSuccessful => {
+                                self.errored = false;
                                 self.save_history();
                             },
                             ExitCode::ShellExit => {
                                 return ExitCode::CommandSuccessful
                             },
                             _ => {
-                                print!("?\n")
+                                self.errored = true;
                             },
                         }
                         self.cmd.clear();
+                    } else {
+                        self.errored = false;
                     }
                     print!("\n");
                     self.print_prompt();
@@ -367,7 +373,7 @@ impl Shell {
 
     fn print_prompt(&self) {
         let (fg, bg) = kernel::vga::color();
-        kernel::vga::set_color(Color::Magenta, bg);
+        kernel::vga::set_color(if self.errored { Color::Red } else { Color::Magenta }, bg);
         print!("{}", self.prompt);
         kernel::vga::set_color(fg, bg);
     }
