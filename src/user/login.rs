@@ -32,7 +32,7 @@ pub fn login() -> user::shell::ExitCode {
         }
     }
 
-    print!("\nUsername: ");
+    print!("Username: ");
     let mut username = kernel::console::get_line();
     username.pop(); // Trim end of string
     match hashed_passwords.get(&username) {
@@ -65,7 +65,7 @@ pub fn login() -> user::shell::ExitCode {
 
 // TODO: Move that to `user add` or something
 pub fn create() -> user::shell::ExitCode {
-    print!("\nUsername: ");
+    print!("Username: ");
     let mut username = kernel::console::get_line();
     username.pop(); // Trim end of string
 
