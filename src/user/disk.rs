@@ -45,7 +45,7 @@ fn list() -> user::shell::ExitCode {
 fn format(pathname: &str) -> user::shell::ExitCode {
     let path: Vec<_> = pathname.split('/').collect();
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
-        print!("Could not recognize <device>\n");
+        print!("Could not find disk at '{}'\n", pathname);
         return user::shell::ExitCode::CommandError;
     }
 
@@ -53,7 +53,7 @@ fn format(pathname: &str) -> user::shell::ExitCode {
     let dsk = path[4].parse().expect("Could not parse <dsk>");
     kernel::fs::format(bus, dsk);
     print!("Disk successfully formatted\n");
-    print!("MFS mounted to '/'\n");
+    print!("MFS is now mounted to '/'\n");
 
     user::shell::ExitCode::CommandSuccessful
 }

@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use alloc::string::String;
 
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum ExitCode {
     CommandSuccessful = 0,
     CommandUnknown    = 1,
@@ -49,6 +50,7 @@ impl Shell {
                 }
                 '\x04' => { // Ctrl D
                     if self.cmd.is_empty() {
+                        kernel::vga::clear_screen();
                         return ExitCode::CommandSuccessful;
                     }
                 },
@@ -78,6 +80,7 @@ impl Shell {
                                 self.save_history();
                             },
                             ExitCode::ShellExit => {
+                                kernel::vga::clear_screen();
                                 return ExitCode::CommandSuccessful
                             },
                             _ => {

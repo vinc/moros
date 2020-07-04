@@ -65,16 +65,14 @@ will not be available):
     sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
 
 In both cases, MOROS will open a console in diskless mode after boot if no
-filesystem is detected. The following commands will setup the filesystem on the
+filesystem is detected. The following command will setup the filesystem on the
 first hard drive of the first ATA bus, allowing you to exit the diskless mode
-and log in:
+and log in as a normal user:
 
-    disk format /dev/ata/0/0
     install
-    user add
 
 **Be careful not to overwrite the hard drive of your OS when using `dd` inside
-your OS or `disk format` inside MOROS.**
+your OS, and `install` or `disk format` inside MOROS.**
 
 
 ## LICENSE

@@ -6,22 +6,22 @@ use spin::Mutex;
 
 lazy_static! {
     pub static ref PIDS: AtomicUsize = AtomicUsize::new(0);
-    pub static ref PROCESS: Mutex<Process> = Mutex::new(Process::new("/", "admin")); // TODO
+    pub static ref PROCESS: Mutex<Process> = Mutex::new(Process::new("/", None)); // TODO
 }
 
 pub struct Process {
     id: usize,
     env: BTreeMap<String, String>,
     dir: String,
-    user: String, // TODO: Use uid
+    user: Option<String>,
 }
 
 impl Process {
-    pub fn new(dir: &str, user: &str) -> Self {
+    pub fn new(dir: &str, user: Option<&str>) -> Self {
         let id = PIDS.fetch_add(1, Ordering::SeqCst);
         let env = BTreeMap::new();
         let dir = dir.to_string();
-        let user = user.to_string();
+        let user = user.map(String::from);
         Self { id, env, dir, user }
     }
 }
@@ -41,7 +41,7 @@ pub fn dir() -> String {
     PROCESS.lock().dir.clone()
 }
 
-pub fn user() -> String {
+pub fn user() -> Option<String> {
     PROCESS.lock().user.clone()
 }
 
@@ -54,5 +54,5 @@ pub fn set_dir(dir: &str) {
 }
 
 pub fn set_user(user: &str) {
-    PROCESS.lock().user = user.into();
+    PROCESS.lock().user = Some(user.into())
 }

@@ -33,25 +33,42 @@ A location on the tree of dirs and files is named a path:
 
 ### Setup in diskless console
 
-During boot MOROS will detect the hard drives present on the ATA buses, then
-check the presence of a filesystem on those hard drives. If no filesystem is
-found, MOROS will open a console in diskless mode to allow the user to create
-one with the `disk format` command:
+During boot MOROS will detect any hard drives present on the ATA buses, then
+look for a filesystem on those hard drives. If no filesystem is found, MOROS
+will open a console in diskless mode to allow the user to create one with
+the `disk format` command:
 
     disk format /dev/ata/0/0
 
-This command will write a magic string in the first superblock, mount the
-filesystem, and allocate the root directory.
+This command will format the first disk on the first ATA bus by writing a magic
+string in a superblock, mounting the filesystem, and allocating the root
+directory.
 
-The next step during setup is to create a directory structure and a boot script
-at `/ini/boot.sh` that MOROS will need to finish booting. The following command
-will automate that:
+The next step during setup is to create the directory structure:
 
-    install
+    write /bin/           # Binaries
+    write /dev/           # Devices
+    write /ini/           # Initialisation files
+    write /lib/           # Libraries
+    write /net/           # Network
+    write /src/           # Sources
+    write /tmp/           # Temporary files
+    write /usr/           # User directories
+    write /var/           # Variable files
 
-Finally a user required to log in can be created with the following command:
+Then the following should be added to the boot script with the
+command `edit /ini/boot.sh` to allow MOROS to finish booting:
 
-    user add
+    user login
+    shell
+
+Finally a user can be created with the following command:
+
+    user create
+
+All of this can be made more easily by running the `install` command instead.
+This installer  will also add additional files contained in the `dsk`
+repository of the source code, like a nice login banner :)
 
 
 ## Data Structures

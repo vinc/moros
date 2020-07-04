@@ -16,9 +16,14 @@ fn main(boot_info: &'static BootInfo) -> ! {
         if kernel::fs::File::open(bootrc).is_some() {
             user::shell::main(&["shell", bootrc]);
         } else {
-            print!("Could not find '{}'\n", bootrc);
+            if kernel::fs::is_mounted() {
+                print!("Could not find '{}'\n", bootrc);
+            } else {
+                print!("MFS is not mounted to '/'\n");
+            }
             print!("Running console in diskless mode\n");
-            //print!("Use `disk format` and `install` to setup MOROS on disk\n");
+            print!("\n");
+
             user::shell::main(&["shell"]);
         }
     }
