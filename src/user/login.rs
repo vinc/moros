@@ -58,7 +58,12 @@ pub fn create() -> user::shell::ExitCode {
     let mut username = kernel::console::get_line();
     username.pop(); // Trim end of string
 
-    if username.is_empty() || hashed_password(&username).is_some() {
+    if username.is_empty() {
+        return user::shell::ExitCode::CommandError;
+    }
+
+    if hashed_password(&username).is_some() {
+        print!("Username exists\n");
         return user::shell::ExitCode::CommandError;
     }
 
@@ -85,21 +90,10 @@ pub fn create() -> user::shell::ExitCode {
         return user::shell::ExitCode::CommandError;
     }
 
-    let mut file = match kernel::fs::File::open(PASSWORDS) {
-        Some(file) => file,
-        None => match kernel::fs::File::create(PASSWORDS) {
-            Some(file) => file,
-            None => {
-                print!("Could not open '{}'\n", PASSWORDS);
-                return user::shell::ExitCode::CommandError;
-            }
-        }
-    };
-
-    // Save password hash
-    let mut contents = file.read_to_string();
-    contents.push_str(&format!("{},{}\n", username, hash(&password)));
-    file.write(&contents.as_bytes()).unwrap();
+    if save_hashed_password(&username, &hash(&password)).is_err() {
+        print!("Could not save login\n");
+        return user::shell::ExitCode::CommandError;
+    }
 
     // Create home dir
     kernel::fs::Dir::create(&format!("/usr/{}", username)).unwrap();
@@ -165,9 +159,9 @@ fn read_hashed_passwords() -> BTreeMap<String, String> {
     if let Some(file) = kernel::fs::File::open(PASSWORDS) {
         for line in file.read_to_string().split("\n") {
             let mut rows = line.split(",");
-            if let Some(user) = rows.next() {
-                if let Some(pass) = rows.next() {
-                    hashed_passwords.insert(user.into(), pass.into());
+            if let Some(username) = rows.next() {
+                if let Some(hash) = rows.next() {
+                    hashed_passwords.insert(username.into(), hash.into());
                 }
             }
         }
@@ -175,13 +169,31 @@ fn read_hashed_passwords() -> BTreeMap<String, String> {
     hashed_passwords
 }
 
-// TODO: add `set_hashed_password(username: &str, hash: &str)`
-
 fn hashed_password(username: &str) -> Option<String> {
     let hashed_passwords = read_hashed_passwords();
 
     match hashed_passwords.get(username) {
         Some(hash) => Some(hash.into()),
-        None => None
+        None => None,
     }
+}
+
+fn save_hashed_password(username: &str, hash: &str) -> Result<(), ()> {
+    let mut hashed_passwords = read_hashed_passwords();
+    hashed_passwords.remove(username.into());
+    hashed_passwords.insert(username.into(), hash.into());
+
+    let mut file = match kernel::fs::File::open(PASSWORDS) {
+        None => match kernel::fs::File::create(PASSWORDS) {
+            None => return Err(()),
+            Some(file) => file,
+        },
+        Some(file) => file,
+    };
+
+    let mut contents = String::new();
+    for (u, h) in hashed_passwords {
+        contents.push_str(&format!("{},{}\n", u, h));
+    }
+    file.write(&contents.as_bytes())
 }
