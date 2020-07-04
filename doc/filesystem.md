@@ -38,7 +38,7 @@ look for a filesystem on those hard drives. If no filesystem is found, MOROS
 will open a console in diskless mode to allow the user to create one with
 the `disk format` command:
 
-    disk format /dev/ata/0/0
+    > disk format /dev/ata/0/0
 
 This command will format the first disk on the first ATA bus by writing a magic
 string in a superblock, mounting the filesystem, and allocating the root
@@ -46,15 +46,15 @@ directory.
 
 The next step during setup is to create the directory structure:
 
-    write /bin/           # Binaries
-    write /dev/           # Devices
-    write /ini/           # Initialisation files
-    write /lib/           # Libraries
-    write /net/           # Network
-    write /src/           # Sources
-    write /tmp/           # Temporary files
-    write /usr/           # User directories
-    write /var/           # Variable files
+    > write /bin/           # Binaries
+    > write /dev/           # Devices
+    > write /ini/           # Initialisation files
+    > write /lib/           # Libraries
+    > write /net/           # Network
+    > write /src/           # Sources
+    > write /tmp/           # Temporary files
+    > write /usr/           # User directories
+    > write /var/           # Variable files
 
 Then the following should be added to the boot script with the
 command `edit /ini/boot.sh` to allow MOROS to finish booting:
@@ -64,7 +64,7 @@ command `edit /ini/boot.sh` to allow MOROS to finish booting:
 
 Finally a user can be created with the following command:
 
-    user create
+    > user create
 
 All of this can be made more easily by running the `install` command instead.
 This installer  will also add additional files contained in the `dsk`
