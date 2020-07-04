@@ -160,8 +160,8 @@ pub fn hash(password: &str) -> String {
     res
 }
 
-fn hashed_password(username: &str) -> Option<String> {
-    let mut hashed_passwords: BTreeMap<String, String> = BTreeMap::new();
+fn read_hashed_passwords() -> BTreeMap<String, String> {
+    let mut hashed_passwords = BTreeMap::new();
     if let Some(file) = kernel::fs::File::open(PASSWORDS) {
         for line in file.read_to_string().split("\n") {
             let mut rows = line.split(",");
@@ -172,6 +172,14 @@ fn hashed_password(username: &str) -> Option<String> {
             }
         }
     }
+    hashed_passwords
+}
+
+// TODO: add `set_hashed_password(username: &str, hash: &str)`
+
+fn hashed_password(username: &str) -> Option<String> {
+    let hashed_passwords = read_hashed_passwords();
+
     match hashed_passwords.get(username) {
         Some(hash) => Some(hash.into()),
         None => None
