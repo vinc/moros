@@ -8,9 +8,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         return user::shell::ExitCode::CommandError;
     }
 
-    let path: Vec<_> = args[1].split('/').collect();
-
-    if path.len() != 5 {
+    let pathname = args[1];
+    let path: Vec<_> = pathname.split('/').collect();
+    if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
         print!("Could not recognize <device>\n");
         return user::shell::ExitCode::CommandError;
     }
