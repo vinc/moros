@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use crate::{print, kernel, user};
 
-const COMMANDS: [&'static str; 1] = ["format"];
+const COMMANDS: [&'static str; 2] = ["list", "format"];
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
@@ -9,6 +9,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     }
 
     match args[1] {
+        "list" => {
+            list()
+        },
         "format" => {
             if args.len() == 2 {
                 return usage();
@@ -25,12 +28,21 @@ fn usage() -> user::shell::ExitCode {
     print!("Usage: <command>\n");
     print!("\n");
     print!("Commands:\n");
-    print!("  format /dev/ata/<bus>/<dsk>\n");
+    print!("  list\n");
+    print!("  format <path>\n");
 
     user::shell::ExitCode::CommandError
 }
 
-pub fn format(pathname: &str) -> user::shell::ExitCode {
+fn list() -> user::shell::ExitCode {
+    print!("Path            Name (Size)\n");
+    for (bus, drive, model, serial, size, unit) in kernel::ata::list() {
+        print!("/dev/ata/{}/{}    {} {} ({} {})\n", bus, drive, model, serial, size, unit);
+    }
+    user::shell::ExitCode::CommandSuccessful
+}
+
+fn format(pathname: &str) -> user::shell::ExitCode {
     let path: Vec<_> = pathname.split('/').collect();
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
         print!("Could not recognize <device>\n");
