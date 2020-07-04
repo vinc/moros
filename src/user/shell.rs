@@ -45,14 +45,15 @@ impl Shell {
                 '\0' => {
                     continue;
                 }
-                '\x03' => { // Ctrl C
-                    if self.cmd.len() > 0 {
-                        self.cmd.clear();
-                        print!("\n\n");
-                        self.print_prompt();
-                    } else {
+                '\x04' => { // Ctrl D
+                    if self.cmd.is_empty() {
                         return ExitCode::CommandSuccessful;
                     }
+                },
+                '\x03' => { // Ctrl C
+                    self.cmd.clear();
+                    print!("\n\n");
+                    self.print_prompt();
                 },
                 '\n' => { // Newline
                     self.update_history();
