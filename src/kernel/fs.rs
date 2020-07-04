@@ -402,9 +402,15 @@ impl Dir {
     pub fn open(pathname: &str) -> Option<Self> {
         let pathname = realpath(pathname);
         let mut dir = Dir::root();
+
+        if !is_mounted() {
+            return None;
+        }
+
         if pathname == "/" {
             return Some(dir);
         }
+
         for name in pathname.trim_start_matches('/').split('/') {
             match dir.find(name) {
                 Some(dir_entry) => {
@@ -647,6 +653,9 @@ impl BlockDevice {
     }
 }
 
+pub fn is_mounted() -> bool {
+    BLOCK_DEVICE.lock().is_some()
+}
 
 pub fn mount(bus: u8, dsk: u8) {
     let block_device = BlockDevice::new(bus, dsk);
