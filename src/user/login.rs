@@ -20,34 +20,23 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
 // TODO: Add max number of attempts
 pub fn login() -> user::shell::ExitCode {
-    let mut hashed_passwords: BTreeMap<String, String> = BTreeMap::new();
-    if let Some(file) = kernel::fs::File::open(PASSWORDS) {
-        for line in file.read_to_string().split("\n") {
-            let mut rows = line.split(",");
-            if let Some(username) = rows.next() {
-                if let Some(hashed_password) = rows.next() {
-                    hashed_passwords.insert(username.into(), hashed_password.into());
-                }
-            }
-        }
-    }
-
     print!("Username: ");
     let mut username = kernel::console::get_line();
     username.pop(); // Trim end of string
-    match hashed_passwords.get(&username) {
+
+    match hashed_password(&username) {
         None => {
             kernel::time::sleep(1.0);
             return login();
         },
-        Some(hashed_password) => {
+        Some(hash) => {
             print!("Password: ");
             kernel::console::disable_echo();
             let mut password = kernel::console::get_line();
             kernel::console::enable_echo();
             print!("\n");
             password.pop();
-            if !check(&password, hashed_password) {
+            if !check(&password, &hash) {
                 kernel::time::sleep(1.0);
                 return login();
             }
@@ -69,7 +58,7 @@ pub fn create() -> user::shell::ExitCode {
     let mut username = kernel::console::get_line();
     username.pop(); // Trim end of string
 
-    if username.is_empty() {
+    if username.is_empty() || hashed_password(&username).is_some() {
         return user::shell::ExitCode::CommandError;
     }
 
@@ -169,4 +158,22 @@ pub fn hash(password: &str) -> String {
     res.push('$');
     res.push_str(&String::from_utf8(user::base64::encode(&hash)).unwrap());
     res
+}
+
+fn hashed_password(username: &str) -> Option<String> {
+    let mut hashed_passwords: BTreeMap<String, String> = BTreeMap::new();
+    if let Some(file) = kernel::fs::File::open(PASSWORDS) {
+        for line in file.read_to_string().split("\n") {
+            let mut rows = line.split(",");
+            if let Some(user) = rows.next() {
+                if let Some(pass) = rows.next() {
+                    hashed_passwords.insert(user.into(), pass.into());
+                }
+            }
+        }
+    }
+    match hashed_passwords.get(username) {
+        Some(hash) => Some(hash.into()),
+        None => None
+    }
 }
