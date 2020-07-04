@@ -1,7 +1,7 @@
 use crate::{print, kernel, user};
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    print!("Welcome to MOROS installation program!\n");
+    print!("Welcome to MOROS v{} installation program!\n", env!("CARGO_PKG_VERSION"));
     print!("Proceed? [y/N] ");
     if kernel::console::get_line().trim() == "y" {
         if !kernel::fs::is_mounted() {

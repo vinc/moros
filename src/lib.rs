@@ -16,7 +16,7 @@ pub fn init(boot_info: &'static BootInfo) {
     unsafe { kernel::pic::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
 
-    log!("MOROS version {}\n", env!("CARGO_PKG_VERSION"));
+    log!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
 
     kernel::time::init();
     kernel::keyboard::init();
