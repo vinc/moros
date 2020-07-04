@@ -8,6 +8,7 @@ This project started from the [seventh post][1] of the second edition of
 
 ![screenshot](screenshot.png)
 
+
 ## Features
 
 - [x] External bootloader (using [bootloader](https://github.com/rust-osdev/bootloader))
@@ -34,6 +35,7 @@ This project started from the [seventh post][1] of the second edition of
 - [ ] Multitasking
 - [ ] A real userspace
 
+
 ## Setup
 
 Install tools:
@@ -45,9 +47,10 @@ Install tools:
     rustup component add llvm-tools-preview
     cargo install cargo-xbuild bootimage
 
+
 ## Usage
 
-Build image:
+Build image to `disk.img`:
 
     make image output=vga keyboard=qwerty
 
@@ -55,18 +58,24 @@ Run on QEMU:
 
     make qemu output=vga
 
-MOROS will open a console in diskless mode after boot if no filesystem is
-detected. Use `mkfs /dev/ata/0/0` to create a filesystem on the ATA hard drive
-that will be used on the next boot.
-
 Run on a native x86 computer by copying the bootloader and kernel to a hard
 drive or USB stick (but there is currently no USB driver so the filesystem
 will not be available):
 
     sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
 
+In both cases, MOROS will open a console in diskless mode after boot if no
+filesystem is detected. The following commands will setup the filesystem on the
+first hard drive of the first ATA bus, allowing you to exit the diskless mode
+and log in:
+
+    mkfs /dev/ata/0/0
+    install
+    login add
+
 **Be careful not to overwrite the hard drive of your OS when using `dd` inside
 your OS or `mkfs` inside MOROS.**
+
 
 ## LICENSE
 
