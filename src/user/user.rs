@@ -9,11 +9,10 @@ use hmac::Hmac;
 use sha2::Sha256;
 
 const PASSWORDS: &'static str = "/ini/passwords.csv";
-const ACTIONS: [&'static str; 2] = ["create", "login"];
+const COMMANDS: [&'static str; 2] = ["create", "login"];
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
-
-    if args.len() == 1 || !ACTIONS.contains(&args[1]) {
+    if args.len() == 1 || !COMMANDS.contains(&args[1]) {
         return usage();
     }
 
@@ -32,7 +31,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 }
 
 fn usage() -> user::shell::ExitCode {
-    print!("Usage: user [{}] <username>\n", ACTIONS.join("|"));
+    print!("Usage: user [{}] <username>\n", COMMANDS.join("|"));
     return user::shell::ExitCode::CommandError;
 }
 

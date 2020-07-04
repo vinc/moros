@@ -69,12 +69,12 @@ filesystem is detected. The following commands will setup the filesystem on the
 first hard drive of the first ATA bus, allowing you to exit the diskless mode
 and log in:
 
-    mkfs /dev/ata/0/0
+    disk format /dev/ata/0/0
     install
     user add
 
 **Be careful not to overwrite the hard drive of your OS when using `dd` inside
-your OS or `mkfs` inside MOROS.**
+your OS or `disk format` inside MOROS.**
 
 
 ## LICENSE

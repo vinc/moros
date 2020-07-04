@@ -18,7 +18,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
         } else {
             print!("Could not find '{}'\n", bootrc);
             print!("Running console in diskless mode\n");
-            //print!("Use `mkfs` and `install` to setup MOROS on disk\n");
+            //print!("Use `disk format` and `install` to setup MOROS on disk\n");
             user::shell::main(&["shell"]);
         }
     }

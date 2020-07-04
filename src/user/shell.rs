@@ -359,7 +359,7 @@ impl Shell {
             "ip"                   => user::ip::main(&args),
             "geotime"              => user::geotime::main(&args),
             "colors"               => user::colors::main(&args),
-            "mkfs"                 => user::mkfs::main(&args),
+            "disk"                 => user::disk::main(&args),
             "user"                 => user::user::main(&args),
             _                      => ExitCode::CommandUnknown,
         }

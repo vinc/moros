@@ -36,9 +36,9 @@ A location on the tree of dirs and files is named a path:
 During boot MOROS will detect the hard drives present on the ATA buses, then
 check the presence of a filesystem on those hard drives. If no filesystem is
 found, MOROS will open a console in diskless mode to allow the user to create
-one with the `mkfs` command:
+one with the `disk format` command:
 
-    mkfs /dev/ata/0/0
+    disk format /dev/ata/0/0
 
 This command will write a magic string in the first superblock, mount the
 filesystem, and allocate the root directory.

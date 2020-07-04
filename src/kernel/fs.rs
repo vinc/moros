@@ -662,7 +662,7 @@ pub fn mount(bus: u8, dsk: u8) {
     *BLOCK_DEVICE.lock() = Some(block_device);
 }
 
-pub fn make(bus: u8, dsk: u8) {
+pub fn format(bus: u8, dsk: u8) {
     // Write superblock
     let mut buf = MAGIC.as_bytes().to_vec();
     buf.resize(512, 0);
