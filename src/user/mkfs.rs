@@ -18,7 +18,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let bus = path[3].parse().expect("Could not parse <bus>");
     let dsk = path[4].parse().expect("Could not parse <dsk>");
     kernel::fs::make(bus, dsk);
-    print!("MFS setup on ATA {}:{}\n", bus, dsk);
+    print!("MFS mounted to '/'\n");
 
     user::shell::ExitCode::CommandSuccessful
 }
