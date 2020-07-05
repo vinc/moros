@@ -11,43 +11,21 @@ entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
     moros::init(boot_info);
-    print!("\n");
-
-    kernel::fs::Dir::create("/bin"); // Binaries
-    kernel::fs::Dir::create("/dev"); // Devices
-    kernel::fs::Dir::create("/ini"); // Initializers
-    kernel::fs::Dir::create("/lib"); // Libraries
-    kernel::fs::Dir::create("/net"); // Network
-    kernel::fs::Dir::create("/src"); // Sources
-    kernel::fs::Dir::create("/tmp"); // Temporaries
-    kernel::fs::Dir::create("/usr"); // User directories
-    kernel::fs::Dir::create("/var"); // Variables
-
-    kernel::fs::Dir::create("/usr/admin");
-
-    include_file("/ini/boot.sh", include_str!("../dsk/ini/boot.sh"));
-    include_file("/ini/banner.txt", include_str!("../dsk/ini/banner.txt"));
-    include_file("/ini/passwords.csv", include_str!("../dsk/ini/passwords.csv"));
-    include_file("/tmp/alice.txt", include_str!("../dsk/tmp/alice.txt"));
     loop {
         let bootrc = "/ini/boot.sh";
         if kernel::fs::File::open(bootrc).is_some() {
             user::shell::main(&["shell", bootrc]);
         } else {
-            print!("Could not find '{}'\n", bootrc);
+            if kernel::fs::is_mounted() {
+                print!("Could not find '{}'\n", bootrc);
+            } else {
+                print!("MFS is not mounted to '/'\n");
+            }
             print!("Running console in diskless mode\n");
-            //print!("Use `mkfs` and `reboot` to setup MOROS on disk\n");
+            print!("\n");
+
             user::shell::main(&["shell"]);
         }
-    }
-}
-
-fn include_file(pathname: &str, contents: &str) {
-    if kernel::fs::File::open(pathname).is_some() {
-        return;
-    }
-    if let Some(mut file) = kernel::fs::File::create(pathname) {
-        file.write(&contents.as_bytes()).unwrap();
     }
 }
 

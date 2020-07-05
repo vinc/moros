@@ -239,31 +239,44 @@ fn disk_size(sectors: u32) -> (u32, String) {
 }
 
 pub fn init() {
-    let mut buses = BUSES.lock();
-    buses.push(Bus::new(0, 0x1F0, 0x3F6, 14));
-    buses.push(Bus::new(1, 0x170, 0x376, 15));
+    {
+        let mut buses = BUSES.lock();
+        buses.push(Bus::new(0, 0x1F0, 0x3F6, 14));
+        buses.push(Bus::new(1, 0x170, 0x376, 15));
+    }
+    
+    for (bus, drive, model, serial, size, unit) in list() {
+        log!("ATA {}:{} {} {} ({} {})\n", bus, drive, model, serial, size, unit);
+    }
+}
 
+pub fn list() -> Vec<(u8, u8, String, String, u32, String)> {
+    let mut buses = BUSES.lock();
+    let mut res = Vec::new();
     for bus in 0..2 {
         for drive in 0..2 {
-            if let Some(buf) = buses[bus].identify_drive(drive) {
+            if let Some(buf) = buses[bus as usize].identify_drive(drive) {
                 let mut serial = String::new();
                 for i in 10..20 {
                     for &b in &buf[i].to_be_bytes() {
                         serial.push(b as char);
                     }
                 }
+                serial = serial.trim().into();
                 let mut model = String::new();
                 for i in 27..47 {
                     for &b in &buf[i].to_be_bytes() {
                         model.push(b as char);
                     }
                 }
+                model = model.trim().into();
                 let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);
                 let (size, unit) = disk_size(sectors);
-                log!("ATA {}:{} {} {} ({} {})\n", bus, drive, model.trim(), serial.trim(), size, unit);
+                res.push((bus, drive, model, serial, size, unit));
             }
         }
     }
+    res
 }
 
 pub fn read(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) {

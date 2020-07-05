@@ -1,4 +1,3 @@
 read /ini/banner.txt
-login
+user login
 shell
-clear

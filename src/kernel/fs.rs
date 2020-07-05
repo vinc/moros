@@ -6,6 +6,12 @@ use crate::{kernel, log};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
+lazy_static! {
+    pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
+}
+
+const MAGIC: &'static str = "MOROS FS";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
     Dir = 0,
@@ -195,12 +201,6 @@ impl Block {
         Self { addr, buf }
     }
 
-    pub fn write(&self) {
-        if let Some(ref block_device) = *BLOCK_DEVICE.lock() {
-            block_device.write(self.addr, &self.buf);
-        }
-    }
-
     pub fn alloc() -> Option<Self> {
         match BlockBitmap::next_free_addr() {
             None => {
@@ -218,6 +218,12 @@ impl Block {
 
                 Some(block)
             }
+        }
+    }
+
+    pub fn write(&self) {
+        if let Some(ref block_device) = *BLOCK_DEVICE.lock() {
+            block_device.write(self.addr, &self.buf);
         }
     }
 
@@ -270,7 +276,7 @@ const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS / 8;
  * 3 => Data (directories and files)
  */
 
-// A BlockBitmap store the allocation status of (512 -4) * 8 data blocks
+// A BlockBitmap store the allocation status of (512 - 4) * 8 data blocks
 pub struct BlockBitmap {}
 
 impl BlockBitmap {
@@ -396,9 +402,15 @@ impl Dir {
     pub fn open(pathname: &str) -> Option<Self> {
         let pathname = realpath(pathname);
         let mut dir = Dir::root();
+
+        if !is_mounted() {
+            return None;
+        }
+
         if pathname == "/" {
             return Some(dir);
         }
+
         for name in pathname.trim_start_matches('/').split('/') {
             match dir.find(name) {
                 Some(dir_entry) => {
@@ -641,25 +653,27 @@ impl BlockDevice {
     }
 }
 
-lazy_static! {
-    pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
+pub fn is_mounted() -> bool {
+    BLOCK_DEVICE.lock().is_some()
 }
 
-const MAGIC: &'static str = "MOROS FS";
+pub fn mount(bus: u8, dsk: u8) {
+    let block_device = BlockDevice::new(bus, dsk);
+    *BLOCK_DEVICE.lock() = Some(block_device);
+}
 
-pub fn make(bus: u8, dsk: u8) {
+pub fn format(bus: u8, dsk: u8) {
     // Write superblock
     let mut buf = MAGIC.as_bytes().to_vec();
     buf.resize(512, 0);
     let block_device = BlockDevice::new(bus, dsk);
     block_device.write(SUPERBLOCK_ADDR, &buf);
-    *BLOCK_DEVICE.lock() = Some(block_device);
+
+    mount(bus, dsk);
 
     // Allocate root dir
     let root = Dir::root();
-    if BlockBitmap::is_free(root.addr()) {
-        BlockBitmap::alloc(root.addr());
-    }
+    BlockBitmap::alloc(root.addr());
 }
 
 pub fn init() {
@@ -668,8 +682,8 @@ pub fn init() {
             let mut buf = [0u8; 512];
             kernel::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
             if String::from_utf8(buf[0..8].to_vec()).unwrap() == MAGIC {
-                log!("MFS Superblock found on ATA {}:{}\n", bus, dsk);
-                *BLOCK_DEVICE.lock() = Some(BlockDevice::new(bus, dsk));
+                log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
+                mount(bus, dsk);
             }
         }
     }

@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use alloc::string::String;
 
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum ExitCode {
     CommandSuccessful = 0,
     CommandUnknown    = 1,
@@ -20,6 +21,7 @@ pub struct Shell {
     history_index: usize,
     autocomplete: Vec<String>,
     autocomplete_index: usize,
+    errored: bool,
 }
 
 impl Shell {
@@ -31,6 +33,7 @@ impl Shell {
             history_index: 0,
             autocomplete: Vec::new(),
             autocomplete_index: 0,
+            errored: false,
         }
     }
 
@@ -45,14 +48,17 @@ impl Shell {
                 '\0' => {
                     continue;
                 }
-                '\x03' => { // Ctrl C
-                    if self.cmd.len() > 0 {
-                        self.cmd.clear();
-                        print!("\n\n");
-                        self.print_prompt();
-                    } else {
+                '\x04' => { // Ctrl D
+                    if self.cmd.is_empty() {
+                        kernel::vga::clear_screen();
                         return ExitCode::CommandSuccessful;
                     }
+                },
+                '\x03' => { // Ctrl C
+                    self.cmd.clear();
+                    self.errored = false;
+                    print!("\n\n");
+                    self.print_prompt();
                 },
                 '\n' => { // Newline
                     self.update_history();
@@ -70,16 +76,20 @@ impl Shell {
                         let line = self.cmd.clone();
                         match self.exec(&line) {
                             ExitCode::CommandSuccessful => {
+                                self.errored = false;
                                 self.save_history();
                             },
                             ExitCode::ShellExit => {
+                                kernel::vga::clear_screen();
                                 return ExitCode::CommandSuccessful
                             },
                             _ => {
-                                print!("?\n")
+                                self.errored = true;
                             },
                         }
                         self.cmd.clear();
+                    } else {
+                        self.errored = false;
                     }
                     print!("\n");
                     self.print_prompt();
@@ -345,7 +355,6 @@ impl Shell {
             "shell"                => user::shell::main(&args),
             "sleep"                => user::sleep::main(&args),
             "clear"                => user::clear::main(&args),
-            "login"                => user::login::main(&args),
             "base64"               => user::base64::main(&args),
             "halt"                 => user::halt::main(&args),
             "hex"                  => user::hex::main(&args), // TODO: Rename to `dump`
@@ -355,17 +364,19 @@ impl Shell {
             "http"                 => user::http::main(&args),
             "tcp"                  => user::tcp::main(&args),
             "host"                 => user::host::main(&args),
+            "install"              => user::install::main(&args),
             "ip"                   => user::ip::main(&args),
             "geotime"              => user::geotime::main(&args),
             "colors"               => user::colors::main(&args),
-            "mkfs"                 => user::mkfs::main(&args),
+            "disk"                 => user::disk::main(&args),
+            "user"                 => user::user::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }
 
     fn print_prompt(&self) {
         let (fg, bg) = kernel::vga::color();
-        kernel::vga::set_color(Color::Magenta, bg);
+        kernel::vga::set_color(if self.errored { Color::Red } else { Color::Magenta }, bg);
         print!("{}", self.prompt);
         kernel::vga::set_color(fg, bg);
     }
