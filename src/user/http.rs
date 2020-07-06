@@ -28,8 +28,9 @@ impl URL {
         };
         let (host, port) = match server.find(':') {
             Some(i) => server.split_at(i),
-            None => (server, "80"),
+            None => (server, ":80"),
         };
+        let port = &port[1..];
         Some(Self {
             host: host.into(),
             port: port.parse().unwrap_or(80),
