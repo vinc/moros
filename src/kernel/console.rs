@@ -1,7 +1,6 @@
 use crate::{print, kernel};
 use alloc::string::String;
 use lazy_static::lazy_static;
-use pc_keyboard::{KeyCode, DecodedKey};
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 
@@ -78,18 +77,10 @@ pub fn is_raw_enabled() -> bool {
     *RAW.lock()
 }
 
-pub fn key_handle(key: DecodedKey) {
-    let c = match key {
-        DecodedKey::Unicode(c) => c,
-        DecodedKey::RawKey(KeyCode::ArrowLeft)  => '←', // U+2190
-        DecodedKey::RawKey(KeyCode::ArrowUp)    => '↑', // U+2191
-        DecodedKey::RawKey(KeyCode::ArrowRight) => '→', // U+2192
-        DecodedKey::RawKey(KeyCode::ArrowDown)  => '↓', // U+2193
-        DecodedKey::RawKey(_) => '\0'
-    };
+pub fn key_handle(key: char) {
     let mut stdin = STDIN.lock();
 
-    if c == '\x08' && !is_raw_enabled() {
+    if key == '\x08' && !is_raw_enabled() {
         // Avoid printing more backspaces than chars inserted into STDIN.
         // Also, the VGA driver support only ASCII so unicode chars will
         // be displayed with one square for each codepoint.
@@ -104,9 +95,9 @@ pub fn key_handle(key: DecodedKey) {
     } else {
         // TODO: Replace non-ascii chars by ascii square symbol to keep length
         // at 1 instead of being variable?
-        stdin.push(c);
+        stdin.push(key);
         if is_echo_enabled() {
-            print!("{}", c);
+            print!("{}", key);
         }
     }
 }
