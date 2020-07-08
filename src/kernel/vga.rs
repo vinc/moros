@@ -1,11 +1,16 @@
+use crate::kernel;
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-use x86_64::instructions::port::Port;
+use vte;
 use x86_64::instructions::interrupts;
+use x86_64::instructions::port::Port;
+
+const FG: Color = Color::LightGray;
+const BG: Color = Color::Black;
 
 lazy_static! {
     /// A global `Writer` instance that can be used for printing to the VGA text buffer.
@@ -14,7 +19,7 @@ lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         cursor: [0; 2],
         writer: [0; 2],
-        color_code: ColorCode::new(Color::LightGray, Color::Black),
+        color_code: ColorCode::new(FG, BG),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
 }
@@ -60,6 +65,49 @@ const COLORS: [Color; 16] = [
     Color::Yellow,
     Color::White,
 ];
+
+pub fn color_from_ansi(code: u8) -> Color {
+    match code {
+        30 => Color::Black,
+        31 => Color::Red,
+        32 => Color::Green,
+        33 => Color::Brown,
+        34 => Color::Blue,
+        35 => Color::Magenta,
+        36 => Color::Cyan,
+        37 => Color::LightGray,
+        38 => Color::DarkGray,
+        39 => Color::LightRed,
+        40 => Color::LightGreen,
+        41 => Color::Yellow,
+        42 => Color::LightBlue,
+        43 => Color::Pink,
+        44 => Color::LightCyan,
+        45 => Color::White,
+        _ => FG, // Error
+    }
+}
+
+pub fn color_to_ansi(color: Color) -> u8 {
+    match color {
+        Color::Black => 30,
+        Color::Red => 31,
+        Color::Green => 32,
+        Color::Brown => 33,
+        Color::Blue => 34,
+        Color::Magenta => 35,
+        Color::Cyan => 36,
+        Color::LightGray => 37,
+        Color::DarkGray => 38,
+        Color::LightRed => 39,
+        Color::LightGreen => 40,
+        Color::Yellow => 41,
+        Color::LightBlue => 42,
+        Color::Pink => 43,
+        Color::LightCyan => 44,
+        Color::White => 45,
+    }
+}
 
 /// A combination of a foreground and a background color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -186,12 +234,9 @@ impl Writer {
     }
 
     fn write_string(&mut self, s: &str) {
+        let mut state_machine = vte::Parser::new();
         for byte in s.bytes() {
-            if is_printable(byte) {
-                self.write_byte(byte) // Printable chars, backspace, newline
-            } else {
-                self.write_byte(0xFE) // Square
-            }
+            state_machine.advance(self, byte);
         }
     }
 
@@ -239,6 +284,58 @@ impl Writer {
         let fg = COLORS[cc.get_bits(0..4) as usize];
         let bg = COLORS[cc.get_bits(4..8) as usize];
         (fg, bg)
+    }
+}
+
+impl vte::Perform for Writer {
+    fn print(&mut self, c: char) {
+        let byte = c as u8;
+        if is_printable(byte) {
+            self.write_byte(byte) // Printable chars, backspace, newline
+        } else {
+            self.write_byte(0xFE) // Square
+        }
+    }
+
+    fn execute(&mut self, byte: u8) {
+        self.write_byte(byte);
+        kernel::serial::print_fmt(format_args!("[execute] {:02x}\n", byte));
+    }
+
+    fn hook(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, c: char) {
+        kernel::serial::print_fmt(format_args!("[hook] params={:?}, intermediates={:?}, ignore={:?}, char={:?}\n", params, intermediates, ignore, c));
+    }
+
+    fn put(&mut self, byte: u8) {
+        kernel::serial::print_fmt(format_args!("[put] {:02x}\n", byte));
+    }
+
+    fn unhook(&mut self) {
+        kernel::serial::print_fmt(format_args!("[unhook]\n"));
+    }
+
+    fn osc_dispatch(&mut self, params: &[&[u8]], bell_terminated: bool) {
+        kernel::serial::print_fmt(format_args!("[osc_dispatch] params={:?} bell_terminated={}\n", params, bell_terminated));
+    }
+
+    fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, c: char) {
+        if c == 'm' {
+            let mut fg = FG;
+            let mut bg = BG;
+            if params.len() > 0 && params[0] >= 30 {
+                fg = color_from_ansi(params[0] as u8);
+                if params.len() > 1 {
+                    bg = color_from_ansi(params[1] as u8);
+                }
+            }
+            self.set_color(fg, bg);
+        }
+
+        kernel::serial::print_fmt(format_args!("[csi_dispatch] params={:?}, intermediates={:?}, ignore={:?}, char={:?}\n", params, intermediates, ignore, c));
+    }
+
+    fn esc_dispatch(&mut self, intermediates: &[u8], ignore: bool, byte: u8) {
+        kernel::serial::print_fmt(format_args!("[esc_dispatch] intermediates={:?}, ignore={:?}, byte={:02x}\n", intermediates, ignore, byte));
     }
 }
 

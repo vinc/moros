@@ -390,10 +390,10 @@ impl Shell {
     }
 
     fn print_prompt(&self) {
-        let (fg, bg) = kernel::vga::color();
-        kernel::vga::set_color(if self.errored { Color::Red } else { Color::Magenta }, bg);
-        print!("{}", self.prompt);
-        kernel::vga::set_color(fg, bg);
+        let color = if self.errored { Color::Red } else { Color::Magenta };
+        let csi_color = format!("\x1b[{}m", kernel::vga::color_to_ansi(color));
+        let csi_reset = "\x1b[0m";
+        print!("{}{}{}", csi_color, self.prompt, csi_reset);
     }
 
     fn change_dir(&self, args: &[&str]) -> ExitCode {
