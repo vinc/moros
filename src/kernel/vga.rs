@@ -13,8 +13,7 @@ lazy_static! {
     /// Used by the `print!` and `println!` macros.
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         cursor: [0; 2],
-        col_pos: 0,
-        row_pos: 0,
+        writer: [0; 2],
         color_code: ColorCode::new(Color::LightGray, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
@@ -98,21 +97,19 @@ struct Buffer {
 /// Wraps lines at `BUFFER_WIDTH`. Supports newline characters and implements the
 /// `core::fmt::Write` trait.
 pub struct Writer {
-    cursor: [usize; 2],
-    col_pos: usize,
-    row_pos: usize,
+    cursor: [usize; 2], // x, y
+    writer: [usize; 2], // x, y
     color_code: ColorCode,
     buffer: &'static mut Buffer,
 }
 
 impl Writer {
     pub fn writer_position(&self) -> (usize, usize) {
-        (self.col_pos, self.row_pos)
+        (self.writer[0], self.writer[1])
     }
 
     pub fn set_writer_position(&mut self, x: usize, y: usize) {
-        self.col_pos = x;
-        self.row_pos = y;
+        self.writer = [x, y];
     }
 
     pub fn cursor_position(&self) -> (usize, usize) {
@@ -160,30 +157,30 @@ impl Writer {
             0x0D => { // Carriage Return
             },
             0x08 => { // Backspace
-                if self.col_pos > 0 {
-                    self.col_pos -= 1;
+                if self.writer[0] > 0 {
+                    self.writer[0] -= 1;
                     let blank = ScreenChar {
                         ascii_character: b' ',
                         color_code: self.color_code,
                     };
-                    let x = self.col_pos;
-                    let y = self.row_pos;
+                    let x = self.writer[0];
+                    let y = self.writer[1];
                     self.buffer.chars[y][x].write(blank);
                 }
             },
             byte => {
-                if self.col_pos >= BUFFER_WIDTH {
+                if self.writer[0] >= BUFFER_WIDTH {
                     self.new_line();
                 }
 
-                let col = self.col_pos;
-                let row = self.row_pos;
+                let x = self.writer[0];
+                let y = self.writer[1];
                 let color_code = self.color_code;
-                self.buffer.chars[row][col].write(ScreenChar {
+                self.buffer.chars[y][x].write(ScreenChar {
                     ascii_character: byte,
                     color_code,
                 });
-                self.col_pos += 1;
+                self.writer[0] += 1;
             }
         }
     }
@@ -199,18 +196,19 @@ impl Writer {
     }
 
     fn new_line(&mut self) {
-        if self.row_pos < BUFFER_HEIGHT - 1 {
-            self.row_pos += 1;
+        if self.writer[1] < BUFFER_HEIGHT - 1 {
+            self.writer[1] += 1;
         } else {
-            for row in 1..BUFFER_HEIGHT {
-                for col in 0..BUFFER_WIDTH {
-                    let character = self.buffer.chars[row][col].read();
-                    self.buffer.chars[row - 1][col].write(character);
+            for y in 1..BUFFER_HEIGHT {
+                for x in 0..BUFFER_WIDTH {
+                    let character = self.buffer.chars[y][x].read();
+                    self.buffer.chars[y - 1][x].write(character);
                 }
             }
             self.clear_row(BUFFER_HEIGHT - 1);
         }
-        self.col_pos = 0;
+        self.writer[0] = 0;
+
     }
 
     /// Clears a row by overwriting it with blank characters.
@@ -228,9 +226,8 @@ impl Writer {
         for y in 0..BUFFER_HEIGHT {
             self.clear_row(y);
         }
-        self.row_pos = 0;
-        self.col_pos = 0;
-        self.set_cursor_position(self.col_pos, self.row_pos);
+        self.set_writer_position(0, 0);
+        self.set_cursor_position(0, 0);
     }
 
     pub fn set_color(&mut self, foreground: Color, background: Color) {
@@ -248,7 +245,8 @@ impl Writer {
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
-        self.set_cursor_position(self.col_pos, self.row_pos);
+        let (x, y) = self.writer_position();
+        self.set_cursor_position(x, y);
         Ok(())
     }
 }
