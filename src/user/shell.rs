@@ -274,7 +274,7 @@ impl Shell {
         args[i] = &self.autocomplete[self.autocomplete_index];
 
         let cmd = args.join(" ");
-        kernel::vga::clear_row();
+        kernel::console::clear_row();
         self.print_prompt();
         print!("{}", cmd);
     }

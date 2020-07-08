@@ -21,6 +21,16 @@ pub fn has_cursor() -> bool {
 }
 
 #[cfg(feature="vga")]
+pub fn clear_row() {
+    kernel::vga::clear_row();
+}
+
+#[cfg(feature="serial")]
+pub fn clear_row() {
+    print!("\x1b[2K\r");
+}
+
+#[cfg(feature="vga")]
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
