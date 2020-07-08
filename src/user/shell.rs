@@ -245,7 +245,10 @@ impl Shell {
             if args.len() == 1 {
                 // Autocomplete command
                 let autocomplete_commands = vec![ // TODO: scan /bin
-                    "copy", "delete", "edit", "help", "move", "print", "quit", "read", "write", "sleep", "clear"
+                    "base64", "clear", "colors", "copy", "delete", "dhcp", "disk", "edit",
+                    "geotime", "goto", "halt", "help", "hex", "host", "http", "install", "ip",
+                    "list", "move", "net", "print", "quit", "read", "route", "shell", "sleep",
+                    "tcp", "user", "write"
                 ];
                 self.autocomplete = vec![args[i].into()];
                 for cmd in autocomplete_commands {
