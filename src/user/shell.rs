@@ -143,37 +143,49 @@ impl Shell {
                 '\x08' => { // Backspace
                     self.update_history();
                     self.update_autocomplete();
-                    let cmd = self.cmd.clone();
-                    if cmd.len() > 0 && x > self.prompt.len() {
-                        let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
-                        if after_cursor.len() > 0 {
-                            after_cursor = &after_cursor[1..];
+                    if self.cmd.len() > 0 {
+                        if kernel::console::has_cursor() {
+                            if x > self.prompt.len() {
+                                let cmd = self.cmd.clone();
+                                let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
+                                if after_cursor.len() > 0 {
+                                    after_cursor = &after_cursor[1..];
+                                }
+                                self.cmd.clear();
+                                self.cmd.push_str(before_cursor);
+                                self.cmd.push_str(after_cursor);
+                                kernel::vga::clear_row();
+                                self.print_prompt();
+                                print!("{}", self.cmd);
+                                kernel::vga::set_cursor_position(x - 1, y);
+                                kernel::vga::set_writer_position(x - 1, y);
+                            }
+                        } else {
+                            self.cmd.pop();
+                            print!("{}", c);
                         }
-                        self.cmd.clear();
-                        self.cmd.push_str(before_cursor);
-                        self.cmd.push_str(after_cursor);
-                        kernel::vga::clear_row();
-                        self.print_prompt();
-                        print!("{}", self.cmd);
-                        kernel::vga::set_cursor_position(x - 1, y);
-                        kernel::vga::set_writer_position(x - 1, y);
                     }
                 },
                 c => {
                     self.update_history();
                     self.update_autocomplete();
                     if c.is_ascii() && kernel::vga::is_printable(c as u8) {
-                        let cmd = self.cmd.clone();
-                        let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
-                        self.cmd.clear();
-                        self.cmd.push_str(before_cursor);
-                        self.cmd.push(c);
-                        self.cmd.push_str(after_cursor);
-                        kernel::vga::clear_row();
-                        self.print_prompt();
-                        print!("{}", self.cmd);
-                        kernel::vga::set_cursor_position(x + 1, y);
-                        kernel::vga::set_writer_position(x + 1, y);
+                        if kernel::console::has_cursor() {
+                            let cmd = self.cmd.clone();
+                            let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
+                            self.cmd.clear();
+                            self.cmd.push_str(before_cursor);
+                            self.cmd.push(c);
+                            self.cmd.push_str(after_cursor);
+                            kernel::vga::clear_row();
+                            self.print_prompt();
+                            print!("{}", self.cmd);
+                            kernel::vga::set_cursor_position(x + 1, y);
+                            kernel::vga::set_writer_position(x + 1, y);
+                        } else {
+                            self.cmd.push(c);
+                            print!("{}", c);
+                        }
                     }
                 },
             }

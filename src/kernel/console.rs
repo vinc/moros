@@ -11,6 +11,16 @@ lazy_static! {
 }
 
 #[cfg(feature="vga")]
+pub fn has_cursor() -> bool {
+    true
+}
+
+#[cfg(feature="serial")]
+pub fn has_cursor() -> bool {
+    false
+}
+
+#[cfg(feature="vga")]
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
