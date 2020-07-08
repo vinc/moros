@@ -20,6 +20,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     kernel::time::init();
     kernel::keyboard::init();
+    kernel::serial::init();
     kernel::mem::init(boot_info);
     kernel::cpu::init();
     kernel::pci::init(); // Require MEM
