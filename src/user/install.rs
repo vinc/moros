@@ -1,11 +1,9 @@
 use crate::{print, kernel, user};
-use crate::kernel::vga::Color;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    let (fg, bg) = kernel::vga::color();
-    kernel::vga::set_color(Color::LightCyan, bg);
-    print!("Welcome to MOROS v{} installation program!\n", env!("CARGO_PKG_VERSION"));
-    kernel::vga::set_color(fg, bg);
+    let csi_color = kernel::console::color("Yellow");
+    let csi_reset = kernel::console::color("Reset");
+    print!("{}Welcome to MOROS v{} installation program!{}\n", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
     print!("\n");
 
     print!("Proceed? [y/N] ");
@@ -13,15 +11,11 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         print!("\n");
 
         if !kernel::fs::is_mounted() {
-            kernel::vga::set_color(Color::LightCyan, bg);
-            print!("Listing disks ...\n");
-            kernel::vga::set_color(fg, bg);
+            print!("{}Listing disks ...{}\n", csi_color, csi_reset);
             user::disk::main(&["disk", "list"]);
             print!("\n");
 
-            kernel::vga::set_color(Color::LightCyan, bg);
-            print!("Formatting disk ...\n");
-            kernel::vga::set_color(fg, bg);
+            print!("{}Formatting disk ...{}\n", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
             let pathname = kernel::console::get_line();
             let res = user::disk::main(&["disk", "format", pathname.trim_end()]);
@@ -31,9 +25,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             print!("\n");
         }
 
-        kernel::vga::set_color(Color::LightCyan, bg);
-        print!("Populating filesystem ...\n");
-        kernel::vga::set_color(fg, bg);
+        print!("{}Populating filesystem...{}\n", csi_color, csi_reset);
         create_dir("/bin"); // Binaries
         create_dir("/dev"); // Devices
         create_dir("/ini"); // Initializers
@@ -50,9 +42,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
         if kernel::process::user().is_none() {
             print!("\n");
-            kernel::vga::set_color(Color::LightCyan, bg);
-            print!("Creating user ...\n");
-            kernel::vga::set_color(fg, bg);
+            print!("{}Creating user...{}\n", csi_color, csi_reset);
             let res = user::user::main(&["user", "create"]);
             if res == user::shell::ExitCode::CommandError {
                 return res;
@@ -60,9 +50,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         }
 
         print!("\n");
-        kernel::vga::set_color(Color::LightCyan, bg);
-        print!("Installation successful!\n");
-        kernel::vga::set_color(fg, bg);
+        print!("{}Installation successful!...{}\n", csi_color, csi_reset);
         print!("\n");
         print!("Exit console or reboot to apply changes\n");
     }
