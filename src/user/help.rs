@@ -1,12 +1,16 @@
 use crate::{print, user, kernel};
-use crate::kernel::vga::Color;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    let (fg, bg) = kernel::vga::color();
+    let csi_color = kernel::console::color("Yellow");
+    let csi_reset = kernel::console::color("Reset");
+    print!("{}Commands:{}\n", csi_color, csi_reset);
+    print!("\n");
+
     let cmds = [
         ("c", "opy <file> <file>", "Copy file from source to destination\n"),
         ("d", "elete <file>",      "Delete file or empty directory\n"),
         ("e", "dit <file>",        "Edit existing or new file\n"),
+        ("g", "oto <dir>",         "Go to directory\n"),
         ("h", "elp",               "Display this text\n"),
         ("l", "ist <dir>",         "List entries in directory\n"),
         ("m", "ove <file> <file>", "Move file from source to destination\n"),
@@ -15,11 +19,16 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         ("r", "ead <file>",        "Read file to screen\n"),
         ("w", "rite <file>",       "Write file or directory\n"),
     ];
-    for (cmd, args, usage) in &cmds {
-        kernel::vga::set_color(Color::White, bg);
-        print!("{}", cmd);
-        kernel::vga::set_color(fg, bg);
-        print!("{:20}{}", args, usage);
+    for (alias, command, usage) in &cmds {
+        let csi_col1 = kernel::console::color("LightGreen");
+        let csi_col2 = kernel::console::color("LightCyan");
+        print!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
     }
-user::shell::ExitCode::CommandSuccessful
+    print!("\n");
+
+    print!("{}Credits:{}\n", csi_color, csi_reset);
+    print!("\n");
+
+    print!("Made with <3 in 2019-2020 by Vincent Ollivier <v@vinc.cc>\n");
+    user::shell::ExitCode::CommandSuccessful
 }
