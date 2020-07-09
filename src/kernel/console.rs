@@ -74,10 +74,9 @@ macro_rules! print {
 macro_rules! log {
     ($($arg:tt)*) => ({
         let uptime = $crate::kernel::clock::uptime();
-        let (fg, bg) = $crate::kernel::vga::color();
-        $crate::kernel::vga::set_color($crate::kernel::vga::Color::Green, bg);
-        $crate::kernel::vga::print_fmt(format_args!("[{:.6}] ", uptime));
-        $crate::kernel::vga::set_color(fg, bg);
+        let csi_color = $crate::kernel::console::color("LightGreen");
+        let csi_reset = $crate::kernel::console::color("Reset");
+        $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
         $crate::kernel::vga::print_fmt(format_args!($($arg)*));
     });
 }
