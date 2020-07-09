@@ -4,6 +4,29 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 
+pub fn color(name: &str) -> &str {
+    match name {
+        "Black"      => "\x1b[30m",
+        "Red"        => "\x1b[31m",
+        "Green"      => "\x1b[32m",
+        "Brown"      => "\x1b[33m",
+        "Blue"       => "\x1b[34m",
+        "Magenta"    => "\x1b[35m",
+        "Cyan"       => "\x1b[36m",
+        "LightGray"  => "\x1b[37m",
+        "DarkGray"   => "\x1b[90m",
+        "LightRed"   => "\x1b[91m",
+        "LightGreen" => "\x1b[92m",
+        "Yellow"     => "\x1b[93m",
+        "LightBlue"  => "\x1b[94m",
+        "Pink"       => "\x1b[95m",
+        "LightCyan"  => "\x1b[96m",
+        "White"      => "\x1b[97m",
+        "Reset"      => "\x1b[0m",
+        _            => "",
+    }
+}
+
 lazy_static! {
     pub static ref STDIN: Mutex<String> = Mutex::new(String::new());
     pub static ref ECHO: Mutex<bool> = Mutex::new(true);
