@@ -66,7 +66,7 @@ const COLORS: [Color; 16] = [
     Color::White,
 ];
 
-pub fn color_from_ansi(code: u8) -> Color {
+fn color_from_ansi(code: u8) -> Color {
     match code {
         30 => Color::Black,
         31 => Color::Red,
@@ -76,36 +76,15 @@ pub fn color_from_ansi(code: u8) -> Color {
         35 => Color::Magenta,
         36 => Color::Cyan,
         37 => Color::LightGray,
-        38 => Color::DarkGray,
-        39 => Color::LightRed,
-        40 => Color::LightGreen,
-        41 => Color::Yellow,
-        42 => Color::LightBlue,
-        43 => Color::Pink,
-        44 => Color::LightCyan,
-        45 => Color::White,
+        90 => Color::DarkGray,
+        91 => Color::LightRed,
+        92 => Color::LightGreen,
+        93 => Color::Yellow,
+        94 => Color::LightBlue,
+        95 => Color::Pink,
+        96 => Color::LightCyan,
+        97 => Color::White,
         _ => FG, // Error
-    }
-}
-
-pub fn color_to_ansi(color: Color) -> u8 {
-    match color {
-        Color::Black => 30,
-        Color::Red => 31,
-        Color::Green => 32,
-        Color::Brown => 33,
-        Color::Blue => 34,
-        Color::Magenta => 35,
-        Color::Cyan => 36,
-        Color::LightGray => 37,
-        Color::DarkGray => 38,
-        Color::LightRed => 39,
-        Color::LightGreen => 40,
-        Color::Yellow => 41,
-        Color::LightBlue => 42,
-        Color::Pink => 43,
-        Color::LightCyan => 44,
-        Color::White => 45,
     }
 }
 
@@ -322,10 +301,19 @@ impl vte::Perform for Writer {
         if c == 'm' {
             let mut fg = FG;
             let mut bg = BG;
-            if params.len() > 0 && params[0] >= 30 {
-                fg = color_from_ansi(params[0] as u8);
-                if params.len() > 1 {
-                    bg = color_from_ansi(params[1] as u8);
+            for &param in params {
+                match param {
+                    0 => {
+                        fg = FG;
+                        bg = BG;
+                    },
+                    30..=37 | 90..=97 => {
+                        fg = color_from_ansi(param as u8);
+                    },
+                    40..=47 | 100..=107 => {
+                        bg = color_from_ansi((param as u8) - 10);
+                    },
+                    _ => {}
                 }
             }
             self.set_color(fg, bg);
