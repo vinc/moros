@@ -50,7 +50,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         }
 
         print!("\n");
-        print!("{}Installation successful!...{}\n", csi_color, csi_reset);
+        print!("{}Installation successful!{}\n", csi_color, csi_reset);
         print!("\n");
         print!("Exit console or reboot to apply changes\n");
     }
