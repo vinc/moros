@@ -22,7 +22,6 @@ fn main(boot_info: &'static BootInfo) -> ! {
                 print!("MFS is not mounted to '/'\n");
             }
             print!("Running console in diskless mode\n");
-            print!("\n");
 
             user::shell::main(&["shell"]);
         }
