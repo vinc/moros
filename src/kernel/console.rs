@@ -86,7 +86,9 @@ macro_rules! log {
 macro_rules! log {
     ($($arg:tt)*) => ({
         let uptime = $crate::kernel::clock::uptime();
-        $crate::kernel::serial::print_fmt(format_args!("[{:.6}] ", uptime));
+        let csi_color = $crate::kernel::console::color("LightGreen");
+        let csi_reset = $crate::kernel::console::color("Reset");
+        $crate::kernel::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
         $crate::kernel::serial::print_fmt(format_args!($($arg)*));
     });
 }
