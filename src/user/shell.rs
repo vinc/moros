@@ -1,5 +1,4 @@
 use crate::{print, user, kernel};
-use crate::kernel::vga::Color;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -390,9 +389,9 @@ impl Shell {
     }
 
     fn print_prompt(&self) {
-        let color = if self.errored { Color::Red } else { Color::Magenta };
-        let csi_color = format!("\x1b[{}m", kernel::vga::color_to_ansi(color));
-        let csi_reset = "\x1b[0m";
+        let color = if self.errored { "Red" } else { "Magenta" };
+        let csi_color = kernel::console::color(color);
+        let csi_reset = kernel::console::color("Reset");
         print!("{}{}{}", csi_color, self.prompt, csi_reset);
     }
 
