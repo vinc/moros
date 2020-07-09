@@ -11,20 +11,18 @@ use x86_64::instructions::port::Port;
 
 const FG: Color = Color::LightGray;
 const BG: Color = Color::Black;
+const UNPRINTABLE: u8 = 0xFE; // Unprintable characters will be replaced by a square
 
 lazy_static! {
-    /// A global `Writer` instance that can be used for printing to the VGA text buffer.
-    ///
-    /// Used by the `print!` and `println!` macros.
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         cursor: [0; 2],
         writer: [0; 2],
         color_code: ColorCode::new(FG, BG),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+        buffer: unsafe { &mut *(0xB8000 as *mut Buffer) },
     });
 }
 
-/// The standard color palette in VGA text mode.
+/// The standard color palette in VGA text mode
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -88,41 +86,31 @@ fn color_from_ansi(code: u8) -> Color {
     }
 }
 
-/// A combination of a foreground and a background color.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
 
 impl ColorCode {
-    /// Create a new `ColorCode` with the given foreground and background colors.
     fn new(foreground: Color, background: Color) -> ColorCode {
         ColorCode((background as u8) << 4 | (foreground as u8))
     }
 }
 
-/// A screen character in the VGA text buffer, consisting of an ASCII character and a `ColorCode`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 struct ScreenChar {
-    ascii_character: u8,
+    ascii_code: u8,
     color_code: ColorCode,
 }
 
-/// The height of the text buffer (normally 25 lines).
 const BUFFER_HEIGHT: usize = 25;
-/// The width of the text buffer (normally 80 columns).
 const BUFFER_WIDTH: usize = 80;
 
-/// A structure representing the VGA text buffer.
 #[repr(transparent)]
 struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
-/// A writer type that allows writing ASCII bytes and strings to an underlying `Buffer`.
-///
-/// Wraps lines at `BUFFER_WIDTH`. Supports newline characters and implements the
-/// `core::fmt::Write` trait.
 pub struct Writer {
     cursor: [usize; 2], // x, y
     writer: [usize; 2], // x, y
@@ -175,7 +163,7 @@ impl Writer {
         }
     }
 
-    /// Writes an ASCII byte to the buffer.
+    /// Writes an ASCII byte to the screen buffer
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             0x0A => { // Newline
@@ -187,7 +175,7 @@ impl Writer {
                 if self.writer[0] > 0 {
                     self.writer[0] -= 1;
                     let blank = ScreenChar {
-                        ascii_character: b' ',
+                        ascii_code: b' ',
                         color_code: self.color_code,
                     };
                     let x = self.writer[0];
@@ -202,11 +190,9 @@ impl Writer {
 
                 let x = self.writer[0];
                 let y = self.writer[1];
+                let ascii_code = if is_printable(byte) { byte } else { UNPRINTABLE };
                 let color_code = self.color_code;
-                self.buffer.chars[y][x].write(ScreenChar {
-                    ascii_character: byte,
-                    color_code,
-                });
+                self.buffer.chars[y][x].write(ScreenChar { ascii_code, color_code });
                 self.writer[0] += 1;
             }
         }
@@ -235,10 +221,10 @@ impl Writer {
 
     }
 
-    /// Clears a row by overwriting it with blank characters.
+    /// Clears a row by overwriting it with blank characters
     fn clear_row(&mut self, y: usize) {
         let blank = ScreenChar {
-            ascii_character: b' ',
+            ascii_code: b' ',
             color_code: self.color_code,
         };
         for x in 0..BUFFER_WIDTH {
@@ -266,14 +252,10 @@ impl Writer {
     }
 }
 
+/// See https://vt100.net/emu/dec_ansi_parser
 impl vte::Perform for Writer {
     fn print(&mut self, c: char) {
-        let byte = c as u8;
-        if is_printable(byte) {
-            self.write_byte(byte) // Printable chars, backspace, newline
-        } else {
-            self.write_byte(0xFE) // Square
-        }
+        self.write_byte(c as u8);
     }
 
     fn execute(&mut self, byte: u8) {
@@ -336,8 +318,6 @@ impl fmt::Write for Writer {
     }
 }
 
-/// Prints the given formatted string to the VGA text buffer
-/// through the global `WRITER` instance.
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {
