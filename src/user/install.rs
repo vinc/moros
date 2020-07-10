@@ -38,6 +38,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
         copy_file("/ini/boot.sh", include_str!("../../dsk/ini/boot.sh"));
         copy_file("/ini/banner.txt", include_str!("../../dsk/ini/banner.txt"));
+        copy_file("/ini/version.txt", include_str!("../../dsk/ini/version.txt"));
         copy_file("/tmp/alice.txt", include_str!("../../dsk/tmp/alice.txt"));
 
         if kernel::process::user().is_none() {
@@ -69,6 +70,7 @@ fn copy_file(pathname: &str, contents: &str) {
         return;
     }
     if let Some(mut file) = kernel::fs::File::create(pathname) {
+        let contents = contents.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
         file.write(&contents.as_bytes()).unwrap();
         print!("Copied '{}'\n", pathname);
     }
