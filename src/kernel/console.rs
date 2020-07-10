@@ -44,13 +44,56 @@ pub fn has_cursor() -> bool {
 }
 
 #[cfg(feature="vga")]
-pub fn clear_row() {
-    kernel::vga::clear_row();
+pub fn clear_row_after(x: usize) {
+    kernel::vga::clear_row_after(x);
 }
 
 #[cfg(feature="serial")]
-pub fn clear_row() {
-    print!("\x1b[2K\r");
+pub fn clear_row_after(x: usize) {
+    print!("\r"); // Move cursor to begining of line
+    print!("\x1b[{}C", x); // Move cursor forward to position
+    print!("\x1b[K"); // Clear line after position
+}
+
+#[cfg(feature="vga")]
+pub fn cursor_position() -> (usize, usize) {
+    kernel::vga::cursor_position()
+}
+
+#[cfg(feature="serial")]
+pub fn cursor_position() -> (usize, usize) {
+    print!("\x1b[6n"); // Ask cursor position
+    get_char(); // ESC
+    get_char(); // [
+    let mut x = String::new();
+    let mut y = String::new();
+    loop {
+        let c = get_char();
+        if c == ';' {
+            break;
+        } else {
+            y.push(c);
+        }
+    }
+    loop {
+        let c = get_char();
+        if c == 'R' {
+            break;
+        } else {
+            x.push(c);
+        }
+    }
+    (x.parse().unwrap_or(1), y.parse().unwrap_or(1))
+}
+
+#[cfg(feature="vga")]
+pub fn set_writer_position(x: usize, y: usize) {
+    kernel::vga::set_writer_position(x, y);
+}
+
+#[cfg(feature="serial")]
+pub fn set_writer_position(x: usize, y: usize) {
+    print!("\x1b[{};{}H", y + 1, x + 1);
 }
 
 #[cfg(feature="vga")]
