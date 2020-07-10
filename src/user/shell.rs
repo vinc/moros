@@ -121,8 +121,9 @@ impl Shell {
                             self.history_index -= 1;
                         }
                         let cmd = &self.history[self.history_index];
-                        kernel::vga::clear_row();
-                        self.print_prompt();
+                        let n = self.prompt.len();
+                        kernel::vga::clear_row_after(n + cmd.len());
+                        kernel::vga::set_writer_position(n, y);
                         print!("{}", cmd);
                     }
                 },
@@ -135,8 +136,9 @@ impl Shell {
                         } else {
                             &self.cmd
                         };
-                        kernel::vga::clear_row();
-                        self.print_prompt();
+                        let n = self.prompt.len();
+                        kernel::vga::clear_row_after(n + cmd.len());
+                        kernel::vga::set_writer_position(n, y);
                         print!("{}", cmd);
                     }
                 },
@@ -170,9 +172,7 @@ impl Shell {
                                 self.cmd.clear();
                                 self.cmd.push_str(before_cursor);
                                 self.cmd.push_str(after_cursor);
-                                kernel::vga::clear_row();
-                                self.print_prompt();
-                                print!("{}", self.cmd);
+                                print!("{}{} ", c, after_cursor);
                                 kernel::vga::set_cursor_position(x - 1, y);
                                 kernel::vga::set_writer_position(x - 1, y);
                             }
@@ -193,9 +193,7 @@ impl Shell {
                             self.cmd.push_str(before_cursor);
                             self.cmd.push(c);
                             self.cmd.push_str(after_cursor);
-                            kernel::vga::clear_row();
-                            self.print_prompt();
-                            print!("{}", self.cmd);
+                            print!("{}{}", c, after_cursor);
                             kernel::vga::set_cursor_position(x + 1, y);
                             kernel::vga::set_writer_position(x + 1, y);
                         } else {
@@ -293,8 +291,10 @@ impl Shell {
         args[i] = &self.autocomplete[self.autocomplete_index];
 
         let cmd = args.join(" ");
-        kernel::console::clear_row();
-        self.print_prompt();
+        let n = self.prompt.len();
+        let (_, y) = kernel::vga::cursor_position();
+        kernel::vga::clear_row_after(n + cmd.len());
+        kernel::vga::set_writer_position(n, y);
         print!("{}", cmd);
     }
 

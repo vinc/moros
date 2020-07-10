@@ -215,26 +215,25 @@ impl Writer {
                     self.buffer.chars[y - 1][x].write(character);
                 }
             }
-            self.clear_row(BUFFER_HEIGHT - 1);
+            self.clear_row_after(0, BUFFER_HEIGHT - 1);
         }
         self.writer[0] = 0;
 
     }
 
-    /// Clears a row by overwriting it with blank characters
-    fn clear_row(&mut self, y: usize) {
+    fn clear_row_after(&mut self, x: usize, y: usize) {
         let blank = ScreenChar {
             ascii_code: b' ',
             color_code: self.color_code,
         };
-        for x in 0..BUFFER_WIDTH {
-            self.buffer.chars[y][x].write(blank);
+        for i in x..BUFFER_WIDTH {
+            self.buffer.chars[y][i].write(blank);
         }
     }
 
     pub fn clear_screen(&mut self) {
         for y in 0..BUFFER_HEIGHT {
-            self.clear_row(y);
+            self.clear_row_after(0, y);
         }
         self.set_writer_position(0, 0);
         self.set_cursor_position(0, 0);
@@ -332,11 +331,15 @@ pub fn clear_screen() {
 }
 
 pub fn clear_row() {
+    clear_row_after(0);
+}
+
+pub fn clear_row_after(x: usize) {
     let (_, y) = writer_position();
     interrupts::without_interrupts(|| {
-        WRITER.lock().clear_row(y);
+        WRITER.lock().clear_row_after(x, y);
     });
-    set_writer_position(0, y);
+    set_writer_position(x, y);
 }
 
 pub fn screen_width() -> usize {
