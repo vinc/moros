@@ -19,10 +19,6 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         "/dev/clk/uptime" => {
             user::uptime::main(&["uptime", "--raw"])
         },
-        "/sys/version" => {
-            print!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
-            user::shell::ExitCode::CommandSuccessful
-        },
         _ => {
             if pathname.starts_with("/net/") {
                 // Examples:

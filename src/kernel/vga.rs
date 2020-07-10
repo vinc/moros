@@ -1,26 +1,28 @@
+use crate::kernel;
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-use x86_64::instructions::port::Port;
+use vte;
 use x86_64::instructions::interrupts;
+use x86_64::instructions::port::Port;
+
+const FG: Color = Color::LightGray;
+const BG: Color = Color::Black;
+const UNPRINTABLE: u8 = 0xFE; // Unprintable characters will be replaced by a square
 
 lazy_static! {
-    /// A global `Writer` instance that can be used for printing to the VGA text buffer.
-    ///
-    /// Used by the `print!` and `println!` macros.
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         cursor: [0; 2],
-        col_pos: 0,
-        row_pos: 0,
-        color_code: ColorCode::new(Color::LightGray, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+        writer: [0; 2],
+        color_code: ColorCode::new(FG, BG),
+        buffer: unsafe { &mut *(0xB8000 as *mut Buffer) },
     });
 }
 
-/// The standard color palette in VGA text mode.
+/// The standard color palette in VGA text mode
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -62,57 +64,67 @@ const COLORS: [Color; 16] = [
     Color::White,
 ];
 
-/// A combination of a foreground and a background color.
+fn color_from_ansi(code: u8) -> Color {
+    match code {
+        30 => Color::Black,
+        31 => Color::Red,
+        32 => Color::Green,
+        33 => Color::Brown,
+        34 => Color::Blue,
+        35 => Color::Magenta,
+        36 => Color::Cyan,
+        37 => Color::LightGray,
+        90 => Color::DarkGray,
+        91 => Color::LightRed,
+        92 => Color::LightGreen,
+        93 => Color::Yellow,
+        94 => Color::LightBlue,
+        95 => Color::Pink,
+        96 => Color::LightCyan,
+        97 => Color::White,
+        _ => FG, // Error
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
 
 impl ColorCode {
-    /// Create a new `ColorCode` with the given foreground and background colors.
     fn new(foreground: Color, background: Color) -> ColorCode {
         ColorCode((background as u8) << 4 | (foreground as u8))
     }
 }
 
-/// A screen character in the VGA text buffer, consisting of an ASCII character and a `ColorCode`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 struct ScreenChar {
-    ascii_character: u8,
+    ascii_code: u8,
     color_code: ColorCode,
 }
 
-/// The height of the text buffer (normally 25 lines).
 const BUFFER_HEIGHT: usize = 25;
-/// The width of the text buffer (normally 80 columns).
 const BUFFER_WIDTH: usize = 80;
 
-/// A structure representing the VGA text buffer.
 #[repr(transparent)]
 struct Buffer {
     chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
-/// A writer type that allows writing ASCII bytes and strings to an underlying `Buffer`.
-///
-/// Wraps lines at `BUFFER_WIDTH`. Supports newline characters and implements the
-/// `core::fmt::Write` trait.
 pub struct Writer {
-    cursor: [usize; 2],
-    col_pos: usize,
-    row_pos: usize,
+    cursor: [usize; 2], // x, y
+    writer: [usize; 2], // x, y
     color_code: ColorCode,
     buffer: &'static mut Buffer,
 }
 
 impl Writer {
     pub fn writer_position(&self) -> (usize, usize) {
-        (self.col_pos, self.row_pos)
+        (self.writer[0], self.writer[1])
     }
 
     pub fn set_writer_position(&mut self, x: usize, y: usize) {
-        self.col_pos = x;
-        self.row_pos = y;
+        self.writer = [x, y];
     }
 
     pub fn cursor_position(&self) -> (usize, usize) {
@@ -151,7 +163,7 @@ impl Writer {
         }
     }
 
-    /// Writes an ASCII byte to the buffer.
+    /// Writes an ASCII byte to the screen buffer
     pub fn write_byte(&mut self, byte: u8) {
         match byte {
             0x0A => { // Newline
@@ -160,63 +172,59 @@ impl Writer {
             0x0D => { // Carriage Return
             },
             0x08 => { // Backspace
-                if self.col_pos > 0 {
-                    self.col_pos -= 1;
+                if self.writer[0] > 0 {
+                    self.writer[0] -= 1;
                     let blank = ScreenChar {
-                        ascii_character: b' ',
+                        ascii_code: b' ',
                         color_code: self.color_code,
                     };
-                    let x = self.col_pos;
-                    let y = self.row_pos;
+                    let x = self.writer[0];
+                    let y = self.writer[1];
                     self.buffer.chars[y][x].write(blank);
                 }
             },
             byte => {
-                if self.col_pos >= BUFFER_WIDTH {
+                if self.writer[0] >= BUFFER_WIDTH {
                     self.new_line();
                 }
 
-                let col = self.col_pos;
-                let row = self.row_pos;
+                let x = self.writer[0];
+                let y = self.writer[1];
+                let ascii_code = if is_printable(byte) { byte } else { UNPRINTABLE };
                 let color_code = self.color_code;
-                self.buffer.chars[row][col].write(ScreenChar {
-                    ascii_character: byte,
-                    color_code,
-                });
-                self.col_pos += 1;
+                self.buffer.chars[y][x].write(ScreenChar { ascii_code, color_code });
+                self.writer[0] += 1;
             }
         }
     }
 
     fn write_string(&mut self, s: &str) {
+        let mut state_machine = vte::Parser::new();
         for byte in s.bytes() {
-            if is_printable(byte) {
-                self.write_byte(byte) // Printable chars, backspace, newline
-            } else {
-                self.write_byte(0xFE) // Square
-            }
+            state_machine.advance(self, byte);
         }
     }
 
     fn new_line(&mut self) {
-        if self.row_pos < BUFFER_HEIGHT - 1 {
-            self.row_pos += 1;
+        if self.writer[1] < BUFFER_HEIGHT - 1 {
+            self.writer[1] += 1;
         } else {
-            for row in 1..BUFFER_HEIGHT {
-                for col in 0..BUFFER_WIDTH {
-                    let character = self.buffer.chars[row][col].read();
-                    self.buffer.chars[row - 1][col].write(character);
+            for y in 1..BUFFER_HEIGHT {
+                for x in 0..BUFFER_WIDTH {
+                    let character = self.buffer.chars[y][x].read();
+                    self.buffer.chars[y - 1][x].write(character);
                 }
             }
             self.clear_row(BUFFER_HEIGHT - 1);
         }
-        self.col_pos = 0;
+        self.writer[0] = 0;
+
     }
 
-    /// Clears a row by overwriting it with blank characters.
+    /// Clears a row by overwriting it with blank characters
     fn clear_row(&mut self, y: usize) {
         let blank = ScreenChar {
-            ascii_character: b' ',
+            ascii_code: b' ',
             color_code: self.color_code,
         };
         for x in 0..BUFFER_WIDTH {
@@ -228,9 +236,8 @@ impl Writer {
         for y in 0..BUFFER_HEIGHT {
             self.clear_row(y);
         }
-        self.row_pos = 0;
-        self.col_pos = 0;
-        self.set_cursor_position(self.col_pos, self.row_pos);
+        self.set_writer_position(0, 0);
+        self.set_cursor_position(0, 0);
     }
 
     pub fn set_color(&mut self, foreground: Color, background: Color) {
@@ -245,16 +252,72 @@ impl Writer {
     }
 }
 
+/// See https://vt100.net/emu/dec_ansi_parser
+impl vte::Perform for Writer {
+    fn print(&mut self, c: char) {
+        self.write_byte(c as u8);
+    }
+
+    fn execute(&mut self, byte: u8) {
+        self.write_byte(byte);
+        kernel::serial::print_fmt(format_args!("[execute] {:02x}\n", byte));
+    }
+
+    fn hook(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, c: char) {
+        kernel::serial::print_fmt(format_args!("[hook] params={:?}, intermediates={:?}, ignore={:?}, char={:?}\n", params, intermediates, ignore, c));
+    }
+
+    fn put(&mut self, byte: u8) {
+        kernel::serial::print_fmt(format_args!("[put] {:02x}\n", byte));
+    }
+
+    fn unhook(&mut self) {
+        kernel::serial::print_fmt(format_args!("[unhook]\n"));
+    }
+
+    fn osc_dispatch(&mut self, params: &[&[u8]], bell_terminated: bool) {
+        kernel::serial::print_fmt(format_args!("[osc_dispatch] params={:?} bell_terminated={}\n", params, bell_terminated));
+    }
+
+    fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, c: char) {
+        if c == 'm' {
+            let mut fg = FG;
+            let mut bg = BG;
+            for &param in params {
+                match param {
+                    0 => {
+                        fg = FG;
+                        bg = BG;
+                    },
+                    30..=37 | 90..=97 => {
+                        fg = color_from_ansi(param as u8);
+                    },
+                    40..=47 | 100..=107 => {
+                        bg = color_from_ansi((param as u8) - 10);
+                    },
+                    _ => {}
+                }
+            }
+            self.set_color(fg, bg);
+        }
+
+        kernel::serial::print_fmt(format_args!("[csi_dispatch] params={:?}, intermediates={:?}, ignore={:?}, char={:?}\n", params, intermediates, ignore, c));
+    }
+
+    fn esc_dispatch(&mut self, intermediates: &[u8], ignore: bool, byte: u8) {
+        kernel::serial::print_fmt(format_args!("[esc_dispatch] intermediates={:?}, ignore={:?}, byte={:02x}\n", intermediates, ignore, byte));
+    }
+}
+
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
-        self.set_cursor_position(self.col_pos, self.row_pos);
+        let (x, y) = self.writer_position();
+        self.set_cursor_position(x, y);
         Ok(())
     }
 }
 
-/// Prints the given formatted string to the VGA text buffer
-/// through the global `WRITER` instance.
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {

@@ -1,9 +1,25 @@
 use crate::{print, user, kernel};
-use crate::kernel::vga::Color;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::String;
+
+// TODO: Scan /bin
+const AUTOCOMPLETE_COMMANDS: [&str; 29] = [
+    "base64", "clear", "colors", "copy", "delete", "dhcp", "disk", "edit",
+    "geotime", "goto", "halt", "help", "hex", "host", "http", "install", "ip",
+    "list", "move", "net", "print", "quit", "read", "route", "shell", "sleep",
+    "tcp", "user", "write",
+];
+
+// TODO: Scan /dev
+const AUTOCOMPLETE_DEVICES: [&str; 5] = [
+    "/dev/ata",
+    "/dev/clk",
+    "/dev/clk/uptime",
+    "/dev/clk/realtime",
+    "/dev/rtc",
+];
 
 #[repr(u8)]
 #[derive(PartialEq)]
@@ -143,37 +159,49 @@ impl Shell {
                 '\x08' => { // Backspace
                     self.update_history();
                     self.update_autocomplete();
-                    let cmd = self.cmd.clone();
-                    if cmd.len() > 0 && x > self.prompt.len() {
-                        let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
-                        if after_cursor.len() > 0 {
-                            after_cursor = &after_cursor[1..];
+                    if self.cmd.len() > 0 {
+                        if kernel::console::has_cursor() {
+                            if x > self.prompt.len() {
+                                let cmd = self.cmd.clone();
+                                let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
+                                if after_cursor.len() > 0 {
+                                    after_cursor = &after_cursor[1..];
+                                }
+                                self.cmd.clear();
+                                self.cmd.push_str(before_cursor);
+                                self.cmd.push_str(after_cursor);
+                                kernel::vga::clear_row();
+                                self.print_prompt();
+                                print!("{}", self.cmd);
+                                kernel::vga::set_cursor_position(x - 1, y);
+                                kernel::vga::set_writer_position(x - 1, y);
+                            }
+                        } else {
+                            self.cmd.pop();
+                            print!("{}", c);
                         }
-                        self.cmd.clear();
-                        self.cmd.push_str(before_cursor);
-                        self.cmd.push_str(after_cursor);
-                        kernel::vga::clear_row();
-                        self.print_prompt();
-                        print!("{}", self.cmd);
-                        kernel::vga::set_cursor_position(x - 1, y);
-                        kernel::vga::set_writer_position(x - 1, y);
                     }
                 },
                 c => {
                     self.update_history();
                     self.update_autocomplete();
                     if c.is_ascii() && kernel::vga::is_printable(c as u8) {
-                        let cmd = self.cmd.clone();
-                        let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
-                        self.cmd.clear();
-                        self.cmd.push_str(before_cursor);
-                        self.cmd.push(c);
-                        self.cmd.push_str(after_cursor);
-                        kernel::vga::clear_row();
-                        self.print_prompt();
-                        print!("{}", self.cmd);
-                        kernel::vga::set_cursor_position(x + 1, y);
-                        kernel::vga::set_writer_position(x + 1, y);
+                        if kernel::console::has_cursor() {
+                            let cmd = self.cmd.clone();
+                            let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
+                            self.cmd.clear();
+                            self.cmd.push_str(before_cursor);
+                            self.cmd.push(c);
+                            self.cmd.push_str(after_cursor);
+                            kernel::vga::clear_row();
+                            self.print_prompt();
+                            print!("{}", self.cmd);
+                            kernel::vga::set_cursor_position(x + 1, y);
+                            kernel::vga::set_writer_position(x + 1, y);
+                        } else {
+                            self.cmd.push(c);
+                            print!("{}", c);
+                        }
                     }
                 },
             }
@@ -230,25 +258,28 @@ impl Shell {
         let mut args = self.parse(&self.cmd);
         let i = args.len() - 1;
         if self.autocomplete_index == 0 {
-            if args.len() == 1 {
-                // Autocomplete command
-                let autocomplete_commands = vec![ // TODO: scan /bin
-                    "copy", "delete", "edit", "help", "move", "print", "quit", "read", "write", "sleep", "clear"
-                ];
+            if args.len() == 1 { // Autocomplete cmd
                 self.autocomplete = vec![args[i].into()];
-                for cmd in autocomplete_commands {
+                for &cmd in &AUTOCOMPLETE_COMMANDS {
                     if cmd.starts_with(args[i]) {
                         self.autocomplete.push(cmd.into());
                     }
                 }
-            } else {
-                // Autocomplete path
+            } else { // Autocomplete path
                 let pathname = kernel::fs::realpath(args[i]);
                 let dirname = kernel::fs::dirname(&pathname);
                 let filename = kernel::fs::filename(&pathname);
                 self.autocomplete = vec![args[i].into()];
-                if let Some(dir) = kernel::fs::Dir::open(dirname) {
-                    let sep = if dirname.ends_with("/") { "" } else { "/" };
+                let sep = if dirname.ends_with("/") { "" } else { "/" };
+                if pathname.starts_with("/dev") {
+                    for dev in &AUTOCOMPLETE_DEVICES {
+                        let d = kernel::fs::dirname(dev);
+                        let f = kernel::fs::filename(dev);
+                        if d == dirname && f.starts_with(filename) {
+                            self.autocomplete.push(format!("{}{}{}", d, sep, f));
+                        }
+                    }
+                } else if let Some(dir) = kernel::fs::Dir::open(dirname) {
                     for entry in dir.read() {
                         if entry.name().starts_with(filename) {
                             self.autocomplete.push(format!("{}{}{}", dirname, sep, entry.name()));
@@ -262,7 +293,7 @@ impl Shell {
         args[i] = &self.autocomplete[self.autocomplete_index];
 
         let cmd = args.join(" ");
-        kernel::vga::clear_row();
+        kernel::console::clear_row();
         self.print_prompt();
         print!("{}", cmd);
     }
@@ -375,10 +406,10 @@ impl Shell {
     }
 
     fn print_prompt(&self) {
-        let (fg, bg) = kernel::vga::color();
-        kernel::vga::set_color(if self.errored { Color::Red } else { Color::Magenta }, bg);
-        print!("{}", self.prompt);
-        kernel::vga::set_color(fg, bg);
+        let color = if self.errored { "Red" } else { "Magenta" };
+        let csi_color = kernel::console::color(color);
+        let csi_reset = kernel::console::color("Reset");
+        print!("{}{}{}", csi_color, self.prompt, csi_reset);
     }
 
     fn change_dir(&self, args: &[&str]) -> ExitCode {

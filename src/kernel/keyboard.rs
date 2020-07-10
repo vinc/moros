@@ -1,6 +1,6 @@
 use crate::kernel;
 use lazy_static::lazy_static;
-use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl, layouts};
+use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl, layouts, KeyCode, DecodedKey};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
@@ -84,7 +84,15 @@ fn interrupt_handler() {
     let scancode = read_scancode();
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
-            kernel::console::key_handle(key);
+            let c = match key {
+                DecodedKey::Unicode(c) => c,
+                DecodedKey::RawKey(KeyCode::ArrowLeft)  => '←', // U+2190
+                DecodedKey::RawKey(KeyCode::ArrowUp)    => '↑', // U+2191
+                DecodedKey::RawKey(KeyCode::ArrowRight) => '→', // U+2192
+                DecodedKey::RawKey(KeyCode::ArrowDown)  => '↓', // U+2193
+                DecodedKey::RawKey(_) => '\0'
+            };
+            kernel::console::key_handle(c);
         }
     }
 }
