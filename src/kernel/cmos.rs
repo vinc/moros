@@ -1,4 +1,3 @@
-use crate::print;
 use x86_64::instructions::port::Port;
 use x86_64::instructions::interrupts;
 
@@ -47,7 +46,7 @@ impl CMOS {
 
     pub fn rtc(&mut self) -> RTC {
         while self.is_updating() {
-            print!(""); // TODO: sleep
+            x86_64::instructions::hlt();
         }
         let mut second = self.read_register(Register::Second);
         let mut minute = self.read_register(Register::Minute);
@@ -57,13 +56,18 @@ impl CMOS {
         let mut year = self.read_register(Register::Year) as u16;
 
         let b = self.read_register(Register::B);
-        if b & 0x04 == 0 {
+
+        if b & 0x04 == 0 { // BCD Mode
             second = (second & 0x0F) + ((second / 16) * 10);
             minute = (minute & 0x0F) + ((minute / 16) * 10);
             hour = ((hour & 0x0F) + (((hour & 0x70) / 16) * 10) ) | (hour & 0x80);
             day = (day & 0x0F) + ((day / 16) * 10);
             month = (month & 0x0F) + ((month / 16) * 10);
             year = (year & 0x0F) + ((year / 16) * 10);
+        }
+
+        if (b & 0x02 == 0) && (hour & 0x80 == 0) { // 12 hour format
+            hour = ((hour & 0x7F) + 12) % 24;
         }
 
         year += 2000; // TODO: Don't forget to change this next century
