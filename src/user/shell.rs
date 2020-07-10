@@ -4,6 +4,23 @@ use alloc::vec;
 use alloc::vec::Vec;
 use alloc::string::String;
 
+// TODO: Scan /bin
+const AUTOCOMPLETE_COMMANDS: [&str; 29] = [
+    "base64", "clear", "colors", "copy", "delete", "dhcp", "disk", "edit",
+    "geotime", "goto", "halt", "help", "hex", "host", "http", "install", "ip",
+    "list", "move", "net", "print", "quit", "read", "route", "shell", "sleep",
+    "tcp", "user", "write",
+];
+
+// TODO: Scan /dev
+const AUTOCOMPLETE_DEVICES: [&str; 5] = [
+    "/dev/ata",
+    "/dev/clk",
+    "/dev/clk/uptime",
+    "/dev/clk/realtime",
+    "/dev/rtc",
+];
+
 #[repr(u8)]
 #[derive(PartialEq)]
 pub enum ExitCode {
@@ -241,28 +258,28 @@ impl Shell {
         let mut args = self.parse(&self.cmd);
         let i = args.len() - 1;
         if self.autocomplete_index == 0 {
-            if args.len() == 1 {
-                // Autocomplete command
-                let autocomplete_commands = vec![ // TODO: scan /bin
-                    "base64", "clear", "colors", "copy", "delete", "dhcp", "disk", "edit",
-                    "geotime", "goto", "halt", "help", "hex", "host", "http", "install", "ip",
-                    "list", "move", "net", "print", "quit", "read", "route", "shell", "sleep",
-                    "tcp", "user", "write"
-                ];
+            if args.len() == 1 { // Autocomplete cmd
                 self.autocomplete = vec![args[i].into()];
-                for cmd in autocomplete_commands {
+                for &cmd in &AUTOCOMPLETE_COMMANDS {
                     if cmd.starts_with(args[i]) {
                         self.autocomplete.push(cmd.into());
                     }
                 }
-            } else {
-                // Autocomplete path
+            } else { // Autocomplete path
                 let pathname = kernel::fs::realpath(args[i]);
                 let dirname = kernel::fs::dirname(&pathname);
                 let filename = kernel::fs::filename(&pathname);
                 self.autocomplete = vec![args[i].into()];
-                if let Some(dir) = kernel::fs::Dir::open(dirname) {
-                    let sep = if dirname.ends_with("/") { "" } else { "/" };
+                let sep = if dirname.ends_with("/") { "" } else { "/" };
+                if pathname.starts_with("/dev") {
+                    for dev in &AUTOCOMPLETE_DEVICES {
+                        let d = kernel::fs::dirname(dev);
+                        let f = kernel::fs::filename(dev);
+                        if d == dirname && f.starts_with(filename) {
+                            self.autocomplete.push(format!("{}{}{}", d, sep, f));
+                        }
+                    }
+                } else if let Some(dir) = kernel::fs::Dir::open(dirname) {
                     for entry in dir.read() {
                         if entry.name().starts_with(filename) {
                             self.autocomplete.push(format!("{}{}{}", dirname, sep, entry.name()));
