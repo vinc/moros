@@ -72,7 +72,7 @@ pub fn init() {
     kernel::idt::set_irq_handler(1, interrupt_handler);
 }
 
-pub fn read_scancode() -> u8 {
+fn read_scancode() -> u8 {
     let mut port = Port::new(0x60);
     unsafe {
         port.read()

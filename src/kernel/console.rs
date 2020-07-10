@@ -33,63 +33,81 @@ lazy_static! {
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
 }
 
-#[cfg(feature="vga")]
 pub fn has_cursor() -> bool {
-    true
+    cfg!(feature="vga")
 }
 
-#[cfg(feature="serial")]
-pub fn has_cursor() -> bool {
-    false
+pub fn clear_row_after(x: usize) {
+    if cfg!(feature="vga") {
+        kernel::vga::clear_row_after(x);
+    } else {
+        print!("\r"); // Move cursor to begining of line
+        print!("\x1b[{}C", x); // Move cursor forward to position
+        print!("\x1b[K"); // Clear line after position
+    }
 }
 
-#[cfg(feature="vga")]
-pub fn clear_row() {
-    kernel::vga::clear_row();
+pub fn cursor_position() -> (usize, usize) {
+    if cfg!(feature="vga") {
+        kernel::vga::cursor_position()
+    } else {
+        print!("\x1b[6n"); // Ask cursor position
+        get_char(); // ESC
+        get_char(); // [
+        let mut x = String::new();
+        let mut y = String::new();
+        loop {
+            let c = get_char();
+            if c == ';' {
+                break;
+            } else {
+                y.push(c);
+            }
+        }
+        loop {
+            let c = get_char();
+            if c == 'R' {
+                break;
+            } else {
+                x.push(c);
+            }
+        }
+        (x.parse().unwrap_or(1), y.parse().unwrap_or(1))
+    }
 }
 
-#[cfg(feature="serial")]
-pub fn clear_row() {
-    print!("\x1b[2K\r");
+pub fn set_writer_position(x: usize, y: usize) {
+    if cfg!(feature="vga") {
+        kernel::vga::set_writer_position(x, y);
+    } else {
+        print!("\x1b[{};{}H", y + 1, x + 1);
+    }
 }
 
-#[cfg(feature="vga")]
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
-        $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+        if cfg!(feature="vga") {
+            $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+        } else {
+            $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+        }
     });
 }
 
-#[cfg(feature="serial")]
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => ({
-        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
-    });
-}
-
-#[cfg(feature="vga")]
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => ({
         let uptime = $crate::kernel::clock::uptime();
         let csi_color = $crate::kernel::console::color("LightGreen");
         let csi_reset = $crate::kernel::console::color("Reset");
-        $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-        $crate::kernel::vga::print_fmt(format_args!($($arg)*));
-    });
-}
-
-#[cfg(feature="serial")]
-#[macro_export]
-macro_rules! log {
-    ($($arg:tt)*) => ({
-        let uptime = $crate::kernel::clock::uptime();
-        let csi_color = $crate::kernel::console::color("LightGreen");
-        let csi_reset = $crate::kernel::console::color("Reset");
-        $crate::kernel::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-        $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+        if cfg!(feature="vga") {
+            $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+            $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+        } else {
+            $crate::kernel::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+            $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+        }
     });
 }
 
