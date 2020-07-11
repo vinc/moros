@@ -1,4 +1,4 @@
-use crate::{print, kernel, user};
+use crate::{kernel, print, user};
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     if let Some(ref iface) = *kernel::rtl8139::IFACE.lock() {

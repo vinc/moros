@@ -1,6 +1,6 @@
-use core::sync::atomic::{AtomicUsize, Ordering};
-use crate::kernel::cmos::CMOS;
 use crate::kernel;
+use crate::kernel::cmos::CMOS;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 

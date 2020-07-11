@@ -1,4 +1,4 @@
-use crate::{print, kernel, user};
+use crate::{kernel, print, user};
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     let csi_color = kernel::console::color("Yellow");

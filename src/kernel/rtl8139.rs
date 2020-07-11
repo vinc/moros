@@ -1,16 +1,16 @@
+use crate::kernel::allocator::PhysBuf;
+use crate::user;
+use crate::{kernel, log, print};
 use alloc::collections::BTreeMap;
 use core::cell::RefCell;
 use core::convert::TryInto;
-use crate::{log, print, kernel};
-use crate::user;
-use crate::kernel::allocator::PhysBuf;
 use lazy_static::lazy_static;
-use smoltcp::Result;
 use smoltcp::iface::{EthernetInterface, EthernetInterfaceBuilder, NeighborCache, Routes};
-use smoltcp::phy::{Device, DeviceCapabilities};
 use smoltcp::phy;
+use smoltcp::phy::{Device, DeviceCapabilities};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
+use smoltcp::Result;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
@@ -73,18 +73,18 @@ lazy_static! {
 }
 
 pub struct Ports {
-    pub idr: [Port<u8>; 6], // ID Registers (IDR0 ... IDR5)
-    pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT], // Transmit Status of Descriptors (TSD0 .. TSD3)
+    pub idr: [Port<u8>; 6],                      // ID Registers (IDR0 ... IDR5)
+    pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT],  // Transmit Status of Descriptors (TSD0 .. TSD3)
     pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT], // Transmit Start Address of Descriptor0 (TSAD0 .. TSAD3)
-    pub config1: Port<u8>, // Configuration Register 1 (CONFIG1)
-    pub rx_addr: Port<u32>, // Receive (Rx) Buffer Start Address (RBSTART)
-    pub capr: Port<u16>, // Current Address of Packet Read (CAPR)
-    pub cbr: Port<u16>, // Current Buffer Address (CBR)
-    pub cmd: Port<u8>, // Command Register (CR)
-    pub imr: Port<u16>, // Interrupt Mask Register (IMR)
-    pub isr: Port<u16>, // Interrupt Status Register (ISR)
-    pub tx_config: Port<u32>, // Transmit (Tx) Configuration Register (TCR)
-    pub rx_config: Port<u32>, // Receive (Rx) Configuration Register (RCR)
+    pub config1: Port<u8>,                       // Configuration Register 1 (CONFIG1)
+    pub rx_addr: Port<u32>,                      // Receive (Rx) Buffer Start Address (RBSTART)
+    pub capr: Port<u16>,                         // Current Address of Packet Read (CAPR)
+    pub cbr: Port<u16>,                          // Current Buffer Address (CBR)
+    pub cmd: Port<u8>,                           // Command Register (CR)
+    pub imr: Port<u16>,                          // Interrupt Mask Register (IMR)
+    pub isr: Port<u16>,                          // Interrupt Status Register (ISR)
+    pub tx_config: Port<u32>,                    // Transmit (Tx) Configuration Register (TCR)
+    pub rx_config: Port<u32>,                    // Receive (Rx) Configuration Register (RCR)
 }
 
 impl Ports {
@@ -294,14 +294,24 @@ impl<'a> Device<'a> for RTL8139 {
 
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
-        unsafe { self.ports.capr.write((self.rx_offset - RX_BUFFER_PAD) as u16); }
+        unsafe {
+            self.ports.capr.write((self.rx_offset - RX_BUFFER_PAD) as u16);
+        }
 
         let state = &self.state;
-        let rx = RxToken { state, buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)] };
+        let rx = RxToken {
+            state,
+            buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)],
+        };
         let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id][..];
         let debug_mode = self.debug_mode;
-        let tx = TxToken { state, cmd_port, buffer, debug_mode };
+        let tx = TxToken {
+            state,
+            cmd_port,
+            buffer,
+            debug_mode,
+        };
 
         Some((rx, tx))
     }
@@ -322,7 +332,12 @@ impl<'a> Device<'a> for RTL8139 {
         let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
         let buffer = &mut self.tx_buffers[self.tx_id][..];
         let debug_mode = self.debug_mode;
-        let tx = TxToken { state, cmd_port, buffer, debug_mode };
+        let tx = TxToken {
+            state,
+            cmd_port,
+            buffer,
+            debug_mode,
+        };
 
         Some(tx)
     }
@@ -331,7 +346,7 @@ impl<'a> Device<'a> for RTL8139 {
 #[doc(hidden)]
 pub struct RxToken<'a> {
     state: &'a RefCell<State>,
-    buffer: &'a mut [u8]
+    buffer: &'a mut [u8],
 }
 
 impl<'a> phy::RxToken for RxToken<'a> {

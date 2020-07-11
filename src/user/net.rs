@@ -1,7 +1,7 @@
-use crate::{print, kernel, user};
+use crate::{kernel, print, user};
 //use smoltcp::wire::Ipv4Address;
-use smoltcp::time::Instant;
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
+use smoltcp::time::Instant;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() == 1 {
@@ -40,7 +40,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 let mut server_tx_buffer = [0; 2048];
                 let server_socket = TcpSocket::new(
                     TcpSocketBuffer::new(&mut server_rx_buffer[..]),
-                    TcpSocketBuffer::new(&mut server_tx_buffer[..])
+                    TcpSocketBuffer::new(&mut server_tx_buffer[..]),
                 );
 
                 let mut sockets_storage = [None, None];

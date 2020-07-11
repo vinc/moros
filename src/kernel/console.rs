@@ -1,4 +1,4 @@
-use crate::{print, kernel};
+use crate::{kernel, print};
 use alloc::string::String;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -34,11 +34,11 @@ lazy_static! {
 }
 
 pub fn has_cursor() -> bool {
-    cfg!(feature="vga")
+    cfg!(feature = "vga")
 }
 
 pub fn clear_row_after(x: usize) {
-    if cfg!(feature="vga") {
+    if cfg!(feature = "vga") {
         kernel::vga::clear_row_after(x);
     } else {
         print!("\r"); // Move cursor to begining of line
@@ -48,7 +48,7 @@ pub fn clear_row_after(x: usize) {
 }
 
 pub fn cursor_position() -> (usize, usize) {
-    if cfg!(feature="vga") {
+    if cfg!(feature = "vga") {
         kernel::vga::cursor_position()
     } else {
         print!("\x1b[6n"); // Ask cursor position
@@ -77,7 +77,7 @@ pub fn cursor_position() -> (usize, usize) {
 }
 
 pub fn set_writer_position(x: usize, y: usize) {
-    if cfg!(feature="vga") {
+    if cfg!(feature = "vga") {
         kernel::vga::set_writer_position(x, y);
     } else {
         print!("\x1b[{};{}H", y + 1, x + 1);

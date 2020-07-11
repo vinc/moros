@@ -1,13 +1,13 @@
-use alloc::vec::Vec;
+use crate::{kernel, print, user};
 use alloc::vec;
+use alloc::vec::Vec;
 use bit_field::BitField;
 use core::convert::TryInto;
 use core::str;
 use core::time::Duration;
-use crate::{print, kernel, user};
-use smoltcp::socket::{SocketSet, UdpSocket, UdpSocketBuffer, UdpPacketMetadata};
+use smoltcp::socket::{SocketSet, UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::time::Instant;
-use smoltcp::wire::{IpEndpoint, IpAddress, Ipv4Address};
+use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 
 // See RFC 1035 for implementation details
 
@@ -43,7 +43,7 @@ pub enum ResponseCode {
 }
 
 struct Message {
-    pub datagram: Vec<u8>
+    pub datagram: Vec<u8>,
 }
 
 const FLAG_RD: u16 = 0x0100; // Recursion desired
@@ -51,7 +51,7 @@ const FLAG_RD: u16 = 0x0100; // Recursion desired
 impl Message {
     pub fn from(datagram: &[u8]) -> Self {
         Self {
-            datagram: Vec::from(datagram)
+            datagram: Vec::from(datagram),
         }
     }
 
@@ -85,9 +85,7 @@ impl Message {
             datagram.push(*b); // QCLASS
         }
 
-        Self {
-            datagram
-        }
+        Self { datagram }
     }
 
     pub fn id(&self) -> u16 {

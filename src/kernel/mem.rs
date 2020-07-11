@@ -1,5 +1,5 @@
+use crate::{kernel, log};
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
-use crate::{log, kernel};
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::structures::paging::mapper::MapperAllSizes;
@@ -58,10 +58,7 @@ pub struct BootInfoFrameAllocator {
 
 impl BootInfoFrameAllocator {
     pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
-        BootInfoFrameAllocator {
-            memory_map,
-            next: 0,
-        }
+        BootInfoFrameAllocator { memory_map, next: 0 }
     }
 
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {

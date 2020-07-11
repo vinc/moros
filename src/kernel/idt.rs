@@ -1,9 +1,9 @@
-use crate::{print, kernel};
+use crate::{kernel, print};
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 const PIC1: u16 = 0x21;
 const PIC2: u16 = 0xA1;
@@ -87,7 +87,7 @@ pub fn set_irq_handler(irq: u8, handler: fn()) {
 }
 
 pub fn set_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 } );
+    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 });
     unsafe {
         let value = port.read() | (1 << (if irq < 8 { irq } else { irq - 8 }));
         port.write(value);
@@ -95,7 +95,7 @@ pub fn set_irq_mask(irq: u8) {
 }
 
 pub fn clear_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 } );
+    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 });
     unsafe {
         let value = port.read() & !(1 << if irq < 8 { irq } else { irq - 8 });
         port.write(value);

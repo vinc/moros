@@ -1,22 +1,26 @@
 use crate::kernel;
 use lazy_static::lazy_static;
-use pc_keyboard::{Keyboard, ScancodeSet1, HandleControl, layouts, KeyCode, DecodedKey};
+use pc_keyboard::{layouts, DecodedKey, HandleControl, KeyCode, Keyboard, ScancodeSet1};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
 // TODO: Support layout change from userspace
-#[cfg(feature="qwerty")]
+#[cfg(feature = "qwerty")]
 lazy_static! {
-    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> = Mutex::new(
-        Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::MapLettersToUnicode)
-    );
+    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> = Mutex::new(Keyboard::new(
+        layouts::Us104Key,
+        ScancodeSet1,
+        HandleControl::MapLettersToUnicode
+    ));
 }
 
-#[cfg(feature="dvorak")]
+#[cfg(feature = "dvorak")]
 lazy_static! {
-    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Dvorak104Key, ScancodeSet1>> = Mutex::new(
-        Keyboard::new(layouts::Dvorak104Key, ScancodeSet1, HandleControl::MapLettersToUnicode)
-    );
+    pub static ref KEYBOARD: Mutex<Keyboard<layouts::Dvorak104Key, ScancodeSet1>> = Mutex::new(Keyboard::new(
+        layouts::Dvorak104Key,
+        ScancodeSet1,
+        HandleControl::MapLettersToUnicode
+    ));
 }
 
 pub fn init() {
@@ -74,9 +78,7 @@ pub fn init() {
 
 fn read_scancode() -> u8 {
     let mut port = Port::new(0x60);
-    unsafe {
-        port.read()
-    }
+    unsafe { port.read() }
 }
 
 fn interrupt_handler() {

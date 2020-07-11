@@ -1,5 +1,5 @@
-use x86_64::instructions::port::Port;
 use x86_64::instructions::interrupts;
+use x86_64::instructions::port::Port;
 
 #[repr(u8)]
 enum Register {
@@ -40,7 +40,7 @@ impl CMOS {
     pub fn new() -> Self {
         CMOS {
             addr: Port::new(0x70),
-            data: Port::new(0x71)
+            data: Port::new(0x71),
         }
     }
 
@@ -60,7 +60,7 @@ impl CMOS {
         if b & 0x04 == 0 { // BCD Mode
             second = (second & 0x0F) + ((second / 16) * 10);
             minute = (minute & 0x0F) + ((minute / 16) * 10);
-            hour = ((hour & 0x0F) + (((hour & 0x70) / 16) * 10) ) | (hour & 0x80);
+            hour = ((hour & 0x0F) + (((hour & 0x70) / 16) * 10)) | (hour & 0x80);
             day = (day & 0x0F) + ((day / 16) * 10);
             month = (month & 0x0F) + ((month / 16) * 10);
             year = (year & 0x0F) + ((year / 16) * 10);
@@ -148,7 +148,7 @@ impl CMOS {
     fn disable_nmi(&mut self) {
         unsafe {
             let prev = self.addr.read();
-            self.addr.write(prev  | 0x80);
+            self.addr.write(prev | 0x80);
         }
     }
 }

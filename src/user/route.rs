@@ -1,5 +1,5 @@
+use crate::{kernel, print, user};
 use alloc::string::ToString;
-use crate::{print, kernel, user};
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {

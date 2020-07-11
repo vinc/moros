@@ -1,25 +1,19 @@
+use crate::{kernel, print, user};
+use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use alloc::string::ToString;
 use core::time::Duration;
-use crate::{print, kernel, user};
 use smoltcp::dhcp::Dhcpv4Client;
-use smoltcp::socket::{SocketSet, RawSocketBuffer, RawPacketMetadata};
+use smoltcp::socket::{RawPacketMetadata, RawSocketBuffer, SocketSet};
 use smoltcp::time::Instant;
-use smoltcp::wire::{Ipv4Address, IpCidr, Ipv4Cidr};
+use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
         let mut iface = iface;
         let mut sockets = SocketSet::new(vec![]);
-        let dhcp_rx_buffer = RawSocketBuffer::new(
-            [RawPacketMetadata::EMPTY; 1],
-            vec![0; 900]
-        );
-        let dhcp_tx_buffer = RawSocketBuffer::new(
-            [RawPacketMetadata::EMPTY; 1],
-            vec![0; 600]
-        );
+        let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 900]);
+        let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 600]);
 
         let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
         let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, timestamp);

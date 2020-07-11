@@ -1,9 +1,7 @@
 use crate::kernel;
 use crate::kernel::cmos::CMOS;
 
-const DAYS_BEFORE_MONTH: [u64; 13] = [
-    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
-];
+const DAYS_BEFORE_MONTH: [u64; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
 
 // NOTE: This clock is monotonic
 pub fn uptime() -> f64 {

@@ -1,10 +1,10 @@
+use crate::{kernel, print, user};
 use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 use core::str::{self, FromStr};
 use core::time::Duration;
-use crate::{print, kernel, user};
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;

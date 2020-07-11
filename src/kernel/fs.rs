@@ -1,8 +1,8 @@
+use crate::{kernel, log};
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
-use crate::{kernel, log};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
@@ -25,7 +25,7 @@ pub fn dirname(pathname: &str) -> &str {
         Some(i) => i,
         None => n,
     };
-    &pathname[0..i] 
+    &pathname[0..i]
 }
 
 pub fn filename(pathname: &str) -> &str {
@@ -34,7 +34,7 @@ pub fn filename(pathname: &str) -> &str {
         Some(i) => i + 1,
         None => 0,
     };
-    &pathname[i..n] 
+    &pathname[i..n]
 }
 
 // Transform "foo.txt" into "/path/to/foo.txt"
@@ -181,7 +181,7 @@ impl File {
 #[derive(Clone)]
 pub struct Block {
     addr: u32,
-    buf: [u8; 512]
+    buf: [u8; 512],
 }
 
 // Block structure:
@@ -205,7 +205,7 @@ impl Block {
         match BlockBitmap::next_free_addr() {
             None => {
                 return None;
-            },
+            }
             Some(addr) => {
                 BlockBitmap::alloc(addr);
 
@@ -369,7 +369,12 @@ impl DirEntry {
 
     pub fn to_file(&self) -> File {
         assert!(self.kind == FileType::File);
-        File { name: self.name.clone(), addr: self.addr, size: self.size, dir: self.dir }
+        File {
+            name: self.name.clone(),
+            addr: self.addr,
+            size: self.size,
+            dir: self.dir,
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -393,7 +398,7 @@ impl Dir {
         let filename = filename(&pathname);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_dir(filename) {
-                return Some(dir_entry.to_dir())
+                return Some(dir_entry.to_dir());
             }
         }
         None

@@ -5,7 +5,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use moros::{print, user, kernel};
+use moros::{kernel, print, user};
 
 entry_point!(main);
 
@@ -31,5 +31,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     print!("{}\n", info);
-    loop { kernel::time::sleep(10.0) }
+    loop {
+        kernel::time::sleep(10.0)
+    }
 }

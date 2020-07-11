@@ -218,7 +218,6 @@ impl Writer {
             self.clear_row_after(0, BUFFER_HEIGHT - 1);
         }
         self.writer[0] = 0;
-
     }
 
     fn clear_row_after(&mut self, x: usize, y: usize) {

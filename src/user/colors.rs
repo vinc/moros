@@ -1,5 +1,5 @@
-use alloc::format;
 use crate::{print, user};
+use alloc::format;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     let csi_reset = "\x1b[0m";
@@ -27,4 +27,3 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
     user::shell::ExitCode::CommandSuccessful
 }
-

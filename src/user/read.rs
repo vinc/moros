@@ -1,6 +1,6 @@
+use crate::{kernel, print, user};
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
-use crate::{print, kernel, user};
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {

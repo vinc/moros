@@ -1,16 +1,16 @@
 use crate::kernel;
+use core::fmt;
+use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use uart_16550::SerialPort;
-use core::fmt;
-use core::fmt::Write;
 
 lazy_static! {
     pub static ref SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));
 }
 
 pub struct Serial {
-    pub port: SerialPort
+    pub port: SerialPort,
 }
 
 impl Serial {

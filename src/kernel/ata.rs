@@ -1,8 +1,8 @@
-use bit_field::BitField;
-use crate::{print, log};
-use lazy_static::lazy_static;
-use alloc::vec::Vec;
+use crate::{log, print};
 use alloc::string::String;
+use alloc::vec::Vec;
+use bit_field::BitField;
+use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
@@ -23,7 +23,7 @@ enum Status {
     SRV = 4,
     DF = 5,
     RDY = 6,
-    BSY = 7
+    BSY = 7,
 }
 
 #[allow(dead_code)]
@@ -87,8 +87,9 @@ impl Bus {
     }
 
     fn write_command(&mut self, cmd: Command) {
-        unsafe { self.command_register.write(cmd as u8); }
-        //unsafe { self.command_register.write(cmd as u32); }
+        unsafe {
+            self.command_register.write(cmd as u8);
+        }
     }
 
     fn status(&mut self) -> u8 {
@@ -140,8 +141,10 @@ impl Bus {
     #[allow(dead_code)]
     fn debug(&mut self) {
         self.wait();
-        unsafe { print!("drive register: 0b{:08b}\n", self.drive_register.read()); }
-        unsafe { print!("status:         0b{:08b}\n", self.status_register.read()); }
+        unsafe {
+            print!("drive register: 0b{:08b}\n", self.drive_register.read());
+            print!("status:         0b{:08b}\n", self.status_register.read());
+        }
     }
 
     fn setup(&mut self, drive: u8, block: u32) {
@@ -187,7 +190,7 @@ impl Bus {
                 return None;
             }
             if self.is_ready() {
-                break
+                break;
             }
         }
 
@@ -244,7 +247,7 @@ pub fn init() {
         buses.push(Bus::new(0, 0x1F0, 0x3F6, 14));
         buses.push(Bus::new(1, 0x170, 0x376, 15));
     }
-    
+
     for (bus, drive, model, serial, size, unit) in list() {
         log!("ATA {}:{} {} {} ({} {})\n", bus, drive, model, serial, size, unit);
     }

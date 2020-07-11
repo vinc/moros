@@ -1,5 +1,5 @@
-use raw_cpuid::CpuId;
 use crate::log;
+use raw_cpuid::CpuId;
 
 pub fn init() {
     let cpuid = CpuId::new();

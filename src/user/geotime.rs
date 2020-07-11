@@ -1,6 +1,6 @@
+use crate::{kernel, print, user};
 use alloc::format;
 use core::f64::consts::PI;
-use crate::{print, kernel, user};
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() < 2 {
@@ -9,7 +9,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     }
 
     let longitude = args[1].parse().expect("Could not parse longitude");
-    
+
     let timestamp = if args.len() == 3 {
         args[2].parse().expect("Could not parse timestamp")
     } else {

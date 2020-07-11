@@ -1,6 +1,6 @@
 use crate::{print, user};
-use alloc::vec::Vec;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {

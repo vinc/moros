@@ -1,5 +1,5 @@
-use crate::{print, kernel, user};
 use crate::kernel::cmos::CMOS;
+use crate::{kernel, print, user};
 
 pub fn print_time_in_seconds(time: f64) {
     if time < 1.0e3 {

@@ -1,7 +1,7 @@
-use core::cmp;
-use crate::{print, kernel, user};
-use alloc::vec::Vec;
+use crate::{kernel, print, user};
 use alloc::string::String;
+use alloc::vec::Vec;
+use core::cmp;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {

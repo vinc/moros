@@ -1,6 +1,6 @@
-use bit_field::BitField;
 use crate::log;
 use alloc::vec::Vec;
+use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
@@ -42,13 +42,18 @@ impl DeviceConfig {
         }
 
         Self {
-            bus, device, function,
+            bus,
+            device,
+            function,
 
             // Configuration Space registers
-            vendor_id, device_id,
-            status, command,
+            vendor_id,
+            device_id,
+            status,
+            command,
             base_addresses,
-            interrupt_pin, interrupt_line,
+            interrupt_pin,
+            interrupt_line,
         }
     }
 
