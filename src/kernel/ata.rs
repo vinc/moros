@@ -114,8 +114,16 @@ impl Bus {
     }
 
     fn busy_loop(&mut self) {
-        self.wait();
-        while self.is_busy() {}
+        // Wait at most 1 second
+        for _ in 0..2500 {
+            self.wait();
+            if !self.is_busy() {
+                return;
+            }
+        }
+
+        // Do a software reset if hanged
+        self.reset();
     }
 
     fn is_busy(&mut self) -> bool {
