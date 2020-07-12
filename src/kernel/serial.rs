@@ -20,12 +20,6 @@ impl Serial {
         Self { port }
     }
 
-    fn write_string(&mut self, s: &str) {
-        for byte in s.bytes() {
-            self.write_byte(byte)
-        }
-    }
-
     pub fn write_byte(&mut self, byte: u8) {
         self.port.send(byte);
     }
@@ -33,7 +27,9 @@ impl Serial {
 
 impl fmt::Write for Serial {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.write_string(s);
+        for byte in s.bytes() {
+            self.write_byte(byte)
+        }
         Ok(())
     }
 }
