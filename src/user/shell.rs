@@ -1,4 +1,5 @@
 use crate::{print, user, kernel};
+use crate::kernel::console::Style;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -407,8 +408,8 @@ impl Shell {
 
     fn print_prompt(&self) {
         let color = if self.errored { "Red" } else { "Magenta" };
-        let csi_color = kernel::console::color(color);
-        let csi_reset = kernel::console::color("Reset");
+        let csi_color = Style::color(color);
+        let csi_reset = Style::reset();
         print!("{}{}{}", csi_color, self.prompt, csi_reset);
     }
 

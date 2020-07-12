@@ -1,8 +1,9 @@
 use crate::{kernel, print, user};
+use crate::kernel::console::Style;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    let csi_color = kernel::console::color("Yellow");
-    let csi_reset = kernel::console::color("Reset");
+    let csi_color = Style::color("Yellow");
+    let csi_reset = Style::reset();
     print!("{}Welcome to MOROS v{} installation program!{}\n", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
     print!("\n");
 

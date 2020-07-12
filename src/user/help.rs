@@ -1,8 +1,9 @@
-use crate::{kernel, print, user};
+use crate::{print, user};
+use crate::kernel::console::Style;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    let csi_color = kernel::console::color("Yellow");
-    let csi_reset = kernel::console::color("Reset");
+    let csi_color = Style::color("Yellow");
+    let csi_reset = Style::reset();
     print!("{}Commands:{}\n", csi_color, csi_reset);
     print!("\n");
 
@@ -20,8 +21,8 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         ("w", "rite <file>",       "Write file or directory\n"),
     ];
     for (alias, command, usage) in &cmds {
-        let csi_col1 = kernel::console::color("LightGreen");
-        let csi_col2 = kernel::console::color("LightCyan");
+        let csi_col1 = Style::color("LightGreen");
+        let csi_col2 = Style::color("LightCyan");
         print!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
     }
     print!("\n");
