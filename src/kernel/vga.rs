@@ -198,13 +198,6 @@ impl Writer {
         }
     }
 
-    fn write_string(&mut self, s: &str) {
-        let mut state_machine = vte::Parser::new();
-        for byte in s.bytes() {
-            state_machine.advance(self, byte);
-        }
-    }
-
     fn new_line(&mut self) {
         if self.writer[1] < BUFFER_HEIGHT - 1 {
             self.writer[1] += 1;
@@ -309,7 +302,10 @@ impl vte::Perform for Writer {
 
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.write_string(s);
+        let mut state_machine = vte::Parser::new();
+        for byte in s.bytes() {
+            state_machine.advance(self, byte);
+        }
         let (x, y) = self.writer_position();
         self.set_cursor_position(x, y);
         Ok(())
