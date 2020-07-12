@@ -73,6 +73,7 @@ impl Editor {
         let (x, y) = kernel::vga::cursor_position();
         kernel::vga::set_writer_position(0, self.height());
         kernel::vga::set_cursor_position(0, self.height());
+        kernel::vga::clear_row();
         print!("{}", status);
         kernel::vga::set_writer_position(x, y);
         kernel::vga::set_cursor_position(x, y);
@@ -101,10 +102,6 @@ impl Editor {
             match c {
                 '\0' => {
                     continue;
-                }
-                '\x03' => { // Ctrl C
-                    kernel::vga::clear_screen();
-                    break;
                 }
                 '\x11' => { // Ctrl Q
                     // TODO: Warn if modifications have not been saved
