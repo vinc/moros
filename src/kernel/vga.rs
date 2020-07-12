@@ -14,6 +14,7 @@ const BG: Color = Color::Black;
 const UNPRINTABLE: u8 = 0xFE; // Unprintable characters will be replaced by a square
 
 lazy_static! {
+    pub static ref PARSER: Mutex<vte::Parser> = Mutex::new(vte::Parser::new());
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         cursor: [0; 2],
         writer: [0; 2],
@@ -302,7 +303,7 @@ impl vte::Perform for Writer {
 
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let mut state_machine = vte::Parser::new();
+        let mut state_machine = PARSER.lock();
         for byte in s.bytes() {
             state_machine.advance(self, byte);
         }
