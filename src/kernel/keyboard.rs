@@ -92,7 +92,7 @@ fn interrupt_handler() {
                 DecodedKey::RawKey(KeyCode::ArrowUp)    => '↑', // U+2191
                 DecodedKey::RawKey(KeyCode::ArrowRight) => '→', // U+2192
                 DecodedKey::RawKey(KeyCode::ArrowDown)  => '↓', // U+2193
-                DecodedKey::RawKey(_) => '\0'
+                DecodedKey::RawKey(_) => { return; }
             };
             kernel::console::key_handle(c);
         }
