@@ -1,4 +1,6 @@
 use crate::{kernel, print, user};
+use crate::kernel::console::Style;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::cmp;
@@ -54,13 +56,26 @@ impl Editor {
             }
         }
 
+        let csi_reset = Style::reset();
         if let Some(file) = &mut self.file {
             file.write(&contents.as_bytes()).unwrap();
+            let csi_color = Style::color("Yellow");
+            self.print_status(&format!("{}Wrote {}L to '{}'{}", csi_color, n, self.pathname, csi_reset));
             user::shell::ExitCode::CommandSuccessful
         } else {
-            print!("Could not write to '{}'\n", self.pathname);
+            let csi_color = Style::color("LightRed");
+            self.print_status(&format!("{}Could not write to '{}'{}", csi_color, self.pathname, csi_reset));
             user::shell::ExitCode::CommandError
         }
+    }
+
+    fn print_status(&mut self, status: &str) {
+        let (x, y) = kernel::vga::cursor_position();
+        kernel::vga::set_writer_position(0, self.height());
+        kernel::vga::set_cursor_position(0, self.height());
+        print!("{}", status);
+        kernel::vga::set_writer_position(x, y);
+        kernel::vga::set_cursor_position(x, y);
     }
 
     fn print_screen(&mut self) {
@@ -68,7 +83,7 @@ impl Editor {
         let from = self.offset;
         let to = cmp::min(self.lines.len(), self.offset + self.height());
         for i in from..to {
-            let n = cmp::min(self.lines[i].len(), 80);
+            let n = cmp::min(self.lines[i].len(), self.width());
             lines.push(self.lines[i][0..n].into()) // TODO: Use `offset_x .. offset_x + n`
         }
         kernel::vga::clear_screen();
@@ -100,8 +115,9 @@ impl Editor {
                     self.save();
                 },
                 '\x18' => { // Ctrl X
+                    let res = self.save();
                     kernel::vga::clear_screen();
-                    return self.save();
+                    return res;
                 },
                 '\n' => { // Newline
                     let new_line = self.lines[self.offset + y].split_off(x);
@@ -234,7 +250,7 @@ impl Editor {
     }
 
     fn height(&self) -> usize {
-        kernel::vga::screen_height()
+        kernel::vga::screen_height() - 1 // Leave out one line for status line
     }
 
     fn width(&self) -> usize {
