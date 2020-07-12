@@ -72,17 +72,18 @@ impl Bus {
 
     fn reset(&mut self) {
         unsafe {
-            self.control_register.write(4);
-            self.control_register.write(0);
+            self.control_register.write(4); // Set SRST bit
+            self.alternate_status_register.read(); // Wait at least 5 us
+            self.control_register.write(0); // Then clear it
+            for _ in 0..5 { // Wait at least 2 ms
+                self.wait();
+            }
         }
     }
 
     fn wait(&mut self) {
-        unsafe {
-            self.alternate_status_register.read();
-            self.alternate_status_register.read();
-            self.alternate_status_register.read();
-            self.alternate_status_register.read();
+        for _ in 0..4 { // Wait about 4 x 100 ns
+            unsafe { self.alternate_status_register.read(); }
         }
     }
 
