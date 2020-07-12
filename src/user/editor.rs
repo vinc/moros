@@ -89,6 +89,10 @@ impl Editor {
         }
         kernel::vga::clear_screen();
         print!("{}", lines.join("\n"));
+        let csi_color = Style::color("Black").with_background("LightGray");
+        let csi_reset = Style::reset();
+        let status = format!("Editing '{}'", self.pathname);
+        self.print_status(&format!("{}{:80}{}", csi_color, status, csi_reset));
     }
 
     pub fn run(&mut self) -> user::shell::ExitCode {
