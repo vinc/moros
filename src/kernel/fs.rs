@@ -686,9 +686,11 @@ pub fn init() {
         for dsk in 0..2 {
             let mut buf = [0u8; 512];
             kernel::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
-            if String::from_utf8(buf[0..8].to_vec()).unwrap() == MAGIC {
-                log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
-                mount(bus, dsk);
+            if let Ok(header) = String::from_utf8(buf[0..8].to_vec()) {
+                if header == MAGIC {
+                    log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
+                    mount(bus, dsk);
+                }
             }
         }
     }
