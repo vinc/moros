@@ -59,12 +59,14 @@ impl Editor {
         let csi_reset = Style::reset();
         if let Some(file) = &mut self.file {
             file.write(&contents.as_bytes()).unwrap();
-            let csi_color = Style::color("Yellow");
-            self.print_status(&format!("{}Wrote {}L to '{}'{}", csi_color, n, self.pathname, csi_reset));
+            let csi_color = Style::color("Black").with_background("Yellow");
+            let status = format!("Wrote {}L to '{}'", n, self.pathname);
+            self.print_status(&format!("{}{:80}{}", csi_color, status, csi_reset));
             user::shell::ExitCode::CommandSuccessful
         } else {
-            let csi_color = Style::color("LightRed");
-            self.print_status(&format!("{}Could not write to '{}'{}", csi_color, self.pathname, csi_reset));
+            let csi_color = Style::color("Black").with_background("LightRed");
+            let status = format!("Could not write to '{}'", self.pathname);
+            self.print_status(&format!("{}{:80}{}", csi_color, status, csi_reset));
             user::shell::ExitCode::CommandError
         }
     }
