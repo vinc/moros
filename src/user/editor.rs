@@ -56,27 +56,24 @@ impl Editor {
             }
         }
 
-        let csi_reset = Style::reset();
         if let Some(file) = &mut self.file {
             file.write(&contents.as_bytes()).unwrap();
-            let csi_color = Style::color("Black").with_background("Yellow");
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
-            self.print_status(&format!("{}{:80}{}", csi_color, status, csi_reset));
+            self.print_status(&status, "Yellow");
             user::shell::ExitCode::CommandSuccessful
         } else {
-            let csi_color = Style::color("Black").with_background("LightRed");
             let status = format!("Could not write to '{}'", self.pathname);
-            self.print_status(&format!("{}{:80}{}", csi_color, status, csi_reset));
+            self.print_status(&status, "LightRed");
             user::shell::ExitCode::CommandError
         }
     }
 
-    fn print_status(&mut self, status: &str) {
+    fn print_status(&mut self, status: &str, background: &str) {
+        let csi_color = Style::color("Black").with_background(background);
+        let csi_reset = Style::reset();
         let (x, y) = kernel::vga::cursor_position();
         kernel::vga::set_writer_position(0, self.height());
-        kernel::vga::set_cursor_position(0, self.height());
-        kernel::vga::clear_row();
-        print!("{}", status);
+        print!("{}{:width$}{}", csi_color, status, csi_reset, width = self.width());
         kernel::vga::set_writer_position(x, y);
         kernel::vga::set_cursor_position(x, y);
     }
@@ -86,18 +83,18 @@ impl Editor {
         let from = self.offset;
         let to = cmp::min(self.lines.len(), self.offset + self.height());
         for i in from..to {
-            let n = cmp::min(self.lines[i].len(), self.width());
-            lines.push(self.lines[i][0..n].into()) // TODO: Use `offset_x .. offset_x + n`
+            let n = self.width();
+            let line = format!("{:width$}", self.lines[i], width = n);
+            lines.push(line[0..n].into()); // TODO: Use `offset_x .. offset_x + n`
         }
-        kernel::vga::clear_screen();
+        kernel::vga::set_writer_position(0, 0);
         print!("{}", lines.join("\n"));
-        let csi_color = Style::color("Black").with_background("LightGray");
-        let csi_reset = Style::reset();
         let status = format!("Editing '{}'", self.pathname);
-        self.print_status(&format!("{}{:80}{}", csi_color, status, csi_reset));
+        self.print_status(&status, "LightGray");
     }
 
     pub fn run(&mut self) -> user::shell::ExitCode {
+        kernel::vga::clear_screen();
         self.print_screen();
         kernel::vga::set_cursor_position(0, 0);
         kernel::vga::set_writer_position(0, 0);
