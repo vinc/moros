@@ -1,6 +1,6 @@
 use crate::kernel;
 use crate::kernel::cmos::CMOS;
-use core::sync::atomic::{AtomicUsize, AtomicU64, Ordering};
+use core::sync::atomic::{spin_loop_hint, AtomicUsize, AtomicU64, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
@@ -49,7 +49,9 @@ pub fn sleep(seconds: f64) {
 pub fn nanowait(nanoseconds: u64) {
     let start = rdtsc();
     let delta = nanoseconds * CLOCKS_PER_NANOSECOND.load(Ordering::Relaxed);
-    while rdtsc() - start < delta {}
+    while rdtsc() - start < delta {
+        spin_loop_hint();
+    }
 }
 
 /// The frequency divider must be between 0 and 65535, with 0 acting as 65536
