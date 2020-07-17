@@ -53,9 +53,9 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.9.5"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb7239572eacd7c74ac0d6c75eb87a615058d6497a667728694e0d32b7bd5a20"
+checksum = "92bb6c272362033202b8b3d99d7f32e6a7cafcb9eea788cf4794fdab3de3dac9"
 
 [[package]]
 name = "byte-tools"
