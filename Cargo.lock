@@ -206,8 +206,8 @@ dependencies = [
 
 [[package]]
 name = "pc-keyboard"
-version = "0.5.0"
-source = "git+https://github.com/thejpster/pc-keyboard#ea4f5ffbe61180e129cf261767e1c8269321565e"
+version = "0.5.1"
+source = "git+https://github.com/thejpster/pc-keyboard#850b42bc206800755db0a3af8bdb93ea30b7561c"
 
 [[package]]
 name = "pic8259_simple"
