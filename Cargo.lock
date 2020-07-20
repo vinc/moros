@@ -53,9 +53,9 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.9.5"
+version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb7239572eacd7c74ac0d6c75eb87a615058d6497a667728694e0d32b7bd5a20"
+checksum = "0ad686b9b47363de7d36c05fb6885f17d08d0f2d15b1bc782a101fe3c94a2c7c"
 
 [[package]]
 name = "byte-tools"
@@ -206,8 +206,8 @@ dependencies = [
 
 [[package]]
 name = "pc-keyboard"
-version = "0.5.0"
-source = "git+https://github.com/thejpster/pc-keyboard#ea4f5ffbe61180e129cf261767e1c8269321565e"
+version = "0.5.1"
+source = "git+https://github.com/thejpster/pc-keyboard#850b42bc206800755db0a3af8bdb93ea30b7561c"
 
 [[package]]
 name = "pic8259_simple"
@@ -220,9 +220,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.18"
+version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beae6331a816b1f65d04c45b078fd8e6c93e8071771f41b8163255bbd8d7c8fa"
+checksum = "04f5f085b5d71e2188cb8271e5da0161ad52c3f227a661a3c135fdf28e258b12"
 dependencies = [
  "unicode-xid",
 ]
