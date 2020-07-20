@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+extern crate rlibc; // TODO: See https://github.com/rust-lang/wg-cargo-std-aware/issues/53
 extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
