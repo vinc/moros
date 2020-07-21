@@ -1,6 +1,7 @@
 use crate::kernel::allocator::PhysBuf;
 use crate::{kernel, log, print, user};
 use alloc::collections::BTreeMap;
+use array_macro::array;
 use core::cell::RefCell;
 use core::convert::TryInto;
 use lazy_static::lazy_static;
@@ -72,7 +73,7 @@ lazy_static! {
 }
 
 pub struct Ports {
-    pub idr: [Port<u8>; 6],                      // ID Registers (IDR0 ... IDR5)
+    pub mac: [Port<u8>; 6],                      // ID Registers (IDR0 ... IDR5)
     pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT],  // Transmit Status of Descriptors (TSD0 .. TSD3)
     pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT], // Transmit Start Address of Descriptor0 (TSAD0 .. TSAD3)
     pub config1: Port<u8>,                       // Configuration Register 1 (CONFIG1)
@@ -87,37 +88,50 @@ pub struct Ports {
 }
 
 impl Ports {
-    pub fn new(io_addr: u16) -> Self {
+    pub fn new(io_base: u16) -> Self {
         Self {
-            idr: [
-                Port::new(io_addr + 0x00),
-                Port::new(io_addr + 0x01),
-                Port::new(io_addr + 0x02),
-                Port::new(io_addr + 0x03),
-                Port::new(io_addr + 0x04),
-                Port::new(io_addr + 0x05),
+            mac: [
+                Port::new(io_base + 0x00),
+                Port::new(io_base + 0x01),
+                Port::new(io_base + 0x02),
+                Port::new(io_base + 0x03),
+                Port::new(io_base + 0x04),
+                Port::new(io_base + 0x05),
             ],
             tx_cmds: [
-                Port::new(io_addr + 0x10),
-                Port::new(io_addr + 0x14),
-                Port::new(io_addr + 0x18),
-                Port::new(io_addr + 0x1C),
+                Port::new(io_base + 0x10),
+                Port::new(io_base + 0x14),
+                Port::new(io_base + 0x18),
+                Port::new(io_base + 0x1C),
             ],
             tx_addrs: [
-                Port::new(io_addr + 0x20),
-                Port::new(io_addr + 0x24),
-                Port::new(io_addr + 0x28),
-                Port::new(io_addr + 0x2C),
+                Port::new(io_base + 0x20),
+                Port::new(io_base + 0x24),
+                Port::new(io_base + 0x28),
+                Port::new(io_base + 0x2C),
             ],
-            config1: Port::new(io_addr + 0x52),
-            rx_addr: Port::new(io_addr + 0x30),
-            capr: Port::new(io_addr + 0x38),
-            cbr: Port::new(io_addr + 0x3A),
-            cmd: Port::new(io_addr + 0x37),
-            imr: Port::new(io_addr + 0x3C),
-            isr: Port::new(io_addr + 0x3E),
-            tx_config: Port::new(io_addr + 0x40),
-            rx_config: Port::new(io_addr + 0x44),
+            config1: Port::new(io_base + 0x52),
+            rx_addr: Port::new(io_base + 0x30),
+            capr: Port::new(io_base + 0x38),
+            cbr: Port::new(io_base + 0x3A),
+            cmd: Port::new(io_base + 0x37),
+            imr: Port::new(io_base + 0x3C),
+            isr: Port::new(io_base + 0x3E),
+            tx_config: Port::new(io_base + 0x40),
+            rx_config: Port::new(io_base + 0x44),
+        }
+    }
+
+    fn mac(&mut self) -> [u8; 6] {
+        unsafe {
+            [
+                self.mac[0].read(),
+                self.mac[1].read(),
+                self.mac[2].read(),
+                self.mac[3].read(),
+                self.mac[4].read(),
+                self.mac[5].read(),
+            ]
         }
     }
 }
@@ -141,28 +155,24 @@ pub struct RTL8139 {
 }
 
 impl RTL8139 {
-    pub fn new(io_addr: u16) -> Self {
+    pub fn new(io_base: u16) -> Self {
         let state = State {
             rx_bytes_count: 0,
             tx_bytes_count: 0,
             rx_packets_count: 0,
             tx_packets_count: 0,
         };
+
         Self {
             state: RefCell::new(state),
-            ports: Ports::new(io_addr),
+            ports: Ports::new(io_base),
             eth_addr: None,
 
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
             rx_buffer: PhysBuf::new(RX_BUFFER_LEN + MTU),
 
             rx_offset: 0,
-            tx_buffers: [
-                PhysBuf::new(TX_BUFFER_LEN),
-                PhysBuf::new(TX_BUFFER_LEN),
-                PhysBuf::new(TX_BUFFER_LEN),
-                PhysBuf::new(TX_BUFFER_LEN),
-            ],
+            tx_buffers: array![PhysBuf::new(TX_BUFFER_LEN); TX_BUFFERS_COUNT],
 
             // Before a transmission begin the id is incremented,
             // so the first transimission will start at 0.
@@ -186,17 +196,7 @@ impl RTL8139 {
         unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
 
         // Read MAC addr
-        let mac = unsafe {
-            [
-                self.ports.idr[0].read(),
-                self.ports.idr[1].read(),
-                self.ports.idr[2].read(),
-                self.ports.idr[3].read(),
-                self.ports.idr[4].read(),
-                self.ports.idr[5].read(),
-            ]
-        };
-        self.eth_addr = Some(EthernetAddress::from_bytes(&mac));
+        self.eth_addr = Some(EthernetAddress::from_bytes(&self.ports.mac()));
 
         // Get physical address of rx_buffer
         let rx_addr = self.rx_buffer.addr();
@@ -417,8 +417,8 @@ pub fn init() {
     if let Some(mut pci_device) = kernel::pci::find_device(0x10EC, 0x8139) {
         pci_device.enable_bus_mastering();
 
-        let io_addr = (pci_device.base_addresses[0] as u16) & 0xFFF0;
-        let mut rtl8139_device = RTL8139::new(io_addr);
+        let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
+        let mut rtl8139_device = RTL8139::new(io_base);
 
         rtl8139_device.init();
 
