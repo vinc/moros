@@ -141,7 +141,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
     enum State { Bind, Query, Response };
     let mut state = State::Bind;
-    if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
+    if let Some(ref mut iface) = *kernel::net::rtl8139::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
                 return Err(ResponseCode::NetworkError);

@@ -24,7 +24,7 @@ pub fn init(boot_info: &'static BootInfo) {
     kernel::mem::init(boot_info);
     kernel::cpu::init();
     kernel::pci::init(); // Require MEM
-    kernel::rtl8139::init(); // Require PCI
+    kernel::net::rtl8139::init(); // Require PCI
     kernel::ata::init();
     kernel::fs::init(); // Require ATA
 }
