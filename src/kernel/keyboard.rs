@@ -4,7 +4,8 @@ use pc_keyboard::{layouts, DecodedKey, HandleControl, KeyCode, Keyboard, Scancod
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
-// TODO: Support layout change from userspace
+// TODO: Support dyn KeyboardLayout
+
 #[cfg(feature = "qwerty")]
 lazy_static! {
     pub static ref KEYBOARD: Mutex<Keyboard<layouts::Us104Key, ScancodeSet1>> = Mutex::new(Keyboard::new(

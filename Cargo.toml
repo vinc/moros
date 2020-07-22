@@ -9,11 +9,13 @@ repository = "https://github.com/vinc/moros"
 readme = "README.md"
 
 [features]
-default = ["vga", "qwerty"]
+default = ["vga", "qwerty", "rtl8139"]
 vga = []
 serial = []
 qwerty = []
 dvorak = []
+rtl8139 = []
+pcnet = []
 
 [dependencies]
 base64 = { version = "0.12.3", default-features = false }

@@ -93,7 +93,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     enum State { Connect, Request, Response };
     let mut state = State::Connect;
 
-    if let Some(ref mut iface) = *kernel::net::rtl8139::IFACE.lock() {
+    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
                 print!("Interface not ready\n");

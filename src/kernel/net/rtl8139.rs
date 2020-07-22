@@ -1,17 +1,15 @@
-use crate::kernel::allocator::PhysBuf;
 use crate::{kernel, log, print, user};
+use crate::kernel::allocator::PhysBuf;
 use alloc::collections::BTreeMap;
 use array_macro::array;
 use core::cell::RefCell;
 use core::convert::TryInto;
-use lazy_static::lazy_static;
-use smoltcp::iface::{EthernetInterface, EthernetInterfaceBuilder, NeighborCache, Routes};
+use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy;
 use smoltcp::phy::{Device, DeviceCapabilities};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
 use smoltcp::Result;
-use spin::Mutex;
 use x86_64::instructions::port::Port;
 
 // 00 = 8K + 16 bytes
@@ -67,10 +65,6 @@ const TCR_MXDMA2: u32 = 1 << 10;
 // Interrupt Mask Register
 const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
 const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
-
-lazy_static! {
-    pub static ref IFACE: Mutex<Option<EthernetInterface<'static, 'static, 'static, RTL8139>>> = Mutex::new(None);
-}
 
 pub struct Ports {
     pub mac: [Port<u8>; 6],                      // ID Registers (IDR0 ... IDR5)
@@ -435,7 +429,7 @@ pub fn init() {
                 routes(routes).
                 finalize();
 
-            *IFACE.lock() = Some(iface);
+            *kernel::net::IFACE.lock() = Some(iface);
         }
 
         //let irq = pci_device.interrupt_line;
@@ -445,7 +439,7 @@ pub fn init() {
 
 pub fn interrupt_handler() {
     print!("RTL8139 interrupt!\n");
-    if let Some(mut guard) = IFACE.try_lock() {
+    if let Some(mut guard) = kernel::net::IFACE.try_lock() {
         if let Some(ref mut iface) = *guard {
             unsafe { iface.device_mut().ports.isr.write(0xffff) } // Clear the interrupt
         }
