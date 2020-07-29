@@ -1,6 +1,6 @@
 use crate::kernel;
 use crate::kernel::cmos::CMOS;
-use core::sync::atomic::{AtomicUsize, Ordering};
+use core::sync::atomic::{spin_loop_hint, AtomicUsize, AtomicU64, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
@@ -14,6 +14,7 @@ const PIT_INTERVAL: f64 = (PIT_DIVIDER as f64) / PIT_FREQUENCY;
 
 static PIT_TICKS: AtomicUsize = AtomicUsize::new(0);
 static LAST_RTC_UPDATE: AtomicUsize = AtomicUsize::new(0);
+static CLOCKS_PER_NANOSECOND: AtomicU64 = AtomicU64::new(0);
 
 pub fn ticks() -> usize {
     PIT_TICKS.load(Ordering::Relaxed)
@@ -27,26 +28,30 @@ pub fn last_rtc_update() -> usize {
     LAST_RTC_UPDATE.load(Ordering::Relaxed)
 }
 
-pub fn sleep(duration: f64) {
-    let start = kernel::clock::uptime();
-    while kernel::clock::uptime() - start < duration - time_between_ticks() {
-        halt();
-    }
-}
-
 pub fn halt() {
     x86_64::instructions::hlt();
 }
 
-pub fn init() {
-    // PIT timmer
-    let divider = if PIT_DIVIDER < 65536 { PIT_DIVIDER } else { 0 };
-    set_pit_frequency_divider(divider as u16);
-    kernel::idt::set_irq_handler(0, pit_interrupt_handler);
+fn rdtsc() -> u64 {
+    unsafe {
+        core::arch::x86_64::_mm_lfence();
+        core::arch::x86_64::_rdtsc()
+    }
+}
 
-    // RTC timmer
-    kernel::idt::set_irq_handler(8, rtc_interrupt_handler);
-    CMOS::new().enable_update_interrupt();
+pub fn sleep(seconds: f64) {
+    let start = kernel::clock::uptime();
+    while kernel::clock::uptime() - start < seconds {
+        halt();
+    }
+}
+
+pub fn nanowait(nanoseconds: u64) {
+    let start = rdtsc();
+    let delta = nanoseconds * CLOCKS_PER_NANOSECOND.load(Ordering::Relaxed);
+    while rdtsc() - start < delta {
+        spin_loop_hint();
+    }
 }
 
 /// The frequency divider must be between 0 and 65535, with 0 acting as 65536
@@ -70,4 +75,22 @@ pub fn pit_interrupt_handler() {
 pub fn rtc_interrupt_handler() {
     LAST_RTC_UPDATE.store(ticks(), Ordering::Relaxed);
     CMOS::new().notify_end_of_interrupt();
+}
+
+pub fn init() {
+    // PIT timmer
+    let divider = if PIT_DIVIDER < 65536 { PIT_DIVIDER } else { 0 };
+    set_pit_frequency_divider(divider as u16);
+    kernel::idt::set_irq_handler(0, pit_interrupt_handler);
+
+    // RTC timmer
+    kernel::idt::set_irq_handler(8, rtc_interrupt_handler);
+    CMOS::new().enable_update_interrupt();
+
+    // TSC timmer
+    let calibration_time = 250_000; // 0.25 seconds
+    let a = rdtsc();
+    sleep(calibration_time as f64 / 1e6);
+    let b = rdtsc();
+    CLOCKS_PER_NANOSECOND.store((b - a) / calibration_time, Ordering::Relaxed);
 }
