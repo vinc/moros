@@ -1,7 +1,7 @@
 [package]
 name = "moros"
 description = "MOROS: Obscure Rust Operating System"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Vincent Ollivier <v@vinc.cc>"]
 edition = "2018"
 license = "MIT"
@@ -24,7 +24,7 @@ lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.1"
 linked_list_allocator = "0.8.4"
 pbkdf2 = { version = "0.3.0", default-features = false }
-pc-keyboard = { git = "https://github.com/thejpster/pc-keyboard" }
+pc-keyboard = "0.5.1"
 pic8259_simple = "0.2.0"
 raw-cpuid = "8.1.0"
 sha2 = { version = "0.8.2", default-features = false }
