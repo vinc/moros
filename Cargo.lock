@@ -206,8 +206,9 @@ dependencies = [
 
 [[package]]
 name = "pc-keyboard"
-version = "0.5.0"
-source = "git+https://github.com/thejpster/pc-keyboard#ea4f5ffbe61180e129cf261767e1c8269321565e"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c6f2d937e3b8d63449b01401e2bae4041bc9dd1129c2e3e0d239407cf6635ac"
 
 [[package]]
 name = "pic8259_simple"
