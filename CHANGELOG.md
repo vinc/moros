@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.4.0 (2020-07-29)
 - Improve editor (#77)
 - Add ANSI Style type (#76)
 - Fix detection of magic superblock
