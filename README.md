@@ -45,7 +45,7 @@ Install tools:
     $ rustup default nightly
     $ rustup component add rust-src
     $ rustup component add llvm-tools-preview
-	  $ cargo install bootimage
+    $ cargo install bootimage
 
 
 ## Usage
