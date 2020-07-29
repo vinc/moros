@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Improve editor (#77)
+- Add ANSI Style type (#76)
+- Fix detection of magic superblock
+- Fix ATA busy loop hang
+- Improve ATA reset
+- Optimize shell printing (#75)
+- Improve console (#74)
+- Improve installation and documentation (#73)
 - Handle RTC interrupts (#71)
 - Colorize user interface (#69)
 - Update dependencies (#70)
