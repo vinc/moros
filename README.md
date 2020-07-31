@@ -47,6 +47,11 @@ Install tools:
     $ rustup component add llvm-tools-preview
     $ cargo install bootimage
 
+Clone repo:
+
+    $ git clone https://github.com/vinc/moros
+    $ cd moros
+
 
 ## Usage
 
