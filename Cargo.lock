@@ -172,7 +172,7 @@ checksum = "c75de51135344a4f8ed3cfe2720dc27736f7711989703a0b43aadf3753c55577"
 
 [[package]]
 name = "moros"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "array-macro",
  "base64",
@@ -186,6 +186,7 @@ dependencies = [
  "pc-keyboard",
  "pic8259_simple",
  "raw-cpuid",
+ "rlibc",
  "sha2",
  "smoltcp",
  "spin",
@@ -214,7 +215,8 @@ dependencies = [
 [[package]]
 name = "pc-keyboard"
 version = "0.5.1"
-source = "git+https://github.com/thejpster/pc-keyboard#850b42bc206800755db0a3af8bdb93ea30b7561c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c6f2d937e3b8d63449b01401e2bae4041bc9dd1129c2e3e0d239407cf6635ac"
 
 [[package]]
 name = "pic8259_simple"
@@ -253,6 +255,12 @@ dependencies = [
  "cc",
  "rustc_version",
 ]
+
+[[package]]
+name = "rlibc"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc874b127765f014d792f16763a81245ab80500e2ad921ed4ee9e82481ee08fe"
 
 [[package]]
 name = "rustc_version"
@@ -358,9 +366,9 @@ checksum = "936e4b492acfd135421d8dca4b1aa80a7bfc26e702ef3af710e0752684df5372"
 
 [[package]]
 name = "volatile"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6af0edf5b4faacc31fc51159244d78d65ec580f021afcef7bd53c04aeabc7f29"
+checksum = "f6b06ad3ed06fef1713569d547cdbdb439eafed76341820fb0e0344f29a41945"
 
 [[package]]
 name = "vte"

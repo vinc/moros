@@ -6,7 +6,7 @@ This project started from the [seventh post][1] of the second edition of
 [Writing an OS in Rust][2] by Philipp Oppermann and by reading the
 [OSDev wiki][3] along with many open source kernels.
 
-![screenshot](screenshot.png)
+![screenshot](moros.png)
 
 
 ## Features
@@ -45,7 +45,12 @@ Install tools:
     $ rustup default nightly
     $ rustup component add rust-src
     $ rustup component add llvm-tools-preview
-    $ cargo install cargo-xbuild bootimage
+    $ cargo install bootimage
+
+Clone repo:
+
+    $ git clone https://github.com/vinc/moros
+    $ cd moros
 
 
 ## Usage
