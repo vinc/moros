@@ -6,10 +6,10 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         for ip_cidr in iface.ip_addrs() {
             print!("Addr: {}/{}\n", ip_cidr.address(), ip_cidr.prefix_len());
         }
-        print!("RX packets: {}\n", iface.device().rx_packets_count());
-        print!("TX packets: {}\n", iface.device().tx_packets_count());
-        print!("RX bytes: {}\n", iface.device().rx_bytes_count());
-        print!("TX bytes: {}\n", iface.device().tx_bytes_count());
+        print!("RX packets: {}\n", iface.device().state.rx_packets_count());
+        print!("TX packets: {}\n", iface.device().state.tx_packets_count());
+        print!("RX bytes: {}\n", iface.device().state.rx_bytes_count());
+        print!("TX bytes: {}\n", iface.device().state.tx_bytes_count());
         user::shell::ExitCode::CommandSuccessful
     } else {
         print!("Could not find network interface\n");

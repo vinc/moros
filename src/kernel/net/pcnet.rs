@@ -1,8 +1,14 @@
 use crate::{kernel, log};
 use crate::kernel::allocator::PhysBuf;
+use crate::kernel::net::State;
 use array_macro::array;
 use bit_field::BitField;
-use smoltcp::wire::EthernetAddress;
+use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
+use smoltcp::phy;
+use smoltcp::phy::{Device, DeviceCapabilities};
+use smoltcp::time::Instant;
+use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
+use smoltcp::Result;
 use x86_64::instructions::port::Port;
 
 pub struct Ports {
@@ -94,8 +100,11 @@ fn is_buffer_owner(des: &PhysBuf, i: usize) -> bool {
 }
 
 pub struct PCNET {
+    pub debug_mode: bool,
+    pub state: State,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
+
     rx_buffers: [PhysBuf; RX_BUFFERS_COUNT],
     tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
     rx_des: PhysBuf, // Ring buffer of rx descriptor entries
@@ -107,6 +116,8 @@ pub struct PCNET {
 impl PCNET {
     pub fn new(io_base: u16) -> Self {
         Self {
+            debug_mode: false,
+            state: State::new(),
             ports: Ports::new(io_base),
             eth_addr: None,
             rx_buffers: array![PhysBuf::new(MTU); RX_BUFFERS_COUNT],

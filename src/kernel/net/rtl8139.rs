@@ -1,8 +1,8 @@
 use crate::{kernel, log, print, user};
 use crate::kernel::allocator::PhysBuf;
+use crate::kernel::net::State;
 use alloc::collections::BTreeMap;
 use array_macro::array;
-use core::cell::RefCell;
 use core::convert::TryInto;
 use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy;
@@ -130,35 +130,23 @@ impl Ports {
     }
 }
 
-pub struct State {
-    rx_bytes_count: u64,
-    tx_bytes_count: u64,
-    rx_packets_count: u64,
-    tx_packets_count: u64,
-}
-
 pub struct RTL8139 {
-    state: RefCell<State>,
+    pub debug_mode: bool,
+    pub state: State,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
+
     rx_buffer: PhysBuf,
     rx_offset: usize,
     tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
     tx_id: usize,
-    pub debug_mode: bool,
 }
 
 impl RTL8139 {
     pub fn new(io_base: u16) -> Self {
-        let state = State {
-            rx_bytes_count: 0,
-            tx_bytes_count: 0,
-            rx_packets_count: 0,
-            tx_packets_count: 0,
-        };
-
         Self {
-            state: RefCell::new(state),
+            debug_mode: false,
+            state: State::new(),
             ports: Ports::new(io_base),
             eth_addr: None,
 
@@ -171,8 +159,6 @@ impl RTL8139 {
             // Before a transmission begin the id is incremented,
             // so the first transimission will start at 0.
             tx_id: TX_BUFFERS_COUNT - 1,
-
-            debug_mode: false,
         }
     }
 
@@ -214,19 +200,6 @@ impl RTL8139 {
 
         // Configure transmit buffer (TCR)
         unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
-    }
-
-    pub fn rx_bytes_count(&self) -> u64 {
-        self.state.borrow().rx_bytes_count
-    }
-    pub fn tx_bytes_count(&self) -> u64 {
-        self.state.borrow().tx_bytes_count
-    }
-    pub fn rx_packets_count(&self) -> u64 {
-        self.state.borrow().rx_packets_count
-    }
-    pub fn tx_packets_count(&self) -> u64 {
-        self.state.borrow().tx_packets_count
     }
 }
 
@@ -338,7 +311,7 @@ impl<'a> Device<'a> for RTL8139 {
 
 #[doc(hidden)]
 pub struct RxToken<'a> {
-    state: &'a RefCell<State>,
+    state: &'a State,
     buffer: &'a mut [u8],
 }
 
@@ -346,15 +319,14 @@ impl<'a> phy::RxToken for RxToken<'a> {
     fn consume<R, F>(self, _timestamp: Instant, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
-        self.state.borrow_mut().rx_packets_count += 1;
-        self.state.borrow_mut().rx_bytes_count += self.buffer.len() as u64;
+        self.state.rx_add(self.buffer.len() as u64);
         f(self.buffer)
     }
 }
 
 #[doc(hidden)]
 pub struct TxToken<'a> {
-    state: &'a RefCell<State>,
+    state: &'a State,
     cmd_port: Port<u32>,
     buffer: &'a mut [u8],
     debug_mode: bool,
@@ -397,8 +369,7 @@ impl<'a> phy::TxToken for TxToken<'a> {
                 while self.cmd_port.read() & TOK != TOK {}
             }
         }
-        self.state.borrow_mut().tx_packets_count += 1;
-        self.state.borrow_mut().tx_bytes_count += len as u64;
+        self.state.tx_add(self.buffer.len() as u64);
         if self.debug_mode {
             user::hex::print_hex(&self.buffer[0..len]);
         }
