@@ -1,6 +1,7 @@
 use crate::{kernel, log};
 use crate::kernel::allocator::PhysBuf;
 use crate::kernel::net::State;
+use alloc::collections::BTreeMap;
 use array_macro::array;
 use bit_field::BitField;
 use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
@@ -213,14 +214,123 @@ impl PCNET {
     }
 }
 
+impl<'a> Device<'a> for PCNET {
+    type RxToken = RxToken<'a>;
+    type TxToken = TxToken<'a>;
+
+    fn capabilities(&self) -> DeviceCapabilities {
+        let mut caps = DeviceCapabilities::default();
+        caps.max_transmission_unit = MTU;
+        caps.max_burst_size = Some(1);
+        caps
+    }
+
+    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+        while is_buffer_owner(&self.rx_des, self.rx_id) {
+            // Read packet size
+            let addr = self.rx_buffers[self.rx_id].addr() as usize;
+            let size = u16::from_le_bytes([
+                self.rx_des[addr * DE_LEN + 8],
+                self.rx_des[addr * DE_LEN + 9]
+            ]) as usize;
+
+            // TODO: Copy packet to system memory
+
+            let rx = RxToken {
+                buffer: &mut self.rx_buffers[self.rx_id][0..size],
+            };
+
+            let tx = TxToken {
+                buffer: &mut self.tx_buffers[self.tx_id],
+            };
+
+            self.rx_des[addr * DE_LEN + 7] = 0x80;
+
+            self.rx_id = (self.rx_id + 1) % RX_BUFFERS_COUNT;
+
+            let csr = self.ports.read_csr_32(0);
+            self.ports.write_csr_32(0, csr | 0x0400);
+
+            return Some((rx, tx));
+        }
+
+        None
+    }
+
+    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        if is_buffer_owner(&self.tx_des, self.tx_id) {
+            let tx = TxToken {
+                buffer: &mut self.tx_buffers[self.tx_id],
+            };
+
+            // FIXME: This should be done after transmit
+            let addr = self.tx_buffers[self.tx_id].addr() as usize;
+            self.tx_des[addr * DE_LEN + 7] |= 0x02;
+            self.tx_des[addr * DE_LEN + 7] |= 0x01;
+            self.tx_des[addr * DE_LEN + 7] |= 0x80;
+            self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
+
+            Some(tx)
+        } else
+            None
+        }
+    }
+}
+
+#[doc(hidden)]
+pub struct RxToken<'a> {
+    buffer: &'a mut [u8],
+}
+
+impl<'a> phy::RxToken for RxToken<'a> {
+    fn consume<R, F>(self, _timestamp: Instant, f: F) -> Result<R>
+        where F: FnOnce(&mut [u8]) -> Result<R>
+    {
+        f(self.buffer)
+    }
+}
+
+#[doc(hidden)]
+pub struct TxToken<'a> {
+    buffer: &'a mut [u8],
+}
+
+impl<'a> phy::TxToken for TxToken<'a> {
+    fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R>
+        where F: FnOnce(&mut [u8]) -> Result<R>
+    {
+        // 1. Copy the packet to a physically contiguous buffer in memory.
+        let res = f(&mut self.buffer[0..len]);
+
+        if res.is_ok() {
+        }
+
+        res
+    }
+}
+
 pub fn init() {
     if let Some(mut pci_device) = kernel::pci::find_device(0x1022, 0x2000) {
         pci_device.enable_bus_mastering();
         let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
-        let mut pcnet_device = PCNET::new(io_base);
-        pcnet_device.init();
-        if let Some(eth_addr) = pcnet_device.eth_addr {
+        let mut net_device = PCNET::new(io_base);
+
+        net_device.init();
+
+        if let Some(eth_addr) = net_device.eth_addr {
             log!("NET PCNET MAC {}\n", eth_addr);
+
+            let neighbor_cache = NeighborCache::new(BTreeMap::new());
+            let routes = Routes::new(BTreeMap::new());
+            let ip_addrs = [IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)];
+            let iface = EthernetInterfaceBuilder::new(net_device).
+                ethernet_addr(eth_addr).
+                neighbor_cache(neighbor_cache).
+                ip_addrs(ip_addrs).
+                routes(routes).
+                finalize();
+
+            *kernel::net::IFACE.lock() = Some(iface);
         }
     }
 }

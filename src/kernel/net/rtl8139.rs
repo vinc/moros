@@ -383,17 +383,17 @@ pub fn init() {
         pci_device.enable_bus_mastering();
 
         let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
-        let mut rtl8139_device = RTL8139::new(io_base);
+        let mut net_device = RTL8139::new(io_base);
 
-        rtl8139_device.init();
+        net_device.init();
 
-        if let Some(eth_addr) = rtl8139_device.eth_addr {
+        if let Some(eth_addr) = net_device.eth_addr {
             log!("NET RTL8139 MAC {}\n", eth_addr);
 
             let neighbor_cache = NeighborCache::new(BTreeMap::new());
             let routes = Routes::new(BTreeMap::new());
             let ip_addrs = [IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)];
-            let iface = EthernetInterfaceBuilder::new(rtl8139_device).
+            let iface = EthernetInterfaceBuilder::new(net_device).
                 ethernet_addr(eth_addr).
                 neighbor_cache(neighbor_cache).
                 ip_addrs(ip_addrs).
