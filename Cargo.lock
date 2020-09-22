@@ -359,9 +359,9 @@ checksum = "936e4b492acfd135421d8dca4b1aa80a7bfc26e702ef3af710e0752684df5372"
 
 [[package]]
 name = "volatile"
-version = "0.2.7"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b06ad3ed06fef1713569d547cdbdb439eafed76341820fb0e0344f29a41945"
+checksum = "e000a949a4c792c46417a637bdf18ed39cfc70184318f609979e0fa03ab334c8"
 
 [[package]]
 name = "vte"
