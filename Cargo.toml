@@ -32,6 +32,6 @@ smoltcp = { version = "0.6.0", default-features = false, features = ["alloc", "e
 spin = "0.5.2"
 uart_16550 = "0.2.7"
 volatile = "0.2.6"
-x86_64 = "0.11.1"
+x86_64 = "0.12.0"
 vte = "0.8.0"
 rlibc = "1.0.0"
