@@ -1,4 +1,5 @@
-use core::cell::RefCell;
+use alloc::sync::Arc;
+use core::sync::atomic::{AtomicU64, Ordering};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
@@ -31,58 +32,59 @@ pub fn init() {
     pcnet::init();
 }
 
-struct InnerState {
-    rx_bytes_count: u64,
-    tx_bytes_count: u64,
-    rx_packets_count: u64,
-    tx_packets_count: u64,
+struct InnerStats {
+    rx_bytes_count: AtomicU64,
+    tx_bytes_count: AtomicU64,
+    rx_packets_count: AtomicU64,
+    tx_packets_count: AtomicU64,
 }
 
-impl InnerState {
+impl InnerStats {
     fn new() -> Self {
         Self {
-            rx_bytes_count: 0,
-            tx_bytes_count: 0,
-            rx_packets_count: 0,
-            tx_packets_count: 0,
+            rx_bytes_count: AtomicU64::new(0),
+            tx_bytes_count: AtomicU64::new(0),
+            rx_packets_count: AtomicU64::new(0),
+            tx_packets_count: AtomicU64::new(0),
         }
     }
 }
 
-pub struct State {
-    state: RefCell<InnerState>
+#[derive(Clone)]
+pub struct Stats {
+    stats: Arc<InnerStats>
 }
 
-impl State {
+impl Stats {
     fn new() -> Self {
         Self {
-            state: RefCell::new(InnerState::new())
+            stats: Arc::new(InnerStats::new())
         }
     }
 
     pub fn rx_bytes_count(&self) -> u64 {
-        self.state.borrow().rx_bytes_count
+        self.stats.rx_bytes_count.load(Ordering::Relaxed)
     }
 
     pub fn tx_bytes_count(&self) -> u64 {
-        self.state.borrow().tx_bytes_count
+        self.stats.tx_bytes_count.load(Ordering::Relaxed)
     }
 
     pub fn rx_packets_count(&self) -> u64 {
-        self.state.borrow().rx_packets_count
+        self.stats.rx_packets_count.load(Ordering::Relaxed)
     }
 
     pub fn tx_packets_count(&self) -> u64 {
-        self.state.borrow().tx_packets_count
+        self.stats.tx_packets_count.load(Ordering::Relaxed)
     }
 
     pub fn rx_add(&self, bytes_count: u64) {
-        self.state.borrow_mut().rx_packets_count += 1;
-        self.state.borrow_mut().rx_bytes_count += bytes_count;
+        self.stats.rx_packets_count.fetch_add(1, Ordering::SeqCst);
+        self.stats.rx_bytes_count.fetch_add(bytes_count, Ordering::SeqCst);
     }
 
     pub fn tx_add(&self, bytes_count: u64) {
-        self.state.borrow_mut().tx_packets_count += 1;
-        self.state.borrow_mut().tx_bytes_count += bytes_count;
+        self.stats.tx_packets_count.fetch_add(1, Ordering::SeqCst);
+        self.stats.tx_bytes_count.fetch_add(bytes_count, Ordering::SeqCst);
     }
 }

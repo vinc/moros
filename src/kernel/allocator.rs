@@ -37,6 +37,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     Ok(())
 }
 
+#[derive(Clone)]
 pub struct PhysBuf {
     vec: Vec<u8>,
 }

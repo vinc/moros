@@ -1,6 +1,6 @@
 use crate::{kernel, log};
 use crate::kernel::allocator::PhysBuf;
-use crate::kernel::net::State;
+use crate::kernel::net::Stats;
 use alloc::collections::BTreeMap;
 use array_macro::array;
 use bit_field::BitField;
@@ -102,7 +102,7 @@ fn is_buffer_owner(des: &PhysBuf, i: usize) -> bool {
 
 pub struct PCNET {
     pub debug_mode: bool,
-    pub state: State,
+    pub stats: Stats,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
 
@@ -118,7 +118,7 @@ impl PCNET {
     pub fn new(io_base: u16) -> Self {
         Self {
             debug_mode: false,
-            state: State::new(),
+            stats: Stats::new(),
             ports: Ports::new(io_base),
             eth_addr: None,
             rx_buffers: array![PhysBuf::new(MTU); RX_BUFFERS_COUNT],
@@ -271,7 +271,7 @@ impl<'a> Device<'a> for PCNET {
             self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
 
             Some(tx)
-        } else
+        } else {
             None
         }
     }

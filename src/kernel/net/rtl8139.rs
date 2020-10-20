@@ -1,6 +1,6 @@
 use crate::{kernel, log, print, user};
 use crate::kernel::allocator::PhysBuf;
-use crate::kernel::net::State;
+use crate::kernel::net::Stats;
 use alloc::collections::BTreeMap;
 use array_macro::array;
 use core::convert::TryInto;
@@ -66,6 +66,7 @@ const TCR_MXDMA2: u32 = 1 << 10;
 const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
 const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
 
+#[derive(Clone)]
 pub struct Ports {
     pub mac: [Port<u8>; 6],                      // ID Registers (IDR0 ... IDR5)
     pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT],  // Transmit Status of Descriptors (TSD0 .. TSD3)
@@ -130,9 +131,10 @@ impl Ports {
     }
 }
 
+#[derive(Clone)]
 pub struct RTL8139 {
     pub debug_mode: bool,
-    pub state: State,
+    pub stats: Stats,
     ports: Ports,
     eth_addr: Option<EthernetAddress>,
 
@@ -146,7 +148,7 @@ impl RTL8139 {
     pub fn new(io_base: u16) -> Self {
         Self {
             debug_mode: false,
-            state: State::new(),
+            stats: Stats::new(),
             ports: Ports::new(io_base),
             eth_addr: None,
 
@@ -247,16 +249,16 @@ impl<'a> Device<'a> for RTL8139 {
             return None;
         }
 
-        let length = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap());
-        let n = length as usize;
+        let n = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap()) as usize;
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
-
+        let packet_length = n - 4;
         if self.debug_mode {
-            print!("Length: {} bytes\n", n - 4);
+            print!("Length: {} bytes\n", packet_length);
             print!("CRC: 0x{:08X}\n", crc);
             print!("RX Offset: {}\n", offset);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         }
+        self.stats.rx_add(packet_length as u64);
 
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
@@ -264,19 +266,12 @@ impl<'a> Device<'a> for RTL8139 {
             self.ports.capr.write((self.rx_offset - RX_BUFFER_PAD) as u16);
         }
 
-        let state = &self.state;
-        let rx = RxToken {
-            state,
-            buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)],
-        };
-        let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
-        let buffer = &mut self.tx_buffers[self.tx_id][..];
-        let debug_mode = self.debug_mode;
         let tx = TxToken {
-            state,
-            cmd_port,
-            buffer,
-            debug_mode,
+            device: self.clone(),
+            buffer: &mut self.tx_buffers[self.tx_id][..],
+        };
+        let rx = RxToken {
+            buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)],
         };
 
         Some((rx, tx))
@@ -294,15 +289,9 @@ impl<'a> Device<'a> for RTL8139 {
             print!("Interrupt Status Register: 0x{:02X}\n", isr);
         }
 
-        let state = &self.state;
-        let cmd_port = self.ports.tx_cmds[self.tx_id].clone();
-        let buffer = &mut self.tx_buffers[self.tx_id][..];
-        let debug_mode = self.debug_mode;
         let tx = TxToken {
-            state,
-            cmd_port,
-            buffer,
-            debug_mode,
+            device: self.clone(),
+            buffer: &mut self.tx_buffers[self.tx_id][..],
         };
 
         Some(tx)
@@ -311,7 +300,6 @@ impl<'a> Device<'a> for RTL8139 {
 
 #[doc(hidden)]
 pub struct RxToken<'a> {
-    state: &'a State,
     buffer: &'a mut [u8],
 }
 
@@ -319,17 +307,14 @@ impl<'a> phy::RxToken for RxToken<'a> {
     fn consume<R, F>(self, _timestamp: Instant, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
-        self.state.rx_add(self.buffer.len() as u64);
         f(self.buffer)
     }
 }
 
 #[doc(hidden)]
 pub struct TxToken<'a> {
-    state: &'a State,
-    cmd_port: Port<u32>,
+    device: RTL8139,
     buffer: &'a mut [u8],
-    debug_mode: bool,
 }
 
 //const CRS: u32 = 1 << 31; // Carrier Sense Lost
@@ -341,16 +326,20 @@ const TOK: u32 = 1 << 15; // Transmit OK
 const OWN: u32 = 1 << 13; // DMA operation completed
 
 impl<'a> phy::TxToken for TxToken<'a> {
-    fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R>
+    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
+        let dev = self.device.clone();
+
         // 1. Copy the packet to a physically contiguous buffer in memory.
         let res = f(&mut self.buffer[0..len]);
+        //let res = f(&mut self.device.tx_buffers[self.device.tx_id][0..len]);
 
         // 2. Fill in Start Address(physical address) of this buffer.
         // NOTE: This has was done during init
 
         if res.is_ok() {
+            let mut cmd_port = dev.ports.tx_cmds[dev.tx_id].clone();
             unsafe {
                 // 3. Fill in Transmit Status: the size of this packet, the
                 // early transmit threshold, and clear OWN bit in TSD (this
@@ -359,18 +348,18 @@ impl<'a> phy::TxToken for TxToken<'a> {
                 // should not exceed 1792 bytes), and a value of 0x000000
                 // for the early transmit threshold means 8 bytes. So we
                 // just write the size of the packet.
-                self.cmd_port.write(0x1FFF & len as u32);
+                cmd_port.write(0x1FFF & len as u32);
 
                 // 4. When the whole packet is moved to FIFO, the OWN bit is
                 // set to 1.
-                while self.cmd_port.read() & OWN != OWN {}
+                while cmd_port.read() & OWN != OWN {}
                 // 5. When the whole packet is moved to line, the TOK bit is
                 // set to 1.
-                while self.cmd_port.read() & TOK != TOK {}
+                while cmd_port.read() & TOK != TOK {}
             }
         }
-        self.state.tx_add(self.buffer.len() as u64);
-        if self.debug_mode {
+        dev.stats.tx_add(self.buffer.len() as u64);
+        if dev.debug_mode {
             user::hex::print_hex(&self.buffer[0..len]);
         }
 
