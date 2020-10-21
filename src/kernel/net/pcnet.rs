@@ -13,6 +13,7 @@ use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
 use smoltcp::Result;
 use x86_64::instructions::port::Port;
 
+#[derive(Clone)]
 pub struct Ports {
     pub mac: [Port<u8>; 6],
     pub rdp_16: Port<u16>,
@@ -101,6 +102,7 @@ fn is_buffer_owner(des: &PhysBuf, i: usize) -> bool {
     (des[DE_LEN * i + 7] & 0x80) == 0
 }
 
+#[derive(Clone)]
 pub struct PCNET {
     pub debug_mode: bool,
     pub stats: Stats,
@@ -217,7 +219,7 @@ impl PCNET {
 
 impl<'a> Device<'a> for PCNET {
     type RxToken = RxToken;
-    type TxToken = TxToken<'a>;
+    type TxToken = TxToken;
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
@@ -238,11 +240,11 @@ impl<'a> Device<'a> for PCNET {
             // TODO: Copy packet to system memory
 
             let rx = RxToken {
-                buffer: self.rx_buffers[self.rx_id][0..size].to_vec(),
+                buffer: self.rx_buffers[self.rx_id][0..size].to_vec()
             };
 
             let tx = TxToken {
-                buffer: &mut self.tx_buffers[self.tx_id],
+                device: self.clone()
             };
 
             self.rx_des[addr * DE_LEN + 7] = 0x80;
@@ -268,7 +270,7 @@ impl<'a> Device<'a> for PCNET {
             self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
 
             let tx = TxToken {
-                buffer: &mut self.tx_buffers[self.tx_id],
+                device: self.clone()
             };
 
             Some(tx)
@@ -290,16 +292,14 @@ impl phy::RxToken for RxToken {
 }
 
 #[doc(hidden)]
-pub struct TxToken<'a> {
-    buffer: &'a mut [u8],
+pub struct TxToken {
+    device: PCNET
 }
 
-impl<'a> phy::TxToken for TxToken<'a> {
-    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> Result<R>
-        where F: FnOnce(&mut [u8]) -> Result<R>
-    {
+impl phy::TxToken for TxToken {
+    fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
         // 1. Copy the packet to a physically contiguous buffer in memory.
-        let res = f(&mut self.buffer[0..len]);
+        let res = f(&mut self.device.tx_buffers[self.device.tx_id][0..len]);
 
         if res.is_ok() {
         }

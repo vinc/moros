@@ -208,7 +208,7 @@ impl RTL8139 {
 
 impl<'a> Device<'a> for RTL8139 {
     type RxToken = RxToken;
-    type TxToken = TxToken<'a>;
+    type TxToken = TxToken;
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
@@ -271,8 +271,7 @@ impl<'a> Device<'a> for RTL8139 {
             buffer: self.rx_buffer[(offset + 4)..(offset + n)].to_vec()
         };
         let tx = TxToken {
-            device: self.clone(),
-            buffer: &mut self.tx_buffers[self.tx_id][..],
+            device: self.clone()
         };
 
         Some((rx, tx))
@@ -291,8 +290,7 @@ impl<'a> Device<'a> for RTL8139 {
         }
 
         let tx = TxToken {
-            device: self.clone(),
-            buffer: &mut self.tx_buffers[self.tx_id][..],
+            device: self.clone()
         };
 
         Some(tx)
@@ -311,9 +309,8 @@ impl phy::RxToken for RxToken {
 }
 
 #[doc(hidden)]
-pub struct TxToken<'a> {
-    device: RTL8139,
-    buffer: &'a mut [u8],
+pub struct TxToken {
+    device: RTL8139
 }
 
 //const CRS: u32 = 1 << 31; // Carrier Sense Lost
@@ -324,15 +321,15 @@ const TOK: u32 = 1 << 15; // Transmit OK
 //const TUN: u32 = 1 << 14; // Transmit FIFO Underrun
 const OWN: u32 = 1 << 13; // DMA operation completed
 
-impl<'a> phy::TxToken for TxToken<'a> {
-    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> Result<R>
-        where F: FnOnce(&mut [u8]) -> Result<R>
-    {
+impl phy::TxToken for TxToken {
+    fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
         let dev = self.device.clone();
+        let mut buf = &mut self.device.tx_buffers[self.device.tx_id][0..len];
 
         // 1. Copy the packet to a physically contiguous buffer in memory.
-        let res = f(&mut self.buffer[0..len]);
+        //let res = f(&mut self.buffer[0..len]);
         //let res = f(&mut self.device.tx_buffers[self.device.tx_id][0..len]);
+        let res = f(&mut buf);
 
         // 2. Fill in Start Address(physical address) of this buffer.
         // NOTE: This has was done during init
@@ -357,9 +354,9 @@ impl<'a> phy::TxToken for TxToken<'a> {
                 while cmd_port.read() & TOK != TOK {}
             }
         }
-        dev.stats.tx_add(self.buffer.len() as u64);
+        dev.stats.tx_add(buf.len() as u64);
         if dev.debug_mode {
-            user::hex::print_hex(&self.buffer[0..len]);
+            user::hex::print_hex(&buf[0..len]);
         }
 
         res
