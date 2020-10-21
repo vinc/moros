@@ -2,6 +2,7 @@ use crate::{kernel, log};
 use crate::kernel::allocator::PhysBuf;
 use crate::kernel::net::Stats;
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 use array_macro::array;
 use bit_field::BitField;
 use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
@@ -215,7 +216,7 @@ impl PCNET {
 }
 
 impl<'a> Device<'a> for PCNET {
-    type RxToken = RxToken<'a>;
+    type RxToken = RxToken;
     type TxToken = TxToken<'a>;
 
     fn capabilities(&self) -> DeviceCapabilities {
@@ -237,7 +238,7 @@ impl<'a> Device<'a> for PCNET {
             // TODO: Copy packet to system memory
 
             let rx = RxToken {
-                buffer: &mut self.rx_buffers[self.rx_id][0..size],
+                buffer: self.rx_buffers[self.rx_id][0..size].to_vec(),
             };
 
             let tx = TxToken {
@@ -259,16 +260,16 @@ impl<'a> Device<'a> for PCNET {
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
         if is_buffer_owner(&self.tx_des, self.tx_id) {
-            let tx = TxToken {
-                buffer: &mut self.tx_buffers[self.tx_id],
-            };
-
             // FIXME: This should be done after transmit
             let addr = self.tx_buffers[self.tx_id].addr() as usize;
             self.tx_des[addr * DE_LEN + 7] |= 0x02;
             self.tx_des[addr * DE_LEN + 7] |= 0x01;
             self.tx_des[addr * DE_LEN + 7] |= 0x80;
             self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
+
+            let tx = TxToken {
+                buffer: &mut self.tx_buffers[self.tx_id],
+            };
 
             Some(tx)
         } else {
@@ -278,15 +279,13 @@ impl<'a> Device<'a> for PCNET {
 }
 
 #[doc(hidden)]
-pub struct RxToken<'a> {
-    buffer: &'a mut [u8],
+pub struct RxToken {
+    buffer: Vec<u8>,
 }
 
-impl<'a> phy::RxToken for RxToken<'a> {
-    fn consume<R, F>(self, _timestamp: Instant, f: F) -> Result<R>
-        where F: FnOnce(&mut [u8]) -> Result<R>
-    {
-        f(self.buffer)
+impl phy::RxToken for RxToken {
+     fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
+        f(&mut self.buffer)
     }
 }
 
@@ -296,7 +295,7 @@ pub struct TxToken<'a> {
 }
 
 impl<'a> phy::TxToken for TxToken<'a> {
-    fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R>
+    fn consume<R, F>(self, _timestamp: Instant, len: usize, f: F) -> Result<R>
         where F: FnOnce(&mut [u8]) -> Result<R>
     {
         // 1. Copy the packet to a physically contiguous buffer in memory.

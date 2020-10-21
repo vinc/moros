@@ -2,6 +2,7 @@ use crate::{kernel, log, print, user};
 use crate::kernel::allocator::PhysBuf;
 use crate::kernel::net::Stats;
 use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
 use array_macro::array;
 use core::convert::TryInto;
 use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
@@ -206,7 +207,7 @@ impl RTL8139 {
 }
 
 impl<'a> Device<'a> for RTL8139 {
-    type RxToken = RxToken<'a>;
+    type RxToken = RxToken;
     type TxToken = TxToken<'a>;
 
     fn capabilities(&self) -> DeviceCapabilities {
@@ -251,14 +252,14 @@ impl<'a> Device<'a> for RTL8139 {
 
         let n = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap()) as usize;
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
-        let packet_length = n - 4;
+        let len = n - 4;
         if self.debug_mode {
-            print!("Length: {} bytes\n", packet_length);
+            print!("Length: {} bytes\n", len);
             print!("CRC: 0x{:08X}\n", crc);
             print!("RX Offset: {}\n", offset);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         }
-        self.stats.rx_add(packet_length as u64);
+        self.stats.rx_add(len as u64);
 
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
@@ -266,12 +267,12 @@ impl<'a> Device<'a> for RTL8139 {
             self.ports.capr.write((self.rx_offset - RX_BUFFER_PAD) as u16);
         }
 
+        let rx = RxToken {
+            buffer: self.rx_buffer[(offset + 4)..(offset + n)].to_vec()
+        };
         let tx = TxToken {
             device: self.clone(),
             buffer: &mut self.tx_buffers[self.tx_id][..],
-        };
-        let rx = RxToken {
-            buffer: &mut self.rx_buffer[(offset + 4)..(offset + n)],
         };
 
         Some((rx, tx))
@@ -299,15 +300,13 @@ impl<'a> Device<'a> for RTL8139 {
 }
 
 #[doc(hidden)]
-pub struct RxToken<'a> {
-    buffer: &'a mut [u8],
+pub struct RxToken {
+    buffer: Vec<u8>,
 }
 
-impl<'a> phy::RxToken for RxToken<'a> {
-    fn consume<R, F>(self, _timestamp: Instant, f: F) -> Result<R>
-        where F: FnOnce(&mut [u8]) -> Result<R>
-    {
-        f(self.buffer)
+impl phy::RxToken for RxToken {
+     fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
+        f(&mut self.buffer)
     }
 }
 
