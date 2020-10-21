@@ -1,4 +1,4 @@
-use crate::{kernel, log};
+use crate::{kernel, log, print, user};
 use crate::kernel::allocator::PhysBuf;
 use crate::kernel::net::Stats;
 use alloc::collections::BTreeMap;
@@ -262,13 +262,6 @@ impl<'a> Device<'a> for PCNET {
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
         if is_buffer_owner(&self.tx_des, self.tx_id) {
-            // FIXME: This should be done after transmit
-            let addr = self.tx_buffers[self.tx_id].addr() as usize;
-            self.tx_des[addr * DE_LEN + 7] |= 0x02;
-            self.tx_des[addr * DE_LEN + 7] |= 0x01;
-            self.tx_des[addr * DE_LEN + 7] |= 0x80;
-            self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
-
             let tx = TxToken {
                 device: self.clone()
             };
@@ -298,10 +291,23 @@ pub struct TxToken {
 
 impl phy::TxToken for TxToken {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
+        let dev = self.device.clone();
+        let mut buf = &mut self.device.tx_buffers[self.device.tx_id][0..len];
+
         // 1. Copy the packet to a physically contiguous buffer in memory.
-        let res = f(&mut self.device.tx_buffers[self.device.tx_id][0..len]);
+        let res = f(&mut buf);
 
         if res.is_ok() {
+            let tx_id = self.device.tx_id;
+            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x02;
+            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x01;
+            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x80;
+            self.device.tx_id = (tx_id + 1) % TX_BUFFERS_COUNT;
+        }
+
+        dev.stats.tx_add(buf.len() as u64);
+        if dev.debug_mode {
+            user::hex::print_hex(&buf[0..len]);
         }
 
         res

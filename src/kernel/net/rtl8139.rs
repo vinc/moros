@@ -327,8 +327,6 @@ impl phy::TxToken for TxToken {
         let mut buf = &mut self.device.tx_buffers[self.device.tx_id][0..len];
 
         // 1. Copy the packet to a physically contiguous buffer in memory.
-        //let res = f(&mut self.buffer[0..len]);
-        //let res = f(&mut self.device.tx_buffers[self.device.tx_id][0..len]);
         let res = f(&mut buf);
 
         // 2. Fill in Start Address(physical address) of this buffer.
