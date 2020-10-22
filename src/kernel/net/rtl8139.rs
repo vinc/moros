@@ -237,8 +237,7 @@ impl<'a> Device<'a> for RTL8139 {
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
-            let uptime = kernel::clock::uptime();
-            print!("[{:.6}] NET RTL8139 receiving buffer:\n\n", uptime);
+            print!("[{:.6}] NET RTL8139 receiving packet:\n\n", kernel::clock::uptime());
             print!("Command Register: 0x{:02X}\n", cmd);
             print!("Interrupt Status Register: 0x{:02X}\n", isr);
             print!("CAPR: {}\n", capr);
@@ -254,7 +253,7 @@ impl<'a> Device<'a> for RTL8139 {
         let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
         let len = n - 4;
         if self.debug_mode {
-            print!("Length: {} bytes\n", len);
+            print!("size: {} bytes\n", len);
             print!("CRC: 0x{:08X}\n", crc);
             print!("RX Offset: {}\n", offset);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
@@ -283,8 +282,7 @@ impl<'a> Device<'a> for RTL8139 {
 
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
-            let uptime = kernel::clock::uptime();
-            print!("[{:.6}] NET RTL8139 transmitting buffer:\n\n", uptime);
+            print!("[{:.6}] NET RTL8139 transmitting packet:\n\n", kernel::clock::uptime());
             print!("TX Buffer: {}\n", self.tx_id);
             print!("Interrupt Status Register: 0x{:02X}\n", isr);
         }
@@ -323,8 +321,8 @@ const OWN: u32 = 1 << 13; // DMA operation completed
 
 impl phy::TxToken for TxToken {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
-        let dev = self.device.clone();
-        let mut buf = &mut self.device.tx_buffers[self.device.tx_id][0..len];
+        let tx_id = self.device.tx_id;
+        let mut buf = &mut self.device.tx_buffers[tx_id][0..len];
 
         // 1. Copy the packet to a physically contiguous buffer in memory.
         let res = f(&mut buf);
@@ -333,7 +331,7 @@ impl phy::TxToken for TxToken {
         // NOTE: This has was done during init
 
         if res.is_ok() {
-            let mut cmd_port = dev.ports.tx_cmds[dev.tx_id].clone();
+            let mut cmd_port = self.device.ports.tx_cmds[tx_id].clone();
             unsafe {
                 // 3. Fill in Transmit Status: the size of this packet, the
                 // early transmit threshold, and clear OWN bit in TSD (this
@@ -352,8 +350,8 @@ impl phy::TxToken for TxToken {
                 while cmd_port.read() & TOK != TOK {}
             }
         }
-        dev.stats.tx_add(buf.len() as u64);
-        if dev.debug_mode {
+        self.device.stats.tx_add(buf.len() as u64);
+        if self.device.debug_mode {
             user::hex::print_hex(&buf[0..len]);
         }
 

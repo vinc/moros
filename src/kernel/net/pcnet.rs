@@ -1,16 +1,19 @@
 use crate::{kernel, log, print, user};
 use crate::kernel::allocator::PhysBuf;
 use crate::kernel::net::Stats;
+
 use alloc::collections::BTreeMap;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use array_macro::array;
 use bit_field::BitField;
+use core::sync::atomic::{AtomicUsize, Ordering};
+use smoltcp::Result;
 use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
-use smoltcp::phy;
 use smoltcp::phy::{Device, DeviceCapabilities};
+use smoltcp::phy;
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
-use smoltcp::Result;
 use x86_64::instructions::port::Port;
 
 #[derive(Clone)]
@@ -113,8 +116,8 @@ pub struct PCNET {
     tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
     rx_des: PhysBuf, // Ring buffer of rx descriptor entries
     tx_des: PhysBuf, // Ring buffer of tx descriptor entries
-    rx_id: usize,
-    tx_id: usize,
+    rx_id: Arc<AtomicUsize>,
+    tx_id: Arc<AtomicUsize>,
 }
 
 impl PCNET {
@@ -128,8 +131,8 @@ impl PCNET {
             tx_buffers: array![PhysBuf::new(MTU); TX_BUFFERS_COUNT],
             rx_des: PhysBuf::new(RX_BUFFERS_COUNT * DE_LEN),
             tx_des: PhysBuf::new(TX_BUFFERS_COUNT * DE_LEN),
-            rx_id: 0,
-            tx_id: 0,
+            rx_id: Arc::new(AtomicUsize::new(0)),
+            tx_id: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -146,9 +149,9 @@ impl PCNET {
         des[DE_LEN * i + 2] = addr[2];
         des[DE_LEN * i + 3] = addr[3];
 
-        let bnct = ((MTU as u16).reverse_bits() & 0x0FFF | 0xF000).to_le_bytes();
-        des[DE_LEN * i + 4] = bnct[0];
-        des[DE_LEN * i + 5] = bnct[1];
+        let bcnt = ((MTU as u16).reverse_bits() & 0x0FFF | 0xF000).to_le_bytes();
+        des[DE_LEN * i + 4] = bcnt[0];
+        des[DE_LEN * i + 5] = bcnt[1];
 
         if is_rx {
             des[DE_LEN * i + 7] = 0x80; // Set ownership to card
@@ -214,6 +217,20 @@ impl PCNET {
         let addr = init_struct.addr();
         self.ports.write_csr_32(1, addr.get_bits(0..16) as u32);
         self.ports.write_csr_32(2, addr.get_bits(16..32) as u32);
+
+        // Set INIT bit
+        self.ports.write_csr_32(0, 1 << 0);
+
+        // Wait until init is done
+        while !self.ports.read_csr_32(0).get_bit(8) {
+            kernel::time::halt();
+        }
+
+        // Start the card
+        // INIT bit 0 = 0
+        // STRT bit 1 = 1
+        // STOP bit 2 = 0
+        self.ports.write_csr_32(0, 1 << 1);
     }
 }
 
@@ -229,39 +246,54 @@ impl<'a> Device<'a> for PCNET {
     }
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        while is_buffer_owner(&self.rx_des, self.rx_id) {
+        let rx_id = self.rx_id.load(Ordering::SeqCst);
+
+        if is_buffer_owner(&self.rx_des, rx_id) {
             // Read packet size
-            let addr = self.rx_buffers[self.rx_id].addr() as usize;
             let size = u16::from_le_bytes([
-                self.rx_des[addr * DE_LEN + 8],
-                self.rx_des[addr * DE_LEN + 9]
+                self.rx_des[rx_id * DE_LEN + 8],
+                self.rx_des[rx_id * DE_LEN + 9]
             ]) as usize;
 
-            // TODO: Copy packet to system memory
+            if self.debug_mode {
+                print!("------------------------------------------------------------------\n");
+                print!("[{:.6}] NET PCNET receiving packet:\nn", kernel::clock::uptime());
+                print!("RX Buffer: {}\n", rx_id);
+                print!("Size: {} bytes\n", size);
+            }
 
             let rx = RxToken {
-                buffer: self.rx_buffers[self.rx_id][0..size].to_vec()
+                buffer: self.rx_buffers[rx_id][0..size].to_vec()
             };
 
             let tx = TxToken {
                 device: self.clone()
             };
 
-            self.rx_des[addr * DE_LEN + 7] = 0x80;
+            self.rx_des[rx_id * DE_LEN + 7] = 0x80;
 
-            self.rx_id = (self.rx_id + 1) % RX_BUFFERS_COUNT;
+            self.rx_id.store((rx_id + 1) % RX_BUFFERS_COUNT, Ordering::Relaxed);
 
+            // Set interrupt as handled
             let csr = self.ports.read_csr_32(0);
             self.ports.write_csr_32(0, csr | 0x0400);
 
-            return Some((rx, tx));
+            Some((rx, tx))
+        } else {
+            None
         }
-
-        None
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
-        if is_buffer_owner(&self.tx_des, self.tx_id) {
+        let tx_id = self.tx_id.load(Ordering::SeqCst);
+
+        if is_buffer_owner(&self.tx_des, tx_id) {
+            if self.debug_mode {
+                print!("------------------------------------------------------------------\n");
+                print!("[{:.6}] NET PCNET transmitting packet:\n\n", kernel::clock::uptime());
+                print!("TX Buffer: {}\n", tx_id);
+            }
+
             let tx = TxToken {
                 device: self.clone()
             };
@@ -291,23 +323,28 @@ pub struct TxToken {
 
 impl phy::TxToken for TxToken {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
-        let dev = self.device.clone();
-        let mut buf = &mut self.device.tx_buffers[self.device.tx_id][0..len];
+        let tx_id = self.device.tx_id.load(Ordering::SeqCst);
+
+        let mut buf = &mut self.device.tx_buffers[tx_id][0..len];
 
         // 1. Copy the packet to a physically contiguous buffer in memory.
         let res = f(&mut buf);
 
         if res.is_ok() {
-            let tx_id = self.device.tx_id;
-            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x02;
-            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x01;
-            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x80;
-            self.device.tx_id = (tx_id + 1) % TX_BUFFERS_COUNT;
+            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x02; // Set the STP bit
+            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x01; // Set the ENP bit
+            self.device.tx_des[tx_id * DE_LEN + 7] |= 0x80; // Flip the ownership bit back to the card
+
+            let bcnt = ((MTU as u16).reverse_bits() & 0x0FFF | 0xF000).to_le_bytes();
+            self.device.tx_des[tx_id * DE_LEN + 4] = bcnt[0];
+            self.device.tx_des[tx_id * DE_LEN + 5] = bcnt[1];
+
+            self.device.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::Relaxed);
         }
 
-        dev.stats.tx_add(buf.len() as u64);
-        if dev.debug_mode {
-            user::hex::print_hex(&buf[0..len]);
+        self.device.stats.tx_add(buf.len() as u64);
+        if self.device.debug_mode {
+            user::hex::print_hex(&buf);
         }
 
         res
