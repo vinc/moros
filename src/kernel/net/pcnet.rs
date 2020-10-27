@@ -285,7 +285,7 @@ impl<'a> Device<'a> for PCNET {
 
             if self.debug_mode {
                 print!("------------------------------------------------------------------\n");
-                print!("[{:.6}] NET PCNET receiving packet:\nn", kernel::clock::uptime());
+                print!("[{:.6}] NET PCNET receiving packet:\n", kernel::clock::uptime());
                 print!("RX Buffer: {}\n", rx_id);
                 print!("Size: {} bytes\n", size);
                 print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
@@ -369,7 +369,7 @@ impl phy::TxToken for TxToken {
             self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_OWN, true);
             print!("TDTE: {:016b}\n", self.device.tx_des[tx_id * DE_LEN + 7]);
 
-            let bcnt = ((MTU as u16).reverse_bits() & 0x0FFF | 0xF000).to_le_bytes();
+            let bcnt = ((len as u16).reverse_bits() & 0x0FFF | 0xF000).to_le_bytes();
             self.device.tx_des[tx_id * DE_LEN + 4] = bcnt[0];
             self.device.tx_des[tx_id * DE_LEN + 5] = bcnt[1];
 
