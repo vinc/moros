@@ -119,7 +119,7 @@ const TX_BUFFERS_COUNT: usize = 8;
 const DE_LEN: usize = 16;
 
 fn log2(x: u8) -> u8 {
-    x.leading_zeros() as u8
+    8 - 1 - x.leading_zeros() as u8
 }
 
 fn is_buffer_owner(des: &PhysBuf, i: usize) -> bool {
@@ -217,8 +217,8 @@ impl PCNET {
 
         // Card register setup
         let mut init_struct = PhysBuf::new(28);
-        init_struct[2] = log2(RX_BUFFERS_COUNT as u8);
-        init_struct[3] = log2(TX_BUFFERS_COUNT as u8);
+        init_struct[2].set_bits(4..8, log2(RX_BUFFERS_COUNT as u8));
+        init_struct[3].set_bits(4..8, log2(TX_BUFFERS_COUNT as u8));
         init_struct[4] = mac[0];
         init_struct[5] = mac[1];
         init_struct[6] = mac[2];
