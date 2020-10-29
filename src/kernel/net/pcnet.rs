@@ -26,16 +26,21 @@ const CSR0_TDMD: usize = 3;
 //const CSR0_INTR: usize = 7;
 const CSR0_IDON: usize = 8;
 //const CSR0_TINT: usize = 9;
-//const CSR0_RINT: usize = 10;
+const CSR0_RINT: usize = 10;
 //const CSR0_MERR: usize = 11;
 //const CSR0_MISS: usize = 12;
 //const CSR0_CERR: usize = 13;
 //const CSR0_BABL: usize = 14;
 //const CSR0_ERR: usize = 0;
 
-const DE_ENP: usize = 0;
-const DE_STP: usize = 1;
-const DE_OWN: usize = 7;
+const DE_ENP:  usize = 0;
+const DE_STP:  usize = 1;
+const DE_BUFF: usize = 2;
+const DE_CRC:  usize = 3;
+const DE_OFLO: usize = 4;
+const DE_FRAM: usize = 5;
+const DE_ERR:  usize = 6;
+const DE_OWN:  usize = 7;
 
 #[derive(Clone)]
 pub struct Ports {
@@ -123,6 +128,8 @@ fn log2(x: u8) -> u8 {
 }
 
 fn is_buffer_owner(des: &PhysBuf, i: usize) -> bool {
+    // This bit indicates that the descriptor entry is owned
+    // by the host (OWN=0) or by the PCnet-PCI controller (OWN=1)
     !des[DE_LEN * i + 7].get_bit(DE_OWN)
 }
 
@@ -160,6 +167,7 @@ impl PCNET {
     fn init_descriptor_entry(&mut self, i: usize, is_rx: bool) {
         let des = if is_rx { &mut self.rx_des } else { &mut self.tx_des };
 
+        // Set buffer address
         let addr = if is_rx {
             self.rx_buffers[i].addr().to_le_bytes()
         } else {
@@ -170,7 +178,10 @@ impl PCNET {
         des[DE_LEN * i + 2] = addr[2];
         des[DE_LEN * i + 3] = addr[3];
 
-        let bcnt = ((MTU as u16).reverse_bits() & 0x0FFF | 0xF000).to_le_bytes();
+        // Set buffer byte count (0..12 BCNT + 12..16 ONES)
+        let bcnt = ((((MTU as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000).to_le_bytes();
+        print!("BCNT: {:016b}\n", ((((MTU as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000));
+        print!("BCNT: {:08b}{:08b} calc\n", bcnt[0], bcnt[1]);
         des[DE_LEN * i + 4] = bcnt[0];
         des[DE_LEN * i + 5] = bcnt[1];
 
@@ -217,6 +228,8 @@ impl PCNET {
 
         // Card register setup
         let mut init_struct = PhysBuf::new(28);
+        init_struct[0] = 0; // Mode
+        init_struct[1] = 0; // Mode
         init_struct[2].set_bits(4..8, log2(RX_BUFFERS_COUNT as u8));
         init_struct[3].set_bits(4..8, log2(TX_BUFFERS_COUNT as u8));
         init_struct[4] = mac[0];
@@ -238,7 +251,9 @@ impl PCNET {
         let addr = init_struct.addr();
         self.ports.write_csr_32(1, addr.get_bits(0..16) as u32);
         self.ports.write_csr_32(2, addr.get_bits(16..32) as u32);
-        assert!(self.ports.read_csr_32(0) == 0b000000100);
+        assert!(self.ports.read_csr_32(0) == 0b000000100); // STOP
+
+        // self.ports.write_csr_32(4, 1 << 11); // Pad short ethernet packets
 
         // Set INIT bit
         self.ports.write_csr_32(0, 1 << CSR0_INIT);
@@ -247,12 +262,11 @@ impl PCNET {
         while !self.ports.read_csr_32(0).get_bit(CSR0_IDON) {
             kernel::time::halt();
         }
-        assert!(self.ports.read_csr_32(0) == 0b110000001);
+        assert!(self.ports.read_csr_32(0) == 0b110000001); // IDON + INTR + INIT
 
         // Start the card
         self.ports.write_csr_32(0, 1 << CSR0_STRT);
-        assert!(self.ports.read_csr_32(0) == 0b110110011);
-        //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+        assert!(self.ports.read_csr_32(0) == 0b110110011); // IDON + INTR + RXON + TXON + STRT + INIT
     }
 }
 
@@ -268,44 +282,84 @@ impl<'a> Device<'a> for PCNET {
     }
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        let rx_id = self.rx_id.load(Ordering::SeqCst);
+        let mut rx_id = self.rx_id.load(Ordering::SeqCst);
+        if self.debug_mode {
+            print!("------------------------------------------------------------------\n");
+            print!("[{:.6}] NET PCNET receiving packet:\n", kernel::clock::uptime());
+            print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+            print!("RX Buffer: {}\n", rx_id);
+        }
 
-        if is_buffer_owner(&self.rx_des, rx_id) {
+        for i in 0..RX_BUFFERS_COUNT {
+            print!("RDTE: {:016b} {}\n", self.rx_des[i * DE_LEN + 7], i);
+        }
+
+        let mut packet = Vec::new();
+
+        while is_buffer_owner(&self.rx_des, rx_id) {
+            for i in 0..10 {
+                print!("rx_des[{}] = {:08b}\n", i, self.rx_des[rx_id * DE_LEN + i]);
+            }
+
+            let rmd1 = self.rx_des[rx_id * DE_LEN + 7];
+            let start_of_packet = rmd1.get_bit(DE_STP);
+            let end_of_packet = rmd1.get_bit(DE_ENP);
+            let error = rmd1.get_bit(DE_ERR);
+            let buffer_error = rmd1.get_bit(DE_BUFF);
+            let overflow_error = rmd1.get_bit(DE_OFLO) && !rmd1.get_bit(DE_ENP);
+            let crc_error = rmd1.get_bit(DE_CRC) && !rmd1.get_bit(DE_OFLO) && rmd1.get_bit(DE_ENP);
+            let framing_error = rmd1.get_bit(DE_FRAM) && !rmd1.get_bit(DE_OFLO) && rmd1.get_bit(DE_ENP);
+
+            if self.debug_mode {
+                print!("Flags: ");
+                if start_of_packet {
+                    print!("start_of_packet ");
+                }
+                if end_of_packet {
+                    print!("end_of_packet ");
+                }
+                if error {
+                    if overflow_error {
+                        print!("overflow_error ");
+                    }
+                    if framing_error {
+                        print!("framing_error ");
+                    }
+                    if crc_error {
+                        print!("crc_error ");
+                    }
+                }
+                print!("\n");
+            }
+
             // Read packet size
-            let size = u16::from_le_bytes([
+            let packet_size = u16::from_le_bytes([
                 self.rx_des[rx_id * DE_LEN + 8],
                 self.rx_des[rx_id * DE_LEN + 9]
             ]) as usize;
 
-            if size == 0 {
-                self.rx_des[rx_id * DE_LEN + 7] = 1 << DE_OWN; // Hand the buffer back to the card
-                self.rx_id.store((rx_id + 1) % RX_BUFFERS_COUNT, Ordering::Relaxed);
-                return None;
-            }
-
+            let n = if end_of_packet { packet_size } else { MTU };
+            let mut buffer = self.rx_buffers[rx_id][0..n].to_vec();
             if self.debug_mode {
-                print!("------------------------------------------------------------------\n");
-                print!("[{:.6}] NET PCNET receiving packet:\n", kernel::clock::uptime());
-                print!("RX Buffer: {}\n", rx_id);
-                print!("Size: {} bytes\n", size);
+                print!("Size: {} bytes\n", packet_size);
+                user::hex::print_hex(&buffer);
                 print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
                 print!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
             }
+            packet.append(&mut buffer);
 
-            let rx = RxToken {
-                buffer: self.rx_buffers[rx_id][0..size].to_vec()
-            };
+            self.rx_des[rx_id * DE_LEN + 7].set_bit(DE_OWN, true); // Give back ownership
+            rx_id = (rx_id + 1) % RX_BUFFERS_COUNT;
+            self.rx_id.store(rx_id, Ordering::Relaxed);
 
-            let tx = TxToken {
-                device: self.clone()
-            };
+            if end_of_packet {
+                break;
+            }
+        }
 
-            self.rx_des[rx_id * DE_LEN + 7] = 1 << DE_OWN; // Hand the buffer back to the card
-            self.rx_id.store((rx_id + 1) % RX_BUFFERS_COUNT, Ordering::Relaxed);
-
-            // Set interrupt as handled
-            //let csr = self.ports.read_csr_32(0);
-            //self.ports.write_csr_32(0, csr | 0x0400);
+        if packet.len() > 0 {
+            let rx = RxToken { packet };
+            let tx = TxToken { device: self.clone() };
 
             Some((rx, tx))
         } else {
@@ -322,7 +376,6 @@ impl<'a> Device<'a> for PCNET {
                 print!("[{:.6}] NET PCNET transmitting packet:\n\n", kernel::clock::uptime());
                 print!("TX Buffer: {}\n", tx_id);
                 print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-                print!("TDTE: {:016b}\n", self.tx_des[tx_id * DE_LEN + 7]);
             }
 
             let tx = TxToken {
@@ -339,12 +392,12 @@ impl<'a> Device<'a> for PCNET {
 
 #[doc(hidden)]
 pub struct RxToken {
-    buffer: Vec<u8>,
+    packet: Vec<u8>,
 }
 
 impl phy::RxToken for RxToken {
      fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
-        f(&mut self.buffer)
+        f(&mut self.packet)
     }
 }
 
@@ -363,24 +416,33 @@ impl phy::TxToken for TxToken {
         let res = f(&mut buf);
 
         if res.is_ok() {
+            // Set start of packet
             self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_STP, true);
-            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_ENP, true);
-            print!("TDTE: {:016b}\n", self.device.tx_des[tx_id * DE_LEN + 7]);
-            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_OWN, true);
-            print!("TDTE: {:016b}\n", self.device.tx_des[tx_id * DE_LEN + 7]);
+            print!("TDTE: {:016b} STP\n", self.device.tx_des[tx_id * DE_LEN + 7]);
 
-            let bcnt = ((len as u16).reverse_bits() & 0x0FFF | 0xF000).to_le_bytes();
+            // Set end of packet
+            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_ENP, true);
+            print!("TDTE: {:016b} ENP\n", self.device.tx_des[tx_id * DE_LEN + 7]);
+
+            // Set buffer byte count (0..12 BCNT + 12..16 ONES)
+            let bcnt = ((((len as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000).to_le_bytes();
+            print!("BCNT: {:016b}\n", ((((len as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000));
+            print!("BCNT: {:08b}{:08b}\n", bcnt[0], bcnt[1]);
             self.device.tx_des[tx_id * DE_LEN + 4] = bcnt[0];
             self.device.tx_des[tx_id * DE_LEN + 5] = bcnt[1];
+
+            // Give back ownership to the card
+            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_OWN, true);
+            print!("TDTE: {:016b} OWN\n", self.device.tx_des[tx_id * DE_LEN + 7]);
 
             self.device.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::Relaxed);
         }
 
-        self.device.stats.tx_add(buf.len() as u64);
+        self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
+            print!("Size: {} bytes\n", len);
             user::hex::print_hex(&buf);
             print!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
-            print!("TDTE: {:016b}\n", self.device.tx_des[tx_id * DE_LEN + 7]);
         }
 
         res
