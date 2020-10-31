@@ -8,9 +8,9 @@ checksum = "06e97b4e522f9e55523001238ac59d13a8603af57f69980de5d8de4bbbe8ada6"
 
 [[package]]
 name = "arrayvec"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cff77d8686867eceff3105329d4698d96c2391c176d5d03adc90c7389162b5b8"
+checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "base64"
@@ -26,9 +26,9 @@ checksum = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
 
 [[package]]
 name = "bit_field"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a165d606cf084741d4ac3a28fb6e9b1eb0bd31f6cd999098cfddb0b2ab381dc0"
+checksum = "dcb6dd1c2376d2e096796e234a70e17e94cc2d5d54ff8ce42b28cef1d0d359a4"
 
 [[package]]
 name = "bitflags"
@@ -59,9 +59,9 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.9.8"
+version = "0.9.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ad686b9b47363de7d36c05fb6885f17d08d0f2d15b1bc782a101fe3c94a2c7c"
+checksum = "83732ad599045a978528e4311539fdcb20c30e406b66d1d08cd4089d4fc8d90f"
 
 [[package]]
 name = "byte-tools"
@@ -77,9 +77,9 @@ checksum = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 
 [[package]]
 name = "cc"
-version = "1.0.58"
+version = "1.0.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9a06fb2e53271d7c279ec1efea6ab691c35a2ae67ec0d91d7acec0caf13b518"
+checksum = "ed67cbde08356238e75fc4656be4749481eeffb09e19f320a25237d5221c985d"
 
 [[package]]
 name = "cpuio"
@@ -148,9 +148,9 @@ checksum = "c7d73b3f436185384286bd8098d17ec07c9a7d2388a6599f824d8502b529702a"
 
 [[package]]
 name = "linked_list_allocator"
-version = "0.8.4"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e70e46c13c0e8374c26cec5752e3347ca1087d9711de8f45aa513a7700efd73d"
+checksum = "84565678e403453d1a27a0886882b3b271701e65146d972d9d7d9a4c4a0ff498"
 dependencies = [
  "spinning_top",
 ]
@@ -176,7 +176,7 @@ version = "0.4.0"
 dependencies = [
  "array-macro",
  "base64",
- "bit_field 0.10.0",
+ "bit_field 0.10.1",
  "bootloader",
  "hmac",
  "lazy_static",
@@ -229,9 +229,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.19"
+version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04f5f085b5d71e2188cb8271e5da0161ad52c3f227a661a3c135fdf28e258b12"
+checksum = "1e0704ee1a7e00d7bb417d0770ea303c1bccbabf0ef1667dae92b5967f5f8a71"
 dependencies = [
  "unicode-xid",
 ]
@@ -247,9 +247,9 @@ dependencies = [
 
 [[package]]
 name = "raw-cpuid"
-version = "8.1.1"
+version = "8.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cee2c7710d96f9f90f56824fca5438b301dc0fb49ece4cf9dfa044e54067e10"
+checksum = "1fdf7d9dbd43f3d81d94a49c1c3df73cc2b3827995147e6cf7f89d4ec5483e73"
 dependencies = [
  "bitflags",
  "cc",
@@ -344,9 +344,9 @@ checksum = "373c8a200f9e67a0c95e62a4f52fbf80c23b4381c05a17845531982fa99e6b33"
 
 [[package]]
 name = "uart_16550"
-version = "0.2.7"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e58fc40dc1712664fc9b0a7bd8ca2f21ab49960924fb245a80a05e1e92f3dfe9"
+checksum = "afb00b16a4c8acbfc4eb8cfeda1f9c0507c7e87c6563edce64a236af93acf70c"
 dependencies = [
  "bitflags",
  "x86_64",
@@ -393,9 +393,9 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.11.1"
+version = "0.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9144cdef072afe8afcbc511be8f421de5b3eb9f4b8ff7abff369bee38f91e7e3"
+checksum = "d5b4b42dbabe13b69023e1a1407d395f1a1a33df76e9a9efdbe303acc907e292"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",
