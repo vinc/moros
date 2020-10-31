@@ -118,7 +118,7 @@ impl Ports {
     }
 }
 
-const MTU: usize = 1520;
+const MTU: usize = 1536;
 const RX_BUFFERS_COUNT: usize = 32;
 const TX_BUFFERS_COUNT: usize = 8;
 const DE_LEN: usize = 16;
