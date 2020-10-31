@@ -9,7 +9,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         return user::shell::ExitCode::CommandError;
     }
 
-    if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
+    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         match args[1] {
             "config" => {
                 if args.len() < 4 {

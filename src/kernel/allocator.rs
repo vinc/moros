@@ -1,8 +1,10 @@
 use crate::kernel;
 use alloc::slice::SliceIndex;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::ops::{Index, IndexMut};
 use linked_list_allocator::LockedHeap;
+use spin::Mutex;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
@@ -37,8 +39,9 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     Ok(())
 }
 
+#[derive(Clone)]
 pub struct PhysBuf {
-    vec: Vec<u8>,
+    buf: Arc<Mutex<Vec<u8>>>,
 }
 
 impl PhysBuf {
@@ -53,14 +56,14 @@ impl PhysBuf {
         let buffer_len = vec.len() - 1;
         let memory_len = phys_addr(&vec[buffer_len]) - phys_addr(&vec[0]);
         if buffer_len == memory_len as usize {
-            Self { vec }
+            Self { buf: Arc::new(Mutex::new(vec)) }
         } else {
             Self::from(vec.clone())
         }
     }
 
     pub fn addr(&self) -> u64 {
-        phys_addr(&self.vec[0])
+        phys_addr(&self.buf.lock()[0])
     }
 }
 
@@ -91,12 +94,14 @@ impl core::ops::Deref for PhysBuf {
     type Target = [u8];
 
     fn deref(&self) -> &[u8] {
-        unsafe { alloc::slice::from_raw_parts(self.vec.as_ptr(), self.vec.len()) }
+        let vec = self.buf.lock();
+        unsafe { alloc::slice::from_raw_parts(vec.as_ptr(), vec.len()) }
     }
 }
 
 impl core::ops::DerefMut for PhysBuf {
     fn deref_mut(&mut self) -> &mut [u8] {
-        unsafe { alloc::slice::from_raw_parts_mut(self.vec.as_mut_ptr(), self.vec.len()) }
+        let mut vec = self.buf.lock();
+        unsafe { alloc::slice::from_raw_parts_mut(vec.as_mut_ptr(), vec.len()) }
     }
 }

@@ -2,7 +2,7 @@ use crate::{kernel, print, user};
 use alloc::string::ToString;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
+    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         print!("{:<19} {}\n", "Destination", "Gateway");
         iface.routes_mut().update(|storage| {
             for (cidr, route) in storage.iter() {

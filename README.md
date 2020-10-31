@@ -24,6 +24,7 @@ This project started from the [seventh post][1] of the second edition of
 - [x] ATA PIO mode
 - [x] Random number generator
 - [x] RTL8139 network card
+- [x] AMD PCNET network card
 - [x] DHCP/IP/TCP/UDP/DNS/HTTP protocols (using [smoltcp](https://crates.io/crates/smoltcp))
 - [x] Basic filesystem
 - [x] Basic shell
@@ -57,11 +58,11 @@ Clone repo:
 
 Build image to `disk.img`:
 
-    $ make image output=vga keyboard=qwerty
+    $ make image output=vga keyboard=qwerty nic=rtl8139
 
 Run on QEMU:
 
-    $ make qemu output=vga
+    $ make qemu output=vga nic=rtl8139
 
 Run on a native x86 computer by copying the bootloader and kernel to a hard
 drive or USB stick (but there is currently no USB driver so the filesystem

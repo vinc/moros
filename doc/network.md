@@ -69,7 +69,9 @@ The `ip` command displays information about your IP address:
     RX bytes: 590
     TX bytes: 299
 
-NOTE: It will later allow you to set it.
+It can also be used to set your IP address:
+
+    > ip set 10.0.2.15/24
 
 ## ROUTE
 

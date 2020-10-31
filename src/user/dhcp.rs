@@ -9,7 +9,7 @@ use smoltcp::time::Instant;
 use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    if let Some(ref mut iface) = *kernel::rtl8139::IFACE.lock() {
+    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         let mut iface = iface;
         let mut sockets = SocketSet::new(vec![]);
         let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 900]);
@@ -24,7 +24,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         };
 
         print!("DHCP Discover transmitted\n");
-        let timeout = 60.0;
+        let timeout = 30.0;
         let time = kernel::clock::uptime();
         loop {
             if kernel::clock::uptime() - time > timeout {

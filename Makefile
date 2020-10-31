@@ -11,6 +11,7 @@ setup:
 
 output = vga
 keyboard = qwerty
+nic = rtl8139
 
 bin=target/x86_64-moros/release/bootimage-moros.bin
 img=disk.img
@@ -21,10 +22,10 @@ $(img):
 # Rebuild MOROS if the features list changed
 image: $(img)
 	touch src/lib.rs
-	cargo bootimage --no-default-features --features $(output),$(keyboard) --release
+	cargo bootimage --no-default-features --features $(output),$(keyboard),$(nic) --release
 	dd conv=notrunc if=$(bin) of=$(img)
 
-opts = -cpu max -nic model=rtl8139 -hda $(img)
+opts = -cpu max -nic model=$(nic) -hda $(img)
 ifeq ($(output),serial)
 	opts += -display none -serial stdio
 endif
