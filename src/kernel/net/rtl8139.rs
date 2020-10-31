@@ -228,7 +228,7 @@ impl<'a> Device<'a> for RTL8139 {
             return None;
         }
 
-        let isr = unsafe { self.ports.isr.read() };
+        //let isr = unsafe { self.ports.isr.read() };
         let capr = unsafe { self.ports.capr.read() };
         let cbr = unsafe { self.ports.cbr.read() };
         // CAPR starts at 65520 and with the pad it overflows to 0
@@ -238,11 +238,11 @@ impl<'a> Device<'a> for RTL8139 {
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
             print!("[{:.6}] NET RTL8139 receiving packet:\n\n", kernel::clock::uptime());
-            print!("Command Register: 0x{:02X}\n", cmd);
-            print!("Interrupt Status Register: 0x{:02X}\n", isr);
-            print!("CAPR: {}\n", capr);
-            print!("CBR: {}\n", cbr);
-            print!("Header: 0x{:04X}\n", header);
+            //print!("Command Register: 0x{:02X}\n", cmd);
+            //print!("Interrupt Status Register: 0x{:02X}\n", isr);
+            //print!("CAPR: {}\n", capr);
+            //print!("CBR: {}\n", cbr);
+            //print!("Header: 0x{:04X}\n", header);
         }
         if header & ROK != ROK {
             unsafe { self.ports.capr.write(cbr) };
@@ -250,12 +250,12 @@ impl<'a> Device<'a> for RTL8139 {
         }
 
         let n = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap()) as usize;
-        let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
+        //let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
         let len = n - 4;
         if self.debug_mode {
-            print!("size: {} bytes\n", len);
-            print!("CRC: 0x{:08X}\n", crc);
-            print!("RX Offset: {}\n", offset);
+            print!("size: {} bytes", len);
+            //print!("CRC: 0x{:08X}\n", crc);
+            //print!("RX Offset: {}\n", offset);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         }
         self.stats.rx_add(len as u64);
@@ -277,14 +277,14 @@ impl<'a> Device<'a> for RTL8139 {
     }
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
-        let isr = unsafe { self.ports.isr.read() };
+        //let isr = unsafe { self.ports.isr.read() };
         self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
 
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
             print!("[{:.6}] NET RTL8139 transmitting packet:\n\n", kernel::clock::uptime());
-            print!("TX Buffer: {}\n", self.tx_id);
-            print!("Interrupt Status Register: 0x{:02X}\n", isr);
+            //print!("TX Buffer: {}\n", self.tx_id);
+            //print!("Interrupt Status Register: 0x{:02X}\n", isr);
         }
 
         let tx = TxToken {
@@ -350,8 +350,9 @@ impl phy::TxToken for TxToken {
                 while cmd_port.read() & TOK != TOK {}
             }
         }
-        self.device.stats.tx_add(buf.len() as u64);
+        self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
+            print!("size: {} bytes\n", len);
             user::hex::print_hex(&buf[0..len]);
         }
 

@@ -32,7 +32,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         },
                     }
                 },
-                _ => {}
+                _ => {
+                    return error("invalid command");
+                }
             }
         }
         user::shell::ExitCode::CommandSuccessful

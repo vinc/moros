@@ -26,7 +26,7 @@ const CSR0_TDMD: usize = 3;
 //const CSR0_INTR: usize = 7;
 const CSR0_IDON: usize = 8;
 //const CSR0_TINT: usize = 9;
-const CSR0_RINT: usize = 10;
+//const CSR0_RINT: usize = 10;
 //const CSR0_MERR: usize = 11;
 //const CSR0_MISS: usize = 12;
 //const CSR0_CERR: usize = 13;
@@ -35,11 +35,11 @@ const CSR0_RINT: usize = 10;
 
 const DE_ENP:  usize = 0;
 const DE_STP:  usize = 1;
-const DE_BUFF: usize = 2;
-const DE_CRC:  usize = 3;
-const DE_OFLO: usize = 4;
-const DE_FRAM: usize = 5;
-const DE_ERR:  usize = 6;
+//const DE_BUFF: usize = 2;
+//const DE_CRC:  usize = 3;
+//const DE_OFLO: usize = 4;
+//const DE_FRAM: usize = 5;
+//const DE_ERR:  usize = 6;
 const DE_OWN:  usize = 7;
 
 #[derive(Clone)]
@@ -180,8 +180,6 @@ impl PCNET {
 
         // Set buffer byte count (0..12 BCNT + 12..16 ONES)
         let bcnt = ((((MTU as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000).to_le_bytes();
-        print!("BCNT: {:016b}\n", ((((MTU as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000));
-        print!("BCNT: {:08b}{:08b} calc\n", bcnt[0], bcnt[1]);
         des[DE_LEN * i + 4] = bcnt[0];
         des[DE_LEN * i + 5] = bcnt[1];
 
@@ -282,28 +280,21 @@ impl<'a> Device<'a> for PCNET {
     }
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        let mut rx_id = self.rx_id.load(Ordering::SeqCst);
-        if self.debug_mode {
-            print!("------------------------------------------------------------------\n");
-            print!("[{:.6}] NET PCNET receiving packet:\n", kernel::clock::uptime());
-            print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-            print!("RX Buffer: {}\n", rx_id);
-        }
-
-        for i in 0..RX_BUFFERS_COUNT {
-            print!("RDTE: {:016b} {}\n", self.rx_des[i * DE_LEN + 7], i);
-        }
-
         let mut packet = Vec::new();
-
+        let mut rx_id = self.rx_id.load(Ordering::SeqCst);
         while is_buffer_owner(&self.rx_des, rx_id) {
-            for i in 0..10 {
-                print!("rx_des[{}] = {:08b}\n", i, self.rx_des[rx_id * DE_LEN + i]);
+            if self.debug_mode {
+                print!("------------------------------------------------------------------\n");
+                print!("[{:.6}] NET PCNET receiving packet:\n", kernel::clock::uptime());
+                //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+                //print!("RX Buffer: {}\n", rx_id);
             }
 
             let rmd1 = self.rx_des[rx_id * DE_LEN + 7];
-            let start_of_packet = rmd1.get_bit(DE_STP);
             let end_of_packet = rmd1.get_bit(DE_ENP);
+
+            /*
+            let start_of_packet = rmd1.get_bit(DE_STP);
             let error = rmd1.get_bit(DE_ERR);
             let buffer_error = rmd1.get_bit(DE_BUFF);
             let overflow_error = rmd1.get_bit(DE_OFLO) && !rmd1.get_bit(DE_ENP);
@@ -331,6 +322,7 @@ impl<'a> Device<'a> for PCNET {
                 }
                 print!("\n");
             }
+            */
 
             // Read packet size
             let packet_size = u16::from_le_bytes([
@@ -338,14 +330,8 @@ impl<'a> Device<'a> for PCNET {
                 self.rx_des[rx_id * DE_LEN + 9]
             ]) as usize;
 
-            let n = if end_of_packet { packet_size } else { MTU };
+            let n = if end_of_packet { packet_size } else { self.rx_buffers[rx_id].len() };
             let mut buffer = self.rx_buffers[rx_id][0..n].to_vec();
-            if self.debug_mode {
-                print!("Size: {} bytes\n", packet_size);
-                user::hex::print_hex(&buffer);
-                print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-                print!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
-            }
             packet.append(&mut buffer);
 
             self.rx_des[rx_id * DE_LEN + 7].set_bit(DE_OWN, true); // Give back ownership
@@ -358,6 +344,13 @@ impl<'a> Device<'a> for PCNET {
         }
 
         if packet.len() > 0 {
+            if self.debug_mode {
+                print!("Size: {} bytes", packet.len());
+                user::hex::print_hex(&packet);
+                //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+                //print!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
+            }
+
             let rx = RxToken { packet };
             let tx = TxToken { device: self.clone() };
 
@@ -373,9 +366,9 @@ impl<'a> Device<'a> for PCNET {
         if is_buffer_owner(&self.tx_des, tx_id) {
             if self.debug_mode {
                 print!("------------------------------------------------------------------\n");
-                print!("[{:.6}] NET PCNET transmitting packet:\n\n", kernel::clock::uptime());
-                print!("TX Buffer: {}\n", tx_id);
-                print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+                print!("[{:.6}] NET PCNET transmitting packet:\n", kernel::clock::uptime());
+                //print!("TX Buffer: {}\n", tx_id);
+                //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
             }
 
             let tx = TxToken {
@@ -416,33 +409,25 @@ impl phy::TxToken for TxToken {
         let res = f(&mut buf);
 
         if res.is_ok() {
-            // Set start of packet
-            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_STP, true);
-            print!("TDTE: {:016b} STP\n", self.device.tx_des[tx_id * DE_LEN + 7]);
-
-            // Set end of packet
-            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_ENP, true);
-            print!("TDTE: {:016b} ENP\n", self.device.tx_des[tx_id * DE_LEN + 7]);
+            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_STP, true); // Set start of packet
+            self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_ENP, true); // Set end of packet
 
             // Set buffer byte count (0..12 BCNT + 12..16 ONES)
             let bcnt = ((((len as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000).to_le_bytes();
-            print!("BCNT: {:016b}\n", ((((len as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000));
-            print!("BCNT: {:08b}{:08b}\n", bcnt[0], bcnt[1]);
             self.device.tx_des[tx_id * DE_LEN + 4] = bcnt[0];
             self.device.tx_des[tx_id * DE_LEN + 5] = bcnt[1];
 
             // Give back ownership to the card
             self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_OWN, true);
-            print!("TDTE: {:016b} OWN\n", self.device.tx_des[tx_id * DE_LEN + 7]);
 
             self.device.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::Relaxed);
         }
 
         self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
-            print!("Size: {} bytes\n", len);
+            print!("Size: {} bytes", len);
             user::hex::print_hex(&buf);
-            print!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
+            //print!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
         }
 
         res

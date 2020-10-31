@@ -24,7 +24,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         };
 
         print!("DHCP Discover transmitted\n");
-        let timeout = 60.0;
+        let timeout = 30.0;
         let time = kernel::clock::uptime();
         loop {
             if kernel::clock::uptime() - time > timeout {
