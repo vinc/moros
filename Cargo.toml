@@ -19,7 +19,7 @@ pcnet = []
 
 [dependencies]
 base64 = { version = "0.12.3", default-features = false }
-bit_field = "0.10.0"
+bit_field = "0.10.1"
 bootloader = { version = "0.9.5", features = ["map_physical_memory"] }
 hmac = { version = "0.7.1", default-features = false }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }

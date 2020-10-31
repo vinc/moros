@@ -26,9 +26,9 @@ checksum = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
 
 [[package]]
 name = "bit_field"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a165d606cf084741d4ac3a28fb6e9b1eb0bd31f6cd999098cfddb0b2ab381dc0"
+checksum = "dcb6dd1c2376d2e096796e234a70e17e94cc2d5d54ff8ce42b28cef1d0d359a4"
 
 [[package]]
 name = "bitflags"
@@ -176,7 +176,7 @@ version = "0.4.0"
 dependencies = [
  "array-macro",
  "base64",
- "bit_field 0.10.0",
+ "bit_field 0.10.1",
  "bootloader",
  "hmac",
  "lazy_static",
