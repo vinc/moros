@@ -19,12 +19,12 @@ pub struct Editor {
     file: Option<kernel::fs::File>,
     pathname: String,
     lines: Vec<String>,
-    offset: usize, // TODO: Call it `offset_y` and introduce `offset_x`
+    dy: usize, // Vertical offset
 }
 
 impl Editor {
     pub fn new(pathname: &str) -> Self {
-        let offset = 0;
+        let dy = 0;
         let mut lines = Vec::new();
 
         let file = match kernel::fs::File::open(pathname) {
@@ -43,7 +43,7 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { file, pathname, lines, offset }
+        Self { file, pathname, lines, dx, dy }
     }
 
     pub fn save(&mut self) -> user::shell::ExitCode {
@@ -69,23 +69,23 @@ impl Editor {
     }
 
     fn print_status(&mut self, status: &str, background: &str) {
-        let csi_color = Style::color("Black").with_background(background);
-        let csi_reset = Style::reset();
+        let color = Style::color("Black").with_background(background);
+        let reset = Style::reset();
         let (x, y) = kernel::vga::cursor_position();
         kernel::vga::set_writer_position(0, self.height());
-        print!("{}{:width$}{}", csi_color, status, csi_reset, width = self.width());
+        print!("{}{:width$}{}", color, status, reset, width = self.width());
         kernel::vga::set_writer_position(x, y);
         kernel::vga::set_cursor_position(x, y);
     }
 
     fn print_screen(&mut self) {
         let mut lines: Vec<String> = Vec::new();
-        let from = self.offset;
-        let to = cmp::min(self.lines.len(), self.offset + self.height());
-        for i in from..to {
+        let a = self.dy;
+        let b = cmp::min(self.lines.len(), self.dy + self.height());
+        for y in a..b {
             let n = self.width();
             let line = format!("{:width$}", self.lines[i], width = n);
-            lines.push(line[0..n].into()); // TODO: Use `offset_x .. offset_x + n`
+            lines.push(line[0..n].into()); // TODO: Use `dx .. dx + n`
         }
         kernel::vga::set_writer_position(0, 0);
         print!("{}", lines.join("\n"));
@@ -120,10 +120,10 @@ impl Editor {
                     return res;
                 },
                 '\n' => { // Newline
-                    let new_line = self.lines[self.offset + y].split_off(x);
-                    self.lines.insert(self.offset + y + 1, new_line);
+                    let new_line = self.lines[self.dy + y].split_off(x);
+                    self.lines.insert(self.dy + y + 1, new_line);
                     if y == self.height() - 1 {
-                        self.offset += 1;
+                        self.dy += 1;
                     } else {
                         y += 1;
                     }
@@ -134,26 +134,26 @@ impl Editor {
                     if y > 0 {
                         y -= 1
                     } else {
-                        if self.offset > 0 {
-                            self.offset -= 1;
+                        if self.dy > 0 {
+                            self.dy -= 1;
                             self.print_screen();
                         }
                     }
-                    x = cmp::min(x, self.lines[self.offset + y].len());
+                    x = cmp::min(x, self.lines[self.dy + y].len());
                 },
                 '↓' => { // Arrow down
                     let is_bottom = y == self.height() - 1;
-                    let is_eof = self.offset + y == self.lines.len() - 1;
+                    let is_eof = self.dy + y == self.lines.len() - 1;
                     if y < cmp::min(self.height(), self.lines.len() - 1) {
                         if is_bottom || is_eof {
                             if !is_eof {
-                                self.offset += 1;
+                                self.dy += 1;
                                 self.print_screen();
                             }
                         } else {
                             y += 1;
                         }
-                        x = cmp::min(x, self.lines[self.offset + y].len());
+                        x = cmp::min(x, self.lines[self.dy + y].len());
                     }
                 },
                 '←' => { // Arrow left
@@ -163,7 +163,7 @@ impl Editor {
                     x -= 1;
                 },
                 '→' => { // Arrow right
-                    let line = &self.lines[self.offset + y];
+                    let line = &self.lines[self.dy + y];
                     if x == cmp::min(self.width() - 1, line.len()) {
                         continue;
                     }
@@ -172,52 +172,52 @@ impl Editor {
                 '\x14' => { // Ctrl T -> Go to top of file
                     x = 0;
                     y = 0;
-                    self.offset = 0;
+                    self.dy = 0;
                     self.print_screen();
                 },
                 '\x02' => { // Ctrl B -> Go to bottom of file
                     x = 0;
                     y = cmp::min(self.height(), self.lines.len()) - 1;
-                    self.offset = self.lines.len() - 1 - y;
+                    self.dy = self.lines.len() - 1 - y;
                     self.print_screen();
                 },
                 '\x01' => { // Ctrl A -> Go to beginning of line
                     x = 0;
                 },
                 '\x05' => { // Ctrl E -> Go to end of line
-                    let line_length = self.lines[self.offset + y].len();
+                    let line_length = self.lines[self.dy + y].len();
                     if line_length > 0 {
                         x = cmp::min(line_length, self.width() - 1);
                     }
                 },
                 '\x08' => { // Backspace
                     if x > 0 { // Remove char from line
-                        let line = self.lines[self.offset + y].clone();
+                        let line = self.lines[self.dy + y].clone();
                         let (before, mut after) = line.split_at(x - 1);
                         if after.len() > 0 {
                             after = &after[1..];
                         }
-                        self.lines[self.offset + y].clear();
-                        self.lines[self.offset + y].push_str(before);
-                        self.lines[self.offset + y].push_str(after);
+                        self.lines[self.dy + y].clear();
+                        self.lines[self.dy + y].push_str(before);
+                        self.lines[self.dy + y].push_str(after);
 
-                        let mut line = self.lines[self.offset + y].clone();
+                        let mut line = self.lines[self.dy + y].clone();
                         line.truncate(self.width());
                         kernel::vga::clear_row();
                         print!("{}", line);
                         x -= 1;
                     } else { // Remove newline char from previous line
-                        if y == 0 && self.offset == 0 {
+                        if y == 0 && self.dy == 0 {
                             continue;
                         }
 
-                        x = self.lines[self.offset + y - 1].len();
-                        let line = self.lines.remove(self.offset + y);
-                        self.lines[self.offset + y - 1].push_str(&line);
+                        x = self.lines[self.dy + y - 1].len();
+                        let line = self.lines.remove(self.dy + y);
+                        self.lines[self.dy + y - 1].push_str(&line);
                         if y > 0 {
                             y -= 1;
                         } else {
-                            self.offset -= 1;
+                            self.dy -= 1;
                         }
                         self.print_screen();
                     }
@@ -227,14 +227,14 @@ impl Editor {
                         continue;
                     }
 
-                    let line = self.lines[self.offset + y].clone();
+                    let line = self.lines[self.dy + y].clone();
                     let (before_cursor, after_cursor) = line.split_at(x);
-                    self.lines[self.offset + y].clear();
-                    self.lines[self.offset + y].push_str(before_cursor);
-                    self.lines[self.offset + y].push(c);
-                    self.lines[self.offset + y].push_str(after_cursor);
+                    self.lines[self.dy + y].clear();
+                    self.lines[self.dy + y].push_str(before_cursor);
+                    self.lines[self.dy + y].push(c);
+                    self.lines[self.dy + y].push_str(after_cursor);
 
-                    let mut line = self.lines[self.offset + y].clone();
+                    let mut line = self.lines[self.dy + y].clone();
                     line.truncate(self.width());
                     kernel::vga::clear_row();
                     print!("{}", line);
