@@ -260,7 +260,7 @@ impl Editor {
                         print!("{}", line);
 
                         x += s.len();
-                        x = cmp::min(x, self.lines[self.dy + y].len());
+                        x = cmp::min(x, self.width() - 1);
                     }
                 },
             }
