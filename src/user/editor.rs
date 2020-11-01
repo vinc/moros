@@ -1,7 +1,7 @@
 use crate::{kernel, print, user};
 use crate::kernel::console::Style;
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp;
 
@@ -83,14 +83,24 @@ impl Editor {
         let a = self.dy;
         let b = cmp::min(self.lines.len(), self.dy + self.height());
         for y in a..b {
-            let n = self.width();
-            let line = format!("{:width$}", self.lines[i], width = n);
-            lines.push(line[0..n].into()); // TODO: Use `dx .. dx + n`
+            lines.push(self.render_line(y)); // TODO: Use `dx .. dx + n`
         }
         kernel::vga::set_writer_position(0, 0);
         print!("{}", lines.join("\n"));
         let status = format!("Editing '{}'", self.pathname);
         self.print_status(&status, "LightGray");
+    }
+
+    fn render_line(&self, y: usize) -> String {
+        let n = self.width();
+        let mut line = self.lines[y].to_string();
+        if line.len() > n {
+            line.truncate(n - 1);
+            line.push_str(&truncated_line_indicator());
+        } else {
+            line.push_str(&" ".repeat(n - line.len()));
+        }
+        line
     }
 
     pub fn run(&mut self) -> user::shell::ExitCode {
@@ -201,8 +211,7 @@ impl Editor {
                         self.lines[self.dy + y].push_str(before);
                         self.lines[self.dy + y].push_str(after);
 
-                        let mut line = self.lines[self.dy + y].clone();
-                        line.truncate(self.width());
+                        let line = self.render_line(self.dy + y);
                         kernel::vga::clear_row();
                         print!("{}", line);
                         x -= 1;
@@ -234,8 +243,7 @@ impl Editor {
                     self.lines[self.dy + y].push(c);
                     self.lines[self.dy + y].push_str(after_cursor);
 
-                    let mut line = self.lines[self.dy + y].clone();
-                    line.truncate(self.width());
+                    let line = self.render_line(self.dy + y);
                     kernel::vga::clear_row();
                     print!("{}", line);
                     if x < self.width() - 1 {
@@ -256,4 +264,10 @@ impl Editor {
     fn width(&self) -> usize {
         kernel::vga::screen_width()
     }
+}
+
+fn truncated_line_indicator() -> String {
+    let color = Style::color("Black").with_background("LightGray");
+    let reset = Style::reset();
+    format!("{}>{}", color, reset)
 }
