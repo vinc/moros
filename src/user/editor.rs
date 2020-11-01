@@ -15,17 +15,23 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     editor.run()
 }
 
+struct EditorConfig {
+    tab_size: usize,
+}
+
 pub struct Editor {
     file: Option<kernel::fs::File>,
     pathname: String,
     lines: Vec<String>,
     dy: usize, // Vertical offset
+    config: EditorConfig,
 }
 
 impl Editor {
     pub fn new(pathname: &str) -> Self {
         let dy = 0;
         let mut lines = Vec::new();
+        let config = EditorConfig { tab_size: 4 };
 
         let file = match kernel::fs::File::open(pathname) {
             Some(file) => {
@@ -43,7 +49,7 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { file, pathname, lines, dx, dy }
+        Self { file, pathname, lines, dy, config }
     }
 
     pub fn save(&mut self) -> user::shell::ExitCode {
@@ -101,6 +107,15 @@ impl Editor {
             line.push_str(&" ".repeat(n - line.len()));
         }
         line
+    }
+
+    fn render_char(&self, c: char) -> Option<String> {
+        match c {
+            '!'..='~' => Some(c.to_string()), // graphic char
+            ' '       => Some(" ".to_string()),
+            '\t'      => Some(" ".repeat(self.config.tab_size).to_string()),
+            _         => None,
+        }
     }
 
     pub fn run(&mut self) -> user::shell::ExitCode {
@@ -232,22 +247,20 @@ impl Editor {
                     }
                 },
                 c => {
-                    if !c.is_ascii() || !kernel::vga::is_printable(c as u8) {
-                        continue;
-                    }
+                    if let Some(s) = self.render_char(c) {
+                        let line = self.lines[self.dy + y].clone();
+                        let (before_cursor, after_cursor) = line.split_at(x);
+                        self.lines[self.dy + y].clear();
+                        self.lines[self.dy + y].push_str(before_cursor);
+                        self.lines[self.dy + y].push_str(&s);
+                        self.lines[self.dy + y].push_str(after_cursor);
 
-                    let line = self.lines[self.dy + y].clone();
-                    let (before_cursor, after_cursor) = line.split_at(x);
-                    self.lines[self.dy + y].clear();
-                    self.lines[self.dy + y].push_str(before_cursor);
-                    self.lines[self.dy + y].push(c);
-                    self.lines[self.dy + y].push_str(after_cursor);
+                        let line = self.render_line(self.dy + y);
+                        kernel::vga::clear_row();
+                        print!("{}", line);
 
-                    let line = self.render_line(self.dy + y);
-                    kernel::vga::clear_row();
-                    print!("{}", line);
-                    if x < self.width() - 1 {
-                        x += 1;
+                        x += s.len();
+                        x = cmp::min(x, self.lines[self.dy + y].len());
                     }
                 },
             }
