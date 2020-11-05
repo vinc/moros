@@ -183,6 +183,25 @@ impl Shell {
                         }
                     }
                 },
+                '\x7f' => { // Delete
+                    self.update_history();
+                    self.update_autocomplete();
+                    if self.cmd.len() > 0 {
+                        if kernel::console::has_cursor() {
+                            let cmd = self.cmd.clone();
+                            let (before_cursor, mut after_cursor) = cmd.split_at(x - self.prompt.len());
+                            if after_cursor.len() > 0 {
+                                after_cursor = &after_cursor[1..];
+                            }
+                            self.cmd.clear();
+                            self.cmd.push_str(before_cursor);
+                            self.cmd.push_str(after_cursor);
+                            print!("{} ", after_cursor);
+                            kernel::vga::set_cursor_position(x, y);
+                            kernel::vga::set_writer_position(x, y);
+                        }
+                    }
+                },
                 c => {
                     self.update_history();
                     self.update_autocomplete();
