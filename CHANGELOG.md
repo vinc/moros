@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Improve text editor (#109)
+- Add pcnet driver (#82)
+- Remove cargo xbuild (#83)
+- Add nanowait busy loop with nanoseconds precision (#78)
 
 ## 0.4.0 (2020-07-29)
 - Improve editor (#77)
