@@ -57,7 +57,7 @@ fn help_summary() -> user::shell::ExitCode {
 fn help_edit() -> user::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    print!("MOROS text editor is somewhat inspired by nano, but with an even smaller range\n");
+    print!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range\n");
     print!("of features.\n");
     print!("\n");
     print!("{}Shortcuts:{}\n", csi_color, csi_reset);
