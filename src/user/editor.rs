@@ -87,28 +87,32 @@ impl Editor {
     }
 
     fn print_screen(&mut self) {
-        let mut lines: Vec<String> = Vec::new();
+        let mut rows: Vec<String> = Vec::new();
         let a = self.dy;
-        let b = cmp::min(self.lines.len(), self.dy + self.height());
+        let b = self.dy + self.height();
         for y in a..b {
-            lines.push(self.render_line(y)); // TODO: Use `dx .. dx + n`
+            rows.push(self.render_line(y));
         }
         kernel::vga::set_writer_position(0, 0);
-        print!("{}", lines.join("\n"));
+        print!("{}", rows.join("\n"));
+
         let status = format!("Editing '{}'", self.pathname);
         self.print_status(&status, "LightGray");
     }
 
     fn render_line(&self, y: usize) -> String {
+        // Render line into a row of the screen, or an empty row when past eof
+        let line = if y < self.lines.len() { &self.lines[y] } else { "" };
+
+        let mut row = format!("{:width$}", line, width = self.dx);
         let n = self.dx + self.width();
-        let mut line = format!("{:width$}", self.lines[y], width = self.dx);
-        if line.len() > n {
-            line.truncate(n - 1);
-            line.push_str(&truncated_line_indicator());
+        if row.len() > n {
+            row.truncate(n - 1);
+            row.push_str(&truncated_line_indicator());
         } else {
-            line.push_str(&" ".repeat(n - line.len()));
+            row.push_str(&" ".repeat(n - row.len()));
         }
-        line[self.dx..].to_string()
+        row[self.dx..].to_string()
     }
 
     fn render_char(&self, c: char) -> Option<String> {
@@ -170,8 +174,8 @@ impl Editor {
                     x = self.next_pos(x, y);
                 },
                 '↓' => { // Arrow down
-                    let is_bottom = y == self.height() - 1;
                     let is_eof = self.dy + y == self.lines.len() - 1;
+                    let is_bottom = y == self.height() - 1;
                     if y < cmp::min(self.height(), self.lines.len() - 1) {
                         if is_bottom || is_eof {
                             if !is_eof {
@@ -256,7 +260,7 @@ impl Editor {
                             kernel::vga::clear_row();
                             print!("{}", line);
                         }
-                    } else { // Remove newline char from previous line
+                    } else { // Remove newline from previous line
                         if y == 0 && self.dy == 0 {
                             continue;
                         }
@@ -266,12 +270,6 @@ impl Editor {
                         let w = self.width();
                         x = n % w;
                         self.dx = w * (n / w);
-
-                        // Clear row if it was the last line
-                        if self.dy + y == self.lines.len() - 1 {
-                            kernel::vga::clear_row();
-                            print!("{}", " ".repeat(self.width()));
-                        }
 
                         // Move line to the end of the previous line
                         let line = self.lines.remove(self.dy + y);
@@ -285,6 +283,19 @@ impl Editor {
                         }
 
                         self.print_screen();
+                    }
+                },
+                '\x7f' => { // Delete
+                    let n = self.lines[self.dy + y].len();
+                    if self.dx + x >= n { // Remove newline from line
+                        let line = self.lines.remove(self.dy + y + 1);
+                        self.lines[self.dy + y].push_str(&line);
+                        self.print_screen();
+                    } else { // Remove char from line
+                        self.lines[self.dy + y].remove(self.dx + x);
+                        let line = self.render_line(self.dy + y);
+                        kernel::vga::clear_row();
+                        print!("{}", line);
                     }
                 },
                 c => {
