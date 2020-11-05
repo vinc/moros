@@ -18,6 +18,7 @@ rtl8139 = []
 pcnet = []
 
 [dependencies]
+array-macro = "1.0.5"
 base64 = { version = "0.12.3", default-features = false }
 bit_field = "0.10.0"
 bootloader = { version = "0.9.5", features = ["map_physical_memory"] }
@@ -29,12 +30,11 @@ pbkdf2 = { version = "0.3.0", default-features = false }
 pc-keyboard = "0.5.1"
 pic8259_simple = "0.2.0"
 raw-cpuid = "8.1.0"
+rlibc = "1.0.0"
 sha2 = { version = "0.8.2", default-features = false }
 smoltcp = { version = "0.6.0", default-features = false, features = ["alloc", "ethernet", "socket-tcp", "socket-udp", "proto-ipv4", "proto-dhcpv4"] }
-spin = "0.5.2"
+spin = "0.7.0"
 uart_16550 = "0.2.7"
 volatile = "0.2.6"
-x86_64 = "0.12.2"
 vte = "0.8.0"
-array-macro = "1.0.5"
-rlibc = "1.0.0"
+x86_64 = "0.12.2"
