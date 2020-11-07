@@ -3,6 +3,7 @@ use acpi::{AcpiHandler, PhysicalMapping, AcpiTables};
 use alloc::boxed::Box;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use x86_64::instructions::port::Port;
+use x86_64::PhysAddr;
 
 pub fn shutdown() {
     let mut pm1a_control_block = 0;
@@ -18,17 +19,17 @@ pub fn shutdown() {
             for (sign, sdt) in acpi.sdts {
                 if sign.as_str() == "FACP" {
                     //log!("ACPI Found FACP at {}\n", sdt.physical_address);
-                    let addr = kernel::mem::phys_mem_offset() + (sdt.physical_address + 64) as u64;
-                    let ptr = addr.as_ptr::<u32>();
-                    pm1a_control_block = unsafe { *ptr };
+                    let offset = 64; // PM1a is 64 bytes into FACP
+                    let virtual_address = kernel::mem::phys_to_virt(PhysAddr::new(offset + sdt.physical_address as u64));
+                    pm1a_control_block = unsafe { *virtual_address.as_ptr::<u32>() };
                     //log!("ACPI Found PM1a Control Block: {}\n", pm1a_control_block);
                 }
             }
             match &acpi.dsdt {
                 Some(dsdt) => {
                     //log!("ACPI Found DSDT at {}\n", dsdt.address);
-                    let addr = kernel::mem::phys_mem_offset() + dsdt.address as u64;
-                    let stream = unsafe { core::slice::from_raw_parts(addr.as_ptr(), dsdt.length as usize) };
+                    let address = kernel::mem::phys_to_virt(PhysAddr::new(dsdt.address as u64));
+                    let stream = unsafe { core::slice::from_raw_parts(address.as_ptr(), dsdt.length as usize) };
                     if aml.parse_table(stream).is_err() {
                         log!("ACPI Failed to parse AML in DSDT\n");
                         return;
@@ -61,7 +62,7 @@ pub struct MorosAcpiHandler;
 
 impl AcpiHandler for MorosAcpiHandler {
     unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> PhysicalMapping<Self, T> {
-        let virtual_address = kernel::mem::phys_mem_offset() + physical_address as u64;
+        let virtual_address = kernel::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
         PhysicalMapping {
             physical_start: physical_address,
             virtual_start: core::ptr::NonNull::new(virtual_address.as_mut_ptr()).unwrap(),
@@ -77,10 +78,9 @@ impl AcpiHandler for MorosAcpiHandler {
 
 macro_rules! def_read_handler {
     ($name:ident, $size:ty) => {
-        fn $name(&self, address: usize) -> $size {
-            let virtual_address = kernel::mem::phys_mem_offset() + address as u64;
-            let ptr = virtual_address.as_ptr::<$size>();
-            unsafe { *ptr }
+        fn $name(&self, physical_address: usize) -> $size {
+            let virtual_address = kernel::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
+            unsafe { *virtual_address.as_ptr::<$size>() }
         }
     };
 }
