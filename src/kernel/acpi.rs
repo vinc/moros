@@ -4,7 +4,7 @@ use alloc::boxed::Box;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use x86_64::instructions::port::Port;
 
-pub fn poweroff() {
+pub fn shutdown() {
     let mut pm1a_control_block = 0;
     let mut slp_typa = 0;
     let slp_len = 1 << 13;
