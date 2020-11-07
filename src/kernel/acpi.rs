@@ -9,37 +9,36 @@ pub fn shutdown() {
     let mut slp_typa = 0;
     let slp_len = 1 << 13;
 
+    log!("ACPI Executing shutdown\n");
     let mut aml = AmlContext::new(Box::new(MorosAmlHandler), false, DebugVerbosity::None);
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {
-            //log!("ACPI init successful\n");
+            //log!("ACPI Found RDSP in BIOS\n");
             for (sign, sdt) in acpi.sdts {
                 if sign.as_str() == "FACP" {
-                    //log!("{:?}\n", sign);
+                    //log!("ACPI Found FACP at {}\n", sdt.physical_address);
                     let addr = kernel::mem::phys_mem_offset() + (sdt.physical_address + 64) as u64;
                     let ptr = addr.as_ptr::<u32>();
                     pm1a_control_block = unsafe { *ptr };
-                    //log!("{:?}\n", pm1a_control_block);
+                    //log!("ACPI Found PM1a Control Block: {}\n", pm1a_control_block);
                 }
             }
             match &acpi.dsdt {
                 Some(dsdt) => {
-                    //log!("{:?}\n", dsdt);
+                    //log!("ACPI Found DSDT at {}\n", dsdt.address);
                     let addr = kernel::mem::phys_mem_offset() + dsdt.address as u64;
                     let stream = unsafe { core::slice::from_raw_parts(addr.as_ptr(), dsdt.length as usize) };
-                    //let stream = unsafe { core::slice::from_raw_parts(addr.as_u64() as *mut u8, dsdt.length as usize) };
                     if aml.parse_table(stream).is_err() {
-                        //log!("Failed to parse AML in DSDT");
+                        log!("ACPI Failed to parse AML in DSDT\n");
                         return;
                     }
-                    //let name = AmlName::from_str("\\_S5.SLP_TYPa").unwrap();
                     let name = AmlName::from_str("\\_S5").unwrap();
                     if let Ok(aml::value::AmlValue::Package(s5)) = aml.namespace.get_by_path(&name) {
-                        //log!("{:?}\n", s5);
+                        //log!("ACPI Found \\_S5 in DSDT\n");
                         if let aml::value::AmlValue::Integer(value) = s5[0] {
                             slp_typa = value;
-                            //log!("{:?}\n", slp_typa);
+                            //log!("ACPI Found SLP_TYPa in \\_S5: {}\n", slp_typa);
                         }
                     }
                 },
@@ -47,7 +46,7 @@ pub fn shutdown() {
             }
         }
         Err(_e) => {
-            //log!("ACPI init unsuccessful {:?}\n", e);
+            log!("ACPI Could not find RDSP in BIOS\n");
         }
     };
 
