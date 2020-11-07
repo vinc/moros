@@ -28,6 +28,10 @@ pub fn init(boot_info: &'static BootInfo) {
     *PHYS_MEM_OFFSET.lock() = phys_mem_offset;
 }
 
+pub fn phys_mem_offset() -> VirtAddr {
+    *PHYS_MEM_OFFSET.lock()
+}
+
 pub fn translate_addr(addr: VirtAddr) -> Option<PhysAddr> {
     let phys_mem_offset = *PHYS_MEM_OFFSET.lock();
     let mapper = unsafe { mapper(phys_mem_offset) };
