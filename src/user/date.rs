@@ -7,7 +7,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let date = OffsetDateTime::from_unix_timestamp(timestamp as i64)
              + Duration::nanoseconds(nanos);
 
-    let format = if args.len() > 1 { args[1] } else { "%FT%T" };
+    let format = if args.len() > 1 { args[1] } else { "%FT%H:%M:%S" };
     match time::util::validate_format_string(format) {
         Ok(()) => {
             print!("{}\n", date.format(format));
