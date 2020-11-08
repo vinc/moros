@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::kernel::cmos::CMOS;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 
@@ -11,13 +12,21 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
     match pathname {
         "/dev/rtc" => {
-            user::date::main(&["date", "--iso-8601"])
+            let rtc = CMOS::new().rtc();
+            print!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}\n",
+                rtc.year, rtc.month, rtc.day,
+                rtc.hour, rtc.minute, rtc.second
+            );
+            user::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/realtime" => {
-            user::date::main(&["date", "--raw"])
+            print!("{:.6}\n", kernel::clock::realtime());
+            user::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/uptime" => {
-            user::uptime::main(&["uptime", "--raw"])
+            print!("{:.6}\n", kernel::clock::uptime());
+            user::shell::ExitCode::CommandSuccessful
         },
         _ => {
             if pathname.starts_with("/net/") {

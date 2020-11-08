@@ -407,6 +407,7 @@ impl Shell {
             "sleep"                => user::sleep::main(&args),
             "clear"                => user::clear::main(&args),
             "base64"               => user::base64::main(&args),
+            "date"                 => user::date::main(&args),
             "halt"                 => user::halt::main(&args),
             "hex"                  => user::hex::main(&args), // TODO: Rename to `dump`
             "net"                  => user::net::main(&args),
