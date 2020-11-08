@@ -1,10 +1,13 @@
 use crate::{kernel, print, user};
-use time::OffsetDateTime;
+use time::{OffsetDateTime, Duration};
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let timestamp = kernel::clock::realtime();
+    let nanos = libm::floor(1e9 * (timestamp - libm::floor(timestamp))) as i64;
+    let date = OffsetDateTime::from_unix_timestamp(timestamp as i64)
+             + Duration::nanoseconds(nanos);
+
     let format = if args.len() > 1 { args[1] } else { "%FT%T" };
-    let date = OffsetDateTime::from_unix_timestamp(timestamp as i64);
     match time::util::validate_format_string(format) {
         Ok(()) => {
             print!("{}\n", date.format(format));
