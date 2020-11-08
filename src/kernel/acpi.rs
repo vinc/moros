@@ -74,6 +74,10 @@ pub fn shutdown() {
                         }
                     } else {
                         log!("ACPI Failed to parse AML in DSDT\n");
+                        // FIXME: AML parsing work on QEMU and Bochs but not
+                        // on VirtualBox at the moment so we use the following
+                        // hardcoded value.
+                        slp_typa = (5 & 7) << 10;
                     }
                 },
                 None => {},
