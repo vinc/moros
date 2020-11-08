@@ -19,6 +19,7 @@ This project started from the [seventh post][1] of the second edition of
 - [x] Serial output (using [uart_16550](https://crates.io/crates/uart_16550))
 - [x] Paging
 - [x] Heap allocation (using [linked_list_allocator](https://crates.io/crates/linked_list_allocator))
+- [x] ACPI shutdown (using [acpi](https://crates.io/crates/acpi) and [aml](https://crates.io/crates/aml))
 - [x] RTC clock
 - [x] PCI enumeration
 - [x] ATA PIO mode

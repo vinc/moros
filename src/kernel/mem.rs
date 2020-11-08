@@ -1,14 +1,11 @@
 use crate::{kernel, log};
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
-use lazy_static::lazy_static;
-use spin::Mutex;
 use x86_64::structures::paging::mapper::MapperAllSizes;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
 use x86_64::{PhysAddr, VirtAddr};
 
-lazy_static! {
-    static ref PHYS_MEM_OFFSET: Mutex<VirtAddr> = Mutex::new(VirtAddr::new(0));
-}
+// NOTE: This static is mutable but it'll be changed only once during initialization
+static mut PHYS_MEM_OFFSET: u64 = 0;
 
 pub fn init(boot_info: &'static BootInfo) {
     let mut mem_total = 0;
@@ -20,17 +17,19 @@ pub fn init(boot_info: &'static BootInfo) {
     }
     log!("MEM {} KB\n", mem_total >> 10);
 
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mut mapper = unsafe { mapper(phys_mem_offset) };
+    unsafe { PHYS_MEM_OFFSET = boot_info.physical_memory_offset; }
+
+    let mut mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
     let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
     kernel::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
-
-    *PHYS_MEM_OFFSET.lock() = phys_mem_offset;
 }
 
-pub fn translate_addr(addr: VirtAddr) -> Option<PhysAddr> {
-    let phys_mem_offset = *PHYS_MEM_OFFSET.lock();
-    let mapper = unsafe { mapper(phys_mem_offset) };
+pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
+    VirtAddr::new(addr.as_u64() + unsafe { PHYS_MEM_OFFSET })
+}
+
+pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
+    let mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
     mapper.translate_addr(addr)
 }
 

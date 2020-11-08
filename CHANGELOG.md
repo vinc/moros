@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add ACPI shutdown (#111)
 - Improve text editor (#109)
 - Add pcnet driver (#82)
 - Remove cargo xbuild (#83)
