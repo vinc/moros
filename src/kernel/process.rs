@@ -37,6 +37,10 @@ pub fn env(key: &str) -> Option<String> {
     }
 }
 
+pub fn envs() -> BTreeMap<String, String> {
+    PROCESS.lock().env.clone()
+}
+
 pub fn dir() -> String {
     PROCESS.lock().dir.clone()
 }
