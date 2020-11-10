@@ -55,7 +55,7 @@ pub fn shutdown() {
                     */
 
                     pm1a_control_block = read_fadt::<u32>(sdt.physical_address, FADT::Pm1aControlBlock);
-                    //log!("ACPI Found PM1a Control Block: 0x{:x}\n", pm1a_control_block);
+                    //log!("ACPI Found PM1a Control Block: {:#X}\n", pm1a_control_block);
                 }
             }
             match &acpi.dsdt {
