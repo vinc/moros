@@ -40,3 +40,4 @@ uart_16550 = "0.2.7"
 volatile = "0.2.6"
 vte = "0.8.0"
 x86_64 = "0.12.2"
+time = { version = "0.2.22", default-features = false }

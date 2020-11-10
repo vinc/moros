@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add new `date` and `env` commands (#112)
 - Add ACPI shutdown (#111)
 - Improve text editor (#109)
 - Add pcnet driver (#82)
