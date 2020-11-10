@@ -423,6 +423,7 @@ impl Shell {
             "colors"               => user::colors::main(&args),
             "disk"                 => user::disk::main(&args),
             "user"                 => user::user::main(&args),
+            "mem" | "memory"       => user::mem::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }

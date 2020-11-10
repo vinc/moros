@@ -105,3 +105,15 @@ impl core::ops::DerefMut for PhysBuf {
         unsafe { alloc::slice::from_raw_parts_mut(vec.as_mut_ptr(), vec.len()) }
     }
 }
+
+pub fn size() -> usize {
+    ALLOCATOR.lock().size()
+}
+
+pub fn used() -> usize {
+    ALLOCATOR.lock().used()
+}
+
+pub fn free() -> usize {
+    ALLOCATOR.lock().free()
+}
