@@ -8,14 +8,14 @@ use x86_64::{PhysAddr, VirtAddr};
 static mut PHYS_MEM_OFFSET: u64 = 0;
 
 pub fn init(boot_info: &'static BootInfo) {
-    let mut mem_total = 0;
+    let mut memory_size = 0;
     for region in boot_info.memory_map.iter() {
         let start_addr = region.range.start_addr();
         let end_addr = region.range.end_addr();
-        mem_total += end_addr - start_addr;
-        log!("MEM [0x{:016X}-0x{:016X}] {:?}\n", start_addr, end_addr, region.region_type);
+        memory_size += end_addr - start_addr;
+        log!("MEM [{:#016X}-{:#016X}] {:?}\n", start_addr, end_addr, region.region_type);
     }
-    log!("MEM {} KB\n", mem_total >> 10);
+    log!("MEM {} KB\n", memory_size >> 10);
 
     unsafe { PHYS_MEM_OFFSET = boot_info.physical_memory_offset; }
 

@@ -238,11 +238,11 @@ impl<'a> Device<'a> for RTL8139 {
         if self.debug_mode {
             print!("------------------------------------------------------------------\n");
             print!("[{:.6}] NET RTL8139 receiving packet:\n\n", kernel::clock::uptime());
-            //print!("Command Register: 0x{:02X}\n", cmd);
-            //print!("Interrupt Status Register: 0x{:02X}\n", isr);
+            //print!("Command Register: {:#02X}\n", cmd);
+            //print!("Interrupt Status Register: {:#02X}\n", isr);
             //print!("CAPR: {}\n", capr);
             //print!("CBR: {}\n", cbr);
-            //print!("Header: 0x{:04X}\n", header);
+            //print!("Header: {:#04X}\n", header);
         }
         if header & ROK != ROK {
             unsafe { self.ports.capr.write(cbr) };
@@ -254,7 +254,7 @@ impl<'a> Device<'a> for RTL8139 {
         let len = n - 4;
         if self.debug_mode {
             print!("size: {} bytes", len);
-            //print!("CRC: 0x{:08X}\n", crc);
+            //print!("CRC: {:#08X}\n", crc);
             //print!("RX Offset: {}\n", offset);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         }
@@ -284,7 +284,7 @@ impl<'a> Device<'a> for RTL8139 {
             print!("------------------------------------------------------------------\n");
             print!("[{:.6}] NET RTL8139 transmitting packet:\n\n", kernel::clock::uptime());
             //print!("TX Buffer: {}\n", self.tx_id);
-            //print!("Interrupt Status Register: 0x{:02X}\n", isr);
+            //print!("Interrupt Status Register: {:#02X}\n", isr);
         }
 
         let tx = TxToken {

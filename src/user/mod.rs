@@ -17,6 +17,7 @@ pub mod http;
 pub mod install;
 pub mod ip;
 pub mod list;
+pub mod mem;
 pub mod net;
 pub mod print;
 pub mod r#move;

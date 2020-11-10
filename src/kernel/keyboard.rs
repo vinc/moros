@@ -39,11 +39,11 @@ pub fn init() {
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify 0x{:X}\n", kernel::clock::uptime(), res);
+    print!("[{:.6}] keyboard: identify {:#X}\n", kernel::clock::uptime(), res);
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify 0x{:X}\n", kernel::clock::uptime(), res);
+    print!("[{:.6}] keyboard: identify {:#X}\n", kernel::clock::uptime(), res);
 
     // Self-test
     let res = unsafe {
@@ -59,7 +59,7 @@ pub fn init() {
     if res == 0xAA { // 0xAA == Passed, 0xFC or 0xFD == Failed, 0xFE == Resend
         print!("[{:.6}] keyboard: self test passed\n", kernel::clock::uptime());
     } else {
-        print!("[{:.6}] keyboard: self test failed (0x{:X})\n", kernel::clock::uptime(), res);
+        print!("[{:.6}] keyboard: self test failed ({:#X})\n", kernel::clock::uptime(), res);
     }
 
     // Switch to scancode set 2

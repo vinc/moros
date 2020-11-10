@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add new `mem` command ([#113](https://github.com/vinc/moros/pull/113))
 - Add new `date` and `env` commands ([#112](https://github.com/vinc/moros/pull/112))
 - Add ACPI shutdown ([#111](https://github.com/vinc/moros/pull/111))
 - Improve text editor ([#109](https://github.com/vinc/moros/pull/109))
