@@ -98,19 +98,19 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                             match verb {
                                 "GET" => {
                                     if path.len() > 1 && path.ends_with("/") {
+                                        code = 301;
                                         res.push_str("HTTP/1.0 301 Moved Permanently\r\n");
                                         res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
-                                        code = 301;
                                         body = format!("<h1>Moved Permanently</h1>\r\n");
                                         mime = "text/html";
                                     } else if let Some(file) = kernel::fs::File::open(path) {
-                                        res.push_str("HTTP/1.0 200 OK\r\n");
                                         code = 200;
+                                        res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = file.read_to_string().replace("\n", "\r\n");
                                         mime = "text/plain";
                                     } else if let Some(dir) = kernel::fs::Dir::open(path) {
-                                        res.push_str("HTTP/1.0 200 OK\r\n");
                                         code = 200;
+                                        res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = format!("<h1>Index of {}</h1>\r\n", path);
                                         let mut files: Vec<_> = dir.read().collect();
                                         files.sort_by_key(|f| f.name());
@@ -121,8 +121,8 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                         }
                                         mime = "text/html";
                                     } else {
-                                        res.push_str("HTTP/1.0 404 Not Found\r\n");
                                         code = 404;
+                                        res.push_str("HTTP/1.0 404 Not Found\r\n");
                                         body = format!("<h1>Not Found</h1>\r\n");
                                         mime = "text/plain";
                                     }
@@ -134,14 +134,34 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                     };
                                     match maybe_file {
                                         Some(mut file) => {
-                                            code = 200;
-                                            res.push_str("HTTP/1.0 200 OK\r\n");
-                                            file.write(&contents.as_bytes()).unwrap();
+                                            if file.write(&contents.as_bytes()).is_ok() {
+                                                code = 200;
+                                                res.push_str("HTTP/1.0 200 OK\r\n");
+                                            } else {
+                                                code = 500;
+                                                res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
+                                            }
                                         },
                                         None => {
                                             code = 403;
                                             res.push_str("HTTP/1.0 403 Forbidden\r\n");
                                         }
+                                    }
+                                    body = format!("");
+                                    mime = "text/plain";
+                                },
+                                "DELETE" => {
+                                    if kernel::fs::File::open(path).is_some() {
+                                        if kernel::fs::File::delete(path).is_ok() {
+                                            code = 200;
+                                            res.push_str("HTTP/1.0 200 OK\r\n");
+                                        } else {
+                                            code = 500;
+                                            res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
+                                        }
+                                    } else {
+                                        code = 404;
+                                        res.push_str("HTTP/1.0 404 Not Found\r\n");
                                     }
                                     body = format!("");
                                     mime = "text/plain";
