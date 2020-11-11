@@ -14,6 +14,7 @@ pub mod help;
 pub mod hex;
 pub mod host;
 pub mod http;
+pub mod httpd;
 pub mod install;
 pub mod ip;
 pub mod list;

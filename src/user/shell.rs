@@ -415,6 +415,7 @@ impl Shell {
             "route"                => user::route::main(&args),
             "dhcp"                 => user::dhcp::main(&args),
             "http"                 => user::http::main(&args),
+            "httpd"                => user::httpd::main(&args),
             "tcp"                  => user::tcp::main(&args),
             "host"                 => user::host::main(&args),
             "install"              => user::install::main(&args),

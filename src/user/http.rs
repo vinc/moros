@@ -96,11 +96,11 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                print!("Interface not ready\n");
+                print!("Error: Interface not ready\n");
                 return user::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                print!("Interface not ready\n");
+                print!("Error: Interface not ready\n");
                 return user::shell::ExitCode::CommandError;
             }
             _ => {}
