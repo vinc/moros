@@ -41,6 +41,11 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
         let mut tcp_active = false;
         loop {
+            if kernel::console::abort() {
+                print!("\n");
+                return user::shell::ExitCode::CommandSuccessful;
+            }
+
             let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             //print!("{}\n", timestamp);
             match iface.poll(&mut sockets, timestamp) {
