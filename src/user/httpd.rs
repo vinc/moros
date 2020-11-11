@@ -13,6 +13,8 @@ use smoltcp::socket::SocketSet;
 use time::OffsetDateTime;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
+    let port = 80;
+
     if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
@@ -28,7 +30,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
         let csi_color = Style::color("Yellow");
         let csi_reset = Style::reset();
-        print!("{}HTTP Server listening on 0.0.0.0:80{}\n", csi_color, csi_reset);
+        print!("{}HTTP Server listening on 0.0.0.0:{}{}\n", csi_color, port, csi_reset);
 
         let mut sockets = SocketSet::new(vec![]);
         let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
@@ -43,41 +45,58 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
             //print!("{}\n", timestamp);
             match iface.poll(&mut sockets, timestamp) {
                 Ok(_) => {},
-                Err(e) => {
-                    print!("poll error: {}\n", e);
+                Err(_) => {
+                    //print!("poll error: {}\n", e);
                 }
             }
 
             {
                 let mut socket = sockets.get::<TcpSocket>(tcp_handle);
                 if !socket.is_open() {
-                    socket.listen(80).unwrap();
+                    socket.listen(port).unwrap();
                 }
 
                 let addr = socket.remote_endpoint().addr;
-                let port = socket.remote_endpoint().port;
+                //let port = socket.remote_endpoint().port;
 
                 if socket.is_active() && !tcp_active {
-                    print!("tcp:80 {}:{} connected\n", addr, port);
+                    //print!("tcp:80 {}:{} connected\n", addr, port);
                 } else if !socket.is_active() && tcp_active {
-                    print!("tcp:80 {}:{} disconnected\n", addr, port);
+                    //print!("tcp:80 {}:{} disconnected\n", addr, port);
                 }
                 tcp_active = socket.is_active();
 
                 if socket.may_recv() {
-                    print!("tcp:80 {}:{} may recv\n", addr, port);
+                    //print!("tcp:80 {}:{} may recv\n", addr, port);
                     let res = socket.recv(|buffer| {
                         let mut res = String::new();
                         let req = String::from_utf8_lossy(buffer);
                         if req.len() > 0 {
-                            for line in req.lines() {
-                                if line.starts_with("GET") {
+                            let mut verb = "";
+                            let mut path = "";
+                            let mut header = true;
+                            let mut contents = String::new();
+                            for (i, line) in req.lines().enumerate() {
+                                //print!("{}: '{}'\n", i, line);
+                                if i == 0 {
                                     let fields: Vec<_> = line.split(" ").collect();
-                                    let path = fields[1];
-                                    let date = strftime("%d/%b/%Y:%H:%M:%S %z");
-                                    let code;
-                                    let mime;
-                                    let mut body;
+                                    if fields.len() >= 2 {
+                                        verb = fields[0];
+                                        path = fields[1];
+                                    }
+                                } else if line.is_empty() {
+                                    header = false;
+                                } else if !header {
+                                    contents.push_str(&format!("{}\n", line));
+                                }
+                            }
+
+                            let date = strftime("%d/%b/%Y:%H:%M:%S %z");
+                            let code;
+                            let mime;
+                            let mut body;
+                            match verb {
+                                "GET" => {
                                     if path.len() > 1 && path.ends_with("/") {
                                         res.push_str("HTTP/1.0 301 Moved Permanently\r\n");
                                         res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
@@ -107,36 +126,61 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                         body = format!("<h1>Not Found</h1>\r\n");
                                         mime = "text/plain";
                                     }
-                                    let size = body.len();
-                                    res.push_str(&format!("Server: MOROS/{}\r\n", env!("CARGO_PKG_VERSION")));
-                                    res.push_str(&format!("Date: {}\r\n", strftime("%a, %d %b %Y %H:%M:%S GMT")));
-                                    res.push_str(&format!("Content-Type: {}; charset=utf-8\r\n", mime));
-                                    res.push_str(&format!("Content-Length: {}\r\n", size));
-                                    res.push_str("Connection: close\r\n");
-                                    res.push_str("\r\n");
-                                    res.push_str(&body);
-                                    print!("{} - - [{}] \"{}\" {} {}\n", addr, date, line, code, size);
-                                }
+                                },
+                                "PUT" => {
+                                    let maybe_file = match kernel::fs::File::open(path) {
+                                        Some(file) => Some(file),
+                                        None => kernel::fs::File::create(path),
+                                    };
+                                    match maybe_file {
+                                        Some(mut file) => {
+                                            code = 200;
+                                            res.push_str("HTTP/1.0 200 OK\r\n");
+                                            file.write(&contents.as_bytes()).unwrap();
+                                        },
+                                        None => {
+                                            code = 403;
+                                            res.push_str("HTTP/1.0 403 Forbidden\r\n");
+                                        }
+                                    }
+                                    body = format!("");
+                                    mime = "text/plain";
+                                },
+                                _ => {
+                                    res.push_str("HTTP/1.0 400 Bad Request\r\n");
+                                    code = 400;
+                                    body = format!("<h1>Bad Request</h1>\r\n");
+                                    mime = "text/plain";
+                                },
                             }
+                            let size = body.len();
+                            res.push_str(&format!("Server: MOROS/{}\r\n", env!("CARGO_PKG_VERSION")));
+                            res.push_str(&format!("Date: {}\r\n", strftime("%a, %d %b %Y %H:%M:%S GMT")));
+                            res.push_str(&format!("Content-Type: {}; charset=utf-8\r\n", mime));
+                            res.push_str(&format!("Content-Length: {}\r\n", size));
+                            res.push_str("Connection: close\r\n");
+                            res.push_str("\r\n");
+                            res.push_str(&body);
+                            print!("{} - - [{}] \"{} {}\" {} {}\n", addr, date, verb, path, code, size);
                         }
                         (buffer.len(), res)
                     }).unwrap();
 
-                    print!("tcp:80 recv {}\n", res.len());
+                    //print!("tcp:80 recv {}\n", res.len());
                     for chunk in res.as_bytes().chunks(1024) {
                         send_queue.push_back(chunk.to_vec());
-                        print!("tcp:80 queue ({} items)\n", send_queue.len());
+                        //print!("tcp:80 queue ({} items)\n", send_queue.len());
                     }
 
                     if socket.can_send() {
-                        print!("tcp:80 {}:{} can send\n", addr, port);
+                        //print!("tcp:80 {}:{} can send\n", addr, port);
                         if let Some(chunk) = send_queue.pop_front() {
-                            print!("tcp:80 send ({} left in queue)\n", send_queue.len());
+                            //print!("tcp:80 send ({} left in queue)\n", send_queue.len());
                             socket.send_slice(&chunk).unwrap();
                         }
                     }
                 } else if socket.may_send() {
-                    print!("tcp:80 {}:{} may send\n", addr, port);
+                    //print!("tcp:80 {}:{} may send\n", addr, port);
                     socket.close();
                     send_queue.clear();
                 }
@@ -144,7 +188,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                print!("Wait {} seconds\n", wait_duration.as_secs_f64());
+                //print!("Wait {} seconds\n", wait_duration.as_secs_f64());
                 kernel::time::sleep(wait_duration.as_secs_f64());
             }
             kernel::time::sleep(0.01);
