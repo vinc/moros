@@ -28,6 +28,15 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             print!("{:.6}\n", kernel::clock::uptime());
             user::shell::ExitCode::CommandSuccessful
         },
+        "/dev/random" => {
+            loop {
+                // Generate ASCII graphic chars
+                let i = (kernel::random::get_u32() % (0x72 - 0x20)) + 0x20;
+                if let Some(c) = core::char::from_u32(i) {
+                    print!("{}", c);
+                }
+            }
+        },
         _ => {
             if pathname.starts_with("/net/") {
                 // Examples:
