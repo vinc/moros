@@ -129,7 +129,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
                 state = match state {
                     State::Connect if !socket.is_active() => {
-                        let local_port = 49152 + kernel::random::rand16().expect("random port") % 16384;
+                        let local_port = 49152 + kernel::random::get_u16() % 16384;
                         if is_verbose {
                             print!("* Connecting to {}:{}\n", address, url.port);
                         }
