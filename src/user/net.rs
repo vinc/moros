@@ -33,7 +33,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                     }
                 }
             }
-            "dump" => {
+            "monitor" => {
                 iface.device_mut().debug_mode = true;
 
                 let mut server_rx_buffer = [0; 2048];
@@ -56,19 +56,19 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                     let now = kernel::clock::uptime();
                     match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
                         Ok(true) => {
-                            print!("------------------------------------------------------------------\n");
-                            print!("Polling result: Ok(true)\n");
+                            //print!("{}\n", "-".repeat(66));
+                            //print!("Polling result: Ok(true)\n");
                         },
                         Ok(false) => {
-                            //print!("------------------------------------------------------------------\n");
+                            //print!("{}\n", "-".repeat(66));
                             //print!("Polling Result: Ok(false)\n\n");
                         },
-                        Err(e) => {
-                            print!("------------------------------------------------------------------\n");
-                            print!("polling result: err({})\n", e);
+                        Err(_) => {
+                            //print!("{}\n", "-".repeat(66));
+                            //print!("polling result: err({})\n", e);
                         }
                     }
-                    kernel::time::sleep(1.0);
+                    kernel::time::sleep(0.1);
                 }
             }
             _ => {

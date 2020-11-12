@@ -284,8 +284,8 @@ impl<'a> Device<'a> for PCNET {
         let mut rx_id = self.rx_id.load(Ordering::SeqCst);
         while is_buffer_owner(&self.rx_des, rx_id) {
             if self.debug_mode {
-                print!("------------------------------------------------------------------\n");
-                print!("[{:.6}] NET PCNET receiving packet:\n", kernel::clock::uptime());
+                print!("{}\n", "-".repeat(66));
+                log!("NET PCNET Receiving:\n");
                 //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
                 //print!("RX Buffer: {}\n", rx_id);
             }
@@ -345,7 +345,7 @@ impl<'a> Device<'a> for PCNET {
 
         if packet.len() > 0 {
             if self.debug_mode {
-                print!("Size: {} bytes", packet.len());
+                //print!("Size: {} bytes\n", packet.len());
                 user::hex::print_hex(&packet);
                 //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
                 //print!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
@@ -365,8 +365,8 @@ impl<'a> Device<'a> for PCNET {
 
         if is_buffer_owner(&self.tx_des, tx_id) {
             if self.debug_mode {
-                print!("------------------------------------------------------------------\n");
-                print!("[{:.6}] NET PCNET transmitting packet:\n", kernel::clock::uptime());
+                print!("{}\n", "-".repeat(66));
+                log!("NET PCNET Transmitting:\n");
                 //print!("TX Buffer: {}\n", tx_id);
                 //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
             }
@@ -425,7 +425,7 @@ impl phy::TxToken for TxToken {
 
         self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
-            print!("Size: {} bytes", len);
+            //print!("Size: {} bytes\n", len);
             user::hex::print_hex(&buf);
             //print!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
         }

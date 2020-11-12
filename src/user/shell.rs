@@ -410,7 +410,7 @@ impl Shell {
             "date"                 => user::date::main(&args),
             "env"                  => user::env::main(&args),
             "halt"                 => user::halt::main(&args),
-            "hex"                  => user::hex::main(&args), // TODO: Rename to `dump`
+            "hex"                  => user::hex::main(&args),
             "net"                  => user::net::main(&args),
             "route"                => user::route::main(&args),
             "dhcp"                 => user::dhcp::main(&args),
