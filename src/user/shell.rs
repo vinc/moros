@@ -14,11 +14,12 @@ const AUTOCOMPLETE_COMMANDS: [&str; 29] = [
 ];
 
 // TODO: Scan /dev
-const AUTOCOMPLETE_DEVICES: [&str; 5] = [
+const AUTOCOMPLETE_DEVICES: [&str; 6] = [
     "/dev/ata",
     "/dev/clk",
     "/dev/clk/uptime",
     "/dev/clk/realtime",
+    "/dev/random",
     "/dev/rtc",
 ];
 

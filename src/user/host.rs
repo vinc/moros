@@ -58,7 +58,7 @@ impl Message {
     pub fn query(qname: &str, qtype: QueryType, qclass: QueryClass) -> Self {
         let mut datagram = Vec::new();
 
-        let id = kernel::random::rand16().expect("random id");
+        let id = kernel::random::get_u16();
         for b in id.to_be_bytes().iter() {
             datagram.push(*b); // Transaction ID
         }
@@ -124,7 +124,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let dns_port = 53;
     let server = IpEndpoint::new(dns_address, dns_port);
 
-    let local_port = 49152 + kernel::random::rand16().expect("random port") % 16384;
+    let local_port = 49152 + kernel::random::get_u16() % 16384;
     let client = IpEndpoint::new(IpAddress::Unspecified, local_port);
 
     let qname = name;
