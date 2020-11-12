@@ -230,13 +230,13 @@ pub fn key_handle(key: char) {
 
 pub fn abort() -> bool {
     interrupts::without_interrupts(|| {
-        let mut stdin = STDIN.lock();
-        if stdin.contains('\x03') {
-            stdin.clear();
-            true
-        } else {
-            false
-        }
+        STDIN.lock().contains('\x03')
+    })
+}
+
+pub fn drain() {
+    interrupts::without_interrupts(|| {
+        STDIN.lock().clear();
     })
 }
 

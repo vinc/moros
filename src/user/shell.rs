@@ -104,6 +104,7 @@ impl Shell {
                                 self.errored = true;
                             },
                         }
+                        kernel::console::drain();
                         self.cmd.clear();
                     } else {
                         self.errored = false;
