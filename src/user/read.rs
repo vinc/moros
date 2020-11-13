@@ -35,6 +35,10 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 if let Some(c) = core::char::from_u32(i) {
                     print!("{}", c);
                 }
+                if kernel::console::abort() {
+                    print!("\n");
+                    return user::shell::ExitCode::CommandSuccessful;
+                }
             }
         },
         _ => {

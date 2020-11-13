@@ -213,10 +213,8 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                //print!("Wait {} seconds\n", wait_duration.as_secs_f64());
                 kernel::time::sleep(wait_duration.as_secs_f64());
             }
-            kernel::time::sleep(0.01);
         }
     } else {
         print!("Error: Could not find network interface\n");

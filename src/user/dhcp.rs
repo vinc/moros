@@ -25,13 +25,16 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
         print!("DHCP Discover transmitted\n");
         let timeout = 30.0;
-        let time = kernel::clock::uptime();
+        let started = kernel::clock::realtime();
         loop {
-            if kernel::clock::uptime() - time > timeout {
+            if kernel::clock::realtime() - started > timeout {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
-
+            if kernel::console::abort() {
+                print!("\n");
+                return user::shell::ExitCode::CommandError;
+            }
             let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
@@ -40,12 +43,11 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                 }
                 Ok(_) => {}
             }
-            let config = dhcp.poll(&mut iface, &mut sockets, timestamp).unwrap_or_else(|e| {
-                print!("DHCP: {:?}\n", e);
+            let res = dhcp.poll(&mut iface, &mut sockets, timestamp).unwrap_or_else(|e| {
+                print!("DHCP Error: {:?}\n", e);
                 None
             });
-            let mut success = false;
-            config.map(|config| {
+            if let Some(config) = res {
                 print!("DHCP Offer received\n");
                 //print!("DHCP config: {:?}\n", config);
                 match config.address {
@@ -55,7 +57,6 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                 *addr = IpCidr::Ipv4(cidr);
                             });
                         });
-                        prev_cidr = cidr;
                         print!("Leased: {}\n", cidr);
                     }
                     _ => {}
@@ -75,17 +76,13 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                     print!("DNS: {}\n", dns_servers.join(", "));
                 }
 
-                success = true;
-            });
-
-            if success {
                 return user::shell::ExitCode::CommandSuccessful;
             }
 
-            let mut duration = dhcp.next_poll(timestamp);
-            iface.poll_delay(&sockets, timestamp).map(|sockets_timeout| duration = sockets_timeout);
-            let wait_duration: Duration = duration.into();
-            kernel::time::sleep(libm::fmin(wait_duration.as_secs_f64(), timeout));
+            if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
+                let wait_duration: Duration = wait_duration.into();
+                kernel::time::sleep(wait_duration.as_secs_f64());
+            }
         }
     }
 
