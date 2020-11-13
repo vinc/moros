@@ -18,7 +18,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
         let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, timestamp);
 
-        let mut prev_cidr = match iface.ip_addrs().first() {
+        let prev_cidr = match iface.ip_addrs().first() {
             Some(IpCidr::Ipv4(ip_addr)) => ip_addr.clone().into(),
             _ => Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0),
         };
