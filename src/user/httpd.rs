@@ -91,7 +91,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                         verb = fields[0];
                                         path = fields[1];
                                     }
-                                } else if line.is_empty() {
+                                } else if header && line.is_empty() {
                                     header = false;
                                 } else if !header {
                                     contents.push_str(&format!("{}\n", line));
