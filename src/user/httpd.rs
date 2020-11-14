@@ -10,6 +10,7 @@ use smoltcp::socket::TcpSocket;
 use smoltcp::time::Instant;
 use smoltcp::socket::TcpSocketBuffer;
 use smoltcp::socket::SocketSet;
+use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
@@ -32,9 +33,10 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         let csi_reset = Style::reset();
         print!("{}HTTP Server listening on 0.0.0.0:{}{}\n", csi_color, port, csi_reset);
 
+        let mtu = iface.device().capabilities().max_transmission_unit;
         let mut sockets = SocketSet::new(vec![]);
-        let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
-        let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
+        let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+        let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
         let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
         let tcp_handle = sockets.add(tcp_socket);
 
