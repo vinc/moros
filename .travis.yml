@@ -9,4 +9,4 @@ before_script:
   - rustup component add llvm-tools-preview
   - cargo install bootimage
 script:
-  - cargo test --lib --no-default-features --features serial,qwerty,pcnet -- -display none -serial stdio
+  - cargo test --lib --no-default-features --features serial,qwerty,pcnet -- -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
