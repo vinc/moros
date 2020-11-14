@@ -157,15 +157,17 @@ macro_rules! print {
 #[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => ({
-        let uptime = $crate::kernel::clock::uptime();
-        let csi_color = $crate::kernel::console::Style::color("LightGreen");
-        let csi_reset = $crate::kernel::console::Style::reset();
-        if cfg!(feature="vga") {
-            $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-            $crate::kernel::vga::print_fmt(format_args!($($arg)*));
-        } else {
-            $crate::kernel::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-            $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+        if !cfg!(test) {
+            let uptime = $crate::kernel::clock::uptime();
+            let csi_color = $crate::kernel::console::Style::color("LightGreen");
+            let csi_reset = $crate::kernel::console::Style::reset();
+            if cfg!(feature="vga") {
+                $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+                $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+            } else {
+                $crate::kernel::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+                $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+            }
         }
     });
 }
