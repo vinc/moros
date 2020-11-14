@@ -34,4 +34,5 @@ qemu:
 	qemu-system-x86_64 $(opts)
 
 test:
-	cargo test --lib --no-default-features --features serial,$(keyboard),$(nic) -- -display none -serial stdio
+	cargo test --lib --no-default-features --features serial,$(keyboard),$(nic) -- \
+		-display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
