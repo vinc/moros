@@ -1,0 +1,12 @@
+language: rust
+cache: cargo
+rust:
+  - nightly
+install:
+  - sudo apt-get -qqy install qemu-system-x86
+before_script:
+  - rustup component add rust-src
+  - rustup component add llvm-tools-preview
+  - cargo install bootimage
+script:
+  - cargo test --lib --no-default-features --features serial,qwerty,pcnet -- -display none -serial stdio
