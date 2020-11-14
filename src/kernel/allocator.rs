@@ -118,19 +118,15 @@ pub fn free() -> usize {
     ALLOCATOR.lock().free()
 }
 
-#[cfg(test)]
-use alloc::boxed::Box;
-
 #[test_case]
-fn couple_boxes() {
+fn many_boxes() {
+    use alloc::boxed::Box;
+
     let heap_value_1 = Box::new(42);
     let heap_value_2 = Box::new(1337);
     assert_eq!(*heap_value_1, 42);
     assert_eq!(*heap_value_2, 1337);
-}
 
-#[test_case]
-fn many_boxes() {
     for i in 0..1000 {
         let x = Box::new(i);
         assert_eq!(*x, i);
