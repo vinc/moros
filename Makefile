@@ -32,3 +32,6 @@ endif
 
 qemu:
 	qemu-system-x86_64 $(opts)
+
+test:
+	cargo test --lib --no-default-features --features serial,$(keyboard),$(nic) -- -display none -serial stdio
