@@ -47,3 +47,13 @@ fn is_leap_year(year: u64) -> bool {
         true
     }
 }
+
+#[test_case]
+fn uptime_assertion() {
+    assert!(uptime() > 0.0);
+}
+
+#[test_case]
+fn realtime_assertion() {
+    assert!(realtime() > 1234567890.0);
+}
