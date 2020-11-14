@@ -135,23 +135,37 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                     }
                                 },
                                 "PUT" => {
-                                    let maybe_file = match kernel::fs::File::open(path) {
-                                        Some(file) => Some(file),
-                                        None => kernel::fs::File::create(path),
-                                    };
-                                    match maybe_file {
-                                        Some(mut file) => {
-                                            if file.write(&contents.as_bytes()).is_ok() {
-                                                code = 200;
-                                                res.push_str("HTTP/1.0 200 OK\r\n");
-                                            } else {
-                                                code = 500;
-                                                res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
-                                            }
-                                        },
-                                        None => {
+                                    if path.ends_with("/") { // Write directory
+                                        let path = path.trim_end_matches('/');
+                                        if kernel::fs::Dir::open(path).is_some() {
                                             code = 403;
                                             res.push_str("HTTP/1.0 403 Forbidden\r\n");
+                                        } else if kernel::fs::Dir::create(path).is_none() {
+                                            code = 500;
+                                            res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
+                                        } else {
+                                            code = 200;
+                                            res.push_str("HTTP/1.0 200 OK\r\n");
+                                        }
+                                    } else { // Write file
+                                        let maybe_file = match kernel::fs::File::open(path) {
+                                            Some(file) => Some(file),
+                                            None => kernel::fs::File::create(path),
+                                        };
+                                        match maybe_file {
+                                            Some(mut file) => {
+                                                if file.write(&contents.as_bytes()).is_ok() {
+                                                    code = 200;
+                                                    res.push_str("HTTP/1.0 200 OK\r\n");
+                                                } else {
+                                                    code = 500;
+                                                    res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
+                                                }
+                                            },
+                                            None => {
+                                                code = 403;
+                                                res.push_str("HTTP/1.0 403 Forbidden\r\n");
+                                            }
                                         }
                                     }
                                     body = format!("");
