@@ -1,7 +1,12 @@
+#[cfg(not(test))]
 use rand_chacha::ChaChaRng;
+#[cfg(not(test))]
 use rand_core::{RngCore, SeedableRng};
 use x86_64::instructions::random::RdRand;
 
+// FIXME: Compiling this in test generate the following error:
+// LLVM ERROR: Do not know how to split the result of this operator!
+#[cfg(not(test))]
 pub fn get_u64() -> u64 {
     let mut seed = [0u8; 32];
     if let Some(rdrand) = RdRand::new() {
@@ -17,6 +22,16 @@ pub fn get_u64() -> u64 {
 
     let mut chacha = ChaChaRng::from_seed(seed);
     chacha.next_u64()
+}
+
+#[cfg(test)]
+pub fn get_u64() -> u64 {
+    if let Some(rdrand) = RdRand::new() {
+        if let Some(rand) = rdrand.get_u64() {
+            return rand;
+        }
+    }
+    0
 }
 
 pub fn get_u32() -> u32 {

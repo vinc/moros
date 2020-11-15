@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Add tests ([#118](https://github.com/vinc/moros/pull/118))
+- Use ChaCha20 RNG ([#116](https://github.com/vinc/moros/pull/116))
+- Remove dependency on `rlibc` ([#115](https://github.com/vinc/moros/pull/115))
 - Add new `mem` command ([#113](https://github.com/vinc/moros/pull/113))
 - Add new `date` and `env` commands ([#112](https://github.com/vinc/moros/pull/112))
 - Add ACPI shutdown ([#111](https://github.com/vinc/moros/pull/111))

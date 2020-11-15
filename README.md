@@ -1,5 +1,8 @@
 # MOROS: Obscure Rust Operating System
 
+[![Travis](https://img.shields.io/travis/vinc/moros/master.svg)](https://travis-ci.org/vinc/moros/branches)
+[![Crates.io](https://img.shields.io/crates/v/moros.svg)](https://crates.io/crates/moros)
+
 MOROS is a toy operating system written in Rust for the x86 architecture.
 
 This project started from the [seventh post][1] of the second edition of
@@ -23,7 +26,7 @@ This project started from the [seventh post][1] of the second edition of
 - [x] RTC clock
 - [x] PCI enumeration
 - [x] ATA PIO mode
-- [x] Random number generator
+- [x] Random number generator (using [rand_chacha](https://crates.io/crates/rand_chacha))
 - [x] RTL8139 network card
 - [x] AMD PCNET network card
 - [x] DHCP/IP/TCP/UDP/DNS/HTTP protocols (using [smoltcp](https://crates.io/crates/smoltcp))
@@ -31,8 +34,7 @@ This project started from the [seventh post][1] of the second edition of
 - [x] Basic shell
 - [x] Basic text editor
 - [x] Basic file and network commands
-- [x] A LOT OF SHORTCUTS TO GET EVERYTHING WORKING
-- [x] HERE BE DRAGONS
+- [x] A LOT OF UGLY SHORTCUTS TO GET EVERYTHING WORKING
 - [ ] Processes
 - [ ] Multitasking
 - [ ] A real userspace
@@ -40,7 +42,7 @@ This project started from the [seventh post][1] of the second edition of
 
 ## Setup
 
-Install tools:
+Install the required tools:
 
     $ curl https://sh.rustup.rs -sSf | sh
     $ rustup install nightly
@@ -49,7 +51,7 @@ Install tools:
     $ rustup component add llvm-tools-preview
     $ cargo install bootimage
 
-Clone repo:
+Clone the repo:
 
     $ git clone https://github.com/vinc/moros
     $ cd moros
@@ -57,16 +59,16 @@ Clone repo:
 
 ## Usage
 
-Build image to `disk.img`:
+Build the image to `disk.img`:
 
     $ make image output=vga keyboard=qwerty nic=rtl8139
 
-Run on QEMU:
+Run MOROS in QEMU:
 
     $ make qemu output=vga nic=rtl8139
 
-Run on a native x86 computer by copying the bootloader and kernel to a hard
-drive or USB stick (but there is currently no USB driver so the filesystem
+Run natively on a x86 computer by copying the bootloader and the kernel to a
+hard drive or USB stick (but there is currently no USB driver so the filesystem
 will not be available):
 
     $ sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
@@ -80,6 +82,13 @@ and log in as a normal user:
 
 **Be careful not to overwrite the hard drive of your OS when using `dd` inside
 your OS, and `install` or `disk format` inside MOROS.**
+
+
+## Tests
+
+Run the test suite in QEMU:
+
+    $ make test
 
 
 ## LICENSE
