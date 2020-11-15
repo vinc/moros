@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::kernel::console::Style;
 
 pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if args.len() != 2 {
@@ -20,10 +21,13 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 pub fn print_hex(buf: &[u8]) {
     let n = buf.len() / 2;
     for i in 0..n {
+        print!("{}", Style::color("Yellow"));
         if i % 8 == 0 {
-            print!("\n{:08X}: ", i * 2);
+            print!("{:08X}: ", i * 2);
         }
+        print!("{}", Style::color("LightCyan"));
         print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
+        print!("{}", Style::reset());
         if i % 8 == 7 || i == n - 1 {
             for _ in 0..(7 - (i % 8)) {
                 print!("     ");
@@ -39,7 +43,7 @@ pub fn print_hex(buf: &[u8]) {
                     print!(".");
                 }
             }
+            print!("\n");
         }
     }
-    print!("\n");
 }

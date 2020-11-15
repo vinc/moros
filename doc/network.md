@@ -8,19 +8,9 @@ The `net` command allows you to configure your network interface:
 
 And listen what is happening on the network:
 
-    > net dump
+    > net monitor
     ------------------------------------------------------------------
-    [488.396667] NET RTL8139 receiving buffer:
-
-    Command Register: 0x0C
-    Interrupt Status Register: 0x05
-    CAPR: 584
-    CBR: 720
-    Header: 0x0001
-    Length: 110 bytes
-    CRC: 0x746CF28C
-    RX Offset: 600
-
+    [488.396667] NET RTL8139 Receiving:
     00000000: 3333 0000 0001 5256 0000 0002 86DD 6000 33....RV......`.
     00000010: 0000 0038 3AFF FE80 0000 0000 0000 0000 ...8:...........
     00000020: 0000 0000 0002 FF02 0000 0000 0000 0000 ................
@@ -29,17 +19,7 @@ And listen what is happening on the network:
     00000050: 40C0 0001 5180 0000 3840 0000 0000 FEC0 @...Q...8@......
     00000060: 0000 0000 0000 0000 0000 0000 0000      ..............
     ------------------------------------------------------------------
-    [543.871322] NET RTL8139 receiving buffer:
-
-    Command Register: 0x0C
-    Interrupt Status Register: 0x05
-    CAPR: 704
-    CBR: 788
-    Header: 0x0001
-    Length: 60 bytes
-    CRC: 0x921D3956
-    RX Offset: 720
-
+    [543.871322] NET RTL8139 Receiving:
     00000000: 5254 0012 3456 5255 0A00 0202 0800 4500 RT..4VRU .....E.
     00000010: 002C 0001 0000 4006 62BB 0A00 0202 0A00 .,....@.b. ... .
     00000020: 020F A2E8 0016 0412 F801 0000 0000 6002 ..............`.

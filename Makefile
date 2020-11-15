@@ -25,7 +25,7 @@ image: $(img)
 	cargo bootimage --no-default-features --features $(output),$(keyboard),$(nic) --release
 	dd conv=notrunc if=$(bin) of=$(img)
 
-opts = -cpu max -nic model=$(nic) -hda $(img)
+opts = -m 32 -cpu max -nic model=$(nic) -hda $(img)
 ifeq ($(output),serial)
 	opts += -display none -serial stdio
 endif

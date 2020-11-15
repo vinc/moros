@@ -207,12 +207,13 @@ pub fn key_handle(key: char) {
         // Avoid printing more backspaces than chars inserted into STDIN.
         // Also, the VGA driver support only ASCII so unicode chars will
         // be displayed with one square for each codepoint.
-        if stdin.len() > 0 {
-            let n = stdin.pop().unwrap().len_utf8();
+        if let Some(c) = stdin.pop() {
             if is_echo_enabled() {
-                for _ in 0..n {
-                    print!("\x08");
-                }
+                let n = match c {
+                    '\x03' | '\x04' => 2,
+                    _ => c.len_utf8(),
+                };
+                print!("{}", "\x08".repeat(n));
             }
         }
     } else {
@@ -220,9 +221,25 @@ pub fn key_handle(key: char) {
         // at 1 instead of being variable?
         stdin.push(key);
         if is_echo_enabled() {
-            print!("{}", key);
+            match key {
+                '\x03' => print!("^C"),
+                '\x04' => print!("^D"),
+                _ => print!("{}", key),
+            };
         }
     }
+}
+
+pub fn abort() -> bool {
+    interrupts::without_interrupts(|| {
+        STDIN.lock().contains('\x03')
+    })
+}
+
+pub fn drain() {
+    interrupts::without_interrupts(|| {
+        STDIN.lock().clear();
+    })
 }
 
 pub fn get_char() -> char {

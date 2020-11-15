@@ -96,11 +96,11 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                print!("Interface not ready\n");
+                print!("Error: Interface not ready\n");
                 return user::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                print!("Interface not ready\n");
+                print!("Error: Interface not ready\n");
                 return user::shell::ExitCode::CommandError;
             }
             _ => {}
@@ -108,13 +108,16 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
         let mut is_header = true;
         let timeout = 5.0;
-        let time = kernel::clock::uptime();
+        let started = kernel::clock::realtime();
         loop {
-            if kernel::clock::uptime() - time > timeout {
+            if kernel::clock::realtime() - started > timeout {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
-
+            if kernel::console::abort() {
+                print!("\n");
+                return user::shell::ExitCode::CommandError;
+            }
             let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
@@ -189,7 +192,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                kernel::time::sleep(libm::fmin(wait_duration.as_secs_f64(), timeout));
+                kernel::time::sleep(wait_duration.as_secs_f64());
             }
         }
         user::shell::ExitCode::CommandSuccessful

@@ -236,8 +236,8 @@ impl<'a> Device<'a> for RTL8139 {
 
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if self.debug_mode {
-            print!("------------------------------------------------------------------\n");
-            print!("[{:.6}] NET RTL8139 receiving packet:\n\n", kernel::clock::uptime());
+            print!("{}\n", "-".repeat(66));
+            log!("NET RTL8139 Receiving:\n");
             //print!("Command Register: {:#02X}\n", cmd);
             //print!("Interrupt Status Register: {:#02X}\n", isr);
             //print!("CAPR: {}\n", capr);
@@ -253,7 +253,7 @@ impl<'a> Device<'a> for RTL8139 {
         //let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
         let len = n - 4;
         if self.debug_mode {
-            print!("size: {} bytes", len);
+            //print!("Size: {} bytes\n", len);
             //print!("CRC: {:#08X}\n", crc);
             //print!("RX Offset: {}\n", offset);
             user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
@@ -281,8 +281,8 @@ impl<'a> Device<'a> for RTL8139 {
         self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
 
         if self.debug_mode {
-            print!("------------------------------------------------------------------\n");
-            print!("[{:.6}] NET RTL8139 transmitting packet:\n\n", kernel::clock::uptime());
+            print!("{}\n", "-".repeat(66));
+            log!("NET RTL8139 Transmitting:\n");
             //print!("TX Buffer: {}\n", self.tx_id);
             //print!("Interrupt Status Register: {:#02X}\n", isr);
         }
@@ -352,7 +352,7 @@ impl phy::TxToken for TxToken {
         }
         self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
-            print!("size: {} bytes\n", len);
+            //print!("Size: {} bytes\n", len);
             user::hex::print_hex(&buf[0..len]);
         }
 
