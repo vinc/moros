@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Disable `rand_chacha` with `debug_assertions` ([#120](https://github.com/vinc/moros/pull/120))
 
 ## 0.5.0 (2020-11-15)
 - Add a web server ([#114](https://github.com/vinc/moros/pull/114))
