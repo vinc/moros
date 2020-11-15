@@ -301,8 +301,10 @@ impl Shell {
                     }
                 } else if let Some(dir) = kernel::fs::Dir::open(dirname) {
                     for entry in dir.read() {
-                        if entry.name().starts_with(filename) {
-                            self.autocomplete.push(format!("{}{}{}", dirname, sep, entry.name()));
+                        let name = entry.name();
+                        if name.starts_with(filename) {
+                            let end = if entry.is_dir() { "/" } else { "" };
+                            self.autocomplete.push(format!("{}{}{}{}", dirname, sep, name, end));
                         }
                     }
                 }
