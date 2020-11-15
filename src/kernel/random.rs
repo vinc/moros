@@ -1,12 +1,12 @@
-#[cfg(not(test))]
+#[cfg(not(debug_assertions))]
 use rand_chacha::ChaChaRng;
-#[cfg(not(test))]
+#[cfg(not(debug_assertions))]
 use rand_core::{RngCore, SeedableRng};
 use x86_64::instructions::random::RdRand;
 
-// FIXME: Compiling this in test generate the following error:
+// FIXME: Compiling this with debug_assertions generate the following error:
 // LLVM ERROR: Do not know how to split the result of this operator!
-#[cfg(not(test))]
+#[cfg(not(debug_assertions))]
 pub fn get_u64() -> u64 {
     let mut seed = [0u8; 32];
     if let Some(rdrand) = RdRand::new() {
@@ -24,7 +24,7 @@ pub fn get_u64() -> u64 {
     chacha.next_u64()
 }
 
-#[cfg(test)]
+#[cfg(debug_assertions)]
 pub fn get_u64() -> u64 {
     if let Some(rdrand) = RdRand::new() {
         if let Some(rand) = rdrand.get_u64() {
