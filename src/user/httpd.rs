@@ -208,7 +208,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                     }).unwrap();
 
                     //print!("tcp:80 recv {}\n", res.len());
-                    for chunk in res.as_bytes().chunks(1024) {
+                    for chunk in res.as_bytes().chunks(mtu) {
                         send_queue.push_back(chunk.to_vec());
                         //print!("tcp:80 queue ({} items)\n", send_queue.len());
                     }
