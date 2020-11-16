@@ -179,7 +179,7 @@ impl PCNET {
         des[DE_LEN * i + 3] = addr[3];
 
         // Set buffer byte count (0..12 BCNT + 12..16 ONES)
-        let bcnt = ((((MTU as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000).to_le_bytes();
+        let bcnt = (0xF000 | (0x0FFF & (1 + !(MTU as u16)))).to_le_bytes();
         des[DE_LEN * i + 4] = bcnt[0];
         des[DE_LEN * i + 5] = bcnt[1];
 
@@ -413,7 +413,7 @@ impl phy::TxToken for TxToken {
             self.device.tx_des[tx_id * DE_LEN + 7].set_bit(DE_ENP, true); // Set end of packet
 
             // Set buffer byte count (0..12 BCNT + 12..16 ONES)
-            let bcnt = ((((len as u16).reverse_bits() + 1) & 0x0FFF) | 0xF000).to_le_bytes();
+            let bcnt = (0xF000 | (0x0FFF & (1 + !(len as u16)))).to_le_bytes();
             self.device.tx_des[tx_id * DE_LEN + 4] = bcnt[0];
             self.device.tx_des[tx_id * DE_LEN + 5] = bcnt[1];
 
