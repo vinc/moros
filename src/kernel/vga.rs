@@ -5,7 +5,7 @@ use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-use vte;
+use vte::{Params, Parser, Perform};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
@@ -14,7 +14,7 @@ const BG: Color = Color::Black;
 const UNPRINTABLE: u8 = 0xFE; // Unprintable characters will be replaced by a square
 
 lazy_static! {
-    pub static ref PARSER: Mutex<vte::Parser> = Mutex::new(vte::Parser::new());
+    pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         cursor: [0; 2],
         writer: [0; 2],
@@ -245,7 +245,7 @@ impl Writer {
 }
 
 /// See https://vt100.net/emu/dec_ansi_parser
-impl vte::Perform for Writer {
+impl Perform for Writer {
     fn print(&mut self, c: char) {
         self.write_byte(c as u8);
     }
@@ -255,7 +255,7 @@ impl vte::Perform for Writer {
         kernel::serial::print_fmt(format_args!("[execute] {:#02X}\n", byte));
     }
 
-    fn hook(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, c: char) {
+    fn hook(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: char) {
         kernel::serial::print_fmt(format_args!("[hook] params={:?}, intermediates={:?}, ignore={:?}, char={:?}\n", params, intermediates, ignore, c));
     }
 
@@ -271,21 +271,21 @@ impl vte::Perform for Writer {
         kernel::serial::print_fmt(format_args!("[osc_dispatch] params={:?} bell_terminated={}\n", params, bell_terminated));
     }
 
-    fn csi_dispatch(&mut self, params: &[i64], intermediates: &[u8], ignore: bool, c: char) {
+    fn csi_dispatch(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: char) {
         if c == 'm' {
             let mut fg = FG;
             let mut bg = BG;
-            for &param in params {
-                match param {
+            for param in params.iter() {
+                match param[0] {
                     0 => {
                         fg = FG;
                         bg = BG;
                     },
                     30..=37 | 90..=97 => {
-                        fg = color_from_ansi(param as u8);
+                        fg = color_from_ansi(param[0] as u8);
                     },
                     40..=47 | 100..=107 => {
-                        bg = color_from_ansi((param as u8) - 10);
+                        bg = color_from_ansi((param[0] as u8) - 10);
                     },
                     _ => {}
                 }
