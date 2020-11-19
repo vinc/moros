@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+
+- Add missing RX stats to PCNET driver ([#124](https://github.com/vinc/moros/pull/124))
+- Fix PCNET BCNT computation ([#122](https://github.com/vinc/moros/pull/122))
 - Disable `rand_chacha` with `debug_assertions` ([#120](https://github.com/vinc/moros/pull/120))
 
 ## 0.5.0 (2020-11-15)
