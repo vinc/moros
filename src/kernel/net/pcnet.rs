@@ -344,6 +344,7 @@ impl<'a> Device<'a> for PCNET {
         }
 
         if packet.len() > 0 {
+            self.stats.rx_add(packet.len() as u64);
             if self.debug_mode {
                 //print!("Size: {} bytes\n", packet.len());
                 user::hex::print_hex(&packet);
