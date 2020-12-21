@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Disable `rand_chacha` with `debug_assertions` ([#120](https://github.com/vinc/moros/pull/120))
+- Migrate from TravisCI to GitHub Actions ([#131](https://github.com/vinc/moros/pull/131))
 
 ## 0.5.0 (2020-11-15)
 - Add a web server ([#114](https://github.com/vinc/moros/pull/114))
