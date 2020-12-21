@@ -1,0 +1,26 @@
+name: Rust
+on: [push]
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        default: true
+        override: true
+    - run: sudo apt-get -qqy install qemu-system-x86
+    - run: rustup component add rust-src
+    - run: rustup component add llvm-tools-preview
+    - run: cargo install bootimage
+    - run: cargo test --lib --no-default-features --features serial,qwerty,pcnet -- -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
