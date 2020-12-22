@@ -31,7 +31,7 @@ linked_list_allocator = "0.8.8"
 pbkdf2 = { version = "0.3.0", default-features = false }
 pc-keyboard = "0.5.1"
 pic8259_simple = "0.2.0"
-rand = { version = "0.7.3", default-features = false }
+rand = { version = "0.8.0", default-features = false }
 rand_chacha = { version = "0.3.0", default-features = false }
 rand_core = { version = "0.5.1", default-features = false }
 raw-cpuid = "8.1.0"
