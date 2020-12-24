@@ -232,7 +232,7 @@ dependencies = [
  "pic8259_simple",
  "rand",
  "rand_chacha",
- "rand_core 0.5.1",
+ "rand_core",
  "raw-cpuid",
  "sha2",
  "smoltcp",
@@ -311,7 +311,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a76330fb486679b4ace3670f117bbc9e16204005c4bde9c4bd372f45bed34f12"
 dependencies = [
- "rand_core 0.6.0",
+ "rand_core",
 ]
 
 [[package]]
@@ -321,14 +321,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e12735cf05c9e10bf21534da50a147b924d555dc7a547c42e6bb2d5b6017ae0d"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.6.0",
+ "rand_core",
 ]
-
-[[package]]
-name = "rand_core"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90bde5296fc891b0cef12a6d03ddccc162ce7b2aff54160af9338f8d40df6d19"
 
 [[package]]
 name = "rand_core"
