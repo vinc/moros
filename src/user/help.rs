@@ -51,7 +51,7 @@ fn help_summary() -> user::shell::ExitCode {
     print!("{}Credits:{}\n", csi_color, csi_reset);
     print!("\n");
 
-    print!("Made with <3 in 2019-2020 by Vincent Ollivier <v@vinc.cc>\n");
+    print!("Made with <3 in 2019-2021 by Vincent Ollivier <v@vinc.cc>\n");
     user::shell::ExitCode::CommandSuccessful
 }
 
