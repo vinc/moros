@@ -1,4 +1,3 @@
-use crate::kernel;
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
@@ -252,26 +251,9 @@ impl Perform for Writer {
 
     fn execute(&mut self, byte: u8) {
         self.write_byte(byte);
-        kernel::serial::print_fmt(format_args!("[execute] {:#02X}\n", byte));
     }
 
-    fn hook(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: char) {
-        kernel::serial::print_fmt(format_args!("[hook] params={:?}, intermediates={:?}, ignore={:?}, char={:?}\n", params, intermediates, ignore, c));
-    }
-
-    fn put(&mut self, byte: u8) {
-        kernel::serial::print_fmt(format_args!("[put] {:#02X}\n", byte));
-    }
-
-    fn unhook(&mut self) {
-        kernel::serial::print_fmt(format_args!("[unhook]\n"));
-    }
-
-    fn osc_dispatch(&mut self, params: &[&[u8]], bell_terminated: bool) {
-        kernel::serial::print_fmt(format_args!("[osc_dispatch] params={:?} bell_terminated={}\n", params, bell_terminated));
-    }
-
-    fn csi_dispatch(&mut self, params: &Params, intermediates: &[u8], ignore: bool, c: char) {
+    fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
         if c == 'm' {
             let mut fg = FG;
             let mut bg = BG;
@@ -292,12 +274,6 @@ impl Perform for Writer {
             }
             self.set_color(fg, bg);
         }
-
-        kernel::serial::print_fmt(format_args!("[csi_dispatch] params={:?}, intermediates={:?}, ignore={:?}, char={:?}\n", params, intermediates, ignore, c));
-    }
-
-    fn esc_dispatch(&mut self, intermediates: &[u8], ignore: bool, byte: u8) {
-        kernel::serial::print_fmt(format_args!("[esc_dispatch] intermediates={:?}, ignore={:?}, byte={:#02X}\n", intermediates, ignore, byte));
     }
 }
 
