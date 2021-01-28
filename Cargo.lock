@@ -241,7 +241,7 @@ dependencies = [
  "uart_16550",
  "volatile",
  "vte",
- "x86_64",
+ "x86_64 0.13.1",
 ]
 
 [[package]]
@@ -498,7 +498,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "afb00b16a4c8acbfc4eb8cfeda1f9c0507c7e87c6563edce64a236af93acf70c"
 dependencies = [
  "bitflags",
- "x86_64",
+ "x86_64 0.12.4",
 ]
 
 [[package]]
@@ -548,9 +548,19 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.12.3"
+version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79872a41412b9f91e72b24ab7f057ba500b5776349c5106d0b2e064e97ff1252"
+checksum = "8f3a6840d540b8dbe400f4ed5afe5816105ee5edebe485299a761d0d8b43cef7"
+dependencies = [
+ "bit_field 0.9.0",
+ "bitflags",
+]
+
+[[package]]
+name = "x86_64"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d74944372d63f31dd39fce1ef8036143484ff4cd4efcd743ef50135839de4e7"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",

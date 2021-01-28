@@ -41,7 +41,7 @@ spin = "0.7.0"
 uart_16550 = "0.2.7"
 volatile = "0.2.6"
 vte = "0.10.0"
-x86_64 = "0.12.3"
+x86_64 = "0.13.1"
 time = { version = "0.2.23", default-features = false }
 
 [package.metadata.bootimage]
