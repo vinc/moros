@@ -2,7 +2,7 @@ use crate::{kernel, log, print};
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
-use core::sync::atomic::spin_loop_hint;
+use core::hint::spin_loop;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
@@ -120,7 +120,7 @@ impl Bus {
                 return self.reset();
             }
 
-            spin_loop_hint();
+            spin_loop();
         }
     }
 

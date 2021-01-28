@@ -52,7 +52,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let mut sockets = SocketSet::new(vec![]);
     let tcp_handle = sockets.add(tcp_socket);
 
-    enum State { Connect, Request, Response };
+    enum State { Connect, Request, Response }
     let mut state = State::Connect;
 
     if let Some(ref mut iface) = *kernel::net::IFACE.lock() {

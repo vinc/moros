@@ -139,7 +139,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let mut sockets = SocketSet::new(vec![]);
     let udp_handle = sockets.add(udp_socket);
 
-    enum State { Bind, Query, Response };
+    enum State { Bind, Query, Response }
     let mut state = State::Bind;
     if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
         match iface.ipv4_addr() {
