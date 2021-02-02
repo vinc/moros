@@ -20,7 +20,7 @@ pcnet = []
 [dependencies]
 acpi = "2.2.0"
 aml = "0.10.0"
-array-macro = "1.0.5"
+array-macro = "2.0.0"
 base64 = { version = "0.13.0", default-features = false }
 bit_field = "0.10.0"
 bootloader = { version = "0.9.5", features = ["map_physical_memory"] }
