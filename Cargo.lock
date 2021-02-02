@@ -2,9 +2,9 @@
 # It is not intended for manual editing.
 [[package]]
 name = "acpi"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46914c9a4b6aa79bcb72687deb3b21599ddfec9a948449bceecc7267b646f33c"
+checksum = "588edec856d4efbd20b3a04279e3ceada79d652c7b459fa094881dd946998790"
 dependencies = [
  "bit_field 0.10.1",
  "log",
