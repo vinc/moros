@@ -86,7 +86,7 @@ stdnil(3) is added to simplify writing to `/dev/null`.
 Read file A and redirect stdout(1) to stdin(0) of write file B:
 
     > r a.txt > w b.txt
-    > r a.txt 1>0 w b.txt # with implicit streams
+    > r a.txt 1>0 w b.txt # with explicit streams
     > r a.txt --> w b.txt # with arrow
 
 Read file A and redirect stderr(2) to stdin(0) of write file B:
