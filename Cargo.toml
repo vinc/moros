@@ -23,7 +23,7 @@ aml = "0.10.0"
 array-macro = "1.0.5"
 base64 = { version = "0.13.0", default-features = false }
 bit_field = "0.10.0"
-bootloader = { version = "0.9.5", features = ["map_physical_memory"] }
+bootloader = { version = "0.9.14", features = ["map_physical_memory"] }
 hmac = { version = "0.7.1", default-features = false }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.1"
