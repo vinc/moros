@@ -16,7 +16,7 @@ This project started from the [seventh post][1] of the second edition of
 
 - [x] External bootloader (using [bootloader](https://github.com/rust-osdev/bootloader))
 - [x] x86 CPU support (using [x86_64](https://crates.io/crates/x86_64))
-- [x] Hardware interrupts (using [pic8259_simple](https://crates.io/crates/pic8259_simple))
+- [x] Hardware interrupts (using [pic8259](https://crates.io/crates/pic8259))
 - [x] PS/2 Keyboard (using [pc-keyboard](https://crates.io/crates/pc-keyboard))
 - [x] VGA Text mode output
 - [x] Serial output (using [uart_16550](https://crates.io/crates/uart_16550))
