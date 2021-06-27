@@ -19,7 +19,7 @@ fn default_handler() {
 
 macro_rules! irq_handler {
     ($handler:ident, $irq:expr) => {
-        pub extern "x86-interrupt" fn $handler(_stack_frame: &mut InterruptStackFrame) {
+        pub extern "x86-interrupt" fn $handler(_stack_frame: InterruptStackFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
             unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(interrupt_index($irq)); }
@@ -102,10 +102,10 @@ pub fn clear_irq_mask(irq: u8) {
     }
 }
 
-extern "x86-interrupt" fn breakpoint_handler(stack_frame: &mut InterruptStackFrame) {
+extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
     print!("EXCEPTION: BREAKPOINT\n{:#?}\n", stack_frame);
 }
 
-extern "x86-interrupt" fn double_fault_handler(stack_frame: &mut InterruptStackFrame, _error_code: u64) -> ! {
+extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
 }
