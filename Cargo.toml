@@ -33,7 +33,7 @@ pc-keyboard = "0.5.1"
 pic8259 = "0.10.0"
 rand = { version = "0.8.4", default-features = false }
 rand_chacha = { version = "0.3.0", default-features = false }
-rand_core = { version = "0.6.0", default-features = false }
+rand_core = { version = "0.6.3", default-features = false }
 raw-cpuid = "9.0.0"
 sha2 = { version = "0.8.2", default-features = false }
 smoltcp = { version = "0.6.0", default-features = false, features = ["alloc", "ethernet", "socket-tcp", "socket-udp", "proto-ipv4", "proto-dhcpv4"] }
