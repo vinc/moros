@@ -42,7 +42,7 @@ uart_16550 = "0.2.15"
 volatile = "0.2.6"
 vte = "0.10.0"
 x86_64 = "0.14.3"
-time = { version = "0.2.23", default-features = false }
+time = { version = "0.2.27", default-features = false }
 
 [package.metadata.bootimage]
 test-success-exit-code = 33 # (0x10 << 1) | 1
