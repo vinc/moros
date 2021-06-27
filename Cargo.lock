@@ -226,7 +226,7 @@ dependencies = [
  "raw-cpuid",
  "sha2",
  "smoltcp",
- "spin 0.7.1",
+ "spin 0.9.1",
  "time",
  "uart_16550",
  "volatile 0.2.7",
@@ -375,9 +375,12 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "spin"
-version = "0.7.1"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13287b4da9d1207a4f4929ac390916d64eacfe236a487e9a9f5b3be392be5162"
+checksum = "f5fdd7196b4ae35a111c6dc97f9cc152ca3ea8ad744f7cb46a9f27b3ef8f2f54"
+dependencies = [
+ "lock_api",
+]
 
 [[package]]
 name = "spinning_top"
