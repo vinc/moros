@@ -36,7 +36,7 @@ pub fn shutdown() {
     let slp_len = 1 << 13;
 
     log!("ACPI Shutdown\n");
-    let mut aml = AmlContext::new(Box::new(MorosAmlHandler), false, DebugVerbosity::None);
+    let mut aml = AmlContext::new(Box::new(MorosAmlHandler), DebugVerbosity::None);
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {
