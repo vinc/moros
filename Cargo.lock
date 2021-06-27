@@ -26,9 +26,9 @@ dependencies = [
 
 [[package]]
 name = "array-macro"
-version = "1.0.5"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06e97b4e522f9e55523001238ac59d13a8603af57f69980de5d8de4bbbe8ada6"
+checksum = "4a08c8f180019011a1d94e5eebcbfaa548736815f636fadc10955f1b622b4c71"
 
 [[package]]
 name = "arrayvec"
