@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 
 // TODO: Support dyn EthernetInterface
-pub type EthernetInterface<T> = smoltcp::iface::EthernetInterface<'static, 'static, 'static, T>;
+pub type EthernetInterface<T> = smoltcp::iface::EthernetInterface<'static, T>;
 
 #[cfg(feature = "rtl8139")]
 pub mod rtl8139;
