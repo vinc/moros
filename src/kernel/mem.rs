@@ -1,7 +1,6 @@
 use crate::{kernel, log};
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
-use x86_64::structures::paging::mapper::MapperAllSizes;
-use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB};
+use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate};
 use x86_64::{PhysAddr, VirtAddr};
 
 // NOTE: This static is mutable but it'll be changed only once during initialization

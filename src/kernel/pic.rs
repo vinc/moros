@@ -1,4 +1,4 @@
-use pic8259_simple::ChainedPics;
+use pic8259::ChainedPics;
 use spin::Mutex;
 
 pub const PIC_1_OFFSET: u8 = 32;
