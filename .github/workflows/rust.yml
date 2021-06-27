@@ -19,6 +19,7 @@ jobs:
         toolchain: nightly
         default: true
         override: true
+    - run: sudo apt-get -qqy update
     - run: sudo apt-get -qqy install qemu-system-x86
     - run: rustup component add rust-src
     - run: rustup component add llvm-tools-preview
