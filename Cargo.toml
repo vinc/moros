@@ -38,7 +38,7 @@ raw-cpuid = "8.1.0"
 sha2 = { version = "0.8.2", default-features = false }
 smoltcp = { version = "0.6.0", default-features = false, features = ["alloc", "ethernet", "socket-tcp", "socket-udp", "proto-ipv4", "proto-dhcpv4"] }
 spin = "0.7.0"
-uart_16550 = "0.2.7"
+uart_16550 = "0.2.15"
 volatile = "0.2.6"
 vte = "0.10.0"
 x86_64 = "0.12.3"
