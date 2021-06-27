@@ -235,7 +235,7 @@ dependencies = [
  "spin 0.7.1",
  "time",
  "uart_16550",
- "volatile 0.2.7",
+ "volatile",
  "vte",
  "x86_64",
 ]
@@ -517,12 +517,6 @@ checksum = "b5a972e5669d67ba988ce3dc826706fb0a8b01471c088cb0b6110b805cc36aed"
 
 [[package]]
 name = "volatile"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6b06ad3ed06fef1713569d547cdbdb439eafed76341820fb0e0344f29a41945"
-
-[[package]]
-name = "volatile"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4c2dbd44eb8b53973357e6e207e370f0c1059990df850aca1eca8947cf464f0"
@@ -556,5 +550,5 @@ checksum = "b7c54a17492391c594753ce2a180142bec7ad2876543565c2a08aa11cddef251"
 dependencies = [
  "bit_field 0.9.0",
  "bitflags",
- "volatile 0.4.4",
+ "volatile",
 ]
