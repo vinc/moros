@@ -205,7 +205,7 @@ checksum = "c75de51135344a4f8ed3cfe2720dc27736f7711989703a0b43aadf3753c55577"
 
 [[package]]
 name = "moros"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "acpi",
  "aml",

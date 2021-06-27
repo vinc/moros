@@ -2,10 +2,23 @@
 
 ## Unreleased
 
+## 0.5.1 (2021-06-27)
+
+- Update aml crate ([#195](https://github.com/vinc/moros/pull/195))
+- Update smoltcp crate ([#194](https://github.com/vinc/moros/pull/194))
+- Fix compilation errors ([#184](https://github.com/vinc/moros/pull/184))
 - Add missing RX stats to PCNET driver ([#124](https://github.com/vinc/moros/pull/124))
 - Fix PCNET BCNT computation ([#122](https://github.com/vinc/moros/pull/122))
 - Disable `rand_chacha` with `debug_assertions` ([#120](https://github.com/vinc/moros/pull/120))
 - Migrate from TravisCI to GitHub Actions ([#131](https://github.com/vinc/moros/pull/131))
+- Bump acpi from 2.2.0 to 2.3.1 ([#180](https://github.com/vinc/moros/pull/180))
+- Bump array-macro from 1.0.5 to 2.1.0 ([#188](https://github.com/vinc/moros/pull/188))
+- Bump rand from 0.8.3 to 0.8.4 ([#176](https://github.com/vinc/moros/pull/176))
+- Bump rand_core from 0.6.1 to 0.6.3 ([#185](https://github.com/vinc/moros/pull/185))
+- Bump raw-cpuid from 8.1.2 to 9.0.0 ([#191](https://github.com/vinc/moros/pull/191))
+- Bump spin from 0.7.1 to 0.9.1 ([#181](https://github.com/vinc/moros/pull/181))
+- Bump time from 0.2.25 to 0.2.27 ([#186](https://github.com/vinc/moros/pull/186))
+- Bump vte from 0.10.0 to 0.10.1 ([#174](https://github.com/vinc/moros/pull/174))
 
 ## 0.5.0 (2020-11-15)
 - Add a web server ([#114](https://github.com/vinc/moros/pull/114))
