@@ -69,6 +69,7 @@ lazy_static! {
         idt[interrupt_index(13) as usize].set_handler_fn(irq13_handler);
         idt[interrupt_index(14) as usize].set_handler_fn(irq14_handler);
         idt[interrupt_index(15) as usize].set_handler_fn(irq15_handler);
+        idt[0x80].set_handler_fn(syscall_handler);
         idt
     };
 }
@@ -108,4 +109,12 @@ extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
 
 extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
+}
+extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame) {
+    let n: usize;
+    let arg1: usize;
+    let arg2: usize;
+    let arg3: usize;
+    unsafe { asm!("", out("rax") n, out("rdi") arg1, out("rsi") arg2, out("rdx") arg3) };
+    print!("system call: {} ({}, {}, {})\n", n, arg1, arg2, arg3);
 }
