@@ -39,7 +39,7 @@ fn usage() -> user::shell::ExitCode {
 pub fn login(username: &str) -> user::shell::ExitCode {
     if username.is_empty() {
         print!("\n");
-        kernel::time::sleep(1.0);
+        kernel::syscall::sleep(1.0);
         return main(&["user", "login"]);
     }
 
@@ -53,13 +53,13 @@ pub fn login(username: &str) -> user::shell::ExitCode {
             password.pop();
             if !check(&password, &hash) {
                 print!("\n");
-                kernel::time::sleep(1.0);
+                kernel::syscall::sleep(1.0);
                 return main(&["user", "login"]);
             }
         },
         None => {
             print!("\n");
-            kernel::time::sleep(1.0);
+            kernel::syscall::sleep(1.0);
             return main(&["user", "login"]);
         },
     }

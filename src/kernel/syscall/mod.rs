@@ -1,3 +1,8 @@
+pub mod number;
+pub mod service;
+
+pub use service::sleep;
+
 #[doc(hidden)]
 pub unsafe fn syscall0(n: usize) -> usize {
     let ret: usize;

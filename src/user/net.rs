@@ -68,7 +68,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                             //print!("polling result: err({})\n", e);
                         }
                     }
-                    kernel::time::sleep(0.1);
+                    kernel::syscall::sleep(0.1);
                 }
             }
             _ => {
