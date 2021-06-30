@@ -10,6 +10,7 @@
 extern crate alloc;
 
 pub mod kernel;
+pub mod api;
 pub mod user;
 
 use bootloader::BootInfo;

@@ -1,8 +1,5 @@
-use crate::syscall;
-use crate::kernel::syscall::number::*;
+use crate::kernel;
 
-pub fn sleep(seconds: f64) {
-    unsafe {
-        syscall!(SLEEP, seconds.to_bits());
-    }
+pub fn sleep(arg1: usize, _arg2: usize, _arg3: usize) {
+    kernel::time::sleep(f64::from_bits(arg1 as u64));
 }

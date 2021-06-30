@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::api::syscall;
 use crate::kernel::console::Style;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
@@ -229,7 +230,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                kernel::syscall::sleep(wait_duration.as_secs_f64());
+                syscall::sleep(wait_duration.as_secs_f64());
             }
         }
     } else {

@@ -1,7 +1,24 @@
 pub mod number;
 pub mod service;
 
-pub use service::sleep;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref SYSCALLS: [fn(usize, usize, usize); 32] = {
+        let mut table = [default_syscall as fn(usize, usize, usize); 32];
+        table[number::SLEEP] = service::sleep;
+        table
+    };
+}
+
+fn default_syscall(_arg1: usize, _arg2: usize, _arg3: usize) {
+    return;
+}
+
+#[doc(hidden)]
+pub fn handle(n: usize, arg1: usize, arg2: usize, arg3: usize) {
+    SYSCALLS[n](arg1, arg2, arg3);
+}
 
 #[doc(hidden)]
 pub unsafe fn syscall0(n: usize) -> usize {

@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::api::syscall;
 //use smoltcp::wire::Ipv4Address;
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
@@ -68,7 +69,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                             //print!("polling result: err({})\n", e);
                         }
                     }
-                    kernel::syscall::sleep(0.1);
+                    syscall::sleep(0.1);
                 }
             }
             _ => {
