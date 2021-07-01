@@ -86,12 +86,11 @@ extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame) {
     let arg1: usize;
     let arg2: usize;
     let arg3: usize;
+    unsafe { asm!("", out("rax") n, out("rdi") arg1, out("rsi") arg2, out("rdx") arg3) }; // System V ABI convention
 
-    // The calling convention of the System V AMD64 ABI are used for the registers
-    unsafe { asm!("", out("rax") n, out("rdi") arg1, out("rsi") arg2, out("rdx") arg3) };
+    let res = kernel::syscall::dispatcher(n, arg1, arg2, arg3);
 
-    kernel::syscall::dispatcher(n, arg1, arg2, arg3);
-
+    unsafe { asm!("", in("rax") res) };
     unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
 
