@@ -3,22 +3,33 @@ pub mod service;
 
 use lazy_static::lazy_static;
 
+/*
+ * Dispatching system calls
+ */
+
+const SYSCALLS_COUNT: usize = 1;
+
+fn unimplemented(_arg1: usize, _arg2: usize, _arg3: usize) {
+    unimplemented!();
+}
+
 lazy_static! {
-    pub static ref SYSCALLS: [fn(usize, usize, usize); 32] = {
-        let mut table = [default_syscall as fn(usize, usize, usize); 32];
+    pub static ref SYSCALLS: [fn(usize, usize, usize); SYSCALLS_COUNT] = {
+        let mut table = [unimplemented as fn(usize, usize, usize); SYSCALLS_COUNT];
         table[number::SLEEP] = service::sleep;
         table
     };
 }
 
-fn default_syscall(_arg1: usize, _arg2: usize, _arg3: usize) {
-    return;
+pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) {
+    if n < SYSCALLS_COUNT {
+        SYSCALLS[n](arg1, arg2, arg3);
+    }
 }
 
-#[doc(hidden)]
-pub fn handle(n: usize, arg1: usize, arg2: usize, arg3: usize) {
-    SYSCALLS[n](arg1, arg2, arg3);
-}
+/*
+ * Sending system calls
+ */
 
 #[doc(hidden)]
 pub unsafe fn syscall0(n: usize) -> usize {
