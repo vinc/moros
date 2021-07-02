@@ -7,26 +7,20 @@ use lazy_static::lazy_static;
  * Dispatching system calls
  */
 
-const SYSCALLS_COUNT: usize = 2;
-
-fn unimplemented(_arg1: usize, _arg2: usize, _arg3: usize) -> usize {
-    unimplemented!();
-}
-
-lazy_static! {
-    pub static ref SYSCALLS: [fn(usize, usize, usize) -> usize; SYSCALLS_COUNT] = {
-        let mut table = [unimplemented as fn(usize, usize, usize) -> usize; SYSCALLS_COUNT];
-        table[number::SLEEP] = service::sleep;
-        table[number::UPTIME] = service::uptime;
-        table
-    };
-}
-
 pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
-    if n < SYSCALLS_COUNT {
-        SYSCALLS[n](arg1, arg2, arg3)
-    } else {
-        unimplemented(arg1, arg2, arg3)
+    match n {
+        number::SLEEP => {
+            // sleep(f64)
+            service::sleep(f64::from_bits(arg1 as u64));
+            0
+        }
+        number::UPTIME => {
+            // uptime() -> f64
+            service::uptime().to_bits() as usize
+        }
+        _ => {
+            unimplemented!();
+        }
     }
 }
 
