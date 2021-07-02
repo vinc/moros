@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
  * Dispatching system calls
  */
 
-const SYSCALLS_COUNT: usize = 1;
+const SYSCALLS_COUNT: usize = 2;
 
 fn unimplemented(_arg1: usize, _arg2: usize, _arg3: usize) -> usize {
     unimplemented!();
@@ -17,6 +17,7 @@ lazy_static! {
     pub static ref SYSCALLS: [fn(usize, usize, usize) -> usize; SYSCALLS_COUNT] = {
         let mut table = [unimplemented as fn(usize, usize, usize) -> usize; SYSCALLS_COUNT];
         table[number::SLEEP] = service::sleep;
+        table[number::UPTIME] = service::uptime;
         table
     };
 }

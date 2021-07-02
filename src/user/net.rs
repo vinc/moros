@@ -54,7 +54,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         return user::shell::ExitCode::CommandSuccessful;
                     }
 
-                    let now = kernel::clock::uptime();
+                    let now = syscall::uptime();
                     match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
                         Ok(true) => {
                             //print!("{}\n", "-".repeat(66));
