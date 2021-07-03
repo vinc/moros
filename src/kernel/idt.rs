@@ -8,6 +8,10 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 const PIC1: u16 = 0x21;
 const PIC2: u16 = 0xA1;
 
+pub fn init() {
+    IDT.load();
+}
+
 // Translate IRQ into system interrupt
 fn interrupt_index(irq: u8) -> u8 {
     kernel::pic::PIC_1_OFFSET + irq
@@ -41,7 +45,8 @@ lazy_static! {
         idt[interrupt_index(13) as usize].set_handler_fn(irq13_handler);
         idt[interrupt_index(14) as usize].set_handler_fn(irq14_handler);
         idt[interrupt_index(15) as usize].set_handler_fn(irq15_handler);
-        idt[0x80].set_handler_fn(syscall_handler).disable_interrupts(false);
+        idt[0x80].set_handler_fn(unsafe { core::mem::transmute(wrapped_syscall_handler as *mut fn()) })
+                 .disable_interrupts(false);
         idt
     };
 }
@@ -81,21 +86,90 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame,
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
 }
 
-extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame) {
-    let n: usize;
-    let arg1: usize;
-    let arg2: usize;
-    let arg3: usize;
-    unsafe { asm!("", out("rax") n, out("rdi") arg1, out("rsi") arg2, out("rdx") arg3) }; // System V ABI convention
-
-    let res = kernel::syscall::dispatcher(n, arg1, arg2, arg3);
-
-    unsafe { asm!("", in("rax") res) };
-    unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(0x80) };
+// See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L92
+#[repr(align(8), C)]
+#[derive(Debug, Clone, Default)]
+pub struct Registers {
+    r15: usize,
+    r14: usize,
+    r13: usize,
+    r12: usize,
+    r11: usize,
+    r10: usize,
+    r9: usize,
+    r8: usize,
+    rdi: usize,
+    rsi: usize,
+    rdx: usize,
+    rcx: usize,
+    rbx: usize,
+    rax: usize,
+    rbp: usize,
 }
 
-pub fn init() {
-    IDT.load();
+// See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L112
+macro_rules! wrap {
+    ($fn: ident => $w:ident) => {
+        #[naked]
+        pub unsafe extern "C" fn $w() {
+            asm!(
+                "
+                push rbp
+                push rax
+                push rbx
+                push rcx
+                push rdx
+                push rsi
+                push rdi
+                push r8
+                push r9
+                push r10
+                push r11
+                push r12
+                push r13
+                push r14
+                push r15
+                mov rsi, rsp  // arg2: register list
+                mov rdi, rsp
+                add rdi, 15*8 // arg1: interupt frame
+                call {}
+                pop r15
+                pop r14
+                pop r13
+                pop r12
+                pop r11
+                pop r10
+                pop r9
+                pop r8
+                pop rdi
+                pop rsi
+                pop rdx
+                pop rcx
+                pop rbx
+                pop rax
+                pop rbp
+                iretq
+                ",
+                sym $fn,
+                options(noreturn)
+            );
+        }
+    };
+}
+
+wrap!(syscall_handler => wrapped_syscall_handler);
+
+// NOTE: We can't use "x86-interrupt" for syscall_handler because we need to
+// return a result in the RAX register and it will be overwritten when the
+// context of the caller is restored.
+extern "C" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
+    // The registers order follow the System V ABI convention
+    let n    = regs.rax;
+    let arg1 = regs.rdi;
+    let arg2 = regs.rsi;
+    let arg3 = regs.rdx;
+    regs.rax = kernel::syscall::dispatcher(n, arg1, arg2, arg3);
+    unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
 
 pub fn set_irq_handler(irq: u8, handler: fn()) {
