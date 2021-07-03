@@ -16,7 +16,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 900]);
         let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 600]);
 
-        let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
+        let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
         let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, timestamp);
 
         let prev_cidr = match iface.ip_addrs().first() {
@@ -26,9 +26,9 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 
         print!("DHCP Discover transmitted\n");
         let timeout = 30.0;
-        let started = kernel::clock::realtime();
+        let started = syscall::realtime();
         loop {
-            if kernel::clock::realtime() - started > timeout {
+            if syscall::realtime() - started > timeout {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
@@ -36,7 +36,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                 print!("\n");
                 return user::shell::ExitCode::CommandError;
             }
-            let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {

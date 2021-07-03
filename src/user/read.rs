@@ -22,7 +22,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             user::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/realtime" => {
-            print!("{:.6}\n", kernel::clock::realtime());
+            print!("{:.6}\n", syscall::realtime());
             user::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/uptime" => {

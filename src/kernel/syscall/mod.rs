@@ -16,6 +16,10 @@ pub fn dispatcher(n: usize, arg1: usize, _arg2: usize, _arg3: usize) -> usize {
             // uptime() -> f64
             service::uptime().to_bits() as usize
         }
+        number::REALTIME => {
+            // realtime() -> f64
+            service::realtime().to_bits() as usize
+        }
         _ => {
             unimplemented!();
         }

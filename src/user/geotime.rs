@@ -1,4 +1,5 @@
-use crate::{kernel, print, user};
+use crate::{print, user};
+use crate::api::syscall;
 use alloc::format;
 use core::f64::consts::PI;
 
@@ -13,7 +14,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let timestamp = if args.len() == 3 {
         args[2].parse().expect("Could not parse timestamp")
     } else {
-        kernel::clock::realtime()
+        syscall::realtime()
     };
 
     let t = geotime(longitude, timestamp);

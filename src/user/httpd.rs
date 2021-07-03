@@ -49,7 +49,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                 return user::shell::ExitCode::CommandSuccessful;
             }
 
-            let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             //print!("{}\n", timestamp);
             match iface.poll(&mut sockets, timestamp) {
                 Ok(_) => {},
@@ -240,6 +240,6 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
 }
 
 fn strftime(format: &str) -> String {
-    let timestamp = kernel::clock::realtime();
+    let timestamp = syscall::realtime();
     OffsetDateTime::from_unix_timestamp(timestamp as i64).format(format)
 }

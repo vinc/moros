@@ -9,3 +9,7 @@ pub fn sleep(seconds: f64) {
 pub fn uptime() -> f64 {
     kernel::clock::uptime()
 }
+
+pub fn realtime() -> f64 {
+    kernel::clock::realtime()
+}

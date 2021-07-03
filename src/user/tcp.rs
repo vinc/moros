@@ -70,9 +70,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         }
 
         let timeout = 5.0;
-        let started = kernel::clock::realtime();
+        let started = syscall::realtime();
         loop {
-            if kernel::clock::realtime() - started > timeout {
+            if syscall::realtime() - started > timeout {
                 print!("Timeout reached\n");
                 return user::shell::ExitCode::CommandError;
             }
@@ -80,7 +80,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 print!("\n");
                 return user::shell::ExitCode::CommandError;
             }
-            let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {

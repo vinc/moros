@@ -9,3 +9,8 @@ pub fn uptime() -> f64 {
     let res = unsafe { syscall!(UPTIME) };
     f64::from_bits(res as u64)
 }
+
+pub fn realtime() -> f64 {
+    let res = unsafe { syscall!(REALTIME) };
+    f64::from_bits(res as u64)
+}
