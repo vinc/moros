@@ -45,8 +45,7 @@ lazy_static! {
         idt[interrupt_index(13) as usize].set_handler_fn(irq13_handler);
         idt[interrupt_index(14) as usize].set_handler_fn(irq14_handler);
         idt[interrupt_index(15) as usize].set_handler_fn(irq15_handler);
-        idt[0x80].set_handler_fn(unsafe { core::mem::transmute(wrapped_syscall_handler as *mut fn()) })
-                 .disable_interrupts(false);
+        idt[0x80].set_handler_fn(unsafe { core::mem::transmute(wrapped_syscall_handler as *mut fn()) });
         idt
     };
 }
