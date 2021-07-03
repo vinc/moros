@@ -110,7 +110,7 @@ pub struct Registers {
 macro_rules! wrap {
     ($fn: ident => $w:ident) => {
         #[naked]
-        pub unsafe extern "C" fn $w() {
+        pub unsafe extern "sysv64" fn $w() {
             asm!(
                 "
                 push rbp
@@ -161,7 +161,7 @@ wrap!(syscall_handler => wrapped_syscall_handler);
 // NOTE: We can't use "x86-interrupt" for syscall_handler because we need to
 // return a result in the RAX register and it will be overwritten when the
 // context of the caller is restored.
-extern "C" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
+extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
     // The registers order follow the System V ABI convention
     let n    = regs.rax;
     let arg1 = regs.rdi;
