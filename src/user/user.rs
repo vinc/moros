@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::String;
@@ -39,7 +40,7 @@ fn usage() -> user::shell::ExitCode {
 pub fn login(username: &str) -> user::shell::ExitCode {
     if username.is_empty() {
         print!("\n");
-        kernel::time::sleep(1.0);
+        syscall::sleep(1.0);
         return main(&["user", "login"]);
     }
 
@@ -53,13 +54,13 @@ pub fn login(username: &str) -> user::shell::ExitCode {
             password.pop();
             if !check(&password, &hash) {
                 print!("\n");
-                kernel::time::sleep(1.0);
+                syscall::sleep(1.0);
                 return main(&["user", "login"]);
             }
         },
         None => {
             print!("\n");
-            kernel::time::sleep(1.0);
+            syscall::sleep(1.0);
             return main(&["user", "login"]);
         },
     }

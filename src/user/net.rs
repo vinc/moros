@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::api::syscall;
 //use smoltcp::wire::Ipv4Address;
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
@@ -53,7 +54,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         return user::shell::ExitCode::CommandSuccessful;
                     }
 
-                    let now = kernel::clock::uptime();
+                    let now = syscall::uptime();
                     match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
                         Ok(true) => {
                             //print!("{}\n", "-".repeat(66));
@@ -68,7 +69,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                             //print!("polling result: err({})\n", e);
                         }
                     }
-                    kernel::time::sleep(0.1);
+                    syscall::sleep(0.1);
                 }
             }
             _ => {

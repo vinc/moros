@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::api::syscall;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -153,12 +154,12 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
         }
 
         let timeout = 5.0;
-        let started = kernel::clock::realtime();
+        let started = syscall::realtime();
         loop {
-            if kernel::clock::realtime() - started > timeout {
+            if syscall::realtime() - started > timeout {
                 return Err(ResponseCode::NetworkError);
             }
-            let timestamp = Instant::from_millis((kernel::clock::realtime() * 1000.0) as i64);
+            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
@@ -206,7 +207,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
-                kernel::time::sleep(wait_duration.as_secs_f64());
+                syscall::sleep(wait_duration.as_secs_f64());
             }
         }
     } else {

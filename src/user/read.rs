@@ -1,4 +1,5 @@
 use crate::{kernel, print, user};
+use crate::api::syscall;
 use crate::kernel::cmos::CMOS;
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
@@ -21,11 +22,11 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             user::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/realtime" => {
-            print!("{:.6}\n", kernel::clock::realtime());
+            print!("{:.6}\n", syscall::realtime());
             user::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/uptime" => {
-            print!("{:.6}\n", kernel::clock::uptime());
+            print!("{:.6}\n", syscall::uptime());
             user::shell::ExitCode::CommandSuccessful
         },
         "/dev/random" => {

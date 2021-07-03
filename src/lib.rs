@@ -1,7 +1,9 @@
 #![no_std]
-#![feature(alloc_error_handler)]
-#![feature(abi_x86_interrupt)]
 #![cfg_attr(test, no_main)]
+#![feature(abi_x86_interrupt)]
+#![feature(alloc_error_handler)]
+#![feature(asm)]
+#![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
@@ -9,6 +11,7 @@
 extern crate alloc;
 
 pub mod kernel;
+pub mod api;
 pub mod user;
 
 use bootloader::BootInfo;

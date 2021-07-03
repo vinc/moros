@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add syscalls ([#196](https://github.com/vinc/moros/pull/196))
+
 ## 0.5.1 (2021-06-27)
 
 - Update aml crate ([#195](https://github.com/vinc/moros/pull/195))
