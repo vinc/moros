@@ -264,10 +264,6 @@ impl Perform for Writer {
                     0 => {
                         fg = FG;
                         bg = BG;
-                        set_font("zap-light-8x16"); // TODO: `set_font_weight(0)`
-                    },
-                    1 => {
-                        set_font("zap-vga-8x16"); // TODO: `set_font_weight(1)`
                     },
                     30..=37 | 90..=97 => {
                         fg = color_from_ansi(param[0] as u8);
