@@ -8,27 +8,28 @@ use x86_64::instructions::interrupts;
 pub struct Style {
     foreground: Option<usize>,
     background: Option<usize>,
+    bold: bool,
 }
 
 impl Style {
     pub fn reset() -> Self {
-        Self { foreground: None, background: None }
+        Self { foreground: None, background: None, bold: false }
     }
 
     pub fn foreground(name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: None }
+        Self { foreground: color_to_fg(name), background: None, bold: false }
     }
 
     pub fn with_foreground(self, name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: self.background }
+        Self { foreground: color_to_fg(name), background: self.background, bold: self.bold }
     }
 
     pub fn background(name: &str) -> Self {
-        Self { foreground: None, background: color_to_bg(name) }
+        Self { foreground: None, background: color_to_bg(name), bold: false }
     }
 
     pub fn with_background(self, name: &str) -> Self {
-        Self { foreground: self.foreground, background: color_to_bg(name) }
+        Self { foreground: self.foreground, background: color_to_bg(name), bold: self.bold }
     }
 
     pub fn color(name: &str) -> Self {
@@ -38,18 +39,23 @@ impl Style {
     pub fn with_color(self, name: &str) -> Self {
         self.with_foreground(name)
     }
+
+    pub fn bold(self) -> Self {
+        Self { foreground: self.foreground, background: self.background, bold: true }
+    }
 }
 
 impl fmt::Display for Style {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let weight = if self.bold { "1;" } else { "" };
         if let Some(fg) = self.foreground {
             if let Some(bg) = self.background {
-                write!(f, "\x1b[{};{}m", fg, bg)
+                write!(f, "\x1b[{}{};{}m", weight, fg, bg)
             } else {
-                write!(f, "\x1b[{}m", fg)
+                write!(f, "\x1b[{}{}m", weight, fg)
             }
         } else if let Some(bg) = self.background {
-            write!(f, "\x1b[{}m", bg)
+            write!(f, "\x1b[{}{}m", weight, bg)
         } else {
             write!(f, "\x1b[0m")
         }
@@ -159,7 +165,7 @@ macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
             let uptime = $crate::kernel::clock::uptime();
-            let csi_color = $crate::kernel::console::Style::color("LightGreen");
+            let csi_color = $crate::kernel::console::Style::color("LightGreen").bold();
             let csi_reset = $crate::kernel::console::Style::reset();
             if cfg!(feature="screen") {
                 $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
