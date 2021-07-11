@@ -61,11 +61,11 @@ Clone the repo:
 
 Build the image to `disk.img`:
 
-    $ make image output=vga keyboard=qwerty nic=rtl8139
+    $ make image output=screen keyboard=qwerty nic=rtl8139
 
 Run MOROS in QEMU:
 
-    $ make qemu output=vga nic=rtl8139
+    $ make qemu output=screen nic=rtl8139
 
 Run natively on a x86 computer by copying the bootloader and the kernel to a
 hard drive or USB stick (but there is currently no USB driver so the filesystem
