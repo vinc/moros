@@ -9,8 +9,8 @@ repository = "https://github.com/vinc/moros"
 readme = "README.md"
 
 [features]
-default = ["screen", "qwerty", "rtl8139"]
-screen = []
+default = ["video", "qwerty", "rtl8139"]
+video = []
 serial = []
 qwerty = []
 dvorak = []

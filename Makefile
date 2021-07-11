@@ -9,7 +9,7 @@ setup:
 	rustup component add llvm-tools-preview
 	cargo install bootimage
 
-output = screen
+output = video
 keyboard = qwerty
 nic = rtl8139
 

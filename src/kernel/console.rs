@@ -93,11 +93,11 @@ lazy_static! {
 }
 
 pub fn has_cursor() -> bool {
-    cfg!(feature = "screen")
+    cfg!(feature = "video")
 }
 
 pub fn clear_row_after(x: usize) {
-    if cfg!(feature = "screen") {
+    if cfg!(feature = "video") {
         kernel::vga::clear_row_after(x);
     } else {
         print!("\r"); // Move cursor to begining of line
@@ -107,7 +107,7 @@ pub fn clear_row_after(x: usize) {
 }
 
 pub fn cursor_position() -> (usize, usize) {
-    if cfg!(feature = "screen") {
+    if cfg!(feature = "video") {
         kernel::vga::cursor_position()
     } else {
         print!("\x1b[6n"); // Ask cursor position
@@ -136,7 +136,7 @@ pub fn cursor_position() -> (usize, usize) {
 }
 
 pub fn set_writer_position(x: usize, y: usize) {
-    if cfg!(feature = "screen") {
+    if cfg!(feature = "video") {
         kernel::vga::set_writer_position(x, y);
     } else {
         print!("\x1b[{};{}H", y + 1, x + 1);
@@ -146,7 +146,7 @@ pub fn set_writer_position(x: usize, y: usize) {
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
-        if cfg!(feature="screen") {
+        if cfg!(feature="video") {
             $crate::kernel::vga::print_fmt(format_args!($($arg)*));
         } else {
             $crate::kernel::serial::print_fmt(format_args!($($arg)*));
@@ -161,7 +161,7 @@ macro_rules! log {
             let uptime = $crate::kernel::clock::uptime();
             let csi_color = $crate::kernel::console::Style::color("LightGreen");
             let csi_reset = $crate::kernel::console::Style::reset();
-            if cfg!(feature="screen") {
+            if cfg!(feature="video") {
                 $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
                 $crate::kernel::vga::print_fmt(format_args!($($arg)*));
             } else {
