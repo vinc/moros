@@ -1,3 +1,4 @@
+use crate::kernel;
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
@@ -7,6 +8,7 @@ use volatile::Volatile;
 use vte::{Params, Parser, Perform};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
+use vga::vga::VGA;
 
 const FG: Color = Color::LightGray;
 const BG: Color = Color::Black;
@@ -370,6 +372,12 @@ pub fn is_printable(c: u8) -> bool {
     }
 }
 
+pub fn set_font(name: &str) {
+    if let Some(font) = kernel::fonts::vga_font(name) {
+        VGA.lock().load_font(font)
+    }
+}
+
 // Dark Gruvbox color palette
 const PALETTE: [(u8, u8, u8, u8); 16] = [
     (0x00, 0x28, 0x28, 0x28), // Black
@@ -402,6 +410,8 @@ pub fn init() {
         let value = adrr.read(); // Read attribute mode control register
         aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
     }
+
+    set_font("zap-light-8x16");
 
     // Load color palette
     let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
