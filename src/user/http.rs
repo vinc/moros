@@ -166,13 +166,10 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                         socket.recv(|data| {
                             let contents = String::from_utf8_lossy(data);
                             for line in contents.lines() {
-                                if line.len() == 0 {
-                                    is_header = false;
-                                    if !is_verbose {
-                                        continue
-                                    }
-                                }
                                 if is_header {
+                                    if line.len() == 0 {
+                                        is_header = false;
+                                    }
                                     if is_verbose {
                                         print!("< {}\n", line);
                                     }
