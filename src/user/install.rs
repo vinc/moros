@@ -41,6 +41,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"));
         copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));
         copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"));
+        copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"));
         copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
 
         create_dir("/ini/fonts");

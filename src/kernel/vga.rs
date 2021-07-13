@@ -89,6 +89,29 @@ fn color_from_ansi(code: u8) -> Color {
     }
 }
 
+impl Color {
+    fn to_palette_code(&self) -> u8 {
+        match self {
+            Color::Black      => 0x00,
+            Color::Blue       => 0x01,
+            Color::Green      => 0x02,
+            Color::Cyan       => 0x03,
+            Color::Red        => 0x04,
+            Color::Magenta    => 0x05,
+            Color::LightGray  => 0x07,
+            Color::Brown      => 0x14,
+            Color::DarkGray   => 0x38,
+            Color::LightBlue  => 0x39,
+            Color::LightGreen => 0x3A,
+            Color::LightCyan  => 0x3B,
+            Color::LightRed   => 0x3C,
+            Color::Pink       => 0x3D,
+            Color::Yellow     => 0x3E,
+            Color::White      => 0x3F,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
@@ -278,6 +301,22 @@ impl Writer {
         }
     }
 
+    pub fn set_palette(&mut self, palette: Palette) {
+        let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
+        let mut data: Port<u8> = Port::new(0x03C9); // Data Register
+        for (i, r, g, b) in palette.colors {
+            if i < 16 {
+                let code = COLORS[i as usize].to_palette_code();
+                unsafe {
+                    addr.write(code);
+                    data.write(r >> 2); // Convert 8-bit color to 6-bit color
+                    data.write(g >> 2);
+                    data.write(b >> 2);
+                }
+            }
+        }
+    }
+
 }
 
 /// See https://vt100.net/emu/dec_ansi_parser
@@ -413,25 +452,15 @@ pub fn set_font(font: &Font) {
     })
 }
 
-// Dark Gruvbox color palette
-const PALETTE: [(u8, u8, u8, u8); 16] = [
-    (0x00, 0x28, 0x28, 0x28), // Black
-    (0x01, 0x45, 0x85, 0x88), // Blue
-    (0x02, 0x98, 0x97, 0x1A), // Green
-    (0x03, 0x68, 0x9D, 0x6A), // Cyan
-    (0x04, 0xCC, 0x24, 0x1D), // Red
-    (0x05, 0xB1, 0x62, 0x86), // Magenta
-    (0x07, 0xEB, 0xDB, 0xB2), // Light Gray
-    (0x14, 0xD7, 0x99, 0x21), // Brown (Dark Yellow)
-    (0x38, 0xA8, 0x99, 0x84), // Gray (Dark Gray)
-    (0x39, 0x83, 0xa5, 0x98), // Light Blue
-    (0x3A, 0xB8, 0xBB, 0x26), // Light Green
-    (0x3B, 0x8E, 0xC0, 0x7C), // Light Cyan
-    (0x3C, 0xFB, 0x49, 0x34), // Light Red
-    (0x3D, 0xD3, 0x86, 0x9B), // Pink (Light Magenta)
-    (0x3E, 0xFA, 0xBD, 0x2F), // Yellow (Light Yellow)
-    (0x3F, 0xFB, 0xF1, 0xF7), // White
-];
+pub fn set_palette(palette: Palette) {
+    interrupts::without_interrupts(|| {
+        WRITER.lock().set_palette(palette)
+    })
+}
+
+pub struct Palette {
+    pub colors: [(u8, u8, u8, u8); 16]
+}
 
 pub fn init() {
     let mut isr: Port<u8> = Port::new(0x03DA); // Input Status Register
@@ -444,18 +473,5 @@ pub fn init() {
         aadr.write(0x30); // Select attribute mode control register
         let value = adrr.read(); // Read attribute mode control register
         aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
-    }
-
-
-    // Load color palette
-    let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
-    let mut data: Port<u8> = Port::new(0x03C9); // Data Register
-    for (i, r, g, b) in &PALETTE {
-        unsafe {
-            addr.write(*i);
-            data.write(*r >> 2); // Convert 8-bit color to 6-bit color
-            data.write(*g >> 2);
-            data.write(*b >> 2);
-        }
     }
 }
