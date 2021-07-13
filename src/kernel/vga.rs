@@ -1,3 +1,4 @@
+use crate::kernel::fonts::Font;
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
@@ -8,9 +9,11 @@ use vte::{Params, Parser, Perform};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
+// See: https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vga.htm
+
 const FG: Color = Color::LightGray;
 const BG: Color = Color::Black;
-const UNPRINTABLE: u8 = 0xFE; // Unprintable characters will be replaced by a square
+const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 
 lazy_static! {
     pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
@@ -139,27 +142,27 @@ impl Writer {
     // TODO: check this
     pub fn enable_cursor(&mut self) {
         let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
-        let mut port_3d4 = Port::new(0x3D4);
-        let mut port_3d5 = Port::new(0x3D5);
+        let mut crtc_ontroller_address_register = Port::new(0x3D4);
+        let mut crtc_ontroller_data_register = Port::new(0x3D5);
         unsafe {
-            port_3d4.write(0x0A as u8);
-            let val = port_3d5.read();
-            port_3d5.write(((val & 0xC0) | pos as u8) as u8);
-            port_3d4.write(0x0B as u8);
-            let val = port_3d5.read();
-            port_3d5.write(((val & 0xE0) | pos as u8) as u8);
+            crtc_ontroller_address_register.write(0x0A as u8);
+            let val = crtc_ontroller_data_register.read();
+            crtc_ontroller_data_register.write(((val & 0xC0) | pos as u8) as u8);
+            crtc_ontroller_address_register.write(0x0B as u8);
+            let val = crtc_ontroller_data_register.read();
+            crtc_ontroller_data_register.write(((val & 0xE0) | pos as u8) as u8);
         }
     }
 
     pub fn write_cursor(&mut self) {
         let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
-        let mut port_3d4 = Port::new(0x3D4);
-        let mut port_3d5 = Port::new(0x3D5);
+        let mut crtc_ontroller_address_register = Port::new(0x3D4);
+        let mut crtc_ontroller_data_register = Port::new(0x3D5);
         unsafe {
-            port_3d4.write(0x0F as u8);
-            port_3d5.write((pos & 0xFF) as u8);
-            port_3d4.write(0x0E as u8);
-            port_3d5.write(((pos >> 8) & 0xFF) as u8);
+            crtc_ontroller_address_register.write(0x0F as u8);
+            crtc_ontroller_data_register.write((pos & 0xFF) as u8);
+            crtc_ontroller_address_register.write(0x0E as u8);
+            crtc_ontroller_data_register.write(((pos >> 8) & 0xFF) as u8);
         }
     }
 
@@ -241,6 +244,40 @@ impl Writer {
         let bg = COLORS[cc.get_bits(4..8) as usize];
         (fg, bg)
     }
+
+    // See: https://slideplayer.com/slide/3888880
+    pub fn set_font(&mut self, font: &Font) {
+        let mut sequencer_address_register: Port<u16> = Port::new(0x3C4);
+        let mut graphics_controller_address_register: Port<u16> = Port::new(0x3CE);
+        let buffer = 0xA0000 as *mut u8;
+
+        unsafe {
+            sequencer_address_register.write(0x0100); // do a sync reset
+            sequencer_address_register.write(0x0402); // write plane 2 only
+            sequencer_address_register.write(0x0704); // sequetial access
+            sequencer_address_register.write(0x0300); // end the reset
+            graphics_controller_address_register.write(0x0204); // read plane 2 only
+            graphics_controller_address_register.write(0x0005); // disable odd/even
+            graphics_controller_address_register.write(0x0006); // VRAM at 0xA0000
+
+            for i in 0..font.size as usize {
+                for j in 0..font.height as usize {
+                    let vga_offset = j + i * 32 as usize;
+                    let fnt_offset = j + i * font.height as usize;
+                    buffer.offset(vga_offset as isize).write_volatile(font.data[fnt_offset]);
+                }
+            }
+
+            sequencer_address_register.write(0x0100); // do a sync reset
+            sequencer_address_register.write(0x0302); // write plane 0 & 1
+            sequencer_address_register.write(0x0304); // even/odd access
+            sequencer_address_register.write(0x0300); // end the reset
+            graphics_controller_address_register.write(0x0004); // restore to default
+            graphics_controller_address_register.write(0x1005); // resume odd/even
+            graphics_controller_address_register.write(0x0E06); // VRAM at 0xB800
+        }
+    }
+
 }
 
 /// See https://vt100.net/emu/dec_ansi_parser
@@ -362,12 +399,18 @@ pub fn colors() -> [Color; 16] {
     COLORS
 }
 
-// Printable ascii chars + backspace + newline
+// Printable ascii chars + backspace + newline + ext chars
 pub fn is_printable(c: u8) -> bool {
     match c {
-        0x20..=0x7E | 0x08 | 0x0A | 0x0D => true,
+        0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x7F..=0xFF => true,
         _ => false,
     }
+}
+
+pub fn set_font(font: &Font) {
+    interrupts::without_interrupts(|| {
+        WRITER.lock().set_font(&font);
+    })
 }
 
 // Dark Gruvbox color palette
@@ -402,6 +445,7 @@ pub fn init() {
         let value = adrr.read(); // Read attribute mode control register
         aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
     }
+
 
     // Load color palette
     let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
