@@ -374,7 +374,7 @@ pub fn is_printable(c: u8) -> bool {
 
 pub fn set_font(name: &str) {
     if let Some(font) = kernel::fonts::vga_font(name) {
-        VGA.lock().load_font(font)
+        VGA.lock().load_font(&font)
     }
 }
 
