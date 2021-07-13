@@ -1,5 +1,6 @@
 use crate::{kernel, print, user};
 use crate::kernel::console::Style;
+use alloc::string::String;
 
 pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     let csi_color = Style::color("Yellow");
@@ -37,10 +38,15 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         create_dir("/usr"); // User directories
         create_dir("/var"); // Variables
 
-        copy_file("/ini/boot.sh", include_str!("../../dsk/ini/boot.sh"));
-        copy_file("/ini/banner.txt", include_str!("../../dsk/ini/banner.txt"));
-        copy_file("/ini/version.txt", include_str!("../../dsk/ini/version.txt"));
-        copy_file("/tmp/alice.txt", include_str!("../../dsk/tmp/alice.txt"));
+        copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"));
+        copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));
+        copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"));
+        copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
+
+        create_dir("/ini/fonts");
+        copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"));
+        copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"));
+        copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"));
 
         if kernel::process::user().is_none() {
             print!("\n");
@@ -66,13 +72,21 @@ fn create_dir(pathname: &str) {
     }
 }
 
-fn copy_file(pathname: &str, contents: &str) {
+fn copy_file(pathname: &str, buf: &[u8]) {
     if kernel::fs::File::open(pathname).is_some() {
         return;
     }
     if let Some(mut file) = kernel::fs::File::create(pathname) {
-        let contents = contents.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
-        file.write(&contents.as_bytes()).unwrap();
+        if pathname.ends_with(".txt") {
+            if let Ok(text) = String::from_utf8(buf.to_vec()) {
+                let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
+                file.write(&text.as_bytes()).unwrap();
+            } else {
+                file.write(buf).unwrap();
+            }
+        } else {
+            file.write(buf).unwrap();
+        }
         print!("Copied '{}'\n", pathname);
     }
 }

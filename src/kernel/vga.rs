@@ -1,4 +1,3 @@
-use crate::kernel;
 use crate::kernel::fonts::Font;
 use bit_field::BitField;
 use core::fmt;
@@ -408,10 +407,10 @@ pub fn is_printable(c: u8) -> bool {
     }
 }
 
-pub fn set_font(name: &str) {
-    if let Some(font) = kernel::fonts::find(name) {
+pub fn set_font(font: &Font) {
+    interrupts::without_interrupts(|| {
         WRITER.lock().set_font(&font);
-    }
+    })
 }
 
 // Dark Gruvbox color palette
@@ -447,7 +446,6 @@ pub fn init() {
         aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
     }
 
-    set_font("zap-light-8x16");
 
     // Load color palette
     let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register

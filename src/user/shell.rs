@@ -407,6 +407,7 @@ impl Shell {
             "x"                    => ExitCode::CommandUnknown,
             "y"                    => ExitCode::CommandUnknown,
             "z"                    => ExitCode::CommandUnknown,
+            "vga"                  => user::vga::main(&args),
             "shell"                => user::shell::main(&args),
             "sleep"                => user::sleep::main(&args),
             "clear"                => user::clear::main(&args),
