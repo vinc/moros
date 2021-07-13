@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Add syscalls ([#196](https://github.com/vinc/moros/pull/196))
+- Add VGA palette loader ([#203](https://github.com/vinc/moros/pull/203))
+- Add VGA font loader ([#201](https://github.com/vinc/moros/pull/201))
 
 ## 0.5.1 (2021-06-27)
 
