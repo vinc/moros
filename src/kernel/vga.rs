@@ -12,7 +12,7 @@ use vga::vga::VGA;
 
 const FG: Color = Color::LightGray;
 const BG: Color = Color::Black;
-const UNPRINTABLE: u8 = 0xFE; // Unprintable characters will be replaced by a square
+const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 
 lazy_static! {
     pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
@@ -364,10 +364,10 @@ pub fn colors() -> [Color; 16] {
     COLORS
 }
 
-// Printable ascii chars + backspace + newline
+// Printable ascii chars + backspace + newline + ext chars
 pub fn is_printable(c: u8) -> bool {
     match c {
-        0x20..=0x7E | 0x08 | 0x0A | 0x0D => true,
+        0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x7F..=0xFF => true,
         _ => false,
     }
 }
