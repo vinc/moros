@@ -1,4 +1,6 @@
-use crate::kernel::fonts::Font;
+use crate::api::font::Font;
+use crate::api::vga::{Color, Palette};
+use crate::api::vga::color;
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
@@ -23,93 +25,6 @@ lazy_static! {
         color_code: ColorCode::new(FG, BG),
         buffer: unsafe { &mut *(0xB8000 as *mut Buffer) },
     });
-}
-
-/// The standard color palette in VGA text mode
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum Color {
-    Black = 0,
-    Blue = 1,
-    Green = 2,
-    Cyan = 3,
-    Red = 4,
-    Magenta = 5,
-    Brown = 6,
-    LightGray = 7,
-    DarkGray = 8,
-    LightBlue = 9,
-    LightGreen = 10,
-    LightCyan = 11,
-    LightRed = 12,
-    Pink = 13,
-    Yellow = 14,
-    White = 15,
-}
-
-const COLORS: [Color; 16] = [
-    Color::Black,
-    Color::Blue,
-    Color::Green,
-    Color::Cyan,
-    Color::Red,
-    Color::Magenta,
-    Color::Brown,
-    Color::LightGray,
-    Color::DarkGray,
-    Color::LightBlue,
-    Color::LightGreen,
-    Color::LightCyan,
-    Color::LightRed,
-    Color::Pink,
-    Color::Yellow,
-    Color::White,
-];
-
-fn color_from_ansi(code: u8) -> Color {
-    match code {
-        30 => Color::Black,
-        31 => Color::Red,
-        32 => Color::Green,
-        33 => Color::Brown,
-        34 => Color::Blue,
-        35 => Color::Magenta,
-        36 => Color::Cyan,
-        37 => Color::LightGray,
-        90 => Color::DarkGray,
-        91 => Color::LightRed,
-        92 => Color::LightGreen,
-        93 => Color::Yellow,
-        94 => Color::LightBlue,
-        95 => Color::Pink,
-        96 => Color::LightCyan,
-        97 => Color::White,
-        _ => FG, // Error
-    }
-}
-
-impl Color {
-    fn to_palette_code(&self) -> u8 {
-        match self {
-            Color::Black      => 0x00,
-            Color::Blue       => 0x01,
-            Color::Green      => 0x02,
-            Color::Cyan       => 0x03,
-            Color::Red        => 0x04,
-            Color::Magenta    => 0x05,
-            Color::LightGray  => 0x07,
-            Color::Brown      => 0x14,
-            Color::DarkGray   => 0x38,
-            Color::LightBlue  => 0x39,
-            Color::LightGreen => 0x3A,
-            Color::LightCyan  => 0x3B,
-            Color::LightRed   => 0x3C,
-            Color::Pink       => 0x3D,
-            Color::Yellow     => 0x3E,
-            Color::White      => 0x3F,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -263,8 +178,8 @@ impl Writer {
 
     pub fn color(&self) -> (Color, Color) {
         let cc = self.color_code.0;
-        let fg = COLORS[cc.get_bits(0..4) as usize];
-        let bg = COLORS[cc.get_bits(4..8) as usize];
+        let fg = color::from_index(cc.get_bits(0..4) as usize);
+        let bg = color::from_index(cc.get_bits(4..8) as usize);
         (fg, bg)
     }
 
@@ -306,7 +221,7 @@ impl Writer {
         let mut data: Port<u8> = Port::new(0x03C9); // Data Register
         for (i, r, g, b) in palette.colors {
             if i < 16 {
-                let code = COLORS[i as usize].to_palette_code();
+                let code = color::from_index(i as usize).to_palette_code();
                 unsafe {
                     addr.write(code);
                     data.write(r >> 2); // Convert 8-bit color to 6-bit color
@@ -340,10 +255,10 @@ impl Perform for Writer {
                         bg = BG;
                     },
                     30..=37 | 90..=97 => {
-                        fg = color_from_ansi(param[0] as u8);
+                        fg = color::from_ansi(param[0] as u8);
                     },
                     40..=47 | 100..=107 => {
-                        bg = color_from_ansi((param[0] as u8) - 10);
+                        bg = color::from_ansi((param[0] as u8) - 10);
                     },
                     _ => {}
                 }
@@ -434,10 +349,6 @@ pub fn set_color(foreground: Color, background: Color) {
     })
 }
 
-pub fn colors() -> [Color; 16] {
-    COLORS
-}
-
 // Printable ascii chars + backspace + newline + ext chars
 pub fn is_printable(c: u8) -> bool {
     match c {
@@ -456,10 +367,6 @@ pub fn set_palette(palette: Palette) {
     interrupts::without_interrupts(|| {
         WRITER.lock().set_palette(palette)
     })
-}
-
-pub struct Palette {
-    pub colors: [(u8, u8, u8, u8); 16]
 }
 
 pub fn init() {

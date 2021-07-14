@@ -1,5 +1,5 @@
-use crate::{kernel, print, user};
-use crate::kernel::vga::Palette;
+use crate::{api, kernel, print, user};
+use crate::api::vga::Palette;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 
@@ -16,7 +16,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                     let mut buf = Vec::with_capacity(size);
                     buf.resize(size, 0);
                     file.read(&mut buf);
-                    if let Ok(font) = kernel::fonts::from_bytes(&buf) {
+                    if let Ok(font) = api::font::from_bytes(&buf) {
                         kernel::vga::set_font(&font);
                     } else {
                         print!("Could not parse font file\n");
