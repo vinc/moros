@@ -10,30 +10,30 @@
 
 extern crate alloc;
 
-pub mod kernel;
 pub mod api;
-pub mod user;
+pub mod sys;
+pub mod usr;
 
 use bootloader::BootInfo;
 
 pub fn init(boot_info: &'static BootInfo) {
-    kernel::vga::init();
-    kernel::gdt::init();
-    kernel::idt::init();
-    unsafe { kernel::pic::PICS.lock().initialize() };
+    sys::vga::init();
+    sys::gdt::init();
+    sys::idt::init();
+    unsafe { sys::pic::PICS.lock().initialize() };
     x86_64::instructions::interrupts::enable();
 
     log!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
 
-    kernel::time::init();
-    kernel::keyboard::init();
-    kernel::serial::init();
-    kernel::mem::init(boot_info);
-    kernel::cpu::init();
-    kernel::pci::init(); // Require MEM
-    kernel::net::init(); // Require PCI
-    kernel::ata::init();
-    kernel::fs::init(); // Require ATA
+    sys::time::init();
+    sys::keyboard::init();
+    sys::serial::init();
+    sys::mem::init(boot_info);
+    sys::cpu::init();
+    sys::pci::init(); // Require MEM
+    sys::net::init(); // Require PCI
+    sys::ata::init();
+    sys::fs::init(); // Require ATA
 }
 
 #[alloc_error_handler]
@@ -49,8 +49,8 @@ impl<T> Testable for T where T: Fn() {
     fn run(&self) {
         print!("test {} ... ", core::any::type_name::<T>());
         self();
-        let csi_color = kernel::console::Style::color("LightGreen");
-        let csi_reset = kernel::console::Style::reset();
+        let csi_color = api::console::Style::color("LightGreen");
+        let csi_reset = api::console::Style::reset();
         print!("{}ok{}\n", csi_color, csi_reset);
     }
 }
@@ -106,8 +106,8 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let csi_color = kernel::console::Style::color("LightRed");
-    let csi_reset = kernel::console::Style::reset();
+    let csi_color = api::console::Style::color("LightRed");
+    let csi_reset = api::console::Style::reset();
     print!("{}failed{}\n\n", csi_color, csi_reset);
     print!("{}\n\n", info);
     exit_qemu(QemuExitCode::Failed);
