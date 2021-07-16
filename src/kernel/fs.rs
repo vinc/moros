@@ -54,6 +54,7 @@ pub struct File {
     addr: u32,
     size: u32,
     dir: Dir, // TODO: Replace with `parent: Some(Dir)` and also add it to `Dir`
+    // TODO: add `offset: usize`
 }
 
 impl File {
@@ -87,6 +88,9 @@ impl File {
         self.size as usize
     }
 
+    // TODO: return `Result<usize>`
+    // TODO: start `i` at `self.offset` instead of `0`
+    // TODO: set `self.offset` to `i` at the end
     pub fn read(&self, buf: &mut [u8]) -> usize {
         let buf_len = buf.len();
         let mut addr = self.addr;
@@ -109,6 +113,11 @@ impl File {
         }
     }
 
+    // TODO: add `seek(&mut self, pos: SeekFrom) -> Result<u32>`
+
+    // TODO: add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
+
+    // TODO: `return Result<String>`
     pub fn read_to_string(&self) -> String {
         let mut buf: Vec<u8> = Vec::with_capacity(self.size());
         buf.resize(self.size(), 0);
@@ -117,6 +126,9 @@ impl File {
         String::from_utf8(buf).unwrap()
     }
 
+    // TODO: `return Result<usize>`
+    // TODO: start `i` at `self.offset` instead of `0`
+    // TODO: set `self.offset` to `i` at the end
     pub fn write(&mut self, buf: &[u8]) -> Result<(), ()> {
         let buf_len = buf.len();
         let mut addr = self.addr;
