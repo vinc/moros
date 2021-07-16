@@ -49,8 +49,8 @@ impl<T> Testable for T where T: Fn() {
     fn run(&self) {
         print!("test {} ... ", core::any::type_name::<T>());
         self();
-        let csi_color = sys::console::Style::color("LightGreen");
-        let csi_reset = sys::console::Style::reset();
+        let csi_color = api::console::Style::color("LightGreen");
+        let csi_reset = api::console::Style::reset();
         print!("{}ok{}\n", csi_color, csi_reset);
     }
 }
@@ -106,8 +106,8 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let csi_color = sys::console::Style::color("LightRed");
-    let csi_reset = sys::console::Style::reset();
+    let csi_color = api::console::Style::color("LightRed");
+    let csi_reset = api::console::Style::reset();
     print!("{}failed{}\n\n", csi_color, csi_reset);
     print!("{}\n\n", info);
     exit_qemu(QemuExitCode::Failed);

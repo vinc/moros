@@ -1,5 +1,5 @@
 use crate::{sys, usr, print};
-use crate::sys::console::Style;
+use crate::api::console::Style;
 use alloc::string::ToString;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {

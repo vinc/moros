@@ -1,5 +1,5 @@
 use crate::{sys, usr, print};
-use crate::sys::console::Style;
+use crate::api::console::Style;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;

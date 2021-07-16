@@ -1,6 +1,6 @@
 use crate::{sys, usr, print};
 use crate::api::syscall;
-use crate::sys::console::Style;
+use crate::api::console::Style;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");

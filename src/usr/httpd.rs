@@ -1,6 +1,6 @@
 use crate::{sys, usr, print};
 use crate::api::syscall;
-use crate::sys::console::Style;
+use crate::api::console::Style;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
 use alloc::string::String;
