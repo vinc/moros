@@ -1,4 +1,4 @@
-use crate::{kernel, log};
+use crate::{sys, log};
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -42,7 +42,7 @@ pub fn realpath(pathname: &str) -> String {
     if pathname.starts_with("/") {
         pathname.into()
     } else {
-        let dirname = kernel::process::dir();
+        let dirname = sys::process::dir();
         let sep = if dirname.ends_with("/") { "" } else { "/" };
         format!("{}{}{}", dirname, sep, pathname)
     }
@@ -662,11 +662,11 @@ impl BlockDevice {
     }
 
     pub fn read(&self, block: u32, mut buf: &mut [u8]) {
-        kernel::ata::read(self.bus, self.dsk, block, &mut buf);
+        sys::ata::read(self.bus, self.dsk, block, &mut buf);
     }
 
     pub fn write(&self, block: u32, buf: &[u8]) {
-        kernel::ata::write(self.bus, self.dsk, block, &buf);
+        sys::ata::write(self.bus, self.dsk, block, &buf);
     }
 }
 
@@ -697,7 +697,7 @@ pub fn init() {
     for bus in 0..2 {
         for dsk in 0..2 {
             let mut buf = [0u8; 512];
-            kernel::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
+            sys::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
             if let Ok(header) = String::from_utf8(buf[0..8].to_vec()) {
                 if header == MAGIC {
                     log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);

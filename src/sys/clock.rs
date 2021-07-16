@@ -1,11 +1,11 @@
-use crate::kernel;
-use crate::kernel::cmos::CMOS;
+use crate::sys;
+use crate::sys::cmos::CMOS;
 
 const DAYS_BEFORE_MONTH: [u64; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
 
 // NOTE: This clock is monotonic
 pub fn uptime() -> f64 {
-    kernel::time::time_between_ticks() * kernel::time::ticks() as f64
+    sys::time::time_between_ticks() * sys::time::ticks() as f64
 }
 
 // NOTE: This clock is not monotonic
@@ -19,8 +19,8 @@ pub fn realtime() -> f64 {
                   +    60 * rtc.minute as u64
                   +         rtc.second as u64;
 
-    let fract = kernel::time::time_between_ticks()
-              * (kernel::time::ticks() - kernel::time::last_rtc_update()) as f64;
+    let fract = sys::time::time_between_ticks()
+              * (sys::time::ticks() - sys::time::last_rtc_update()) as f64;
 
     (timestamp as f64) + fract
 }

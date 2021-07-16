@@ -1,4 +1,4 @@
-use crate::kernel;
+use crate::sys;
 use lazy_static::lazy_static;
 use pc_keyboard::{layouts, DecodedKey, HandleControl, KeyCode, Keyboard, ScancodeSet1};
 use spin::Mutex;
@@ -39,11 +39,11 @@ pub fn init() {
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify {:#X}\n", kernel::clock::uptime(), res);
+    print!("[{:.6}] keyboard: identify {:#X}\n", sys::clock::uptime(), res);
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify {:#X}\n", kernel::clock::uptime(), res);
+    print!("[{:.6}] keyboard: identify {:#X}\n", sys::clock::uptime(), res);
 
     // Self-test
     let res = unsafe {
@@ -57,9 +57,9 @@ pub fn init() {
         port.read()
     };
     if res == 0xAA { // 0xAA == Passed, 0xFC or 0xFD == Failed, 0xFE == Resend
-        print!("[{:.6}] keyboard: self test passed\n", kernel::clock::uptime());
+        print!("[{:.6}] keyboard: self test passed\n", sys::clock::uptime());
     } else {
-        print!("[{:.6}] keyboard: self test failed ({:#X})\n", kernel::clock::uptime(), res);
+        print!("[{:.6}] keyboard: self test failed ({:#X})\n", sys::clock::uptime(), res);
     }
 
     // Switch to scancode set 2
@@ -72,9 +72,9 @@ pub fn init() {
     if res != 0xFA { // 0xFA == ACK, 0xFE == Resend
         return init();
     }
-    print!("[{:.6}] keyboard: switch to scancode set 2\n", kernel::clock::uptime());
+    print!("[{:.6}] keyboard: switch to scancode set 2\n", sys::clock::uptime());
     */
-    kernel::idt::set_irq_handler(1, interrupt_handler);
+    sys::idt::set_irq_handler(1, interrupt_handler);
 }
 
 fn read_scancode() -> u8 {
@@ -95,7 +95,7 @@ fn interrupt_handler() {
                 DecodedKey::RawKey(KeyCode::ArrowDown)  => '↓', // U+2193
                 DecodedKey::RawKey(_) => { return; }
             };
-            kernel::console::key_handle(c);
+            sys::console::key_handle(c);
         }
     }
 }

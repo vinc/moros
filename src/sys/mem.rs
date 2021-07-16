@@ -1,4 +1,4 @@
-use crate::{kernel, log};
+use crate::{sys, log};
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate};
 use x86_64::{PhysAddr, VirtAddr};
@@ -20,7 +20,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     let mut mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
     let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
-    kernel::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+    sys::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {

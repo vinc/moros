@@ -1,6 +1,6 @@
-use crate::{kernel, log, print, user};
-use crate::kernel::allocator::PhysBuf;
-use crate::kernel::net::Stats;
+use crate::{sys, usr, log, print};
+use crate::sys::allocator::PhysBuf;
+use crate::sys::net::Stats;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use array_macro::array;
@@ -256,7 +256,7 @@ impl<'a> Device<'a> for RTL8139 {
             //print!("Size: {} bytes\n", len);
             //print!("CRC: {:#08X}\n", crc);
             //print!("RX Offset: {}\n", offset);
-            user::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
+            usr::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         }
         self.stats.rx_add(len as u64);
 
@@ -353,7 +353,7 @@ impl phy::TxToken for TxToken {
         self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
             //print!("Size: {} bytes\n", len);
-            user::hex::print_hex(&buf[0..len]);
+            usr::hex::print_hex(&buf[0..len]);
         }
 
         res
@@ -361,7 +361,7 @@ impl phy::TxToken for TxToken {
 }
 
 pub fn init() {
-    if let Some(mut pci_device) = kernel::pci::find_device(0x10EC, 0x8139) {
+    if let Some(mut pci_device) = sys::pci::find_device(0x10EC, 0x8139) {
         pci_device.enable_bus_mastering();
 
         let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
@@ -382,17 +382,17 @@ pub fn init() {
                 routes(routes).
                 finalize();
 
-            *kernel::net::IFACE.lock() = Some(iface);
+            *sys::net::IFACE.lock() = Some(iface);
         }
 
         //let irq = pci_device.interrupt_line;
-        //kernel::idt::set_irq_handler(irq, interrupt_handler);
+        //sys::idt::set_irq_handler(irq, interrupt_handler);
     }
 }
 
 pub fn interrupt_handler() {
     print!("RTL8139 interrupt!\n");
-    if let Some(mut guard) = kernel::net::IFACE.try_lock() {
+    if let Some(mut guard) = sys::net::IFACE.try_lock() {
         if let Some(ref mut iface) = *guard {
             unsafe { iface.device_mut().ports.isr.write(0xffff) } // Clear the interrupt
         }

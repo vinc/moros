@@ -1,4 +1,4 @@
-use crate::{kernel, print};
+use crate::{sys, print};
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
@@ -14,7 +14,7 @@ pub fn init() {
 
 // Translate IRQ into system interrupt
 fn interrupt_index(irq: u8) -> u8 {
-    kernel::pic::PIC_1_OFFSET + irq
+    sys::pic::PIC_1_OFFSET + irq
 }
 
 fn default_irq_handler() {
@@ -27,7 +27,7 @@ lazy_static! {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         unsafe {
-            idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(kernel::gdt::DOUBLE_FAULT_IST_INDEX);
+            idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(sys::gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt[interrupt_index(0) as usize].set_handler_fn(irq0_handler);
         idt[interrupt_index(1) as usize].set_handler_fn(irq1_handler);
@@ -55,7 +55,7 @@ macro_rules! irq_handler {
         pub extern "x86-interrupt" fn $handler(_stack_frame: InterruptStackFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
-            unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(interrupt_index($irq)); }
+            unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(interrupt_index($irq)); }
         }
     };
 }
@@ -167,8 +167,8 @@ extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs:
     let arg1 = regs.rdi;
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
-    regs.rax = kernel::syscall::dispatcher(n, arg1, arg2, arg3);
-    unsafe { kernel::pic::PICS.lock().notify_end_of_interrupt(0x80) };
+    regs.rax = sys::syscall::dispatcher(n, arg1, arg2, arg3);
+    unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
 
 pub fn set_irq_handler(irq: u8, handler: fn()) {

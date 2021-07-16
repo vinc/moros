@@ -1,6 +1,6 @@
-use crate::{kernel, log, print, user};
-use crate::kernel::allocator::PhysBuf;
-use crate::kernel::net::Stats;
+use crate::{sys, usr, log, print};
+use crate::sys::allocator::PhysBuf;
+use crate::sys::net::Stats;
 
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
@@ -258,7 +258,7 @@ impl PCNET {
 
         // Wait until init is done
         while !self.ports.read_csr_32(0).get_bit(CSR0_IDON) {
-            kernel::time::halt();
+            sys::time::halt();
         }
         assert!(self.ports.read_csr_32(0) == 0b110000001); // IDON + INTR + INIT
 
@@ -347,7 +347,7 @@ impl<'a> Device<'a> for PCNET {
             self.stats.rx_add(packet.len() as u64);
             if self.debug_mode {
                 //print!("Size: {} bytes\n", packet.len());
-                user::hex::print_hex(&packet);
+                usr::hex::print_hex(&packet);
                 //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
                 //print!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
             }
@@ -427,7 +427,7 @@ impl phy::TxToken for TxToken {
         self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
             //print!("Size: {} bytes\n", len);
-            user::hex::print_hex(&buf);
+            usr::hex::print_hex(&buf);
             //print!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
         }
 
@@ -436,7 +436,7 @@ impl phy::TxToken for TxToken {
 }
 
 pub fn init() {
-    if let Some(mut pci_device) = kernel::pci::find_device(0x1022, 0x2000) {
+    if let Some(mut pci_device) = sys::pci::find_device(0x1022, 0x2000) {
         pci_device.enable_bus_mastering();
         let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
         let mut net_device = PCNET::new(io_base);
@@ -456,7 +456,7 @@ pub fn init() {
                 routes(routes).
                 finalize();
 
-            *kernel::net::IFACE.lock() = Some(iface);
+            *sys::net::IFACE.lock() = Some(iface);
         }
     }
 }

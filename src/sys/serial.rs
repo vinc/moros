@@ -1,4 +1,4 @@
-use crate::kernel;
+use crate::sys;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
@@ -40,7 +40,7 @@ pub fn print_fmt(args: fmt::Arguments) {
 }
 
 pub fn init() {
-    kernel::idt::set_irq_handler(4, interrupt_handler);
+    sys::idt::set_irq_handler(4, interrupt_handler);
 }
 
 fn interrupt_handler() {
@@ -50,5 +50,5 @@ fn interrupt_handler() {
         '\x7F' => '\x08', // Delete => Backspace
         c => c,
     };
-    kernel::console::key_handle(c);
+    sys::console::key_handle(c);
 }

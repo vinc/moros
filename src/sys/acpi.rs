@@ -1,4 +1,4 @@
-use crate::{kernel, log};
+use crate::{sys, log};
 use acpi::{AcpiHandler, PhysicalMapping, AcpiTables};
 use alloc::boxed::Box;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
@@ -22,7 +22,7 @@ enum FADT {
 }
 
 fn read_addr<T>(physical_address: usize) -> T where T: Copy {
-    let virtual_address = kernel::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
+    let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
     unsafe { *virtual_address.as_ptr::<T>() }
 }
 
@@ -51,7 +51,7 @@ pub fn shutdown() {
                     let acpi_enable = read_fadt::<u8>(sdt.physical_address, FADT::AcpiEnable);
                     let mut port: Port<u8> = Port::new(smi_cmd_port);
                     unsafe { port.write(acpi_enable); }
-                    kernel::time::sleep(3.0);
+                    sys::time::sleep(3.0);
                     */
 
                     pm1a_control_block = read_fadt::<u32>(sdt.physical_address, FADT::Pm1aControlBlock);
@@ -61,7 +61,7 @@ pub fn shutdown() {
             match &acpi.dsdt {
                 Some(dsdt) => {
                     //log!("ACPI Found DSDT at {}\n", dsdt.address);
-                    let address = kernel::mem::phys_to_virt(PhysAddr::new(dsdt.address as u64));
+                    let address = sys::mem::phys_to_virt(PhysAddr::new(dsdt.address as u64));
                     let stream = unsafe { core::slice::from_raw_parts(address.as_ptr(), dsdt.length as usize) };
                     if aml.parse_table(stream).is_ok() {
                         let name = AmlName::from_str("\\_S5").unwrap();
@@ -99,7 +99,7 @@ pub struct MorosAcpiHandler;
 
 impl AcpiHandler for MorosAcpiHandler {
     unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> PhysicalMapping<Self, T> {
-        let virtual_address = kernel::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
+        let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
         PhysicalMapping {
             physical_start: physical_address,
             virtual_start: core::ptr::NonNull::new(virtual_address.as_mut_ptr()).unwrap(),

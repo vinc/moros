@@ -1,4 +1,4 @@
-use crate::kernel;
+use crate::sys;
 use alloc::slice::SliceIndex;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -70,7 +70,7 @@ impl PhysBuf {
 fn phys_addr(ptr: &u8) -> u64 {
     let rx_ptr = ptr as *const u8;
     let virt_addr = VirtAddr::new(rx_ptr as u64);
-    let phys_addr = kernel::mem::virt_to_phys(virt_addr).unwrap();
+    let phys_addr = sys::mem::virt_to_phys(virt_addr).unwrap();
     phys_addr.as_u64()
 }
 

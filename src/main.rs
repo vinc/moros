@@ -5,7 +5,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use moros::{kernel, print, user};
+use moros::{sys, usr, print};
 
 entry_point!(main);
 
@@ -13,17 +13,17 @@ fn main(boot_info: &'static BootInfo) -> ! {
     moros::init(boot_info);
     loop {
         let bootrc = "/ini/boot.sh";
-        if kernel::fs::File::open(bootrc).is_some() {
-            user::shell::main(&["shell", bootrc]);
+        if sys::fs::File::open(bootrc).is_some() {
+            usr::shell::main(&["shell", bootrc]);
         } else {
-            if kernel::fs::is_mounted() {
+            if sys::fs::is_mounted() {
                 print!("Could not find '{}'\n", bootrc);
             } else {
                 print!("MFS is not mounted to '/'\n");
             }
             print!("Running console in diskless mode\n");
 
-            user::shell::main(&["shell"]);
+            usr::shell::main(&["shell"]);
         }
     }
 }
@@ -32,6 +32,6 @@ fn main(boot_info: &'static BootInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     print!("{}\n", info);
     loop {
-        kernel::time::sleep(10.0)
+        sys::time::sleep(10.0)
     }
 }

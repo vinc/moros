@@ -1,4 +1,4 @@
-use crate::{kernel, log, print};
+use crate::{sys, log, print};
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -74,9 +74,9 @@ impl Bus {
     fn reset(&mut self) {
         unsafe {
             self.control_register.write(4); // Set SRST bit
-            kernel::time::nanowait(5); // Wait at least 5 us
+            sys::time::nanowait(5); // Wait at least 5 us
             self.control_register.write(0); // Then clear it
-            kernel::time::nanowait(2000); // Wait at least 2 ms
+            sys::time::nanowait(2000); // Wait at least 2 ms
         }
     }
 
@@ -114,9 +114,9 @@ impl Bus {
 
     fn busy_loop(&mut self) {
         self.wait();
-        let start = kernel::clock::uptime();
+        let start = sys::clock::uptime();
         while self.is_busy() {
-            if kernel::clock::uptime() - start > 1.0 { // Hanged
+            if sys::clock::uptime() - start > 1.0 { // Hanged
                 return self.reset();
             }
 

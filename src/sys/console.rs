@@ -1,4 +1,4 @@
-use crate::{kernel, print};
+use crate::{sys, print};
 use alloc::string::String;
 use core::fmt;
 use lazy_static::lazy_static;
@@ -98,7 +98,7 @@ pub fn has_cursor() -> bool {
 
 pub fn clear_row_after(x: usize) {
     if cfg!(feature = "video") {
-        kernel::vga::clear_row_after(x);
+        sys::vga::clear_row_after(x);
     } else {
         print!("\r"); // Move cursor to begining of line
         print!("\x1b[{}C", x); // Move cursor forward to position
@@ -108,7 +108,7 @@ pub fn clear_row_after(x: usize) {
 
 pub fn cursor_position() -> (usize, usize) {
     if cfg!(feature = "video") {
-        kernel::vga::cursor_position()
+        sys::vga::cursor_position()
     } else {
         print!("\x1b[6n"); // Ask cursor position
         get_char(); // ESC
@@ -137,7 +137,7 @@ pub fn cursor_position() -> (usize, usize) {
 
 pub fn set_writer_position(x: usize, y: usize) {
     if cfg!(feature = "video") {
-        kernel::vga::set_writer_position(x, y);
+        sys::vga::set_writer_position(x, y);
     } else {
         print!("\x1b[{};{}H", y + 1, x + 1);
     }
@@ -147,9 +147,9 @@ pub fn set_writer_position(x: usize, y: usize) {
 macro_rules! print {
     ($($arg:tt)*) => ({
         if cfg!(feature="video") {
-            $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+            $crate::sys::vga::print_fmt(format_args!($($arg)*));
         } else {
-            $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+            $crate::sys::serial::print_fmt(format_args!($($arg)*));
         }
     });
 }
@@ -158,15 +158,15 @@ macro_rules! print {
 macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
-            let uptime = $crate::kernel::clock::uptime();
-            let csi_color = $crate::kernel::console::Style::color("LightGreen");
-            let csi_reset = $crate::kernel::console::Style::reset();
+            let uptime = $crate::sys::clock::uptime();
+            let csi_color = $crate::sys::console::Style::color("LightGreen");
+            let csi_reset = $crate::sys::console::Style::reset();
             if cfg!(feature="video") {
-                $crate::kernel::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-                $crate::kernel::vga::print_fmt(format_args!($($arg)*));
+                $crate::sys::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+                $crate::sys::vga::print_fmt(format_args!($($arg)*));
             } else {
-                $crate::kernel::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-                $crate::kernel::serial::print_fmt(format_args!($($arg)*));
+                $crate::sys::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+                $crate::sys::serial::print_fmt(format_args!($($arg)*));
             }
         }
     });
@@ -243,10 +243,10 @@ pub fn drain() {
 }
 
 pub fn get_char() -> char {
-    kernel::console::disable_echo();
-    kernel::console::enable_raw();
+    sys::console::disable_echo();
+    sys::console::enable_raw();
     loop {
-        kernel::time::halt();
+        sys::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
@@ -260,8 +260,8 @@ pub fn get_char() -> char {
             }
         });
         if let Some(c) = res {
-            kernel::console::enable_echo();
-            kernel::console::disable_raw();
+            sys::console::enable_echo();
+            sys::console::disable_raw();
             return c;
         }
     }
@@ -269,7 +269,7 @@ pub fn get_char() -> char {
 
 pub fn get_line() -> String {
     loop {
-        kernel::time::halt();
+        sys::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
