@@ -1,5 +1,5 @@
-use crate::kernel;
-use crate::kernel::cmos::CMOS;
+use crate::sys;
+use crate::sys::cmos::CMOS;
 use core::hint::spin_loop;
 use core::sync::atomic::{AtomicUsize, AtomicU64, Ordering};
 use x86_64::instructions::interrupts;
@@ -41,8 +41,8 @@ fn rdtsc() -> u64 {
 }
 
 pub fn sleep(seconds: f64) {
-    let start = kernel::clock::uptime();
-    while kernel::clock::uptime() - start < seconds {
+    let start = sys::clock::uptime();
+    while sys::clock::uptime() - start < seconds {
         halt();
     }
 }
@@ -82,10 +82,10 @@ pub fn init() {
     // PIT timmer
     let divider = if PIT_DIVIDER < 65536 { PIT_DIVIDER } else { 0 };
     set_pit_frequency_divider(divider as u16);
-    kernel::idt::set_irq_handler(0, pit_interrupt_handler);
+    sys::idt::set_irq_handler(0, pit_interrupt_handler);
 
     // RTC timmer
-    kernel::idt::set_irq_handler(8, rtc_interrupt_handler);
+    sys::idt::set_irq_handler(8, rtc_interrupt_handler);
     CMOS::new().enable_update_interrupt();
 
     // TSC timmer

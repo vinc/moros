@@ -1,7 +1,7 @@
-use crate::{print, user};
+use crate::{usr, print};
 use crate::api::syscall;
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     print!("{:.6}\n", syscall::uptime());
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }

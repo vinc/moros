@@ -1,4 +1,4 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use crate::api::syscall;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -59,7 +59,7 @@ impl Message {
     pub fn query(qname: &str, qtype: QueryType, qclass: QueryClass) -> Self {
         let mut datagram = Vec::new();
 
-        let id = kernel::random::get_u16();
+        let id = sys::random::get_u16();
         for b in id.to_be_bytes().iter() {
             datagram.push(*b); // Transaction ID
         }
@@ -125,7 +125,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let dns_port = 53;
     let server = IpEndpoint::new(dns_address, dns_port);
 
-    let local_port = 49152 + kernel::random::get_u16() % 16384;
+    let local_port = 49152 + sys::random::get_u16() % 16384;
     let client = IpEndpoint::new(IpAddress::Unspecified, local_port);
 
     let qname = name;
@@ -142,7 +142,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
     enum State { Bind, Query, Response }
     let mut state = State::Bind;
-    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
                 return Err(ResponseCode::NetworkError);
@@ -215,20 +215,20 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     }
 }
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
         print!("Usage: host <name>\n");
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
     let name = args[1];
     match resolve(name) {
         Ok(ip_addr) => {
             print!("{} has address {}\n", name, ip_addr);
-            user::shell::ExitCode::CommandSuccessful
+            usr::shell::ExitCode::CommandSuccessful
         }
         Err(e) => {
             print!("Could not resolve host: {:?}\n", e);
-            user::shell::ExitCode::CommandError
+            usr::shell::ExitCode::CommandError
         }
     }
 }

@@ -1,15 +1,15 @@
-use crate::{print, user};
+use crate::{usr, print};
 use alloc::string::String;
 use alloc::vec::Vec;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
-        user::shell::ExitCode::CommandError
+        usr::shell::ExitCode::CommandError
     } else {
         let buf = encode(args[1].as_bytes());
         let encoded = String::from_utf8(buf).unwrap();
         print!("{}\n", encoded);
-        user::shell::ExitCode::CommandSuccessful
+        usr::shell::ExitCode::CommandSuccessful
     }
 }
 

@@ -1,20 +1,20 @@
-use crate::{kernel, print, user};
-use crate::kernel::console::Style;
+use crate::{sys, usr, print};
+use crate::api::console::Style;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     let pathname = args[1];
 
-    if let Some(file) = kernel::fs::File::open(pathname) {
+    if let Some(file) = sys::fs::File::open(pathname) {
         let contents = file.read_to_string();
         print_hex(contents.as_bytes());
-        user::shell::ExitCode::CommandSuccessful
+        usr::shell::ExitCode::CommandSuccessful
     } else {
         print!("File not found '{}'\n", pathname);
-        user::shell::ExitCode::CommandError
+        usr::shell::ExitCode::CommandError
     }
 }
 

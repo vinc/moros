@@ -1,15 +1,15 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     let pathname = args[1];
 
     if pathname.starts_with("/dev") || pathname.starts_with("/sys") {
         print!("Permission denied to write to '{}'\n", pathname);
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     // The command `write /usr/alice/` with a trailing slash will create
@@ -17,15 +17,15 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     // create a file.
     let success = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
-        kernel::fs::Dir::create(pathname).is_some()
+        sys::fs::Dir::create(pathname).is_some()
     } else {
-        kernel::fs::File::create(pathname).is_some()
+        sys::fs::File::create(pathname).is_some()
     };
 
     if success {
-        user::shell::ExitCode::CommandSuccessful
+        usr::shell::ExitCode::CommandSuccessful
     } else {
         print!("Could not write to '{}'\n", pathname);
-        user::shell::ExitCode::CommandError
+        usr::shell::ExitCode::CommandError
     }
 }

@@ -1,4 +1,4 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use crate::api::syscall;
 use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
@@ -40,7 +40,7 @@ impl URL {
     }
 }
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     // Parse command line options
     let mut is_verbose = false;
     let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).filter(|arg| {
@@ -64,7 +64,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
     if args.len() != 3 {
         print!("Usage: http <host> <path>\n");
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     let url = "http://".to_owned() + &args[1] + &args[2];
@@ -73,13 +73,13 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let address = if url.host.ends_with(char::is_numeric) {
         IpAddress::from_str(&url.host).expect("invalid address format")
     } else {
-        match user::host::resolve(&url.host) {
+        match usr::host::resolve(&url.host) {
             Ok(ip_addr) => {
                 ip_addr
             }
             Err(e) => {
                 print!("Could not resolve host: {:?}\n", e);
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
         }
     };
@@ -94,15 +94,15 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     enum State { Connect, Request, Response }
     let mut state = State::Connect;
 
-    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
                 print!("Error: Interface not ready\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
                 print!("Error: Interface not ready\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
             _ => {}
         }
@@ -113,11 +113,11 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         loop {
             if syscall::realtime() - started > timeout {
                 print!("Timeout reached\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
-            if kernel::console::abort() {
+            if sys::console::abort() {
                 print!("\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
@@ -133,13 +133,13 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
 
                 state = match state {
                     State::Connect if !socket.is_active() => {
-                        let local_port = 49152 + kernel::random::get_u16() % 16384;
+                        let local_port = 49152 + sys::random::get_u16() % 16384;
                         if is_verbose {
                             print!("* Connecting to {}:{}\n", address, url.port);
                         }
                         if socket.connect((address, url.port), local_port).is_err() {
                             print!("Could not connect to {}:{}\n", address, url.port);
-                            return user::shell::ExitCode::CommandError;
+                            return usr::shell::ExitCode::CommandError;
                         }
                         State::Request
                     }
@@ -193,8 +193,8 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 syscall::sleep(wait_duration.as_secs_f64());
             }
         }
-        user::shell::ExitCode::CommandSuccessful
+        usr::shell::ExitCode::CommandSuccessful
     } else {
-        user::shell::ExitCode::CommandError
+        usr::shell::ExitCode::CommandError
     }
 }

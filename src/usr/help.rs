@@ -1,7 +1,7 @@
-use crate::{print, user};
-use crate::kernel::console::Style;
+use crate::{usr, print};
+use crate::api::console::Style;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() > 1 {
         help_command(args[1])
     } else {
@@ -9,7 +9,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     }
 }
 
-fn help_command(cmd: &str) -> user::shell::ExitCode {
+fn help_command(cmd: &str) -> usr::shell::ExitCode {
     match cmd {
         "date" => help_date(),
         "edit" => help_edit(),
@@ -17,12 +17,12 @@ fn help_command(cmd: &str) -> user::shell::ExitCode {
     }
 }
 
-fn help_unknown(cmd: &str) -> user::shell::ExitCode {
+fn help_unknown(cmd: &str) -> usr::shell::ExitCode {
     print!("Help not found for command '{}'\n", cmd);
-    user::shell::ExitCode::CommandError
+    usr::shell::ExitCode::CommandError
 }
 
-fn help_summary() -> user::shell::ExitCode {
+fn help_summary() -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     print!("{}Commands:{}\n", csi_color, csi_reset);
@@ -52,10 +52,10 @@ fn help_summary() -> user::shell::ExitCode {
     print!("\n");
 
     print!("Made with <3 in 2019-2021 by Vincent Ollivier <v@vinc.cc>\n");
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }
 
-fn help_edit() -> user::shell::ExitCode {
+fn help_edit() -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     print!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range\n");
@@ -78,10 +78,10 @@ fn help_edit() -> user::shell::ExitCode {
         let csi_reset = Style::reset();
         print!("  {}{}{}    {}\n", csi_color, shortcut, csi_reset, usage);
     }
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }
 
-fn help_date() -> user::shell::ExitCode {
+fn help_date() -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     print!("The date command's formatting behavior is based on strftime in C\n");
@@ -128,5 +128,5 @@ fn help_date() -> user::shell::ExitCode {
         let csi_reset = Style::reset();
         print!("  {}{}{}    {}\n", csi_color, specifier, csi_reset, usage);
     }
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }

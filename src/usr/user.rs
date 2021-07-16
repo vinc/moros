@@ -1,4 +1,4 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -12,14 +12,14 @@ use sha2::Sha256;
 const PASSWORDS: &'static str = "/ini/passwords.csv";
 const COMMANDS: [&'static str; 2] = ["create", "login"];
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
         return usage();
     }
 
     let username: String = if args.len() == 2 {
         print!("Username: ");
-        kernel::console::get_line().trim_end().into()
+        sys::console::get_line().trim_end().into()
     } else {
         args[2].into()
     };
@@ -31,13 +31,13 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     }
 }
 
-fn usage() -> user::shell::ExitCode {
+fn usage() -> usr::shell::ExitCode {
     print!("Usage: user [{}] <username>\n", COMMANDS.join("|"));
-    return user::shell::ExitCode::CommandError;
+    return usr::shell::ExitCode::CommandError;
 }
 
 // TODO: Add max number of attempts
-pub fn login(username: &str) -> user::shell::ExitCode {
+pub fn login(username: &str) -> usr::shell::ExitCode {
     if username.is_empty() {
         print!("\n");
         syscall::sleep(1.0);
@@ -47,9 +47,9 @@ pub fn login(username: &str) -> user::shell::ExitCode {
     match hashed_password(&username) {
         Some(hash) => {
             print!("Password: ");
-            kernel::console::disable_echo();
-            let mut password = kernel::console::get_line();
-            kernel::console::enable_echo();
+            sys::console::disable_echo();
+            let mut password = sys::console::get_line();
+            sys::console::enable_echo();
             print!("\n");
             password.pop();
             if !check(&password, &hash) {
@@ -66,56 +66,56 @@ pub fn login(username: &str) -> user::shell::ExitCode {
     }
 
     let home = format!("/usr/{}", username);
-    kernel::process::set_user(&username);
-    kernel::process::set_env("HOME", &home);
-    kernel::process::set_dir(&home);
+    sys::process::set_user(&username);
+    sys::process::set_env("HOME", &home);
+    sys::process::set_dir(&home);
 
     // TODO: load shell
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }
 
-pub fn create(username: &str) -> user::shell::ExitCode {
+pub fn create(username: &str) -> usr::shell::ExitCode {
     if username.is_empty() {
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     if hashed_password(&username).is_some() {
         print!("Username exists\n");
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     print!("Password: ");
-    kernel::console::disable_echo();
-    let mut password = kernel::console::get_line();
-    kernel::console::enable_echo();
+    sys::console::disable_echo();
+    let mut password = sys::console::get_line();
+    sys::console::enable_echo();
     print!("\n");
     password.pop();
 
     if password.is_empty() {
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     print!("Confirm: ");
-    kernel::console::disable_echo();
-    let mut confirm = kernel::console::get_line();
-    kernel::console::enable_echo();
+    sys::console::disable_echo();
+    let mut confirm = sys::console::get_line();
+    sys::console::enable_echo();
     print!("\n");
     confirm.pop();
 
     if password != confirm {
         print!("Password confirmation failed\n");
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     if save_hashed_password(&username, &hash(&password)).is_err() {
         print!("Could not save user\n");
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     // Create home dir
-    kernel::fs::Dir::create(&format!("/usr/{}", username)).unwrap();
+    sys::fs::Dir::create(&format!("/usr/{}", username)).unwrap();
 
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }
 
 pub fn check(password: &str, hashed_password: &str) -> bool {
@@ -124,15 +124,15 @@ pub fn check(password: &str, hashed_password: &str) -> bool {
         return false;
     }
 
-    let decoded_field = user::base64::decode(&fields[1].as_bytes());
+    let decoded_field = usr::base64::decode(&fields[1].as_bytes());
     let c = u32::from_be_bytes(decoded_field[0..4].try_into().unwrap());
 
-    let decoded_field = user::base64::decode(&fields[2].as_bytes());
+    let decoded_field = usr::base64::decode(&fields[2].as_bytes());
     let salt: [u8; 16] = decoded_field[0..16].try_into().unwrap();
 
     let mut hash = [0u8; 32];
     pbkdf2::pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, c as usize, &mut hash);
-    let encoded_hash = String::from_utf8(user::base64::encode(&hash)).unwrap();
+    let encoded_hash = String::from_utf8(usr::base64::encode(&hash)).unwrap();
 
     encoded_hash == fields[3]
 }
@@ -148,7 +148,7 @@ pub fn hash(password: &str) -> String {
 
     // Generating salt
     for i in 0..2 {
-        let num = kernel::random::get_u64();
+        let num = sys::random::get_u64();
         let buf = num.to_be_bytes();
         let n = buf.len();
         for j in 0..n {
@@ -163,17 +163,17 @@ pub fn hash(password: &str) -> String {
     let c = c.to_be_bytes();
     let mut res: String = String::from(v);
     res.push('$');
-    res.push_str(&String::from_utf8(user::base64::encode(&c)).unwrap());
+    res.push_str(&String::from_utf8(usr::base64::encode(&c)).unwrap());
     res.push('$');
-    res.push_str(&String::from_utf8(user::base64::encode(&salt)).unwrap());
+    res.push_str(&String::from_utf8(usr::base64::encode(&salt)).unwrap());
     res.push('$');
-    res.push_str(&String::from_utf8(user::base64::encode(&hash)).unwrap());
+    res.push_str(&String::from_utf8(usr::base64::encode(&hash)).unwrap());
     res
 }
 
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
-    if let Some(file) = kernel::fs::File::open(PASSWORDS) {
+    if let Some(file) = sys::fs::File::open(PASSWORDS) {
         for line in file.read_to_string().split("\n") {
             let mut rows = line.split(",");
             if let Some(username) = rows.next() {
@@ -200,8 +200,8 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<(), ()> {
     hashed_passwords.remove(username.into());
     hashed_passwords.insert(username.into(), hash.into());
 
-    let mut file = match kernel::fs::File::open(PASSWORDS) {
-        None => match kernel::fs::File::create(PASSWORDS) {
+    let mut file = match sys::fs::File::open(PASSWORDS) {
+        None => match sys::fs::File::create(PASSWORDS) {
             None => return Err(()),
             Some(file) => file,
         },

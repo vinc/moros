@@ -1,6 +1,6 @@
-use crate::{print, user};
+use crate::{usr, print};
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let n = args.len();
     for i in 1..n {
         print!("{}", args[i]);
@@ -9,5 +9,5 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         }
     }
     print!("\n");
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }

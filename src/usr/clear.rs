@@ -1,6 +1,6 @@
-use crate::{kernel, user};
+use crate::{sys, usr};
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    kernel::vga::clear_screen();
-    user::shell::ExitCode::CommandSuccessful
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+    sys::vga::clear_screen();
+    usr::shell::ExitCode::CommandSuccessful
 }

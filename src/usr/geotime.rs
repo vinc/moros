@@ -1,12 +1,12 @@
-use crate::{print, user};
+use crate::{usr, print};
 use crate::api::syscall;
 use alloc::format;
 use core::f64::consts::PI;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() < 2 {
         print!("Usage: <longitude> [<timestamp>]\n");
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     let longitude = args[1].parse().expect("Could not parse longitude");
@@ -21,7 +21,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
     let t = libm::floor(100.0 * t) / 100.0; // Avoid rounding up 99.996 to 100.00
     print!("{}\n", format!("{:05.2}", t).replace(".", ":"));
 
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }
 
 pub fn geotime(longitude: f64, timestamp: f64) -> f64 {

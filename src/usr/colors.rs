@@ -1,7 +1,7 @@
-use crate::{print, user};
+use crate::{usr, print};
 use alloc::format;
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let csi_reset = "\x1b[0m";
 
     for i in 30..38 {
@@ -25,5 +25,5 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
     }
     print!("\n");
 
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }

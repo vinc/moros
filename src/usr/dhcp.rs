@@ -1,4 +1,4 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use crate::api::syscall;
 use alloc::string::ToString;
 use alloc::vec;
@@ -9,8 +9,8 @@ use smoltcp::socket::{RawPacketMetadata, RawSocketBuffer, SocketSet};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
-    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let mut iface = iface;
         let mut sockets = SocketSet::new(vec![]);
         let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 900]);
@@ -30,11 +30,11 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         loop {
             if syscall::realtime() - started > timeout {
                 print!("Timeout reached\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
-            if kernel::console::abort() {
+            if sys::console::abort() {
                 print!("\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
@@ -77,7 +77,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                     print!("DNS: {}\n", dns_servers.join(", "));
                 }
 
-                return user::shell::ExitCode::CommandSuccessful;
+                return usr::shell::ExitCode::CommandSuccessful;
             }
 
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
@@ -87,5 +87,5 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         }
     }
 
-    user::shell::ExitCode::CommandError
+    usr::shell::ExitCode::CommandError
 }

@@ -1,9 +1,9 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use core::str::FromStr;
 use smoltcp::wire::IpCidr;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
-    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         if args.len() == 1 {
             print!("Link: {}\n", iface.ethernet_addr());
             for ip_cidr in iface.ip_addrs() {
@@ -37,13 +37,13 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 }
             }
         }
-        user::shell::ExitCode::CommandSuccessful
+        usr::shell::ExitCode::CommandSuccessful
     } else {
         error("could not find network interface")
     }
 }
 
-fn error(message: &str) -> user::shell::ExitCode {
+fn error(message: &str) -> usr::shell::ExitCode {
     print!("Error: {}\n", message);
-    user::shell::ExitCode::CommandError
+    usr::shell::ExitCode::CommandError
 }

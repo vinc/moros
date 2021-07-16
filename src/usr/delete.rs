@@ -1,15 +1,15 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     let mut pathname = args[1];
 
     if pathname.starts_with("/dev") || pathname.starts_with("/sys") {
         print!("Permission denied to delete '{}'\n", pathname);
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     // The commands `delete /usr/alice/` and `delete /usr/alice` are equivalent,
@@ -18,27 +18,27 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         pathname = pathname.trim_end_matches('/');
     }
 
-    if let Some(dir) = kernel::fs::Dir::open(pathname) {
+    if let Some(dir) = sys::fs::Dir::open(pathname) {
         if dir.read().count() == 0 {
-            if kernel::fs::Dir::delete(pathname).is_ok() {
-                user::shell::ExitCode::CommandSuccessful
+            if sys::fs::Dir::delete(pathname).is_ok() {
+                usr::shell::ExitCode::CommandSuccessful
             } else {
                 print!("Could not delete directory '{}'\n", pathname);
-                user::shell::ExitCode::CommandError
+                usr::shell::ExitCode::CommandError
             }
         } else {
             print!("Directory '{}' not empty\n", pathname);
-            user::shell::ExitCode::CommandError
+            usr::shell::ExitCode::CommandError
         }
-    } else if kernel::fs::File::open(pathname).is_some() {
-        if kernel::fs::File::delete(pathname).is_ok() {
-            user::shell::ExitCode::CommandSuccessful
+    } else if sys::fs::File::open(pathname).is_some() {
+        if sys::fs::File::delete(pathname).is_ok() {
+            usr::shell::ExitCode::CommandSuccessful
         } else {
             print!("Could not delete file '{}'\n", pathname);
-            user::shell::ExitCode::CommandError
+            usr::shell::ExitCode::CommandError
         }
     } else {
         print!("File not found '{}'\n", pathname);
-        user::shell::ExitCode::CommandError
+        usr::shell::ExitCode::CommandError
     }
 }

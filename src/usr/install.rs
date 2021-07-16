@@ -1,27 +1,27 @@
-use crate::{kernel, print, user};
-use crate::kernel::console::Style;
+use crate::{sys, usr, print};
+use crate::sys::console::Style;
 use alloc::string::String;
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     print!("{}Welcome to MOROS v{} installation program!{}\n", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
     print!("\n");
 
     print!("Proceed? [y/N] ");
-    if kernel::console::get_line().trim() == "y" {
+    if sys::console::get_line().trim() == "y" {
         print!("\n");
 
-        if !kernel::fs::is_mounted() {
+        if !sys::fs::is_mounted() {
             print!("{}Listing disks ...{}\n", csi_color, csi_reset);
-            user::disk::main(&["disk", "list"]);
+            usr::disk::main(&["disk", "list"]);
             print!("\n");
 
             print!("{}Formatting disk ...{}\n", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
-            let pathname = kernel::console::get_line();
-            let res = user::disk::main(&["disk", "format", pathname.trim_end()]);
-            if res == user::shell::ExitCode::CommandError {
+            let pathname = sys::console::get_line();
+            let res = usr::disk::main(&["disk", "format", pathname.trim_end()]);
+            if res == usr::shell::ExitCode::CommandError {
                 return res;
             }
             print!("\n");
@@ -49,11 +49,11 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"));
         copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"));
 
-        if kernel::process::user().is_none() {
+        if sys::process::user().is_none() {
             print!("\n");
             print!("{}Creating user...{}\n", csi_color, csi_reset);
-            let res = user::user::main(&["user", "create"]);
-            if res == user::shell::ExitCode::CommandError {
+            let res = usr::user::main(&["user", "create"]);
+            if res == usr::shell::ExitCode::CommandError {
                 return res;
             }
         }
@@ -64,20 +64,20 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         print!("Exit console or reboot to apply changes\n");
     }
 
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }
 
 fn create_dir(pathname: &str) {
-    if kernel::fs::Dir::create(pathname).is_some() {
+    if sys::fs::Dir::create(pathname).is_some() {
         print!("Created '{}'\n", pathname);
     }
 }
 
 fn copy_file(pathname: &str, buf: &[u8]) {
-    if kernel::fs::File::open(pathname).is_some() {
+    if sys::fs::File::open(pathname).is_some() {
         return;
     }
-    if let Some(mut file) = kernel::fs::File::create(pathname) {
+    if let Some(mut file) = sys::fs::File::create(pathname) {
         if pathname.ends_with(".txt") {
             if let Ok(text) = String::from_utf8(buf.to_vec()) {
                 let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));

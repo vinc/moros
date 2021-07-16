@@ -1,13 +1,13 @@
-use crate::{kernel, print, user};
-use crate::kernel::console::Style;
+use crate::{sys, usr, print};
+use crate::sys::console::Style;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     let pathname = args[1];
@@ -20,7 +20,7 @@ struct EditorConfig {
 }
 
 pub struct Editor {
-    file: Option<kernel::fs::File>,
+    file: Option<sys::fs::File>,
     pathname: String,
     lines: Vec<String>,
     dx: usize, // Horizontal offset
@@ -35,7 +35,7 @@ impl Editor {
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
 
-        let file = match kernel::fs::File::open(pathname) {
+        let file = match sys::fs::File::open(pathname) {
             Some(file) => {
                 let contents = file.read_to_string();
                 for line in contents.split('\n') {
@@ -45,7 +45,7 @@ impl Editor {
             },
             None => {
                 lines.push(String::new());
-                kernel::fs::File::create(pathname)
+                sys::fs::File::create(pathname)
             }
         };
 
@@ -54,7 +54,7 @@ impl Editor {
         Self { file, pathname, lines, dx, dy, config }
     }
 
-    pub fn save(&mut self) -> user::shell::ExitCode {
+    pub fn save(&mut self) -> usr::shell::ExitCode {
         let mut contents = String::new();
         let n = self.lines.len();
         for i in 0..n {
@@ -68,22 +68,22 @@ impl Editor {
             file.write(&contents.as_bytes()).unwrap();
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");
-            user::shell::ExitCode::CommandSuccessful
+            usr::shell::ExitCode::CommandSuccessful
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
             self.print_status(&status, "LightRed");
-            user::shell::ExitCode::CommandError
+            usr::shell::ExitCode::CommandError
         }
     }
 
     fn print_status(&mut self, status: &str, background: &str) {
         let color = Style::color("Black").with_background(background);
         let reset = Style::reset();
-        let (x, y) = kernel::vga::cursor_position();
-        kernel::vga::set_writer_position(0, self.height());
+        let (x, y) = sys::vga::cursor_position();
+        sys::vga::set_writer_position(0, self.height());
         print!("{}{:width$}{}", color, status, reset, width = self.width());
-        kernel::vga::set_writer_position(x, y);
-        kernel::vga::set_cursor_position(x, y);
+        sys::vga::set_writer_position(x, y);
+        sys::vga::set_cursor_position(x, y);
     }
 
     fn print_screen(&mut self) {
@@ -93,7 +93,7 @@ impl Editor {
         for y in a..b {
             rows.push(self.render_line(y));
         }
-        kernel::vga::set_writer_position(0, 0);
+        sys::vga::set_writer_position(0, 0);
         print!("{}", rows.join("\n"));
 
         let status = format!("Editing '{}'", self.pathname);
@@ -124,22 +124,22 @@ impl Editor {
         }
     }
 
-    pub fn run(&mut self) -> user::shell::ExitCode {
-        kernel::vga::clear_screen();
+    pub fn run(&mut self) -> usr::shell::ExitCode {
+        sys::vga::clear_screen();
         self.print_screen();
-        kernel::vga::set_cursor_position(0, 0);
-        kernel::vga::set_writer_position(0, 0);
+        sys::vga::set_cursor_position(0, 0);
+        sys::vga::set_writer_position(0, 0);
 
         loop {
-            let (mut x, mut y) = kernel::vga::cursor_position();
-            let c = kernel::console::get_char();
+            let (mut x, mut y) = sys::vga::cursor_position();
+            let c = sys::console::get_char();
             match c {
                 '\0' => {
                     continue;
                 }
                 '\x11' => { // Ctrl Q
                     // TODO: Warn if modifications have not been saved
-                    kernel::vga::clear_screen();
+                    sys::vga::clear_screen();
                     break;
                 },
                 '\x17' => { // Ctrl W
@@ -147,7 +147,7 @@ impl Editor {
                 },
                 '\x18' => { // Ctrl X
                     let res = self.save();
-                    kernel::vga::clear_screen();
+                    sys::vga::clear_screen();
                     return res;
                 },
                 '\n' => { // Newline
@@ -257,7 +257,7 @@ impl Editor {
                         } else {
                             x -= 1;
                             let line = self.render_line(self.dy + y);
-                            kernel::vga::clear_row();
+                            sys::vga::clear_row();
                             print!("{}", line);
                         }
                     } else { // Remove newline from previous line
@@ -294,7 +294,7 @@ impl Editor {
                     } else { // Remove char from line
                         self.lines[self.dy + y].remove(self.dx + x);
                         let line = self.render_line(self.dy + y);
-                        kernel::vga::clear_row();
+                        sys::vga::clear_row();
                         print!("{}", line);
                     }
                 },
@@ -314,16 +314,16 @@ impl Editor {
                             self.print_screen();
                         } else {
                             let line = self.render_line(self.dy + y);
-                            kernel::vga::clear_row();
+                            sys::vga::clear_row();
                             print!("{}", line);
                         }
                     }
                 },
             }
-            kernel::vga::set_cursor_position(x, y);
-            kernel::vga::set_writer_position(x, y);
+            sys::vga::set_cursor_position(x, y);
+            sys::vga::set_writer_position(x, y);
         }
-        user::shell::ExitCode::CommandSuccessful
+        usr::shell::ExitCode::CommandSuccessful
     }
 
     // Move cursor past end of line to end of line or left of the screen
@@ -341,11 +341,11 @@ impl Editor {
     }
 
     fn height(&self) -> usize {
-        kernel::vga::screen_height() - 1 // Leave out one line for status line
+        sys::vga::screen_height() - 1 // Leave out one line for status line
     }
 
     fn width(&self) -> usize {
-        kernel::vga::screen_width()
+        sys::vga::screen_width()
     }
 }
 

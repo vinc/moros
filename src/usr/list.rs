@@ -1,8 +1,8 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use alloc::vec::Vec;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
-    let current_dir = kernel::process::dir();
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let current_dir = sys::process::dir();
     let mut pathname = if args.len() == 2 && args[1].len() > 0 {
         args[1]
     } else {
@@ -15,7 +15,7 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         pathname = pathname.trim_end_matches('/');
     }
 
-    if let Some(dir) = kernel::fs::Dir::open(pathname) {
+    if let Some(dir) = sys::fs::Dir::open(pathname) {
         let mut files: Vec<_> = dir.read().collect();
 
         files.sort_by_key(|f| f.name());
@@ -23,9 +23,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
         for file in files {
             print!("{}\n", file.name());
         }
-        user::shell::ExitCode::CommandSuccessful
+        usr::shell::ExitCode::CommandSuccessful
     } else {
         print!("Dir not found '{}'\n", pathname);
-        user::shell::ExitCode::CommandError
+        usr::shell::ExitCode::CommandError
     }
 }

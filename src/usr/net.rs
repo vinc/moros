@@ -1,21 +1,21 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use crate::api::syscall;
 //use smoltcp::wire::Ipv4Address;
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
         print!("Usage: net <command>\n");
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
-    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match args[1] {
             "config" => {
                 if args.len() < 4 {
                     print!("Usage: net config <key> <value>\n");
-                    return user::shell::ExitCode::CommandError;
+                    return usr::shell::ExitCode::CommandError;
                 }
                 match args[2] {
                     "debug" => {
@@ -24,13 +24,13 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                             "0" | "off" | "disable" => false,
                             _ => {
                                 print!("Invalid config value\n");
-                                return user::shell::ExitCode::CommandError;
+                                return usr::shell::ExitCode::CommandError;
                             }
                         }
                     }
                     _ => {
                         print!("Invalid config key\n");
-                        return user::shell::ExitCode::CommandError;
+                        return usr::shell::ExitCode::CommandError;
                     }
                 }
             }
@@ -49,9 +49,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
                 let _server_handle = sockets.add(server_socket);
 
                 loop {
-                    if kernel::console::abort() {
+                    if sys::console::abort() {
                         print!("\n");
-                        return user::shell::ExitCode::CommandSuccessful;
+                        return usr::shell::ExitCode::CommandSuccessful;
                     }
 
                     let now = syscall::uptime();
@@ -74,9 +74,9 @@ pub fn main(args: &[&str]) -> user::shell::ExitCode {
             }
             _ => {
                 print!("Invalid command\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
         }
     }
-    user::shell::ExitCode::CommandSuccessful
+    usr::shell::ExitCode::CommandSuccessful
 }

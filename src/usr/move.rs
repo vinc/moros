@@ -1,13 +1,13 @@
-use crate::user;
+use crate::usr;
 
-pub fn main(args: &[&str]) -> user::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 3 {
-        return user::shell::ExitCode::CommandError;
+        return usr::shell::ExitCode::CommandError;
     }
 
     // TODO: Avoid doing copy+delete
-    match user::copy::main(args) {
-        user::shell::ExitCode::CommandSuccessful => user::delete::main(&args[0..2]),
-        _ => user::shell::ExitCode::CommandError,
+    match usr::copy::main(args) {
+        usr::shell::ExitCode::CommandSuccessful => usr::delete::main(&args[0..2]),
+        _ => usr::shell::ExitCode::CommandError,
     }
 }

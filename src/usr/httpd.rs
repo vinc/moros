@@ -1,6 +1,6 @@
-use crate::{kernel, print, user};
+use crate::{sys, usr, print};
 use crate::api::syscall;
-use crate::kernel::console::Style;
+use crate::sys::console::Style;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
 use alloc::string::String;
@@ -14,18 +14,18 @@ use smoltcp::socket::SocketSet;
 use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
-pub fn main(_args: &[&str]) -> user::shell::ExitCode {
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let port = 80;
 
-    if let Some(ref mut iface) = *kernel::net::IFACE.lock() {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
                 print!("Error: Interface not ready\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
                 print!("Error: Interface not ready\n");
-                return user::shell::ExitCode::CommandError;
+                return usr::shell::ExitCode::CommandError;
             }
             _ => {}
         }
@@ -44,9 +44,9 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
         let mut tcp_active = false;
         loop {
-            if kernel::console::abort() {
+            if sys::console::abort() {
                 print!("\n");
-                return user::shell::ExitCode::CommandSuccessful;
+                return usr::shell::ExitCode::CommandSuccessful;
             }
 
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
@@ -111,12 +111,12 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                         res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
                                         body = format!("<h1>Moved Permanently</h1>\r\n");
                                         mime = "text/html";
-                                    } else if let Some(file) = kernel::fs::File::open(path) {
+                                    } else if let Some(file) = sys::fs::File::open(path) {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = file.read_to_string().replace("\n", "\r\n");
                                         mime = "text/plain";
-                                    } else if let Some(dir) = kernel::fs::Dir::open(path) {
+                                    } else if let Some(dir) = sys::fs::Dir::open(path) {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = format!("<h1>Index of {}</h1>\r\n", path);
@@ -138,10 +138,10 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                 "PUT" => {
                                     if path.ends_with("/") { // Write directory
                                         let path = path.trim_end_matches('/');
-                                        if kernel::fs::Dir::open(path).is_some() {
+                                        if sys::fs::Dir::open(path).is_some() {
                                             code = 403;
                                             res.push_str("HTTP/1.0 403 Forbidden\r\n");
-                                        } else if kernel::fs::Dir::create(path).is_none() {
+                                        } else if sys::fs::Dir::create(path).is_none() {
                                             code = 500;
                                             res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
                                         } else {
@@ -149,9 +149,9 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                             res.push_str("HTTP/1.0 200 OK\r\n");
                                         }
                                     } else { // Write file
-                                        let maybe_file = match kernel::fs::File::open(path) {
+                                        let maybe_file = match sys::fs::File::open(path) {
                                             Some(file) => Some(file),
-                                            None => kernel::fs::File::create(path),
+                                            None => sys::fs::File::create(path),
                                         };
                                         match maybe_file {
                                             Some(mut file) => {
@@ -173,8 +173,8 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
                                     mime = "text/plain";
                                 },
                                 "DELETE" => {
-                                    if kernel::fs::File::open(path).is_some() {
-                                        if kernel::fs::File::delete(path).is_ok() {
+                                    if sys::fs::File::open(path).is_some() {
+                                        if sys::fs::File::delete(path).is_ok() {
                                             code = 200;
                                             res.push_str("HTTP/1.0 200 OK\r\n");
                                         } else {
@@ -235,7 +235,7 @@ pub fn main(_args: &[&str]) -> user::shell::ExitCode {
         }
     } else {
         print!("Error: Could not find network interface\n");
-        user::shell::ExitCode::CommandError
+        usr::shell::ExitCode::CommandError
     }
 }
 

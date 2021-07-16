@@ -1,5 +1,5 @@
-use crate::{print, user, kernel};
-use crate::kernel::console::Style;
+use crate::{sys, usr, print};
+use crate::api::console::Style;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -55,20 +55,20 @@ impl Shell {
         }
     }
 
-    pub fn run(&mut self) -> user::shell::ExitCode {
+    pub fn run(&mut self) -> usr::shell::ExitCode {
         self.load_history();
         print!("\n");
         self.print_prompt();
         loop {
-            let (x, y) = kernel::vga::cursor_position();
-            let c = kernel::console::get_char();
+            let (x, y) = sys::vga::cursor_position();
+            let c = sys::console::get_char();
             match c {
                 '\0' => {
                     continue;
                 }
                 '\x04' => { // Ctrl D
                     if self.cmd.is_empty() {
-                        kernel::vga::clear_screen();
+                        sys::vga::clear_screen();
                         return ExitCode::CommandSuccessful;
                     }
                 },
@@ -98,14 +98,14 @@ impl Shell {
                                 self.save_history();
                             },
                             ExitCode::ShellExit => {
-                                kernel::vga::clear_screen();
+                                sys::vga::clear_screen();
                                 return ExitCode::CommandSuccessful
                             },
                             _ => {
                                 self.errored = true;
                             },
                         }
-                        kernel::console::drain();
+                        sys::console::drain();
                         self.cmd.clear();
                     } else {
                         self.errored = false;
@@ -125,8 +125,8 @@ impl Shell {
                         }
                         let cmd = &self.history[self.history_index];
                         let n = self.prompt.len();
-                        kernel::console::clear_row_after(n + cmd.len());
-                        kernel::vga::set_writer_position(n, y);
+                        sys::console::clear_row_after(n + cmd.len());
+                        sys::vga::set_writer_position(n, y);
                         print!("{}", cmd);
                     }
                 },
@@ -140,8 +140,8 @@ impl Shell {
                             &self.cmd
                         };
                         let n = self.prompt.len();
-                        kernel::console::clear_row_after(n + cmd.len());
-                        kernel::vga::set_writer_position(n, y);
+                        sys::console::clear_row_after(n + cmd.len());
+                        sys::vga::set_writer_position(n, y);
                         print!("{}", cmd);
                     }
                 },
@@ -149,23 +149,23 @@ impl Shell {
                     self.update_history();
                     self.update_autocomplete();
                     if x > self.prompt.len() {
-                        kernel::vga::set_cursor_position(x - 1, y);
-                        kernel::vga::set_writer_position(x - 1, y);
+                        sys::vga::set_cursor_position(x - 1, y);
+                        sys::vga::set_writer_position(x - 1, y);
                     }
                 },
                 '→' => { // Arrow right
                     self.update_history();
                     self.update_autocomplete();
                     if x < self.prompt.len() + self.cmd.len() {
-                        kernel::vga::set_cursor_position(x + 1, y);
-                        kernel::vga::set_writer_position(x + 1, y);
+                        sys::vga::set_cursor_position(x + 1, y);
+                        sys::vga::set_writer_position(x + 1, y);
                     }
                 },
                 '\x08' => { // Backspace
                     self.update_history();
                     self.update_autocomplete();
                     if self.cmd.len() > 0 {
-                        if kernel::console::has_cursor() {
+                        if sys::console::has_cursor() {
                             if x > self.prompt.len() {
                                 let cmd = self.cmd.clone();
                                 let (before_cursor, mut after_cursor) = cmd.split_at(x - 1 - self.prompt.len());
@@ -176,8 +176,8 @@ impl Shell {
                                 self.cmd.push_str(before_cursor);
                                 self.cmd.push_str(after_cursor);
                                 print!("{}{} ", c, after_cursor);
-                                kernel::vga::set_cursor_position(x - 1, y);
-                                kernel::vga::set_writer_position(x - 1, y);
+                                sys::vga::set_cursor_position(x - 1, y);
+                                sys::vga::set_writer_position(x - 1, y);
                             }
                         } else {
                             self.cmd.pop();
@@ -189,7 +189,7 @@ impl Shell {
                     self.update_history();
                     self.update_autocomplete();
                     if self.cmd.len() > 0 {
-                        if kernel::console::has_cursor() {
+                        if sys::console::has_cursor() {
                             let cmd = self.cmd.clone();
                             let (before_cursor, mut after_cursor) = cmd.split_at(x - self.prompt.len());
                             if after_cursor.len() > 0 {
@@ -199,16 +199,16 @@ impl Shell {
                             self.cmd.push_str(before_cursor);
                             self.cmd.push_str(after_cursor);
                             print!("{} ", after_cursor);
-                            kernel::vga::set_cursor_position(x, y);
-                            kernel::vga::set_writer_position(x, y);
+                            sys::vga::set_cursor_position(x, y);
+                            sys::vga::set_writer_position(x, y);
                         }
                     }
                 },
                 c => {
                     self.update_history();
                     self.update_autocomplete();
-                    if c.is_ascii() && kernel::vga::is_printable(c as u8) {
-                        if kernel::console::has_cursor() {
+                    if c.is_ascii() && sys::vga::is_printable(c as u8) {
+                        if sys::console::has_cursor() {
                             let cmd = self.cmd.clone();
                             let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
                             self.cmd.clear();
@@ -216,8 +216,8 @@ impl Shell {
                             self.cmd.push(c);
                             self.cmd.push_str(after_cursor);
                             print!("{}{}", c, after_cursor);
-                            kernel::vga::set_cursor_position(x + 1, y);
-                            kernel::vga::set_writer_position(x + 1, y);
+                            sys::vga::set_cursor_position(x + 1, y);
+                            sys::vga::set_writer_position(x + 1, y);
                         } else {
                             self.cmd.push(c);
                             print!("{}", c);
@@ -240,10 +240,10 @@ impl Shell {
     }
 
     pub fn load_history(&mut self) {
-        if let Some(home) = kernel::process::env("HOME") {
+        if let Some(home) = sys::process::env("HOME") {
             let pathname = format!("{}/.shell_history", home);
 
-            if let Some(file) = kernel::fs::File::open(&pathname) {
+            if let Some(file) = sys::fs::File::open(&pathname) {
                 let contents = file.read_to_string();
                 for line in contents.split('\n') {
                     let cmd = line.trim();
@@ -257,7 +257,7 @@ impl Shell {
     }
 
     pub fn save_history(&mut self) {
-        if let Some(home) = kernel::process::env("HOME") {
+        if let Some(home) = sys::process::env("HOME") {
             let pathname = format!("{}/.shell_history", home);
 
             let mut contents = String::new();
@@ -265,9 +265,9 @@ impl Shell {
                 contents.push_str(&format!("{}\n", cmd));
             }
 
-            let mut file = match kernel::fs::File::open(&pathname) {
+            let mut file = match sys::fs::File::open(&pathname) {
                 Some(file) => file,
-                None => kernel::fs::File::create(&pathname).unwrap(),
+                None => sys::fs::File::create(&pathname).unwrap(),
             };
 
             file.write(&contents.as_bytes()).unwrap();
@@ -286,20 +286,20 @@ impl Shell {
                     }
                 }
             } else { // Autocomplete path
-                let pathname = kernel::fs::realpath(args[i]);
-                let dirname = kernel::fs::dirname(&pathname);
-                let filename = kernel::fs::filename(&pathname);
+                let pathname = sys::fs::realpath(args[i]);
+                let dirname = sys::fs::dirname(&pathname);
+                let filename = sys::fs::filename(&pathname);
                 self.autocomplete = vec![args[i].into()];
                 let sep = if dirname.ends_with("/") { "" } else { "/" };
                 if pathname.starts_with("/dev") {
                     for dev in &AUTOCOMPLETE_DEVICES {
-                        let d = kernel::fs::dirname(dev);
-                        let f = kernel::fs::filename(dev);
+                        let d = sys::fs::dirname(dev);
+                        let f = sys::fs::filename(dev);
                         if d == dirname && f.starts_with(filename) {
                             self.autocomplete.push(format!("{}{}{}", d, sep, f));
                         }
                     }
-                } else if let Some(dir) = kernel::fs::Dir::open(dirname) {
+                } else if let Some(dir) = sys::fs::Dir::open(dirname) {
                     for entry in dir.read() {
                         let name = entry.name();
                         if name.starts_with(filename) {
@@ -316,9 +316,9 @@ impl Shell {
 
         let cmd = args.join(" ");
         let n = self.prompt.len();
-        let (_, y) = kernel::console::cursor_position();
-        kernel::console::clear_row_after(n + cmd.len());
-        kernel::console::set_writer_position(n, y);
+        let (_, y) = sys::console::cursor_position();
+        sys::console::clear_row_after(n + cmd.len());
+        sys::console::set_writer_position(n, y);
         print!("{}", cmd);
     }
 
@@ -383,53 +383,53 @@ impl Shell {
             ""                     => ExitCode::CommandSuccessful,
             "a" | "alias"          => ExitCode::CommandUnknown,
             "b"                    => ExitCode::CommandUnknown,
-            "c" | "copy"           => user::copy::main(&args),
-            "d" | "del" | "delete" => user::delete::main(&args),
-            "e" | "edit"           => user::editor::main(&args),
+            "c" | "copy"           => usr::copy::main(&args),
+            "d" | "del" | "delete" => usr::delete::main(&args),
+            "e" | "edit"           => usr::editor::main(&args),
             "f" | "find"           => ExitCode::CommandUnknown,
             "g" | "go" | "goto"    => self.change_dir(&args),
-            "h" | "help"           => user::help::main(&args),
+            "h" | "help"           => usr::help::main(&args),
             "i"                    => ExitCode::CommandUnknown,
             "j" | "jump"           => ExitCode::CommandUnknown,
             "k" | "kill"           => ExitCode::CommandUnknown,
-            "l" | "list"           => user::list::main(&args),
-            "m" | "move"           => user::r#move::main(&args),
+            "l" | "list"           => usr::list::main(&args),
+            "m" | "move"           => usr::r#move::main(&args),
             "n"                    => ExitCode::CommandUnknown,
             "o"                    => ExitCode::CommandUnknown,
-            "p" | "print"          => user::print::main(&args),
+            "p" | "print"          => usr::print::main(&args),
             "q" | "quit" | "exit"  => ExitCode::ShellExit,
-            "r" | "read"           => user::read::main(&args),
+            "r" | "read"           => usr::read::main(&args),
             "s"                    => ExitCode::CommandUnknown,
             "t"                    => ExitCode::CommandUnknown,
             "u"                    => ExitCode::CommandUnknown,
             "v"                    => ExitCode::CommandUnknown,
-            "w" | "write"          => user::write::main(&args),
+            "w" | "write"          => usr::write::main(&args),
             "x"                    => ExitCode::CommandUnknown,
             "y"                    => ExitCode::CommandUnknown,
             "z"                    => ExitCode::CommandUnknown,
-            "vga"                  => user::vga::main(&args),
-            "shell"                => user::shell::main(&args),
-            "sleep"                => user::sleep::main(&args),
-            "clear"                => user::clear::main(&args),
-            "base64"               => user::base64::main(&args),
-            "date"                 => user::date::main(&args),
-            "env"                  => user::env::main(&args),
-            "halt"                 => user::halt::main(&args),
-            "hex"                  => user::hex::main(&args),
-            "net"                  => user::net::main(&args),
-            "route"                => user::route::main(&args),
-            "dhcp"                 => user::dhcp::main(&args),
-            "http"                 => user::http::main(&args),
-            "httpd"                => user::httpd::main(&args),
-            "tcp"                  => user::tcp::main(&args),
-            "host"                 => user::host::main(&args),
-            "install"              => user::install::main(&args),
-            "ip"                   => user::ip::main(&args),
-            "geotime"              => user::geotime::main(&args),
-            "colors"               => user::colors::main(&args),
-            "disk"                 => user::disk::main(&args),
-            "user"                 => user::user::main(&args),
-            "mem" | "memory"       => user::mem::main(&args),
+            "vga"                  => usr::vga::main(&args),
+            "shell"                => usr::shell::main(&args),
+            "sleep"                => usr::sleep::main(&args),
+            "clear"                => usr::clear::main(&args),
+            "base64"               => usr::base64::main(&args),
+            "date"                 => usr::date::main(&args),
+            "env"                  => usr::env::main(&args),
+            "halt"                 => usr::halt::main(&args),
+            "hex"                  => usr::hex::main(&args),
+            "net"                  => usr::net::main(&args),
+            "route"                => usr::route::main(&args),
+            "dhcp"                 => usr::dhcp::main(&args),
+            "http"                 => usr::http::main(&args),
+            "httpd"                => usr::httpd::main(&args),
+            "tcp"                  => usr::tcp::main(&args),
+            "host"                 => usr::host::main(&args),
+            "install"              => usr::install::main(&args),
+            "ip"                   => usr::ip::main(&args),
+            "geotime"              => usr::geotime::main(&args),
+            "colors"               => usr::colors::main(&args),
+            "disk"                 => usr::disk::main(&args),
+            "user"                 => usr::user::main(&args),
+            "mem" | "memory"       => usr::mem::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }
@@ -444,13 +444,13 @@ impl Shell {
     fn change_dir(&self, args: &[&str]) -> ExitCode {
         match args.len() {
             1 => {
-                print!("{}\n", kernel::process::dir());
+                print!("{}\n", sys::process::dir());
                 ExitCode::CommandSuccessful
             },
             2 => {
-                let pathname = kernel::fs::realpath(args[1]);
-                if kernel::fs::Dir::open(&pathname).is_some() {
-                    kernel::process::set_dir(&pathname);
+                let pathname = sys::fs::realpath(args[1]);
+                if sys::fs::Dir::open(&pathname).is_some() {
+                    sys::process::set_dir(&pathname);
                     ExitCode::CommandSuccessful
                 } else {
                     print!("File not found '{}'\n", pathname);
@@ -472,7 +472,7 @@ pub fn main(args: &[&str]) -> ExitCode {
         },
         2 => {
             let pathname = args[1];
-            if let Some(file) = kernel::fs::File::open(pathname) {
+            if let Some(file) = sys::fs::File::open(pathname) {
                 for line in file.read_to_string().split("\n") {
                     if line.len() > 0 {
                         shell.exec(line);

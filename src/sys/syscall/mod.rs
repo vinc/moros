@@ -76,15 +76,15 @@ pub unsafe fn syscall3(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize
 #[macro_export]
 macro_rules! syscall {
     ($n:expr) => (
-        $crate::kernel::syscall::syscall0(
+        $crate::sys::syscall::syscall0(
             $n as usize));
     ($n:expr, $a1:expr) => (
-        $crate::kernel::syscall::syscall1(
+        $crate::sys::syscall::syscall1(
             $n as usize, $a1 as usize));
     ($n:expr, $a1:expr, $a2:expr) => (
-        $crate::kernel::syscall::syscall2(
+        $crate::sys::syscall::syscall2(
             $n as usize, $a1 as usize, $a2 as usize));
     ($n:expr, $a1:expr, $a2:expr, $a3:expr) => (
-        $crate::kernel::syscall::syscall3(
+        $crate::sys::syscall::syscall3(
             $n as usize, $a1 as usize, $a2 as usize, $a3 as usize));
 }
