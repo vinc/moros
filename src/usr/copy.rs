@@ -15,14 +15,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    if let Some(source_file) = sys::fs::File::open(source) {
+    if let Some(mut source_file) = sys::fs::File::open(source) {
         if let Some(mut dest_file) = sys::fs::File::create(dest) {
             let filesize = source_file.size();
             let mut buf = Vec::with_capacity(filesize);
             buf.resize(filesize, 0);
             source_file.read(&mut buf);
             match dest_file.write(&buf) {
-                Ok(()) => {
+                Ok(_) => {
                     usr::shell::ExitCode::CommandSuccessful
                 },
                 Err(()) => {

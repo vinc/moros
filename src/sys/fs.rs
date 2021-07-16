@@ -18,6 +18,12 @@ pub enum FileType {
     File = 1,
 }
 
+pub enum SeekFrom {
+    Start(u32),
+    Current(i32),
+    End(i32),
+}
+
 pub fn dirname(pathname: &str) -> &str {
     let n = pathname.len();
     let i = match pathname.rfind('/') {
@@ -54,7 +60,7 @@ pub struct File {
     addr: u32,
     size: u32,
     dir: Dir, // TODO: Replace with `parent: Some(Dir)` and also add it to `Dir`
-    // TODO: add `offset: usize`
+    offset: u32,
 }
 
 impl File {
@@ -88,37 +94,52 @@ impl File {
         self.size as usize
     }
 
+    pub fn seek(&mut self, pos: SeekFrom) -> Result<u32, ()> {
+        let offset = match pos {
+            SeekFrom::Start(i)   => i as i32,
+            SeekFrom::Current(i) => i + self.offset as i32,
+            SeekFrom::End(i)     => i + self.size as i32 - 1,
+        };
+        if offset < 0 || offset > self.size as i32 { // TODO: offset > size?
+            return Err(())
+        }
+        self.offset = offset as u32;
+
+        Ok(self.offset)
+    }
+
     // TODO: return `Result<usize>`
-    // TODO: start `i` at `self.offset` instead of `0`
-    // TODO: set `self.offset` to `i` at the end
-    pub fn read(&self, buf: &mut [u8]) -> usize {
+    pub fn read(&mut self, buf: &mut [u8]) -> usize {
         let buf_len = buf.len();
         let mut addr = self.addr;
-        let mut i = 0;
+        let mut bytes = 0; // Number of bytes read
+        let mut pos = 0; // Position in the file
         loop {
             let block = Block::read(addr);
             let data = block.data();
             let data_len = data.len();
-            for j in 0..data_len {
-                if i == buf_len || i == self.size() {
-                    return i;
+            for i in 0..data_len {
+                if pos == self.offset {
+                    if bytes == buf_len || pos as usize == self.size() {
+                        return bytes;
+                    }
+                    buf[bytes] = data[i];
+                    bytes += 1;
+                    self.offset += 1;
                 }
-                buf[i] = data[j];
-                i += 1;
+                pos += 1;
             }
             match block.next() {
                 Some(next_block) => addr = next_block.addr(),
-                None => return i,
+                None => return bytes,
             }
         }
     }
 
-    // TODO: add `seek(&mut self, pos: SeekFrom) -> Result<u32>`
-
     // TODO: add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
 
     // TODO: `return Result<String>`
-    pub fn read_to_string(&self) -> String {
+    pub fn read_to_string(&mut self) -> String {
         let mut buf: Vec<u8> = Vec::with_capacity(self.size());
         buf.resize(self.size(), 0);
         let bytes = self.read(&mut buf);
@@ -126,28 +147,30 @@ impl File {
         String::from_utf8(buf).unwrap()
     }
 
-    // TODO: `return Result<usize>`
-    // TODO: start `i` at `self.offset` instead of `0`
-    // TODO: set `self.offset` to `i` at the end
-    pub fn write(&mut self, buf: &[u8]) -> Result<(), ()> {
+    pub fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let buf_len = buf.len();
         let mut addr = self.addr;
-        let mut i = 0;
-        while i < buf_len {
-            let mut block = Block::new(addr);
+        let mut bytes = 0; // Number of bytes written
+        let mut pos = 0; // Position in the file
+        while bytes < buf_len {
+            let mut block = Block::read(addr);
             let data = block.data_mut();
             let data_len = data.len();
-            for j in 0..data_len {
-                if i == buf_len {
-                    break;
+            for i in 0..data_len {
+                if pos == self.offset {
+                    if bytes == buf_len {
+                        break;
+                    }
+                    data[i] = buf[bytes];
+                    bytes += 1;
+                    self.offset += 1;
                 }
-                data[j] = buf[i];
-                i += 1;
+                pos += 1;
             }
 
             addr = match block.next() {
                 Some(next_block) => {
-                    if i < buf_len {
+                    if bytes < buf_len {
                         next_block.addr()
                     } else {
                         // TODO: Free the next block(s)
@@ -155,7 +178,7 @@ impl File {
                     }
                 }
                 None => {
-                    if i < buf_len {
+                    if bytes < buf_len {
                         match Block::alloc() {
                             Some(next_block) => next_block.addr(),
                             None => return Err(()),
@@ -169,9 +192,9 @@ impl File {
             block.set_next(addr);
             block.write();
         }
-        self.size = i as u32;
+        self.size = self.offset;
         self.dir.update_entry_size(&self.name, self.size);
-        Ok(())
+        Ok(bytes)
     }
 
     pub fn addr(&self) -> u32 {
@@ -386,6 +409,7 @@ impl DirEntry {
             addr: self.addr,
             size: self.size,
             dir: self.dir,
+            offset: 0,
         }
     }
 
