@@ -364,10 +364,11 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
 #[test_case]
 pub fn test_lisp() {
-    #[macro_export]
+    let env = &mut default_env();
+
     macro_rules! eval {
         ($e:expr) => {
-            format!("{}", parse_eval($e, &mut default_env()).unwrap())
+            format!("{}", parse_eval($e, env).unwrap())
         };
     }
 
@@ -395,4 +396,10 @@ pub fn test_lisp() {
     // Lambdas
     assert_eq!(eval!("((fn (a) (+ 1 a)) 2)"), "3");
     assert_eq!(eval!("((fn (a) (* a a)) 2)"), "4");
+
+    eval!("(def add-one (fn (a) (+ a 1)))");
+    assert_eq!(eval!("(add-one 2)"), "3");
+
+    eval!("(def fib (fn (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))))");
+    assert_eq!(eval!("(fib 6)"), "8");
 }
