@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::syscall;
 use crate::sys::cmos::CMOS;
 use alloc::borrow::ToOwned;

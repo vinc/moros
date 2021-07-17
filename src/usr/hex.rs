@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::console::Style;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {

@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {

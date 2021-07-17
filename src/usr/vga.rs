@@ -1,4 +1,4 @@
-use crate::{api, sys, usr, print};
+use crate::{api, sys, usr};
 use crate::api::vga::palette;
 use alloc::vec::Vec;
 

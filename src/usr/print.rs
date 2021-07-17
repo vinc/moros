@@ -1,4 +1,4 @@
-use crate::{usr, print};
+use crate::usr;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let n = args.len();
@@ -8,6 +8,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             print!(" ");
         }
     }
-    print!("\n");
+    println!();
     usr::shell::ExitCode::CommandSuccessful
 }

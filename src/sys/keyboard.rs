@@ -39,11 +39,11 @@ pub fn init() {
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify {:#X}\n", sys::clock::uptime(), res);
+    printk!("[{:.6}] keyboard: identify {:#X}\n", sys::clock::uptime(), res);
     let res = unsafe {
         port.read()
     };
-    print!("[{:.6}] keyboard: identify {:#X}\n", sys::clock::uptime(), res);
+    printk!("[{:.6}] keyboard: identify {:#X}\n", sys::clock::uptime(), res);
 
     // Self-test
     let res = unsafe {
@@ -57,9 +57,9 @@ pub fn init() {
         port.read()
     };
     if res == 0xAA { // 0xAA == Passed, 0xFC or 0xFD == Failed, 0xFE == Resend
-        print!("[{:.6}] keyboard: self test passed\n", sys::clock::uptime());
+        printk!("[{:.6}] keyboard: self test passed\n", sys::clock::uptime());
     } else {
-        print!("[{:.6}] keyboard: self test failed ({:#X})\n", sys::clock::uptime(), res);
+        printk!("[{:.6}] keyboard: self test failed ({:#X})\n", sys::clock::uptime(), res);
     }
 
     // Switch to scancode set 2
@@ -72,7 +72,7 @@ pub fn init() {
     if res != 0xFA { // 0xFA == ACK, 0xFE == Resend
         return init();
     }
-    print!("[{:.6}] keyboard: switch to scancode set 2\n", sys::clock::uptime());
+    printk!("[{:.6}] keyboard: switch to scancode set 2\n", sys::clock::uptime());
     */
     sys::idt::set_irq_handler(1, interrupt_handler);
 }

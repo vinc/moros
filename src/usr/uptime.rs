@@ -1,4 +1,4 @@
-use crate::{usr, print};
+use crate::usr;
 use crate::api::syscall;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {

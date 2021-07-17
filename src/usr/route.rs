@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use alloc::string::ToString;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
