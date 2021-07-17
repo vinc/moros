@@ -1,4 +1,4 @@
-use crate::{sys, log};
+use crate::sys;
 use acpi::{AcpiHandler, PhysicalMapping, AcpiTables};
 use alloc::boxed::Box;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};

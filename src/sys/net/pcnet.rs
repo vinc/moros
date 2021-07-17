@@ -1,4 +1,4 @@
-use crate::{sys, usr, log, print};
+use crate::{sys, usr};
 use crate::sys::allocator::PhysBuf;
 use crate::sys::net::Stats;
 
@@ -284,10 +284,10 @@ impl<'a> Device<'a> for PCNET {
         let mut rx_id = self.rx_id.load(Ordering::SeqCst);
         while is_buffer_owner(&self.rx_des, rx_id) {
             if self.debug_mode {
-                print!("{}\n", "-".repeat(66));
+                printk!("{}\n", "-".repeat(66));
                 log!("NET PCNET Receiving:\n");
-                //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-                //print!("RX Buffer: {}\n", rx_id);
+                //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+                //printk!("RX Buffer: {}\n", rx_id);
             }
 
             let rmd1 = self.rx_des[rx_id * DE_LEN + 7];
@@ -302,25 +302,25 @@ impl<'a> Device<'a> for PCNET {
             let framing_error = rmd1.get_bit(DE_FRAM) && !rmd1.get_bit(DE_OFLO) && rmd1.get_bit(DE_ENP);
 
             if self.debug_mode {
-                print!("Flags: ");
+                printk!("Flags: ");
                 if start_of_packet {
-                    print!("start_of_packet ");
+                    printk!("start_of_packet ");
                 }
                 if end_of_packet {
-                    print!("end_of_packet ");
+                    printk!("end_of_packet ");
                 }
                 if error {
                     if overflow_error {
-                        print!("overflow_error ");
+                        printk!("overflow_error ");
                     }
                     if framing_error {
-                        print!("framing_error ");
+                        printk!("framing_error ");
                     }
                     if crc_error {
-                        print!("crc_error ");
+                        printk!("crc_error ");
                     }
                 }
-                print!("\n");
+                printk!("\n");
             }
             */
 
@@ -346,10 +346,10 @@ impl<'a> Device<'a> for PCNET {
         if packet.len() > 0 {
             self.stats.rx_add(packet.len() as u64);
             if self.debug_mode {
-                //print!("Size: {} bytes\n", packet.len());
+                //printk!("Size: {} bytes\n", packet.len());
                 usr::hex::print_hex(&packet);
-                //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-                //print!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
+                //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+                //printk!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
             }
 
             let rx = RxToken { packet };
@@ -366,10 +366,10 @@ impl<'a> Device<'a> for PCNET {
 
         if is_buffer_owner(&self.tx_des, tx_id) {
             if self.debug_mode {
-                print!("{}\n", "-".repeat(66));
+                printk!("{}\n", "-".repeat(66));
                 log!("NET PCNET Transmitting:\n");
-                //print!("TX Buffer: {}\n", tx_id);
-                //print!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
+                //printk!("TX Buffer: {}\n", tx_id);
+                //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
             }
 
             let tx = TxToken {
@@ -426,9 +426,9 @@ impl phy::TxToken for TxToken {
 
         self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
-            //print!("Size: {} bytes\n", len);
+            //printk!("Size: {} bytes\n", len);
             usr::hex::print_hex(&buf);
-            //print!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
+            //printk!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
         }
 
         res

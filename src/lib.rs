@@ -10,7 +10,9 @@
 
 extern crate alloc;
 
+#[macro_use]
 pub mod api;
+
 pub mod sys;
 pub mod usr;
 

@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::console::Style;
 use alloc::format;
 use alloc::string::{String, ToString};

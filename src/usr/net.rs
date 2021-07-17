@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::syscall;
 //use smoltcp::wire::Ipv4Address;
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};

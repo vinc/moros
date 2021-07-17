@@ -1,4 +1,3 @@
-use crate::log;
 use raw_cpuid::CpuId;
 
 pub fn init() {

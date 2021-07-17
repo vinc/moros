@@ -1,4 +1,3 @@
-use crate::log;
 use alloc::vec::Vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;

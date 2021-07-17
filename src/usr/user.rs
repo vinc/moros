@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
