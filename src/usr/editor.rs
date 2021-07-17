@@ -36,7 +36,7 @@ impl Editor {
         let config = EditorConfig { tab_size: 4 };
 
         let file = match sys::fs::File::open(pathname) {
-            Some(file) => {
+            Some(mut file) => {
                 let contents = file.read_to_string();
                 for line in contents.split('\n') {
                     lines.push(line.into());
@@ -65,6 +65,7 @@ impl Editor {
         }
 
         if let Some(file) = &mut self.file {
+            file.seek(sys::fs::SeekFrom::Start(0)).unwrap();
             file.write(&contents.as_bytes()).unwrap();
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");

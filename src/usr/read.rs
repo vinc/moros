@@ -77,7 +77,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
             } else if pathname.ends_with('/') {
                 usr::list::main(args)
-            } else if let Some(file) = sys::fs::File::open(pathname) {
+            } else if let Some(mut file) = sys::fs::File::open(pathname) {
                 print!("{}", file.read_to_string());
                 usr::shell::ExitCode::CommandSuccessful
             } else {
