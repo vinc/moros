@@ -50,7 +50,6 @@ impl fmt::Display for Exp {
     }
 }
 
-
 #[derive(Debug)]
 enum Err {
     Reason(String),
@@ -64,7 +63,7 @@ struct Env<'a> {
 
 // Parse
 
-fn tokenize(expr: String) -> Vec<String> {
+fn tokenize(expr: &str) -> Vec<String> {
     expr.replace("(", " ( ").replace(")", " ) ").split_whitespace().map(|x| x.to_string()).collect()
 }
 
@@ -329,7 +328,7 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
 
 // REPL
 
-fn parse_eval(expr: String, env: &mut Env) -> Result<Exp, Err> {
+fn parse_eval(expr: &str, env: &mut Env) -> Result<Exp, Err> {
     let (parsed_exp, _) = parse(&tokenize(expr))?;
     let evaled_exp = eval(&parsed_exp, env)?;
     Ok(evaled_exp)
@@ -354,11 +353,46 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         if expr == "(exit)" || sys::console::abort() {
             return usr::shell::ExitCode::CommandSuccessful;
         }
-        match parse_eval(expr, env) {
+        match parse_eval(&expr, env) {
             Ok(res) => print!("{}\n\n", res),
             Err(e) => match e {
                 Err::Reason(msg) => print!("{}{}{}\n\n", csi_error, msg, csi_reset),
             },
         }
     }
+}
+
+#[test_case]
+pub fn test_lisp() {
+    #[macro_export]
+    macro_rules! eval {
+        ($e:expr) => {
+            format!("{}", parse_eval($e, &mut default_env()).unwrap())
+        };
+    }
+
+    // Addition
+    assert_eq!(eval!("(+ 2 2)"), "4");
+    assert_eq!(eval!("(+ 2 3 4)"), "9");
+    assert_eq!(eval!("(+ 2 (+ 3 4))"), "9");
+
+    // Multiplication
+    assert_eq!(eval!("(* 2 2)"), "4");
+    assert_eq!(eval!("(* 2 3 4)"), "24");
+    assert_eq!(eval!("(* 2 (* 3 4))"), "24");
+
+    // Mixed operations
+    assert_eq!(eval!("(+ 10 5 (- 10 3 3))"), "19");
+
+    // Comparisons
+    assert_eq!(eval!("(< 6 4)"), "false");
+    assert_eq!(eval!("(> 6 4 3 1)"), "true");
+
+    // Conditions
+    assert_eq!(eval!("(if (< 2 4 6) 1 2)"), "1");
+    assert_eq!(eval!("(if (> 2 4 6) 1 2)"), "2");
+
+    // Lambdas
+    assert_eq!(eval!("((fn (a) (+ 1 a)) 2)"), "3");
+    assert_eq!(eval!("((fn (a) (* a a)) 2)"), "4");
 }
