@@ -127,11 +127,20 @@ macro_rules! ensure_tonicity {
 fn default_env<'a>() -> RispEnv<'a> {
     let mut data: BTreeMap<String, RispExp> = BTreeMap::new();
     data.insert(
+        "*".to_string(),
+        RispExp::Func(
+            |args: &[RispExp]| -> Result<RispExp, RispErr> {
+                let res = parse_list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
+                Ok(RispExp::Number(res))
+            }
+        )
+    );
+    data.insert(
         "+".to_string(), 
         RispExp::Func(
             |args: &[RispExp]| -> Result<RispExp, RispErr> {
-                let sum = parse_list_of_floats(args)?.iter().fold(0.0, |sum, a| sum + a);
-                Ok(RispExp::Number(sum))
+                let res = parse_list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
+                Ok(RispExp::Number(res))
             }
         )
     );
