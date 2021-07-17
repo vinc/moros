@@ -10,6 +10,10 @@ use alloc::rc::Rc;
 use core::fmt;
 use core::num::ParseFloatError;
 
+// Adapted from Risp
+// Copyright 2019 Stepan Parunashvili
+// https://github.com/stopachka/risp
+
 // Types
 
 #[derive(Clone)]
