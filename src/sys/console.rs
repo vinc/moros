@@ -1,5 +1,6 @@
-use crate::{sys, print};
+use crate::sys;
 use alloc::string::String;
+use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
@@ -18,9 +19,9 @@ pub fn clear_row_after(x: usize) {
     if cfg!(feature = "video") {
         sys::vga::clear_row_after(x);
     } else {
-        print!("\r"); // Move cursor to begining of line
-        print!("\x1b[{}C", x); // Move cursor forward to position
-        print!("\x1b[K"); // Clear line after position
+        sys::serial::print_fmt(format_args!("\r")); // Move cursor to begining of line
+        sys::serial::print_fmt(format_args!("\x1b[{}C", x)); // Move cursor forward to position
+        sys::serial::print_fmt(format_args!("\x1b[K")); // Clear line after position
     }
 }
 
@@ -28,7 +29,7 @@ pub fn cursor_position() -> (usize, usize) {
     if cfg!(feature = "video") {
         sys::vga::cursor_position()
     } else {
-        print!("\x1b[6n"); // Ask cursor position
+        sys::serial::print_fmt(format_args!("\x1b[6n")); // Ask cursor position
         get_char(); // ESC
         get_char(); // [
         let mut x = String::new();
@@ -57,37 +58,8 @@ pub fn set_writer_position(x: usize, y: usize) {
     if cfg!(feature = "video") {
         sys::vga::set_writer_position(x, y);
     } else {
-        print!("\x1b[{};{}H", y + 1, x + 1);
+        sys::serial::print_fmt(format_args!("\x1b[{};{}H", y + 1, x + 1));
     }
-}
-
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => ({
-        if cfg!(feature="video") {
-            $crate::sys::vga::print_fmt(format_args!($($arg)*));
-        } else {
-            $crate::sys::serial::print_fmt(format_args!($($arg)*));
-        }
-    });
-}
-
-#[macro_export]
-macro_rules! log {
-    ($($arg:tt)*) => ({
-        if !cfg!(test) {
-            let uptime = $crate::sys::clock::uptime();
-            let csi_color = $crate::api::console::Style::color("LightGreen");
-            let csi_reset = $crate::api::console::Style::reset();
-            if cfg!(feature="video") {
-                $crate::sys::vga::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-                $crate::sys::vga::print_fmt(format_args!($($arg)*));
-            } else {
-                $crate::sys::serial::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
-                $crate::sys::serial::print_fmt(format_args!($($arg)*));
-            }
-        }
-    });
 }
 
 pub fn disable_echo() {
@@ -131,7 +103,7 @@ pub fn key_handle(key: char) {
                     '\x03' | '\x04' => 2,
                     _ => c.len_utf8(),
                 };
-                print!("{}", "\x08".repeat(n));
+                print_fmt(format_args!("{}", "\x08".repeat(n)));
             }
         }
     } else {
@@ -140,9 +112,9 @@ pub fn key_handle(key: char) {
         stdin.push(key);
         if is_echo_enabled() {
             match key {
-                '\x03' => print!("^C"),
-                '\x04' => print!("^D"),
-                _ => print!("{}", key),
+                '\x03' => print_fmt(format_args!("^C")),
+                '\x04' => print_fmt(format_args!("^D")),
+                _ => print_fmt(format_args!("{}", key)),
             };
         }
     }
@@ -204,5 +176,14 @@ pub fn get_line() -> String {
         if let Some(line) = res {
             return line;
         }
+    }
+}
+
+#[doc(hidden)]
+pub fn print_fmt(args: fmt::Arguments) {
+    if cfg!(feature = "video") {
+        sys::vga::print_fmt(args);
+    } else {
+        sys::serial::print_fmt(args);
     }
 }

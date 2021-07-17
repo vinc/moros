@@ -1,4 +1,4 @@
-use crate::{api, sys, usr, print};
+use crate::{api, sys, usr};
 use crate::api::vga::palette;
 use alloc::vec::Vec;
 
@@ -10,7 +10,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     match args[1] {
         "set" => {
             if args.len() == 4 && args[2] == "font" {
-                if let Some(file) = sys::fs::File::open(args[3]) {
+                if let Some(mut file) = sys::fs::File::open(args[3]) {
                     let size = file.size();
                     let mut buf = Vec::with_capacity(size);
                     buf.resize(size, 0);
@@ -23,7 +23,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                 }
             } else if args.len() == 4 && args[2] == "palette" {
-                if let Some(file) = sys::fs::File::open(args[3]) {
+                if let Some(mut file) = sys::fs::File::open(args[3]) {
                     if let Ok(palette) = palette::from_csv(&file.read_to_string()) {
                         sys::vga::set_palette(palette);
                     } else {

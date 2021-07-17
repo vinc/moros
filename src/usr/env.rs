@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {

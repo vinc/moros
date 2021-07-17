@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::syscall;
 use crate::api::console::Style;
 use alloc::collections::vec_deque::VecDeque;
@@ -111,7 +111,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
                                         body = format!("<h1>Moved Permanently</h1>\r\n");
                                         mime = "text/html";
-                                    } else if let Some(file) = sys::fs::File::open(path) {
+                                    } else if let Some(mut file) = sys::fs::File::open(path) {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = file.read_to_string().replace("\n", "\r\n");

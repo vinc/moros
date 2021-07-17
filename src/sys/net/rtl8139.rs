@@ -1,4 +1,4 @@
-use crate::{sys, usr, log, print};
+use crate::{sys, usr};
 use crate::sys::allocator::PhysBuf;
 use crate::sys::net::Stats;
 use alloc::collections::BTreeMap;
@@ -236,13 +236,13 @@ impl<'a> Device<'a> for RTL8139 {
 
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if self.debug_mode {
-            print!("{}\n", "-".repeat(66));
+            printk!("{}\n", "-".repeat(66));
             log!("NET RTL8139 Receiving:\n");
-            //print!("Command Register: {:#02X}\n", cmd);
-            //print!("Interrupt Status Register: {:#02X}\n", isr);
-            //print!("CAPR: {}\n", capr);
-            //print!("CBR: {}\n", cbr);
-            //print!("Header: {:#04X}\n", header);
+            //printk!("Command Register: {:#02X}\n", cmd);
+            //printk!("Interrupt Status Register: {:#02X}\n", isr);
+            //printk!("CAPR: {}\n", capr);
+            //printk!("CBR: {}\n", cbr);
+            //printk!("Header: {:#04X}\n", header);
         }
         if header & ROK != ROK {
             unsafe { self.ports.capr.write(cbr) };
@@ -253,9 +253,9 @@ impl<'a> Device<'a> for RTL8139 {
         //let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
         let len = n - 4;
         if self.debug_mode {
-            //print!("Size: {} bytes\n", len);
-            //print!("CRC: {:#08X}\n", crc);
-            //print!("RX Offset: {}\n", offset);
+            //printk!("Size: {} bytes\n", len);
+            //printk!("CRC: {:#08X}\n", crc);
+            //printk!("RX Offset: {}\n", offset);
             usr::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
         }
         self.stats.rx_add(len as u64);
@@ -281,10 +281,10 @@ impl<'a> Device<'a> for RTL8139 {
         self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
 
         if self.debug_mode {
-            print!("{}\n", "-".repeat(66));
+            printk!("{}\n", "-".repeat(66));
             log!("NET RTL8139 Transmitting:\n");
-            //print!("TX Buffer: {}\n", self.tx_id);
-            //print!("Interrupt Status Register: {:#02X}\n", isr);
+            //printk!("TX Buffer: {}\n", self.tx_id);
+            //printk!("Interrupt Status Register: {:#02X}\n", isr);
         }
 
         let tx = TxToken {
@@ -352,7 +352,7 @@ impl phy::TxToken for TxToken {
         }
         self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
-            //print!("Size: {} bytes\n", len);
+            //printk!("Size: {} bytes\n", len);
             usr::hex::print_hex(&buf[0..len]);
         }
 
@@ -391,7 +391,7 @@ pub fn init() {
 }
 
 pub fn interrupt_handler() {
-    print!("RTL8139 interrupt!\n");
+    printk!("RTL8139 interrupt!\n");
     if let Some(mut guard) = sys::net::IFACE.try_lock() {
         if let Some(ref mut iface) = *guard {
             unsafe { iface.device_mut().ports.isr.write(0xffff) } // Clear the interrupt

@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -173,7 +173,7 @@ pub fn hash(password: &str) -> String {
 
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
-    if let Some(file) = sys::fs::File::open(PASSWORDS) {
+    if let Some(mut file) = sys::fs::File::open(PASSWORDS) {
         for line in file.read_to_string().split("\n") {
             let mut rows = line.split(",");
             if let Some(username) = rows.next() {
@@ -195,7 +195,7 @@ fn hashed_password(username: &str) -> Option<String> {
     }
 }
 
-fn save_hashed_password(username: &str, hash: &str) -> Result<(), ()> {
+fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     let mut hashed_passwords = read_hashed_passwords();
     hashed_passwords.remove(username.into());
     hashed_passwords.insert(username.into(), hash.into());

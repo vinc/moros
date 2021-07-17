@@ -1,4 +1,4 @@
-use crate::{sys, log, print};
+use crate::sys;
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -149,8 +149,8 @@ impl Bus {
     fn debug(&mut self) {
         self.wait();
         unsafe {
-            print!("drive register: 0b{:08b}\n", self.drive_register.read());
-            print!("status:         0b{:08b}\n", self.status_register.read());
+            printk!("drive register: 0b{:08b}\n", self.drive_register.read());
+            printk!("status:         0b{:08b}\n", self.status_register.read());
         }
     }
 

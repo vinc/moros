@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use core::str::FromStr;
 use smoltcp::wire::IpCidr;
 

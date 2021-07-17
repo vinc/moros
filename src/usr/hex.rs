@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::console::Style;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
@@ -8,7 +8,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let pathname = args[1];
 
-    if let Some(file) = sys::fs::File::open(pathname) {
+    if let Some(mut file) = sys::fs::File::open(pathname) {
         let contents = file.read_to_string();
         print_hex(contents.as_bytes());
         usr::shell::ExitCode::CommandSuccessful

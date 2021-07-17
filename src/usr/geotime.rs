@@ -1,4 +1,4 @@
-use crate::{usr, print};
+use crate::usr;
 use crate::api::syscall;
 use alloc::format;
 use core::f64::consts::PI;

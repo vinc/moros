@@ -1,4 +1,4 @@
-use crate::{sys, print};
+use crate::sys;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
@@ -78,7 +78,7 @@ irq_handler!(irq14_handler, 14);
 irq_handler!(irq15_handler, 15);
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
-    print!("EXCEPTION: BREAKPOINT\n{:#?}\n", stack_frame);
+    printk!("EXCEPTION: BREAKPOINT\n{:#?}\n", stack_frame);
 }
 
 extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {

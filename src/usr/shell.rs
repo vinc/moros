@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::console::Style;
 use alloc::format;
 use alloc::vec;
@@ -243,7 +243,7 @@ impl Shell {
         if let Some(home) = sys::process::env("HOME") {
             let pathname = format!("{}/.shell_history", home);
 
-            if let Some(file) = sys::fs::File::open(&pathname) {
+            if let Some(mut file) = sys::fs::File::open(&pathname) {
                 let contents = file.read_to_string();
                 for line in contents.split('\n') {
                     let cmd = line.trim();
@@ -473,7 +473,7 @@ pub fn main(args: &[&str]) -> ExitCode {
         },
         2 => {
             let pathname = args[1];
-            if let Some(file) = sys::fs::File::open(pathname) {
+            if let Some(mut file) = sys::fs::File::open(pathname) {
                 for line in file.read_to_string().split("\n") {
                     if line.len() > 0 {
                         shell.exec(line);

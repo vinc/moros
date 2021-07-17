@@ -1,4 +1,4 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use alloc::vec::Vec;
 
 const COMMANDS: [&'static str; 2] = ["list", "format"];

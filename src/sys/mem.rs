@@ -1,4 +1,4 @@
-use crate::{sys, log};
+use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate};
 use x86_64::{PhysAddr, VirtAddr};

@@ -1,4 +1,4 @@
-use crate::{usr, print};
+use crate::usr;
 use alloc::format;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {

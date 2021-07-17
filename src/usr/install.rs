@@ -1,33 +1,33 @@
-use crate::{sys, usr, print};
+use crate::{sys, usr};
 use crate::api::console::Style;
 use alloc::string::String;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    print!("{}Welcome to MOROS v{} installation program!{}\n", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
-    print!("\n");
+    println!("{}Welcome to MOROS v{} installation program!{}", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
+    println!();
 
     print!("Proceed? [y/N] ");
     if sys::console::get_line().trim() == "y" {
-        print!("\n");
+        println!();
 
         if !sys::fs::is_mounted() {
-            print!("{}Listing disks ...{}\n", csi_color, csi_reset);
+            println!("{}Listing disks ...{}", csi_color, csi_reset);
             usr::disk::main(&["disk", "list"]);
-            print!("\n");
+            println!();
 
-            print!("{}Formatting disk ...{}\n", csi_color, csi_reset);
+            println!("{}Formatting disk ...{}", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
             let pathname = sys::console::get_line();
             let res = usr::disk::main(&["disk", "format", pathname.trim_end()]);
             if res == usr::shell::ExitCode::CommandError {
                 return res;
             }
-            print!("\n");
+            println!();
         }
 
-        print!("{}Populating filesystem...{}\n", csi_color, csi_reset);
+        println!("{}Populating filesystem...{}", csi_color, csi_reset);
         create_dir("/bin"); // Binaries
         create_dir("/dev"); // Devices
         create_dir("/ini"); // Initializers
@@ -50,18 +50,18 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"));
 
         if sys::process::user().is_none() {
-            print!("\n");
-            print!("{}Creating user...{}\n", csi_color, csi_reset);
+            println!();
+            println!("{}Creating user...{}", csi_color, csi_reset);
             let res = usr::user::main(&["user", "create"]);
             if res == usr::shell::ExitCode::CommandError {
                 return res;
             }
         }
 
-        print!("\n");
-        print!("{}Installation successful!{}\n", csi_color, csi_reset);
-        print!("\n");
-        print!("Exit console or reboot to apply changes\n");
+        println!();
+        println!("{}Installation successful!{}", csi_color, csi_reset);
+        println!();
+        println!("Exit console or reboot to apply changes");
     }
 
     usr::shell::ExitCode::CommandSuccessful
@@ -69,7 +69,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
 fn create_dir(pathname: &str) {
     if sys::fs::Dir::create(pathname).is_some() {
-        print!("Created '{}'\n", pathname);
+        println!("Created '{}'", pathname);
     }
 }
 
@@ -88,6 +88,6 @@ fn copy_file(pathname: &str, buf: &[u8]) {
         } else {
             file.write(buf).unwrap();
         }
-        print!("Copied '{}'\n", pathname);
+        println!("Copied '{}'", pathname);
     }
 }

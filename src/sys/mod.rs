@@ -1,3 +1,23 @@
+#[macro_export]
+macro_rules! printk {
+    ($($arg:tt)*) => ({
+        $crate::sys::console::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[macro_export]
+macro_rules! log {
+    ($($arg:tt)*) => ({
+        if !cfg!(test) {
+            let uptime = $crate::sys::clock::uptime();
+            let csi_color = $crate::api::console::Style::color("LightGreen");
+            let csi_reset = $crate::api::console::Style::reset();
+            $crate::sys::console::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+            $crate::sys::console::print_fmt(format_args!($($arg)*));
+        }
+    });
+}
+
 pub mod acpi;
 pub mod allocator;
 pub mod ata;
