@@ -191,6 +191,26 @@ fn parse_single_float(exp: &Exp) -> Result<f64, Err> {
 
 // Eval
 
+fn eval_print_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(
+        Err::Reason(
+            "expected first form".to_string(),
+        )
+    )?;
+    if arg_forms.len() > 1 {
+        return Err(Err::Reason("print can only have one form".to_string()))
+    }
+    match eval(first_form, env) {
+        Ok(res) => {
+            println!("{}", res);
+            Ok(res)
+        },
+        Err(res) => {
+            Err(res)
+        },
+    }
+}
+
 fn eval_if_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let test_form = arg_forms.first().ok_or(Err::Reason("expected test form".to_string()))?;
     let test_eval = eval(test_form, env)?;
@@ -216,7 +236,7 @@ fn eval_def_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }?;
     let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
     if arg_forms.len() > 2 {
-        return Err(Err::Reason("def can only have two forms ".to_string()))
+        return Err(Err::Reason("def can only have two forms".to_string()))
     } 
     let second_eval = eval(second_form, env)?;
     env.data.insert(first_str, second_eval);
@@ -228,7 +248,7 @@ fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
     let params_exp = arg_forms.first().ok_or(Err::Reason("expected args form".to_string()))?;
     let body_exp = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
     if arg_forms.len() > 2 {
-        return Err(Err::Reason("fn definition can only have two forms ".to_string()))
+        return Err(Err::Reason("fn definition can only have two forms".to_string()))
     }
     Ok(Exp::Lambda(Lambda {
         body_exp: Rc::new(body_exp.clone()),
@@ -241,6 +261,7 @@ fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Res
     match exp {
         Exp::Symbol(s) => {
             match s.as_ref() {
+                "print" => Some(eval_print_args(arg_forms, env)),
                 "if" => Some(eval_if_args(arg_forms, env)),
                 "def" => Some(eval_def_args(arg_forms, env)),
                 "fn" => Some(eval_lambda_args(arg_forms)),
