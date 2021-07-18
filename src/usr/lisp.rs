@@ -355,16 +355,19 @@ fn parse_eval(expr: &str, env: &mut Env) -> Result<Exp, Err> {
     Ok(evaled_exp)
 }
 
-fn slurp_expr() -> String {
-    sys::console::get_line().trim_end().into()
+fn strip_comments(s: &str) -> String {
+    s.split("#").next().unwrap().into()
 }
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+fn slurp_expr() -> String {
+    strip_comments(sys::console::get_line().trim_end())
+}
+
+fn repl(env: &mut Env) -> usr::shell::ExitCode {
     print!("MOROS Lisp v0.1.0\n\n");
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
-    let env = &mut default_env();
     loop {
         print!("{}>{} ", csi_color, csi_reset);
         let mut expr = slurp_expr();
@@ -380,6 +383,52 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 Err::Reason(msg) => print!("{}{}{}\n\n", csi_error, msg, csi_reset),
             },
         }
+    }
+}
+
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let env = &mut default_env();
+    match args.len() {
+        1 => {
+            return repl(env);
+        },
+        2 => {
+            let pathname = args[1];
+            if let Some(mut file) = sys::fs::File::open(pathname) {
+                let mut block = String::new();
+                let mut opened = 0;
+                let mut closed = 0;
+                for line in file.read_to_string().split("\n") {
+                    let line = strip_comments(line);
+                    if line.len() > 0 {
+                        opened += line.matches("(").count();
+                        closed += line.matches(")").count();
+                        block.push_str(&line);
+                        if closed >= opened {
+                            //println!("eval: '{}'", block);
+                            if let Err(e) = parse_eval(&block, env) {
+                                match e {
+                                    Err::Reason(msg) => {
+                                        println!("{}", msg);
+                                        return usr::shell::ExitCode::CommandError;
+                                    }
+                                }
+                            }
+                            block.clear();
+                            opened = 0;
+                            closed = 0;
+                        }
+                    }
+                }
+                usr::shell::ExitCode::CommandSuccessful
+            } else {
+                print!("File not found '{}'\n", pathname);
+                usr::shell::ExitCode::CommandError
+            }
+        },
+        _ => {
+            usr::shell::ExitCode::CommandError
+        },
     }
 }
 
