@@ -430,6 +430,7 @@ impl Shell {
             "disk"                 => usr::disk::main(&args),
             "user"                 => usr::user::main(&args),
             "mem" | "memory"       => usr::mem::main(&args),
+            "lisp"                 => usr::lisp::main(&args),
             _                      => ExitCode::CommandUnknown,
         }
     }

@@ -18,6 +18,7 @@ pub mod httpd;
 pub mod install;
 pub mod ip;
 pub mod list;
+pub mod lisp;
 pub mod mem;
 pub mod net;
 pub mod print;
