@@ -224,7 +224,7 @@ fn eval_if_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_def_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_define_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let first_form = arg_forms.first().ok_or(
         Err::Reason(
             "expected first form".to_string(),
@@ -236,7 +236,7 @@ fn eval_def_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }?;
     let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
     if arg_forms.len() > 2 {
-        return Err(Err::Reason("def can only have two forms".to_string()))
+        return Err(Err::Reason("define can only have two forms".to_string()))
     } 
     let second_eval = eval(second_form, env)?;
     env.data.insert(first_str, second_eval);
@@ -248,7 +248,7 @@ fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
     let params_exp = arg_forms.first().ok_or(Err::Reason("expected args form".to_string()))?;
     let body_exp = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
     if arg_forms.len() > 2 {
-        return Err(Err::Reason("fn definition can only have two forms".to_string()))
+        return Err(Err::Reason("lambda definition can only have two forms".to_string()))
     }
     Ok(Exp::Lambda(Lambda {
         body_exp: Rc::new(body_exp.clone()),
@@ -263,8 +263,8 @@ fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Res
             match s.as_ref() {
                 "print" => Some(eval_print_args(arg_forms, env)),
                 "if" => Some(eval_if_args(arg_forms, env)),
-                "def" => Some(eval_def_args(arg_forms, env)),
-                "fn" => Some(eval_lambda_args(arg_forms)),
+                "define" => Some(eval_define_args(arg_forms, env)),
+                "lambda" => Some(eval_lambda_args(arg_forms)),
                 _ => None,
             }
         },
@@ -464,12 +464,16 @@ pub fn test_lisp() {
     assert_eq!(eval!("(if (> 2 4 6) 1 2)"), "2");
 
     // Lambdas
-    assert_eq!(eval!("((fn (a) (+ 1 a)) 2)"), "3");
-    assert_eq!(eval!("((fn (a) (* a a)) 2)"), "4");
+    assert_eq!(eval!("((lambda (a) (+ 1 a)) 2)"), "3");
+    assert_eq!(eval!("((lambda (a) (* a a)) 2)"), "4");
 
-    eval!("(def add-one (fn (a) (+ a 1)))");
+    // Definitions
+    eval!("(define a 2)");
+    assert_eq!(eval!("(+ a 1)"), "3");
+
+    eval!("(define add-one (lambda (b) (+ b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
 
-    eval!("(def fib (fn (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))))");
+    eval!("(define fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))))");
     assert_eq!(eval!("(fib 6)"), "8");
 }
