@@ -73,6 +73,7 @@ fn tokenize(expr: &str) -> Vec<String> {
 fn parse<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
     let (token, rest) = tokens.split_first().ok_or(Err::Reason("could not get token".to_string()))?;
     match &token[..] {
+        "'" => parse_quoted(rest),
         "(" => read_seq(rest),
         ")" => Err(Err::Reason("unexpected `)`".to_string())),
         _ => Ok((parse_atom(token), rest)),
@@ -91,6 +92,12 @@ fn read_seq<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
         res.push(exp);
         xs = new_xs;
     }
+}
+
+fn parse_quoted<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
+    let (exp, rest) = read_seq(&tokens[1..])?;
+    let list = vec![Exp::Symbol("quote".to_string()), exp];
+    Ok((Exp::List(list), rest))
 }
 
 fn parse_atom(token: &str) -> Exp {
@@ -341,20 +348,20 @@ fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Res
         Exp::Symbol(s) => {
             match s.as_ref() {
                 // Seven Primitive Operators
-                "quote"  => Some(eval_quote_args(arg_forms, env)),
-                "atom"   => Some(eval_atom_args(arg_forms, env)),
-                "eq"     => Some(eval_eq_args(arg_forms, env)),
-                "car"    => Some(eval_car_args(arg_forms, env)),
-                "cdr"    => Some(eval_cdr_args(arg_forms, env)),
-                "cons"   => Some(eval_cons_args(arg_forms, env)),
-                "cond"   => Some(eval_cond_args(arg_forms, env)),
+                "quote"         => Some(eval_quote_args(arg_forms, env)),
+                "atom"          => Some(eval_atom_args(arg_forms, env)),
+                "eq"            => Some(eval_eq_args(arg_forms, env)),
+                "car" | "first" => Some(eval_car_args(arg_forms, env)),
+                "cdr" | "rest"  => Some(eval_cdr_args(arg_forms, env)),
+                "cons"          => Some(eval_cons_args(arg_forms, env)),
+                "cond"          => Some(eval_cond_args(arg_forms, env)),
 
                 // Two Special Forms
-                "label"  => Some(eval_label_args(arg_forms, env)),
-                "lambda" => Some(eval_lambda_args(arg_forms)),
+                "label" | "def" => Some(eval_label_args(arg_forms, env)),
+                "lambda" | "fn" => Some(eval_lambda_args(arg_forms)),
 
-                "print"  => Some(eval_print_args(arg_forms, env)),
-                _        => None,
+                "print"         => Some(eval_print_args(arg_forms, env)),
+                _               => None,
             }
         },
         _ => None,
@@ -533,6 +540,7 @@ pub fn test_lisp() {
 
     // quote
     assert_eq!(eval!("(quote (1 2 3))"), "(1 2 3)");
+    assert_eq!(eval!("'(1 2 3)"), "(1 2 3)");
 
     // atom
     assert_eq!(eval!("(atom (quote a))"), "true");
