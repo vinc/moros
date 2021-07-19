@@ -14,6 +14,9 @@ use core::num::ParseFloatError;
 // Copyright 2019 Stepan Parunashvili
 // https://github.com/stopachka/risp
 
+// See "Recursive Functions of Symbolic Expressions and Their Computation by Machine" by John McCarthy (1960)
+// And "The Roots of Lisp" by Paul Graham (2002)
+
 // Types
 
 #[derive(Clone)]
@@ -40,7 +43,7 @@ impl fmt::Display for Exp {
             Exp::Number(n) => n.to_string(),
             Exp::List(list) => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
-                format!("({})", xs.join(","))
+                format!("({})", xs.join(" "))
             },
             Exp::Func(_) => "Function {}".to_string(),
             Exp::Lambda(_) => "Lambda {}".to_string(),
@@ -191,12 +194,134 @@ fn parse_single_float(exp: &Exp) -> Result<f64, Err> {
 
 // Eval
 
+fn eval_quote_args(arg_forms: &[Exp], _env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    Ok(first_form.clone())
+}
+
+fn eval_atom_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_eval = eval(first_form, env)?;
+    match first_eval {
+        Exp::Symbol(_) => Ok(Exp::Bool(true)),
+        _              => Ok(Exp::Bool(false)),
+    }
+}
+
+fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_eval = eval(first_form, env)?;
+    match first_eval {
+        Exp::Symbol(a) => {
+            let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+            let second_eval = eval(second_form, env)?;
+            match second_eval {
+                Exp::Symbol(b) => {
+                    Ok(Exp::Bool(a == b))
+                }
+                _ => Err(Err::Reason("expected symbol in second form".to_string())),
+            }
+        },
+        _ => Err(Err::Reason("expected symbol in first form".to_string())),
+    }
+}
+
+fn eval_car_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_eval = eval(first_form, env)?;
+    match first_eval {
+        Exp::List(list) => {
+            let exp = list.first().ok_or(Err::Reason("list cannot be empty".to_string()))?; // TODO: return nil?
+            Ok(exp.clone())
+        },
+        _ => Err(Err::Reason("expected list form".to_string())),
+    }
+}
+
+fn eval_cdr_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_eval = eval(first_form, env)?;
+    match first_eval {
+        Exp::List(list) => {
+            if list.len() < 1 {
+                return Err(Err::Reason("list cannot be empty".to_string())) // TODO: return nil?
+            }
+            Ok(Exp::List(list[1..].iter().map(|exp| exp.clone()).collect()))
+        },
+        _ => Err(Err::Reason("expected list form".to_string())),
+    }
+}
+
+fn eval_cons_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_eval = eval(first_form, env)?;
+    let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    let second_eval = eval(second_form, env)?;
+    match second_eval {
+        Exp::List(mut list) => {
+            list.insert(0, first_eval);
+            Ok(Exp::List(list.iter().map(|exp| exp.clone()).collect()))
+        },
+        _ => Err(Err::Reason("expected list form".to_string())),
+    }
+}
+
+fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    if arg_forms.len() == 0 {
+        return Err(Err::Reason("expected at least one form".to_string()))
+    }
+    for arg_form in arg_forms {
+        match arg_form {
+            Exp::List(list) => {
+                if list.len() != 2 {
+                    return Err(Err::Reason("expected lists of predicate and expression".to_string()))
+                }
+                let pred = eval(&list[0], env)?;
+                let exp = eval(&list[1], env)?;
+                match pred {
+                    Exp::Bool(b) => {
+                        if b {
+                            return Ok(exp.clone());
+                        }
+                    },
+                    _ => continue,
+                }
+            },
+            _ => return Err(Err::Reason("expected lists of predicate and expression".to_string())),
+        }
+    }
+    Ok(Exp::List(Vec::new()))
+}
+
+fn eval_label_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_str = match first_form {
+        Exp::Symbol(s) => Ok(s.clone()),
+        _ => Err(Err::Reason("expected first form to be a symbol".to_string()))
+    }?;
+    let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    if arg_forms.len() > 2 {
+        return Err(Err::Reason("label can only have two forms".to_string()))
+    } 
+    let second_eval = eval(second_form, env)?;
+    env.data.insert(first_str, second_eval);
+    Ok(first_form.clone())
+}
+
+fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
+    let params_exp = arg_forms.first().ok_or(Err::Reason("expected args form".to_string()))?;
+    let body_exp = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    if arg_forms.len() > 2 {
+        return Err(Err::Reason("lambda definition can only have two forms".to_string()))
+    }
+    Ok(Exp::Lambda(Lambda {
+        body_exp: Rc::new(body_exp.clone()),
+        params_exp: Rc::new(params_exp.clone()),
+    }))
+}
+
 fn eval_print_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(
-        Err::Reason(
-            "expected first form".to_string(),
-        )
-    )?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
     if arg_forms.len() > 1 {
         return Err(Err::Reason("print can only have one form".to_string()))
     }
@@ -211,61 +336,25 @@ fn eval_print_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_if_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let test_form = arg_forms.first().ok_or(Err::Reason("expected test form".to_string()))?;
-    let test_eval = eval(test_form, env)?;
-    match test_eval {
-        Exp::Bool(b) => {
-            let form_idx = if b { 1 } else { 2 };
-            let res_form = arg_forms.get(form_idx).ok_or(Err::Reason(format!("expected form idx={}", form_idx)))?;
-            eval(res_form, env)
-        },
-        _ => Err(Err::Reason(format!("unexpected test form='{}'", test_form.to_string())))
-    }
-}
-
-fn eval_define_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(
-        Err::Reason(
-            "expected first form".to_string(),
-        )
-    )?;
-    let first_str = match first_form {
-        Exp::Symbol(s) => Ok(s.clone()),
-        _ => Err(Err::Reason("expected first form to be a symbol".to_string()))
-    }?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
-    if arg_forms.len() > 2 {
-        return Err(Err::Reason("define can only have two forms".to_string()))
-    } 
-    let second_eval = eval(second_form, env)?;
-    env.data.insert(first_str, second_eval);
-    Ok(first_form.clone())
-}
-
-
-fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
-    let params_exp = arg_forms.first().ok_or(Err::Reason("expected args form".to_string()))?;
-    let body_exp = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
-    if arg_forms.len() > 2 {
-        return Err(Err::Reason("lambda definition can only have two forms".to_string()))
-    }
-    Ok(Exp::Lambda(Lambda {
-        body_exp: Rc::new(body_exp.clone()),
-        params_exp: Rc::new(params_exp.clone()),
-    }))
-}
-
-
 fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {
     match exp {
         Exp::Symbol(s) => {
             match s.as_ref() {
-                "print" => Some(eval_print_args(arg_forms, env)),
-                "if" => Some(eval_if_args(arg_forms, env)),
-                "define" => Some(eval_define_args(arg_forms, env)),
+                // Seven Primitive Operators
+                "quote"  => Some(eval_quote_args(arg_forms, env)),
+                "atom"   => Some(eval_atom_args(arg_forms, env)),
+                "eq"     => Some(eval_eq_args(arg_forms, env)),
+                "car"    => Some(eval_car_args(arg_forms, env)),
+                "cdr"    => Some(eval_cdr_args(arg_forms, env)),
+                "cons"   => Some(eval_cons_args(arg_forms, env)),
+                "cond"   => Some(eval_cond_args(arg_forms, env)),
+
+                // Two Special Forms
+                "label"  => Some(eval_label_args(arg_forms, env)),
                 "lambda" => Some(eval_lambda_args(arg_forms)),
-                _ => None,
+
+                "print"  => Some(eval_print_args(arg_forms, env)),
+                _        => None,
             }
         },
         _ => None,
@@ -442,38 +531,61 @@ pub fn test_lisp() {
         };
     }
 
-    // Addition
+    // quote
+    assert_eq!(eval!("(quote (1 2 3))"), "(1 2 3)");
+
+    // atom
+    assert_eq!(eval!("(atom (quote a))"), "true");
+    assert_eq!(eval!("(atom (quote (1 2 3)))"), "false");
+    assert_eq!(eval!("(atom 1)"), "false");
+
+    // eq
+    assert_eq!(eval!("(eq (quote a) (quote a))"), "true");
+    assert_eq!(eval!("(eq (quote a) (quote b))"), "false");
+
+    // car
+    assert_eq!(eval!("(car (quote (1)))"), "1");
+    assert_eq!(eval!("(car (quote (1 2 3)))"), "1");
+
+    // cdr
+    assert_eq!(eval!("(cdr (quote (1)))"), "()");
+    assert_eq!(eval!("(cdr (quote (1 2 3)))"), "(2 3)");
+
+    // cons
+    assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
+    assert_eq!(eval!("(cons (quote 1) (cons (quote 2) (cons (quote 3) (quote ()))))"), "(1 2 3)");
+
+    // cond
+    assert_eq!(eval!("(cond ((< 2 4) 1) (true 2))"), "1");
+    assert_eq!(eval!("(cond ((> 2 4) 1) (true 2))"), "2");
+
+    // label
+    eval!("(label a 2)");
+    assert_eq!(eval!("(+ a 1)"), "3");
+    //eval!("(label fn lambda)");
+    //assert_eq!(eval!("((fn (a) (+ 1 a)) 2)"), "3");
+    eval!("(label add-one (lambda (b) (+ b 1)))");
+    assert_eq!(eval!("(add-one 2)"), "3");
+    eval!("(label fib (lambda (n) (cond ((< n 2) n) (true (+ (fib (- n 1)) (fib (- n 2)))))))");
+    assert_eq!(eval!("(fib 6)"), "8");
+
+    // lambda
+    assert_eq!(eval!("((lambda (a) (+ 1 a)) 2)"), "3");
+    assert_eq!(eval!("((lambda (a) (* a a)) 2)"), "4");
+
+    // addition
     assert_eq!(eval!("(+ 2 2)"), "4");
     assert_eq!(eval!("(+ 2 3 4)"), "9");
     assert_eq!(eval!("(+ 2 (+ 3 4))"), "9");
 
-    // Multiplication
+    // multiplication
     assert_eq!(eval!("(* 2 2)"), "4");
     assert_eq!(eval!("(* 2 3 4)"), "24");
     assert_eq!(eval!("(* 2 (* 3 4))"), "24");
 
-    // Mixed operations
-    assert_eq!(eval!("(+ 10 5 (- 10 3 3))"), "19");
-
-    // Comparisons
+    // comparisons
     assert_eq!(eval!("(< 6 4)"), "false");
     assert_eq!(eval!("(> 6 4 3 1)"), "true");
-
-    // Conditions
-    assert_eq!(eval!("(if (< 2 4 6) 1 2)"), "1");
-    assert_eq!(eval!("(if (> 2 4 6) 1 2)"), "2");
-
-    // Lambdas
-    assert_eq!(eval!("((lambda (a) (+ 1 a)) 2)"), "3");
-    assert_eq!(eval!("((lambda (a) (* a a)) 2)"), "4");
-
-    // Definitions
-    eval!("(define a 2)");
-    assert_eq!(eval!("(+ a 1)"), "3");
-
-    eval!("(define add-one (lambda (b) (+ b 1)))");
-    assert_eq!(eval!("(add-one 2)"), "3");
-
-    eval!("(define fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2))))))");
-    assert_eq!(eval!("(fib 6)"), "8");
+    assert_eq!(eval!("(= 6 4)"), "false");
+    assert_eq!(eval!("(= 6 6)"), "true");
 }
