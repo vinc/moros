@@ -466,10 +466,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     let csi_reset = Style::reset();
     loop {
         print!("{}>{} ", csi_color, csi_reset);
-        let mut expr = slurp_expr();
-        if !expr.starts_with("(") {
-            expr = format!("({})", expr);
-        }
+        let expr = slurp_expr();
         if expr == "(exit)" || sys::console::end_of_text() || sys::console::end_of_transmission() {
             return usr::shell::ExitCode::CommandSuccessful;
         }
