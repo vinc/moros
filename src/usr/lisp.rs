@@ -229,18 +229,26 @@ fn eval_atom_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
     let first_eval = eval(first_form, env)?;
+    let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    let second_eval = eval(second_form, env)?;
     match first_eval {
         Exp::Symbol(a) => {
-            let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
-            let second_eval = eval(second_form, env)?;
             match second_eval {
                 Exp::Symbol(b) => {
                     Ok(Exp::Bool(a == b))
-                }
-                _ => Err(Err::Reason("expected symbol in second form".to_string())),
+                },
+                _ => Ok(Exp::Bool(false))
             }
         },
-        _ => Err(Err::Reason("expected symbol in first form".to_string())),
+        Exp::List(a) => {
+            match second_eval {
+                Exp::List(b) => {
+                    Ok(Exp::Bool(a.len() == 0 && b.len() == 0))
+                },
+                _ => Ok(Exp::Bool(false))
+            }
+        },
+        _ => Ok(Exp::Bool(false))
     }
 }
 
@@ -563,6 +571,8 @@ pub fn test_lisp() {
     // eq
     assert_eq!(eval!("(eq (quote a) (quote a))"), "true");
     assert_eq!(eval!("(eq (quote a) (quote b))"), "false");
+    assert_eq!(eval!("(eq (quote a) (quote ()))"), "false");
+    assert_eq!(eval!("(eq (quote ()) (quote ()))"), "true");
 
     // car
     assert_eq!(eval!("(car (quote (1)))"), "1");
