@@ -377,8 +377,8 @@ fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Res
             match s.as_ref() {
                 // Seven Primitive Operators
                 "quote"          => Some(eval_quote_args(arg_forms)),
-                "atom"           => Some(eval_atom_args(arg_forms, env)),
-                "eq"             => Some(eval_eq_args(arg_forms, env)),
+                "atom" | "atom?" => Some(eval_atom_args(arg_forms, env)),
+                "eq" | "eq?"     => Some(eval_eq_args(arg_forms, env)),
                 "car" | "first"  => Some(eval_car_args(arg_forms, env)),
                 "cdr" | "rest"   => Some(eval_cdr_args(arg_forms, env)),
                 "cons"           => Some(eval_cons_args(arg_forms, env)),
