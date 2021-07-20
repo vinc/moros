@@ -346,6 +346,15 @@ fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
     }))
 }
 
+fn eval_defun_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let name = arg_forms.get(0).ok_or(Err::Reason("expected first form".to_string()))?.clone();
+    let params = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?.clone();
+    let exp = arg_forms.get(2).ok_or(Err::Reason("expected third form".to_string()))?.clone();
+    let lambda_args = vec![Exp::Symbol("lambda".to_string()), params, exp];
+    let label_args = vec![name, Exp::List(lambda_args)];
+    eval_label_args(&label_args, env)
+}
+
 fn eval_print_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
     if arg_forms.len() > 1 {
@@ -367,20 +376,21 @@ fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Res
         Exp::Symbol(s) => {
             match s.as_ref() {
                 // Seven Primitive Operators
-                "quote"         => Some(eval_quote_args(arg_forms)),
-                "atom"          => Some(eval_atom_args(arg_forms, env)),
-                "eq"            => Some(eval_eq_args(arg_forms, env)),
-                "car" | "first" => Some(eval_car_args(arg_forms, env)),
-                "cdr" | "rest"  => Some(eval_cdr_args(arg_forms, env)),
-                "cons"          => Some(eval_cons_args(arg_forms, env)),
-                "cond"          => Some(eval_cond_args(arg_forms, env)),
+                "quote"          => Some(eval_quote_args(arg_forms)),
+                "atom"           => Some(eval_atom_args(arg_forms, env)),
+                "eq"             => Some(eval_eq_args(arg_forms, env)),
+                "car" | "first"  => Some(eval_car_args(arg_forms, env)),
+                "cdr" | "rest"   => Some(eval_cdr_args(arg_forms, env)),
+                "cons"           => Some(eval_cons_args(arg_forms, env)),
+                "cond"           => Some(eval_cond_args(arg_forms, env)),
 
                 // Two Special Forms
-                "label" | "def" => Some(eval_label_args(arg_forms, env)),
-                "lambda" | "fn" => Some(eval_lambda_args(arg_forms)),
+                "label" | "def"  => Some(eval_label_args(arg_forms, env)),
+                "lambda" | "fn"  => Some(eval_lambda_args(arg_forms)),
 
-                "print"         => Some(eval_print_args(arg_forms, env)),
-                _               => None,
+                "defun" | "defn" => Some(eval_defun_args(arg_forms, env)),
+                "print"          => Some(eval_print_args(arg_forms, env)),
+                _                => None,
             }
         },
         _ => None,
@@ -603,6 +613,11 @@ pub fn test_lisp() {
     // lambda
     assert_eq!(eval!("((lambda (a) (+ 1 a)) 2)"), "3");
     assert_eq!(eval!("((lambda (a) (* a a)) 2)"), "4");
+    assert_eq!(eval!("((lambda (x) (cons x '(b c))) 'a)"), "(a b c)");
+
+    // defun
+    eval!("(defun add (a b) (+ a b))");
+    assert_eq!(eval!("(add 1 2)"), "3");
 
     // addition
     assert_eq!(eval!("(+ 2 2)"), "4");
