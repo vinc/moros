@@ -67,7 +67,10 @@ struct Env<'a> {
 // Parse
 
 fn tokenize(expr: &str) -> Vec<String> {
-    expr.replace("(", " ( ").replace(")", " ) ").split_whitespace().map(|x| x.to_string()).collect()
+    expr.replace("(", " ( ")
+        .replace(")", " ) ")
+        .replace("'", " ' ")
+        .split_whitespace().map(|x| x.to_string()).collect()
 }
 
 fn parse<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
@@ -95,7 +98,13 @@ fn read_seq<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
 }
 
 fn parse_quoted<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
-    let (exp, rest) = read_seq(&tokens[1..])?;
+    let xs = tokens;
+    let (next_token, _) = xs.split_first().ok_or(Err::Reason("could not parse quote".to_string()))?;
+    let (exp, rest) = if next_token == "(" {
+        read_seq(&tokens[1..])? // Skip "("
+    } else {
+        parse(&tokens)?
+    };
     let list = vec![Exp::Symbol("quote".to_string()), exp];
     Ok((Exp::List(list), rest))
 }
@@ -538,6 +547,10 @@ pub fn test_lisp() {
     // quote
     assert_eq!(eval!("(quote (1 2 3))"), "(1 2 3)");
     assert_eq!(eval!("'(1 2 3)"), "(1 2 3)");
+    assert_eq!(eval!("(quote 1)"), "1");
+    assert_eq!(eval!("'1"), "1");
+    assert_eq!(eval!("(quote a)"), "a");
+    assert_eq!(eval!("'a"), "a");
 
     // atom
     assert_eq!(eval!("(atom (quote a))"), "true");
