@@ -43,7 +43,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"));
         copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"));
         copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
-        copy_file("/tmp/fib.ls", include_bytes!("../../dsk/tmp/fib.ls"));
+        copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"));
 
         create_dir("/ini/fonts");
         copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"));
