@@ -76,7 +76,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 print!("Timeout reached\n");
                 return usr::shell::ExitCode::CommandError;
             }
-            if sys::console::abort() {
+            if sys::console::end_of_text() {
                 print!("\n");
                 return usr::shell::ExitCode::CommandError;
             }

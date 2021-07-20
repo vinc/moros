@@ -49,7 +49,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let _server_handle = sockets.add(server_socket);
 
                 loop {
-                    if sys::console::abort() {
+                    if sys::console::end_of_text() {
                         print!("\n");
                         return usr::shell::ExitCode::CommandSuccessful;
                     }
