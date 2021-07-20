@@ -13,9 +13,11 @@ use core::num::ParseFloatError;
 // Adapted from Risp
 // Copyright 2019 Stepan Parunashvili
 // https://github.com/stopachka/risp
-
+//
 // See "Recursive Functions of Symbolic Expressions and Their Computation by Machine" by John McCarthy (1960)
 // And "The Roots of Lisp" by Paul Graham (2002)
+//
+// MOROS Lisp is also inspired by Racket and Clojure
 
 // Types
 
@@ -210,7 +212,7 @@ fn parse_single_float(exp: &Exp) -> Result<f64, Err> {
 
 // Eval
 
-fn eval_quote_args(arg_forms: &[Exp], _env: &mut Env) -> Result<Exp, Err> {
+fn eval_quote_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
     let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
     Ok(first_form.clone())
 }
@@ -357,7 +359,7 @@ fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Res
         Exp::Symbol(s) => {
             match s.as_ref() {
                 // Seven Primitive Operators
-                "quote"         => Some(eval_quote_args(arg_forms, env)),
+                "quote"         => Some(eval_quote_args(arg_forms)),
                 "atom"          => Some(eval_atom_args(arg_forms, env)),
                 "eq"            => Some(eval_eq_args(arg_forms, env)),
                 "car" | "first" => Some(eval_car_args(arg_forms, env)),
@@ -482,7 +484,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
         match parse_eval(&expr, env) {
             Ok(res) => print!("{}\n\n", res),
             Err(e) => match e {
-                Err::Reason(msg) => print!("{}{}{}\n\n", csi_error, msg, csi_reset),
+                Err::Reason(msg) => print!("{}Error: {}{}\n\n", csi_error, msg, csi_reset),
             },
         }
     }
@@ -551,6 +553,7 @@ pub fn test_lisp() {
     assert_eq!(eval!("'1"), "1");
     assert_eq!(eval!("(quote a)"), "a");
     assert_eq!(eval!("'a"), "a");
+    assert_eq!(eval!("(quote '(a b c))"), "(quote (a b c))");
 
     // atom
     assert_eq!(eval!("(atom (quote a))"), "true");
