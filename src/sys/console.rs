@@ -126,6 +126,12 @@ pub fn end_of_text() -> bool {
     })
 }
 
+pub fn end_of_transmission() -> bool {
+    interrupts::without_interrupts(|| {
+        STDIN.lock().contains('\x04')
+    })
+}
+
 pub fn drain() {
     interrupts::without_interrupts(|| {
         STDIN.lock().clear();

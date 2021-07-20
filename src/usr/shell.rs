@@ -66,13 +66,13 @@ impl Shell {
                 '\0' => {
                     continue;
                 }
-                '\x04' => { // Ctrl D
+                '\x04' => { // Ctrl D => End of Transmission
                     if self.cmd.is_empty() {
                         sys::vga::clear_screen();
                         return ExitCode::CommandSuccessful;
                     }
                 },
-                '\x03' => { // Ctrl C
+                '\x03' => { // Ctrl C => End of Text
                     self.cmd.clear();
                     self.errored = false;
                     print!("\n\n");

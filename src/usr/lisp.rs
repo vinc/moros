@@ -470,7 +470,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
         if !expr.starts_with("(") {
             expr = format!("({})", expr);
         }
-        if expr == "(exit)" || sys::console::end_of_text() {
+        if expr == "(exit)" || sys::console::end_of_text() || sys::console::end_of_transmission() {
             return usr::shell::ExitCode::CommandSuccessful;
         }
         match parse_eval(&expr, env) {
