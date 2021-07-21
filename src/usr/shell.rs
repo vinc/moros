@@ -73,9 +73,6 @@ impl Shell {
                     csi = true;
                     continue;
                 },
-                _ => {},
-            }
-            match c {
                 '\0' => {
                     continue;
                 }
