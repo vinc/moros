@@ -82,20 +82,29 @@ fn read_scancode() -> u8 {
     unsafe { port.read() }
 }
 
+fn send_key(c: char) {
+    sys::console::key_handle(c);
+}
+
+fn send_csi(c: char) {
+    send_key('\x1B'); // ESC
+    send_key('[');
+    send_key(c);
+}
+
 fn interrupt_handler() {
     let mut keyboard = KEYBOARD.lock();
     let scancode = read_scancode();
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
-            let c = match key {
-                DecodedKey::Unicode(c) => c,
-                DecodedKey::RawKey(KeyCode::ArrowLeft)  => '←', // U+2190
-                DecodedKey::RawKey(KeyCode::ArrowUp)    => '↑', // U+2191
-                DecodedKey::RawKey(KeyCode::ArrowRight) => '→', // U+2192
-                DecodedKey::RawKey(KeyCode::ArrowDown)  => '↓', // U+2193
-                DecodedKey::RawKey(_) => { return; }
+            match key {
+                DecodedKey::Unicode(c)                  => send_key(c),
+                DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi('A'),
+                DecodedKey::RawKey(KeyCode::ArrowDown)  => send_csi('B'),
+                DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi('C'),
+                DecodedKey::RawKey(KeyCode::ArrowLeft)  => send_csi('D'),
+                _ => {},
             };
-            sys::console::key_handle(c);
         }
     }
 }

@@ -59,9 +59,22 @@ impl Shell {
         self.load_history();
         print!("\n");
         self.print_prompt();
+        let mut escape = false;
+        let mut csi = false;
         loop {
             let (x, y) = sys::vga::cursor_position();
             let c = sys::console::get_char();
+            match c {
+                '\x1B' => { // ESC
+                    escape = true;
+                    continue;
+                },
+                '[' if escape => {
+                    csi = true;
+                    continue;
+                },
+                _ => {},
+            }
             match c {
                 '\0' => {
                     continue;
@@ -117,7 +130,7 @@ impl Shell {
                     self.update_history();
                     self.print_autocomplete();
                 },
-                '↑' => { // Arrow up
+                'A' if csi => { // Arrow up
                     self.update_autocomplete();
                     if self.history.len() > 0 {
                         if self.history_index > 0 {
@@ -130,7 +143,7 @@ impl Shell {
                         print!("{}", cmd);
                     }
                 },
-                '↓' => { // Arrow down
+                'B' if csi => { // Arrow down
                     self.update_autocomplete();
                     if self.history_index < self.history.len() {
                         self.history_index += 1;
@@ -145,20 +158,20 @@ impl Shell {
                         print!("{}", cmd);
                     }
                 },
-                '←' => { // Arrow left
-                    self.update_history();
-                    self.update_autocomplete();
-                    if x > self.prompt.len() {
-                        sys::vga::set_cursor_position(x - 1, y);
-                        sys::vga::set_writer_position(x - 1, y);
-                    }
-                },
-                '→' => { // Arrow right
+                'C' if csi => { // Arrow right
                     self.update_history();
                     self.update_autocomplete();
                     if x < self.prompt.len() + self.cmd.len() {
                         sys::vga::set_cursor_position(x + 1, y);
                         sys::vga::set_writer_position(x + 1, y);
+                    }
+                },
+                'D' if csi => { // Arrow left
+                    self.update_history();
+                    self.update_autocomplete();
+                    if x > self.prompt.len() {
+                        sys::vga::set_cursor_position(x - 1, y);
+                        sys::vga::set_writer_position(x - 1, y);
                     }
                 },
                 '\x08' => { // Backspace
@@ -225,6 +238,8 @@ impl Shell {
                     }
                 },
             }
+            escape = false;
+            csi = false;
         }
     }
 

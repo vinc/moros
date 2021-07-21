@@ -1,5 +1,6 @@
 use crate::sys;
 use alloc::string::String;
+use alloc::string::ToString;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -90,31 +91,33 @@ pub fn is_raw_enabled() -> bool {
     *RAW.lock()
 }
 
+const ETX_KEY: char = '\x03'; // End of Text
+const EOT_KEY: char = '\x04'; // End of Transmission
+const BS_KEY:  char = '\x08'; // Backspace
+const ESC_KEY: char = '\x1B'; // Escape
+
 pub fn key_handle(key: char) {
     let mut stdin = STDIN.lock();
 
-    if key == '\x08' && !is_raw_enabled() {
-        // Avoid printing more backspaces than chars inserted into STDIN.
-        // Also, the VGA driver support only ASCII so unicode chars will
-        // be displayed with one square for each codepoint.
+    if key == BS_KEY && !is_raw_enabled() {
+        // Avoid printing more backspaces than chars inserted into STDIN
         if let Some(c) = stdin.pop() {
             if is_echo_enabled() {
                 let n = match c {
-                    '\x03' | '\x04' => 2,
+                    ETX_KEY | EOT_KEY | ESC_KEY => 2,
                     _ => c.len_utf8(),
                 };
-                print_fmt(format_args!("{}", "\x08".repeat(n)));
+                print_fmt(format_args!("{}", BS_KEY.to_string().repeat(n)));
             }
         }
     } else {
-        // TODO: Replace non-ascii chars by ascii square symbol to keep length
-        // at 1 instead of being variable?
         stdin.push(key);
         if is_echo_enabled() {
             match key {
-                '\x03' => print_fmt(format_args!("^C")),
-                '\x04' => print_fmt(format_args!("^D")),
-                _ => print_fmt(format_args!("{}", key)),
+                ETX_KEY => print_fmt(format_args!("^C")),
+                EOT_KEY => print_fmt(format_args!("^D")),
+                ESC_KEY => print_fmt(format_args!("^[")),
+                _       => print_fmt(format_args!("{}", key)),
             };
         }
     }
@@ -122,13 +125,13 @@ pub fn key_handle(key: char) {
 
 pub fn end_of_text() -> bool {
     interrupts::without_interrupts(|| {
-        STDIN.lock().contains('\x03')
+        STDIN.lock().contains(ETX_KEY)
     })
 }
 
 pub fn end_of_transmission() -> bool {
     interrupts::without_interrupts(|| {
-        STDIN.lock().contains('\x04')
+        STDIN.lock().contains(EOT_KEY)
     })
 }
 
@@ -145,14 +148,10 @@ pub fn get_char() -> char {
         sys::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
-            match stdin.chars().next_back() {
-                Some(c) => {
-                    stdin.clear();
-                    Some(c)
-                },
-                _ => {
-                    None
-                }
+            if stdin.len() > 0 {
+                Some(stdin.remove(0))
+            } else {
+                None
             }
         });
         if let Some(c) = res {
