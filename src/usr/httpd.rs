@@ -44,7 +44,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
         let mut tcp_active = false;
         loop {
-            if sys::console::abort() {
+            if sys::console::end_of_text() {
                 print!("\n");
                 return usr::shell::ExitCode::CommandSuccessful;
             }

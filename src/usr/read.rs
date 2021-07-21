@@ -36,7 +36,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 if let Some(c) = core::char::from_u32(i) {
                     print!("{}", c);
                 }
-                if sys::console::abort() {
+                if sys::console::end_of_text() {
                     print!("\n");
                     return usr::shell::ExitCode::CommandSuccessful;
                 }

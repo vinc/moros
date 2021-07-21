@@ -120,9 +120,15 @@ pub fn key_handle(key: char) {
     }
 }
 
-pub fn abort() -> bool {
+pub fn end_of_text() -> bool {
     interrupts::without_interrupts(|| {
         STDIN.lock().contains('\x03')
+    })
+}
+
+pub fn end_of_transmission() -> bool {
+    interrupts::without_interrupts(|| {
+        STDIN.lock().contains('\x04')
     })
 }
 
