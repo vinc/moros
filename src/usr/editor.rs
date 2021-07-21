@@ -131,10 +131,20 @@ impl Editor {
         sys::vga::set_cursor_position(0, 0);
         sys::vga::set_writer_position(0, 0);
 
+        let mut escape = false;
+        let mut csi = false;
         loop {
             let (mut x, mut y) = sys::vga::cursor_position();
             let c = sys::console::get_char();
             match c {
+                '\x1B' => { // ESC
+                    escape = true;
+                    continue;
+                },
+                '[' if escape => {
+                    csi = true;
+                    continue;
+                },
                 '\0' => {
                     continue;
                 }
@@ -163,7 +173,7 @@ impl Editor {
                     self.dx = 0;
                     self.print_screen();
                 },
-                '↑' => { // Arrow up
+                'A' if csi => { // Arrow up
                     if y > 0 {
                         y -= 1
                     } else {
@@ -174,7 +184,7 @@ impl Editor {
                     }
                     x = self.next_pos(x, y);
                 },
-                '↓' => { // Arrow down
+                'B' if csi => { // Arrow down
                     let is_eof = self.dy + y == self.lines.len() - 1;
                     let is_bottom = y == self.height() - 1;
                     if y < cmp::min(self.height(), self.lines.len() - 1) {
@@ -189,19 +199,7 @@ impl Editor {
                         x = self.next_pos(x, y);
                     }
                 },
-                '←' => { // Arrow left
-                    if x + self.dx == 0 {
-                        continue;
-                    } else if x == 0 {
-                        x = self.dx - 1;
-                        self.dx -= self.width();
-                        self.print_screen();
-                        x = self.next_pos(x, y);
-                    } else {
-                        x -= 1;
-                    }
-                },
-                '→' => { // Arrow right
+                'C' if csi => { // Arrow right
                     let line = &self.lines[self.dy + y];
                     if line.len() == 0 || x + self.dx >= line.len() {
                         continue
@@ -211,6 +209,18 @@ impl Editor {
                         self.print_screen();
                     } else {
                         x += 1;
+                    }
+                },
+                'D' if csi => { // Arrow left
+                    if x + self.dx == 0 {
+                        continue;
+                    } else if x == 0 {
+                        x = self.dx - 1;
+                        self.dx -= self.width();
+                        self.print_screen();
+                        x = self.next_pos(x, y);
+                    } else {
+                        x -= 1;
                     }
                 },
                 '\x14' => { // Ctrl T -> Go to top of file
@@ -321,6 +331,8 @@ impl Editor {
                     }
                 },
             }
+            escape = false;
+            csi = false;
             sys::vga::set_cursor_position(x, y);
             sys::vga::set_writer_position(x, y);
         }
