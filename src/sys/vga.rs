@@ -305,11 +305,11 @@ pub fn clear_row_after(x: usize) {
     set_writer_position(x, y);
 }
 
-pub fn screen_width() -> usize {
+pub fn cols() -> usize {
     BUFFER_WIDTH
 }
 
-pub fn screen_height() -> usize {
+pub fn rows() -> usize {
     BUFFER_HEIGHT
 }
 
