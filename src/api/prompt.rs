@@ -51,75 +51,85 @@ impl Prompt {
 
         None
     }
+
+    fn handle_up_key(&mut self) {
+        // TODO: Navigate history up
+    }
+
+    fn handle_down_key(&mut self) {
+        // TODO: Navigate history down
+    }
+
+    fn handle_forward_key(&mut self) {
+        if self.cursor < self.offset + self.line.len() {
+            print!("\x1b[1C");
+            self.cursor += 1;
+        }
+    }
+
+    fn handle_backward_key(&mut self) {
+        if self.cursor > self.offset {
+            print!("\x1b[1D");
+            self.cursor -= 1;
+        }
+    }
+
+    fn handle_delete_key(&mut self) {
+        if self.cursor < self.offset + self.line.len() {
+            let i = self.cursor - self.offset;
+            self.line.remove(i);
+            let s = &self.line[i..];
+            print!("{} \x1b[{}D", s, s.len() + 1);
+        }
+    }
+
+    fn handle_backspace_key(&mut self) {
+        if self.cursor > self.offset {
+            let i = self.cursor - self.offset - 1;
+            self.line.remove(i);
+            let s = &self.line[i..];
+            print!("{}{} \x1b[{}D", '\x08', s, s.len() + 1);
+            self.cursor -= 1;
+        }
+    }
+
+    fn handle_printable_key(&mut self, c: char) {
+        if console::is_printable(c) {
+            let i = self.cursor - self.offset;
+            self.line.insert(i, c);
+            let s = &self.line[i..];
+            print!("{} \x1b[{}D", s, s.len());
+            self.cursor += 1;
+        }
+    }
 }
 
 impl Perform for Prompt {
     fn execute(&mut self, b: u8) {
         let c = b as char;
         match c {
-            '\x08' => { // Backspace
-                if self.cursor > self.offset {
-                    let i = self.cursor - self.offset - 1;
-                    self.line.remove(i);
-                    let s = &self.line[i..];
-                    print!("{}{} \x1b[{}D", c, s, s.len() + 1);
-                    self.cursor -= 1;
-                }
-            },
+            '\x08' => self.handle_backspace_key(),
             _ => {},
         }
     }
+
     fn print(&mut self, c: char) {
         match c {
-            '\x7f' => { // Delete
-                if self.cursor < self.offset + self.line.len() {
-                    let i = self.cursor - self.offset;
-                    self.line.remove(i);
-                    let s = &self.line[i..];
-                    print!("{} \x1b[{}D", s, s.len() + 1);
-                }
-            },
-            _ => {
-                if console::is_printable(c) {
-                    let i = self.cursor - self.offset;
-                    self.line.insert(i, c);
-                    let s = &self.line[i..];
-                    print!("{} \x1b[{}D", s, s.len());
-                    self.cursor += 1;
-                }
-            },
+            '\x7f' => self.handle_delete_key(),
+            c => self.handle_printable_key(c),
         }
     }
 
     fn csi_dispatch(&mut self, params: &Params, _intermediates: &[u8], _ignore: bool, c: char) {
         match c {
-            'A' => { // Cursor Up
-                // TODO: Navigate history up
-            },
-            'B' => { // Cursor Down
-                // TODO: Navigate history down
-            },
-            'C' => { // Cursor Forward
-                if self.cursor < self.offset + self.line.len() {
-                    print!("\x1b[1C");
-                    self.cursor += 1;
-                }
-            },
-            'D' => { // Cursor Backward
-                if self.cursor > self.offset {
-                    print!("\x1b[1D");
-                    self.cursor -= 1;
-                }
-            },
+            'A' => self.handle_up_key(),
+            'B' => self.handle_down_key(),
+            'C' => self.handle_forward_key(),
+            'D' => self.handle_backward_key(),
             '~' => {
                 for param in params.iter() {
                     if param[0] == 3 { // Delete
-                        if self.cursor < self.offset + self.line.len() {
-                            let i = self.cursor - self.offset;
-                            self.line.remove(i);
-                            let s = &self.line[i..];
-                            print!("{} \x1b[{}D", s, s.len() + 1);
-                        }
+                        self.handle_delete_key();
                     }
                 }
             },
