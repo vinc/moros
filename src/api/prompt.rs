@@ -111,6 +111,18 @@ impl Perform for Prompt {
                     self.cursor -= 1;
                 }
             },
+            '~' => {
+                for param in params.iter() {
+                    if param[0] == 3 { // Delete
+                        if self.cursor < self.offset + self.line.len() {
+                            let i = self.cursor - self.offset;
+                            self.line.remove(i);
+                            let s = &self.line[i..];
+                            print!("{} \x1b[{}D", s, s.len() + 1);
+                        }
+                    }
+                }
+            },
             _ => {},
         }
     }
