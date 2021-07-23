@@ -2,6 +2,7 @@ use crate::api::fs;
 use crate::api::console;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use vte::{Params, Parser, Perform};
 
 pub struct Prompt {
     pub history: History,
@@ -18,7 +19,7 @@ impl Prompt {
 
     pub fn input(&mut self, prompt: &str) -> Option<String> {
         print!("{}", prompt);
-        self.offset = strip_csi(prompt).len();
+        self.offset = offset_from_prompt(prompt);
         let mut cursor = self.offset;
         let mut line = String::new();
         let mut escape_sequence = false;
@@ -141,31 +142,20 @@ impl History {
     }
 }
 
-fn strip_csi(s: &str) -> String {
-    let mut res = String::new();
-    let mut escape_sequence = false;
-    let mut control_sequence = false;
-    for c in s.chars() {
-        match c {
-            '\x1b' => {
-                escape_sequence = true;
-                continue;
-            },
-            '[' if escape_sequence => {
-                control_sequence = true;
-                continue;
-            },
-            'a'..='z' | 'A'..='Z' if control_sequence => {
-                escape_sequence = false;
-                control_sequence = false;
-            },
-            _ if control_sequence => {
-                continue;
-            },
-            _ => {
-                res.push(c);
-            },
-        }
+struct Offset(usize);
+
+impl Perform for Offset {
+    fn print(&mut self, c: char) {
+        self.0 += c.len_utf8();
     }
-    res
+}
+
+fn offset_from_prompt(s: &str) -> usize {
+    let mut parser = Parser::new();
+    let mut offset = Offset(0);
+
+    for b in s.bytes() {
+        parser.advance(&mut offset, b);
+    }
+    offset.0
 }

@@ -305,9 +305,9 @@ impl Perform for Writer {
 
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let mut state_machine = PARSER.lock();
+        let mut parser = PARSER.lock();
         for byte in s.bytes() {
-            state_machine.advance(self, byte);
+            parser.advance(self, byte);
         }
         let (x, y) = self.writer_position();
         self.set_cursor_position(x, y);
