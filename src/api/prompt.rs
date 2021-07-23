@@ -72,14 +72,14 @@ impl Prompt {
                         cursor -= 1;
                     }
                 },
-                /*
                 '\x7f' => { // Delete
-                    let i = cursor - self.offset;
-                    line.remove(i);
-                    let s = &line[i..];
-                    print!("{}{} \x1b[{}D", c, s, s.len() + 1);
+                    if cursor < self.offset + line.len() {
+                        let i = cursor - self.offset;
+                        line.remove(i);
+                        let s = &line[i..];
+                        print!("{} \x1b[{}D", s, s.len() + 1);
+                    }
                 },
-                */
                 _ => {
                     if console::is_printable(c) {
                         let i = cursor - self.offset;
