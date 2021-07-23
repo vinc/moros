@@ -1,5 +1,6 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
+use crate::api::prompt::Prompt;
 use alloc::string::ToString;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -484,28 +485,27 @@ fn strip_comments(s: &str) -> String {
     s.split("#").next().unwrap().into()
 }
 
-fn slurp_expr() -> String {
-    strip_comments(sys::console::get_line().trim_end())
-}
-
 fn repl(env: &mut Env) -> usr::shell::ExitCode {
     print!("MOROS Lisp v0.1.0\n\n");
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
-    loop {
-        print!("{}>{} ", csi_color, csi_reset);
-        let expr = slurp_expr();
-        if expr == "(exit)" || sys::console::end_of_text() || sys::console::end_of_transmission() {
-            return usr::shell::ExitCode::CommandSuccessful;
+    let mut prompt = Prompt::new();
+    //let history_file = "~/.lisp-history";
+    //prompt.history.load(history_file);
+    while let Some(exp) = prompt.input(&format!("{}>{} ", csi_color, csi_reset)) {
+        if exp == "(exit)" {
+            break;
         }
-        match parse_eval(&expr, env) {
+        match parse_eval(&exp, env) {
             Ok(res) => print!("{}\n\n", res),
             Err(e) => match e {
                 Err::Reason(msg) => print!("{}Error: {}{}\n\n", csi_error, msg, csi_reset),
             },
         }
+        //prompt.history.save(history_file);
     }
+    usr::shell::ExitCode::CommandSuccessful
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {

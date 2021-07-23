@@ -177,6 +177,7 @@ pub fn drain() {
     })
 }
 
+// TODO: Rename to `read_char()`
 pub fn get_char() -> char {
     sys::console::disable_echo();
     sys::console::enable_raw();
@@ -198,6 +199,7 @@ pub fn get_char() -> char {
     }
 }
 
+// TODO: Rename to `read_line()`
 pub fn get_line() -> String {
     loop {
         sys::time::halt();

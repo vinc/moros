@@ -89,6 +89,7 @@ fn copy_file(pathname: &str, buf: &[u8]) {
         } else {
             file.write(buf).unwrap();
         }
+        // TODO: add File::write_all to split buf if needed
         println!("Copied '{}'", pathname);
     }
 }

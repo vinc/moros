@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::console;
 use crate::api::console::Style;
 use alloc::format;
 use alloc::vec;
@@ -217,7 +218,7 @@ impl Shell {
                 c => {
                     self.update_history();
                     self.update_autocomplete();
-                    if c.is_ascii() && sys::vga::is_printable(c as u8) {
+                    if console::is_printable(c) {
                         if sys::console::has_cursor() {
                             let cmd = self.cmd.clone();
                             let (before_cursor, after_cursor) = cmd.split_at(x - self.prompt.len());
