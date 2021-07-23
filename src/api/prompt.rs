@@ -6,7 +6,9 @@ use vte::{Params, Parser, Perform};
 
 pub struct Prompt {
     pub history: History,
-    offset: usize, // Offset cursor position by prompt length
+    offset: usize, // Offset line by the length of the prompt string
+    cursor: usize,
+    line: String,
 }
 
 impl Prompt {
@@ -14,16 +16,17 @@ impl Prompt {
         Self {
             history: History::new(),
             offset: 0,
+            cursor: 0,
+            line: String::new(),
         }
     }
 
     pub fn input(&mut self, prompt: &str) -> Option<String> {
         print!("{}", prompt);
         self.offset = offset_from_prompt(prompt);
-        let mut cursor = self.offset;
-        let mut line = String::new();
-        let mut escape_sequence = false;
-        let mut control_sequence = false;
+        self.cursor = self.offset;
+        self.line = String::new();
+        let mut parser = Parser::new();
         while let Some(c) = console::read_char() {
             match c {
                 '\x03' => { // End of Text (^C)
@@ -34,68 +37,82 @@ impl Prompt {
                     print!("\n");
                     return None;
                 },
-                '\x1b' => {
-                    escape_sequence = true;
-                    continue;
-                },
-                '[' if escape_sequence => {
-                    control_sequence = true;
-                    continue;
-                },
-                'A' if control_sequence => { // Cursor Up
-                    // TODO: Navigate history up
-                },
-                'B' if control_sequence => { // Cursor Down
-                    // TODO: Navigate history down
-                },
-                'C' if control_sequence => { // Cursor Forward
-                    if cursor < self.offset + line.len() {
-                        print!("\x1b[1C");
-                        cursor += 1;
-                    }
-                },
-                'D' if control_sequence => { // Cursor Backward
-                    if cursor > self.offset {
-                        print!("\x1b[1D");
-                        cursor -= 1;
-                    }
-                },
                 '\n' => { // New Line
                     print!("{}", c);
-                    return Some(line);
+                    return Some(self.line.clone());
                 },
-                '\x08' => { // Backspace
-                    if cursor > self.offset {
-                        let i = cursor - self.offset - 1;
-                        line.remove(i);
-                        let s = &line[i..];
-                        print!("{}{} \x1b[{}D", c, s, s.len() + 1);
-                        cursor -= 1;
+                c => {
+                    if c.is_ascii() {
+                        parser.advance(self, c as u8);
                     }
-                },
-                '\x7f' => { // Delete
-                    if cursor < self.offset + line.len() {
-                        let i = cursor - self.offset;
-                        line.remove(i);
-                        let s = &line[i..];
-                        print!("{} \x1b[{}D", s, s.len() + 1);
-                    }
-                },
-                _ => {
-                    if console::is_printable(c) {
-                        let i = cursor - self.offset;
-                        line.insert(i, c);
-                        let s = &line[i..];
-                        print!("{} \x1b[{}D", s, s.len());
-                        cursor += 1;
-                    }
-                },
-            } 
-            escape_sequence = false;
-            control_sequence = false;
+                }
+            }
         }
 
         None
+    }
+}
+
+impl Perform for Prompt {
+    fn execute(&mut self, b: u8) {
+        let c = b as char;
+        match c {
+            '\x08' => { // Backspace
+                if self.cursor > self.offset {
+                    let i = self.cursor - self.offset - 1;
+                    self.line.remove(i);
+                    let s = &self.line[i..];
+                    print!("{}{} \x1b[{}D", c, s, s.len() + 1);
+                    self.cursor -= 1;
+                }
+            },
+            _ => {},
+        }
+    }
+    fn print(&mut self, c: char) {
+        match c {
+            '\x7f' => { // Delete
+                if self.cursor < self.offset + self.line.len() {
+                    let i = self.cursor - self.offset;
+                    self.line.remove(i);
+                    let s = &self.line[i..];
+                    print!("{} \x1b[{}D", s, s.len() + 1);
+                }
+            },
+            _ => {
+                if console::is_printable(c) {
+                    let i = self.cursor - self.offset;
+                    self.line.insert(i, c);
+                    let s = &self.line[i..];
+                    print!("{} \x1b[{}D", s, s.len());
+                    self.cursor += 1;
+                }
+            },
+        }
+    }
+
+    fn csi_dispatch(&mut self, params: &Params, _intermediates: &[u8], _ignore: bool, c: char) {
+        match c {
+            'A' => { // Cursor Up
+                // TODO: Navigate history up
+            },
+            'B' => { // Cursor Down
+                // TODO: Navigate history down
+            },
+            'C' => { // Cursor Forward
+                if self.cursor < self.offset + self.line.len() {
+                    print!("\x1b[1C");
+                    self.cursor += 1;
+                }
+            },
+            'D' => { // Cursor Backward
+                if self.cursor > self.offset {
+                    print!("\x1b[1D");
+                    self.cursor -= 1;
+                }
+            },
+            _ => {},
+        }
     }
 }
 
