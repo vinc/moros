@@ -498,7 +498,7 @@ fn lisp_completer(line: &str) -> Vec<String> {
             let f = &last_word[1..];
             for form in COMPLETER_FORMS {
                 if form.starts_with(f) {
-                    entries.push(form[f.len()..].to_string());
+                    entries.push(form[f.len()..].into());
                 }
             }
         }
@@ -508,14 +508,18 @@ fn lisp_completer(line: &str) -> Vec<String> {
 
 fn repl(env: &mut Env) -> usr::shell::ExitCode {
     print!("MOROS Lisp v0.1.0\n\n");
+
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
+    let prompt_string = format!("{}>{} ", csi_color, csi_reset);
+
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
     prompt.history.load(history_file);
     prompt.completion.set(&lisp_completer);
-    while let Some(exp) = prompt.input(&format!("{}>{} ", csi_color, csi_reset)) {
+
+    while let Some(exp) = prompt.input(&prompt_string) {
         if exp == "(exit)" {
             break;
         }
