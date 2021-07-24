@@ -33,6 +33,7 @@ This project started from the [seventh post][1] of the second edition of
 - [x] Basic filesystem
 - [x] Basic shell
 - [x] Basic text editor
+- [x] Basic lisp interpreter
 - [x] Basic file and network commands
 - [x] A LOT OF UGLY SHORTCUTS TO GET EVERYTHING WORKING
 - [ ] Processes
