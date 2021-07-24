@@ -300,7 +300,7 @@ impl Block {
 const BITMAP_SIZE: u32 = 512 - 4; // TODO: Bitmap should use the full block
 const MAX_BLOCKS: u32 = 2 * 2048;
 
-const DISK_OFFSET: u32 = (1 << 20) / 512;
+const DISK_OFFSET: u32 = 4 << 10; // Leave space for kernel binary
 const SUPERBLOCK_ADDR: u32 = DISK_OFFSET;
 const BITMAP_ADDR_OFFSET: u32 = DISK_OFFSET + 2;
 const DATA_ADDR_OFFSET: u32 = BITMAP_ADDR_OFFSET + MAX_BLOCKS / 8;
