@@ -2,6 +2,7 @@ use crate::api::fs;
 use crate::api::console;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use core::cmp;
 use vte::{Params, Parser, Perform};
 
 pub struct Prompt {
@@ -38,6 +39,7 @@ impl Prompt {
                     return None;
                 },
                 '\n' => { // New Line
+                    self.update_line();
                     print!("{}", c);
                     return Some(self.line.clone());
                 },
@@ -52,15 +54,52 @@ impl Prompt {
         None
     }
 
+    fn update_line(&mut self) {
+        if let Some(i) = self.history.pos {
+            self.line = self.history.entries[i].clone();
+            self.history.pos = None;
+        }
+    }
+
     fn handle_up_key(&mut self) {
-        // TODO: Navigate history up
+        let n = self.history.entries.len();
+        if n == 0 {
+            return;
+        }
+        let (bs, i) = match self.history.pos {
+            Some(i) => (self.history.entries[i].len(), cmp::max(i, 1) - 1),
+            None => (self.line.len(), n - 1),
+        };
+        let line = &self.history.entries[i];
+        let blank = ' '.to_string().repeat((self.offset + bs) - self.cursor);
+        let erase = '\x08'.to_string().repeat(bs);
+        print!("{}{}{}", blank, erase, line);
+        self.cursor = self.offset + line.len();
+        self.history.pos = Some(i);
     }
 
     fn handle_down_key(&mut self) {
-        // TODO: Navigate history down
+        let n = self.history.entries.len();
+        if n == 0 {
+            return;
+        }
+        let (bs, i) = match self.history.pos {
+            Some(i) => (self.history.entries[i].len(), i + 1),
+            None => return,
+        };
+        let (pos, line) = if i < n {
+            (Some(i), &self.history.entries[i])
+        } else {
+            (None, &self.line)
+        };
+        let erase = '\x08'.to_string().repeat(bs);
+        print!("{}{}", erase, line);
+        self.cursor = self.offset + line.len();
+        self.history.pos = pos;
     }
 
     fn handle_forward_key(&mut self) {
+        self.update_line();
         if self.cursor < self.offset + self.line.len() {
             print!("\x1b[1C");
             self.cursor += 1;
@@ -68,6 +107,7 @@ impl Prompt {
     }
 
     fn handle_backward_key(&mut self) {
+        self.update_line();
         if self.cursor > self.offset {
             print!("\x1b[1D");
             self.cursor -= 1;
@@ -75,6 +115,7 @@ impl Prompt {
     }
 
     fn handle_delete_key(&mut self) {
+        self.update_line();
         if self.cursor < self.offset + self.line.len() {
             let i = self.cursor - self.offset;
             self.line.remove(i);
@@ -84,6 +125,7 @@ impl Prompt {
     }
 
     fn handle_backspace_key(&mut self) {
+        self.update_line();
         if self.cursor > self.offset {
             let i = self.cursor - self.offset - 1;
             self.line.remove(i);
@@ -94,6 +136,7 @@ impl Prompt {
     }
 
     fn handle_printable_key(&mut self, c: char) {
+        self.update_line();
         if console::is_printable(c) {
             let i = self.cursor - self.offset;
             self.line.insert(i, c);
@@ -141,6 +184,7 @@ impl Perform for Prompt {
 pub struct History {
     entries: Vec<String>,
     limit: usize,
+    pos: Option<usize>,
 }
 
 impl History {
@@ -148,6 +192,7 @@ impl History {
         Self {
             entries: Vec::new(),
             limit: 1000,
+            pos: None,
         }
     }
 

@@ -491,19 +491,24 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
     let mut prompt = Prompt::new();
-    //let history_file = "~/.lisp-history";
-    //prompt.history.load(history_file);
+    let history_file = "~/.lisp-history";
+    prompt.history.load(history_file);
     while let Some(exp) = prompt.input(&format!("{}>{} ", csi_color, csi_reset)) {
         if exp == "(exit)" {
             break;
         }
         match parse_eval(&exp, env) {
-            Ok(res) => print!("{}\n\n", res),
+            Ok(res) => {
+                print!("{}\n\n", res);
+            }
             Err(e) => match e {
                 Err::Reason(msg) => print!("{}Error: {}{}\n\n", csi_error, msg, csi_reset),
             },
         }
-        //prompt.history.save(history_file);
+        if exp.len() > 0 {
+            prompt.history.add(&exp);
+            prompt.history.save(history_file);
+        }
     }
     usr::shell::ExitCode::CommandSuccessful
 }
