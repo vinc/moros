@@ -1,3 +1,4 @@
+use crate::sys;
 use core::fmt;
 
 pub struct Style {
@@ -81,3 +82,14 @@ fn color_to_bg(name: &str) -> Option<usize> {
     }
 }
 
+pub fn read_char() -> Option<char> {
+    Some(sys::console::get_char())
+}
+
+pub fn is_printable(c: char) -> bool {
+    if cfg!(feature = "video") {
+        c.is_ascii() && sys::vga::is_printable(c as u8)
+    } else {
+        true // TODO
+    }
+}

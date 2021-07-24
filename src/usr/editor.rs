@@ -81,8 +81,8 @@ impl Editor {
         let color = Style::color("Black").with_background(background);
         let reset = Style::reset();
         let (x, y) = sys::vga::cursor_position();
-        sys::vga::set_writer_position(0, self.height());
-        print!("{}{:width$}{}", color, status, reset, width = self.width());
+        sys::vga::set_writer_position(0, self.rows());
+        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
         sys::vga::set_writer_position(x, y);
         sys::vga::set_cursor_position(x, y);
     }
@@ -90,7 +90,7 @@ impl Editor {
     fn print_screen(&mut self) {
         let mut rows: Vec<String> = Vec::new();
         let a = self.dy;
-        let b = self.dy + self.height();
+        let b = self.dy + self.rows();
         for y in a..b {
             rows.push(self.render_line(y));
         }
@@ -105,8 +105,8 @@ impl Editor {
         // Render line into a row of the screen, or an empty row when past eof
         let line = if y < self.lines.len() { &self.lines[y] } else { "" };
 
-        let mut row = format!("{:width$}", line, width = self.dx);
-        let n = self.dx + self.width();
+        let mut row = format!("{:cols$}", line, cols = self.dx);
+        let n = self.dx + self.cols();
         if row.len() > n {
             row.truncate(n - 1);
             row.push_str(&truncated_line_indicator());
@@ -164,7 +164,7 @@ impl Editor {
                 '\n' => { // Newline
                     let line = self.lines[self.dy + y].split_off(self.dx + x);
                     self.lines.insert(self.dy + y + 1, line);
-                    if y == self.height() - 1 {
+                    if y == self.rows() - 1 {
                         self.dy += 1;
                     } else {
                         y += 1;
@@ -186,8 +186,8 @@ impl Editor {
                 },
                 'B' if csi => { // Arrow down
                     let is_eof = self.dy + y == self.lines.len() - 1;
-                    let is_bottom = y == self.height() - 1;
-                    if y < cmp::min(self.height(), self.lines.len() - 1) {
+                    let is_bottom = y == self.rows() - 1;
+                    if y < cmp::min(self.rows(), self.lines.len() - 1) {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.dy += 1;
@@ -203,9 +203,9 @@ impl Editor {
                     let line = &self.lines[self.dy + y];
                     if line.len() == 0 || x + self.dx >= line.len() {
                         continue
-                    } else if x == self.width() - 1 {
+                    } else if x == self.cols() - 1 {
                         x = self.dx;
-                        self.dx += self.width();
+                        self.dx += self.cols();
                         self.print_screen();
                     } else {
                         x += 1;
@@ -216,7 +216,7 @@ impl Editor {
                         continue;
                     } else if x == 0 {
                         x = self.dx - 1;
-                        self.dx -= self.width();
+                        self.dx -= self.cols();
                         self.print_screen();
                         x = self.next_pos(x, y);
                     } else {
@@ -232,7 +232,7 @@ impl Editor {
                 },
                 '\x02' => { // Ctrl B -> Go to bottom of file
                     x = 0;
-                    y = cmp::min(self.height(), self.lines.len()) - 1;
+                    y = cmp::min(self.rows(), self.lines.len()) - 1;
                     self.dx = 0;
                     self.dy = self.lines.len() - 1 - y;
                     self.print_screen();
@@ -244,7 +244,7 @@ impl Editor {
                 },
                 '\x05' => { // Ctrl E -> Go to end of line
                     let n = self.lines[self.dy + y].len();
-                    let w = self.width();
+                    let w = self.cols();
                     x = n % w;
                     self.dx = w * (n / w);
                     self.print_screen();
@@ -262,8 +262,8 @@ impl Editor {
                         self.lines[self.dy + y].push_str(after);
 
                         if x == 0 {
-                            self.dx -= self.width();
-                            x = self.width() - 1;
+                            self.dx -= self.cols();
+                            x = self.cols() - 1;
                             self.print_screen();
                         } else {
                             x -= 1;
@@ -278,7 +278,7 @@ impl Editor {
 
                         // Move cursor below the end of the previous line
                         let n = self.lines[self.dy + y - 1].len();
-                        let w = self.width();
+                        let w = self.cols();
                         x = n % w;
                         self.dx = w * (n / w);
 
@@ -319,8 +319,8 @@ impl Editor {
                         self.lines[self.dy + y].push_str(after);
 
                         x += s.len();
-                        if x >= self.width() {
-                            self.dx += self.width();
+                        if x >= self.cols() {
+                            self.dx += self.cols();
                             x -= self.dx;
                             self.print_screen();
                         } else {
@@ -353,12 +353,12 @@ impl Editor {
         }
     }
 
-    fn height(&self) -> usize {
-        sys::vga::screen_height() - 1 // Leave out one line for status line
+    fn rows(&self) -> usize {
+        sys::console::rows() - 1 // Leave out one line for status line
     }
 
-    fn width(&self) -> usize {
-        sys::vga::screen_width()
+    fn cols(&self) -> usize {
+        sys::console::cols()
     }
 }
 

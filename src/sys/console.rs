@@ -12,6 +12,22 @@ lazy_static! {
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
 }
 
+pub fn cols() -> usize {
+    if cfg!(feature = "video") {
+        sys::vga::cols()
+    } else {
+        80
+    }
+}
+
+pub fn rows() -> usize {
+    if cfg!(feature = "video") {
+        sys::vga::rows()
+    } else {
+        25
+    }
+}
+
 pub fn has_cursor() -> bool {
     cfg!(feature = "video")
 }
@@ -23,6 +39,18 @@ pub fn clear_row_after(x: usize) {
         sys::serial::print_fmt(format_args!("\r")); // Move cursor to begining of line
         sys::serial::print_fmt(format_args!("\x1b[{}C", x)); // Move cursor forward to position
         sys::serial::print_fmt(format_args!("\x1b[K")); // Clear line after position
+    }
+}
+
+pub fn clear_row() {
+    clear_row_after(0);
+}
+
+pub fn clear_screen() {
+    if cfg!(feature = "video") {
+        sys::vga::clear_screen();
+    } else {
+        sys::serial::print_fmt(format_args!("\x1b[2J"));
     }
 }
 
@@ -52,6 +80,14 @@ pub fn cursor_position() -> (usize, usize) {
             }
         }
         (x.parse().unwrap_or(1), y.parse().unwrap_or(1))
+    }
+}
+
+pub fn set_cursor_position(x: usize, y: usize) {
+    if cfg!(feature = "video") {
+        sys::vga::set_cursor_position(x, y);
+    } else {
+        sys::serial::print_fmt(format_args!("\x1b[{};{}H", y + 1, x + 1));
     }
 }
 
@@ -141,6 +177,7 @@ pub fn drain() {
     })
 }
 
+// TODO: Rename to `read_char()`
 pub fn get_char() -> char {
     sys::console::disable_echo();
     sys::console::enable_raw();
@@ -162,6 +199,7 @@ pub fn get_char() -> char {
     }
 }
 
+// TODO: Rename to `read_line()`
 pub fn get_line() -> String {
     loop {
         sys::time::halt();

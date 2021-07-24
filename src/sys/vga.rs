@@ -245,34 +245,69 @@ impl Perform for Writer {
     }
 
     fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
-        if c == 'm' {
-            let mut fg = FG;
-            let mut bg = BG;
-            for param in params.iter() {
-                match param[0] {
-                    0 => {
-                        fg = FG;
-                        bg = BG;
-                    },
-                    30..=37 | 90..=97 => {
-                        fg = color::from_ansi(param[0] as u8);
-                    },
-                    40..=47 | 100..=107 => {
-                        bg = color::from_ansi((param[0] as u8) - 10);
-                    },
-                    _ => {}
+        match c {
+            'm' => {
+                let mut fg = FG;
+                let mut bg = BG;
+                for param in params.iter() {
+                    match param[0] {
+                        0 => {
+                            fg = FG;
+                            bg = BG;
+                        },
+                        30..=37 | 90..=97 => {
+                            fg = color::from_ansi(param[0] as u8);
+                        },
+                        40..=47 | 100..=107 => {
+                            bg = color::from_ansi((param[0] as u8) - 10);
+                        },
+                        _ => {},
+                    }
                 }
-            }
-            self.set_color(fg, bg);
+                self.set_color(fg, bg);
+            },
+            'A' => { // Cursor Up
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[1] += n;
+                self.cursor[1] += n;
+            },
+            'B' => { // Cursor Down
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[1] -= n;
+                self.cursor[1] -= n;
+            },
+            'C' => { // Cursor Forward
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[0] += n;
+                self.cursor[0] += n;
+            },
+            'D' => { // Cursor Backward
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[0] -= n;
+                self.cursor[0] -= n;
+            },
+            _ => {},
         }
     }
 }
 
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        let mut state_machine = PARSER.lock();
+        let mut parser = PARSER.lock();
         for byte in s.bytes() {
-            state_machine.advance(self, byte);
+            parser.advance(self, byte);
         }
         let (x, y) = self.writer_position();
         self.set_cursor_position(x, y);
@@ -305,11 +340,11 @@ pub fn clear_row_after(x: usize) {
     set_writer_position(x, y);
 }
 
-pub fn screen_width() -> usize {
+pub fn cols() -> usize {
     BUFFER_WIDTH
 }
 
-pub fn screen_height() -> usize {
+pub fn rows() -> usize {
     BUFFER_HEIGHT
 }
 
@@ -352,8 +387,12 @@ pub fn set_color(foreground: Color, background: Color) {
 // Printable ascii chars + backspace + newline + ext chars
 pub fn is_printable(c: u8) -> bool {
     match c {
-        0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x7F..=0xFF => true,
-        _ => false,
+        0x20..=0x7E => true, // ASCII Printable
+        0x08        => true, // Backspace
+        0x0A        => true, // New Line
+        0x0D        => true, // Carriage Return
+        0x7F..=0xFF => true, // Extended ASCII Printable
+        _           => false,
     }
 }
 
