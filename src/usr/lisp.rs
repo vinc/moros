@@ -485,6 +485,27 @@ fn strip_comments(s: &str) -> String {
     s.split("#").next().unwrap().into()
 }
 
+
+const COMPLETER_FORMS: [&str; 11] = [
+    "quote", "atom?", "eq?", "first", "rest", "cons", "cond", "def", "fn",
+    "defn", "print",
+];
+
+fn lisp_completer(line: &str) -> Vec<String> {
+    let mut entries = Vec::new();
+    if let Some(last_word) = line.split_whitespace().next_back() {
+        if last_word.starts_with("(") {
+            let f = &last_word[1..];
+            for form in COMPLETER_FORMS {
+                if form.starts_with(f) {
+                    entries.push(form[f.len()..].to_string());
+                }
+            }
+        }
+    }
+    entries
+}
+
 fn repl(env: &mut Env) -> usr::shell::ExitCode {
     print!("MOROS Lisp v0.1.0\n\n");
     let csi_color = Style::color("Cyan");
@@ -493,6 +514,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
     prompt.history.load(history_file);
+    prompt.completion.set(&lisp_completer);
     while let Some(exp) = prompt.input(&format!("{}>{} ", csi_color, csi_reset)) {
         if exp == "(exit)" {
             break;

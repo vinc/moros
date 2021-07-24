@@ -1,11 +1,13 @@
 use crate::api::fs;
 use crate::api::console;
+use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp;
 use vte::{Params, Parser, Perform};
 
 pub struct Prompt {
+    pub completion: Completion,
     pub history: History,
     offset: usize, // Offset line by the length of the prompt string
     cursor: usize,
@@ -15,6 +17,7 @@ pub struct Prompt {
 impl Prompt {
     pub fn new() -> Self {
         Self {
+            completion: Completion::new(),
             history: History::new(),
             offset: 0,
             cursor: 0,
@@ -39,7 +42,8 @@ impl Prompt {
                     return None;
                 },
                 '\n' => { // New Line
-                    self.update_line();
+                    self.update_completion();
+                    self.update_history();
                     print!("{}", c);
                     return Some(self.line.clone());
                 },
@@ -54,14 +58,51 @@ impl Prompt {
         None
     }
 
-    fn update_line(&mut self) {
+    fn update_history(&mut self) {
         if let Some(i) = self.history.pos {
             self.line = self.history.entries[i].clone();
             self.history.pos = None;
         }
     }
 
+    fn update_completion(&mut self) {
+        if let Some(i) = self.completion.pos {
+            let complete = self.completion.entries[i].clone();
+            self.line.push_str(&complete);
+            self.cursor += complete.len();
+            self.completion.pos = None;
+            self.completion.entries = Vec::new();
+        }
+    }
+
+    fn handle_tab_key(&mut self) {
+        self.update_history();
+        let (bs, pos) = match self.completion.pos {
+            Some(pos) => {
+                let bs = self.completion.entries[pos].len();
+                if pos + 1 < self.completion.entries.len() {
+                    (bs, pos + 1)
+                } else {
+                    (bs, 0)
+                }
+            },
+            None => {
+                self.completion.entries = (self.completion.completer)(&self.line);
+                if self.completion.entries.len() > 0 {
+                    (0, 0)
+                } else {
+                    return
+                }
+            },
+        };
+        let erase = '\x08'.to_string().repeat(bs);
+        let complete = &self.completion.entries[pos];
+        print!("{}{}", erase, complete);
+        self.completion.pos = Some(pos);
+    }
+
     fn handle_up_key(&mut self) {
+        self.update_completion();
         let n = self.history.entries.len();
         if n == 0 {
             return;
@@ -79,6 +120,7 @@ impl Prompt {
     }
 
     fn handle_down_key(&mut self) {
+        self.update_completion();
         let n = self.history.entries.len();
         if n == 0 {
             return;
@@ -99,7 +141,8 @@ impl Prompt {
     }
 
     fn handle_forward_key(&mut self) {
-        self.update_line();
+        self.update_completion();
+        self.update_history();
         if self.cursor < self.offset + self.line.len() {
             print!("\x1b[1C");
             self.cursor += 1;
@@ -107,7 +150,8 @@ impl Prompt {
     }
 
     fn handle_backward_key(&mut self) {
-        self.update_line();
+        self.update_completion();
+        self.update_history();
         if self.cursor > self.offset {
             print!("\x1b[1D");
             self.cursor -= 1;
@@ -115,7 +159,8 @@ impl Prompt {
     }
 
     fn handle_delete_key(&mut self) {
-        self.update_line();
+        self.update_completion();
+        self.update_history();
         if self.cursor < self.offset + self.line.len() {
             let i = self.cursor - self.offset;
             self.line.remove(i);
@@ -125,7 +170,8 @@ impl Prompt {
     }
 
     fn handle_backspace_key(&mut self) {
-        self.update_line();
+        self.update_completion();
+        self.update_history();
         if self.cursor > self.offset {
             let i = self.cursor - self.offset - 1;
             self.line.remove(i);
@@ -136,7 +182,8 @@ impl Prompt {
     }
 
     fn handle_printable_key(&mut self, c: char) {
-        self.update_line();
+        self.update_completion();
+        self.update_history();
         if console::is_printable(c) {
             let i = self.cursor - self.offset;
             self.line.insert(i, c);
@@ -152,6 +199,7 @@ impl Perform for Prompt {
         let c = b as char;
         match c {
             '\x08' => self.handle_backspace_key(),
+            '\t' => self.handle_tab_key(),
             _ => {},
         }
     }
@@ -178,6 +226,29 @@ impl Perform for Prompt {
             },
             _ => {},
         }
+    }
+}
+
+pub struct Completion {
+    completer: Box<dyn Fn(&str) -> Vec<String>>,
+    entries: Vec<String>,
+    pos: Option<usize>,
+}
+
+fn empty_completer(_line: &str) -> Vec<String> {
+    Vec::new()
+}
+
+impl Completion {
+    pub fn new() -> Self {
+        Self {
+            completer: Box::new(empty_completer),
+            entries: Vec::new(),
+            pos: None,
+        }
+    }
+    pub fn set(&mut self, completer: &'static dyn Fn(&str) -> Vec<String>) {
+        self.completer = Box::new(completer);
     }
 }
 
