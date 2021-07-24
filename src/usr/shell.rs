@@ -198,8 +198,7 @@ pub fn run() -> usr::shell::ExitCode {
                 prompt.history.save(history_file);
             },
             ExitCode::ShellExit => {
-                sys::vga::clear_screen();
-                return ExitCode::CommandSuccessful;
+                break;
             },
             _ => {
                 success = false;
@@ -207,8 +206,8 @@ pub fn run() -> usr::shell::ExitCode {
         }
         println!();
     }
-
-    ExitCode::CommandError
+    sys::vga::clear_screen();
+    ExitCode::CommandSuccessful
 }
 
 pub fn main(args: &[&str]) -> ExitCode {
