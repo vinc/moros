@@ -33,9 +33,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let request = "";
 
     let address = if host.ends_with(char::is_numeric) {
-        IpAddress::from_str(&host).expect("invalid address format")
+        IpAddress::from_str(host).expect("invalid address format")
     } else {
-        match usr::host::resolve(&host) {
+        match usr::host::resolve(host) {
             Ok(ip_addr) => {
                 ip_addr
             }

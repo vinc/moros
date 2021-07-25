@@ -404,7 +404,7 @@ fn env_get(k: &str, env: &Env) -> Option<Exp> {
         Some(exp) => Some(exp.clone()),
         None => {
             match &env.outer {
-                Some(outer_env) => env_get(k, &outer_env),
+                Some(outer_env) => env_get(k, outer_env),
                 None => None
             }
         }
@@ -483,7 +483,7 @@ fn parse_eval(expr: &str, env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn strip_comments(s: &str) -> String {
-    s.split("#").next().unwrap().into()
+    s.split('#').next().unwrap().into()
 }
 
 
@@ -495,11 +495,10 @@ const COMPLETER_FORMS: [&str; 11] = [
 fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
-        if last_word.starts_with("(") {
-            let f = &last_word[1..];
+        if let Some(f) = last_word.strip_prefix('(') {
             for form in COMPLETER_FORMS {
-                if form.starts_with(f) {
-                    entries.push(form[f.len()..].into());
+                if let Some(entry) = form.strip_prefix(f) {
+                    entries.push(entry.into());
                 }
             }
         }
@@ -544,7 +543,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let env = &mut default_env();
     match args.len() {
         1 => {
-            return repl(env);
+            repl(env)
         },
         2 => {
             let pathname = args[1];
@@ -552,11 +551,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let mut block = String::new();
                 let mut opened = 0;
                 let mut closed = 0;
-                for line in file.read_to_string().split("\n") {
+                for line in file.read_to_string().split('\n') {
                     let line = strip_comments(line);
                     if !line.is_empty() {
-                        opened += line.matches("(").count();
-                        closed += line.matches(")").count();
+                        opened += line.matches('(').count();
+                        closed += line.matches(')').count();
                         block.push_str(&line);
                         if closed >= opened {
                             //println!("eval: '{}'", block);
