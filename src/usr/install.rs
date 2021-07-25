@@ -82,7 +82,7 @@ fn copy_file(pathname: &str, buf: &[u8]) {
         if pathname.ends_with(".txt") {
             if let Ok(text) = String::from_utf8(buf.to_vec()) {
                 let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
-                file.write(&text.as_bytes()).unwrap();
+                file.write(text.as_bytes()).unwrap();
             } else {
                 file.write(buf).unwrap();
             }

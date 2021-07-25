@@ -25,9 +25,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         },
                         Ok(cidr) => {
                             iface.update_ip_addrs(|addrs| {
-                                addrs.iter_mut().nth(0).map(|addr| {
+                                if let Some(addr) = addrs.iter_mut().next() {
                                     *addr = cidr;
-                                });
+                                }
                             });
                         },
                     }

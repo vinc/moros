@@ -66,7 +66,7 @@ impl Editor {
 
         if let Some(file) = &mut self.file {
             file.seek(sys::fs::SeekFrom::Start(0)).unwrap();
-            file.write(&contents.as_bytes()).unwrap();
+            file.write(contents.as_bytes()).unwrap();
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");
             usr::shell::ExitCode::CommandSuccessful
@@ -120,7 +120,7 @@ impl Editor {
         match c {
             '!'..='~' => Some(c.to_string()), // graphic char
             ' '       => Some(" ".to_string()),
-            '\t'      => Some(" ".repeat(self.config.tab_size).to_string()),
+            '\t'      => Some(" ".repeat(self.config.tab_size)),
             _         => None,
         }
     }

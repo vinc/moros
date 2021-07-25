@@ -87,7 +87,7 @@ fn parse<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
     }
 }
 
-fn read_seq<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
+fn read_seq(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let mut res: Vec<Exp> = vec![];
     let mut xs = tokens;
     loop {
@@ -95,33 +95,33 @@ fn read_seq<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
         if next_token == ")" {
             return Ok((Exp::List(res), rest)) // skip `)`, head to the token after
         }
-        let (exp, new_xs) = parse(&xs)?;
+        let (exp, new_xs) = parse(xs)?;
         res.push(exp);
         xs = new_xs;
     }
 }
 
-fn parse_quoted<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
+fn parse_quoted(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let xs = tokens;
     let (next_token, _) = xs.split_first().ok_or(Err::Reason("could not parse quote".to_string()))?;
     let (exp, rest) = if next_token == "(" {
         read_seq(&tokens[1..])? // Skip "("
     } else {
-        parse(&tokens)?
+        parse(tokens)?
     };
     let list = vec![Exp::Symbol("quote".to_string()), exp];
     Ok((Exp::List(list), rest))
 }
 
 fn parse_atom(token: &str) -> Exp {
-    match token.as_ref() {
+    match token {
         "true" => Exp::Bool(true),
         "false" => Exp::Bool(false),
         _ => {
             let potential_float: Result<f64, ParseFloatError> = token.parse();
             match potential_float {
                 Ok(v) => Exp::Number(v),
-                Err(_) => Exp::Symbol(token.to_string().clone())
+                Err(_) => Exp::Symbol(token.to_string())
             }
         }
     }
@@ -245,7 +245,7 @@ fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
         Exp::List(a) => {
             match second_eval {
                 Exp::List(b) => {
-                    Ok(Exp::Bool(a.len() == 0 && b.is_empty()))
+                    Ok(Exp::Bool(a.is_empty() && b.is_empty()))
                 },
                 _ => Ok(Exp::Bool(false))
             }
@@ -271,10 +271,10 @@ fn eval_cdr_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let first_eval = eval(first_form, env)?;
     match first_eval {
         Exp::List(list) => {
-            if list.len() < 1 {
+            if list.is_empty() {
                 return Err(Err::Reason("list cannot be empty".to_string())) // TODO: return nil?
             }
-            Ok(Exp::List(list[1..].iter().map(|exp| exp.clone()).collect()))
+            Ok(Exp::List(list[1..].to_vec()))
         },
         _ => Err(Err::Reason("expected list form".to_string())),
     }
@@ -288,7 +288,7 @@ fn eval_cons_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     match second_eval {
         Exp::List(mut list) => {
             list.insert(0, first_eval);
-            Ok(Exp::List(list.iter().map(|exp| exp.clone()).collect()))
+            Ok(Exp::List(list.to_vec()))
         },
         _ => Err(Err::Reason("expected list form".to_string())),
     }
@@ -309,7 +309,7 @@ fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
                 match pred {
                     Exp::Bool(b) => {
                         if b {
-                            return Ok(exp.clone());
+                            return Ok(exp);
                         }
                     },
                     _ => continue,

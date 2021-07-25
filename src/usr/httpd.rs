@@ -3,7 +3,7 @@ use crate::api::syscall;
 use crate::api::console::Style;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::time::Duration;
@@ -49,10 +49,8 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             }
 
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-            match iface.poll(&mut sockets, timestamp) {
-                Ok(_) => {},
-                Err(_) => {}
-            }
+            iface.poll(&mut sockets, timestamp).ok();
+
             {
                 let mut socket = sockets.get::<TcpSocket>(tcp_handle);
                 if !socket.is_open() {
@@ -70,7 +68,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                             let mut contents = String::new();
                             for (i, line) in req.lines().enumerate() {
                                 if i == 0 {
-                                    let fields: Vec<_> = line.split(" ").collect();
+                                    let fields: Vec<_> = line.split(' ').collect();
                                     if fields.len() >= 2 {
                                         verb = fields[0];
                                         path = fields[1];
@@ -87,11 +85,11 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                             let mut body;
                             match verb {
                                 "GET" => {
-                                    if path.len() > 1 && path.ends_with("/") {
+                                    if path.len() > 1 && path.ends_with('/') {
                                         code = 301;
                                         res.push_str("HTTP/1.0 301 Moved Permanently\r\n");
                                         res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
-                                        body = format!("<h1>Moved Permanently</h1>\r\n");
+                                        body = "<h1>Moved Permanently</h1>\r\n".to_string();
                                         mime = "text/html";
                                     } else if let Some(mut file) = sys::fs::File::open(path) {
                                         code = 200;
@@ -113,12 +111,12 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                     } else {
                                         code = 404;
                                         res.push_str("HTTP/1.0 404 Not Found\r\n");
-                                        body = format!("<h1>Not Found</h1>\r\n");
+                                        body = "<h1>Not Found</h1>\r\n".to_string();
                                         mime = "text/plain";
                                     }
                                 },
                                 "PUT" => {
-                                    if path.ends_with("/") { // Write directory
+                                    if path.ends_with('/') { // Write directory
                                         let path = path.trim_end_matches('/');
                                         if sys::fs::Dir::open(path).is_some() {
                                             code = 403;
@@ -137,7 +135,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         };
                                         match maybe_file {
                                             Some(mut file) => {
-                                                if file.write(&contents.as_bytes()).is_ok() {
+                                                if file.write(contents.as_bytes()).is_ok() {
                                                     code = 200;
                                                     res.push_str("HTTP/1.0 200 OK\r\n");
                                                 } else {
@@ -151,7 +149,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                             }
                                         }
                                     }
-                                    body = format!("");
+                                    body = "".to_string();
                                     mime = "text/plain";
                                 },
                                 "DELETE" => {
@@ -167,13 +165,13 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         code = 404;
                                         res.push_str("HTTP/1.0 404 Not Found\r\n");
                                     }
-                                    body = format!("");
+                                    body = "".to_string();
                                     mime = "text/plain";
                                 },
                                 _ => {
                                     res.push_str("HTTP/1.0 400 Bad Request\r\n");
                                     code = 400;
-                                    body = format!("<h1>Bad Request</h1>\r\n");
+                                    body = "<h1>Bad Request</h1>\r\n".to_string();
                                     mime = "text/plain";
                                 },
                             }
