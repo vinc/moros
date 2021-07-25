@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let current_dir = sys::process::dir();
-    let mut pathname = if args.len() == 2 && args[1].len() > 0 {
+    let mut pathname = if args.len() == 2 && !args[1].is_empty() {
         args[1]
     } else {
         &current_dir
@@ -21,11 +21,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         files.sort_by_key(|f| f.name());
 
         for file in files {
-            print!("{}\n", file.name());
+            println!("{}", file.name());
         }
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        print!("Dir not found '{}'\n", pathname);
+        println!("Dir not found '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

@@ -6,7 +6,7 @@ use smoltcp::time::Instant;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
-        print!("Usage: net <command>\n");
+        println!("Usage: net <command>");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -14,7 +14,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         match args[1] {
             "config" => {
                 if args.len() < 4 {
-                    print!("Usage: net config <key> <value>\n");
+                    println!("Usage: net config <key> <value>");
                     return usr::shell::ExitCode::CommandError;
                 }
                 match args[2] {
@@ -23,13 +23,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             "1" | "on" | "enable" => true,
                             "0" | "off" | "disable" => false,
                             _ => {
-                                print!("Invalid config value\n");
+                                println!("Invalid config value");
                                 return usr::shell::ExitCode::CommandError;
                             }
                         }
                     }
                     _ => {
-                        print!("Invalid config key\n");
+                        println!("Invalid config key");
                         return usr::shell::ExitCode::CommandError;
                     }
                 }
@@ -50,30 +50,30 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
                 loop {
                     if sys::console::end_of_text() {
-                        print!("\n");
+                        println!();
                         return usr::shell::ExitCode::CommandSuccessful;
                     }
 
                     let now = syscall::uptime();
                     match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
                         Ok(true) => {
-                            //print!("{}\n", "-".repeat(66));
-                            //print!("Polling result: Ok(true)\n");
+                            //println!("{}", "-".repeat(66));
+                            //println!("Polling result: Ok(true)");
                         },
                         Ok(false) => {
-                            //print!("{}\n", "-".repeat(66));
-                            //print!("Polling Result: Ok(false)\n\n");
+                            //println!("{}", "-".repeat(66));
+                            //println!("Polling Result: Ok(false)\n");
                         },
                         Err(_) => {
-                            //print!("{}\n", "-".repeat(66));
-                            //print!("polling result: err({})\n", e);
+                            //println!("{}", "-".repeat(66));
+                            //println!("polling result: err({})", e);
                         }
                     }
                     syscall::sleep(0.1);
                 }
             }
             _ => {
-                print!("Invalid command\n");
+                println!("Invalid command");
                 return usr::shell::ExitCode::CommandError;
             }
         }

@@ -5,7 +5,7 @@ use core::f64::consts::PI;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() < 2 {
-        print!("Usage: <longitude> [<timestamp>]\n");
+        println!("Usage: <longitude> [<timestamp>]");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -19,7 +19,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let t = geotime(longitude, timestamp);
     let t = libm::floor(100.0 * t) / 100.0; // Avoid rounding up 99.996 to 100.00
-    print!("{}\n", format!("{:05.2}", t).replace(".", ":"));
+    println!("{}", format!("{:05.2}", t).replace(".", ":"));
 
     usr::shell::ExitCode::CommandSuccessful
 }

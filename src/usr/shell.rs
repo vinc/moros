@@ -25,19 +25,19 @@ pub enum ExitCode {
 fn shell_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
 
-    let args = split_args(&line);
+    let args = split_args(line);
     let i = args.len() - 1;
     if args.len() == 1 { // Autocomplete command
         for &cmd in &AUTOCOMPLETE_COMMANDS {
-            if cmd.starts_with(args[i]) {
-                entries.push(cmd[args[i].len()..].into());
+            if let Some(entry) = cmd.strip_prefix(args[i]) {
+                entries.push(entry.into());
             }
         }
     } else { // Autocomplete path
         let pathname = sys::fs::realpath(args[i]);
         let dirname = sys::fs::dirname(&pathname);
         let filename = sys::fs::filename(&pathname);
-        let sep = if dirname.ends_with("/") { "" } else { "/" };
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
         if let Some(dir) = sys::fs::Dir::open(dirname) {
             for entry in dir.read() {
                 let name = entry.name();
@@ -90,7 +90,7 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
         args.push(&cmd[i..n]);
     }
 
-    if n == 0 || cmd.chars().last().unwrap() == ' ' {
+    if n == 0 || cmd.ends_with(' ') {
         args.push("");
     }
 
@@ -100,7 +100,7 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
 fn change_dir(args: &[&str]) -> ExitCode {
     match args.len() {
         1 => {
-            print!("{}\n", sys::process::dir());
+            println!("{}", sys::process::dir());
             ExitCode::CommandSuccessful
         },
         2 => {
@@ -112,7 +112,7 @@ fn change_dir(args: &[&str]) -> ExitCode {
                 sys::process::set_dir(&pathname);
                 ExitCode::CommandSuccessful
             } else {
-                print!("File not found '{}'\n", pathname);
+                println!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },
@@ -213,19 +213,19 @@ pub fn run() -> usr::shell::ExitCode {
 pub fn main(args: &[&str]) -> ExitCode {
     match args.len() {
         1 => {
-            return run();
+            run()
         },
         2 => {
             let pathname = args[1];
             if let Some(mut file) = sys::fs::File::open(pathname) {
-                for line in file.read_to_string().split("\n") {
-                    if line.len() > 0 {
+                for line in file.read_to_string().split('\n') {
+                    if !line.is_empty() {
                         exec(line);
                     }
                 }
                 ExitCode::CommandSuccessful
             } else {
-                print!("File not found '{}'\n", pathname);
+                println!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },

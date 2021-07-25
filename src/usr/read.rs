@@ -14,19 +14,19 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     match pathname {
         "/dev/rtc" => {
             let rtc = CMOS::new().rtc();
-            print!(
-                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}\n",
+            println!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
                 rtc.year, rtc.month, rtc.day,
                 rtc.hour, rtc.minute, rtc.second
             );
             usr::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/realtime" => {
-            print!("{:.6}\n", syscall::realtime());
+            println!("{:.6}", syscall::realtime());
             usr::shell::ExitCode::CommandSuccessful
         },
         "/dev/clk/uptime" => {
-            print!("{:.6}\n", syscall::uptime());
+            println!("{:.6}", syscall::uptime());
             usr::shell::ExitCode::CommandSuccessful
         },
         "/dev/random" => {
@@ -37,7 +37,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     print!("{}", c);
                 }
                 if sys::console::end_of_text() {
-                    print!("\n");
+                    println!();
                     return usr::shell::ExitCode::CommandSuccessful;
                 }
             }
@@ -51,7 +51,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 // > read /net/tcp/time.nist.gov:13
                 let parts: Vec<_> = pathname.split('/').collect();
                 if parts.len() < 4 {
-                    print!("Usage: read /net/http/<host>/<path>\n");
+                    println!("Usage: read /net/http/<host>/<path>");
                     usr::shell::ExitCode::CommandError
                 } else {
                     match parts[2] {
@@ -70,7 +70,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             usr::http::main(&["http", host, &path])
                         }
                         _ => {
-                            print!("Error: unknown protocol '{}'\n", parts[2]);
+                            println!("Error: unknown protocol '{}'", parts[2]);
                             usr::shell::ExitCode::CommandError
                         }
                     }
@@ -81,7 +81,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 print!("{}", file.read_to_string());
                 usr::shell::ExitCode::CommandSuccessful
             } else {
-                print!("File not found '{}'\n", pathname);
+                println!("File not found '{}'", pathname);
                 usr::shell::ExitCode::CommandError
             }
         }

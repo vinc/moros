@@ -75,11 +75,7 @@ fn color_to_fg(name: &str) -> Option<usize> {
 }
 
 fn color_to_bg(name: &str) -> Option<usize> {
-    if let Some(fg) = color_to_fg(name) {
-        Some(fg + 10)
-    } else {
-        None
-    }
+    color_to_fg(name).map(|fg| fg + 10)
 }
 
 pub fn read_char() -> Option<char> {

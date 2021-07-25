@@ -5,14 +5,14 @@ use smoltcp::wire::IpCidr;
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         if args.len() == 1 {
-            print!("Link: {}\n", iface.ethernet_addr());
+            println!("Link: {}", iface.ethernet_addr());
             for ip_cidr in iface.ip_addrs() {
-                print!("Addr: {}/{}\n", ip_cidr.address(), ip_cidr.prefix_len());
+                println!("Addr: {}/{}", ip_cidr.address(), ip_cidr.prefix_len());
             }
-            print!("RX packets: {}\n", iface.device().stats.rx_packets_count());
-            print!("TX packets: {}\n", iface.device().stats.tx_packets_count());
-            print!("RX bytes: {}\n", iface.device().stats.rx_bytes_count());
-            print!("TX bytes: {}\n", iface.device().stats.tx_bytes_count());
+            println!("RX packets: {}", iface.device().stats.rx_packets_count());
+            println!("TX packets: {}", iface.device().stats.tx_packets_count());
+            println!("RX bytes: {}", iface.device().stats.rx_bytes_count());
+            println!("TX bytes: {}", iface.device().stats.tx_bytes_count());
         } else {
             match args[1] {
                 "set" => {
@@ -25,9 +25,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         },
                         Ok(cidr) => {
                             iface.update_ip_addrs(|addrs| {
-                                addrs.iter_mut().nth(0).map(|addr| {
+                                if let Some(addr) = addrs.iter_mut().next() {
                                     *addr = cidr;
-                                });
+                                }
                             });
                         },
                     }
@@ -44,6 +44,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn error(message: &str) -> usr::shell::ExitCode {
-    print!("Error: {}\n", message);
+    println!("Error: {}", message);
     usr::shell::ExitCode::CommandError
 }

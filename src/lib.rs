@@ -44,7 +44,7 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 }
 
 pub trait Testable {
-    fn run(&self) -> ();
+    fn run(&self);
 }
 
 impl<T> Testable for T where T: Fn() {
@@ -53,13 +53,13 @@ impl<T> Testable for T where T: Fn() {
         self();
         let csi_color = api::console::Style::color("LightGreen");
         let csi_reset = api::console::Style::reset();
-        print!("{}ok{}\n", csi_color, csi_reset);
+        println!("{}ok{}", csi_color, csi_reset);
     }
 }
 
 pub fn test_runner(tests: &[&dyn Testable]) {
     let n = tests.len();
-    print!("\nrunning {} test{}\n", n, if n == 1 { "" } else { "s" });
+    println!("\nrunning {} test{}", n, if n == 1 { "" } else { "s" });
     for test in tests {
         test.run();
     }
@@ -110,8 +110,8 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     let csi_color = api::console::Style::color("LightRed");
     let csi_reset = api::console::Style::reset();
-    print!("{}failed{}\n\n", csi_color, csi_reset);
-    print!("{}\n\n", info);
+    println!("{}failed{}\n", csi_color, csi_reset);
+    println!("{}\n", info);
     exit_qemu(QemuExitCode::Failed);
     hlt_loop();
 }

@@ -24,7 +24,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if args.len() != 3 {
-        print!("Usage: tcp <host> <port>\n");
+        println!("Usage: tcp <host> <port>");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -33,14 +33,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let request = "";
 
     let address = if host.ends_with(char::is_numeric) {
-        IpAddress::from_str(&host).expect("invalid address format")
+        IpAddress::from_str(host).expect("invalid address format")
     } else {
-        match usr::host::resolve(&host) {
+        match usr::host::resolve(host) {
             Ok(ip_addr) => {
                 ip_addr
             }
             Err(e) => {
-                print!("Could not resolve host: {:?}\n", e);
+                println!("Could not resolve host: {:?}", e);
                 return usr::shell::ExitCode::CommandError;
             }
         }
@@ -59,11 +59,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                print!("Interface not ready\n");
+                println!("Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                print!("Interface not ready\n");
+                println!("Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             _ => {}
@@ -73,18 +73,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                print!("Timeout reached\n");
+                println!("Timeout reached");
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
-                print!("\n");
+                println!();
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    print!("Network Error: {}\n", e);
+                    println!("Network Error: {}", e);
                 }
                 Ok(_) => {}
             }
@@ -95,15 +95,15 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 state = match state {
                     State::Connect if !socket.is_active() => {
                         let local_port = 49152 + sys::random::get_u16() % 16384;
-                        print!("Connecting to {}:{}\n", address, port);
+                        println!("Connecting to {}:{}", address, port);
                         if socket.connect((address, port), local_port).is_err() {
-                            print!("Could not connect to {}:{}\n", address, port);
+                            println!("Could not connect to {}:{}", address, port);
                             return usr::shell::ExitCode::CommandError;
                         }
                         State::Request
                     }
                     State::Request if socket.may_send() => {
-                        if request.len() > 0 {
+                        if !request.is_empty() {
                             socket.send_slice(request.as_ref()).expect("cannot send");
                         }
                         State::Response
@@ -112,7 +112,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         socket.recv(|data| {
                             let contents = String::from_utf8_lossy(data);
                             for line in contents.lines() {
-                                print!("{}\n", line);
+                                println!("{}", line);
                             }
                             (data.len(), ())
                         }).unwrap();

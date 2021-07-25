@@ -63,7 +63,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if args.len() != 3 {
-        print!("Usage: http <host> <path>\n");
+        println!("Usage: http <host> <path>");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -78,7 +78,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 ip_addr
             }
             Err(e) => {
-                print!("Could not resolve host: {:?}\n", e);
+                println!("Could not resolve host: {:?}", e);
                 return usr::shell::ExitCode::CommandError;
             }
         }
@@ -97,11 +97,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                print!("Error: Interface not ready\n");
+                println!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                print!("Error: Interface not ready\n");
+                println!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             _ => {}
@@ -112,18 +112,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                print!("Timeout reached\n");
+                println!("Timeout reached");
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
-                print!("\n");
+                println!();
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    print!("Network Error: {}\n", e);
+                    println!("Network Error: {}", e);
                 }
                 Ok(_) => {}
             }
@@ -135,10 +135,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     State::Connect if !socket.is_active() => {
                         let local_port = 49152 + sys::random::get_u16() % 16384;
                         if is_verbose {
-                            print!("* Connecting to {}:{}\n", address, url.port);
+                            println!("* Connecting to {}:{}", address, url.port);
                         }
                         if socket.connect((address, url.port), local_port).is_err() {
-                            print!("Could not connect to {}:{}\n", address, url.port);
+                            println!("Could not connect to {}:{}", address, url.port);
                             return usr::shell::ExitCode::CommandError;
                         }
                         State::Request
@@ -153,7 +153,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             print!("> {}", http_host);
                             print!("> {}", http_ua);
                             print!("> {}", http_connection);
-                            print!(">\n");
+                            println!(">");
                         }
                         socket.send_slice(http_get.as_ref()).expect("cannot send");
                         socket.send_slice(http_host.as_ref()).expect("cannot send");
@@ -167,14 +167,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             let contents = String::from_utf8_lossy(data);
                             for line in contents.lines() {
                                 if is_header {
-                                    if line.len() == 0 {
+                                    if line.is_empty() {
                                         is_header = false;
                                     }
                                     if is_verbose {
-                                        print!("< {}\n", line);
+                                        println!("< {}", line);
                                     }
                                 } else {
-                                    print!("{}\n", line);
+                                    println!("{}", line);
                                 }
                             }
                             (data.len(), ())

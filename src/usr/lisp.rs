@@ -77,7 +77,7 @@ fn tokenize(expr: &str) -> Vec<String> {
         .split_whitespace().map(|x| x.to_string()).collect()
 }
 
-fn parse<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
+fn parse(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let (token, rest) = tokens.split_first().ok_or(Err::Reason("could not get token".to_string()))?;
     match &token[..] {
         "'" => parse_quoted(rest),
@@ -87,7 +87,7 @@ fn parse<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
     }
 }
 
-fn read_seq<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
+fn read_seq(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let mut res: Vec<Exp> = vec![];
     let mut xs = tokens;
     loop {
@@ -95,33 +95,33 @@ fn read_seq<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
         if next_token == ")" {
             return Ok((Exp::List(res), rest)) // skip `)`, head to the token after
         }
-        let (exp, new_xs) = parse(&xs)?;
+        let (exp, new_xs) = parse(xs)?;
         res.push(exp);
         xs = new_xs;
     }
 }
 
-fn parse_quoted<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
+fn parse_quoted(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let xs = tokens;
     let (next_token, _) = xs.split_first().ok_or(Err::Reason("could not parse quote".to_string()))?;
     let (exp, rest) = if next_token == "(" {
         read_seq(&tokens[1..])? // Skip "("
     } else {
-        parse(&tokens)?
+        parse(tokens)?
     };
     let list = vec![Exp::Symbol("quote".to_string()), exp];
     Ok((Exp::List(list), rest))
 }
 
 fn parse_atom(token: &str) -> Exp {
-    match token.as_ref() {
+    match token {
         "true" => Exp::Bool(true),
         "false" => Exp::Bool(false),
         _ => {
             let potential_float: Result<f64, ParseFloatError> = token.parse();
             match potential_float {
                 Ok(v) => Exp::Number(v),
-                Err(_) => Exp::Symbol(token.to_string().clone())
+                Err(_) => Exp::Symbol(token.to_string())
             }
         }
     }
@@ -245,7 +245,7 @@ fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
         Exp::List(a) => {
             match second_eval {
                 Exp::List(b) => {
-                    Ok(Exp::Bool(a.len() == 0 && b.len() == 0))
+                    Ok(Exp::Bool(a.is_empty() && b.is_empty()))
                 },
                 _ => Ok(Exp::Bool(false))
             }
@@ -271,10 +271,10 @@ fn eval_cdr_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let first_eval = eval(first_form, env)?;
     match first_eval {
         Exp::List(list) => {
-            if list.len() < 1 {
+            if list.is_empty() {
                 return Err(Err::Reason("list cannot be empty".to_string())) // TODO: return nil?
             }
-            Ok(Exp::List(list[1..].iter().map(|exp| exp.clone()).collect()))
+            Ok(Exp::List(list[1..].to_vec()))
         },
         _ => Err(Err::Reason("expected list form".to_string())),
     }
@@ -288,14 +288,14 @@ fn eval_cons_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     match second_eval {
         Exp::List(mut list) => {
             list.insert(0, first_eval);
-            Ok(Exp::List(list.iter().map(|exp| exp.clone()).collect()))
+            Ok(Exp::List(list.to_vec()))
         },
         _ => Err(Err::Reason("expected list form".to_string())),
     }
 }
 
 fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    if arg_forms.len() == 0 {
+    if arg_forms.is_empty() {
         return Err(Err::Reason("expected at least one form".to_string()))
     }
     for arg_form in arg_forms {
@@ -309,7 +309,7 @@ fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
                 match pred {
                     Exp::Bool(b) => {
                         if b {
-                            return Ok(exp.clone());
+                            return Ok(exp);
                         }
                     },
                     _ => continue,
@@ -404,7 +404,7 @@ fn env_get(k: &str, env: &Env) -> Option<Exp> {
         Some(exp) => Some(exp.clone()),
         None => {
             match &env.outer {
-                Some(outer_env) => env_get(k, &outer_env),
+                Some(outer_env) => env_get(k, outer_env),
                 None => None
             }
         }
@@ -483,7 +483,7 @@ fn parse_eval(expr: &str, env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn strip_comments(s: &str) -> String {
-    s.split("#").next().unwrap().into()
+    s.split('#').next().unwrap().into()
 }
 
 
@@ -495,11 +495,10 @@ const COMPLETER_FORMS: [&str; 11] = [
 fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
-        if last_word.starts_with("(") {
-            let f = &last_word[1..];
+        if let Some(f) = last_word.strip_prefix('(') {
             for form in COMPLETER_FORMS {
-                if form.starts_with(f) {
-                    entries.push(form[f.len()..].into());
+                if let Some(entry) = form.strip_prefix(f) {
+                    entries.push(entry.into());
                 }
             }
         }
@@ -508,7 +507,7 @@ fn lisp_completer(line: &str) -> Vec<String> {
 }
 
 fn repl(env: &mut Env) -> usr::shell::ExitCode {
-    print!("MOROS Lisp v0.1.0\n\n");
+    println!("MOROS Lisp v0.1.0\n");
 
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("Red");
@@ -526,13 +525,13 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
         }
         match parse_eval(&exp, env) {
             Ok(res) => {
-                print!("{}\n\n", res);
+                println!("{}\n", res);
             }
             Err(e) => match e {
-                Err::Reason(msg) => print!("{}Error: {}{}\n\n", csi_error, msg, csi_reset),
+                Err::Reason(msg) => println!("{}Error: {}{}\n", csi_error, msg, csi_reset),
             },
         }
-        if exp.len() > 0 {
+        if !exp.is_empty() {
             prompt.history.add(&exp);
             prompt.history.save(history_file);
         }
@@ -544,7 +543,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let env = &mut default_env();
     match args.len() {
         1 => {
-            return repl(env);
+            repl(env)
         },
         2 => {
             let pathname = args[1];
@@ -552,11 +551,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let mut block = String::new();
                 let mut opened = 0;
                 let mut closed = 0;
-                for line in file.read_to_string().split("\n") {
+                for line in file.read_to_string().split('\n') {
                     let line = strip_comments(line);
-                    if line.len() > 0 {
-                        opened += line.matches("(").count();
-                        closed += line.matches(")").count();
+                    if !line.is_empty() {
+                        opened += line.matches('(').count();
+                        closed += line.matches(')').count();
                         block.push_str(&line);
                         if closed >= opened {
                             //println!("eval: '{}'", block);
@@ -576,7 +575,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
                 usr::shell::ExitCode::CommandSuccessful
             } else {
-                print!("File not found '{}'\n", pathname);
+                println!("File not found '{}'", pathname);
                 usr::shell::ExitCode::CommandError
             }
         },

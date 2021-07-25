@@ -185,7 +185,7 @@ pub fn get_char() -> char {
         sys::time::halt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
-            if stdin.len() > 0 {
+            if !stdin.is_empty() {
                 Some(stdin.remove(0))
             } else {
                 None

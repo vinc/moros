@@ -8,7 +8,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let pathname = args[1];
 
     if pathname.starts_with("/dev") || pathname.starts_with("/sys") {
-        print!("Permission denied to write to '{}'\n", pathname);
+        println!("Permission denied to write to '{}'", pathname);
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -25,7 +25,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if success {
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        print!("Could not write to '{}'\n", pathname);
+        println!("Could not write to '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

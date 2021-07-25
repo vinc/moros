@@ -1,9 +1,9 @@
 use crate::{sys, usr};
-use alloc::vec::Vec;
+use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 3 {
-        print!("Usage: copy <source> <dest>\n");
+        println!("Usage: copy <source> <dest>");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -11,31 +11,29 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let dest = args[2];
 
     if dest.starts_with("/dev") || dest.starts_with("/sys") {
-        print!("Permission denied to write to '{}'\n", dest);
+        println!("Permission denied to write to '{}'", dest);
         return usr::shell::ExitCode::CommandError;
     }
 
     if let Some(mut source_file) = sys::fs::File::open(source) {
         if let Some(mut dest_file) = sys::fs::File::create(dest) {
-            let filesize = source_file.size();
-            let mut buf = Vec::with_capacity(filesize);
-            buf.resize(filesize, 0);
+            let mut buf = vec![0; source_file.size()];
             source_file.read(&mut buf);
             match dest_file.write(&buf) {
                 Ok(_) => {
                     usr::shell::ExitCode::CommandSuccessful
                 },
                 Err(()) => {
-                    print!("Could not write to '{}'\n", dest);
+                    println!("Could not write to '{}'", dest);
                     usr::shell::ExitCode::CommandError
                 }
             }
         } else {
-            print!("Permission denied to write to '{}'\n", dest);
+            println!("Permission denied to write to '{}'", dest);
             usr::shell::ExitCode::CommandError
         }
     } else {
-        print!("File not found '{}'\n", source);
+        println!("File not found '{}'", source);
         usr::shell::ExitCode::CommandError
     }
 }

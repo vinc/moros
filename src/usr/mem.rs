@@ -6,8 +6,8 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let width = sys::allocator::size().to_string().len();
     let color = Style::color("LightCyan");
     let reset = Style::reset();
-    print!("{}Size:{} {:width$}\n", color, reset, sys::allocator::size(), width = width);
-    print!("{}Used:{} {:width$}\n", color, reset, sys::allocator::used(), width = width);
-    print!("{}Free:{} {:width$}\n", color, reset, sys::allocator::free(), width = width);
+    println!("{}Size:{} {:width$}", color, reset, sys::allocator::size(), width = width);
+    println!("{}Used:{} {:width$}", color, reset, sys::allocator::used(), width = width);
+    println!("{}Free:{} {:width$}", color, reset, sys::allocator::free(), width = width);
     usr::shell::ExitCode::CommandSuccessful
 }

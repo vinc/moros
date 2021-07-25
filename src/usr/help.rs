@@ -18,15 +18,15 @@ fn help_command(cmd: &str) -> usr::shell::ExitCode {
 }
 
 fn help_unknown(cmd: &str) -> usr::shell::ExitCode {
-    print!("Help not found for command '{}'\n", cmd);
+    println!("Help not found for command '{}'", cmd);
     usr::shell::ExitCode::CommandError
 }
 
 fn help_summary() -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    print!("{}Commands:{}\n", csi_color, csi_reset);
-    print!("\n");
+    println!("{}Commands:{}", csi_color, csi_reset);
+    println!();
 
     let cmds = [
         ("c", "opy <file> <file>", "Copy file from source to destination\n"),
@@ -46,23 +46,23 @@ fn help_summary() -> usr::shell::ExitCode {
         let csi_col2 = Style::color("LightCyan");
         print!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
     }
-    print!("\n");
+    println!();
 
-    print!("{}Credits:{}\n", csi_color, csi_reset);
-    print!("\n");
+    println!("{}Credits:{}", csi_color, csi_reset);
+    println!();
 
-    print!("Made with <3 in 2019-2021 by Vincent Ollivier <v@vinc.cc>\n");
+    println!("Made with <3 in 2019-2021 by Vincent Ollivier <v@vinc.cc>");
     usr::shell::ExitCode::CommandSuccessful
 }
 
 fn help_edit() -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    print!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range\n");
-    print!("of features.\n");
-    print!("\n");
-    print!("{}Shortcuts:{}\n", csi_color, csi_reset);
-    print!("\n");
+    println!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range");
+    println!("of features.");
+    println!();
+    println!("{}Shortcuts:{}", csi_color, csi_reset);
+    println!();
 
     let shortcuts = [
         ("^Q", "Quit editor"),
@@ -76,7 +76,7 @@ fn help_edit() -> usr::shell::ExitCode {
     for (shortcut, usage) in &shortcuts {
         let csi_color = Style::color("LightGreen");
         let csi_reset = Style::reset();
-        print!("  {}{}{}    {}\n", csi_color, shortcut, csi_reset, usage);
+        println!("  {}{}{}    {}", csi_color, shortcut, csi_reset, usage);
     }
     usr::shell::ExitCode::CommandSuccessful
 }
@@ -84,10 +84,10 @@ fn help_edit() -> usr::shell::ExitCode {
 fn help_date() -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    print!("The date command's formatting behavior is based on strftime in C\n");
-    print!("\n");
-    print!("{}Specifiers:{}\n", csi_color, csi_reset);
-    print!("\n");
+    println!("The date command's formatting behavior is based on strftime in C");
+    println!();
+    println!("{}Specifiers:{}", csi_color, csi_reset);
+    println!();
 
     let specifiers = [
         ("%a", "Abbreviated weekday name", "Thu"),
@@ -126,7 +126,7 @@ fn help_date() -> usr::shell::ExitCode {
     for (specifier, usage, _exemple) in &specifiers {
         let csi_color = Style::color("LightGreen");
         let csi_reset = Style::reset();
-        print!("  {}{}{}    {}\n", csi_color, specifier, csi_reset, usage);
+        println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }
     usr::shell::ExitCode::CommandSuccessful
 }

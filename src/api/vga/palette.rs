@@ -6,9 +6,9 @@ pub struct Palette {
 }
 
 pub fn from_csv(s: &str) -> Result<Palette, ()> {
-    let colors: Vec<_> = s.split("\n").filter_map(|line| {
-        let line = line.split("#").next().unwrap(); // Remove comments
-        let color: Vec<u8> = line.split(",").filter_map(|value| {
+    let colors: Vec<_> = s.split('\n').filter_map(|line| {
+        let line = line.split('#').next().unwrap(); // Remove comments
+        let color: Vec<u8> = line.split(',').filter_map(|value| {
             let radix = if value.contains("0x") { 16 } else { 10 };
             let value = value.trim().trim_start_matches("0x");
             u8::from_str_radix(value, radix).ok()

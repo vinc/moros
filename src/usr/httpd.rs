@@ -3,7 +3,7 @@ use crate::api::syscall;
 use crate::api::console::Style;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::time::Duration;
@@ -20,11 +20,11 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                print!("Error: Interface not ready\n");
+                println!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                print!("Error: Interface not ready\n");
+                println!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             _ => {}
@@ -32,7 +32,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
         let csi_color = Style::color("Yellow");
         let csi_reset = Style::reset();
-        print!("{}HTTP Server listening on 0.0.0.0:{}{}\n", csi_color, port, csi_reset);
+        println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
         let mtu = iface.device().capabilities().max_transmission_unit;
         let mut sockets = SocketSet::new(vec![]);
@@ -42,52 +42,33 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         let tcp_handle = sockets.add(tcp_socket);
 
         let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
-        let mut tcp_active = false;
         loop {
             if sys::console::end_of_text() {
-                print!("\n");
+                println!();
                 return usr::shell::ExitCode::CommandSuccessful;
             }
 
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-            //print!("{}\n", timestamp);
-            match iface.poll(&mut sockets, timestamp) {
-                Ok(_) => {},
-                Err(_) => {
-                    //print!("poll error: {}\n", e);
-                }
-            }
+            iface.poll(&mut sockets, timestamp).ok();
 
             {
                 let mut socket = sockets.get::<TcpSocket>(tcp_handle);
                 if !socket.is_open() {
                     socket.listen(port).unwrap();
                 }
-
                 let addr = socket.remote_endpoint().addr;
-                //let port = socket.remote_endpoint().port;
-
-                if socket.is_active() && !tcp_active {
-                    //print!("tcp:80 {}:{} connected\n", addr, port);
-                } else if !socket.is_active() && tcp_active {
-                    //print!("tcp:80 {}:{} disconnected\n", addr, port);
-                }
-                tcp_active = socket.is_active();
-
                 if socket.may_recv() {
-                    //print!("tcp:80 {}:{} may recv\n", addr, port);
                     let res = socket.recv(|buffer| {
                         let mut res = String::new();
                         let req = String::from_utf8_lossy(buffer);
-                        if req.len() > 0 {
+                        if !req.is_empty() {
                             let mut verb = "";
                             let mut path = "";
                             let mut header = true;
                             let mut contents = String::new();
                             for (i, line) in req.lines().enumerate() {
-                                //print!("{}: '{}'\n", i, line);
                                 if i == 0 {
-                                    let fields: Vec<_> = line.split(" ").collect();
+                                    let fields: Vec<_> = line.split(' ').collect();
                                     if fields.len() >= 2 {
                                         verb = fields[0];
                                         path = fields[1];
@@ -98,18 +79,17 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                     contents.push_str(&format!("{}\n", line));
                                 }
                             }
-
                             let date = strftime("%d/%b/%Y:%H:%M:%S %z");
                             let code;
                             let mime;
                             let mut body;
                             match verb {
                                 "GET" => {
-                                    if path.len() > 1 && path.ends_with("/") {
+                                    if path.len() > 1 && path.ends_with('/') {
                                         code = 301;
                                         res.push_str("HTTP/1.0 301 Moved Permanently\r\n");
                                         res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
-                                        body = format!("<h1>Moved Permanently</h1>\r\n");
+                                        body = "<h1>Moved Permanently</h1>\r\n".to_string();
                                         mime = "text/html";
                                     } else if let Some(mut file) = sys::fs::File::open(path) {
                                         code = 200;
@@ -131,12 +111,12 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                     } else {
                                         code = 404;
                                         res.push_str("HTTP/1.0 404 Not Found\r\n");
-                                        body = format!("<h1>Not Found</h1>\r\n");
+                                        body = "<h1>Not Found</h1>\r\n".to_string();
                                         mime = "text/plain";
                                     }
                                 },
                                 "PUT" => {
-                                    if path.ends_with("/") { // Write directory
+                                    if path.ends_with('/') { // Write directory
                                         let path = path.trim_end_matches('/');
                                         if sys::fs::Dir::open(path).is_some() {
                                             code = 403;
@@ -155,7 +135,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         };
                                         match maybe_file {
                                             Some(mut file) => {
-                                                if file.write(&contents.as_bytes()).is_ok() {
+                                                if file.write(contents.as_bytes()).is_ok() {
                                                     code = 200;
                                                     res.push_str("HTTP/1.0 200 OK\r\n");
                                                 } else {
@@ -169,7 +149,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                             }
                                         }
                                     }
-                                    body = format!("");
+                                    body = "".to_string();
                                     mime = "text/plain";
                                 },
                                 "DELETE" => {
@@ -185,13 +165,13 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         code = 404;
                                         res.push_str("HTTP/1.0 404 Not Found\r\n");
                                     }
-                                    body = format!("");
+                                    body = "".to_string();
                                     mime = "text/plain";
                                 },
                                 _ => {
                                     res.push_str("HTTP/1.0 400 Bad Request\r\n");
                                     code = 400;
-                                    body = format!("<h1>Bad Request</h1>\r\n");
+                                    body = "<h1>Bad Request</h1>\r\n".to_string();
                                     mime = "text/plain";
                                 },
                             }
@@ -203,38 +183,30 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                             res.push_str("Connection: close\r\n");
                             res.push_str("\r\n");
                             res.push_str(&body);
-                            print!("{} - - [{}] \"{} {}\" {} {}\n", addr, date, verb, path, code, size);
+                            println!("{} - - [{}] \"{} {}\" {} {}", addr, date, verb, path, code, size);
                         }
                         (buffer.len(), res)
                     }).unwrap();
-
-                    //print!("tcp:80 recv {}\n", res.len());
                     for chunk in res.as_bytes().chunks(mtu) {
                         send_queue.push_back(chunk.to_vec());
-                        //print!("tcp:80 queue ({} items)\n", send_queue.len());
                     }
-
                     if socket.can_send() {
-                        //print!("tcp:80 {}:{} can send\n", addr, port);
                         if let Some(chunk) = send_queue.pop_front() {
-                            //print!("tcp:80 send ({} left in queue)\n", send_queue.len());
                             socket.send_slice(&chunk).unwrap();
                         }
                     }
                 } else if socket.may_send() {
-                    //print!("tcp:80 {}:{} may send\n", addr, port);
                     socket.close();
                     send_queue.clear();
                 }
             }
-
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
                 syscall::sleep(wait_duration.as_secs_f64());
             }
         }
     } else {
-        print!("Error: Could not find network interface\n");
+        println!("Error: Could not find network interface");
         usr::shell::ExitCode::CommandError
     }
 }

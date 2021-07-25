@@ -66,7 +66,7 @@ impl Editor {
 
         if let Some(file) = &mut self.file {
             file.seek(sys::fs::SeekFrom::Start(0)).unwrap();
-            file.write(&contents.as_bytes()).unwrap();
+            file.write(contents.as_bytes()).unwrap();
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");
             usr::shell::ExitCode::CommandSuccessful
@@ -95,7 +95,7 @@ impl Editor {
             rows.push(self.render_line(y));
         }
         sys::vga::set_writer_position(0, 0);
-        print!("{}", rows.join("\n"));
+        println!("{}", rows.join(""));
 
         let status = format!("Editing '{}'", self.pathname);
         self.print_status(&status, "LightGray");
@@ -120,7 +120,7 @@ impl Editor {
         match c {
             '!'..='~' => Some(c.to_string()), // graphic char
             ' '       => Some(" ".to_string()),
-            '\t'      => Some(" ".repeat(self.config.tab_size).to_string()),
+            '\t'      => Some(" ".repeat(self.config.tab_size)),
             _         => None,
         }
     }
@@ -176,11 +176,9 @@ impl Editor {
                 'A' if csi => { // Arrow up
                     if y > 0 {
                         y -= 1
-                    } else {
-                        if self.dy > 0 {
-                            self.dy -= 1;
-                            self.print_screen();
-                        }
+                    } else if self.dy > 0 {
+                        self.dy -= 1;
+                        self.print_screen();
                     }
                     x = self.next_pos(x, y);
                 },
@@ -201,7 +199,7 @@ impl Editor {
                 },
                 'C' if csi => { // Arrow right
                     let line = &self.lines[self.dy + y];
-                    if line.len() == 0 || x + self.dx >= line.len() {
+                    if line.is_empty() || x + self.dx >= line.len() {
                         continue
                     } else if x == self.cols() - 1 {
                         x = self.dx;
@@ -254,7 +252,7 @@ impl Editor {
                         let line = self.lines[self.dy + y].clone();
                         let pos = self.dx + x - 1;
                         let (before, mut after) = line.split_at(pos);
-                        if after.len() > 0 {
+                        if !after.is_empty() {
                             after = &after[1..];
                         }
                         self.lines[self.dy + y].clear();
