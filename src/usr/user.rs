@@ -33,7 +33,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
 fn usage() -> usr::shell::ExitCode {
     print!("Usage: user [{}] <username>\n", COMMANDS.join("|"));
-    return usr::shell::ExitCode::CommandError;
+    usr::shell::ExitCode::CommandError
 }
 
 // TODO: Add max number of attempts
@@ -44,7 +44,7 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
         return main(&["user", "login"]);
     }
 
-    match hashed_password(&username) {
+    match hashed_password(username) {
         Some(hash) => {
             print!("Password: ");
             sys::console::disable_echo();
@@ -66,7 +66,7 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
     }
 
     let home = format!("/usr/{}", username);
-    sys::process::set_user(&username);
+    sys::process::set_user(username);
     sys::process::set_env("HOME", &home);
     sys::process::set_dir(&home);
 
@@ -79,7 +79,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    if hashed_password(&username).is_some() {
+    if hashed_password(username).is_some() {
         print!("Username exists\n");
         return usr::shell::ExitCode::CommandError;
     }
@@ -107,7 +107,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    if save_hashed_password(&username, &hash(&password)).is_err() {
+    if save_hashed_password(username, &hash(&password)).is_err() {
         print!("Could not save user\n");
         return usr::shell::ExitCode::CommandError;
     }
@@ -124,10 +124,10 @@ pub fn check(password: &str, hashed_password: &str) -> bool {
         return false;
     }
 
-    let decoded_field = usr::base64::decode(&fields[1].as_bytes());
+    let decoded_field = usr::base64::decode(fields[1].as_bytes());
     let c = u32::from_be_bytes(decoded_field[0..4].try_into().unwrap());
 
-    let decoded_field = usr::base64::decode(&fields[2].as_bytes());
+    let decoded_field = usr::base64::decode(fields[2].as_bytes());
     let salt: [u8; 16] = decoded_field[0..16].try_into().unwrap();
 
     let mut hash = [0u8; 32];
@@ -174,8 +174,8 @@ pub fn hash(password: &str) -> String {
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
     if let Some(mut file) = sys::fs::File::open(PASSWORDS) {
-        for line in file.read_to_string().split("\n") {
-            let mut rows = line.split(",");
+        for line in file.read_to_string().split('\n') {
+            let mut rows = line.split(',');
             if let Some(username) = rows.next() {
                 if let Some(hash) = rows.next() {
                     hashed_passwords.insert(username.into(), hash.into());
@@ -187,17 +187,12 @@ fn read_hashed_passwords() -> BTreeMap<String, String> {
 }
 
 fn hashed_password(username: &str) -> Option<String> {
-    let hashed_passwords = read_hashed_passwords();
-
-    match hashed_passwords.get(username) {
-        Some(hash) => Some(hash.into()),
-        None => None,
-    }
+    read_hashed_passwords().get(username).map(|hash| hash.into())
 }
 
 fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     let mut hashed_passwords = read_hashed_passwords();
-    hashed_passwords.remove(username.into());
+    hashed_passwords.remove(username);
     hashed_passwords.insert(username.into(), hash.into());
 
     let mut file = match sys::fs::File::open(PASSWORDS) {
@@ -212,5 +207,5 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     for (u, h) in hashed_passwords {
         contents.push_str(&format!("{},{}\n", u, h));
     }
-    file.write(&contents.as_bytes())
+    file.write(contents.as_bytes())
 }
