@@ -63,7 +63,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                     let res = socket.recv(|buffer| {
                         let mut res = String::new();
                         let req = String::from_utf8_lossy(buffer);
-                        if req.len() > 0 {
+                        if !req.is_empty() {
                             let mut verb = "";
                             let mut path = "";
                             let mut header = true;

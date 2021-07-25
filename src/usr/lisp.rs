@@ -532,7 +532,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
                 Err::Reason(msg) => println!("{}Error: {}{}\n", csi_error, msg, csi_reset),
             },
         }
-        if exp.len() > 0 {
+        if !exp.is_empty() {
             prompt.history.add(&exp);
             prompt.history.save(history_file);
         }
@@ -554,7 +554,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let mut closed = 0;
                 for line in file.read_to_string().split("\n") {
                     let line = strip_comments(line);
-                    if line.len() > 0 {
+                    if !line.is_empty() {
                         opened += line.matches("(").count();
                         closed += line.matches(")").count();
                         block.push_str(&line);

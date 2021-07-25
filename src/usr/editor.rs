@@ -254,7 +254,7 @@ impl Editor {
                         let line = self.lines[self.dy + y].clone();
                         let pos = self.dx + x - 1;
                         let (before, mut after) = line.split_at(pos);
-                        if after.len() > 0 {
+                        if !after.is_empty() {
                             after = &after[1..];
                         }
                         self.lines[self.dy + y].clear();

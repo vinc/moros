@@ -343,7 +343,7 @@ impl<'a> Device<'a> for PCNET {
             }
         }
 
-        if packet.len() > 0 {
+        if !packet.is_empty() {
             self.stats.rx_add(packet.len() as u64);
             if self.debug_mode {
                 //printk!("Size: {} bytes\n", packet.len());

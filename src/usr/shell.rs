@@ -219,7 +219,7 @@ pub fn main(args: &[&str]) -> ExitCode {
             let pathname = args[1];
             if let Some(mut file) = sys::fs::File::open(pathname) {
                 for line in file.read_to_string().split("\n") {
-                    if line.len() > 0 {
+                    if !line.is_empty() {
                         exec(line);
                     }
                 }

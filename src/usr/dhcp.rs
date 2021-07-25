@@ -73,7 +73,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 });
 
                 let dns_servers: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
-                if dns_servers.len() > 0 {
+                if !dns_servers.is_empty() {
                     println!("DNS: {}", dns_servers.join(", "));
                 }
 

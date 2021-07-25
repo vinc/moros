@@ -103,7 +103,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         State::Request
                     }
                     State::Request if socket.may_send() => {
-                        if request.len() > 0 {
+                        if !request.is_empty() {
                             socket.send_slice(request.as_ref()).expect("cannot send");
                         }
                         State::Response
