@@ -79,8 +79,13 @@ impl Prompt {
         self.update_history();
         let (bs, pos) = match self.completion.pos {
             Some(pos) => {
+                let n = self.completion.entries.len();
+                if n == 1 {
+                    self.update_completion();
+                    return;
+                }
                 let bs = self.completion.entries[pos].len();
-                if pos + 1 < self.completion.entries.len() {
+                if pos + 1 < n {
                     (bs, pos + 1)
                 } else {
                     (bs, 0)
