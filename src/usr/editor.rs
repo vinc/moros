@@ -176,11 +176,9 @@ impl Editor {
                 'A' if csi => { // Arrow up
                     if y > 0 {
                         y -= 1
-                    } else {
-                        if self.dy > 0 {
-                            self.dy -= 1;
-                            self.print_screen();
-                        }
+                    } else if self.dy > 0 {
+                        self.dy -= 1;
+                        self.print_screen();
                     }
                     x = self.next_pos(x, y);
                 },

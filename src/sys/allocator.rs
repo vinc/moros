@@ -57,7 +57,7 @@ impl PhysBuf {
         if buffer_len == memory_len as usize {
             Self { buf: Arc::new(Mutex::new(vec)) }
         } else {
-            Self::from(vec.clone())
+            Self::from(vec)
         }
     }
 

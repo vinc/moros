@@ -14,8 +14,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     match pathname {
         "/dev/rtc" => {
             let rtc = CMOS::new().rtc();
-            print!(
-                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}\n",
+            println!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
                 rtc.year, rtc.month, rtc.day,
                 rtc.hour, rtc.minute, rtc.second
             );

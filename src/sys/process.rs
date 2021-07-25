@@ -31,10 +31,7 @@ pub fn id() -> usize {
 }
 
 pub fn env(key: &str) -> Option<String> {
-    match PROCESS.lock().env.get(key.into()) {
-        Some(val) => Some(val.clone()),
-        None => None,
-    }
+    PROCESS.lock().env.get(key).cloned()
 }
 
 pub fn envs() -> BTreeMap<String, String> {

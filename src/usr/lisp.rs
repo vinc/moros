@@ -77,7 +77,7 @@ fn tokenize(expr: &str) -> Vec<String> {
         .split_whitespace().map(|x| x.to_string()).collect()
 }
 
-fn parse<'a>(tokens: &'a [String]) -> Result<(Exp, &'a [String]), Err> {
+fn parse(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let (token, rest) = tokens.split_first().ok_or(Err::Reason("could not get token".to_string()))?;
     match &token[..] {
         "'" => parse_quoted(rest),

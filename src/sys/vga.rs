@@ -202,7 +202,7 @@ impl Writer {
                 for j in 0..font.height as usize {
                     let vga_offset = j + i * 32 as usize;
                     let fnt_offset = j + i * font.height as usize;
-                    buffer.offset(vga_offset as isize).write_volatile(font.data[fnt_offset]);
+                    buffer.add(vga_offset).write_volatile(font.data[fnt_offset]);
                 }
             }
 
@@ -384,21 +384,18 @@ pub fn set_color(foreground: Color, background: Color) {
     })
 }
 
-// Printable ascii chars + backspace + newline + ext chars
+// ASCII Printable
+// Backspace
+// New Line
+// Carriage Return
+// Extended ASCII Printable
 pub fn is_printable(c: u8) -> bool {
-    match c {
-        0x20..=0x7E => true, // ASCII Printable
-        0x08        => true, // Backspace
-        0x0A        => true, // New Line
-        0x0D        => true, // Carriage Return
-        0x7F..=0xFF => true, // Extended ASCII Printable
-        _           => false,
-    }
+    matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x7F..=0xFF)
 }
 
 pub fn set_font(font: &Font) {
     interrupts::without_interrupts(|| {
-        WRITER.lock().set_font(&font);
+        WRITER.lock().set_font(font);
     })
 }
 

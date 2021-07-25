@@ -4,7 +4,7 @@ use alloc::string::{String, ToString};
 pub fn canonicalize(path: &str) -> Result<String, ()> {
     match sys::process::env("HOME") {
         Some(home) => {
-            if path.starts_with("~") {
+            if path.starts_with('~') {
                 Ok(path.replace("~", &home))
             } else {
                 Ok(path.to_string())

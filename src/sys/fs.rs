@@ -10,7 +10,7 @@ lazy_static! {
     pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
 }
 
-const MAGIC: &'static str = "MOROS FS";
+const MAGIC: &str = "MOROS FS";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
@@ -45,11 +45,11 @@ pub fn filename(pathname: &str) -> &str {
 
 // Transform "foo.txt" into "/path/to/foo.txt"
 pub fn realpath(pathname: &str) -> String {
-    if pathname.starts_with("/") {
+    if pathname.starts_with('/') {
         pathname.into()
     } else {
         let dirname = sys::process::dir();
-        let sep = if dirname.ends_with("/") { "" } else { "/" };
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
         format!("{}{}{}", dirname, sep, pathname)
     }
 }
@@ -238,7 +238,7 @@ impl Block {
     pub fn alloc() -> Option<Self> {
         match BlockBitmap::next_free_addr() {
             None => {
-                return None;
+                None
             }
             Some(addr) => {
                 BlockBitmap::alloc(addr);
@@ -530,7 +530,7 @@ impl Dir {
         }
         read_dir.block.write();
 
-        Some(DirEntry::new(self.clone(), kind, entry_addr, entry_size, name))
+        Some(DirEntry::new(*self, kind, entry_addr, entry_size, name))
     }
 
     // Deleting an entry is done by setting the entry address to 0
@@ -582,7 +582,7 @@ impl Dir {
 
     pub fn read(&self) -> ReadDir {
         ReadDir {
-            dir: self.clone(),
+            dir: *self,
             block: Block::read(self.addr),
             data_offset: 0,
         }
@@ -689,7 +689,7 @@ impl BlockDevice {
     }
 
     pub fn write(&self, block: u32, buf: &[u8]) {
-        sys::ata::write(self.bus, self.dsk, block, &buf);
+        sys::ata::write(self.bus, self.dsk, block, buf);
     }
 }
 

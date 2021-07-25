@@ -1,7 +1,7 @@
 use crate::{sys, usr};
 use alloc::vec::Vec;
 
-const COMMANDS: [&'static str; 2] = ["list", "format"];
+const COMMANDS: [&str; 2] = ["list", "format"];
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {

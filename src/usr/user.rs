@@ -9,8 +9,8 @@ use core::str;
 use hmac::Hmac;
 use sha2::Sha256;
 
-const PASSWORDS: &'static str = "/ini/passwords.csv";
-const COMMANDS: [&'static str; 2] = ["create", "login"];
+const PASSWORDS: &str = "/ini/passwords.csv";
+const COMMANDS: [&str; 2] = ["create", "login"];
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
