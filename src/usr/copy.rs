@@ -3,7 +3,7 @@ use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 3 {
-        print!("Usage: copy <source> <dest>\n");
+        println!("Usage: copy <source> <dest>");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -11,7 +11,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let dest = args[2];
 
     if dest.starts_with("/dev") || dest.starts_with("/sys") {
-        print!("Permission denied to write to '{}'\n", dest);
+        println!("Permission denied to write to '{}'", dest);
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -24,16 +24,16 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     usr::shell::ExitCode::CommandSuccessful
                 },
                 Err(()) => {
-                    print!("Could not write to '{}'\n", dest);
+                    println!("Could not write to '{}'", dest);
                     usr::shell::ExitCode::CommandError
                 }
             }
         } else {
-            print!("Permission denied to write to '{}'\n", dest);
+            println!("Permission denied to write to '{}'", dest);
             usr::shell::ExitCode::CommandError
         }
     } else {
-        print!("File not found '{}'\n", source);
+        println!("File not found '{}'", source);
         usr::shell::ExitCode::CommandError
     }
 }

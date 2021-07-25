@@ -34,11 +34,11 @@ impl Prompt {
         while let Some(c) = console::read_char() {
             match c {
                 '\x03' => { // End of Text (^C)
-                    print!("\n");
+                    println!();
                     return None;
                 },
                 '\x04' => { // End of Transmission (^D)
-                    print!("\n");
+                    println!();
                     return None;
                 },
                 '\n' => { // New Line

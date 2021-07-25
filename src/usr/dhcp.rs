@@ -24,33 +24,33 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             _ => Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0),
         };
 
-        print!("DHCP Discover transmitted\n");
+        println!("DHCP Discover transmitted");
         let timeout = 30.0;
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                print!("Timeout reached\n");
+                println!("Timeout reached");
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
-                print!("\n");
+                println!();
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    print!("Network Error: {}\n", e);
+                    println!("Network Error: {}", e);
                 }
                 Ok(_) => {}
             }
             let res = dhcp.poll(&mut iface, &mut sockets, timestamp).unwrap_or_else(|e| {
-                print!("DHCP Error: {:?}\n", e);
+                println!("DHCP Error: {:?}", e);
                 None
             });
             if let Some(config) = res {
-                print!("DHCP Offer received\n");
-                //print!("DHCP config: {:?}\n", config);
+                println!("DHCP Offer received");
+                //println!("DHCP config: {:?}", config);
                 match config.address {
                     Some(cidr) => if cidr != prev_cidr {
                         iface.update_ip_addrs(|addrs| {
@@ -58,7 +58,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                 *addr = IpCidr::Ipv4(cidr);
                             });
                         });
-                        print!("Leased: {}\n", cidr);
+                        println!("Leased: {}", cidr);
                     }
                     _ => {}
                 }
@@ -68,13 +68,13 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 });
                 iface.routes_mut().update(|routes_map| {
                     routes_map.get(&IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)).map(|default_route| {
-                        print!("Router: {}\n", default_route.via_router);
+                        println!("Router: {}", default_route.via_router);
                     });
                 });
 
                 let dns_servers: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
                 if dns_servers.len() > 0 {
-                    print!("DNS: {}\n", dns_servers.join(", "));
+                    println!("DNS: {}", dns_servers.join(", "));
                 }
 
                 return usr::shell::ExitCode::CommandSuccessful;

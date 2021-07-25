@@ -8,7 +8,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     } else {
         let buf = encode(args[1].as_bytes());
         let encoded = String::from_utf8(buf).unwrap();
-        print!("{}\n", encoded);
+        println!("{}", encoded);
         usr::shell::ExitCode::CommandSuccessful
     }
 }

@@ -8,22 +8,22 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         let csi_color = format!("\x1b[{};40m", i);
         print!(" {}{:3}{}", csi_color, i, csi_reset);
     }
-    print!("\n");
+    println!();
     for i in 90..98 {
         let csi_color = format!("\x1b[{};40m", i);
         print!(" {}{:3}{}", csi_color, i, csi_reset);
     }
-    print!("\n");
+    println!();
     for i in 40..48 {
         let csi_color = format!("\x1b[30;{}m", i);
         print!(" {}{:3}{}", csi_color, i, csi_reset);
     }
-    print!("\n");
+    println!();
     for i in 100..108 {
         let csi_color = format!("\x1b[30;{}m", i);
         print!(" {}{:3}{}", csi_color, i, csi_reset);
     }
-    print!("\n");
+    println!();
 
     usr::shell::ExitCode::CommandSuccessful
 }

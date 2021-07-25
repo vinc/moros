@@ -100,7 +100,7 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
 fn change_dir(args: &[&str]) -> ExitCode {
     match args.len() {
         1 => {
-            print!("{}\n", sys::process::dir());
+            println!("{}", sys::process::dir());
             ExitCode::CommandSuccessful
         },
         2 => {
@@ -112,7 +112,7 @@ fn change_dir(args: &[&str]) -> ExitCode {
                 sys::process::set_dir(&pathname);
                 ExitCode::CommandSuccessful
             } else {
-                print!("File not found '{}'\n", pathname);
+                println!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },
@@ -225,7 +225,7 @@ pub fn main(args: &[&str]) -> ExitCode {
                 }
                 ExitCode::CommandSuccessful
             } else {
-                print!("File not found '{}'\n", pathname);
+                println!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },

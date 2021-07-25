@@ -4,7 +4,7 @@ use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
-        print!("Usage: vga <command>\n");
+        println!("Usage: vga <command>");
         return usr::shell::ExitCode::CommandError;
     }
     match args[1] {
@@ -16,7 +16,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     if let Ok(font) = api::font::from_bytes(&buf) {
                         sys::vga::set_font(&font);
                     } else {
-                        print!("Could not parse font file\n");
+                        println!("Could not parse font file");
                         return usr::shell::ExitCode::CommandError;
                     }
                 }
@@ -25,17 +25,17 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     if let Ok(palette) = palette::from_csv(&file.read_to_string()) {
                         sys::vga::set_palette(palette);
                     } else {
-                        print!("Could not parse palette file\n");
+                        println!("Could not parse palette file");
                         return usr::shell::ExitCode::CommandError;
                     }
                 }
             } else {
-                print!("Invalid command\n");
+                println!("Invalid command");
                 return usr::shell::ExitCode::CommandError;
             }
         },
         _ => {
-            print!("Invalid command\n");
+            println!("Invalid command");
             return usr::shell::ExitCode::CommandError;
         }
     }

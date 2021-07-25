@@ -20,11 +20,11 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                print!("Error: Interface not ready\n");
+                println!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                print!("Error: Interface not ready\n");
+                println!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             _ => {}
@@ -32,7 +32,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
         let csi_color = Style::color("Yellow");
         let csi_reset = Style::reset();
-        print!("{}HTTP Server listening on 0.0.0.0:{}{}\n", csi_color, port, csi_reset);
+        println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
         let mtu = iface.device().capabilities().max_transmission_unit;
         let mut sockets = SocketSet::new(vec![]);
@@ -42,10 +42,9 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         let tcp_handle = sockets.add(tcp_socket);
 
         let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
-        let mut tcp_active = false;
         loop {
             if sys::console::end_of_text() {
-                print!("\n");
+                println!();
                 return usr::shell::ExitCode::CommandSuccessful;
             }
 
@@ -60,7 +59,6 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                     socket.listen(port).unwrap();
                 }
                 let addr = socket.remote_endpoint().addr;
-                tcp_active = socket.is_active();
                 if socket.may_recv() {
                     let res = socket.recv(|buffer| {
                         let mut res = String::new();
@@ -187,7 +185,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                             res.push_str("Connection: close\r\n");
                             res.push_str("\r\n");
                             res.push_str(&body);
-                            print!("{} - - [{}] \"{} {}\" {} {}\n", addr, date, verb, path, code, size);
+                            println!("{} - - [{}] \"{} {}\" {} {}", addr, date, verb, path, code, size);
                         }
                         (buffer.len(), res)
                     }).unwrap();
@@ -210,7 +208,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             }
         }
     } else {
-        print!("Error: Could not find network interface\n");
+        println!("Error: Could not find network interface");
         usr::shell::ExitCode::CommandError
     }
 }

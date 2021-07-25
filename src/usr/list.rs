@@ -21,11 +21,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         files.sort_by_key(|f| f.name());
 
         for file in files {
-            print!("{}\n", file.name());
+            println!("{}", file.name());
         }
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        print!("Dir not found '{}'\n", pathname);
+        println!("Dir not found '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

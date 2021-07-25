@@ -508,7 +508,7 @@ fn lisp_completer(line: &str) -> Vec<String> {
 }
 
 fn repl(env: &mut Env) -> usr::shell::ExitCode {
-    print!("MOROS Lisp v0.1.0\n\n");
+    println!("MOROS Lisp v0.1.0\n");
 
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("Red");
@@ -526,10 +526,10 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
         }
         match parse_eval(&exp, env) {
             Ok(res) => {
-                print!("{}\n\n", res);
+                println!("{}\n", res);
             }
             Err(e) => match e {
-                Err::Reason(msg) => print!("{}Error: {}{}\n\n", csi_error, msg, csi_reset),
+                Err::Reason(msg) => println!("{}Error: {}{}\n", csi_error, msg, csi_reset),
             },
         }
         if exp.len() > 0 {
@@ -576,7 +576,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
                 usr::shell::ExitCode::CommandSuccessful
             } else {
-                print!("File not found '{}'\n", pathname);
+                println!("File not found '{}'", pathname);
                 usr::shell::ExitCode::CommandError
             }
         },

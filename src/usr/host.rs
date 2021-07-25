@@ -163,7 +163,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    print!("Network Error: {}\n", e);
+                    println!("Network Error: {}", e);
                 }
                 Ok(_) => {}
             }
@@ -217,17 +217,17 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
-        print!("Usage: host <name>\n");
+        println!("Usage: host <name>");
         return usr::shell::ExitCode::CommandError;
     }
     let name = args[1];
     match resolve(name) {
         Ok(ip_addr) => {
-            print!("{} has address {}\n", name, ip_addr);
+            println!("{} has address {}", name, ip_addr);
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(e) => {
-            print!("Could not resolve host: {:?}\n", e);
+            println!("Could not resolve host: {:?}", e);
             usr::shell::ExitCode::CommandError
         }
     }

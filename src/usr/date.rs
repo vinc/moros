@@ -11,11 +11,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let format = if args.len() > 1 { args[1] } else { "%FT%H:%M:%S" };
     match time::util::validate_format_string(format) {
         Ok(()) => {
-            print!("{}\n", date.format(format));
+            println!("{}", date.format(format));
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(e) => {
-            print!("Error: {}\n", e);
+            println!("Error: {}", e);
             usr::shell::ExitCode::CommandError
         }
     }

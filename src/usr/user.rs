@@ -32,14 +32,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn usage() -> usr::shell::ExitCode {
-    print!("Usage: user [{}] <username>\n", COMMANDS.join("|"));
+    println!("Usage: user [{}] <username>", COMMANDS.join("|"));
     usr::shell::ExitCode::CommandError
 }
 
 // TODO: Add max number of attempts
 pub fn login(username: &str) -> usr::shell::ExitCode {
     if username.is_empty() {
-        print!("\n");
+        println!();
         syscall::sleep(1.0);
         return main(&["user", "login"]);
     }
@@ -50,16 +50,16 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
             sys::console::disable_echo();
             let mut password = sys::console::get_line();
             sys::console::enable_echo();
-            print!("\n");
+            println!();
             password.pop();
             if !check(&password, &hash) {
-                print!("\n");
+                println!();
                 syscall::sleep(1.0);
                 return main(&["user", "login"]);
             }
         },
         None => {
-            print!("\n");
+            println!();
             syscall::sleep(1.0);
             return main(&["user", "login"]);
         },
@@ -80,7 +80,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     if hashed_password(username).is_some() {
-        print!("Username exists\n");
+        println!("Username exists");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -88,7 +88,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     sys::console::disable_echo();
     let mut password = sys::console::get_line();
     sys::console::enable_echo();
-    print!("\n");
+    println!();
     password.pop();
 
     if password.is_empty() {
@@ -99,16 +99,16 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     sys::console::disable_echo();
     let mut confirm = sys::console::get_line();
     sys::console::enable_echo();
-    print!("\n");
+    println!();
     confirm.pop();
 
     if password != confirm {
-        print!("Password confirmation failed\n");
+        println!("Password confirmation failed");
         return usr::shell::ExitCode::CommandError;
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
-        print!("Could not save user\n");
+        println!("Could not save user");
         return usr::shell::ExitCode::CommandError;
     }
 

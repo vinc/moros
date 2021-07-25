@@ -95,7 +95,7 @@ impl Editor {
             rows.push(self.render_line(y));
         }
         sys::vga::set_writer_position(0, 0);
-        print!("{}", rows.join("\n"));
+        println!("{}", rows.join(""));
 
         let status = format!("Editing '{}'", self.pathname);
         self.print_status(&status, "LightGray");

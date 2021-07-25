@@ -13,7 +13,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         print_hex(contents.as_bytes());
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        print!("File not found '{}'\n", pathname);
+        println!("File not found '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }
@@ -43,7 +43,7 @@ pub fn print_hex(buf: &[u8]) {
                     print!(".");
                 }
             }
-            print!("\n");
+            println!();
         }
     }
 }
