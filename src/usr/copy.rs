@@ -1,5 +1,5 @@
 use crate::{sys, usr};
-use alloc::vec::Vec;
+use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 3 {
@@ -17,9 +17,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     if let Some(mut source_file) = sys::fs::File::open(source) {
         if let Some(mut dest_file) = sys::fs::File::create(dest) {
-            let filesize = source_file.size();
-            let mut buf = Vec::with_capacity(filesize);
-            buf.resize(filesize, 0);
+            let mut buf = vec![0; source_file.size()];
             source_file.read(&mut buf);
             match dest_file.write(&buf) {
                 Ok(_) => {

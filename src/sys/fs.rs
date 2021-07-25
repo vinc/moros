@@ -1,7 +1,7 @@
 use crate::sys;
 use alloc::format;
 use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -140,8 +140,7 @@ impl File {
 
     // TODO: `return Result<String>`
     pub fn read_to_string(&mut self) -> String {
-        let mut buf: Vec<u8> = Vec::with_capacity(self.size());
-        buf.resize(self.size(), 0);
+        let mut buf = vec![0; self.size()];
         let bytes = self.read(&mut buf);
         buf.resize(bytes, 0);
         String::from_utf8(buf).unwrap()

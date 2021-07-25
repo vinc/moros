@@ -1,6 +1,7 @@
 use crate::sys;
 use alloc::slice::SliceIndex;
 use alloc::sync::Arc;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::{Index, IndexMut};
 use linked_list_allocator::LockedHeap;
@@ -46,9 +47,7 @@ pub struct PhysBuf {
 
 impl PhysBuf {
     pub fn new(len: usize) -> Self {
-        let mut vec: Vec<u8> = Vec::with_capacity(len);
-        vec.resize(len, 0);
-        Self::from(vec)
+        Self::from(vec![0; len])
     }
 
     // Realloc vec until it uses a chunk of contiguous physical memory

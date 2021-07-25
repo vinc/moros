@@ -1,6 +1,6 @@
 use crate::{api, sys, usr};
 use crate::api::vga::palette;
-use alloc::vec::Vec;
+use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
@@ -11,9 +11,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         "set" => {
             if args.len() == 4 && args[2] == "font" {
                 if let Some(mut file) = sys::fs::File::open(args[3]) {
-                    let size = file.size();
-                    let mut buf = Vec::with_capacity(size);
-                    buf.resize(size, 0);
+                    let mut buf = vec![0; file.size()];
                     file.read(&mut buf);
                     if let Ok(font) = api::font::from_bytes(&buf) {
                         sys::vga::set_font(&font);
