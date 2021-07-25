@@ -10,6 +10,7 @@ use alloc::collections::BTreeMap;
 use alloc::rc::Rc;
 use core::fmt;
 use core::num::ParseFloatError;
+use float_cmp::approx_eq;
 
 // Adapted from Risp
 // Copyright 2019 Stepan Parunashvili
@@ -178,23 +179,23 @@ fn default_env<'a>() -> Env<'a> {
     );
     data.insert(
         "=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) < f64::EPSILON))
+        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b)))
     );
     data.insert(
         ">".to_string(), 
-        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) > f64::EPSILON && a > b))
+        Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b))
     );
     data.insert(
         ">=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) < f64::EPSILON || a > b))
+        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b))
     );
     data.insert(
         "<".to_string(), 
-        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) > f64::EPSILON && a < b))
+        Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b))
     );
     data.insert(
         "<=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) < f64::EPSILON || a < b))
+        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b))
     );
 
     Env {data, outer: None}
