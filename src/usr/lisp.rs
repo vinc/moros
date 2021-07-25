@@ -136,7 +136,7 @@ macro_rules! ensure_tonicity {
             let rest = &floats[1..];
             fn f (prev: &f64, xs: &[f64]) -> bool {
                 match xs.first() {
-                    Some(x) => $check_fn(prev, x) && f(x, &xs[1..]),
+                    Some(x) => $check_fn(*prev, *x) && f(x, &xs[1..]),
                     None => true,
                 }
             }
@@ -178,23 +178,23 @@ fn default_env<'a>() -> Env<'a> {
     );
     data.insert(
         "=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| a == b))
+        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) < f64::EPSILON))
     );
     data.insert(
         ">".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| a > b))
+        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) > f64::EPSILON && a > b))
     );
     data.insert(
         ">=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| a >= b))
+        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) < f64::EPSILON || a > b))
     );
     data.insert(
         "<".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| a < b))
+        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) > f64::EPSILON && a < b))
     );
     data.insert(
         "<=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| a <= b))
+        Exp::Func(ensure_tonicity!(|a: f64, b: f64| libm::fabs(b - a) < f64::EPSILON || a < b))
     );
 
     Env {data, outer: None}
@@ -665,4 +665,5 @@ pub fn test_lisp() {
     assert_eq!(eval!("(> 6 4 3 1)"), "true");
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
+    assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
 }
