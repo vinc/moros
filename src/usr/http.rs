@@ -167,7 +167,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             let contents = String::from_utf8_lossy(data);
                             for line in contents.lines() {
                                 if is_header {
-                                    if line.len() == 0 {
+                                    if line.is_empty() {
                                         is_header = false;
                                     }
                                     if is_verbose {

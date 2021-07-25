@@ -201,7 +201,7 @@ impl Editor {
                 },
                 'C' if csi => { // Arrow right
                     let line = &self.lines[self.dy + y];
-                    if line.len() == 0 || x + self.dx >= line.len() {
+                    if line.is_empty() || x + self.dx >= line.len() {
                         continue
                     } else if x == self.cols() - 1 {
                         x = self.dx;

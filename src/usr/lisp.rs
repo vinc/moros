@@ -245,7 +245,7 @@ fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
         Exp::List(a) => {
             match second_eval {
                 Exp::List(b) => {
-                    Ok(Exp::Bool(a.len() == 0 && b.len() == 0))
+                    Ok(Exp::Bool(a.len() == 0 && b.is_empty()))
                 },
                 _ => Ok(Exp::Bool(false))
             }
@@ -295,7 +295,7 @@ fn eval_cons_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    if arg_forms.len() == 0 {
+    if arg_forms.is_empty() {
         return Err(Err::Reason("expected at least one form".to_string()))
     }
     for arg_form in arg_forms {
