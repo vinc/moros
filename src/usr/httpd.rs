@@ -50,32 +50,18 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             }
 
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-            //print!("{}\n", timestamp);
             match iface.poll(&mut sockets, timestamp) {
                 Ok(_) => {},
-                Err(_) => {
-                    //print!("poll error: {}\n", e);
-                }
+                Err(_) => {}
             }
-
             {
                 let mut socket = sockets.get::<TcpSocket>(tcp_handle);
                 if !socket.is_open() {
                     socket.listen(port).unwrap();
                 }
-
                 let addr = socket.remote_endpoint().addr;
-                //let port = socket.remote_endpoint().port;
-
-                if socket.is_active() && !tcp_active {
-                    //print!("tcp:80 {}:{} connected\n", addr, port);
-                } else if !socket.is_active() && tcp_active {
-                    //print!("tcp:80 {}:{} disconnected\n", addr, port);
-                }
                 tcp_active = socket.is_active();
-
                 if socket.may_recv() {
-                    //print!("tcp:80 {}:{} may recv\n", addr, port);
                     let res = socket.recv(|buffer| {
                         let mut res = String::new();
                         let req = String::from_utf8_lossy(buffer);
@@ -85,7 +71,6 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                             let mut header = true;
                             let mut contents = String::new();
                             for (i, line) in req.lines().enumerate() {
-                                //print!("{}: '{}'\n", i, line);
                                 if i == 0 {
                                     let fields: Vec<_> = line.split(" ").collect();
                                     if fields.len() >= 2 {
@@ -98,7 +83,6 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                     contents.push_str(&format!("{}\n", line));
                                 }
                             }
-
                             let date = strftime("%d/%b/%Y:%H:%M:%S %z");
                             let code;
                             let mime;
@@ -207,27 +191,19 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                         }
                         (buffer.len(), res)
                     }).unwrap();
-
-                    //print!("tcp:80 recv {}\n", res.len());
                     for chunk in res.as_bytes().chunks(mtu) {
                         send_queue.push_back(chunk.to_vec());
-                        //print!("tcp:80 queue ({} items)\n", send_queue.len());
                     }
-
                     if socket.can_send() {
-                        //print!("tcp:80 {}:{} can send\n", addr, port);
                         if let Some(chunk) = send_queue.pop_front() {
-                            //print!("tcp:80 send ({} left in queue)\n", send_queue.len());
                             socket.send_slice(&chunk).unwrap();
                         }
                     }
                 } else if socket.may_send() {
-                    //print!("tcp:80 {}:{} may send\n", addr, port);
                     socket.close();
                     send_queue.clear();
                 }
             }
-
             if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
                 let wait_duration: Duration = wait_duration.into();
                 syscall::sleep(wait_duration.as_secs_f64());
