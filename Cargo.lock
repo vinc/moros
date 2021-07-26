@@ -338,9 +338,9 @@ checksum = "d34f1408f55294453790c48b2f1ebbb1c5b4b7563eb1f418bcfcfdbb06ebb4e7"
 
 [[package]]
 name = "raw-cpuid"
-version = "9.0.0"
+version = "10.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c27cb5785b85bd05d4eb171556c9a1a514552e26123aeae6bb7d811353148026"
+checksum = "eced3cf60359e752e6ad8965b85c22c1c5160ccb4f5033b40f883fff95ddfe02"
 dependencies = [
  "bitflags",
 ]
