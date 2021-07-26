@@ -5,7 +5,7 @@
 A hard drive is separated in blocks of 512 bytes, grouped into 4 areas:
 
     +------------+
-    | Boot       | (2048 blocks)
+    | Boot       | (4096 blocks)
     +------------+
     | Superblock | (2 blocks)
     +------------+
