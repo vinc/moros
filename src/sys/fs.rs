@@ -193,7 +193,7 @@ impl File {
             block.write();
         }
         self.size = self.offset;
-        self.dir.update_entry_size(&self.name, self.size);
+        self.dir.update_entry(&self.name, self.size);
         Ok(bytes)
     }
 
@@ -580,16 +580,25 @@ impl Dir {
         Err(())
     }
 
-    fn update_entry_size(&mut self, name: &str, size: u32) {
+    fn update_entry(&mut self, name: &str, size: u32) {
         let mut read_dir = self.read();
         for entry in &mut read_dir {
             if entry.name == name {
+                let time = sys::clock::realtime() as u64;
                 let data = read_dir.block.data_mut();
                 let i = read_dir.data_offset - entry.len();
-                data[i + 5] = size.get_bits(24..32) as u8;
-                data[i + 6] = size.get_bits(16..24) as u8;
-                data[i + 7] = size.get_bits(8..16) as u8;
-                data[i + 8] = size.get_bits(0..8) as u8;
+                data[i +  5] = size.get_bits(24..32) as u8;
+                data[i +  6] = size.get_bits(16..24) as u8;
+                data[i +  7] = size.get_bits(8..16) as u8;
+                data[i +  8] = size.get_bits(0..8) as u8;
+                data[i +  9] = time.get_bits(56..64) as u8;
+                data[i + 10] = time.get_bits(48..56) as u8;
+                data[i + 11] = time.get_bits(40..48) as u8;
+                data[i + 12] = time.get_bits(32..40) as u8;
+                data[i + 13] = time.get_bits(24..32) as u8;
+                data[i + 14] = time.get_bits(16..24) as u8;
+                data[i + 15] = time.get_bits(8..16) as u8;
+                data[i + 16] = time.get_bits(0..8) as u8;
                 read_dir.block.write();
                 break;
             }

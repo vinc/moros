@@ -103,7 +103,7 @@ Structure:
 A directory entry represents a file or a directory contained inside a
 directory. Each entry use a variable number of bytes that must fit inside the
 data of one block. Those bytes represent the kind of entry (file or dir), the
-address of the first block, the filesize (max 4GB), the creation time in
+address of the first block, the filesize (max 4GB), the last modified time in
 seconds since Unix Epoch, the length of the filename, and the filename (max
 255 chars) of the entry.
 
@@ -112,7 +112,7 @@ Structure:
      0                   1                   2
      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4      m
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    |k| addr  | size  | creation time |n| name buffer        |
+    |k| addr  | size  | time          |n| name buffer        |
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
 
     k = kind of entry
