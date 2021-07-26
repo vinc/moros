@@ -59,6 +59,7 @@ pub struct File {
     name: String,
     addr: u32,
     size: u32,
+    time: u64,
     dir: Dir, // TODO: Replace with `parent: Some(Dir)` and also add it to `Dir`
     offset: u32,
 }
@@ -371,13 +372,14 @@ pub struct DirEntry {
     kind: FileType,
     addr: u32,
     size: u32,
+    time: u64,
     name: String,
 }
 
 impl DirEntry {
-    pub fn new(dir: Dir, kind: FileType, addr: u32, size: u32, name: &str) -> Self {
+    pub fn new(dir: Dir, kind: FileType, addr: u32, size: u32, time: u64, name: &str) -> Self {
         let name = String::from(name);
-        Self { dir, kind, addr, size, name }
+        Self { dir, kind, addr, size, time, name }
     }
 
     pub fn is_dir(&self) -> bool {
@@ -390,6 +392,10 @@ impl DirEntry {
 
     pub fn size(&self) -> u32 {
         self.size
+    }
+
+    pub fn time(&self) -> u64 {
+        self.time
     }
 
     pub fn name(&self) -> String {
@@ -407,13 +413,14 @@ impl DirEntry {
             name: self.name.clone(),
             addr: self.addr,
             size: self.size,
+            time: self.time,
             dir: self.dir,
             offset: 0,
         }
     }
 
     pub fn len(&self) -> usize {
-        1 + 4 + 4 + 1 + self.name.len()
+        1 + 4 + 4 + 8 + 1 + self.name.len()
     }
 }
 
@@ -509,28 +516,37 @@ impl Dir {
 
         let entry_kind = kind;
         let entry_size = 0;
+        let entry_time = sys::clock::realtime() as u64;
         let entry_addr = new_block.addr();
         let entry_name = name.as_bytes();
 
         let n = entry_name.len();
         let i = read_dir.data_offset;
         let data = read_dir.block.data_mut();
-        data[i + 0] = entry_kind as u8;
-        data[i + 1] = entry_addr.get_bits(24..32) as u8;
-        data[i + 2] = entry_addr.get_bits(16..24) as u8;
-        data[i + 3] = entry_addr.get_bits(8..16) as u8;
-        data[i + 4] = entry_addr.get_bits(0..8) as u8;
-        data[i + 5] = entry_size.get_bits(24..32) as u8;
-        data[i + 6] = entry_size.get_bits(16..24) as u8;
-        data[i + 7] = entry_size.get_bits(8..16) as u8;
-        data[i + 8] = entry_size.get_bits(0..8) as u8;
-        data[i + 9] = n as u8;
+        data[i +  0] = entry_kind as u8;
+        data[i +  1] = entry_addr.get_bits(24..32) as u8;
+        data[i +  2] = entry_addr.get_bits(16..24) as u8;
+        data[i +  3] = entry_addr.get_bits(8..16) as u8;
+        data[i +  4] = entry_addr.get_bits(0..8) as u8;
+        data[i +  5] = entry_size.get_bits(24..32) as u8;
+        data[i +  6] = entry_size.get_bits(16..24) as u8;
+        data[i +  7] = entry_size.get_bits(8..16) as u8;
+        data[i +  8] = entry_size.get_bits(0..8) as u8;
+        data[i +  9] = entry_time.get_bits(56..64) as u8;
+        data[i + 10] = entry_time.get_bits(48..56) as u8;
+        data[i + 11] = entry_time.get_bits(40..48) as u8;
+        data[i + 12] = entry_time.get_bits(32..40) as u8;
+        data[i + 13] = entry_time.get_bits(24..32) as u8;
+        data[i + 14] = entry_time.get_bits(16..24) as u8;
+        data[i + 15] = entry_time.get_bits(8..16) as u8;
+        data[i + 16] = entry_time.get_bits(0..8) as u8;
+        data[i + 17] = n as u8;
         for j in 0..n {
-            data[i + 10 + j] = entry_name[j];
+            data[i + 18 + j] = entry_name[j];
         }
         read_dir.block.write();
 
-        Some(DirEntry::new(*self, kind, entry_addr, entry_size, name))
+        Some(DirEntry::new(*self, kind, entry_addr, entry_size, entry_time, name))
     }
 
     // Deleting an entry is done by setting the entry address to 0
@@ -624,15 +640,26 @@ impl Iterator for ReadDir {
                     1 => FileType::File,
                     _ => break,
                 };
-                let entry_addr = (data[i + 1] as u32) << 24
-                               | (data[i + 2] as u32) << 16
-                               | (data[i + 3] as u32) << 8
-                               | (data[i + 4] as u32);
-                let entry_size = (data[i + 5] as u32) << 24
-                               | (data[i + 6] as u32) << 16
-                               | (data[i + 7] as u32) << 8
-                               | (data[i + 8] as u32);
-                i += 9;
+
+                let entry_addr = (data[i +  1] as u32) << 24
+                               | (data[i +  2] as u32) << 16
+                               | (data[i +  3] as u32) << 8
+                               | (data[i +  4] as u32);
+
+                let entry_size = (data[i +  5] as u32) << 24
+                               | (data[i +  6] as u32) << 16
+                               | (data[i +  7] as u32) << 8
+                               | (data[i +  8] as u32);
+
+                let entry_time = (data[i +  9] as u64) << 56
+                               | (data[i + 10] as u64) << 48
+                               | (data[i + 11] as u64) << 40
+                               | (data[i + 12] as u64) << 32
+                               | (data[i + 13] as u64) << 24
+                               | (data[i + 14] as u64) << 16
+                               | (data[i + 15] as u64) << 8
+                               | (data[i + 16] as u64);
+                i += 17;
 
                 let mut n = data[i];
                 if n == 0 || n as usize >= data.len() - i {
@@ -658,7 +685,7 @@ impl Iterator for ReadDir {
                     continue;
                 }
 
-                return Some(DirEntry::new(self.dir, entry_kind, entry_addr, entry_size, &entry_name));
+                return Some(DirEntry::new(self.dir, entry_kind, entry_addr, entry_size, entry_time, &entry_name));
             }
 
             match self.block.next() {

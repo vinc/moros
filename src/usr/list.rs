@@ -1,5 +1,8 @@
 use crate::{sys, usr};
+use crate::api::console::Style;
+use alloc::string::ToString;
 use alloc::vec::Vec;
+use time::OffsetDateTime;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let current_dir = sys::process::dir();
@@ -20,8 +23,20 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
         files.sort_by_key(|f| f.name());
 
+        //let w = files.map(|f| f.size()).to_string().len();
+        let mut w = 0;
+        for file in &files {
+            w = core::cmp::max(w, file.size());
+        }
+        let w = w.to_string().len();
+
+        let csi_color = Style::color("Blue");
+        let csi_reset = Style::reset();
+
         for file in files {
-            println!("{}", file.name());
+            let date = OffsetDateTime::from_unix_timestamp(file.time() as i64);
+            let color = if file.is_dir() { csi_color } else { csi_reset };
+            println!("{:w$} {} {}{}{}", file.size(), date.format("%F %H:%M:%S"), color, file.name(), csi_reset, w = w);
         }
         usr::shell::ExitCode::CommandSuccessful
     } else {

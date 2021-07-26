@@ -1,6 +1,7 @@
 use crate::sys;
 use core::fmt;
 
+#[derive(Clone, Copy)]
 pub struct Style {
     foreground: Option<usize>,
     background: Option<usize>,
