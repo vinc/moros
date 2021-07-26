@@ -11,9 +11,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut i = 1;
     let n = args.len();
     while i < n {
-        if args[i] == "--sort" && i + 1 < n {
-            sort = args[i + 1];
-            i += 2;
+        if args[i] == "--sort" {
+            if i + 1 < n {
+                sort = args[i + 1];
+                i += 2;
+            } else {
+                println!("Missing sort key");
+                return usr::shell::ExitCode::CommandError;
+            }
         } else {
             path = args[i];
             i += 1;
