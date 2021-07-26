@@ -204,6 +204,7 @@ pub fn run() -> usr::shell::ExitCode {
                 success = false;
             },
         }
+        sys::console::drain();
         println!();
     }
     sys::vga::clear_screen();
