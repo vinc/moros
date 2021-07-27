@@ -96,7 +96,7 @@ impl Editor {
         for y in a..b {
             rows.push(self.render_line(y));
         }
-        println!("\x1b[1;1H{}", rows.join(""));
+        println!("\x1b[1;1H{}", rows.join("\n"));
 
         let status = format!("Editing '{}'", self.pathname);
         self.print_status(&status, "LightGray");
