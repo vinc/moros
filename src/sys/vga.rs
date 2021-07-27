@@ -246,6 +246,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[1] += n;
                 self.cursor[1] += n;
             },
@@ -254,6 +255,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[1] -= n;
                 self.cursor[1] -= n;
             },
@@ -262,6 +264,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[0] += n;
                 self.cursor[0] += n;
             },
@@ -270,27 +273,34 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[0] -= n;
                 self.cursor[0] -= n;
             },
             'G' => { // Cursor Horizontal Absolute
                 let (_, y) = self.cursor_position();
-                let mut n = 1;
+                let mut x = 1;
                 for param in params.iter() {
-                    n = param[0] as usize;
+                    x = param[0] as usize; // 1-indexed value
                 }
-                self.set_writer_position(n - 1, y);
-                self.set_cursor_position(n - 1, y);
+                if x > BUFFER_WIDTH {
+                    return;
+                }
+                self.set_writer_position(x - 1, y);
+                self.set_cursor_position(x - 1, y);
             },
             'H' => { // Move cursor
                 let mut x = 1;
                 let mut y = 1;
                 for (i, param) in params.iter().enumerate() {
                     match i {
-                        0 => x = param[0] as usize,
-                        1 => y = param[0] as usize,
+                        0 => x = param[0] as usize, // 1-indexed value
+                        1 => y = param[0] as usize, // 1-indexed value
                         _ => break,
                     };
+                }
+                if x > BUFFER_WIDTH || y > BUFFER_HEIGHT {
+                    return;
                 }
                 self.set_writer_position(x - 1, y - 1);
                 self.set_cursor_position(x - 1, y - 1);
