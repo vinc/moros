@@ -6,7 +6,6 @@ use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use volatile::Volatile;
 use vte::{Params, Parser, Perform};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
@@ -49,7 +48,7 @@ const BUFFER_WIDTH: usize = 80;
 
 #[repr(transparent)]
 struct Buffer {
-    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT],
+    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
 pub struct Writer {
@@ -115,13 +114,15 @@ impl Writer {
             0x08 => { // Backspace
                 if self.writer[0] > 0 {
                     self.writer[0] -= 1;
-                    let blank = ScreenChar {
+                    let c = ScreenChar {
                         ascii_code: b' ',
                         color_code: self.color_code,
                     };
                     let x = self.writer[0];
                     let y = self.writer[1];
-                    self.buffer.chars[y][x].write(blank);
+                    unsafe {
+                        core::ptr::write_volatile(&mut self.buffer.chars[y][x], c);
+                    }
                 }
             },
             byte => {
@@ -133,7 +134,10 @@ impl Writer {
                 let y = self.writer[1];
                 let ascii_code = if is_printable(byte) { byte } else { UNPRINTABLE };
                 let color_code = self.color_code;
-                self.buffer.chars[y][x].write(ScreenChar { ascii_code, color_code });
+                let c = ScreenChar { ascii_code, color_code };
+                unsafe {
+                    core::ptr::write_volatile(&mut self.buffer.chars[y][x], c);
+                }
                 self.writer[0] += 1;
             }
         }
@@ -145,8 +149,10 @@ impl Writer {
         } else {
             for y in 1..BUFFER_HEIGHT {
                 for x in 0..BUFFER_WIDTH {
-                    let character = self.buffer.chars[y][x].read();
-                    self.buffer.chars[y - 1][x].write(character);
+                    unsafe {
+                        let c  = core::ptr::read_volatile(&mut self.buffer.chars[y][x]);
+                        core::ptr::write_volatile(&mut self.buffer.chars[y - 1][x], c);
+                    }
                 }
             }
             self.clear_row_after(0, BUFFER_HEIGHT - 1);
@@ -155,12 +161,14 @@ impl Writer {
     }
 
     fn clear_row_after(&mut self, x: usize, y: usize) {
-        let blank = ScreenChar {
+        let c = ScreenChar {
             ascii_code: b' ',
             color_code: self.color_code,
         };
         for i in x..BUFFER_WIDTH {
-            self.buffer.chars[y][i].write(blank);
+            unsafe {
+                core::ptr::write_volatile(&mut self.buffer.chars[y][i], c);
+            }
         }
     }
 
