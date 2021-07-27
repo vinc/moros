@@ -60,39 +60,24 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn writer_position(&self) -> (usize, usize) {
+    fn writer_position(&self) -> (usize, usize) {
         (self.writer[0], self.writer[1])
     }
 
-    pub fn set_writer_position(&mut self, x: usize, y: usize) {
+    fn set_writer_position(&mut self, x: usize, y: usize) {
         self.writer = [x, y];
     }
 
-    pub fn cursor_position(&self) -> (usize, usize) {
+    fn cursor_position(&self) -> (usize, usize) {
         (self.cursor[0], self.cursor[1])
     }
 
-    pub fn set_cursor_position(&mut self, x: usize, y: usize) {
+    fn set_cursor_position(&mut self, x: usize, y: usize) {
         self.cursor = [x, y];
         self.write_cursor();
     }
 
-    // TODO: check this
-    pub fn enable_cursor(&mut self) {
-        let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
-        let mut crtc_ontroller_address_register = Port::new(0x3D4);
-        let mut crtc_ontroller_data_register = Port::new(0x3D5);
-        unsafe {
-            crtc_ontroller_address_register.write(0x0A as u8);
-            let val = crtc_ontroller_data_register.read();
-            crtc_ontroller_data_register.write(((val & 0xC0) | pos as u8) as u8);
-            crtc_ontroller_address_register.write(0x0B as u8);
-            let val = crtc_ontroller_data_register.read();
-            crtc_ontroller_data_register.write(((val & 0xE0) | pos as u8) as u8);
-        }
-    }
-
-    pub fn write_cursor(&mut self) {
+    fn write_cursor(&mut self) {
         let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
         let mut crtc_ontroller_address_register = Port::new(0x3D4);
         let mut crtc_ontroller_data_register = Port::new(0x3D5);
@@ -104,8 +89,7 @@ impl Writer {
         }
     }
 
-    /// Writes an ASCII byte to the screen buffer
-    pub fn write_byte(&mut self, byte: u8) {
+    fn write_byte(&mut self, byte: u8) {
         match byte {
             0x0A => { // Newline
                 self.new_line();
@@ -223,7 +207,6 @@ impl Writer {
             }
         }
     }
-
 }
 
 /// See https://vt100.net/emu/dec_ansi_parser
@@ -358,48 +341,12 @@ pub fn print_fmt(args: fmt::Arguments) {
     });
 }
 
-pub fn clear_row() {
-    clear_row_after(0);
-}
-
-pub fn clear_row_after(x: usize) {
-    let (_, y) = writer_position();
-    interrupts::without_interrupts(|| {
-        WRITER.lock().clear_row_after(x, y);
-    });
-    set_writer_position(x, y);
-}
-
 pub fn cols() -> usize {
     BUFFER_WIDTH
 }
 
 pub fn rows() -> usize {
     BUFFER_HEIGHT
-}
-
-pub fn set_cursor_position(x: usize, y: usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().set_cursor_position(x, y);
-    });
-}
-
-pub fn set_writer_position(x: usize, y: usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().set_writer_position(x, y);
-    });
-}
-
-pub fn cursor_position() -> (usize, usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().cursor_position()
-    })
-}
-
-pub fn writer_position() -> (usize, usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().writer_position()
-    })
 }
 
 pub fn color() -> (Color, Color) {

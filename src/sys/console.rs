@@ -32,65 +32,6 @@ pub fn has_cursor() -> bool {
     cfg!(feature = "video")
 }
 
-pub fn clear_row_after(x: usize) {
-    if cfg!(feature = "video") {
-        sys::vga::clear_row_after(x);
-    } else {
-        sys::serial::print_fmt(format_args!("\r")); // Move cursor to begining of line
-        sys::serial::print_fmt(format_args!("\x1b[{}C", x)); // Move cursor forward to position
-        sys::serial::print_fmt(format_args!("\x1b[K")); // Clear line after position
-    }
-}
-
-pub fn clear_row() {
-    clear_row_after(0);
-}
-
-pub fn cursor_position() -> (usize, usize) {
-    if cfg!(feature = "video") {
-        sys::vga::cursor_position()
-    } else {
-        sys::serial::print_fmt(format_args!("\x1b[6n")); // Ask cursor position
-        get_char(); // ESC
-        get_char(); // [
-        let mut x = String::new();
-        let mut y = String::new();
-        loop {
-            let c = get_char();
-            if c == ';' {
-                break;
-            } else {
-                y.push(c);
-            }
-        }
-        loop {
-            let c = get_char();
-            if c == 'R' {
-                break;
-            } else {
-                x.push(c);
-            }
-        }
-        (x.parse().unwrap_or(1), y.parse().unwrap_or(1))
-    }
-}
-
-pub fn set_cursor_position(x: usize, y: usize) {
-    if cfg!(feature = "video") {
-        sys::vga::set_cursor_position(x, y);
-    } else {
-        sys::serial::print_fmt(format_args!("\x1b[{};{}H", y + 1, x + 1));
-    }
-}
-
-pub fn set_writer_position(x: usize, y: usize) {
-    if cfg!(feature = "video") {
-        sys::vga::set_writer_position(x, y);
-    } else {
-        sys::serial::print_fmt(format_args!("\x1b[{};{}H", y + 1, x + 1));
-    }
-}
-
 pub fn disable_echo() {
     let mut echo = ECHO.lock();
     *echo = false;
