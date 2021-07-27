@@ -127,7 +127,7 @@ impl Editor {
     }
 
     pub fn run(&mut self) -> usr::shell::ExitCode {
-        print!("\x1b[2J"); // Clear screen
+        print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         print!("\x1b[1;1H"); // Move cursor to the top of the screen
 
@@ -149,7 +149,7 @@ impl Editor {
                 }
                 '\x11' => { // Ctrl Q
                     // TODO: Warn if modifications have not been saved
-                    print!("\x1b[2J"); // Clear screen
+                    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
                     break;
                 },
                 '\x17' => { // Ctrl W
@@ -157,7 +157,7 @@ impl Editor {
                 },
                 '\x18' => { // Ctrl X
                     let res = self.save();
-                    print!("\x1b[2J"); // Clear screen
+                    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
                     return res;
                 },
                 '\n' => { // Newline
