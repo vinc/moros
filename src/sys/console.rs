@@ -46,14 +46,6 @@ pub fn clear_row() {
     clear_row_after(0);
 }
 
-pub fn clear_screen() {
-    if cfg!(feature = "video") {
-        sys::vga::clear_screen();
-    } else {
-        sys::serial::print_fmt(format_args!("\x1b[2J"));
-    }
-}
-
 pub fn cursor_position() -> (usize, usize) {
     if cfg!(feature = "video") {
         sys::vga::cursor_position()

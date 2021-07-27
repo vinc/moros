@@ -1,6 +1,6 @@
-use crate::{sys, usr};
+use crate::usr;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
-    sys::vga::clear_screen();
+    print!("\x1b[2J"); // Clear screen
     usr::shell::ExitCode::CommandSuccessful
 }

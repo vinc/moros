@@ -206,7 +206,7 @@ pub fn run() -> usr::shell::ExitCode {
         }
         println!();
     }
-    sys::vga::clear_screen();
+    print!("\x1b[2J"); // Clear screen
     ExitCode::CommandSuccessful
 }
 

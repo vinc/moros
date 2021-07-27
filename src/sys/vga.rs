@@ -164,14 +164,6 @@ impl Writer {
         }
     }
 
-    pub fn clear_screen(&mut self) {
-        for y in 0..BUFFER_HEIGHT {
-            self.clear_row_after(0, y);
-        }
-        self.set_writer_position(0, 0);
-        self.set_cursor_position(0, 0);
-    }
-
     pub fn set_color(&mut self, foreground: Color, background: Color) {
         self.color_code = ColorCode::new(foreground, background);
     }
@@ -298,6 +290,13 @@ impl Perform for Writer {
                 self.writer[0] -= n;
                 self.cursor[0] -= n;
             },
+            'J' => { // Clear Screen
+                for y in 0..BUFFER_HEIGHT {
+                    self.clear_row_after(0, y);
+                }
+                self.set_writer_position(0, 0);
+                self.set_cursor_position(0, 0);
+            },
             _ => {},
         }
     }
@@ -319,12 +318,6 @@ impl fmt::Write for Writer {
 pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {
         WRITER.lock().write_fmt(args).expect("Could not print to VGA");
-    });
-}
-
-pub fn clear_screen() {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().clear_screen();
     });
 }
 

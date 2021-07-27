@@ -126,7 +126,7 @@ impl Editor {
     }
 
     pub fn run(&mut self) -> usr::shell::ExitCode {
-        sys::vga::clear_screen();
+        print!("\x1b[2J"); // Clear screen
         self.print_screen();
         sys::vga::set_cursor_position(0, 0);
         sys::vga::set_writer_position(0, 0);
@@ -150,7 +150,7 @@ impl Editor {
                 }
                 '\x11' => { // Ctrl Q
                     // TODO: Warn if modifications have not been saved
-                    sys::vga::clear_screen();
+                    print!("\x1b[2J"); // Clear screen
                     break;
                 },
                 '\x17' => { // Ctrl W
@@ -158,7 +158,7 @@ impl Editor {
                 },
                 '\x18' => { // Ctrl X
                     let res = self.save();
-                    sys::vga::clear_screen();
+                    print!("\x1b[2J"); // Clear screen
                     return res;
                 },
                 '\n' => { // Newline
