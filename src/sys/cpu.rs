@@ -7,10 +7,8 @@ pub fn init() {
         log!("CPU {}\n", vendor_info);
     }
 
-    if let Some(extended_function_info) = cpuid.get_extended_function_info() {
-        if let Some(processor_brand_string) = extended_function_info.processor_brand_string() {
-            log!("CPU {}\n", processor_brand_string.trim());
-        }
+    if let Some(processor_brand_string) = cpuid.get_processor_brand_string() {
+        log!("CPU {}\n", processor_brand_string.as_str().trim());
     }
 
     if let Some(processor_frequency_info) = cpuid.get_processor_frequency_info() {
