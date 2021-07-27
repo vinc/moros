@@ -150,7 +150,7 @@ impl Writer {
             for y in 1..BUFFER_HEIGHT {
                 for x in 0..BUFFER_WIDTH {
                     unsafe {
-                        let c  = core::ptr::read_volatile(&mut self.buffer.chars[y][x]);
+                        let c = core::ptr::read_volatile(&mut self.buffer.chars[y][x]);
                         core::ptr::write_volatile(&mut self.buffer.chars[y - 1][x], c);
                     }
                 }
