@@ -302,8 +302,8 @@ impl Perform for Writer {
                 let mut y = 1;
                 for (i, param) in params.iter().enumerate() {
                     match i {
-                        0 => x = param[0] as usize, // 1-indexed value
-                        1 => y = param[0] as usize, // 1-indexed value
+                        0 => y = param[0] as usize, // 1-indexed value
+                        1 => x = param[0] as usize, // 1-indexed value
                         _ => break,
                     };
                 }

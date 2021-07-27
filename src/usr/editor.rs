@@ -84,9 +84,9 @@ impl Editor {
     fn print_status(&mut self, status: &str, background: &str) {
         let color = Style::color("Black").with_background(background);
         let reset = Style::reset();
-        print!("\x1b[1;{}H", self.rows() + 1); // Move cursor to the bottom of the screen
+        print!("\x1b[{};1H", self.rows() + 1); // Move cursor to the bottom of the screen
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-        print!("\x1b[{};{}H", self.x + 1, self.y + 1); // Move cursor back
+        print!("\x1b[{};{}H", self.y + 1, self.x + 1); // Move cursor back
     }
 
     fn print_screen(&mut self) {
@@ -327,7 +327,7 @@ impl Editor {
             }
             escape = false;
             csi = false;
-            print!("\x1b[{};{}H", self.x + 1, self.y + 1);
+            print!("\x1b[{};{}H", self.y + 1, self.x + 1);
         }
         usr::shell::ExitCode::CommandSuccessful
     }
