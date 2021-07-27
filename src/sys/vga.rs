@@ -306,8 +306,18 @@ impl Perform for Writer {
                 self.set_cursor_position(x - 1, y - 1);
             },
             'J' => { // Erase in Display
-                for y in 0..BUFFER_HEIGHT {
-                    self.clear_row_after(0, y);
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                match n {
+                    // TODO: 0 and 1, from cursor to begining or to end of screen
+                    2 => {
+                        for y in 0..BUFFER_HEIGHT {
+                            self.clear_row_after(0, y);
+                        }
+                    }
+                    _ => return,
                 }
                 self.set_writer_position(0, 0);
                 self.set_cursor_position(0, 0);
@@ -320,9 +330,9 @@ impl Perform for Writer {
                 }
                 match n {
                     0 => self.clear_row_after(x, y),
-                    //1 => self.clear_row_before(x, y),
+                    1 => return, // TODO: self.clear_row_before(x, y),
                     2 => self.clear_row_after(0, y),
-                    _ => {},
+                    _ => return,
                 }
                 self.set_writer_position(x, y);
                 self.set_cursor_position(x, y);
