@@ -7,6 +7,8 @@
 - Add VGA palette loader ([#203](https://github.com/vinc/moros/pull/203))
 - Add file offset ([#206](https://github.com/vinc/moros/pull/206))
 - Add syscalls ([#196](https://github.com/vinc/moros/pull/196))
+- Add time to dir entry ([#215](https://github.com/vinc/moros/pull/215))
+- Fix clippy warnings ([#214](https://github.com/vinc/moros/pull/2154))
 - Move kernel code to api ([#204](https://github.com/vinc/moros/pull/204))
 - Refactor line editing ([#212](https://github.com/vinc/moros/pull/212))
 - Refactor print macros ([#208](https://github.com/vinc/moros/pull/208))

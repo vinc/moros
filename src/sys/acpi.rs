@@ -3,6 +3,7 @@ use acpi::{AcpiHandler, PhysicalMapping, AcpiTables};
 use alloc::boxed::Box;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use aml::value::AmlValue;
+use core::ptr::NonNull;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
@@ -100,17 +101,10 @@ pub struct MorosAcpiHandler;
 impl AcpiHandler for MorosAcpiHandler {
     unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> PhysicalMapping<Self, T> {
         let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
-        PhysicalMapping {
-            physical_start: physical_address,
-            virtual_start: core::ptr::NonNull::new(virtual_address.as_mut_ptr()).unwrap(),
-            region_length: size,
-            mapped_length: size,
-            handler: Self,
-        }
+        PhysicalMapping::new(physical_address, NonNull::new(virtual_address.as_mut_ptr()).unwrap(), size, size, Self)
     }
 
-    fn unmap_physical_region<T>(&self, _region: &PhysicalMapping<Self, T>) {
-    }
+    fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {}
 }
 
 struct MorosAmlHandler;

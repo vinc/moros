@@ -204,6 +204,7 @@ pub fn run() -> usr::shell::ExitCode {
                 success = false;
             },
         }
+        sys::console::drain();
         println!();
     }
     print!("\x1b[2J"); // Clear screen
