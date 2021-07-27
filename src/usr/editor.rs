@@ -23,13 +23,17 @@ pub struct Editor {
     file: Option<sys::fs::File>,
     pathname: String,
     lines: Vec<String>,
-    dx: usize, // Horizontal offset
-    dy: usize, // Vertical offset
+    x: usize,
+    y: usize,
+    dx: usize, // Horizontal offset from the start
+    dy: usize, // Vertical offset from the top
     config: EditorConfig,
 }
 
 impl Editor {
     pub fn new(pathname: &str) -> Self {
+        let x = 0;
+        let y = 0;
         let dx = 0;
         let dy = 0;
         let mut lines = Vec::new();
@@ -51,7 +55,7 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { file, pathname, lines, dx, dy, config }
+        Self { file, pathname, lines, x, y, dx, dy, config }
     }
 
     pub fn save(&mut self) -> usr::shell::ExitCode {
@@ -80,11 +84,9 @@ impl Editor {
     fn print_status(&mut self, status: &str, background: &str) {
         let color = Style::color("Black").with_background(background);
         let reset = Style::reset();
-        let (x, y) = sys::vga::cursor_position();
-        sys::vga::set_writer_position(0, self.rows());
+        print!("\x1b[1;{}H", self.rows() + 1); // Move cursor to the bottom of the screen
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-        sys::vga::set_writer_position(x, y);
-        sys::vga::set_cursor_position(x, y);
+        print!("\x1b[{};{}H", self.x + 1, self.y + 1); // Move cursor back
     }
 
     fn print_screen(&mut self) {
@@ -94,8 +96,7 @@ impl Editor {
         for y in a..b {
             rows.push(self.render_line(y));
         }
-        sys::vga::set_writer_position(0, 0);
-        println!("{}", rows.join(""));
+        println!("\x1b[1;1H{}", rows.join(""));
 
         let status = format!("Editing '{}'", self.pathname);
         self.print_status(&status, "LightGray");
@@ -128,13 +129,11 @@ impl Editor {
     pub fn run(&mut self) -> usr::shell::ExitCode {
         print!("\x1b[2J"); // Clear screen
         self.print_screen();
-        sys::vga::set_cursor_position(0, 0);
-        sys::vga::set_writer_position(0, 0);
+        print!("\x1b[1;1H"); // Move cursor to the top of the screen
 
         let mut escape = false;
         let mut csi = false;
         loop {
-            let (mut x, mut y) = sys::vga::cursor_position();
             let c = sys::console::get_char();
             match c {
                 '\x1B' => { // ESC
@@ -162,131 +161,130 @@ impl Editor {
                     return res;
                 },
                 '\n' => { // Newline
-                    let line = self.lines[self.dy + y].split_off(self.dx + x);
-                    self.lines.insert(self.dy + y + 1, line);
-                    if y == self.rows() - 1 {
+                    let line = self.lines[self.dy + self.y].split_off(self.dx + self.x);
+                    self.lines.insert(self.dy + self.y + 1, line);
+                    if self.y == self.rows() - 1 {
                         self.dy += 1;
                     } else {
-                        y += 1;
+                        self.y += 1;
                     }
-                    x = 0;
+                    self.x = 0;
                     self.dx = 0;
                     self.print_screen();
                 },
                 'A' if csi => { // Arrow up
-                    if y > 0 {
-                        y -= 1
+                    if self.y > 0 {
+                        self.y -= 1
                     } else if self.dy > 0 {
                         self.dy -= 1;
                         self.print_screen();
                     }
-                    x = self.next_pos(x, y);
+                    self.x = self.next_pos(self.x, self.y);
                 },
                 'B' if csi => { // Arrow down
-                    let is_eof = self.dy + y == self.lines.len() - 1;
-                    let is_bottom = y == self.rows() - 1;
-                    if y < cmp::min(self.rows(), self.lines.len() - 1) {
+                    let is_eof = self.dy + self.y == self.lines.len() - 1;
+                    let is_bottom = self.y == self.rows() - 1;
+                    if self.y < cmp::min(self.rows(), self.lines.len() - 1) {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.dy += 1;
                                 self.print_screen();
                             }
                         } else {
-                            y += 1;
+                            self.y += 1;
                         }
-                        x = self.next_pos(x, y);
+                        self.x = self.next_pos(self.x, self.y);
                     }
                 },
                 'C' if csi => { // Arrow right
-                    let line = &self.lines[self.dy + y];
-                    if line.is_empty() || x + self.dx >= line.len() {
+                    let line = &self.lines[self.dy + self.y];
+                    if line.is_empty() || self.x + self.dx >= line.len() {
                         continue
-                    } else if x == self.cols() - 1 {
-                        x = self.dx;
+                    } else if self.x == self.cols() - 1 {
+                        self.x = self.dx;
                         self.dx += self.cols();
                         self.print_screen();
                     } else {
-                        x += 1;
+                        self.x += 1;
                     }
                 },
                 'D' if csi => { // Arrow left
-                    if x + self.dx == 0 {
+                    if self.x + self.dx == 0 {
                         continue;
-                    } else if x == 0 {
-                        x = self.dx - 1;
+                    } else if self.x == 0 {
+                        self.x = self.dx - 1;
                         self.dx -= self.cols();
                         self.print_screen();
-                        x = self.next_pos(x, y);
+                        self.x = self.next_pos(self.x, self.y);
                     } else {
-                        x -= 1;
+                        self.x -= 1;
                     }
                 },
                 '\x14' => { // Ctrl T -> Go to top of file
-                    x = 0;
-                    y = 0;
+                    self.x = 0;
+                    self.y = 0;
                     self.dx = 0;
                     self.dy = 0;
                     self.print_screen();
                 },
                 '\x02' => { // Ctrl B -> Go to bottom of file
-                    x = 0;
-                    y = cmp::min(self.rows(), self.lines.len()) - 1;
+                    self.x = 0;
+                    self.y = cmp::min(self.rows(), self.lines.len()) - 1;
                     self.dx = 0;
-                    self.dy = self.lines.len() - 1 - y;
+                    self.dy = self.lines.len() - 1 - self.y;
                     self.print_screen();
                 },
                 '\x01' => { // Ctrl A -> Go to beginning of line
-                    x = 0;
+                    self.x = 0;
                     self.dx = 0;
                     self.print_screen();
                 },
                 '\x05' => { // Ctrl E -> Go to end of line
-                    let n = self.lines[self.dy + y].len();
+                    let n = self.lines[self.dy + self.y].len();
                     let w = self.cols();
-                    x = n % w;
+                    self.x = n % w;
                     self.dx = w * (n / w);
                     self.print_screen();
                 },
                 '\x08' => { // Backspace
-                    if self.dx + x > 0 { // Remove char from line
-                        let line = self.lines[self.dy + y].clone();
-                        let pos = self.dx + x - 1;
+                    if self.dx + self.x > 0 { // Remove char from line
+                        let line = self.lines[self.dy + self.y].clone();
+                        let pos = self.dx + self.x - 1;
                         let (before, mut after) = line.split_at(pos);
                         if !after.is_empty() {
                             after = &after[1..];
                         }
-                        self.lines[self.dy + y].clear();
-                        self.lines[self.dy + y].push_str(before);
-                        self.lines[self.dy + y].push_str(after);
+                        self.lines[self.dy + self.y].clear();
+                        self.lines[self.dy + self.y].push_str(before);
+                        self.lines[self.dy + self.y].push_str(after);
 
-                        if x == 0 {
+                        if self.x == 0 {
                             self.dx -= self.cols();
-                            x = self.cols() - 1;
+                            self.x = self.cols() - 1;
                             self.print_screen();
                         } else {
-                            x -= 1;
-                            let line = self.render_line(self.dy + y);
-                            sys::vga::clear_row();
-                            print!("{}", line);
+                            self.x -= 1;
+                            let line = self.render_line(self.dy + self.y);
+                            print!("\x1b[2K\x1b[1G{}", line);
                         }
                     } else { // Remove newline from previous line
-                        if y == 0 && self.dy == 0 {
+                        if self.y == 0 && self.dy == 0 {
                             continue;
                         }
 
                         // Move cursor below the end of the previous line
-                        let n = self.lines[self.dy + y - 1].len();
+                        let n = self.lines[self.dy + self.y - 1].len();
                         let w = self.cols();
-                        x = n % w;
+                        self.x = n % w;
                         self.dx = w * (n / w);
 
                         // Move line to the end of the previous line
-                        let line = self.lines.remove(self.dy + y);
-                        self.lines[self.dy + y - 1].push_str(&line);
+                        let line = self.lines.remove(self.dy + self.y);
+                        self.lines[self.dy + self.y - 1].push_str(&line);
 
                         // Move cursor up to the previous line
-                        if y > 0 {
-                            y -= 1;
+                        if self.y > 0 {
+                            self.y -= 1;
                         } else {
                             self.dy -= 1;
                         }
@@ -295,44 +293,41 @@ impl Editor {
                     }
                 },
                 '\x7f' => { // Delete
-                    let n = self.lines[self.dy + y].len();
-                    if self.dx + x >= n { // Remove newline from line
-                        let line = self.lines.remove(self.dy + y + 1);
-                        self.lines[self.dy + y].push_str(&line);
+                    let n = self.lines[self.dy + self.y].len();
+                    if self.dx + self.x >= n { // Remove newline from line
+                        let line = self.lines.remove(self.dy + self.y + 1);
+                        self.lines[self.dy + self.y].push_str(&line);
                         self.print_screen();
                     } else { // Remove char from line
-                        self.lines[self.dy + y].remove(self.dx + x);
-                        let line = self.render_line(self.dy + y);
-                        sys::vga::clear_row();
-                        print!("{}", line);
+                        self.lines[self.dy + self.y].remove(self.dx + self.x);
+                        let line = self.render_line(self.dy + self.y);
+                        print!("\x1b[2K\x1b[1G{}", line);
                     }
                 },
                 c => {
                     if let Some(s) = self.render_char(c) {
-                        let line = self.lines[self.dy + y].clone();
-                        let (before, after) = line.split_at(self.dx + x);
-                        self.lines[self.dy + y].clear();
-                        self.lines[self.dy + y].push_str(before);
-                        self.lines[self.dy + y].push_str(&s);
-                        self.lines[self.dy + y].push_str(after);
+                        let line = self.lines[self.dy + self.y].clone();
+                        let (before, after) = line.split_at(self.dx + self.x);
+                        self.lines[self.dy + self.y].clear();
+                        self.lines[self.dy + self.y].push_str(before);
+                        self.lines[self.dy + self.y].push_str(&s);
+                        self.lines[self.dy + self.y].push_str(after);
 
-                        x += s.len();
-                        if x >= self.cols() {
+                        self.x += s.len();
+                        if self.x >= self.cols() {
                             self.dx += self.cols();
-                            x -= self.dx;
+                            self.x -= self.dx;
                             self.print_screen();
                         } else {
-                            let line = self.render_line(self.dy + y);
-                            sys::vga::clear_row();
-                            print!("{}", line);
+                            let line = self.render_line(self.dy + self.y);
+                            print!("\x1b[2K\x1b[1G{}", line);
                         }
                     }
                 },
             }
             escape = false;
             csi = false;
-            sys::vga::set_cursor_position(x, y);
-            sys::vga::set_writer_position(x, y);
+            print!("\x1b[{};{}H", self.x + 1, self.y + 1);
         }
         usr::shell::ExitCode::CommandSuccessful
     }

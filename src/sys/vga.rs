@@ -290,12 +290,49 @@ impl Perform for Writer {
                 self.writer[0] -= n;
                 self.cursor[0] -= n;
             },
-            'J' => { // Clear Screen
+            'G' => { // Cursor Horizontal Absolute
+                let (_, y) = self.cursor_position();
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.set_writer_position(n - 1, y);
+                self.set_cursor_position(n - 1, y);
+            },
+            'H' => { // Move cursor
+                let mut x = 1;
+                let mut y = 1;
+                for (i, param) in params.iter().enumerate() {
+                    match i {
+                        0 => x = param[0] as usize,
+                        1 => y = param[0] as usize,
+                        _ => break,
+                    };
+                }
+                self.set_writer_position(x - 1, y - 1);
+                self.set_cursor_position(x - 1, y - 1);
+            },
+            'J' => { // Erase in Display
                 for y in 0..BUFFER_HEIGHT {
                     self.clear_row_after(0, y);
                 }
                 self.set_writer_position(0, 0);
                 self.set_cursor_position(0, 0);
+            },
+            'K' => { // Erase in Line
+                let (x, y) = self.cursor_position();
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                match n {
+                    0 => self.clear_row_after(x, y),
+                    //1 => self.clear_row_before(x, y),
+                    2 => self.clear_row_after(0, y),
+                    _ => {},
+                }
+                self.set_writer_position(x, y);
+                self.set_cursor_position(x, y);
             },
             _ => {},
         }
