@@ -24,6 +24,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 if let Some(mut file) = sys::fs::File::open(args[3]) {
                     if let Ok(palette) = palette::from_csv(&file.read_to_string()) {
                         sys::vga::set_palette(palette);
+                        // TODO: Instead of calling a kernel function we could
+                        // use the following ANSI OSC command to set a palette:
+                        //     for (i, r, g, b) in palette.colors {
+                        //         print!("\x1b]P{:x}{:x}{:x}{:x}", i, r, g, b);
+                        //     }
+                        // And "ESC]R" to reset a palette.
                     } else {
                         println!("Could not parse palette file");
                         return usr::shell::ExitCode::CommandError;
