@@ -98,9 +98,9 @@ impl Editor {
         }
         let start = format!("Editing '{}'", path);
 
-        let x = self.dx + self.x;
-        let y = self.dy + self.y;
-        let n = (y + 1) * 100 / self.lines.len();
+        let x = self.dx + self.x + 1;
+        let y = self.dy + self.y + 1;
+        let n = y * 100 / self.lines.len();
         let end = format!("{},{} {:3}%", y, x, n);
 
         let width = self.cols() - start.len();
