@@ -310,7 +310,7 @@ impl Editor {
                         self.x += s.len();
                         if self.x >= self.cols() {
                             self.dx += self.cols();
-                            self.x -= self.dx;
+                            self.x -= self.cols();
                             self.print_screen();
                         } else {
                             let line = self.render_line(self.dy + self.y);
