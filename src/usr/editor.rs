@@ -248,16 +248,7 @@ impl Editor {
                 },
                 '\x08' => { // Backspace
                     if self.dx + self.x > 0 { // Remove char from line
-                        let line = self.lines[self.dy + self.y].clone();
-                        let pos = self.dx + self.x - 1;
-                        let (before, mut after) = line.split_at(pos);
-                        if !after.is_empty() {
-                            after = &after[1..];
-                        }
-                        self.lines[self.dy + self.y].clear();
-                        self.lines[self.dy + self.y].push_str(before);
-                        self.lines[self.dy + self.y].push_str(after);
-
+                        self.lines[self.dy + self.y].remove(self.dx + self.x - 1);
                         if self.x == 0 {
                             self.dx -= self.cols();
                             self.x = self.cols() - 1;
