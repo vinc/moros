@@ -4,6 +4,7 @@ use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use uart_16550::SerialPort;
+use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));
@@ -36,7 +37,9 @@ impl fmt::Write for Serial {
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    SERIAL.lock().write_fmt(args).expect("Could not print to serial");
+    interrupts::without_interrupts(|| {
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial");
+    })
 }
 
 pub fn init() {
