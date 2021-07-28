@@ -86,7 +86,27 @@ impl Editor {
         let reset = Style::reset();
         print!("\x1b[{};1H", self.rows() + 1); // Move cursor to the bottom of the screen
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-        print!("\x1b[{};{}H", self.y + 1, self.x + 1); // Move cursor back
+        //print!("\x1b[{};{}H", self.y + 1, self.x + 1); // Move cursor back
+    }
+
+    fn print_editing_status(&mut self) {
+        let max = 50;
+        let mut path = self.pathname.clone();
+        if self.pathname.len() > max {
+            path.truncate(max - 3);
+            path.push_str("...");
+        }
+        let start = format!("Editing '{}'", path);
+
+        let x = self.dx + self.x;
+        let y = self.dy + self.y;
+        let n = (y + 1) * 100 / self.lines.len();
+        let end = format!("{},{} {:3}%", y, x, n);
+
+        let width = self.cols() - start.len();
+        let status = format!("{}{:>width$}", start, end, width = width);
+
+        self.print_status(&status, "LightGray");
     }
 
     fn print_screen(&mut self) {
@@ -97,9 +117,6 @@ impl Editor {
             rows.push(self.render_line(y));
         }
         println!("\x1b[1;1H{}", rows.join("\n"));
-
-        let status = format!("Editing '{}'", self.pathname);
-        self.print_status(&status, "LightGray");
     }
 
     fn render_line(&self, y: usize) -> String {
@@ -129,6 +146,7 @@ impl Editor {
     pub fn run(&mut self) -> usr::shell::ExitCode {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
+        self.print_editing_status();
         print!("\x1b[1;1H"); // Move cursor to the top of the screen
 
         let mut escape = false;
@@ -312,6 +330,7 @@ impl Editor {
             }
             escape = false;
             csi = false;
+            self.print_editing_status();
             print!("\x1b[{};{}H", self.y + 1, self.x + 1);
         }
         usr::shell::ExitCode::CommandSuccessful
