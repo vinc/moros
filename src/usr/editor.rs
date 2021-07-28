@@ -153,6 +153,7 @@ impl Editor {
         let mut csi = false;
         loop {
             let c = sys::console::get_char();
+            print!("\x1b[?25l"); // Disable cursor
             match c {
                 '\x1B' => { // ESC
                     escape = true;
@@ -168,6 +169,7 @@ impl Editor {
                 '\x11' => { // Ctrl Q
                     // TODO: Warn if modifications have not been saved
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
+                    print!("\x1b[?25h"); // Enable cursor
                     break;
                 },
                 '\x17' => { // Ctrl W
@@ -176,6 +178,7 @@ impl Editor {
                 '\x18' => { // Ctrl X
                     let res = self.save();
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
+                    print!("\x1b[?25h"); // Enable cursor
                     return res;
                 },
                 '\n' => { // Newline
@@ -217,6 +220,7 @@ impl Editor {
                 'C' if csi => { // Arrow right
                     let line = &self.lines[self.dy + self.y];
                     if line.is_empty() || self.x + self.dx >= line.len() {
+                        print!("\x1b[?25h"); // Enable cursor
                         continue
                     } else if self.x == self.cols() - 1 {
                         self.x = self.dx;
@@ -228,6 +232,7 @@ impl Editor {
                 },
                 'D' if csi => { // Arrow left
                     if self.x + self.dx == 0 {
+                        print!("\x1b[?25h"); // Enable cursor
                         continue;
                     } else if self.x == 0 {
                         self.x = self.dx - 1;
@@ -278,6 +283,7 @@ impl Editor {
                         }
                     } else { // Remove newline from previous line
                         if self.y == 0 && self.dy == 0 {
+                            print!("\x1b[?25h"); // Enable cursor
                             continue;
                         }
 
@@ -332,6 +338,7 @@ impl Editor {
             csi = false;
             self.print_editing_status();
             print!("\x1b[{};{}H", self.y + 1, self.x + 1);
+            print!("\x1b[?25h"); // Enable cursor
         }
         usr::shell::ExitCode::CommandSuccessful
     }
