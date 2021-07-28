@@ -306,13 +306,7 @@ impl Editor {
                 },
                 c => {
                     if let Some(s) = self.render_char(c) {
-                        let line = self.lines[self.dy + self.y].clone();
-                        let (before, after) = line.split_at(self.dx + self.x);
-                        self.lines[self.dy + self.y].clear();
-                        self.lines[self.dy + self.y].push_str(before);
-                        self.lines[self.dy + self.y].push_str(&s);
-                        self.lines[self.dy + self.y].push_str(after);
-
+                        self.lines[self.dy + self.y].insert_str(self.dx + self.x, &s);
                         self.x += s.len();
                         if self.x >= self.cols() {
                             self.dx += self.cols();
