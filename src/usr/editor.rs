@@ -174,6 +174,8 @@ impl Editor {
                 },
                 '\x17' => { // Ctrl W
                     self.save();
+                    print!("\x1b[?25h"); // Enable cursor
+                    continue;
                 },
                 '\x18' => { // Ctrl X
                     let res = self.save();
