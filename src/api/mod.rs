@@ -20,5 +20,6 @@ pub mod console;
 pub mod font;
 pub mod fs;
 pub mod prompt;
+pub mod regex;
 pub mod syscall;
 pub mod vga;
