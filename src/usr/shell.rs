@@ -207,7 +207,7 @@ pub fn run() -> usr::shell::ExitCode {
         sys::console::drain();
         println!();
     }
-    sys::vga::clear_screen();
+    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
     ExitCode::CommandSuccessful
 }
 

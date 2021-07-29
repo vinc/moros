@@ -12,6 +12,16 @@ use x86_64::instructions::port::Port;
 
 // See: https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vga.htm
 
+const ATTR_ADDR_DATA_REG:      u16 = 0x3C0;
+const ATTR_DATA_READ_REG:      u16 = 0x3C1;
+const SEQUENCER_ADDR_REG:      u16 = 0x3C4;
+const DAC_ADDR_WRITE_MODE_REG: u16 = 0x3C8;
+const DAC_DATA_REG:            u16 = 0x3C9;
+const GRAPHICS_ADDR_REG:       u16 = 0x3CE;
+const CRTC_ADDR_REG:           u16 = 0x3D4;
+const CRTC_DATA_REG:           u16 = 0x3D5;
+const INPUT_STATUS_REG:        u16 = 0x3DA;
+
 const FG: Color = Color::LightGray;
 const BG: Color = Color::Black;
 const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
@@ -59,52 +69,62 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn writer_position(&self) -> (usize, usize) {
+    fn writer_position(&self) -> (usize, usize) {
         (self.writer[0], self.writer[1])
     }
 
-    pub fn set_writer_position(&mut self, x: usize, y: usize) {
+    fn set_writer_position(&mut self, x: usize, y: usize) {
         self.writer = [x, y];
     }
 
-    pub fn cursor_position(&self) -> (usize, usize) {
+    fn cursor_position(&self) -> (usize, usize) {
         (self.cursor[0], self.cursor[1])
     }
 
-    pub fn set_cursor_position(&mut self, x: usize, y: usize) {
+    fn set_cursor_position(&mut self, x: usize, y: usize) {
         self.cursor = [x, y];
         self.write_cursor();
     }
 
-    // TODO: check this
-    pub fn enable_cursor(&mut self) {
+    fn write_cursor(&mut self) {
         let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
-        let mut crtc_ontroller_address_register = Port::new(0x3D4);
-        let mut crtc_ontroller_data_register = Port::new(0x3D5);
+        let mut addr = Port::new(CRTC_ADDR_REG);
+        let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
-            crtc_ontroller_address_register.write(0x0A as u8);
-            let val = crtc_ontroller_data_register.read();
-            crtc_ontroller_data_register.write(((val & 0xC0) | pos as u8) as u8);
-            crtc_ontroller_address_register.write(0x0B as u8);
-            let val = crtc_ontroller_data_register.read();
-            crtc_ontroller_data_register.write(((val & 0xE0) | pos as u8) as u8);
+            addr.write(0x0F as u8);
+            data.write((pos & 0xFF) as u8);
+            addr.write(0x0E as u8);
+            data.write(((pos >> 8) & 0xFF) as u8);
         }
     }
 
-    pub fn write_cursor(&mut self) {
-        let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
-        let mut crtc_ontroller_address_register = Port::new(0x3D4);
-        let mut crtc_ontroller_data_register = Port::new(0x3D5);
+    fn hide_cursor(&self) {
+        // http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
+        let mut addr = Port::new(CRTC_ADDR_REG);
+        let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
-            crtc_ontroller_address_register.write(0x0F as u8);
-            crtc_ontroller_data_register.write((pos & 0xFF) as u8);
-            crtc_ontroller_address_register.write(0x0E as u8);
-            crtc_ontroller_data_register.write(((pos >> 8) & 0xFF) as u8);
+            addr.write(0x0A as u8);
+            data.write(0x20 as u8);
         }
     }
 
-    /// Writes an ASCII byte to the screen buffer
-    pub fn write_byte(&mut self, byte: u8) {
+    fn show_cursor(&self) {
+        let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
+        let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
+        let cursor_start = 13; // Starting row
+        let cursor_end = 14; // Ending row
+        unsafe {
+            addr.write(0x0A); // Cursor Start Register
+            let b = data.read();
+            data.write((b & 0xC0) | cursor_start);
+
+            addr.write(0x0B); // Cursor End Register
+            let b = data.read();
+            data.write((b & 0xE0) | cursor_end);
+        }
+    }
+
+    fn write_byte(&mut self, byte: u8) {
         match byte {
             0x0A => { // Newline
                 self.new_line();
@@ -172,14 +192,6 @@ impl Writer {
         }
     }
 
-    pub fn clear_screen(&mut self) {
-        for y in 0..BUFFER_HEIGHT {
-            self.clear_row_after(0, y);
-        }
-        self.set_writer_position(0, 0);
-        self.set_cursor_position(0, 0);
-    }
-
     pub fn set_color(&mut self, foreground: Color, background: Color) {
         self.color_code = ColorCode::new(foreground, background);
     }
@@ -193,18 +205,18 @@ impl Writer {
 
     // See: https://slideplayer.com/slide/3888880
     pub fn set_font(&mut self, font: &Font) {
-        let mut sequencer_address_register: Port<u16> = Port::new(0x3C4);
-        let mut graphics_controller_address_register: Port<u16> = Port::new(0x3CE);
+        let mut sequencer: Port<u16> = Port::new(SEQUENCER_ADDR_REG);
+        let mut graphics: Port<u16> = Port::new(GRAPHICS_ADDR_REG);
         let buffer = 0xA0000 as *mut u8;
 
         unsafe {
-            sequencer_address_register.write(0x0100); // do a sync reset
-            sequencer_address_register.write(0x0402); // write plane 2 only
-            sequencer_address_register.write(0x0704); // sequetial access
-            sequencer_address_register.write(0x0300); // end the reset
-            graphics_controller_address_register.write(0x0204); // read plane 2 only
-            graphics_controller_address_register.write(0x0005); // disable odd/even
-            graphics_controller_address_register.write(0x0006); // VRAM at 0xA0000
+            sequencer.write(0x0100); // do a sync reset
+            sequencer.write(0x0402); // write plane 2 only
+            sequencer.write(0x0704); // sequetial access
+            sequencer.write(0x0300); // end the reset
+            graphics.write(0x0204); // read plane 2 only
+            graphics.write(0x0005); // disable odd/even
+            graphics.write(0x0006); // VRAM at 0xA0000
 
             for i in 0..font.size as usize {
                 for j in 0..font.height as usize {
@@ -214,19 +226,19 @@ impl Writer {
                 }
             }
 
-            sequencer_address_register.write(0x0100); // do a sync reset
-            sequencer_address_register.write(0x0302); // write plane 0 & 1
-            sequencer_address_register.write(0x0304); // even/odd access
-            sequencer_address_register.write(0x0300); // end the reset
-            graphics_controller_address_register.write(0x0004); // restore to default
-            graphics_controller_address_register.write(0x1005); // resume odd/even
-            graphics_controller_address_register.write(0x0E06); // VRAM at 0xB800
+            sequencer.write(0x0100); // do a sync reset
+            sequencer.write(0x0302); // write plane 0 & 1
+            sequencer.write(0x0304); // even/odd access
+            sequencer.write(0x0300); // end the reset
+            graphics.write(0x0004); // restore to default
+            graphics.write(0x1005); // resume odd/even
+            graphics.write(0x0E06); // VRAM at 0xB800
         }
     }
 
     pub fn set_palette(&mut self, palette: Palette) {
-        let mut addr: Port<u8> = Port::new(0x03C8); // Address Write Mode Register
-        let mut data: Port<u8> = Port::new(0x03C9); // Data Register
+        let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
+        let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         for (i, r, g, b) in palette.colors {
             if i < 16 {
                 let code = color::from_index(i as usize).to_palette_code();
@@ -239,7 +251,6 @@ impl Writer {
             }
         }
     }
-
 }
 
 /// See https://vt100.net/emu/dec_ansi_parser
@@ -279,6 +290,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[1] += n;
                 self.cursor[1] += n;
             },
@@ -287,6 +299,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[1] -= n;
                 self.cursor[1] -= n;
             },
@@ -295,6 +308,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[0] += n;
                 self.cursor[0] += n;
             },
@@ -303,8 +317,85 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
+                // TODO: Don't go past edge
                 self.writer[0] -= n;
                 self.cursor[0] -= n;
+            },
+            'G' => { // Cursor Horizontal Absolute
+                let (_, y) = self.cursor_position();
+                let mut x = 1;
+                for param in params.iter() {
+                    x = param[0] as usize; // 1-indexed value
+                }
+                if x > BUFFER_WIDTH {
+                    return;
+                }
+                self.set_writer_position(x - 1, y);
+                self.set_cursor_position(x - 1, y);
+            },
+            'H' => { // Move cursor
+                let mut x = 1;
+                let mut y = 1;
+                for (i, param) in params.iter().enumerate() {
+                    match i {
+                        0 => y = param[0] as usize, // 1-indexed value
+                        1 => x = param[0] as usize, // 1-indexed value
+                        _ => break,
+                    };
+                }
+                if x > BUFFER_WIDTH || y > BUFFER_HEIGHT {
+                    return;
+                }
+                self.set_writer_position(x - 1, y - 1);
+                self.set_cursor_position(x - 1, y - 1);
+            },
+            'J' => { // Erase in Display
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                match n {
+                    // TODO: 0 and 1, from cursor to begining or to end of screen
+                    2 => {
+                        for y in 0..BUFFER_HEIGHT {
+                            self.clear_row_after(0, y);
+                        }
+                    }
+                    _ => return,
+                }
+                self.set_writer_position(0, 0);
+                self.set_cursor_position(0, 0);
+            },
+            'K' => { // Erase in Line
+                let (x, y) = self.cursor_position();
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                match n {
+                    0 => self.clear_row_after(x, y),
+                    1 => return, // TODO: self.clear_row_before(x, y),
+                    2 => self.clear_row_after(0, y),
+                    _ => return,
+                }
+                self.set_writer_position(x, y);
+                self.set_cursor_position(x, y);
+            },
+            'h' => { // Enable
+                for param in params.iter() {
+                    match param[0] {
+                        25 => self.show_cursor(),
+                        _ => return,
+                    }
+                }
+            },
+            'l' => { // Disable
+                for param in params.iter() {
+                    match param[0] {
+                        25 => self.hide_cursor(),
+                        _ => return,
+                    }
+                }
             },
             _ => {},
         }
@@ -330,54 +421,12 @@ pub fn print_fmt(args: fmt::Arguments) {
     });
 }
 
-pub fn clear_screen() {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().clear_screen();
-    });
-}
-
-pub fn clear_row() {
-    clear_row_after(0);
-}
-
-pub fn clear_row_after(x: usize) {
-    let (_, y) = writer_position();
-    interrupts::without_interrupts(|| {
-        WRITER.lock().clear_row_after(x, y);
-    });
-    set_writer_position(x, y);
-}
-
 pub fn cols() -> usize {
     BUFFER_WIDTH
 }
 
 pub fn rows() -> usize {
     BUFFER_HEIGHT
-}
-
-pub fn set_cursor_position(x: usize, y: usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().set_cursor_position(x, y);
-    });
-}
-
-pub fn set_writer_position(x: usize, y: usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().set_writer_position(x, y);
-    });
-}
-
-pub fn cursor_position() -> (usize, usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().cursor_position()
-    })
-}
-
-pub fn writer_position() -> (usize, usize) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().writer_position()
-    })
 }
 
 pub fn color() -> (Color, Color) {
@@ -414,15 +463,15 @@ pub fn set_palette(palette: Palette) {
 }
 
 pub fn init() {
-    let mut isr: Port<u8> = Port::new(0x03DA); // Input Status Register
-    let mut aadr: Port<u8> = Port::new(0x03C0); // Attribute Address/Data Register
-    let mut adrr: Port<u8> = Port::new(0x03C1); // Attribute Data Read Register
+    let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
+    let mut aadr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
+    let mut adrr: Port<u8> = Port::new(ATTR_DATA_READ_REG);
 
     // Disable blinking
     unsafe {
-        isr.read(); // Reset to address mode
-        aadr.write(0x30); // Select attribute mode control register
-        let value = adrr.read(); // Read attribute mode control register
+        isr.read();                // Reset to address mode
+        aadr.write(0x30);          // Select attribute mode control register
+        let value = adrr.read();   // Read attribute mode control register
         aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
     }
 }
