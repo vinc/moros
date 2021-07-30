@@ -38,6 +38,9 @@ fn is_match_here(re: &str, text: &str) -> bool {
     if re.chars().nth(1) == Some('*') {
         return is_match_star(re.chars().nth(0).unwrap(), &re[2..], text);
     }
+    if re.chars().nth(1) == Some('+') {
+        return is_match_plus(re.chars().nth(0).unwrap(), &re[2..], text);
+    }
     if re.chars().nth(0) == Some('$') && re.len() == 1 {
         return text.len() == 0;
     }
@@ -60,6 +63,19 @@ fn is_match_star(c: char, re: &str, text: &str) -> bool {
     false
 }
 
+fn is_match_plus(c: char, re: &str, text: &str) -> bool {
+    println!("debug: is_match_star('{}', '{}', '{}')", c, re, text);
+    let mut i = 0;
+    let n = text.len();
+    while i <= n && (text.chars().nth(i) == Some(c) || c == '.') {
+        if is_match_here(re, &text[i..]) && i > 0 {
+            return true;
+        }
+        i += 1;
+    }
+    false
+}
+
 #[test_case]
 fn test_regex() {
     assert!(Regex::new("aaa").is_match("aaa"));
@@ -75,4 +91,12 @@ fn test_regex() {
     assert!(Regex::new(".*;$").is_match("aaa;"));
     assert!(!Regex::new(".*;$").is_match("aaa;a"));
     assert!(Regex::new("^.*$").is_match("aaa"));
+    assert!(Regex::new("a.*").is_match("a"));
+    assert!(Regex::new("a.+").is_match("ab"));
+    assert!(Regex::new("a.+").is_match("abb"));
+    assert!(!Regex::new("a.+").is_match("a"));
+    assert!(!Regex::new("a.+b").is_match("ab"));
+    assert!(Regex::new("a.+b").is_match("abb"));
+    assert!(Regex::new(".+").is_match("abb"));
+    assert!(Regex::new(".+").is_match("b"));
 }
