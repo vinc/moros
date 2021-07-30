@@ -70,16 +70,22 @@ fn is_match_star(c: char, re: &str, text: &str) -> bool {
 }
 
 fn is_match_plus(c: char, re: &str, text: &str) -> bool {
-    println!("debug: is_match_star('{}', '{}', '{}')", c, re, text);
+    //println!("debug: is_match_plus('{}', '{}', '{}')", c, re, text);
+
     let mut i = 0;
     let n = text.len();
-    while i <= n && (text.chars().nth(i) == Some(c) || c == '.') {
+    loop {
         if is_match_here(re, &text[i..]) && i > 0 {
             return true;
         }
+        if i == n {
+            return false;
+        }
         i += 1;
+        if !(text.chars().nth(i) == Some(c) || c == '.') {
+            return false;
+        }
     }
-    false
 }
 
 #[test_case]
