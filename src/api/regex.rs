@@ -52,15 +52,21 @@ fn is_match_here(re: &str, text: &str) -> bool {
 
 fn is_match_star(c: char, re: &str, text: &str) -> bool {
     //println!("debug: is_match_star('{}', '{}', '{}')", c, re, text);
+
     let mut i = 0;
     let n = text.len();
-    while i <= n && (text.chars().nth(i) == Some(c) || c == '.') {
+    loop {
         if is_match_here(re, &text[i..]) {
             return true;
         }
+        if i == n {
+            return false;
+        }
         i += 1;
+        if !(text.chars().nth(i) == Some(c) || c == '.') {
+            return false;
+        }
     }
-    false
 }
 
 fn is_match_plus(c: char, re: &str, text: &str) -> bool {
@@ -85,8 +91,9 @@ fn test_regex() {
         ("a.a",    "aba",   true),
         ("a.a",    "abb",   false),
         ("a*",     "aaa",   true),
-    //  ("a*b",    "aab",   true), // FIXME
-    //  ("a*b*",   "aabb",  true), // FIXME
+        ("a*b",    "aab",   true),
+        ("a*b*",   "aabb",  true),
+        ("a*b*",   "bb",    true),
         ("a.*",    "abb",   true),
         (".*",     "aaa",   true),
         ("a.*",    "a",     true),
