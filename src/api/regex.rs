@@ -78,31 +78,31 @@ fn is_match_plus(c: char, re: &str, text: &str) -> bool {
 
 #[test_case]
 fn test_regex() {
-    assert!(Regex::new("aaa").is_match("aaa"));
-    assert!(!Regex::new("aaa").is_match("bbb"));
-    assert!(Regex::new("a.a").is_match("aaa"));
-    assert!(Regex::new("a.a").is_match("aba"));
-    assert!(!Regex::new("a.a").is_match("abb"));
+    assert_eq!(Regex::new("aaa").is_match("aaa"), true);
+    assert_eq!(Regex::new("aaa").is_match("bbb"), false);
+    assert_eq!(Regex::new("a.a").is_match("aaa"), true);
+    assert_eq!(Regex::new("a.a").is_match("aba"), true);
+    assert_eq!(Regex::new("a.a").is_match("abb"), false);
 
-    assert!(Regex::new("a*").is_match("aaa"));
-    //assert!(Regex::new("a*b").is_match("aab")); // FIXME
-    //assert!(Regex::new("a*b*").is_match("aabb")); // FIXME
-    assert!(Regex::new("a.*").is_match("abb"));
-    assert!(Regex::new(".*").is_match("aaa"));
-    assert!(Regex::new("a.*").is_match("a"));
+    assert_eq!(Regex::new("a*").is_match("aaa"), true);
+    //assert_eq!(Regex::new("a*b").is_match("aab"), true); // FIXME
+    //assert_eq!(Regex::new("a*b*").is_match("aabb"), true); // FIXME
+    assert_eq!(Regex::new("a.*").is_match("abb"), true);
+    assert_eq!(Regex::new(".*").is_match("aaa"), true);
+    assert_eq!(Regex::new("a.*").is_match("a"), true);
 
-    assert!(Regex::new("a.+").is_match("ab"));
-    assert!(Regex::new("a.+").is_match("abb"));
-    assert!(!Regex::new("a.+").is_match("a"));
-    assert!(!Regex::new("a.+b").is_match("ab"));
-    assert!(Regex::new("a.+b").is_match("abb"));
-    assert!(Regex::new(".+").is_match("abb"));
-    assert!(Regex::new(".+").is_match("b"));
+    assert_eq!(Regex::new("a.+").is_match("ab"), true);
+    assert_eq!(Regex::new("a.+").is_match("abb"), true);
+    assert_eq!(Regex::new("a.+").is_match("a"), false);
+    assert_eq!(Regex::new("a.+b").is_match("ab"), false);
+    assert_eq!(Regex::new("a.+b").is_match("abb"), true);
+    assert_eq!(Regex::new(".+").is_match("abb"), true);
+    assert_eq!(Regex::new(".+").is_match("b"), true);
 
-    assert!(Regex::new("^a.*a$").is_match("aaa"));
-    assert!(Regex::new("^#.*").is_match("#aaa"));
-    assert!(!Regex::new("^#.*").is_match("a#aaa"));
-    assert!(Regex::new(".*;$").is_match("aaa;"));
-    assert!(!Regex::new(".*;$").is_match("aaa;a"));
-    assert!(Regex::new("^.*$").is_match("aaa"));
+    assert_eq!(Regex::new("^a.*a$").is_match("aaa"), true);
+    assert_eq!(Regex::new("^#.*").is_match("#aaa"), true);
+    assert_eq!(Regex::new("^#.*").is_match("a#aaa"), false);
+    assert_eq!(Regex::new(".*;$").is_match("aaa;"), true);
+    assert_eq!(Regex::new(".*;$").is_match("aaa;a"), false);
+    assert_eq!(Regex::new("^.*$").is_match("aaa"), true);
 }
