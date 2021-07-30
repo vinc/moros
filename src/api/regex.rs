@@ -1,124 +1,106 @@
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::ops::RangeBounds;
 
 // See "A Regular Expression Matcher" by Rob Pike and Brian Kernighan (2007)
 
+#[derive(Debug)]
 pub struct Regex(String);
 
 impl Regex {
     pub fn new(re: &str) -> Self {
-        //println!("debug: new('{}')", re);
+        //println!("debug: Regex::new({:?})", re);
         Self(re.to_string())
     }
     pub fn is_match(&self, text: &str) -> bool {
-        is_match(&self.0, text)
+        //println!("debug: {:?}.is_match({:?})", self, text);
+        let vec_re: Vec<char> = self.0.chars().collect();
+        let vec_text: Vec<char> = text.chars().collect();
+        is_match(&vec_re[..], &vec_text[..])
     }
 }
 
-fn is_match(re: &str, text: &str) -> bool {
-    //println!("debug: is_match('{}', '{}')", re, text);
-    if re.chars().nth(0) == Some('^') {
+fn is_match(re: &[char], text: &[char]) -> bool {
+    //println!("debug: is_match({:?}, {:?})", re, text);
+    if re.len() == 0 {
+        return true;
+    }
+    if re[0] == '^' {
         return is_match_here(&re[1..], text);
     }
     let mut i = 0;
     let n = text.len();
-    while i < n {
+    loop {
         if is_match_here(re, &text[i..]) {
             return true;
         }
+        if i == n {
+            return false;
+        }
         i += 1;
     }
-    false
 }
 
-fn is_match_here(re: &str, text: &str) -> bool {
-    println!("debug: is_match_here('{}', '{}')", re, text);
+fn is_match_here(re: &[char], text: &[char]) -> bool {
+    //println!("debug: is_match_here({:?}, {:?})", re, text);
     if re.len() == 0 {
         return true;
     }
-    match re.chars().nth(1) {
-        Some('?') => return is_match_ques(re.chars().nth(0).unwrap(), &re[2..], text),
-        Some('*') => return is_match_star(re.chars().nth(0).unwrap(), &re[2..], text),
-        Some('+') => return is_match_plus(re.chars().nth(0).unwrap(), &re[2..], text),
-        _ => {}
+    if re.len() > 1 {
+        match re[1] {
+            '*' => return is_match_star(re[0], &re[2..], text),
+            '+' => return is_match_plus(re[0], &re[2..], text),
+            '?' => return is_match_ques(re[0], &re[2..], text),
+            _ => {}
+        }
     }
-    if re.chars().nth(0) == Some('$') && re.len() == 1 {
+    if re[0] == '$' {
         return text.len() == 0;
     }
-    if text.len() != 0 && (re.chars().nth(0) == Some('.') || re.chars().nth(0) == text.chars().nth(0)) {
+    if text.len() != 0 && (re[0] == '.' || re[0] == text[0]) {
         return is_match_here(&re[1..], &text[1..]);
     }
     false
 }
 
-fn is_match_ques(c: char, re: &str, text: &str) -> bool {
-    //println!("debug: is_match_ques('{}', '{}', '{}')", c, re, text);
-
-    let mut i = 0;
-    let n = text.len();
-    loop {
-        if is_match_here(re, &text[i..]) && i < 2 {
-            return true;
-        }
-        if i == n {
-            return false;
-        }
-        i += 1;
-        if !(text.chars().nth(i) == Some(c) || c == '.') {
-            return false;
-        }
-    }
+fn is_match_star(c: char, re: &[char], text: &[char]) -> bool {
+    is_match_char(c, re, text, ..)
 }
 
-fn is_match_star(c: char, re: &str, text: &str) -> bool {
-    //println!("debug: is_match_star('{}', '{}', '{}')", c, re, text);
-
-    let mut i = 0;
-    let n = text.len();
-    loop {
-        if is_match_here(re, &text[i..]) {
-            return true;
-        }
-        if i == n {
-            return false;
-        }
-        i += 1;
-        if !(text.chars().nth(i) == Some(c) || c == '.') {
-            return false;
-        }
-    }
+fn is_match_plus(c: char, re: &[char], text: &[char]) -> bool {
+    is_match_char(c, re, text, 1..)
 }
 
-fn is_match_plus(c: char, re: &str, text: &str) -> bool {
-    //println!("debug: is_match_plus('{}', '{}', '{}')", c, re, text);
+fn is_match_ques(c: char, re: &[char], text: &[char]) -> bool {
+    is_match_char(c, re, text, ..2)
+}
+
+fn is_match_char<T: RangeBounds<usize>>(c: char, re: &[char], text: &[char], range: T) -> bool {
+    //println!("debug: is_match_star({:?}, {:?}, {:?})", c, re, text);
 
     let mut i = 0;
     let n = text.len();
     loop {
-        if is_match_here(re, &text[i..]) && i > 0 {
+        if is_match_here(re, &text[i..]) && range.contains(&i) {
             return true;
         }
-        if i == n {
+        if i == n || !(text[i] == c || c == '.') {
             return false;
         }
         i += 1;
-        if !(text.chars().nth(i) == Some(c) || c == '.') {
-            return false;
-        }
     }
 }
 
 #[test_case]
 fn test_regex() {
     let tests = [
+        ("",       "aaa",   true),
+        ("",       "",      true),
         ("aaa",    "aaa",   true),
         ("aaa",    "bbb",   false),
         ("a.a",    "aaa",   true),
         ("a.a",    "aba",   true),
         ("a.a",    "abb",   false),
-
-        ("a?b",    "abb",   true),
-        ("a?b",    "bb",    true),
-        ("a?b",    "aabb",  true),
 
         ("a*",     "aaa",   true),
         ("a*b",    "aab",   true),
@@ -136,12 +118,15 @@ fn test_regex() {
         (".+",     "abb",   true),
         (".+",     "b",     true),
 
+        ("a?b",    "abb",   true),
+        ("a?b",    "bb",    true),
+        ("a?b",    "aabb",  true),
+
         ("^a.*a$", "aaa",   true),
         ("^#.*",   "#aaa",  true),
         ("^#.*",   "a#aaa", false),
         (".*;$",   "aaa;",  true),
         (".*;$",   "aaa;a", false),
-        ("^.*$",   "aaa",   true),
         ("^.*$",   "aaa",   true),
     ];
     for (re, text, is_match) in tests {
