@@ -83,15 +83,14 @@ fn test_regex() {
     assert!(Regex::new("a.a").is_match("aaa"));
     assert!(Regex::new("a.a").is_match("aba"));
     assert!(!Regex::new("a.a").is_match("abb"));
+
+    assert!(Regex::new("a*").is_match("aaa"));
+    //assert!(Regex::new("a*b").is_match("aab")); // FIXME
+    //assert!(Regex::new("a*b*").is_match("aabb")); // FIXME
     assert!(Regex::new("a.*").is_match("abb"));
     assert!(Regex::new(".*").is_match("aaa"));
-    assert!(Regex::new("^a.*a$").is_match("aaa"));
-    assert!(Regex::new("^#.*").is_match("#aaa"));
-    assert!(!Regex::new("^#.*").is_match("a#aaa"));
-    assert!(Regex::new(".*;$").is_match("aaa;"));
-    assert!(!Regex::new(".*;$").is_match("aaa;a"));
-    assert!(Regex::new("^.*$").is_match("aaa"));
     assert!(Regex::new("a.*").is_match("a"));
+
     assert!(Regex::new("a.+").is_match("ab"));
     assert!(Regex::new("a.+").is_match("abb"));
     assert!(!Regex::new("a.+").is_match("a"));
@@ -99,4 +98,11 @@ fn test_regex() {
     assert!(Regex::new("a.+b").is_match("abb"));
     assert!(Regex::new(".+").is_match("abb"));
     assert!(Regex::new(".+").is_match("b"));
+
+    assert!(Regex::new("^a.*a$").is_match("aaa"));
+    assert!(Regex::new("^#.*").is_match("#aaa"));
+    assert!(!Regex::new("^#.*").is_match("a#aaa"));
+    assert!(Regex::new(".*;$").is_match("aaa;"));
+    assert!(!Regex::new(".*;$").is_match("aaa;a"));
+    assert!(Regex::new("^.*$").is_match("aaa"));
 }
