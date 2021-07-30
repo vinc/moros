@@ -31,15 +31,15 @@ fn is_match(re: &str, text: &str) -> bool {
 }
 
 fn is_match_here(re: &str, text: &str) -> bool {
-    //println!("debug: is_match_here('{}', '{}')", re, text);
+    println!("debug: is_match_here('{}', '{}')", re, text);
     if re.len() == 0 {
         return true;
     }
-    if re.chars().nth(1) == Some('*') {
-        return is_match_star(re.chars().nth(0).unwrap(), &re[2..], text);
-    }
-    if re.chars().nth(1) == Some('+') {
-        return is_match_plus(re.chars().nth(0).unwrap(), &re[2..], text);
+    match re.chars().nth(1) {
+        Some('?') => return is_match_ques(re.chars().nth(0).unwrap(), &re[2..], text),
+        Some('*') => return is_match_star(re.chars().nth(0).unwrap(), &re[2..], text),
+        Some('+') => return is_match_plus(re.chars().nth(0).unwrap(), &re[2..], text),
+        _ => {}
     }
     if re.chars().nth(0) == Some('$') && re.len() == 1 {
         return text.len() == 0;
@@ -48,6 +48,25 @@ fn is_match_here(re: &str, text: &str) -> bool {
         return is_match_here(&re[1..], &text[1..]);
     }
     false
+}
+
+fn is_match_ques(c: char, re: &str, text: &str) -> bool {
+    //println!("debug: is_match_ques('{}', '{}', '{}')", c, re, text);
+
+    let mut i = 0;
+    let n = text.len();
+    loop {
+        if is_match_here(re, &text[i..]) && i < 2 {
+            return true;
+        }
+        if i == n {
+            return false;
+        }
+        i += 1;
+        if !(text.chars().nth(i) == Some(c) || c == '.') {
+            return false;
+        }
+    }
 }
 
 fn is_match_star(c: char, re: &str, text: &str) -> bool {
@@ -96,6 +115,11 @@ fn test_regex() {
         ("a.a",    "aaa",   true),
         ("a.a",    "aba",   true),
         ("a.a",    "abb",   false),
+
+        ("a?b",    "abb",   true),
+        ("a?b",    "bb",    true),
+        ("a?b",    "aabb",  true),
+
         ("a*",     "aaa",   true),
         ("a*b",    "aab",   true),
         ("a*b*",   "aabb",  true),
@@ -103,6 +127,7 @@ fn test_regex() {
         ("a.*",    "abb",   true),
         (".*",     "aaa",   true),
         ("a.*",    "a",     true),
+
         ("a.+",    "ab",    true),
         ("a.+",    "abb",   true),
         ("a.+",    "a",     false),
@@ -110,6 +135,7 @@ fn test_regex() {
         ("a.+b",   "abb",   true),
         (".+",     "abb",   true),
         (".+",     "b",     true),
+
         ("^a.*a$", "aaa",   true),
         ("^#.*",   "#aaa",  true),
         ("^#.*",   "a#aaa", false),
