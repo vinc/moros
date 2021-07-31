@@ -63,10 +63,13 @@ fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
         _ => {},
     }
     if re.len() > 1 {
+        let lazy = re.len() > 2 && re[2] == '?';
+        let i = if lazy { 3 } else { 2 };
+
         match re[1] {
-            '*' => return is_match_star(re[0], &re[2..], text, end),
-            '+' => return is_match_plus(re[0], &re[2..], text, end),
-            '?' => return is_match_ques(re[0], &re[2..], text, end),
+            '*' => return is_match_star(re[0], &re[i..], text, end, lazy),
+            '+' => return is_match_plus(re[0], &re[i..], text, end, lazy),
+            '?' => return is_match_ques(re[0], &re[i..], text, end, lazy),
             _ => {}
         }
     }
@@ -95,34 +98,51 @@ fn is_match_back(re: &[char], text: &[char], end: &mut usize) -> bool {
     false
 }
 
-fn is_match_star(c: char, re: &[char], text: &[char], end: &mut usize) -> bool {
+fn is_match_star(c: char, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
     //println!("debug: is_match_star({:?}, {:?}, {:?}", c, re, text);
-    is_match_char(c, re, text, .., end)
+    is_match_char(c, re, text, .., end, lazy)
 }
 
-fn is_match_plus(c: char, re: &[char], text: &[char], end: &mut usize) -> bool {
+fn is_match_plus(c: char, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
     //println!("debug: is_match_plus({:?}, {:?}, {:?}", c, re, text);
-    is_match_char(c, re, text, 1.., end)
+    is_match_char(c, re, text, 1.., end, lazy)
 }
 
-fn is_match_ques(c: char, re: &[char], text: &[char], end: &mut usize) -> bool {
+fn is_match_ques(c: char, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
     //println!("debug: is_match_ques({:?}, {:?}, {:?}", c, re, text);
-    is_match_char(c, re, text, ..2, end)
+    is_match_char(c, re, text, ..2, end, lazy)
 }
 
-fn is_match_char<T: RangeBounds<usize>>(c: char, re: &[char], text: &[char], range: T, end: &mut usize) -> bool {
+fn is_match_char<T: RangeBounds<usize>>(c: char, re: &[char], text: &[char], range: T, end: &mut usize, lazy: bool) -> bool {
     //println!("debug: is_match_char({:?}, {:?}, {:?}", c, re, text);
     let mut i = 0;
     let n = text.len();
+
+    if !lazy {
+        loop {
+            if i == n || !(text[i] == c || c == '.') {
+                break;
+            }
+            i += 1;
+        }
+    }
+
     loop {
         if is_match_here(re, &text[i..], end) && range.contains(&i) {
             *end += i;
             return true;
         }
-        if i == n || !(text[i] == c || c == '.') {
-            return false;
+        if lazy {
+            if i == n || !(text[i] == c || c == '.') {
+                return false;
+            }
+            i += 1;
+        } else {
+            if i == 0 {
+                return false;
+            }
+            i -= 1;
         }
-        i += 1;
     }
 }
 
@@ -203,5 +223,6 @@ fn test_regex() {
         assert!(Regex::new(re).is_match(text) == is_match, "Regex::new(\"{}\").is_match(\"{}\") == {}", re, text, is_match);
     }
 
-    assert_eq!(Regex::new("b.*c").find("aaabbbcccddd"), Some((3, 7)));
+    assert_eq!(Regex::new("b.*c").find("aaabbbcccddd"), Some((3, 9)));
+    assert_eq!(Regex::new("b.*?c").find("aaabbbcccddd"), Some((3, 7)));
 }
