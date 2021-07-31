@@ -46,6 +46,9 @@ fn is_match_here(re: &[char], text: &[char]) -> bool {
     if re.len() == 0 {
         return true;
     }
+    if re[0] == '\\' {
+        return is_match_back(&re[1..], text);
+    }
     if re.len() > 1 {
         match re[1] {
             '*' => return is_match_star(re[0], &re[2..], text),
@@ -63,21 +66,31 @@ fn is_match_here(re: &[char], text: &[char]) -> bool {
     false
 }
 
+fn is_match_back(re: &[char], text: &[char]) -> bool {
+    //println!("debug: is_match_back({:?}, {:?}", re, text);
+    if re.len() > 0 && text.len() > 0 && re[0] == text[0] {
+        return is_match_here(&re[1..], &text[1..]);
+    }
+    false
+}
+
 fn is_match_star(c: char, re: &[char], text: &[char]) -> bool {
+    //println!("debug: is_match_star({:?}, {:?}, {:?}", c, re, text);
     is_match_char(c, re, text, ..)
 }
 
 fn is_match_plus(c: char, re: &[char], text: &[char]) -> bool {
+    //println!("debug: is_match_plus({:?}, {:?}, {:?}", c, re, text);
     is_match_char(c, re, text, 1..)
 }
 
 fn is_match_ques(c: char, re: &[char], text: &[char]) -> bool {
+    //println!("debug: is_match_ques({:?}, {:?}, {:?}", c, re, text);
     is_match_char(c, re, text, ..2)
 }
 
 fn is_match_char<T: RangeBounds<usize>>(c: char, re: &[char], text: &[char], range: T) -> bool {
-    //println!("debug: is_match_star({:?}, {:?}, {:?})", c, re, text);
-
+    //println!("debug: is_match_char({:?}, {:?}, {:?}", c, re, text);
     let mut i = 0;
     let n = text.len();
     loop {
@@ -94,40 +107,57 @@ fn is_match_char<T: RangeBounds<usize>>(c: char, re: &[char], text: &[char], ran
 #[test_case]
 fn test_regex() {
     let tests = [
-        ("",       "aaa",   true),
-        ("",       "",      true),
-        ("aaa",    "aaa",   true),
-        ("aaa",    "bbb",   false),
-        ("a.a",    "aaa",   true),
-        ("a.a",    "aba",   true),
-        ("a.a",    "abb",   false),
+        ("",            "aaa",     true),
+        ("",            "",        true),
+        ("aaa",         "aaa",     true),
+        ("aaa",         "bbb",     false),
+        ("a.a",         "aaa",     true),
+        ("a.a",         "aba",     true),
+        ("a.a",         "abb",     false),
 
-        ("a*",     "aaa",   true),
-        ("a*b",    "aab",   true),
-        ("a*b*",   "aabb",  true),
-        ("a*b*",   "bb",    true),
-        ("a.*",    "abb",   true),
-        (".*",     "aaa",   true),
-        ("a.*",    "a",     true),
+        ("a*",          "aaa",     true),
+        ("a*b",         "aab",     true),
+        ("a*b*",        "aabb",    true),
+        ("a*b*",        "bb",      true),
+        ("a.*",         "abb",     true),
+        (".*",          "aaa",     true),
+        ("a.*",         "a",       true),
 
-        ("a.+",    "ab",    true),
-        ("a.+",    "abb",   true),
-        ("a.+",    "a",     false),
-        ("a.+b",   "ab",    false),
-        ("a.+b",   "abb",   true),
-        (".+",     "abb",   true),
-        (".+",     "b",     true),
+        ("a.+",         "ab",      true),
+        ("a.+",         "abb",     true),
+        ("a.+",         "a",       false),
+        ("a.+b",        "ab",      false),
+        ("a.+b",        "abb",     true),
+        (".+",          "abb",     true),
+        (".+",          "b",       true),
 
-        ("a?b",    "abb",   true),
-        ("a?b",    "bb",    true),
-        ("a?b",    "aabb",  true),
+        ("a?b",         "abb",     true),
+        ("a?b",         "bb",      true),
+        ("a?b",         "aabb",    true),
 
-        ("^a.*a$", "aaa",   true),
-        ("^#.*",   "#aaa",  true),
-        ("^#.*",   "a#aaa", false),
-        (".*;$",   "aaa;",  true),
-        (".*;$",   "aaa;a", false),
-        ("^.*$",   "aaa",   true),
+        ("^a.*a$",      "aaa",     true),
+        ("^#.*",        "#aaa",    true),
+        ("^#.*",        "a#aaa",   false),
+        (".*;$",        "aaa;",    true),
+        (".*;$",        "aaa;a",   false),
+        ("^.*$",        "aaa",     true),
+
+        ("a.b",         "abb",     true),
+        ("a.b",         "a.b",     true),
+        ("a\\.b",       "abb",     false),
+        ("a\\.b",       "a.b",     true),
+        ("a\\\\.b",     "abb",     false),
+        ("a\\\\.b",     "a.b",     false),
+        ("a\\\\.b",     "a\\bb",   true),
+        ("a\\\\.b",     "a\\.b",   true),
+        ("a\\\\\\.b",   "a\\bb",   false),
+        ("a\\\\\\.b",   "a\\.b",   true),
+        ("a\\\\\\.b",   "a\\\\bb", false),
+        ("a\\\\\\.b",   "a\\\\.b", false),
+        ("a\\\\\\\\.b", "a\\bb",   false),
+        ("a\\\\\\\\.b", "a\\.b",   false),
+        ("a\\\\\\\\.b", "a\\\\bb", true),
+        ("a\\\\\\\\.b", "a\\\\.b", true),
     ];
     for (re, text, is_match) in tests {
         assert!(Regex::new(re).is_match(text) == is_match, "Regex::new(\"{}\").is_match(\"{}\") == {}", re, text, is_match);
