@@ -67,7 +67,16 @@ fn is_match_here(re: &[char], text: &[char]) -> bool {
 
 fn is_match_back(re: &[char], text: &[char]) -> bool {
     //println!("debug: is_match_back({:?}, {:?}", re, text);
-    if re.len() > 0 && text.len() > 0 && re[0] == text[0] {
+    if re.len() > 0 && text.len() > 0 {
+        match re[0] {
+            'D' => if text[0].is_numeric()       { return false },
+            'S' => if text[0].is_whitespace()    { return false },
+            'W' => if text[0].is_alphanumeric()  { return false },
+            'd' => if !text[0].is_numeric()      { return false },
+            's' => if !text[0].is_whitespace()   { return false },
+            'w' => if !text[0].is_alphanumeric() { return false },
+            _   => if text[0] != re[0]           { return false },
+        }
         return is_match_here(&re[1..], &text[1..]);
     }
     false
@@ -157,6 +166,23 @@ fn test_regex() {
         ("a\\\\\\\\.b", "a\\.b",   false),
         ("a\\\\\\\\.b", "a\\\\bb", true),
         ("a\\\\\\\\.b", "a\\\\.b", true),
+
+        ("a\\wb",       "awb",     true),
+        ("a\\wb",       "abb",     true),
+        ("a\\wb",       "a1b",     true),
+        ("a\\wb",       "a.b",     false),
+        ("a\\Wb",       "aWb",     false),
+        ("a\\Wb",       "abb",     false),
+        ("a\\Wb",       "a1b",     false),
+        ("a\\Wb",       "a.b",     true),
+        ("a\\db",       "abb",     false),
+        ("a\\db",       "a1b",     true),
+        ("a\\Db",       "abb",     true),
+        ("a\\Db",       "a1b",     false),
+        ("a\\sb",       "abb",     false),
+        ("a\\sb",       "a b",     true),
+        ("a\\Sb",       "abb",     true),
+        ("a\\Sb",       "a b",     false),
     ];
     for (re, text, is_match) in tests {
         assert!(Regex::new(re).is_match(text) == is_match, "Regex::new(\"{}\").is_match(\"{}\") == {}", re, text, is_match);
