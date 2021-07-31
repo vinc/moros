@@ -46,8 +46,10 @@ fn is_match_here(re: &[char], text: &[char]) -> bool {
     if re.len() == 0 {
         return true;
     }
-    if re[0] == '\\' {
-        return is_match_back(&re[1..], text);
+    match re[0] {
+        '\\' => return is_match_back(&re[1..], text),
+        '$' => return text.len() == 0,
+        _ => {},
     }
     if re.len() > 1 {
         match re[1] {
@@ -56,9 +58,6 @@ fn is_match_here(re: &[char], text: &[char]) -> bool {
             '?' => return is_match_ques(re[0], &re[2..], text),
             _ => {}
         }
-    }
-    if re[0] == '$' {
-        return text.len() == 0;
     }
     if text.len() != 0 && (re[0] == '.' || re[0] == text[0]) {
         return is_match_here(&re[1..], &text[1..]);
