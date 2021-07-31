@@ -1,9 +1,12 @@
-use alloc::string::ToString;
-use alloc::vec::Vec;
 use crate::{sys, usr};
 use crate::api::fs;
 use crate::api::regex::Regex;
 use crate::api::console::Style;
+
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::iter::FromIterator;
 
 // > find /tmp -name *.txt -line hello
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
@@ -46,12 +49,21 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         if let Ok(lines) = fs::read_to_string(path) {
             let mut matches = Vec::new();
             for (i, line) in lines.split('\n').enumerate() {
-                let mut l = line.to_string();
-                if let Some((a, b)) = re.find(line) { // TODO: look for more matches
-                    let b = b + color.to_string().len();
-                    l.insert_str(a, &color.to_string());
-                    l.insert_str(b, &reset.to_string());
-                    matches.push((i, l));
+                let line: Vec<char> = line.chars().collect();
+                let mut l = String::new();
+                let mut j = 0;
+                while let Some((a, b)) = re.find(&String::from_iter(&line[j..])) {
+                    let m = j + a;
+                    let n = j + b;
+                    let before = String::from_iter(&line[j..m]);
+                    let matched = String::from_iter(&line[m..n]);
+                    l = format!("{}{}{}{}{}", l, before, color, matched, reset);
+                    j = n;
+                }
+                if !l.is_empty() {
+                    let after = String::from_iter(&line[j..]);
+                    l.push_str(&after);
+                    matches.push((i + 1, l)); // 1-index line numbers
                 }
             }
             if !matches.is_empty() {
