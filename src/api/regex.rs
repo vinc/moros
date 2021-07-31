@@ -167,6 +167,7 @@ fn test_regex() {
         ("a\\\\\\\\.b", "a\\\\bb", true),
         ("a\\\\\\\\.b", "a\\\\.b", true),
 
+        ("a\\wb",       "aéb",     true),
         ("a\\wb",       "awb",     true),
         ("a\\wb",       "abb",     true),
         ("a\\wb",       "a1b",     true),
