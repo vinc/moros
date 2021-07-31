@@ -13,12 +13,7 @@ impl Regex {
         Self(re.to_string())
     }
     pub fn is_match(&self, text: &str) -> bool {
-        //println!("debug: {:?}.is_match({:?})", self, text);
-        let vec_re: Vec<char> = self.0.chars().collect();
-        let vec_text: Vec<char> = text.chars().collect();
-        let mut start = 0;
-        let mut end = 0;
-        is_match(&vec_re[..], &vec_text[..], &mut start, &mut end)
+        self.find(text).is_some()
     }
     pub fn find(&self, text: &str) -> Option<(usize, usize)> {
         let vec_re: Vec<char> = self.0.chars().collect();
