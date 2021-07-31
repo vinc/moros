@@ -41,7 +41,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     let num = Style::color("Yellow");
-    let color = Style::color("Red");
+    let color = Style::color("LightRed");
     let reset = Style::reset();
 
     if let Some(pattern) = line {
