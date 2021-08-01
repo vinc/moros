@@ -91,6 +91,10 @@ impl File {
         None
     }
 
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
     pub fn size(&self) -> usize {
         self.size as usize
     }
