@@ -276,6 +276,7 @@ fn test_regex() {
         assert!(Regex::new(re).is_match(text) == is_match, "Regex::new(\"{}\").is_match(\"{}\") == {}", re, text, is_match);
     }
 
+    assert_eq!(Regex::new(".*").find("abcd"), Some((0, 4)));
     assert_eq!(Regex::new("b.*c").find("aaabbbcccddd"), Some((3, 9)));
     assert_eq!(Regex::new("b.*?c").find("aaabbbcccddd"), Some((3, 7)));
     assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));

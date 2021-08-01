@@ -102,6 +102,13 @@ fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingS
                 let matched = String::from_iter(&line[m..n]);
                 l = format!("{}{}{}{}{}", l, before, match_color, matched, reset);
                 j = n;
+                if m == n || n >= line.len() {
+                    // Some patterns like "" or ".*?" would never move the
+                    // cursor on the line and some like ".*" would match the
+                    // whole line at once. In both cases we print the line,
+                    // and we color it in the latter case.
+                    break;
+                }
             }
             if !l.is_empty() {
                 let after = String::from_iter(&line[j..]);
