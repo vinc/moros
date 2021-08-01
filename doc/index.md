@@ -11,12 +11,18 @@ It has a shell:
 
 ![screenshot](shell.png)
 
+With a few tools like `find` that use a regex engine to find files or lines:
+
 ![screenshot](find.png)
 
-A lisp interpreter:
+It also has a lisp interpreter:
 
 ![screenshot](lisp.png)
 
-A text editor:
+And a text editor:
 
 ![screenshot](edit.png)
+
+It has a network stack with two drivers for RTL81339 and PCNET cards:
+
+![screenshot](network.png)
