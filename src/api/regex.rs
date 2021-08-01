@@ -3,8 +3,8 @@ use alloc::vec::Vec;
 use core::convert::From;
 use core::ops::RangeBounds;
 
+// TODO: Remove this when tests are done
 const DEBUG: bool = false;
-
 macro_rules! debug {
     ($($arg:tt)*) => ({
         if DEBUG {
