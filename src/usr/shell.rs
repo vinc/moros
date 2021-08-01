@@ -132,7 +132,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "c" | "copy"           => usr::copy::main(&args),
         "d" | "del" | "delete" => usr::delete::main(&args),
         "e" | "edit"           => usr::editor::main(&args),
-        "f" | "find"           => ExitCode::CommandUnknown,
+        "f" | "find"           => usr::find::main(&args),
         "g" | "go" | "goto"    => change_dir(&args),
         "h" | "help"           => usr::help::main(&args),
         "i"                    => ExitCode::CommandUnknown,

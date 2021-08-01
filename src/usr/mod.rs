@@ -8,6 +8,7 @@ pub mod dhcp;
 pub mod disk;
 pub mod editor;
 pub mod env;
+pub mod find;
 pub mod geotime;
 pub mod halt;
 pub mod help;
