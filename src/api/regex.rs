@@ -5,7 +5,6 @@ use core::ops::RangeBounds;
 
 const DEBUG: bool = false;
 
-#[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => ({
         if DEBUG {
