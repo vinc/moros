@@ -3,13 +3,13 @@
 [![Travis](https://img.shields.io/travis/vinc/moros/master.svg)](https://travis-ci.org/vinc/moros/branches)
 [![Crates.io](https://img.shields.io/crates/v/moros.svg)](https://crates.io/crates/moros)
 
-MOROS is a toy operating system written in Rust for the x86 architecture.
+MOROS is a hobby operating system written in Rust for the x86 architecture.
 
 This project started from the [seventh post][1] of the second edition of
 [Writing an OS in Rust][2] by Philipp Oppermann and by reading the
 [OSDev wiki][3] along with many open source kernels.
 
-![screenshot](moros.png)
+![screenshot](doc/moros.png)
 
 
 ## Features
