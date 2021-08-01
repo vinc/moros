@@ -134,9 +134,9 @@ fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
         let j = if lazy { i + 3 } else { i + 2 };
 
         match re[i + 1] {
-            '*' => return is_match_star(mc, &re[j..], text, end, lazy),
-            '+' => return is_match_plus(mc, &re[j..], text, end, lazy),
-            '?' => return is_match_ques(mc, &re[j..], text, end, lazy),
+            '*' => return is_match_star(lazy, mc, &re[j..], text, end),
+            '+' => return is_match_plus(lazy, mc, &re[j..], text, end),
+            '?' => return is_match_ques(lazy, mc, &re[j..], text, end),
             _ => {}
         }
     }
@@ -148,22 +148,22 @@ fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
     false
 }
 
-fn is_match_star(mc: MetaChar, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
+fn is_match_star(lazy: bool, mc: MetaChar, re: &[char], text: &[char], end: &mut usize) -> bool {
     debug!("debug: is_match_star({:?}, {:?}, {:?}", mc, re, text);
-    is_match_char(mc, re, text, .., end, lazy)
+    is_match_char(lazy, mc, re, text, .., end)
 }
 
-fn is_match_plus(mc: MetaChar, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
+fn is_match_plus(lazy: bool, mc: MetaChar, re: &[char], text: &[char], end: &mut usize) -> bool {
     debug!("debug: is_match_plus({:?}, {:?}, {:?}", mc, re, text);
-    is_match_char(mc, re, text, 1.., end, lazy)
+    is_match_char(lazy, mc, re, text, 1.., end)
 }
 
-fn is_match_ques(mc: MetaChar, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
+fn is_match_ques(lazy: bool, mc: MetaChar, re: &[char], text: &[char], end: &mut usize) -> bool {
     debug!("debug: is_match_ques({:?}, {:?}, {:?}", mc, re, text);
-    is_match_char(mc, re, text, ..2, end, lazy)
+    is_match_char(lazy, mc, re, text, ..2, end)
 }
 
-fn is_match_char<T: RangeBounds<usize>>(mc: MetaChar, re: &[char], text: &[char], range: T, end: &mut usize, lazy: bool) -> bool {
+fn is_match_char<T: RangeBounds<usize>>(lazy: bool, mc: MetaChar, re: &[char], text: &[char], range: T, end: &mut usize) -> bool {
     debug!("debug: is_match_char({:?}, {:?}, {:?}", mc, re, text);
     let mut i = 0;
     let n = text.len();
