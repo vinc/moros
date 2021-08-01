@@ -1,15 +1,79 @@
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use core::convert::From;
 use core::ops::RangeBounds;
 
+const DEBUG: bool = false;
+
+#[macro_export]
+macro_rules! debug {
+    ($($arg:tt)*) => ({
+        if DEBUG {
+            println!("{}", format_args!($($arg)*));
+        }
+    });
+}
+
 // See "A Regular Expression Matcher" by Rob Pike and Brian Kernighan (2007)
+
+#[derive(Debug)]
+enum MetaChar {
+    Any,
+    Numeric,
+    Whitespace,
+    Alphanumeric,
+    NonNumeric,
+    NonWhitespace,
+    NonAlphanumeric,
+    Literal(char),
+}
+
+impl From<char> for MetaChar {
+    fn from(c: char) -> Self {
+        match c {
+            '.' => MetaChar::Any,
+            _   => MetaChar::Literal(c),
+        }
+    }
+}
+
+trait MetaCharExt {
+    fn from_escaped(c: char) -> Self;
+    fn contains(&self, c: char) -> bool;
+}
+
+impl MetaCharExt for MetaChar {
+    fn from_escaped(c: char) -> Self {
+        match c {
+            'd' => MetaChar::Numeric,
+            's' => MetaChar::Whitespace,
+            'w' => MetaChar::Alphanumeric,
+            'D' => MetaChar::NonNumeric,
+            'S' => MetaChar::NonWhitespace,
+            'W' => MetaChar::NonAlphanumeric,
+            _   => MetaChar::Literal(c),
+        }
+    }
+    fn contains(&self, c: char) -> bool {
+        match self {
+            MetaChar::Any => true,
+            MetaChar::Numeric => c.is_numeric(),
+            MetaChar::Whitespace => c.is_whitespace(),
+            MetaChar::Alphanumeric => c.is_alphanumeric(),
+            MetaChar::NonNumeric => !c.is_numeric(),
+            MetaChar::NonWhitespace => !c.is_whitespace(),
+            MetaChar::NonAlphanumeric => !c.is_alphanumeric(),
+            MetaChar::Literal(lc) => c == *lc,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Regex(String);
 
 impl Regex {
     pub fn new(re: &str) -> Self {
-        //println!("debug: Regex::new({:?})", re);
+        debug!("debug: Regex::new({:?})", re);
         Self(re.to_string())
     }
     pub fn is_match(&self, text: &str) -> bool {
@@ -29,7 +93,7 @@ impl Regex {
 }
 
 fn is_match(re: &[char], text: &[char], start: &mut usize, end: &mut usize) -> bool {
-    //println!("debug: is_match({:?}, {:?})", re, text);
+    debug!("debug: is_match({:?}, {:?})", re, text);
     if re.len() == 0 {
         return true;
     }
@@ -53,74 +117,60 @@ fn is_match(re: &[char], text: &[char], start: &mut usize, end: &mut usize) -> b
 }
 
 fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
-    //println!("debug: is_match_here({:?}, {:?})", re, text);
+    debug!("debug: is_match_here({:?}, {:?})", re, text);
     if re.len() == 0 {
         return true;
     }
-    match re[0] {
-        '\\' => return is_match_back(&re[1..], text, end),
-        '$' => return text.len() == 0,
-        _ => {},
+    if re[0] == '$' {
+        return text.len() == 0;
     }
-    if re.len() > 1 {
-        let lazy = re.len() > 2 && re[2] == '?';
-        let i = if lazy { 3 } else { 2 };
+    let (mc, i) = if re.len() > 1 && re[0] == '\\' {
+        (MetaChar::from_escaped(re[1]), 1)
+    } else {
+        (MetaChar::from(re[0]), 0)
+    };
+    if re.len() > i + 1 {
+        let lazy = re.len() > i + 2 && re[i + 2] == '?';
+        let j = if lazy { i + 3 } else { i + 2 };
 
-        match re[1] {
-            '*' => return is_match_star(re[0], &re[i..], text, end, lazy),
-            '+' => return is_match_plus(re[0], &re[i..], text, end, lazy),
-            '?' => return is_match_ques(re[0], &re[i..], text, end, lazy),
+        match re[i + 1] {
+            '*' => return is_match_star(mc, &re[j..], text, end, lazy),
+            '+' => return is_match_plus(mc, &re[j..], text, end, lazy),
+            '?' => return is_match_ques(mc, &re[j..], text, end, lazy),
             _ => {}
         }
     }
-    if text.len() != 0 && (re[0] == '.' || re[0] == text[0]) {
+    if text.len() != 0 && mc.contains(text[0]) {
         *end += 1;
-        return is_match_here(&re[1..], &text[1..], end);
+        let j = i + 1;
+        return is_match_here(&re[j..], &text[1..], end);
     }
     false
 }
 
-fn is_match_back(re: &[char], text: &[char], end: &mut usize) -> bool {
-    //println!("debug: is_match_back({:?}, {:?}", re, text);
-    if re.len() > 0 && text.len() > 0 {
-        match re[0] {
-            'D' => if text[0].is_numeric()       { return false },
-            'S' => if text[0].is_whitespace()    { return false },
-            'W' => if text[0].is_alphanumeric()  { return false },
-            'd' => if !text[0].is_numeric()      { return false },
-            's' => if !text[0].is_whitespace()   { return false },
-            'w' => if !text[0].is_alphanumeric() { return false },
-            _   => if text[0] != re[0]           { return false },
-        }
-        *end += 1;
-        return is_match_here(&re[1..], &text[1..], end);
-    }
-    false
+fn is_match_star(mc: MetaChar, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
+    debug!("debug: is_match_star({:?}, {:?}, {:?}", mc, re, text);
+    is_match_char(mc, re, text, .., end, lazy)
 }
 
-fn is_match_star(c: char, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
-    //println!("debug: is_match_star({:?}, {:?}, {:?}", c, re, text);
-    is_match_char(c, re, text, .., end, lazy)
+fn is_match_plus(mc: MetaChar, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
+    debug!("debug: is_match_plus({:?}, {:?}, {:?}", mc, re, text);
+    is_match_char(mc, re, text, 1.., end, lazy)
 }
 
-fn is_match_plus(c: char, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
-    //println!("debug: is_match_plus({:?}, {:?}, {:?}", c, re, text);
-    is_match_char(c, re, text, 1.., end, lazy)
+fn is_match_ques(mc: MetaChar, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
+    debug!("debug: is_match_ques({:?}, {:?}, {:?}", mc, re, text);
+    is_match_char(mc, re, text, ..2, end, lazy)
 }
 
-fn is_match_ques(c: char, re: &[char], text: &[char], end: &mut usize, lazy: bool) -> bool {
-    //println!("debug: is_match_ques({:?}, {:?}, {:?}", c, re, text);
-    is_match_char(c, re, text, ..2, end, lazy)
-}
-
-fn is_match_char<T: RangeBounds<usize>>(c: char, re: &[char], text: &[char], range: T, end: &mut usize, lazy: bool) -> bool {
-    //println!("debug: is_match_char({:?}, {:?}, {:?}", c, re, text);
+fn is_match_char<T: RangeBounds<usize>>(mc: MetaChar, re: &[char], text: &[char], range: T, end: &mut usize, lazy: bool) -> bool {
+    debug!("debug: is_match_char({:?}, {:?}, {:?}", mc, re, text);
     let mut i = 0;
     let n = text.len();
 
     if !lazy {
         loop {
-            if i == n || !(text[i] == c || c == '.') {
+            if i == n || !(mc.contains(text[i])) {
                 break;
             }
             i += 1;
@@ -133,7 +183,7 @@ fn is_match_char<T: RangeBounds<usize>>(c: char, re: &[char], text: &[char], ran
             return true;
         }
         if lazy {
-            if i == n || !(text[i] == c || c == '.') {
+            if i == n || !(mc.contains(text[i])) {
                 return false;
             }
             i += 1;
@@ -218,6 +268,10 @@ fn test_regex() {
         ("a\\sb",       "a b",     true),
         ("a\\Sb",       "abb",     true),
         ("a\\Sb",       "a b",     false),
+
+        ("a\\.*d",      "a..d",    true),
+        ("a\\.*d",      "a.cd",    false),
+        ("a\\w*d",      "abcd",    true),
     ];
     for (re, text, is_match) in tests {
         assert!(Regex::new(re).is_match(text) == is_match, "Regex::new(\"{}\").is_match(\"{}\") == {}", re, text, is_match);
@@ -225,4 +279,6 @@ fn test_regex() {
 
     assert_eq!(Regex::new("b.*c").find("aaabbbcccddd"), Some((3, 9)));
     assert_eq!(Regex::new("b.*?c").find("aaabbbcccddd"), Some((3, 7)));
+    assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
+    assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
 }
