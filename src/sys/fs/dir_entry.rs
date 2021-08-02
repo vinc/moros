@@ -1,4 +1,3 @@
-use super::file::File;
 use super::FileType;
 use super::dir::Dir;
 use alloc::string::String;
@@ -45,16 +44,6 @@ impl DirEntry {
 
     pub fn time(&self) -> u64 {
         self.time
-    }
-
-    pub fn to_dir(&self) -> Dir {
-        assert!(self.kind == FileType::Dir);
-        Dir::from(self.clone())
-    }
-
-    pub fn to_file(&self) -> File {
-        assert!(self.kind == FileType::File);
-        File::from(self.clone())
     }
 
     pub fn len(&self) -> usize {

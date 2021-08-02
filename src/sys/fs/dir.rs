@@ -32,7 +32,7 @@ impl Dir {
         let filename = filename(&pathname);
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_dir(filename) {
-                return Some(dir_entry.to_dir());
+                return Some(dir_entry.into());
             }
         }
         None
@@ -54,7 +54,7 @@ impl Dir {
             match dir.find(name) {
                 Some(dir_entry) => {
                     if dir_entry.is_dir() {
-                        dir = dir_entry.to_dir()
+                        dir = dir_entry.into()
                     } else {
                         return None;
                     }
