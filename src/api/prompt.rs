@@ -35,7 +35,7 @@ impl Prompt {
             match c {
                 '\x03' => { // End of Text (^C)
                     println!();
-                    return None;
+                    return Some(String::new());
                 },
                 '\x04' => { // End of Transmission (^D)
                     println!();
@@ -44,7 +44,7 @@ impl Prompt {
                 '\n' => { // New Line
                     self.update_completion();
                     self.update_history();
-                    print!("{}", c);
+                    println!();
                     return Some(self.line.clone());
                 },
                 c => {

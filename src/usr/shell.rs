@@ -126,7 +126,7 @@ pub fn exec(cmd: &str) -> ExitCode {
     let args = split_args(cmd);
 
     match args[0] {
-        ""                     => ExitCode::CommandSuccessful,
+        ""                     => ExitCode::CommandError,
         "a" | "alias"          => ExitCode::CommandUnknown,
         "b"                    => ExitCode::CommandUnknown,
         "c" | "copy"           => usr::copy::main(&args),
