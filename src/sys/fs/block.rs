@@ -17,14 +17,6 @@ impl Block {
         Self { addr, buf }
     }
 
-    pub fn read(addr: u32) -> Self {
-        let mut buf = [0; 512];
-        if let Some(ref block_device) = *super::block_device::BLOCK_DEVICE.lock() {
-            block_device.read(addr, &mut buf);
-        }
-        Self { addr, buf }
-    }
-
     pub fn alloc() -> Option<Self> {
         match BlockBitmap::next_free_addr() {
             None => {
@@ -43,6 +35,14 @@ impl Block {
                 Some(block)
             }
         }
+    }
+
+    pub fn read(addr: u32) -> Self {
+        let mut buf = [0; 512];
+        if let Some(ref block_device) = *super::block_device::BLOCK_DEVICE.lock() {
+            block_device.read(addr, &mut buf);
+        }
+        Self { addr, buf }
     }
 
     pub fn write(&self) {

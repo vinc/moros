@@ -95,25 +95,32 @@ impl Dir {
 
         let mut read_dir = self.read();
         while read_dir.next().is_some() {}
+        //let block = read_dir.block();
+        //let block_data_offset = read_dir.block_data_offset();
 
-        if read_dir.block.data().len() - read_dir.data_offset < name.len() + 10 {
-            let new_block = Block::alloc().unwrap(); // TODO
+        // Allocate a new block for the dir if no space left for adding the new entry
+        // TODO: move that somewhere
+        let space_left = read_dir.block.data().len() - read_dir.block_data_offset();
+        let entry_len = DirEntry::empty_len() + name.len();
+        if entry_len > space_left {
+            let new_block = Block::alloc().unwrap();
             read_dir.block.set_next(new_block.addr());
             read_dir.block.write();
             read_dir.block = new_block;
-            read_dir.data_offset = 0;
+            read_dir.block_data_offset = 0;
         }
 
-        let new_block = Block::alloc().unwrap();
-
+        // Create a new entry
+        // TODO: add DirEntry::create()
+        let entry_block = Block::alloc().unwrap();
+        let entry_addr = entry_block.addr();
         let entry_kind = kind;
         let entry_size = 0;
         let entry_time = sys::clock::realtime() as u64;
-        let entry_addr = new_block.addr();
         let entry_name = name.as_bytes();
 
         let n = entry_name.len();
-        let i = read_dir.data_offset;
+        let i = read_dir.block_data_offset();
         let data = read_dir.block.data_mut();
         data[i +  0] = entry_kind as u8;
         data[i +  1] = entry_addr.get_bits(24..32) as u8;
@@ -148,8 +155,8 @@ impl Dir {
         for entry in &mut read_dir {
             if entry.name() == name {
                 // Zeroing entry addr
+                let i = read_dir.block_data_offset() - entry.len();
                 let data = read_dir.block.data_mut();
-                let i = read_dir.data_offset - entry.len();
                 data[i + 1] = 0;
                 data[i + 2] = 0;
                 data[i + 3] = 0;
@@ -177,8 +184,8 @@ impl Dir {
         for entry in &mut read_dir {
             if entry.name() == name {
                 let time = sys::clock::realtime() as u64;
+                let i = read_dir.block_data_offset() - entry.len();
                 let data = read_dir.block.data_mut();
-                let i = read_dir.data_offset - entry.len();
                 data[i +  5] = size.get_bits(24..32) as u8;
                 data[i +  6] = size.get_bits(16..24) as u8;
                 data[i +  7] = size.get_bits(8..16) as u8;
@@ -198,11 +205,7 @@ impl Dir {
     }
 
     pub fn read(&self) -> ReadDir {
-        ReadDir {
-            dir: *self,
-            block: Block::read(self.addr),
-            data_offset: 0,
-        }
+        ReadDir::from(self.clone())
     }
 
     pub fn delete(pathname: &str) -> Result<(), ()> {

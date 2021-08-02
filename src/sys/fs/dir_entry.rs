@@ -18,6 +18,18 @@ impl DirEntry {
         Self { dir, kind, addr, size, time, name }
     }
 
+    pub fn empty_len() -> usize {
+        1 + 4 + 4 + 8 + 1
+    }
+
+    pub fn len(&self) -> usize {
+        Self::empty_len() + self.name.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        Self::empty_len() == self.len()
+    }
+
     pub fn is_dir(&self) -> bool {
         self.kind == FileType::Dir
     }
@@ -44,9 +56,5 @@ impl DirEntry {
 
     pub fn time(&self) -> u64 {
         self.time
-    }
-
-    pub fn len(&self) -> usize {
-        1 + 4 + 4 + 8 + 1 + self.name.len()
     }
 }

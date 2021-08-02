@@ -4,11 +4,33 @@ use super::dir::Dir;
 use super::FileType;
 
 use alloc::string::String;
+use core::convert::From;
 
 pub struct ReadDir {
+    // TODO: make those fields private
     pub dir: Dir,
     pub block: Block,
-    pub data_offset: usize,
+    pub block_data_offset: usize,
+}
+
+impl From<Dir> for ReadDir {
+    fn from(dir: Dir) -> Self {
+        Self {
+            dir: dir,
+            block: Block::read(dir.addr()),
+            block_data_offset: 0,
+        }
+    }
+}
+
+impl ReadDir {
+    pub fn block_data_offset(&self) -> usize {
+        self.block_data_offset
+    }
+
+    pub fn block_addr(&self) -> u32 {
+        self.block.addr()
+    }
 }
 
 impl Iterator for ReadDir {
@@ -17,10 +39,11 @@ impl Iterator for ReadDir {
     fn next(&mut self) -> Option<DirEntry> {
         loop {
             let data = self.block.data();
-            let mut i = self.data_offset;
+            let mut i = self.block_data_offset;
 
             loop {
-                if i == data.len() - 10 { // No space left for another entry in the block
+                // Switch to next block if no space left for another entry
+                if i == data.len() - DirEntry::empty_len() {
                     break;
                 }
 
@@ -67,7 +90,7 @@ impl Iterator for ReadDir {
                     i += 1;
                 }
 
-                self.data_offset = i;
+                self.block_data_offset = i;
 
                 // Skip deleted entries
                 if entry_addr == 0 {
@@ -80,7 +103,7 @@ impl Iterator for ReadDir {
             match self.block.next() {
                 Some(next_block) => {
                     self.block = next_block;
-                    self.data_offset = 0;
+                    self.block_data_offset = 0;
                 }
                 None => break,
             }
