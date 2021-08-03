@@ -113,36 +113,23 @@ impl Dir {
         // Create a new entry
         // TODO: add DirEntry::create()
         let entry_block = Block::alloc().unwrap();
+        let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
-        let entry_kind = kind;
-        let entry_size = 0;
+        let entry_size = 0u32;
         let entry_time = sys::clock::realtime() as u64;
         let entry_name = name.as_bytes();
 
         let n = entry_name.len();
         let i = read_dir.block_data_offset();
         let data = read_dir.block.data_mut();
-        data[i +  0] = entry_kind as u8;
-        data[i +  1] = entry_addr.get_bits(24..32) as u8;
-        data[i +  2] = entry_addr.get_bits(16..24) as u8;
-        data[i +  3] = entry_addr.get_bits(8..16) as u8;
-        data[i +  4] = entry_addr.get_bits(0..8) as u8;
-        data[i +  5] = entry_size.get_bits(24..32) as u8;
-        data[i +  6] = entry_size.get_bits(16..24) as u8;
-        data[i +  7] = entry_size.get_bits(8..16) as u8;
-        data[i +  8] = entry_size.get_bits(0..8) as u8;
-        data[i +  9] = entry_time.get_bits(56..64) as u8;
-        data[i + 10] = entry_time.get_bits(48..56) as u8;
-        data[i + 11] = entry_time.get_bits(40..48) as u8;
-        data[i + 12] = entry_time.get_bits(32..40) as u8;
-        data[i + 13] = entry_time.get_bits(24..32) as u8;
-        data[i + 14] = entry_time.get_bits(16..24) as u8;
-        data[i + 15] = entry_time.get_bits(8..16) as u8;
-        data[i + 16] = entry_time.get_bits(0..8) as u8;
-        data[i + 17] = n as u8;
-        for j in 0..n {
-            data[i + 18 + j] = entry_name[j];
-        }
+
+        data[i] = entry_kind;
+        data[(i + 1)..(i + 5)].clone_from_slice(&entry_addr.to_be_bytes());
+        data[(i + 5)..(i + 9)].clone_from_slice(&entry_size.to_be_bytes());
+        data[(i + 9)..(i + 17)].clone_from_slice(&entry_time.to_be_bytes());
+        data[i + 17] = n as u8; // FIXME do something with long names
+        data[(i + 18)..(i + 18 + n)].clone_from_slice(&entry_name);
+
         read_dir.block.write();
 
         Some(DirEntry::new(*self, kind, entry_addr, entry_size, entry_time, name))
