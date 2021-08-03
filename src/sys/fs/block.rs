@@ -1,11 +1,14 @@
+use super::block_size;
 use super::block_bitmap::BlockBitmap;
 
-use bit_field::BitField;
+use core::convert::TryInto;
+
+const DATA_OFFSET: usize = 4;
 
 #[derive(Clone)]
 pub struct Block {
     addr: u32,
-    buf: [u8; 512],
+    buf: [u8; block_size()],
 }
 
 // Block structure:
@@ -13,7 +16,7 @@ pub struct Block {
 // 4..512 => block data
 impl Block {
     pub fn new(addr: u32) -> Self {
-        let buf = [0; 512];
+        let buf = [0; block_size()];
         Self { addr, buf }
     }
 
@@ -27,7 +30,7 @@ impl Block {
 
                 // Initialize block
                 let mut block = Block::read(addr);
-                for i in 0..512 {
+                for i in 0..block_size() {
                     block.buf[i] = 0;
                 }
                 block.write();
@@ -38,7 +41,7 @@ impl Block {
     }
 
     pub fn read(addr: u32) -> Self {
-        let mut buf = [0; 512];
+        let mut buf = [0; block_size()];
         if let Some(ref block_device) = *super::block_device::BLOCK_DEVICE.lock() {
             block_device.read(addr, &mut buf);
         }
@@ -56,20 +59,20 @@ impl Block {
     }
 
     pub fn data(&self) -> &[u8] {
-        &self.buf[4..512]
+        &self.buf[DATA_OFFSET..block_size()]
     }
 
     pub fn data_mut(&mut self) -> &mut [u8] {
-        &mut self.buf[4..512]
+        &mut self.buf[DATA_OFFSET..block_size()]
+    }
+
+    pub fn len(&self) -> usize {
+        block_size() - DATA_OFFSET
     }
 
     // TODO: Return addr instead of block?
     pub fn next(&self) -> Option<Self> {
-        let addr = (self.buf[0] as u32) << 24
-                 | (self.buf[1] as u32) << 16
-                 | (self.buf[2] as u32) << 8
-                 | (self.buf[3] as u32);
-
+        let addr = u32::from_be_bytes(self.buf[0..4].try_into().unwrap());
         if addr == 0 {
             None
         } else {
@@ -79,9 +82,6 @@ impl Block {
 
     // FIXME: next() returns a Block, but set_next() takes a u32
     pub fn set_next(&mut self, addr: u32) {
-        self.buf[0] = addr.get_bits(24..32) as u8;
-        self.buf[1] = addr.get_bits(16..24) as u8;
-        self.buf[2] = addr.get_bits(8..16) as u8;
-        self.buf[3] = addr.get_bits(0..8) as u8;
+        self.buf[0..4].clone_from_slice(&addr.to_be_bytes());
     }
 }
