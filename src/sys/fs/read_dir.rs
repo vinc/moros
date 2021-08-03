@@ -67,7 +67,7 @@ impl Iterator for ReadDir {
                 let offset = self.block_data_offset; // Backup cursor position
 
                 // Switch to next block if no space left for another entry
-                if self.block_data_offset >= self.block.len() - DirEntry::empty_len() {
+                if offset >= self.block.len() - DirEntry::empty_len() {
                     break;
                 }
 

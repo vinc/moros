@@ -5,10 +5,11 @@ use super::read_dir::ReadDir;
 use super::block_bitmap::BlockBitmap;
 use super::FileType;
 use super::block::Block;
+use crate::sys;
 
+use alloc::string::String;
 use bit_field::BitField;
 use core::convert::From;
-use crate::sys;
 
 #[derive(Clone, Copy)]
 pub struct Dir {
@@ -117,9 +118,9 @@ impl Dir {
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;
         let entry_time = sys::clock::realtime() as u64;
-        let entry_name = name.as_bytes();
-
+        let entry_name = truncate(name, u8::MAX as usize);
         let n = entry_name.len();
+
         let i = read_dir.block_data_offset();
         let data = read_dir.block.data_mut();
 
@@ -127,8 +128,8 @@ impl Dir {
         data[(i + 1)..(i + 5)].clone_from_slice(&entry_addr.to_be_bytes());
         data[(i + 5)..(i + 9)].clone_from_slice(&entry_size.to_be_bytes());
         data[(i + 9)..(i + 17)].clone_from_slice(&entry_time.to_be_bytes());
-        data[i + 17] = n as u8; // FIXME do something with long names
-        data[(i + 18)..(i + 18 + n)].clone_from_slice(&entry_name);
+        data[i + 17] = n as u8;
+        data[(i + 18)..(i + 18 + n)].clone_from_slice(&entry_name.as_bytes());
 
         read_dir.block.write();
 
@@ -207,3 +208,7 @@ impl Dir {
     }
 }
 
+// Truncate to the given number of bytes at most while respecting char boundaries
+fn truncate(s: &str, max: usize) -> String {
+    s.char_indices().take_while(|(i, _)| *i <= max).map(|(_, c)| c).collect()
+}
