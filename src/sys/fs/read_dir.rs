@@ -5,6 +5,7 @@ use super::FileType;
 
 use alloc::string::String;
 use core::convert::From;
+use core::convert::TryInto;
 
 pub struct ReadDir {
     // TODO: make those fields private
@@ -23,6 +24,18 @@ impl From<Dir> for ReadDir {
     }
 }
 
+macro_rules! read_uint_fn {
+    ($name:ident, $type:ident) => {
+        fn $name(&mut self) -> $type {
+            let data = self.block.data();
+            let a = self.block_data_offset;
+            let b = a + core::mem::size_of::<$type>();
+            self.block_data_offset = b;
+            $type::from_be_bytes(data[a..b].try_into().unwrap())
+        }
+    };
+}
+
 impl ReadDir {
     pub fn block_data_offset(&self) -> usize {
         self.block_data_offset
@@ -31,6 +44,18 @@ impl ReadDir {
     pub fn block_addr(&self) -> u32 {
         self.block.addr()
     }
+
+    read_uint_fn!(read_u8, u8);
+    read_uint_fn!(read_u32, u32);
+    read_uint_fn!(read_u64, u64);
+
+    fn read_utf8_lossy(&mut self, len: usize) -> String {
+        let data = self.block.data();
+        let a = self.block_data_offset;
+        let b = a + len;
+        self.block_data_offset = b;
+        String::from_utf8_lossy(&data[a..b]).into()
+    }
 }
 
 impl Iterator for ReadDir {
@@ -38,59 +63,35 @@ impl Iterator for ReadDir {
 
     fn next(&mut self) -> Option<DirEntry> {
         loop {
-            let data = self.block.data();
-            let mut i = self.block_data_offset;
-
             loop {
+                let offset = self.block_data_offset; // Backup cursor position
+
                 // Switch to next block if no space left for another entry
-                if i == data.len() - DirEntry::empty_len() {
+                if self.block_data_offset >= self.block.len() - DirEntry::empty_len() {
                     break;
                 }
 
-                let entry_kind = match data[i + 0] {
+                let entry_kind = match self.read_u8() {
                     0 => FileType::Dir,
                     1 => FileType::File,
-                    _ => break,
+                    _ => {
+                        self.block_data_offset = offset; // Rewind the cursor
+                        break;
+                    },
                 };
 
-                let entry_addr = (data[i +  1] as u32) << 24
-                               | (data[i +  2] as u32) << 16
-                               | (data[i +  3] as u32) << 8
-                               | (data[i +  4] as u32);
+                let entry_addr = self.read_u32();
+                let entry_size = self.read_u32();
+                let entry_time = self.read_u64();
 
-                let entry_size = (data[i +  5] as u32) << 24
-                               | (data[i +  6] as u32) << 16
-                               | (data[i +  7] as u32) << 8
-                               | (data[i +  8] as u32);
-
-                let entry_time = (data[i +  9] as u64) << 56
-                               | (data[i + 10] as u64) << 48
-                               | (data[i + 11] as u64) << 40
-                               | (data[i + 12] as u64) << 32
-                               | (data[i + 13] as u64) << 24
-                               | (data[i + 14] as u64) << 16
-                               | (data[i + 15] as u64) << 8
-                               | (data[i + 16] as u64);
-                i += 17;
-
-                let mut n = data[i];
-                if n == 0 || n as usize >= data.len() - i {
+                let n = self.read_u8() as usize;
+                if n == 0 || n >= self.block.len() - self.block_data_offset {
+                    self.block_data_offset = offset; // Rewind the cursor
                     break;
                 }
-                i += 1;
 
-                // The rest of the entry is the pathname string.
-                let mut entry_name = String::new();
-                loop {
-                    if n == 0 {
-                        break;
-                    }
-                    entry_name.push(data[i] as char);
-                    n -= 1;
-                    i += 1;
-                }
-
-                self.block_data_offset = i;
+                // The rest of the entry is the filename string
+                let entry_name = self.read_utf8_lossy(n);
 
                 // Skip deleted entries
                 if entry_addr == 0 {
