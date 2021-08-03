@@ -8,7 +8,6 @@ use super::block::Block;
 use crate::sys;
 
 use alloc::string::String;
-use bit_field::BitField;
 use core::convert::From;
 
 #[derive(Clone, Copy)]
@@ -168,24 +167,14 @@ impl Dir {
     }
 
     pub fn update_entry(&mut self, name: &str, size: u32) {
+        let time = sys::clock::realtime() as u64;
         let mut read_dir = self.read();
         for entry in &mut read_dir {
             if entry.name() == name {
-                let time = sys::clock::realtime() as u64;
                 let i = read_dir.block_data_offset() - entry.len();
                 let data = read_dir.block.data_mut();
-                data[i +  5] = size.get_bits(24..32) as u8;
-                data[i +  6] = size.get_bits(16..24) as u8;
-                data[i +  7] = size.get_bits(8..16) as u8;
-                data[i +  8] = size.get_bits(0..8) as u8;
-                data[i +  9] = time.get_bits(56..64) as u8;
-                data[i + 10] = time.get_bits(48..56) as u8;
-                data[i + 11] = time.get_bits(40..48) as u8;
-                data[i + 12] = time.get_bits(32..40) as u8;
-                data[i + 13] = time.get_bits(24..32) as u8;
-                data[i + 14] = time.get_bits(16..24) as u8;
-                data[i + 15] = time.get_bits(8..16) as u8;
-                data[i + 16] = time.get_bits(0..8) as u8;
+                data[(i + 5)..(i + 9)].clone_from_slice(&size.to_be_bytes());
+                data[(i + 9)..(i + 17)].clone_from_slice(&time.to_be_bytes());
                 read_dir.block.write();
                 break;
             }
