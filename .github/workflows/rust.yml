@@ -24,4 +24,4 @@ jobs:
     - run: rustup component add rust-src
     - run: rustup component add llvm-tools-preview
     - run: cargo install bootimage
-    - run: cargo test --lib --no-default-features --features serial,qwerty,pcnet -- -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+    - run: cargo test --lib --no-default-features --features serial,pcnet -- -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
