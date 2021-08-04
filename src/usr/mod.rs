@@ -18,6 +18,7 @@ pub mod http;
 pub mod httpd;
 pub mod install;
 pub mod ip;
+pub mod keyboard;
 pub mod list;
 pub mod lisp;
 pub mod mem;
