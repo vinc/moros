@@ -10,29 +10,33 @@ lazy_static! {
 }
 
 pub enum KeyboardLayout {
-    Qwerty(Keyboard<layouts::Us104Key, ScancodeSet1>),
+    Azerty(Keyboard<layouts::Azerty, ScancodeSet1>),
     Dvorak(Keyboard<layouts::Dvorak104Key, ScancodeSet1>),
+    Qwerty(Keyboard<layouts::Us104Key, ScancodeSet1>),
 }
 
 impl KeyboardLayout {
     fn add_byte(&mut self, scancode: u8) -> Result<Option<KeyEvent>, Error> {
         match self {
-            KeyboardLayout::Qwerty(keyboard) => keyboard.add_byte(scancode),
+            KeyboardLayout::Azerty(keyboard) => keyboard.add_byte(scancode),
             KeyboardLayout::Dvorak(keyboard) => keyboard.add_byte(scancode),
+            KeyboardLayout::Qwerty(keyboard) => keyboard.add_byte(scancode),
         }
     }
 
     fn process_keyevent(&mut self, key_event: KeyEvent) -> Option<DecodedKey> {
         match self {
-            KeyboardLayout::Qwerty(keyboard) => keyboard.process_keyevent(key_event),
+            KeyboardLayout::Azerty(keyboard) => keyboard.process_keyevent(key_event),
             KeyboardLayout::Dvorak(keyboard) => keyboard.process_keyevent(key_event),
+            KeyboardLayout::Qwerty(keyboard) => keyboard.process_keyevent(key_event),
         }
     }
 
     fn from(name: &str) -> Option<Self> {
         match name {
-            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::MapLettersToUnicode))),
+            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(layouts::Azerty, ScancodeSet1, HandleControl::MapLettersToUnicode))),
             "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(layouts::Dvorak104Key, ScancodeSet1, HandleControl::MapLettersToUnicode))),
+            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::MapLettersToUnicode))),
             _ => None,
         }
     }
