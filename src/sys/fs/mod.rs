@@ -85,16 +85,5 @@ pub const fn bitmap_addr() -> u32 {
  */
 
 pub fn init() {
-    for bus in 0..2 {
-        for dsk in 0..2 {
-            let mut buf = [0u8; 512];
-            sys::ata::read(bus, dsk, superblock_addr(), &mut buf);
-            if let Ok(header) = String::from_utf8(buf[0..8].to_vec()) {
-                if header == block_device::MAGIC {
-                    log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
-                    mount(bus, dsk);
-                }
-            }
-        }
-    }
+    block_device::init();
 }

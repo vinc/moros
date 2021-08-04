@@ -1,5 +1,6 @@
 use super::block_size;
 use super::block_bitmap::BlockBitmap;
+use super::block_device::BlockDeviceIO;
 
 use core::convert::TryInto;
 
@@ -49,7 +50,7 @@ impl Block {
     }
 
     pub fn write(&self) {
-        if let Some(ref block_device) = *super::block_device::BLOCK_DEVICE.lock() {
+        if let Some(ref mut block_device) = *super::block_device::BLOCK_DEVICE.lock() {
             block_device.write(self.addr, &self.buf);
         }
     }
