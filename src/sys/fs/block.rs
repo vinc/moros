@@ -70,7 +70,6 @@ impl Block {
         block_size() - DATA_OFFSET
     }
 
-    // TODO: Return addr instead of block?
     pub fn next(&self) -> Option<Self> {
         let addr = u32::from_be_bytes(self.buf[0..4].try_into().unwrap());
         if addr == 0 {
@@ -80,8 +79,14 @@ impl Block {
         }
     }
 
-    // FIXME: next() returns a Block, but set_next() takes a u32
-    pub fn set_next(&mut self, addr: u32) {
+    pub fn alloc_next(&mut self) -> Option<Self> {
+        let new_block = Block::alloc()?;
+        self.set_next_addr(new_block.addr());
+        self.write();
+        Some(new_block)
+    }
+
+    pub fn set_next_addr(&mut self, addr: u32) {
         self.buf[0..4].clone_from_slice(&addr.to_be_bytes());
     }
 }

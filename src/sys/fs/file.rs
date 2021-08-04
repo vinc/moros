@@ -165,7 +165,7 @@ impl File {
                 }
             };
 
-            block.set_next(addr);
+            block.set_next_addr(addr);
             block.write();
         }
         self.size = self.offset;

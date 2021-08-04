@@ -80,6 +80,7 @@ impl Dir {
         None
     }
 
+    // TODO: return a Result
     pub fn create_file(&self, name: &str) -> Option<DirEntry> {
         self.create_entry(FileType::File, name)
     }
@@ -93,25 +94,24 @@ impl Dir {
             return None;
         }
 
+        // Read the whole dir to add an entry at the end
         let mut read_dir = self.read();
         while read_dir.next().is_some() {}
-        //let block = read_dir.block();
-        //let block_data_offset = read_dir.block_data_offset();
 
         // Allocate a new block for the dir if no space left for adding the new entry
-        // TODO: move that somewhere
         let space_left = read_dir.block.data().len() - read_dir.block_data_offset();
         let entry_len = DirEntry::empty_len() + name.len();
         if entry_len > space_left {
-            let new_block = Block::alloc().unwrap();
-            read_dir.block.set_next(new_block.addr());
-            read_dir.block.write();
-            read_dir.block = new_block;
-            read_dir.block_data_offset = 0;
+            match read_dir.block.alloc_next() {
+                None => return None, // Disk is full
+                Some(new_block) => {
+                    read_dir.block = new_block;
+                    read_dir.block_data_offset = 0;
+                },
+            }
         }
 
         // Create a new entry
-        // TODO: add DirEntry::create()
         let entry_block = Block::alloc().unwrap();
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
@@ -119,7 +119,6 @@ impl Dir {
         let entry_time = sys::clock::realtime() as u64;
         let entry_name = truncate(name, u8::MAX as usize);
         let n = entry_name.len();
-
         let i = read_dir.block_data_offset();
         let data = read_dir.block.data_mut();
 
