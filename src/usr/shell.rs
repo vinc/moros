@@ -173,7 +173,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "ip"                   => usr::ip::main(&args),
         "geotime"              => usr::geotime::main(&args),
         "colors"               => usr::colors::main(&args),
-        "disk"                 => usr::disk::main(&args),
+        "dsk" | "disk"         => usr::disk::main(&args),
         "user"                 => usr::user::main(&args),
         "mem" | "memory"       => usr::mem::main(&args),
         "lisp"                 => usr::lisp::main(&args),

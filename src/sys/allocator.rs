@@ -105,15 +105,15 @@ impl core::ops::DerefMut for PhysBuf {
     }
 }
 
-pub fn size() -> usize {
+pub fn memory_size() -> usize {
     ALLOCATOR.lock().size()
 }
 
-pub fn used() -> usize {
+pub fn memory_used() -> usize {
     ALLOCATOR.lock().used()
 }
 
-pub fn free() -> usize {
+pub fn memory_free() -> usize {
     ALLOCATOR.lock().free()
 }
 

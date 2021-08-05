@@ -3,11 +3,15 @@ use crate::api::console::Style;
 use alloc::string::ToString;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
-    let width = sys::allocator::size().to_string().len();
+    let size = sys::allocator::memory_size();
+    let used = sys::allocator::memory_used();
+    let free = size - used;
+
+    let width = size.to_string().len();
     let color = Style::color("LightCyan");
     let reset = Style::reset();
-    println!("{}Size:{} {:width$}", color, reset, sys::allocator::size(), width = width);
-    println!("{}Used:{} {:width$}", color, reset, sys::allocator::used(), width = width);
-    println!("{}Free:{} {:width$}", color, reset, sys::allocator::free(), width = width);
+    println!("{}Size:{} {:width$}", color, reset, size, width = width);
+    println!("{}Used:{} {:width$}", color, reset, used, width = width);
+    println!("{}Free:{} {:width$}", color, reset, free, width = width);
     usr::shell::ExitCode::CommandSuccessful
 }

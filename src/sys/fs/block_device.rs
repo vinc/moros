@@ -1,7 +1,5 @@
-use super::block_size;
 use super::block_bitmap::BlockBitmap;
 use super::dir::Dir;
-use super::superblock_addr;
 
 use crate::sys;
 
@@ -44,12 +42,12 @@ impl BlockDeviceIO for BlockDevice {
 }
 
 pub struct MemBlockDevice {
-    disk: Vec<[u8; block_size()]>,
+    disk: Vec<[u8; super::BLOCK_SIZE]>,
 }
 
 impl MemBlockDevice {
     pub fn new(len: usize) -> Self {
-        let disk = vec![[0; block_size()]; len];
+        let disk = vec![[0; super::BLOCK_SIZE]; len];
         Self { disk }
     }
 }
@@ -89,19 +87,20 @@ pub fn is_mounted() -> bool {
     BLOCK_DEVICE.lock().is_some()
 }
 
-pub fn mount(bus: u8, dsk: u8) {
+pub fn mount_ata(bus: u8, dsk: u8) {
     let dev = AtaBlockDevice::new(bus, dsk);
     *BLOCK_DEVICE.lock() = Some(BlockDevice::Ata(dev));
 }
 
-pub fn format(bus: u8, dsk: u8) {
+// NOTE: format_ata will also call mount_ata to bootstrap the root dir
+pub fn format_ata(bus: u8, dsk: u8) {
     // Write superblock
     let mut buf = MAGIC.as_bytes().to_vec();
-    buf.resize(512, 0);
+    buf.resize(super::BLOCK_SIZE, 0);
     let mut dev = AtaBlockDevice::new(bus, dsk);
-    dev.write(superblock_addr(), &buf);
+    dev.write(super::SUPERBLOCK_ADDR, &buf);
 
-    mount(bus, dsk);
+    mount_ata(bus, dsk);
 
     // Allocate root dir
     let root = Dir::root();
@@ -111,11 +110,11 @@ pub fn format(bus: u8, dsk: u8) {
 pub fn init() {
     for bus in 0..2 {
         for dsk in 0..2 {
-            let mut buf = [0u8; 512];
-            sys::ata::read(bus, dsk, superblock_addr(), &mut buf);
+            let mut buf = [0u8; super::BLOCK_SIZE];
+            sys::ata::read(bus, dsk, super::SUPERBLOCK_ADDR, &mut buf);
             if String::from_utf8_lossy(&buf[0..8]) == MAGIC {
                 log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
-                mount(bus, dsk);
+                mount_ata(bus, dsk);
                 return;
             }
         }

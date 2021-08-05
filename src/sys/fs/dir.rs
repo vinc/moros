@@ -1,4 +1,3 @@
-use super::data_addr;
 use super::{dirname, filename, realpath};
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
@@ -23,7 +22,7 @@ impl From<DirEntry> for Dir {
 
 impl Dir {
     pub fn root() -> Self {
-        Self { addr: data_addr() }
+        Self { addr: super::DATA_ADDR }
     }
 
     pub fn create(pathname: &str) -> Option<Self> {

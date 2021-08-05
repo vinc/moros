@@ -1,45 +1,38 @@
 use crate::{sys, usr};
+use crate::api::console::Style;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 
-const COMMANDS: [&str; 2] = ["list", "format"];
-
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    if args.len() == 1 || !COMMANDS.contains(&args[1]) {
+    if args.len() == 1 {
         return usage();
     }
 
     match args[1] {
-        "list" => {
-            list()
-        },
         "format" => {
             if args.len() == 2 {
-                return usage();
+                return help();
             }
             format(args[2])
         },
+        "list" => {
+            list()
+        },
         _ => {
-            usage()
+            help()
         }
     }
 }
 
-fn usage() -> usr::shell::ExitCode {
+fn help() -> usr::shell::ExitCode {
     println!("Usage: <command>");
     println!();
     println!("Commands:");
-    println!("  list");
     println!("  format <path>");
+    println!("  list");
+    println!("  usage");
 
     usr::shell::ExitCode::CommandError
-}
-
-fn list() -> usr::shell::ExitCode {
-    println!("Path            Name (Size)");
-    for (bus, drive, model, serial, size, unit) in sys::ata::list() {
-        println!("/dev/ata/{}/{}    {} {} ({} {})", bus, drive, model, serial, size, unit);
-    }
-    usr::shell::ExitCode::CommandSuccessful
 }
 
 fn format(pathname: &str) -> usr::shell::ExitCode {
@@ -51,9 +44,31 @@ fn format(pathname: &str) -> usr::shell::ExitCode {
 
     let bus = path[3].parse().expect("Could not parse <bus>");
     let dsk = path[4].parse().expect("Could not parse <dsk>");
-    sys::fs::format(bus, dsk);
+    sys::fs::format_ata(bus, dsk);
     println!("Disk successfully formatted");
     println!("MFS is now mounted to '/'");
 
+    usr::shell::ExitCode::CommandSuccessful
+}
+
+fn list() -> usr::shell::ExitCode {
+    println!("Path            Name (Size)");
+    for (bus, drive, model, serial, size, unit) in sys::ata::list() {
+        println!("/dev/ata/{}/{}    {} {} ({} {})", bus, drive, model, serial, size, unit);
+    }
+    usr::shell::ExitCode::CommandSuccessful
+}
+
+fn usage() -> usr::shell::ExitCode {
+    let size = sys::fs::disk_size();
+    let used = sys::fs::disk_used();
+    let free = size - used;
+
+    let width = size.to_string().len();
+    let color = Style::color("LightCyan");
+    let reset = Style::reset();
+    println!("{}Size:{} {:width$}", color, reset, size, width = width);
+    println!("{}Used:{} {:width$}", color, reset, used, width = width);
+    println!("{}Free:{} {:width$}", color, reset, free, width = width);
     usr::shell::ExitCode::CommandSuccessful
 }

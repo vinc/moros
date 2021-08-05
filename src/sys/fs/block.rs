@@ -1,4 +1,3 @@
-use super::block_size;
 use super::block_bitmap::BlockBitmap;
 use super::block_device::BlockDeviceIO;
 
@@ -9,15 +8,18 @@ const DATA_OFFSET: usize = 4;
 #[derive(Clone)]
 pub struct Block {
     addr: u32,
-    buf: [u8; block_size()],
+    buf: [u8; super::BLOCK_SIZE],
 }
+
+// TODO: Add LinkedBlock that contains the next block address used by a data
+// block and give Block the full block size for the data of a bitmap block.
 
 // Block structure:
 // 0..4 => next block address
 // 4..512 => block data
 impl Block {
     pub fn new(addr: u32) -> Self {
-        let buf = [0; block_size()];
+        let buf = [0; super::BLOCK_SIZE];
         Self { addr, buf }
     }
 
@@ -31,7 +33,7 @@ impl Block {
 
                 // Initialize block
                 let mut block = Block::read(addr);
-                for i in 0..block_size() {
+                for i in 0..super::BLOCK_SIZE {
                     block.buf[i] = 0;
                 }
                 block.write();
@@ -42,7 +44,7 @@ impl Block {
     }
 
     pub fn read(addr: u32) -> Self {
-        let mut buf = [0; block_size()];
+        let mut buf = [0; super::BLOCK_SIZE];
         if let Some(ref block_device) = *super::block_device::BLOCK_DEVICE.lock() {
             block_device.read(addr, &mut buf);
         }
@@ -60,15 +62,15 @@ impl Block {
     }
 
     pub fn data(&self) -> &[u8] {
-        &self.buf[DATA_OFFSET..block_size()]
+        &self.buf[DATA_OFFSET..super::BLOCK_SIZE]
     }
 
     pub fn data_mut(&mut self) -> &mut [u8] {
-        &mut self.buf[DATA_OFFSET..block_size()]
+        &mut self.buf[DATA_OFFSET..super::BLOCK_SIZE]
     }
 
     pub fn len(&self) -> usize {
-        block_size() - DATA_OFFSET
+        super::BLOCK_SIZE - DATA_OFFSET
     }
 
     pub fn next(&self) -> Option<Self> {
