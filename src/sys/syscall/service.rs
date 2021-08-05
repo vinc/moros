@@ -2,6 +2,7 @@ use crate::sys;
 
 pub fn sleep(seconds: f64) {
     unsafe { asm!("sti") }; // Restore interrupts
+    printk!("DEBUG: sleep({:.2})\n", seconds);
     sys::time::sleep(seconds);
     unsafe { asm!("cli") }; // Disable interrupts
 }

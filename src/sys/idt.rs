@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
 
 const PIC1: u16 = 0x21;
 const PIC2: u16 = 0xA1;
@@ -27,7 +27,19 @@ lazy_static! {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
         unsafe {
-            idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(sys::gdt::DOUBLE_FAULT_IST_INDEX);
+            idt.double_fault.
+                set_handler_fn(double_fault_handler).
+                set_stack_index(sys::gdt::DOUBLE_FAULT_IST_INDEX);
+            idt.page_fault.
+                set_handler_fn(page_fault_handler).
+                set_stack_index(sys::gdt::PAGE_FAULT_IST_INDEX);
+            idt.general_protection_fault.
+                set_handler_fn(general_protection_fault_handler).
+                set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST_INDEX);
+            idt[0x80].
+                set_handler_fn(core::mem::transmute(wrapped_syscall_handler as *mut fn())).
+                set_stack_index(sys::gdt::DOUBLE_FAULT_IST_INDEX).
+                set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
         idt[interrupt_index(0) as usize].set_handler_fn(irq0_handler);
         idt[interrupt_index(1) as usize].set_handler_fn(irq1_handler);
@@ -45,7 +57,8 @@ lazy_static! {
         idt[interrupt_index(13) as usize].set_handler_fn(irq13_handler);
         idt[interrupt_index(14) as usize].set_handler_fn(irq14_handler);
         idt[interrupt_index(15) as usize].set_handler_fn(irq15_handler);
-        idt[0x80].set_handler_fn(unsafe { core::mem::transmute(wrapped_syscall_handler as *mut fn()) });
+        idt.stack_segment_fault.set_handler_fn(stack_segment_fault_handler);
+        idt.segment_not_present.set_handler_fn(segment_not_present_handler);
         idt
     };
 }
@@ -83,6 +96,25 @@ extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
 
 extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
+}
+
+extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
+    let ip = stack_frame.instruction_pointer.as_ptr();
+    let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
+    println!("Code: {:?}", inst);
+    panic!("EXCEPTION: PAGE FAULT\n{:#?}\n{:#?}", stack_frame, error_code);
+}
+
+extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    panic!("EXCEPTION: GENERAL PROTECTION FAULT\n{:#?}", stack_frame);
+}
+
+extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    panic!("EXCEPTION: STACK SEGMENT FAULT\n{:#?}", stack_frame);
+}
+
+extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    panic!("EXCEPTION: SEGMENT NOT PRESENT\n{:#?}", stack_frame);
 }
 
 // See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L92
@@ -167,6 +199,7 @@ extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs:
     let arg1 = regs.rdi;
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
+    printk!("DEBUG: syscall({}, {}, {}, {})\n", n, arg1, arg2, arg3);
     regs.rax = sys::syscall::dispatcher(n, arg1, arg2, arg3);
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
