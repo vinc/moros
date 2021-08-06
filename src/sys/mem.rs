@@ -3,8 +3,9 @@ use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate};
 use x86_64::{PhysAddr, VirtAddr};
 
-// NOTE: This static is mutable but it'll be changed only once during initialization
-static mut PHYS_MEM_OFFSET: u64 = 0;
+// NOTE: mutable but changed only once during initialization
+pub static mut PHYS_MEM_OFFSET: u64 = 0;
+pub static mut MEMORY_MAP: Option<&MemoryMap> = None;
 
 pub fn init(boot_info: &'static BootInfo) {
     let mut memory_size = 0;
@@ -17,9 +18,11 @@ pub fn init(boot_info: &'static BootInfo) {
     log!("MEM {} KB\n", memory_size >> 10);
 
     unsafe { PHYS_MEM_OFFSET = boot_info.physical_memory_offset; }
+    unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
 
     let mut mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
     let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
+
     sys::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 }
 

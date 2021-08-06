@@ -66,11 +66,12 @@ pub fn set_user(user: &str) {
 // See https://nfil.dev/kernel/rust/coding/rust-kernel-to-userspace-and-back/
 // And https://github.com/WartaPoirier-corp/ananos/blob/dev/docs/notes/context-switch.md
 
+use crate::sys;
 use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
 use x86_64::instructions::interrupts;
-use x86_64::structures::paging::{Mapper, FrameAllocator, Size4KiB};
+use x86_64::structures::paging::{Mapper, FrameAllocator};
 use x86_64::structures::paging::{Page, PageTableFlags};
 
 static STACK_ADDR: AtomicU64 = AtomicU64::new(0x600_000);
@@ -83,26 +84,29 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn create(mapper: &mut impl Mapper<Size4KiB>, frame_alloc: &mut impl FrameAllocator<Size4KiB>, asm: &[u8]) -> Process {
+    pub fn create(bin: &[u8]) -> Process {
+        let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
+        let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
+
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
 
         let stack_addr = STACK_ADDR.fetch_add(PAGE_SIZE, Ordering::SeqCst);
-        let frame = frame_alloc.allocate_frame().unwrap();
+        let frame = frame_allocator.allocate_frame().unwrap();
         let page = Page::containing_address(VirtAddr::new(stack_addr));
         unsafe {
-            mapper.map_to(page, frame, flags, frame_alloc).unwrap().flush();
+            mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
         }
 
         let code_addr = CODE_ADDR.fetch_add(PAGE_SIZE, Ordering::SeqCst);
-        let frame = frame_alloc.allocate_frame().unwrap();
+        let frame = frame_allocator.allocate_frame().unwrap();
         let page = Page::containing_address(VirtAddr::new(code_addr));
         unsafe {
-            mapper.map_to(page, frame, flags, frame_alloc).unwrap().flush();
+            mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
         }
 
         unsafe {
             let code_addr = code_addr as *mut u8;
-            for (i, op) in asm.iter().enumerate() {
+            for (i, op) in bin.iter().enumerate() {
                 core::ptr::write(code_addr.add(i), *op);
             }
         }

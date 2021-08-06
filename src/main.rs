@@ -12,11 +12,8 @@ entry_point!(main);
 fn main(boot_info: &'static BootInfo) -> ! {
     moros::init(boot_info);
 
-    use x86_64::VirtAddr;
-    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(boot_info.physical_memory_offset)) };
-    let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(&boot_info.memory_map) };
     let bin = include_bytes!("../dsk/bin/sleep");
-    let process = sys::process::Process::create(&mut mapper, &mut frame_allocator, bin);
+    let process = sys::process::Process::create(bin);
     process.switch();
 
     loop {
