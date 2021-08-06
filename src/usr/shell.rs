@@ -1,5 +1,5 @@
 use crate::api::prompt::Prompt;
-use crate::{sys, usr};
+use crate::{api, sys, usr};
 use crate::api::console::Style;
 use alloc::format;
 use alloc::vec::Vec;
@@ -178,7 +178,14 @@ pub fn exec(cmd: &str) -> ExitCode {
         "mem" | "memory"       => usr::mem::main(&args),
         "kb" | "keyboard"      => usr::keyboard::main(&args),
         "lisp"                 => usr::lisp::main(&args),
-        _                      => ExitCode::CommandUnknown,
+        cmd                    => {
+            if let Ok(process) = api::process::create(cmd) {
+                process.switch();
+                ExitCode::CommandSuccessful
+            } else {
+                ExitCode::CommandUnknown
+            }
+        }
     }
 }
 

@@ -11,11 +11,6 @@ entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
     moros::init(boot_info);
-
-    let bin = include_bytes!("../dsk/bin/sleep");
-    let process = sys::process::Process::create(bin);
-    process.switch();
-
     loop {
         let bootrc = "/ini/boot.sh";
         if sys::fs::File::open(bootrc).is_some() {
@@ -27,7 +22,6 @@ fn main(boot_info: &'static BootInfo) -> ! {
                 println!("MFS is not mounted to '/'");
             }
             println!("Running console in diskless mode");
-
             usr::shell::main(&["shell"]);
         }
     }
