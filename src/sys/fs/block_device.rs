@@ -63,11 +63,7 @@ impl BlockDeviceIO for MemBlockDevice {
 }
 
 pub fn mount_mem() {
-    let len = sys::allocator::HEAP_SIZE / 2 / 512;
-    // FIXME: `len` should be equal to `super::DISK_SIZE` which is set during
-    // compilation for now. But that's not the case because the allocator is
-    // too slow to allocate more than a few megabytes of memory. So we take
-    // half of the heap and will panic when this get full.
+    let len = super::DISK_SIZE / 2;
     let dev = MemBlockDevice::new(len);
     *BLOCK_DEVICE.lock() = Some(BlockDevice::Mem(dev));
 }

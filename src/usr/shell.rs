@@ -178,6 +178,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "mem" | "memory"       => usr::mem::main(&args),
         "kb" | "keyboard"      => usr::keyboard::main(&args),
         "lisp"                 => usr::lisp::main(&args),
+        "chess"                => usr::chess::main(&args),
         _                      => ExitCode::CommandUnknown,
     }
 }
