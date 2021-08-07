@@ -8,7 +8,7 @@ mod read_dir;
 
 pub use dir::Dir;
 pub use file::{File, SeekFrom};
-pub use block_device::{format_ata, is_mounted, mount_ata, mount_mem};
+pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
 
 use block_bitmap::BlockBitmap;
 
@@ -59,7 +59,7 @@ pub fn realpath(pathname: &str) -> String {
 const BLOCK_SIZE: usize = 512;
 const DISK_SIZE: usize = (8 << 20) / BLOCK_SIZE; // 8 MB disk
 const KERNEL_SIZE: usize = (2 << 20) / BLOCK_SIZE; // 2 MB for the kernel binary
-const MAX_BLOCKS: usize = (DISK_SIZE - KERNEL_SIZE) / 2; // Half of the disk (for simplicity)
+const MAX_BLOCKS: usize = (DISK_SIZE - KERNEL_SIZE) / 2; // FIXME: Replace `/ 2` with `- SUPELBLOCK_AREA_SIZE - BITMAP_AREA_SIZE`
 const SUPERBLOCK_ADDR: u32 = KERNEL_SIZE as u32; // Address of the block
 const BITMAP_ADDR: u32 = SUPERBLOCK_ADDR + 2;
 const DATA_ADDR: u32 = BITMAP_ADDR + ((MAX_BLOCKS as u32) / block_bitmap::BITMAP_SIZE as u32 / 8); // 1 bit per block in bitmap

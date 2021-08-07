@@ -11,7 +11,7 @@ use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, S
 use x86_64::VirtAddr;
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 8 << 20; // 8 MB
+pub const HEAP_SIZE: usize = 8 << 20; // MB
 
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();

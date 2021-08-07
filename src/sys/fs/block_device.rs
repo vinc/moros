@@ -62,6 +62,22 @@ impl BlockDeviceIO for MemBlockDevice {
     }
 }
 
+pub fn mount_mem() {
+    let len = sys::allocator::HEAP_SIZE / 2 / 512;
+    // FIXME: `len` should be equal to `super::DISK_SIZE` which is set during
+    // compilation for now. But that's not the case because the allocator is
+    // too slow to allocate more than a few megabytes of memory. So we take
+    // half of the heap and will panic when this get full.
+    let dev = MemBlockDevice::new(len);
+    *BLOCK_DEVICE.lock() = Some(BlockDevice::Mem(dev));
+}
+
+pub fn format_mem() {
+    assert!(is_mounted());
+    let root = Dir::root();
+    BlockBitmap::alloc(root.addr());
+}
+
 pub struct AtaBlockDevice {
     bus: u8,
     dsk: u8,
@@ -83,26 +99,11 @@ impl BlockDeviceIO for AtaBlockDevice {
     }
 }
 
-pub fn is_mounted() -> bool {
-    BLOCK_DEVICE.lock().is_some()
-}
-
-pub fn mount_mem() {
-    let len = sys::allocator::HEAP_SIZE / 2 / 512;
-    // FIXME: `len` should be equal to `super::DISK_SIZE` which is set during
-    // compilation for now. But that's not the case because the allocator is
-    // too slow to allocate more than a few megabytes of memory. So we take
-    // half of the heap and will panic when this get full.
-    let dev = MemBlockDevice::new(len);
-    *BLOCK_DEVICE.lock() = Some(BlockDevice::Mem(dev));
-}
-
 pub fn mount_ata(bus: u8, dsk: u8) {
     let dev = AtaBlockDevice::new(bus, dsk);
     *BLOCK_DEVICE.lock() = Some(BlockDevice::Ata(dev));
 }
 
-// NOTE: format_ata will also call mount_ata to bootstrap the root dir
 pub fn format_ata(bus: u8, dsk: u8) {
     let mut dev = AtaBlockDevice::new(bus, dsk);
 
@@ -118,9 +119,17 @@ pub fn format_ata(bus: u8, dsk: u8) {
     }
 
     // Allocate root dir
-    mount_ata(bus, dsk);
+    assert!(is_mounted());
     let root = Dir::root();
     BlockBitmap::alloc(root.addr());
+}
+
+pub fn is_mounted() -> bool {
+    BLOCK_DEVICE.lock().is_some()
+}
+
+pub fn dismount() {
+    *BLOCK_DEVICE.lock() = None;
 }
 
 pub fn init() {
@@ -135,4 +144,12 @@ pub fn init() {
             }
         }
     }
+}
+
+#[test_case]
+fn test_mount_mem() {
+    assert!(!is_mounted());
+    mount_mem();
+    assert!(is_mounted());
+    dismount();
 }

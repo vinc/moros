@@ -188,3 +188,61 @@ impl File {
         }
     }
 }
+
+#[test_case]
+fn test_file_create() {
+    super::mount_mem();
+    super::format_mem();
+    assert!(File::create("/test").is_some());
+    assert_eq!(File::create("/hello").unwrap().name(), "hello");
+    super::dismount();
+}
+
+#[test_case]
+fn test_file_write() {
+    super::mount_mem();
+    super::format_mem();
+    let mut file = File::create("/test").unwrap();
+    let buf = "Hello, World!".as_bytes();
+    assert_eq!(file.write(&buf), Ok(buf.len()));
+    super::dismount();
+}
+
+#[test_case]
+fn test_file_open() {
+    super::mount_mem();
+    super::format_mem();
+    assert!(File::open("/test").is_none());
+    let mut file = File::create("/test").unwrap();
+    let buf = "Hello, World!".as_bytes();
+    file.write(&buf).unwrap();
+    assert!(File::open("/test").is_some());
+    super::dismount();
+}
+
+#[test_case]
+fn test_file_read() {
+    super::mount_mem();
+    super::format_mem();
+    let mut file = File::create("/test").unwrap();
+    let input = "Hello, World!".as_bytes();
+    file.write(&input).unwrap();
+
+    let mut file = File::open("/test").unwrap();
+    let mut output = [0u8; 13];
+    assert_eq!(file.read(&mut output), input.len());
+    assert_eq!(input, output);
+    super::dismount();
+}
+
+#[test_case]
+fn test_file_delete() {
+    super::mount_mem();
+    super::format_mem();
+    assert!(File::open("/test").is_none());
+    assert!(File::create("/test").is_some());
+    assert!(File::open("/test").is_some());
+    assert!(File::delete("/test").is_ok());
+    assert!(File::open("/test").is_none());
+    super::dismount();
+}

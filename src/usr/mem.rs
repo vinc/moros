@@ -5,8 +5,11 @@ use alloc::string::ToString;
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
         usage()
-    } else if args[1] == "mount" { // NOTE: hidden subcommand for now
+    } else if args[1] == "format" { // NOTE: hidden subcommand for now
         sys::fs::mount_mem();
+        sys::fs::format_mem();
+        println!("Memory successfully formatted");
+        println!("MFS is now mounted to '/'");
         usr::shell::ExitCode::CommandSuccessful
     } else {
         usr::shell::ExitCode::CommandError
