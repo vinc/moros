@@ -2,7 +2,18 @@ use crate::{sys, usr};
 use crate::api::console::Style;
 use alloc::string::ToString;
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    if args.len() == 1 {
+        usage()
+    } else if args[1] == "mount" { // NOTE: hidden subcommand for now
+        sys::fs::mount_mem();
+        usr::shell::ExitCode::CommandSuccessful
+    } else {
+        usr::shell::ExitCode::CommandError
+    }
+}
+
+fn usage() -> usr::shell::ExitCode {
     let size = sys::allocator::memory_size();
     let used = sys::allocator::memory_used();
     let free = size - used;

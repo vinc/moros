@@ -87,6 +87,16 @@ pub fn is_mounted() -> bool {
     BLOCK_DEVICE.lock().is_some()
 }
 
+pub fn mount_mem() {
+    let len = sys::allocator::HEAP_SIZE / 2 / 512;
+    // FIXME: `len` should be equal to `super::DISK_SIZE` which is set during
+    // compilation for now. But that's not the case because the allocator is
+    // too slow to allocate more than a few megabytes of memory. So we take
+    // half of the heap and will panic when this get full.
+    let dev = MemBlockDevice::new(len);
+    *BLOCK_DEVICE.lock() = Some(BlockDevice::Mem(dev));
+}
+
 pub fn mount_ata(bus: u8, dsk: u8) {
     let dev = AtaBlockDevice::new(bus, dsk);
     *BLOCK_DEVICE.lock() = Some(BlockDevice::Ata(dev));
@@ -94,15 +104,21 @@ pub fn mount_ata(bus: u8, dsk: u8) {
 
 // NOTE: format_ata will also call mount_ata to bootstrap the root dir
 pub fn format_ata(bus: u8, dsk: u8) {
+    let mut dev = AtaBlockDevice::new(bus, dsk);
+
     // Write superblock
     let mut buf = MAGIC.as_bytes().to_vec();
     buf.resize(super::BLOCK_SIZE, 0);
-    let mut dev = AtaBlockDevice::new(bus, dsk);
     dev.write(super::SUPERBLOCK_ADDR, &buf);
 
-    mount_ata(bus, dsk);
+    // Write zeros into block bitmaps
+    let buf = vec![0; super::BLOCK_SIZE];
+    for addr in super::BITMAP_ADDR..super::DATA_ADDR {
+        dev.write(addr, &buf);
+    }
 
     // Allocate root dir
+    mount_ata(bus, dsk);
     let root = Dir::root();
     BlockBitmap::alloc(root.addr());
 }
