@@ -15,9 +15,9 @@ dependencies = [
 
 [[package]]
 name = "aml"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9c0fc7046d5c7e548f9e3ef6f27ba6643126c040f199125b80e0a20ff028f11"
+checksum = "ac69511c8b52a6a5d63fb425289455f82678da03237a3ffce640fc9167d8fea3"
 dependencies = [
  "bit_field 0.10.1",
  "byteorder",
