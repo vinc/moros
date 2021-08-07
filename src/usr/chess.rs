@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use littlewing::game::Game;
 use littlewing::fen::FEN;
 use littlewing::search::Search;
-use littlewing::piece_move_generator::PieceMoveGenerator;
+use littlewing::piece_move_generator::{PieceMoveGenerator, PieceMoveGeneratorExt};
 use littlewing::piece_move_notation::PieceMoveNotation;
 
 use littlewing::clock::Clock;
@@ -22,7 +22,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     println!("MOROS Chess v0.1.0\n");
 
     let csi_color = Style::color("Cyan");
-    //let csi_error = Style::color("Red");
+    let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -47,19 +47,31 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 break
             },
             "move" => {
-                if args.len() > 1 {
-                    let m = game.move_from_lan(args[1]);
+                if args.len() < 2 {
+                    println!("{}Error:{} no <move> given\n", csi_error, csi_reset);
+                    continue;
+                }
+                if !is_move(args[1]) {
+                    println!("{}Error:{} invalid move '{}'\n", csi_error, csi_reset, args[1]);
+                    continue;
+                }
+                let m = game.move_from_lan(args[1]);
+                if !game.is_legal_move(m) {
+                    println!("{}Error:{} illegal move '{}'\n", csi_error, csi_reset, args[1]);
+                    continue;
+                }
+
+                game.make_move(m);
+                game.history.push(m);
+
+                let r = game.search(1..99);
+                if let Some(m) = r {
+                    println!();
+                    println!("{}<{} move {}", csi_color, csi_reset, m.to_lan());
                     game.make_move(m);
                     game.history.push(m);
-
-                    let r = game.search(1..99);
-                    if let Some(m) = r {
-                        println!("{}<{} move {}", csi_color, csi_reset, m.to_lan());
-                        game.make_move(m);
-                        game.history.push(m);
-                        println!();
-                        println!("{}", game);
-                    }
+                    println!();
+                    println!("{}", game);
                 }
             },
             _ => {
@@ -68,4 +80,31 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         }
     }
     usr::shell::ExitCode::CommandSuccessful
+}
+
+fn is_move(m: &str) -> bool {
+    let m = m.as_bytes();
+    let n = m.len();
+    if n < 3 || 5 < n {
+        return false;
+    }
+    if m[0] < b'a' || b'h' < m[0] {
+        return false;
+    }
+    if m[2] < b'a' || b'h' < m[2] {
+        return false;
+    }
+    if m[1] < b'1' || b'8' < m[1] {
+        return false;
+    }
+    if m[3] < b'1' || b'8' < m[3] {
+        return false;
+    }
+    if n == 4 {
+        return true;
+    }
+    if m[4] == b'b' || m[4] == b'n' || m[4] == b'r' || m[4] == b'q' {
+        return true;
+    }
+    false
 }
