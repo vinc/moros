@@ -1,11 +1,8 @@
 [bits 64]
-
-; Send 0 to the TEST syscall, add 1 to what we received, sleep 1s, and repeat
-
 start:
   mov rbx, 0x0
 send:
-  mov rax, 0x3 ; test syscall
+  mov rax, 0x3
   mov rdi, rbx
   mov rsi, 0x0
   mov rdx, 0x0
