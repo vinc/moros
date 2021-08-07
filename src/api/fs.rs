@@ -1,5 +1,7 @@
 use crate::sys;
 use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
     match sys::process::env("HOME") {
@@ -24,6 +26,23 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
     match sys::fs::File::open(&path) {
         Some(mut file) => {
             Ok(file.read_to_string())
+        },
+        None => {
+            Err(())
+        }
+    }
+}
+
+pub fn read(path: &str) -> Result<Vec<u8>, ()> {
+    let path = match canonicalize(path) {
+        Ok(path) => path,
+        Err(_) => return Err(()),
+    };
+    match sys::fs::File::open(&path) {
+        Some(mut file) => {
+            let mut buf = vec![0; file.size()];
+            file.read(&mut buf);
+            Ok(buf)
         },
         None => {
             Err(())
