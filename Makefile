@@ -13,8 +13,10 @@ output = video
 keyboard = qwerty
 nic = rtl8139
 
-bin=target/x86_64-moros/release/bootimage-moros.bin
-img=disk.img
+export MOROS_KEYBOARD = $(keyboard)
+
+bin = target/x86_64-moros/release/bootimage-moros.bin
+img = disk.img
 
 $(img):
 	qemu-img create $(img) 32M
@@ -22,7 +24,8 @@ $(img):
 # Rebuild MOROS if the features list changed
 image: $(img)
 	touch src/lib.rs
-	cargo bootimage --no-default-features --features $(output),$(keyboard),$(nic) --release
+	env | grep MOROS
+	cargo bootimage --no-default-features --features $(output),$(nic) --release
 	dd conv=notrunc if=$(bin) of=$(img)
 
 opts = -m 32 -cpu max -nic model=$(nic) -hda $(img)
@@ -34,7 +37,7 @@ qemu:
 	qemu-system-x86_64 $(opts)
 
 test:
-	cargo test --lib --no-default-features --features serial,$(keyboard),$(nic) -- \
+	cargo test --lib --no-default-features --features serial,$(nic) -- \
 		-m 32 -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
 
 clean:
