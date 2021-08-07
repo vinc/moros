@@ -11,7 +11,7 @@ use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, S
 use x86_64::VirtAddr;
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 1 << 20; // 1 MB
+pub const HEAP_SIZE: usize = 8 << 20; // MB
 
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
@@ -25,9 +25,9 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
         Page::range_inclusive(heap_start_page, heap_end_page)
     };
 
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
     for page in page_range {
         let frame = frame_allocator.allocate_frame().ok_or(MapToError::FrameAllocationFailed)?;
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
         unsafe {
             mapper.map_to(page, frame, flags, frame_allocator)?.flush();
         }
@@ -105,15 +105,15 @@ impl core::ops::DerefMut for PhysBuf {
     }
 }
 
-pub fn size() -> usize {
+pub fn memory_size() -> usize {
     ALLOCATOR.lock().size()
 }
 
-pub fn used() -> usize {
+pub fn memory_used() -> usize {
     ALLOCATOR.lock().used()
 }
 
-pub fn free() -> usize {
+pub fn memory_free() -> usize {
     ALLOCATOR.lock().free()
 }
 
