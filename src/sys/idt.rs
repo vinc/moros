@@ -199,7 +199,6 @@ extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs:
     let arg1 = regs.rdi;
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
-    printk!("DEBUG: syscall({}, {}, {}, {})\n", n, arg1, arg2, arg3);
     regs.rax = sys::syscall::dispatcher(n, arg1, arg2, arg3);
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }

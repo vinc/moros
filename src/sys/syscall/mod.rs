@@ -7,18 +7,18 @@ pub mod service;
 
 pub fn dispatcher(n: usize, arg1: usize, _arg2: usize, _arg3: usize) -> usize {
     match n {
-        number::SLEEP => {
-            // sleep(f64)
+        number::SLEEP => { // sleep(f64)
             service::sleep(f64::from_bits(arg1 as u64));
             0
         }
-        number::UPTIME => {
-            // uptime() -> f64
+        number::UPTIME => { // uptime() -> f64
             service::uptime().to_bits() as usize
         }
-        number::REALTIME => {
-            // realtime() -> f64
+        number::REALTIME => { // realtime() -> f64
             service::realtime().to_bits() as usize
+        }
+        number::TEST => { // test(usize) -> usize
+            service::test(arg1)
         }
         _ => {
             unimplemented!();

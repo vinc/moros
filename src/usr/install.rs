@@ -38,6 +38,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         create_dir("/usr"); // User directories
         create_dir("/var"); // Variables
 
+        copy_file("/bin/test", include_bytes!("../../dsk/bin/test"));
         copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"));
         copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"));
         copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));

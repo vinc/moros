@@ -114,8 +114,8 @@ impl Process {
         Process { stack_addr, code_addr }
     }
 
+    // Switch to userspace
     pub fn switch(&self) {
-        println!("DEBUG: switching to userspace");
         let data = GDT.1.user_data.0;
         let code = GDT.1.user_code.0;
         unsafe {
