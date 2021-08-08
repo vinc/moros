@@ -3,6 +3,7 @@ use crate::api::console::Style;
 use crate::api::prompt::Prompt;
 
 use alloc::format;
+use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
@@ -11,8 +12,41 @@ use littlewing::fen::FEN;
 use littlewing::search::Search;
 use littlewing::piece_move_generator::{PieceMoveGenerator, PieceMoveGeneratorExt};
 use littlewing::piece_move_notation::PieceMoveNotation;
-
 use littlewing::clock::Clock;
+
+use lazy_static::lazy_static;
+use spin::Mutex;
+
+lazy_static! {
+    static ref MOVES: Mutex<Vec<String>> = Mutex::new(Vec::new());
+}
+
+const COMMANDS: [&str; 2] = ["exit", "move"];
+
+fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
+    *MOVES.lock() = game.get_moves().into_iter().map(|m| m.to_lan()).collect();
+
+    fn chess_completer(line: &str) -> Vec<String> {
+        let mut entries = Vec::new();
+        let args: Vec<&str> = line.split(' ').collect();
+        let i = args.len() - 1;
+        if i == 0 { // Autocomplete command
+            for &cmd in &COMMANDS {
+                if let Some(entry) = cmd.strip_prefix(args[i]) {
+                    entries.push(entry.into());
+                }
+            }
+        } else if i == 1 && args[0] == "move" { // Autocomplete moves
+            for m in &*MOVES.lock() {
+                if let Some(entry) = m.strip_prefix(args[1]) {
+                    entries.push(entry.into());
+                }
+            }
+        }
+        entries
+    }
+    prompt.completion.set(&chess_completer);
+}
 
 fn system_time() -> u128 {
     (api::syscall::realtime() * 1000.0) as u128
@@ -40,6 +74,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     game.load_fen(fen).unwrap();
     println!("{}", game);
 
+    update_autocomplete(&mut prompt, &mut game);
     while let Some(cmd) = prompt.input(&prompt_string) {
         let args: Vec<&str> = cmd.trim().split(' ').collect();
         match args[0] {
@@ -78,6 +113,9 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 println!();
             }
         }
+        prompt.history.add(&cmd);
+        prompt.history.save(history_file);
+        update_autocomplete(&mut prompt, &mut game);
     }
     usr::shell::ExitCode::CommandSuccessful
 }
