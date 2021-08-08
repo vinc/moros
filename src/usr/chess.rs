@@ -1,4 +1,4 @@
-use crate::{api, usr};
+use crate::{api, usr, sys};
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
 
@@ -80,6 +80,32 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         match args[0] {
             "exit" => {
                 break
+            },
+            "perft" => {
+                let mut depth = if args.len() > 1 {
+                    if let Ok(d) = args[1].parse() {
+                        d
+                    } else {
+                        println!("{}Error:{} invalid depth '{}'\n", csi_error, csi_reset, args[1]);
+                        continue;
+                    }
+                } else {
+                    1
+                };
+
+                loop {
+                    let started_at = (game.clock.system_time)();
+                    let n = game.perft(depth);
+                    let s = (((game.clock.system_time)() - started_at) as f64) / 1000.0;
+                    let nps = (n as f64) / s;
+                    println!("perft {} -> {} ({:.2} s, {:.2e} nps)", depth, n, s, nps);
+
+                    if args.len() > 1 || sys::console::end_of_text() {
+                        break;
+                    } else {
+                        depth += 1;
+                    }
+                }
             },
             "move" => {
                 if args.len() < 2 {
