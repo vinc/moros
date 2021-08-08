@@ -21,7 +21,7 @@ lazy_static! {
     static ref MOVES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
-const COMMANDS: [&str; 2] = ["exit", "move"];
+const COMMANDS: [&str; 5] = ["exit", "move", "perft", "time", "undo"];
 
 fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
     *MOVES.lock() = game.get_moves().into_iter().map(|m| m.to_lan()).collect();
@@ -133,6 +133,34 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                     game.history.push(m);
                     println!();
                     println!("{}", game);
+                }
+            },
+            "undo" => {
+                if game.history.len() > 0 {
+                    if let Some(m) = game.history.pop() {
+                        game.undo_move(m);
+                    }
+                }
+                println!();
+                println!("{}", game);
+            },
+            "time" => {
+                match args.len() {
+                    1 => {
+                        println!("{}Error:{} no <moves> and <time> given\n", csi_error, csi_reset);
+                        continue;
+                    },
+                    2 => {
+                        println!("{}Error:{} no <time> given\n", csi_error, csi_reset);
+                        continue;
+                    },
+                    _ => {},
+                }
+                if let Ok(moves) = args[1].parse::<u16>() {
+                    if let Ok(time) = args[2].parse::<f64>() {
+                        game.clock = Clock::new(moves, (time * 1000.0) as u64);
+                        game.clock.system_time = Arc::new(system_time);
+                    }
                 }
             },
             _ => {
