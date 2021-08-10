@@ -23,6 +23,7 @@ lazy_static! {
     static ref MOVES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
+const FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const COMMANDS: [&str; 5] = ["exit", "move", "perft", "time", "undo"];
 
 fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
@@ -54,151 +55,171 @@ fn system_time() -> u128 {
     (api::syscall::realtime() * 1000.0) as u128
 }
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
-    println!("MOROS Chess v0.1.0\n");
+struct Chess {
+    game: Game,
+    csi_color: Style,
+    csi_error: Style,
+    csi_notif: Style,
+    csi_reset: Style,
+}
 
-    let csi_color = Style::color("Cyan");
-    let csi_error = Style::color("LightRed");
-    let csi_notif = Style::color("Yellow");
-    let csi_reset = Style::reset();
-    let prompt_string = format!("{}>{} ", csi_color, csi_reset);
+impl Chess {
+    fn new() -> Self {
+        Self {
+            game: Game::new(),
+            csi_color: Style::color("Cyan"),
+            csi_error: Style::color("LightRed"),
+            csi_notif: Style::color("Yellow"),
+            csi_reset: Style::reset(),
+        }
+    }
 
-    let mut prompt = Prompt::new();
-    let history_file = "~/.chess-history";
-    prompt.history.load(history_file);
+    fn play(&mut self) {
+        println!("MOROS Chess v0.1.0\n");
+        let prompt_string = format!("{}>{} ", self.csi_color, self.csi_reset);
 
-    let mut game = Game::new();
-    game.show_coordinates = true;
-    game.clock = Clock::new(40, 5 * 60 * 1000); // 40 moves in 5 minutes
-    game.clock.system_time = Arc::new(system_time);
-    let size = 1 << 20; // MB
-    game.tt_resize(size);
-    let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    game.load_fen(fen).unwrap();
-    println!("{}", game);
+        let mut prompt = Prompt::new();
+        let history_file = "~/.chess-history";
+        prompt.history.load(history_file);
 
-    update_autocomplete(&mut prompt, &mut game);
-    while let Some(cmd) = prompt.input(&prompt_string) {
-        let args: Vec<&str> = cmd.trim().split(' ').collect();
-        match args[0] {
-            "exit" => {
-                break
-            },
-            "init" => {
-                game.clear();
-                game.load_fen(fen).unwrap();
-                println!("{}", game);
-            },
-            "time" => {
-                match args.len() {
-                    1 => {
-                        println!("{}Error:{} no <moves> and <time> given\n", csi_error, csi_reset);
-                        continue;
-                    },
-                    2 => {
-                        println!("{}Error:{} no <time> given\n", csi_error, csi_reset);
-                        continue;
-                    },
-                    _ => {},
-                }
-                if let Ok(moves) = args[1].parse::<u16>() {
-                    if let Ok(time) = args[2].parse::<f64>() {
-                        game.clock = Clock::new(moves, (time * 1000.0) as u64);
-                        game.clock.system_time = Arc::new(system_time);
-                    }
-                }
-            },
-            "move" => {
-                if args.len() < 2 {
-                    println!("{}Error:{} no <move> given\n", csi_error, csi_reset);
-                    continue;
-                }
-                if !is_move(args[1]) {
-                    println!("{}Error:{} invalid move '{}'\n", csi_error, csi_reset, args[1]);
-                    continue;
-                }
-                let m = game.move_from_lan(args[1]);
-                if !game.is_parsed_move_legal(m) {
-                    println!("{}Error:{} illegal move '{}'\n", csi_error, csi_reset, args[1]);
-                    continue;
-                }
+        self.game.show_coordinates = true;
+        self.game.clock = Clock::new(40, 5 * 60 * 1000); // 40 moves in 5 minutes
+        self.game.clock.system_time = Arc::new(system_time);
+        let size = 1 << 20; // MB
+        self.game.tt_resize(size);
+        self.game.load_fen(FEN).unwrap();
+        println!("{}", self.game);
 
-                print!("\x1b[?25l"); // Disable cursor
-                game.make_move(m);
-                game.history.push(m);
-                println!();
-                println!("{}", game);
-                let time = (game.clock.allocated_time() as f64) / 1000.0;
-                print!("{}<{} wait {:.2} seconds{}", csi_color, csi_notif, time, csi_reset);
-                let r = game.search(1..99);
-                print!("\x1b[2K\x1b[1G");
-                if let Some(m) = r {
-                    println!("{}<{} move {}", csi_color, csi_reset, m.to_lan());
-                    println!();
-                    game.make_move(m);
-                    game.history.push(m);
-                    println!("{}", game);
-                }
-                if game.is_mate() {
-                    if game.is_check(color::WHITE) {
-                        println!("{}<{} black mates", csi_color, csi_reset);
-                    } else if game.is_check(color::BLACK) {
-                        println!("{}<{} white mates", csi_color, csi_reset);
+        update_autocomplete(&mut prompt, &mut self.game);
+        while let Some(cmd) = prompt.input(&prompt_string) {
+            let args: Vec<&str> = cmd.trim().split(' ').collect();
+            match args[0] {
+                "exit" => break,
+                "init" => self.cmd_init(args),
+                "time" => self.cmd_time(args),
+                "move" => self.cmd_move(args),
+                "undo" => self.cmd_undo(args),
+                "perf" => self.cmd_perf(args),
+                cmd => {
+                    if cmd.is_empty() {
+                        println!();
                     } else {
-                        println!("{}<{} draw", csi_color, csi_reset);
+                        println!("{}Error:{} unknown command '{}'\n", self.csi_error, self.csi_reset, cmd);
                     }
-                    println!();
-                }
-                print!("\x1b[?25h"); // Enable cursor
-            },
-            "undo" => {
-                if game.history.len() > 0 {
-                    if let Some(m) = game.history.pop() {
-                        game.undo_move(m);
-                    }
-                }
-                println!();
-                println!("{}", game);
-            },
-            "perf" | "perft" => {
-                let mut depth = if args.len() > 1 {
-                    if let Ok(d) = args[1].parse() {
-                        d
-                    } else {
-                        println!("{}Error:{} invalid depth '{}'\n", csi_error, csi_reset, args[1]);
-                        continue;
-                    }
-                } else {
-                    1
-                };
-
-                loop {
-                    let started_at = (game.clock.system_time)();
-                    let n = game.perft(depth);
-                    let s = (((game.clock.system_time)() - started_at) as f64) / 1000.0;
-                    let nps = (n as f64) / s;
-                    println!("perft {} -> {} ({:.2} s, {:.2e} nps)", depth, n, s, nps);
-
-                    if args.len() > 1 || sys::console::end_of_text() {
-                        break;
-                    } else {
-                        depth += 1;
-                    }
-                }
-            },
-            cmd => {
-                if cmd.is_empty() {
-                    println!();
-                } else {
-                    println!("{}Error:{} unknown command '{}'\n", csi_error, csi_reset, cmd);
                 }
             }
+            prompt.history.add(&cmd);
+            prompt.history.save(history_file);
+            update_autocomplete(&mut prompt, &mut self.game);
         }
-        prompt.history.add(&cmd);
-        prompt.history.save(history_file);
-        update_autocomplete(&mut prompt, &mut game);
     }
-    usr::shell::ExitCode::CommandSuccessful
+
+    fn cmd_init(&mut self, _args: Vec<&str>) {
+        self.game.clear();
+        self.game.load_fen(FEN).unwrap();
+        println!("{}", self.game);
+    }
+
+    fn cmd_time(&mut self, args: Vec<&str>) {
+        match args.len() {
+            1 => {
+                println!("{}Error:{} no <moves> and <time> given\n", self.csi_error, self.csi_reset);
+                return;
+            },
+            2 => {
+                println!("{}Error:{} no <time> given\n", self.csi_error, self.csi_reset);
+                return;
+            },
+            _ => {},
+        }
+        if let Ok(moves) = args[1].parse::<u16>() {
+            if let Ok(time) = args[2].parse::<f64>() {
+                self.game.clock = Clock::new(moves, (time * 1000.0) as u64);
+                self.game.clock.system_time = Arc::new(system_time);
+            }
+        }
+    }
+
+    fn cmd_move(&mut self, args: Vec<&str>) {
+        if args.len() < 2 {
+            println!("{}Error:{} no <move> given\n", self.csi_error, self.csi_reset);
+            return;
+        }
+        if !is_move(args[1]) {
+            println!("{}Error:{} invalid move '{}'\n", self.csi_error, self.csi_reset, args[1]);
+            return;
+        }
+        let m = self.game.move_from_lan(args[1]);
+        if !self.game.is_parsed_move_legal(m) {
+            println!("{}Error:{} illegal move '{}'\n", self.csi_error, self.csi_reset, args[1]);
+            return;
+        }
+
+        print!("\x1b[?25l"); // Disable cursor
+        self.game.make_move(m);
+        self.game.history.push(m);
+        println!();
+        println!("{}", self.game);
+        let time = (self.game.clock.allocated_time() as f64) / 1000.0;
+        print!("{}<{} wait {:.2} seconds{}", self.csi_color, self.csi_notif, time, self.csi_reset);
+        let r = self.game.search(1..99);
+        print!("\x1b[2K\x1b[1G");
+        if let Some(m) = r {
+            println!("{}<{} move {}", self.csi_color, self.csi_reset, m.to_lan());
+            println!();
+            self.game.make_move(m);
+            self.game.history.push(m);
+            println!("{}", self.game);
+        }
+        if self.game.is_mate() {
+            if self.game.is_check(color::WHITE) {
+                println!("{}<{} black mates", self.csi_color, self.csi_reset);
+            } else if self.game.is_check(color::BLACK) {
+                println!("{}<{} white mates", self.csi_color, self.csi_reset);
+            } else {
+                println!("{}<{} draw", self.csi_color, self.csi_reset);
+            }
+            println!();
+        }
+        print!("\x1b[?25h"); // Enable cursor
+    }
+
+    fn cmd_undo(&mut self, _args: Vec<&str>) {
+        if self.game.history.len() > 0 {
+            if let Some(m) = self.game.history.pop() {
+                self.game.undo_move(m);
+            }
+        }
+        println!();
+        println!("{}", self.game);
+    }
+
+    fn cmd_perf(&mut self, args: Vec<&str>) {
+        let mut depth = if args.len() > 1 {
+            if let Ok(d) = args[1].parse() {
+                d
+            } else {
+                println!("{}Error:{} invalid depth '{}'\n", self.csi_error, self.csi_reset, args[1]);
+                return;
+            }
+        } else {
+            1
+        };
+
+        loop {
+            let started_at = (self.game.clock.system_time)();
+            let n = self.game.perft(depth);
+            let s = (((self.game.clock.system_time)() - started_at) as f64) / 1000.0;
+            let nps = (n as f64) / s;
+            println!("perft {} -> {} ({:.2} s, {:.2e} nps)", depth, n, s, nps);
+
+            if args.len() > 1 || sys::console::end_of_text() {
+                break;
+            } else {
+                depth += 1;
+            }
+        }
+    }
 }
 
 fn is_move(m: &str) -> bool {
@@ -226,4 +247,10 @@ fn is_move(m: &str) -> bool {
         return true;
     }
     false
+}
+
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+    let mut chess = Chess::new();
+    chess.play();
+    usr::shell::ExitCode::CommandSuccessful
 }
