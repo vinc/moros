@@ -7,10 +7,12 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
+use littlewing::attack::Attack;
+use littlewing::color;
 use littlewing::game::Game;
 use littlewing::fen::FEN;
 use littlewing::search::Search;
-use littlewing::piece_move_generator::{PieceMoveGenerator, PieceMoveGeneratorExt};
+use littlewing::piece_move_generator::PieceMoveGenerator;
 use littlewing::piece_move_notation::PieceMoveNotation;
 use littlewing::clock::Clock;
 
@@ -82,7 +84,83 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             "exit" => {
                 break
             },
-            "perft" => {
+            "init" => {
+                game.clear();
+                game.load_fen(fen).unwrap();
+                println!("{}", game);
+            },
+            "time" => {
+                match args.len() {
+                    1 => {
+                        println!("{}Error:{} no <moves> and <time> given\n", csi_error, csi_reset);
+                        continue;
+                    },
+                    2 => {
+                        println!("{}Error:{} no <time> given\n", csi_error, csi_reset);
+                        continue;
+                    },
+                    _ => {},
+                }
+                if let Ok(moves) = args[1].parse::<u16>() {
+                    if let Ok(time) = args[2].parse::<f64>() {
+                        game.clock = Clock::new(moves, (time * 1000.0) as u64);
+                        game.clock.system_time = Arc::new(system_time);
+                    }
+                }
+            },
+            "move" => {
+                if args.len() < 2 {
+                    println!("{}Error:{} no <move> given\n", csi_error, csi_reset);
+                    continue;
+                }
+                if !is_move(args[1]) {
+                    println!("{}Error:{} invalid move '{}'\n", csi_error, csi_reset, args[1]);
+                    continue;
+                }
+                let m = game.move_from_lan(args[1]);
+                if !game.is_parsed_move_legal(m) {
+                    println!("{}Error:{} illegal move '{}'\n", csi_error, csi_reset, args[1]);
+                    continue;
+                }
+
+                print!("\x1b[?25l"); // Disable cursor
+                game.make_move(m);
+                game.history.push(m);
+                println!();
+                println!("{}", game);
+                let time = (game.clock.allocated_time() as f64) / 1000.0;
+                print!("{}<{} wait {:.2} seconds{}", csi_color, csi_notif, time, csi_reset);
+                let r = game.search(1..99);
+                print!("\x1b[2K\x1b[1G");
+                if let Some(m) = r {
+                    println!("{}<{} move {}", csi_color, csi_reset, m.to_lan());
+                    println!();
+                    game.make_move(m);
+                    game.history.push(m);
+                    println!("{}", game);
+                }
+                if game.is_mate() {
+                    if game.is_check(color::WHITE) {
+                        println!("{}<{} black mates", csi_color, csi_reset);
+                    } else if game.is_check(color::BLACK) {
+                        println!("{}<{} white mates", csi_color, csi_reset);
+                    } else {
+                        println!("{}<{} draw", csi_color, csi_reset);
+                    }
+                    println!();
+                }
+                print!("\x1b[?25h"); // Enable cursor
+            },
+            "undo" => {
+                if game.history.len() > 0 {
+                    if let Some(m) = game.history.pop() {
+                        game.undo_move(m);
+                    }
+                }
+                println!();
+                println!("{}", game);
+            },
+            "perf" | "perft" => {
                 let mut depth = if args.len() > 1 {
                     if let Ok(d) = args[1].parse() {
                         d
@@ -108,69 +186,10 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                     }
                 }
             },
-            "move" => {
-                if args.len() < 2 {
-                    println!("{}Error:{} no <move> given\n", csi_error, csi_reset);
-                    continue;
-                }
-                if !is_move(args[1]) {
-                    println!("{}Error:{} invalid move '{}'\n", csi_error, csi_reset, args[1]);
-                    continue;
-                }
-                let m = game.move_from_lan(args[1]);
-                if !game.is_legal_move(m) {
-                    println!("{}Error:{} illegal move '{}'\n", csi_error, csi_reset, args[1]);
-                    continue;
-                }
-
-                print!("\x1b[?25l"); // Disable cursor
-                game.make_move(m);
-                game.history.push(m);
-                println!();
-                println!("{}", game);
-                let time = (game.clock.allocated_time() as f64) / 1000.0;
-                print!("{}<{} wait {:.2} seconds{}", csi_color, csi_notif, time, csi_reset);
-                let r = game.search(1..99);
-                print!("\x1b[2K\x1b[1G");
-                if let Some(m) = r {
-                    println!("{}<{} move {}", csi_color, csi_reset, m.to_lan());
-                    println!();
-                    game.make_move(m);
-                    game.history.push(m);
-                    println!("{}", game);
-                }
-                print!("\x1b[?25h"); // Enable cursor
-            },
-            "undo" => {
-                if game.history.len() > 0 {
-                    if let Some(m) = game.history.pop() {
-                        game.undo_move(m);
-                    }
-                }
-                println!();
-                println!("{}", game);
-            },
-            "time" => {
-                match args.len() {
-                    1 => {
-                        println!("{}Error:{} no <moves> and <time> given\n", csi_error, csi_reset);
-                        continue;
-                    },
-                    2 => {
-                        println!("{}Error:{} no <time> given\n", csi_error, csi_reset);
-                        continue;
-                    },
-                    _ => {},
-                }
-                if let Ok(moves) = args[1].parse::<u16>() {
-                    if let Ok(time) = args[2].parse::<f64>() {
-                        game.clock = Clock::new(moves, (time * 1000.0) as u64);
-                        game.clock.system_time = Arc::new(system_time);
-                    }
-                }
-            },
             cmd => {
-                if cmd.len() > 0 {
+                if cmd.is_empty() {
+                    println!();
+                } else {
                     println!("{}Error:{} unknown command '{}'\n", csi_error, csi_reset, cmd);
                 }
             }
