@@ -56,7 +56,8 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     println!("MOROS Chess v0.1.0\n");
 
     let csi_color = Style::color("Cyan");
-    let csi_error = Style::color("Red");
+    let csi_error = Style::color("LightRed");
+    let csi_notif = Style::color("Yellow");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -122,18 +123,23 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                     continue;
                 }
 
+                print!("\x1b[?25l"); // Disable cursor
                 game.make_move(m);
                 game.history.push(m);
-
+                println!();
+                println!("{}", game);
+                let time = (game.clock.allocated_time() as f64) / 1000.0;
+                print!("{}<{} wait {:.2} seconds{}", csi_color, csi_notif, time, csi_reset);
                 let r = game.search(1..99);
+                print!("\x1b[2K\x1b[1G");
                 if let Some(m) = r {
-                    println!();
                     println!("{}<{} move {}", csi_color, csi_reset, m.to_lan());
+                    println!();
                     game.make_move(m);
                     game.history.push(m);
-                    println!();
                     println!("{}", game);
                 }
+                print!("\x1b[?25h"); // Enable cursor
             },
             "undo" => {
                 if game.history.len() > 0 {
@@ -163,8 +169,10 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                     }
                 }
             },
-            _ => {
-                println!();
+            cmd => {
+                if cmd.len() > 0 {
+                    println!("{}Error:{} unknown command '{}'\n", csi_error, csi_reset, cmd);
+                }
             }
         }
         prompt.history.add(&cmd);
