@@ -16,7 +16,7 @@ lazy_static! {
 }
 
 const FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const COMMANDS: [&str; 5] = ["exit", "move", "perft", "time", "undo"];
+const COMMANDS: [&str; 8] = ["quit", "help", "init", "time", "move", "undo", "show", "perf"];
 
 fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
     *MOVES.lock() = game.get_moves().into_iter().map(|m| m.to_lan()).collect();
@@ -31,7 +31,7 @@ fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
                     entries.push(entry.into());
                 }
             }
-        } else if i == 1 && args[0] == "move" { // Autocomplete moves
+        } else if i == 1 && (args[0] == "move" || args[0] == "m") { // Autocomplete moves
             for m in &*MOVES.lock() {
                 if let Some(entry) = m.strip_prefix(args[1]) {
                     entries.push(entry.into());
@@ -86,13 +86,14 @@ impl Chess {
         while let Some(cmd) = prompt.input(&prompt_string) {
             let args: Vec<&str> = cmd.trim().split(' ').collect();
             match args[0] {
-                "exit" => break,
-                "init" => self.cmd_init(args),
-                "time" => self.cmd_time(args),
-                "move" => self.cmd_move(args),
-                "undo" => self.cmd_undo(args),
-                "show" => self.cmd_show(args),
-                "perf" => self.cmd_perf(args),
+                "q" | "quit" | "exit" => break,
+                "h" | "help" => self.cmd_help(args),
+                "i" | "init" => self.cmd_init(args),
+                "t" | "time" => self.cmd_time(args),
+                "m" | "move" => self.cmd_move(args),
+                "u" | "undo" => self.cmd_undo(args),
+                "s" | "show" => self.cmd_show(args),
+                "p" | "perf" => self.cmd_perf(args),
                 cmd => {
                     if cmd.is_empty() {
                         println!();
@@ -105,6 +106,27 @@ impl Chess {
             prompt.history.save(history_file);
             update_autocomplete(&mut prompt, &mut self.game);
         }
+    }
+
+    fn cmd_help(&mut self, _args: Vec<&str>) {
+        println!("{}Commands:{}", self.csi_notif, self.csi_reset);
+        println!();
+        let cmds = [
+            ("q", "uit",                "Exit this program\n"),
+            ("h", "elp",                "Display this screen\n"),
+            ("i", "nit",                "Initialize a new game\n"),
+            ("t", "ime <moves> <time>", "Set clock to <moves> in <time> (in seconds)\n"),
+            ("m", "ove <move>",         "Play <move> on the board\n"),
+            ("u", "ndo",                "Undo the last move\n"),
+            ("s", "how <attr>",         "Show <attr>\n"),
+            ("p", "erf [<dept>]",       "Count the nodes at each depth\n"),
+        ];
+        for (alias, command, usage) in &cmds {
+            let csi_col1 = Style::color("LightGreen");
+            let csi_col2 = Style::color("LightCyan");
+            print!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, self.csi_reset, usage);
+        }
+        println!();
     }
 
     fn cmd_init(&mut self, _args: Vec<&str>) {
