@@ -1,4 +1,5 @@
-use crate::{sys, usr};
+use crate::usr;
+use crate::api::fs;
 use crate::api::console::Style;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
@@ -8,9 +9,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let pathname = args[1];
 
-    if let Some(mut file) = sys::fs::File::open(pathname) { // TODO: Use new api::fs::read(path) -> Result<Vec<u8>, ()>
-        let contents = file.read_to_string();
-        print_hex(contents.as_bytes());
+    if let Ok(buf) = fs::read(pathname) {
+        print_hex(&buf);
         usr::shell::ExitCode::CommandSuccessful
     } else {
         println!("File not found '{}'", pathname);
