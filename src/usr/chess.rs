@@ -91,6 +91,7 @@ impl Chess {
                 "time" => self.cmd_time(args),
                 "move" => self.cmd_move(args),
                 "undo" => self.cmd_undo(args),
+                "show" => self.cmd_show(args),
                 "perf" => self.cmd_perf(args),
                 cmd => {
                     if cmd.is_empty() {
@@ -109,7 +110,25 @@ impl Chess {
     fn cmd_init(&mut self, _args: Vec<&str>) {
         self.game.clear();
         self.game.load_fen(FEN).unwrap();
+        println!();
         println!("{}", self.game);
+    }
+
+    fn cmd_show(&mut self, args: Vec<&str>) {
+        if args.len() == 1 {
+            println!("{}Error:{} no <attr> given\n", self.csi_error, self.csi_reset);
+            return;
+        }
+        match args[1] {
+            "board" => {
+                println!();
+                println!("{}", self.game);
+            },
+            attr => {
+                println!("{}Error:{} unknown '{}' attribute\n", self.csi_error, self.csi_reset, attr);
+                return;
+            }
+        }
     }
 
     fn cmd_time(&mut self, args: Vec<&str>) {
