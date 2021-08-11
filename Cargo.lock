@@ -189,7 +189,7 @@ dependencies = [
 [[package]]
 name = "littlewing"
 version = "0.6.0"
-source = "git+https://github.com/vinc/littlewing?branch=feature/add-no-std-support#98735cb7fb12121a50d18ee2239fe3e362847a72"
+source = "git+https://github.com/vinc/littlewing?branch=feature/add-no-std-support#87878a1702b051c7db32b81f07724c6fa5b79409"
 dependencies = [
  "lazy_static",
  "no-std-compat",
