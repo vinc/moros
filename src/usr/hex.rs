@@ -8,7 +8,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let pathname = args[1];
 
-    if let Some(mut file) = sys::fs::File::open(pathname) {
+    if let Some(mut file) = sys::fs::File::open(pathname) { // TODO: Use new api::fs::read(path) -> Result<Vec<u8>, ()>
         let contents = file.read_to_string();
         print_hex(contents.as_bytes());
         usr::shell::ExitCode::CommandSuccessful

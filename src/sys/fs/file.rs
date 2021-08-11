@@ -3,7 +3,7 @@ use super::dir::Dir;
 use super::block::Block;
 use super::dir_entry::DirEntry;
 
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use core::convert::From;
 
@@ -120,7 +120,7 @@ impl File {
         let mut buf = vec![0; self.size()];
         let bytes = self.read(&mut buf);
         buf.resize(bytes, 0);
-        String::from_utf8(buf).unwrap()
+        String::from_utf8_lossy(&buf).to_string()
     }
 
     pub fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
