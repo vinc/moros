@@ -7,15 +7,7 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
-use littlewing::attack::Attack;
-use littlewing::color;
-use littlewing::game::Game;
-use littlewing::fen::FEN;
-use littlewing::search::Search;
-use littlewing::piece_move_generator::PieceMoveGenerator;
-use littlewing::piece_move_notation::PieceMoveNotation;
-use littlewing::clock::Clock;
-
+use littlewing::chess::*;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
