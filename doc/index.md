@@ -9,16 +9,16 @@ It targets 64 bits processors with a legacy BIOS, so roughly computers from the
 
 The first task when running the OS is to install the
 [filesystem](filesystem.md) on a disk (or in RAM) using the `install` program,
-altough it's possible to skip the installation and stay in read only mode.
+although it's possible to skip the installation and stay in read only mode.
 
-Everything in MOROS is done from a command line interface and most program are
+Everything in MOROS is done from a command line interface and most programs are
 rather minimalist.
 
 It has a [shell](shell.md):
 
 ![screenshot](shell.png)
 
-With a few program like `find` that use a [regex engine](regex.md) to find
+With a few programs like `find` that use a [regex engine](regex.md) to find
 files or lines:
 
 ![screenshot](find.png)
@@ -39,7 +39,7 @@ It even has a chess game:
 
 ![chess](chess.png)
 
-Finally here's a few commands to try it out:
+Finally here are a few commands to try it out:
 
     > date
     2021-08-12T20:16:48
