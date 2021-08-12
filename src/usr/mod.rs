@@ -1,4 +1,5 @@
 pub mod base64;
+pub mod beep;
 pub mod clear;
 pub mod colors;
 pub mod copy;

@@ -179,6 +179,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "kb" | "keyboard"      => usr::keyboard::main(&args),
         "lisp"                 => usr::lisp::main(&args),
         "chess"                => usr::chess::main(&args),
+        "beep"                 => usr::beep::main(&args),
         _                      => ExitCode::CommandUnknown,
     }
 }
