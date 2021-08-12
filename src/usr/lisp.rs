@@ -520,7 +520,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     prompt.completion.set(&lisp_completer);
 
     while let Some(exp) = prompt.input(&prompt_string) {
-        if exp == "(exit)" {
+        if exp == "(exit)" || exp == "(quit)" {
             break;
         }
         match parse_eval(&exp, env) {

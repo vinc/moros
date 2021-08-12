@@ -41,6 +41,8 @@ time = { version = "0.2.27", default-features = false }
 uart_16550 = "0.2.15"
 vte = "0.10.1"
 x86_64 = "0.14.4"
+littlewing = { git = "https://github.com/vinc/littlewing", branch = "feature/add-no-std-support", default-features = false }
+#littlewing = { path = "../littlewing", default-features = false }
 
 [package.metadata.bootimage]
 test-success-exit-code = 33 # (0x10 << 1) | 1
