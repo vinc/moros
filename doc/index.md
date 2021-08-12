@@ -2,16 +2,24 @@
 
 MOROS is a hobby operating system written in Rust for the x86 architecture.
 
+It targets 64 bits processors with a legacy BIOS, so roughly computers from the
+2010 era, but it also run well on most hypervisors.
+
 ![screenshot](moros.png)
 
-Everything in MOROS is done from a command line interface and most tools are
+The first task when running the OS is to install the
+[filesystem](filesystem.md) on a disk (or in RAM) using the `install` program,
+altough it's possible to skip the installation and stay in read only mode.
+
+Everything in MOROS is done from a command line interface and most program are
 rather minimalist.
 
 It has a [shell](shell.md):
 
 ![screenshot](shell.png)
 
-With a few tools like `find` that use a [regex engine](regex.md) to find files or lines:
+With a few program like `find` that use a [regex engine](regex.md) to find
+files or lines:
 
 ![screenshot](find.png)
 
