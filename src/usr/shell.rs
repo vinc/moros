@@ -154,7 +154,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "y"                    => ExitCode::CommandUnknown,
         "z"                    => ExitCode::CommandUnknown,
         "vga"                  => usr::vga::main(&args),
-        "shell"                => usr::shell::main(&args),
+        "sh" | "shell"         => usr::shell::main(&args),
         "sleep"                => usr::sleep::main(&args),
         "clear"                => usr::clear::main(&args),
         "base64"               => usr::base64::main(&args),

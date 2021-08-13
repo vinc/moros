@@ -2,7 +2,9 @@ use crate::{api, usr};
 
 use x86_64::instructions::port::Port;
 
-//Play sound using built in speaker
+// See: https://wiki.osdev.org/PC_Speaker
+
+// Play sound using built in speaker
 fn play_sound(freq: f64) {
     // Set the PIT to the desired frequency
     let div = (1193180.0 / freq) as u32;
@@ -24,22 +26,22 @@ fn play_sound(freq: f64) {
     }
 }
 
-// Make it shutup
+// Make it stop
 fn stop_sound() {
     let mut speaker: Port<u8> = Port::new(0x61);
     let tmp = unsafe { speaker.read() } & 0xFC;
     unsafe { speaker.write(tmp) };
 }
 
-fn beep(freq: f64, time: f64) {
+fn beep(freq: f64, len: f64) {
     play_sound(freq);
-    api::syscall::sleep(time);
+    api::syscall::sleep(len);
     stop_sound();
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut freq = 440.0;
-    let mut time = 200.0;
+    let mut len = 200.0;
     let mut i = 1;
     let n = args.len();
     while i < n {
@@ -58,17 +60,17 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     return usr::shell::ExitCode::CommandError;
                 }
             },
-            "--time" | "-t" => {
+            "--len" | "-l" => {
                 if i + 1 < n {
                     if let Ok(value) = args[i + 1].parse() {
-                        time = value;
+                        len = value;
                     } else {
-                        println!("Could not parse time");
+                        println!("Could not parse len");
                         return usr::shell::ExitCode::CommandError;
                     }
                     i += 1;
                 } else {
-                    println!("Missing time");
+                    println!("Missing len");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
@@ -77,6 +79,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         i += 1;
     }
 
-    beep(freq, time / 1000.0);
+    beep(freq, len / 1000.0);
     usr::shell::ExitCode::CommandSuccessful
 }
