@@ -9,7 +9,7 @@ use x86_64::instructions::port::Port;
 // which will result in about 54.926 ms between ticks.
 // During init we will change the divider to 1193 to have about 1.000 ms
 // between ticks to improve time measurements accuracy.
-const PIT_FREQUENCY: f64 = 3_579_545.0 / 3.0; // 1_193_181.666 Hz
+pub const PIT_FREQUENCY: f64 = 3_579_545.0 / 3.0; // 1_193_181.666 Hz
 const PIT_DIVIDER: usize = 1193;
 const PIT_INTERVAL: f64 = (PIT_DIVIDER as f64) / PIT_FREQUENCY;
 
@@ -56,13 +56,15 @@ pub fn nanowait(nanoseconds: u64) {
 }
 
 /// The frequency divider must be between 0 and 65535, with 0 acting as 65536
-fn set_pit_frequency_divider(divider: u16) {
+pub fn set_pit_frequency_divider(divider: u16, channel: u8) {
     interrupts::without_interrupts(|| {
         let bytes = divider.to_le_bytes();
         let mut cmd: Port<u8> = Port::new(0x43);
-        let mut data: Port<u8> = Port::new(0x40);
+        let mut data: Port<u8> = Port::new(0x40 + channel as u16);
+        let operating_mode = 6; // Square wave generator
+        let access_mode = 3; // Lobyte + Hibyte
         unsafe {
-            cmd.write(0x36);
+            cmd.write((channel << 6) | (access_mode << 4) | operating_mode);
             data.write(bytes[0]);
             data.write(bytes[1]);
         }
@@ -81,7 +83,8 @@ pub fn rtc_interrupt_handler() {
 pub fn init() {
     // PIT timmer
     let divider = if PIT_DIVIDER < 65536 { PIT_DIVIDER } else { 0 };
-    set_pit_frequency_divider(divider as u16);
+    let channel = 0;
+    set_pit_frequency_divider(divider as u16, channel);
     sys::idt::set_irq_handler(0, pit_interrupt_handler);
 
     // RTC timmer

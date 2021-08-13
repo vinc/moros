@@ -1,40 +1,31 @@
-use crate::{api, usr};
+use crate::{api, sys, usr};
 
 use x86_64::instructions::port::Port;
 
 // See: https://wiki.osdev.org/PC_Speaker
 
-// Play sound using built in speaker
-fn play_sound(freq: f64) {
-    // Set the PIT to the desired frequency
-    let div = (1193180.0 / freq) as u32;
+const SPEAKER_PORT: u16 = 0x61;
 
-    let mut cmd: Port<u8> = Port::new(0x43);
-    let mut data: Port<u8> = Port::new(0x42);
-    let mut speaker: Port<u8> = Port::new(0x61);
+fn start_sound(freq: f64) {
+    let divider = (sys::time::PIT_FREQUENCY / freq) as u16;
+    let channel = 2;
+    sys::time::set_pit_frequency_divider(divider, channel);
 
-    unsafe {
-        cmd.write(0xb6);
-        data.write(div as u8);
-        data.write((div >> 8) as u8);
-    };
-
-    // And play the sound using the PC speaker
+    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
     let tmp = unsafe { speaker.read() };
     if tmp != (tmp | 3) {
         unsafe { speaker.write(tmp | 3) };
     }
 }
 
-// Make it stop
 fn stop_sound() {
-    let mut speaker: Port<u8> = Port::new(0x61);
+    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
     let tmp = unsafe { speaker.read() } & 0xFC;
     unsafe { speaker.write(tmp) };
 }
 
 fn beep(freq: f64, len: f64) {
-    play_sound(freq);
+    start_sound(freq);
     api::syscall::sleep(len);
     stop_sound();
 }
