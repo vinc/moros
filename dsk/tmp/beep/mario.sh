@@ -1,3 +1,4 @@
+# Source: http://blog.dhampir.no/content/fun-with-beep
 beep -f 130 -t 100
 beep -f 262 -t 100
 beep -f 330 -t 100

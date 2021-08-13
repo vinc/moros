@@ -1,3 +1,4 @@
+# Source: http://kirrus.co.uk/2010/09/linux-beep-music
 beep -f 330 -t 150
 beep -f 1 -t 40
 beep -f 494 -t 159
