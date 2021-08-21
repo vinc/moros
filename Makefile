@@ -28,7 +28,7 @@ image: $(img)
 	cargo bootimage --no-default-features --features $(output),$(nic) --release
 	dd conv=notrunc if=$(bin) of=$(img)
 
-opts = -m 32 -cpu max -nic model=$(nic) -hda $(img)
+opts = -m 32 -cpu max -nic model=$(nic) -hda $(img) -soundhw pcspk
 ifeq ($(output),serial)
 	opts += -display none -serial stdio
 endif

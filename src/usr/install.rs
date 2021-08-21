@@ -42,13 +42,19 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));
         copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"));
         copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"));
-        copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
-        copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"));
 
         create_dir("/ini/fonts");
         copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"));
         copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"));
         copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"));
+
+        copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
+        copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"));
+
+        create_dir("/tmp/beep");
+        copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"));
+        copy_file("/tmp/beep/starwars.sh", include_bytes!("../../dsk/tmp/beep/starwars.sh"));
+        copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"));
 
         if sys::process::user().is_none() {
             println!();
