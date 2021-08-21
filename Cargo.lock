@@ -188,8 +188,9 @@ dependencies = [
 
 [[package]]
 name = "littlewing"
-version = "0.6.0"
-source = "git+https://github.com/vinc/littlewing?branch=feature/add-no-std-support#830b3b596eb95d6d0179d6ab1789e32a64695d5a"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c19950aa1a9120c2872c9b7b22767223f0c1a0ec28fd10a47e3a7e70843e164"
 dependencies = [
  "lazy_static",
  "no-std-compat",
@@ -223,7 +224,7 @@ checksum = "c75de51135344a4f8ed3cfe2720dc27736f7711989703a0b43aadf3753c55577"
 
 [[package]]
 name = "moros"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "acpi",
  "aml",

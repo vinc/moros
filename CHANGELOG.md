@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+## 0.6.0 (2021-08-21)
 - Add beep command ([#234](https://github.com/vinc/moros/pull/234))
 - Add Lisp interpreter ([#207](https://github.com/vinc/moros/pull/207))
 - Add VGA font loader ([#201](https://github.com/vinc/moros/pull/201))
@@ -31,7 +32,6 @@
 - Bump x86_64 from 0.14.3 to 0.14.4 ([#209](https://github.com/vinc/moros/pull/209))
 
 ## 0.5.1 (2021-06-27)
-
 - Add missing RX stats to PCNET driver ([#124](https://github.com/vinc/moros/pull/124))
 - Disable `rand_chacha` with `debug_assertions` ([#120](https://github.com/vinc/moros/pull/120))
 - Fix PCNET BCNT computation ([#122](https://github.com/vinc/moros/pull/122))

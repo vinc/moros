@@ -1,7 +1,7 @@
 [package]
 name = "moros"
 description = "MOROS: Obscure Rust Operating System"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Vincent Ollivier <v@vinc.cc>"]
 edition = "2018"
 license = "MIT"
@@ -27,6 +27,7 @@ hmac = { version = "0.11.0", default-features = false }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.1"
 linked_list_allocator = "0.9.0"
+littlewing = { version = "0.7.0", default-features = false }
 pbkdf2 = { version = "0.8.0", default-features = false }
 pc-keyboard = "0.5.1"
 pic8259 = "0.10.0"
@@ -41,8 +42,6 @@ time = { version = "0.2.27", default-features = false }
 uart_16550 = "0.2.15"
 vte = "0.10.1"
 x86_64 = "0.14.4"
-littlewing = { git = "https://github.com/vinc/littlewing", branch = "feature/add-no-std-support", default-features = false }
-#littlewing = { path = "../littlewing", default-features = false }
 
 [package.metadata.bootimage]
 test-success-exit-code = 33 # (0x10 << 1) | 1
