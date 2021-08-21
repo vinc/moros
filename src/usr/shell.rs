@@ -196,8 +196,6 @@ pub fn run() -> usr::shell::ExitCode {
         match exec(&cmd) {
             ExitCode::CommandSuccessful => {
                 success = true;
-                prompt.history.add(&cmd);
-                prompt.history.save(history_file);
             },
             ExitCode::ShellExit => {
                 break;
@@ -206,6 +204,8 @@ pub fn run() -> usr::shell::ExitCode {
                 success = false;
             },
         }
+        prompt.history.add(&cmd);
+        prompt.history.save(history_file);
         sys::console::drain();
         println!();
     }
