@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add beep command ([#234](https://github.com/vinc/moros/pull/234))
 - Add Lisp interpreter ([#207](https://github.com/vinc/moros/pull/207))
 - Add VGA font loader ([#201](https://github.com/vinc/moros/pull/201))
 - Add VGA palette loader ([#203](https://github.com/vinc/moros/pull/203))
@@ -11,6 +12,7 @@
 - Add regular expression engine ([#222](https://github.com/vinc/moros/pull/222))
 - Add syscalls ([#196](https://github.com/vinc/moros/pull/196))
 - Add time to dir entry ([#215](https://github.com/vinc/moros/pull/215))
+- Improve baremetal experience ([#232](https://github.com/vinc/moros/pull/232))
 - Fix clippy warnings ([#214](https://github.com/vinc/moros/pull/2154))
 - Move kernel code to api ([#204](https://github.com/vinc/moros/pull/204))
 - Refactor editor ([#221](https://github.com/vinc/moros/pull/221))
