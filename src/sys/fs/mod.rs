@@ -7,7 +7,7 @@ mod file;
 mod read_dir;
 
 pub use dir::Dir;
-pub use file::{File, SeekFrom};
+pub use file::{File, FileStat, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
 
 use block_bitmap::BlockBitmap;

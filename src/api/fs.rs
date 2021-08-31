@@ -1,3 +1,4 @@
+use crate::api::syscall;
 use crate::sys;
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -23,6 +24,17 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
         Ok(path) => path,
         Err(_) => return Err(()),
     };
+    if let Some(stat) = syscall::stat(&path) {
+        if let Some(fh) = syscall::open(&path, 0) {
+            let mut buf = vec![0; stat.size() as usize];
+            if let Some(bytes) = syscall::read(fh, &mut buf) {
+                buf.resize(bytes, 0);
+                return Ok(String::from_utf8_lossy(&buf).to_string());
+            }
+        }
+    }
+    Err(())
+    /*
     match sys::fs::File::open(&path) {
         Some(mut file) => {
             Ok(file.read_to_string())
@@ -31,6 +43,7 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
             Err(())
         }
     }
+    */
 }
 
 pub fn read(path: &str) -> Result<Vec<u8>, ()> {

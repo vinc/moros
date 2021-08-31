@@ -13,6 +13,25 @@ pub enum SeekFrom {
     End(i32),
 }
 
+pub struct FileStat {
+    size: u32,
+    time: u64,
+}
+
+impl FileStat {
+    pub fn new() -> Self {
+        Self { size: 0, time: 0 }
+    }
+
+    pub fn size(&self) -> u32 {
+        self.size
+    }
+
+    pub fn time(&self) -> u64 {
+        self.time
+    }
+}
+
 #[derive(Clone)]
 pub struct File {
     name: String,
@@ -69,6 +88,10 @@ impl File {
 
     pub fn size(&self) -> usize {
         self.size as usize
+    }
+
+    pub fn stat(&self) -> FileStat {
+        FileStat { size: self.size, time: self.time }
     }
 
     pub fn seek(&mut self, pos: SeekFrom) -> Result<u32, ()> {

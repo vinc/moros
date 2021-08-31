@@ -5,3 +5,4 @@ pub const OPEN:     usize = 3;
 pub const READ:     usize = 4;
 pub const WRITE:    usize = 5;
 pub const CLOSE:    usize = 6;
+pub const STAT:     usize = 7;

@@ -1,6 +1,7 @@
 pub mod number;
 pub mod service;
 
+use crate::sys::fs::FileStat;
 use alloc::string::String;
 
 /*
@@ -18,6 +19,13 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
         }
         number::REALTIME => {
             service::realtime().to_bits() as usize
+        }
+        number::STAT => {
+            let ptr = arg1 as *mut u8;
+            let len = arg2;
+            let path = unsafe { String::from_raw_parts(ptr, len, len) };
+            let stat = unsafe { &mut *(arg3 as *mut FileStat) };
+            service::stat(&path, stat) as usize
         }
         number::OPEN => {
             let ptr = arg1 as *mut u8;

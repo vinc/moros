@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::fs::FileStat;
 
 pub fn sleep(seconds: f64) {
     unsafe { asm!("sti") }; // Restore interrupts
@@ -12,6 +13,15 @@ pub fn uptime() -> f64 {
 
 pub fn realtime() -> f64 {
     sys::clock::realtime()
+}
+
+pub fn stat(path: &str, stat: &mut FileStat) -> isize {
+    if let Some(file) = sys::fs::File::open(path) {
+        *stat = file.stat();
+        0
+    } else {
+        -1
+    }
 }
 
 pub fn open(path: &str, _mode: u8) -> isize {
