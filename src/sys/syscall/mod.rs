@@ -27,14 +27,21 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
             service::open(&path, mode) as usize
         }
         number::READ => {
-            let fh = arg1 as u16;
+            let fh = arg1;
             let ptr = arg2 as *mut u8;
             let len = arg3;
             let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
-            service::read(fh, &mut buf)
+            service::read(fh, &mut buf) as usize
+        }
+        number::WRITE => {
+            let fh = arg1;
+            let ptr = arg2 as *mut u8;
+            let len = arg3;
+            let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            service::write(fh, &mut buf) as usize
         }
         number::CLOSE => {
-            let fh = arg1 as u16;
+            let fh = arg1;
             service::close(fh);
             0
         }

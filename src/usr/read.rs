@@ -11,8 +11,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let pathname = args[1];
 
-    syscall::open(pathname, 0);
-
     match pathname {
         "/dev/rtc" => {
             let rtc = CMOS::new().rtc();
