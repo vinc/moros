@@ -1,24 +1,42 @@
 pub mod number;
 pub mod service;
 
+use alloc::string::String;
+
 /*
  * Dispatching system calls
  */
 
-pub fn dispatcher(n: usize, arg1: usize, _arg2: usize, _arg3: usize) -> usize {
+pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
     match n {
         number::SLEEP => {
-            // sleep(f64)
             service::sleep(f64::from_bits(arg1 as u64));
             0
         }
         number::UPTIME => {
-            // uptime() -> f64
             service::uptime().to_bits() as usize
         }
         number::REALTIME => {
-            // realtime() -> f64
             service::realtime().to_bits() as usize
+        }
+        number::OPEN => {
+            let ptr = arg1 as *mut u8;
+            let len = arg2;
+            let mode = arg3 as u8;
+            let path = unsafe { String::from_raw_parts(ptr, len, len) };
+            service::open(&path, mode) as usize
+        }
+        number::READ => {
+            let fh = arg1 as u16;
+            let ptr = arg2 as *mut u8;
+            let len = arg3;
+            let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            service::read(fh, &mut buf)
+        }
+        number::CLOSE => {
+            let fh = arg1 as u16;
+            service::close(fh);
+            0
         }
         _ => {
             unimplemented!();
