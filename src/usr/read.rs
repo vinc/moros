@@ -1,4 +1,4 @@
-use crate::{sys, usr};
+use crate::{api, sys, usr};
 use crate::api::syscall;
 use crate::sys::cmos::CMOS;
 use alloc::borrow::ToOwned;
@@ -77,8 +77,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
             } else if pathname.ends_with('/') {
                 usr::list::main(args)
-            } else if let Some(mut file) = sys::fs::File::open(pathname) {
-                print!("{}", file.read_to_string());
+            } else if let Ok(contents) = api::fs::read_to_string(pathname) {
+                print!("{}", contents);
                 usr::shell::ExitCode::CommandSuccessful
             } else {
                 println!("File not found '{}'", pathname);

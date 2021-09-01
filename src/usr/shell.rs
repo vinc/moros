@@ -1,5 +1,5 @@
+use crate::{api, sys, usr};
 use crate::api::prompt::Prompt;
-use crate::{sys, usr};
 use crate::api::console::Style;
 use alloc::format;
 use alloc::vec::Vec;
@@ -221,8 +221,8 @@ pub fn main(args: &[&str]) -> ExitCode {
         },
         2 => {
             let pathname = args[1];
-            if let Some(mut file) = sys::fs::File::open(pathname) {
-                for line in file.read_to_string().split('\n') {
+            if let Ok(contents) = api::fs::read_to_string(pathname) {
+                for line in contents.split('\n') {
                     if !line.is_empty() {
                         exec(line);
                     }
