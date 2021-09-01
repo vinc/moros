@@ -16,6 +16,22 @@ use crate::sys;
 use alloc::format;
 use alloc::string::String;
 
+#[repr(u8)]
+pub enum OpenFlag {
+    Read = 1,
+    Write = 2,
+    Create = 4,
+}
+
+pub fn open_file(path: &str, flags: usize) -> Option<File> {
+    let res = File::open(path);
+    if res.is_none() && flags & (OpenFlag::Create as usize) != 0 {
+        File::create(path)
+    } else {
+        res
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
     Dir = 0,

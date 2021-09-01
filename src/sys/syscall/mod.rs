@@ -2,7 +2,6 @@ pub mod number;
 pub mod service;
 
 use crate::sys::fs::FileStat;
-use alloc::string::String;
 
 /*
  * Dispatching system calls
@@ -23,34 +22,34 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
         number::STAT => {
             let ptr = arg1 as *mut u8;
             let len = arg2;
-            let path = unsafe { String::from_raw_parts(ptr, len, len) };
+            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
             let stat = unsafe { &mut *(arg3 as *mut FileStat) };
-            service::stat(&path, stat) as usize
+            service::stat(path, stat) as usize
         }
         number::OPEN => {
             let ptr = arg1 as *mut u8;
             let len = arg2;
-            let mode = arg3 as u8;
-            let path = unsafe { String::from_raw_parts(ptr, len, len) };
-            service::open(&path, mode) as usize
+            let flags = arg3;
+            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
+            service::open(path, flags) as usize
         }
         number::READ => {
-            let fh = arg1;
+            let handle = arg1;
             let ptr = arg2 as *mut u8;
             let len = arg3;
             let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
-            service::read(fh, &mut buf) as usize
+            service::read(handle, &mut buf) as usize
         }
         number::WRITE => {
-            let fh = arg1;
+            let handle = arg1;
             let ptr = arg2 as *mut u8;
             let len = arg3;
             let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
-            service::write(fh, &mut buf) as usize
+            service::write(handle, &mut buf) as usize
         }
         number::CLOSE => {
-            let fh = arg1;
-            service::close(fh);
+            let handle = arg1;
+            service::close(handle);
             0
         }
         _ => {

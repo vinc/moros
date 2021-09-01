@@ -29,10 +29,10 @@ pub fn stat(path: &str) -> Option<FileStat> {
     }
 }
 
-pub fn open(path: &str, mode: u8) -> Option<usize> {
+pub fn open(path: &str, flags: usize) -> Option<usize> {
     let ptr = path.as_ptr() as usize;
     let len = path.len() as usize;
-    let res = unsafe { syscall!(OPEN, ptr, len, mode as usize) } as isize;
+    let res = unsafe { syscall!(OPEN, ptr, len, flags) } as isize;
     if res.is_negative() {
         None
     } else {
@@ -40,10 +40,10 @@ pub fn open(path: &str, mode: u8) -> Option<usize> {
     }
 }
 
-pub fn read(fh: usize, buf: &mut [u8]) -> Option<usize> {
+pub fn read(handle: usize, buf: &mut [u8]) -> Option<usize> {
     let ptr = buf.as_ptr() as usize;
     let len = buf.len() as usize;
-    let res = unsafe { syscall!(READ, fh, ptr, len) } as isize;
+    let res = unsafe { syscall!(READ, handle, ptr, len) } as isize;
     if res.is_negative() {
         None
     } else {
@@ -51,10 +51,10 @@ pub fn read(fh: usize, buf: &mut [u8]) -> Option<usize> {
     }
 }
 
-pub fn write(fh: usize, buf: &mut [u8]) -> Option<usize> {
+pub fn write(handle: usize, buf: &[u8]) -> Option<usize> {
     let ptr = buf.as_ptr() as usize;
     let len = buf.len() as usize;
-    let res = unsafe { syscall!(WRITE, fh, ptr, len) } as isize;
+    let res = unsafe { syscall!(WRITE, handle, ptr, len) } as isize;
     if res.is_negative() {
         None
     } else {
@@ -62,18 +62,32 @@ pub fn write(fh: usize, buf: &mut [u8]) -> Option<usize> {
     }
 }
 
-pub fn close(fh: usize) {
-    unsafe { syscall!(CLOSE, fh as usize) };
+pub fn close(handle: usize) {
+    unsafe { syscall!(CLOSE, handle as usize) };
 }
 
 #[test_case]
-fn test_open() {
-    use crate::sys::fs::{mount_mem, format_mem, File, dismount};
+fn test_file() {
+    use crate::sys::fs::{mount_mem, format_mem, dismount, OpenFlag};
+    use alloc::vec;
     mount_mem();
     format_mem();
-    assert!(File::create("/test1").is_some());
-    // FIXME: allocator panic
-    // assert_eq!(open("/test1", 0), Some(4));
-    // assert_eq!(open("/test2", 0), None);
+
+    let flags = 0;
+    assert_eq!(open("/test", flags), None);
+
+    // Write file
+    let flags = OpenFlag::Create as usize;
+    assert_eq!(open("/test", flags), Some(4));
+    let input = "Hello, world!".as_bytes();
+    assert_eq!(write(4, &input), Some(input.len()));
+
+    // Read file
+    let flags = 0;
+    assert_eq!(open("/test", flags), Some(5));
+    let mut output = vec![0; input.len()];
+    assert_eq!(read(5, &mut output), Some(input.len()));
+    assert_eq!(output, input);
+
     dismount();
 }

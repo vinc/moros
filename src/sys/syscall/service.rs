@@ -24,34 +24,34 @@ pub fn stat(path: &str, stat: &mut FileStat) -> isize {
     }
 }
 
-pub fn open(path: &str, _mode: u8) -> isize {
-    if let Some(file) = sys::fs::File::open(path) {
-        if let Ok(fh) = sys::process::create_file_handle(file) {
-            return fh as isize;
+pub fn open(path: &str, flags: usize) -> isize {
+    if let Some(file) = sys::fs::open_file(path, flags) {
+        if let Ok(handle) = sys::process::create_file_handle(file) {
+            return handle as isize;
         }
     }
     -1
 }
 
-pub fn read(fh: usize, buf: &mut [u8]) -> isize {
-    if let Some(mut file) = sys::process::file_handle(fh) {
+pub fn read(handle: usize, buf: &mut [u8]) -> isize {
+    if let Some(mut file) = sys::process::file_handle(handle) {
         let bytes = file.read(buf);
-        sys::process::update_file_handle(fh, file);
+        sys::process::update_file_handle(handle, file);
         return bytes as isize;
     }
     -1
 }
 
-pub fn write(fh: usize, buf: &mut [u8]) -> isize {
-    if let Some(mut file) = sys::process::file_handle(fh) {
+pub fn write(handle: usize, buf: &mut [u8]) -> isize {
+    if let Some(mut file) = sys::process::file_handle(handle) {
         if let Ok(bytes) = file.write(buf) {
-            sys::process::update_file_handle(fh, file);
+            sys::process::update_file_handle(handle, file);
             return bytes as isize;
         }
     }
     -1
 }
 
-pub fn close(fh: usize) {
-    sys::process::delete_file_handle(fh);
+pub fn close(handle: usize) {
+    sys::process::delete_file_handle(handle);
 }

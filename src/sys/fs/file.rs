@@ -13,6 +13,7 @@ pub enum SeekFrom {
     End(i32),
 }
 
+#[derive(Debug)]
 pub struct FileStat {
     size: u32,
     time: u64,

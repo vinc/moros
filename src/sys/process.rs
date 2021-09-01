@@ -69,26 +69,26 @@ pub fn create_file_handle(file: File) -> Result<usize, ()> {
     let min = 4; // The first 4 file handles are reserved
     let max = MAX_FILE_HANDLES;
     let proc = &mut *PROCESS.lock();
-    for fh in min..max {
-        if proc.file_handles[fh].is_none() {
-            proc.file_handles[fh] = Some(file);
-            return Ok(fh);
+    for handle in min..max {
+        if proc.file_handles[handle].is_none() {
+            proc.file_handles[handle] = Some(file);
+            return Ok(handle);
         }
     }
     Err(())
 }
 
-pub fn update_file_handle(fh: usize, file: File) {
+pub fn update_file_handle(handle: usize, file: File) {
     let proc = &mut *PROCESS.lock();
-    proc.file_handles[fh] = Some(file);
+    proc.file_handles[handle] = Some(file);
 }
 
-pub fn delete_file_handle(fh: usize) {
+pub fn delete_file_handle(handle: usize) {
     let proc = &mut *PROCESS.lock();
-    proc.file_handles[fh] = None;
+    proc.file_handles[handle] = None;
 }
 
-pub fn file_handle(fh: usize) -> Option<File> {
+pub fn file_handle(handle: usize) -> Option<File> {
     let proc = &mut *PROCESS.lock();
-    proc.file_handles[fh].clone()
+    proc.file_handles[handle].clone()
 }
