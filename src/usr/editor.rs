@@ -1,4 +1,5 @@
-use crate::{api, sys, usr};
+use crate::{sys, usr};
+use crate::api::fs;
 use crate::api::console::Style;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -38,7 +39,7 @@ impl Editor {
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
 
-        match api::fs::read_to_string(pathname) {
+        match fs::read_to_string(pathname) {
             Ok(contents) => {
                 for line in contents.split('\n') {
                     lines.push(line.into());
@@ -64,7 +65,7 @@ impl Editor {
             }
         }
 
-        if api::fs::write(&self.pathname, contents.as_bytes()).is_ok() {
+        if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");
             usr::shell::ExitCode::CommandSuccessful

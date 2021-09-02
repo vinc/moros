@@ -89,5 +89,11 @@ fn test_file() {
     assert_eq!(read(5, &mut output), Some(input.len()));
     assert_eq!(output, input);
 
+    close(4);
+    close(5);
+
+    assert_eq!(open("/test", flags), Some(4));
+
+    close(4);
     dismount();
 }

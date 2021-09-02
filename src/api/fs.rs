@@ -1,8 +1,19 @@
 use crate::api::syscall;
+use crate::sys::fs::OpenFlag;
 use crate::sys;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
+
+pub fn open(path: &str) -> Option<usize> {
+    let flags = 0;
+    syscall::open(path, flags)
+}
+
+pub fn create(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Create as usize;
+    syscall::open(path, flags)
+}
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
     match sys::process::env("HOME") {
@@ -20,30 +31,8 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
 }
 
 pub fn read_to_string(path: &str) -> Result<String, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
-    if let Some(stat) = syscall::stat(&path) {
-        if let Some(fh) = syscall::open(&path, 0) {
-            let mut buf = vec![0; stat.size() as usize];
-            if let Some(bytes) = syscall::read(fh, &mut buf) {
-                buf.resize(bytes, 0);
-                return Ok(String::from_utf8_lossy(&buf).to_string());
-            }
-        }
-    }
-    Err(())
-    /*
-    match sys::fs::File::open(&path) {
-        Some(mut file) => {
-            Ok(file.read_to_string())
-        },
-        None => {
-            Err(())
-        }
-    }
-    */
+    let buf = read(path)?;
+    Ok(String::from_utf8_lossy(&buf).to_string())
 }
 
 pub fn read(path: &str) -> Result<Vec<u8>, ()> {
@@ -51,33 +40,47 @@ pub fn read(path: &str) -> Result<Vec<u8>, ()> {
         Ok(path) => path,
         Err(_) => return Err(()),
     };
-    match sys::fs::File::open(&path) {
-        Some(mut file) => {
-            let mut buf = vec![0; file.size()];
-            file.read(&mut buf);
-            Ok(buf)
-        },
-        None => {
-            Err(())
+    if let Some(stat) = syscall::stat(&path) {
+        if let Some(handle) = open(&path) {
+            let mut buf = vec![0; stat.size() as usize];
+            if let Some(bytes) = syscall::read(handle, &mut buf) {
+                buf.resize(bytes, 0);
+                syscall::close(handle);
+                return Ok(buf)
+            }
         }
     }
+    Err(())
 }
 
-pub fn write(path: &str, buf: &[u8]) -> Result<(), ()> {
+pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
     let path = match canonicalize(path) {
         Ok(path) => path,
         Err(_) => return Err(()),
     };
-    let mut file = match sys::fs::File::open(&path) {
-        None => match sys::fs::File::create(&path) {
-            None => return Err(()),
-            Some(file) => file,
-        },
-        Some(file) => file,
-    };
-    // TODO: add File::write_all to split buf if needed
-    match file.write(buf) {
-        Ok(_) => Ok(()),
-        Err(_) => Err(()),
+    if let Some(handle) = create(&path) {
+        if let Some(bytes) = syscall::write(handle, buf) {
+            syscall::close(handle);
+            return Ok(bytes)
+        }
     }
+    Err(())
+}
+
+#[test_case]
+fn test_file() {
+    use crate::sys::fs::{mount_mem, format_mem, dismount};
+    mount_mem();
+    format_mem();
+
+    assert_eq!(open("/test"), None);
+
+    // Write file
+    let input = "Hello, world!".as_bytes();
+    assert_eq!(write("/test", &input), Ok(input.len()));
+
+    // Read file
+    assert_eq!(read("/test"), Ok(input.to_vec()));
+
+    dismount();
 }
