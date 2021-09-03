@@ -9,12 +9,9 @@ mod read_dir;
 pub use dir::Dir;
 pub use file::{File, FileStat, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
+pub use crate::api::fs::{dirname, filename, realpath};
 
 use block_bitmap::BlockBitmap;
-
-use crate::sys;
-use alloc::format;
-use alloc::string::String;
 
 #[repr(u8)]
 pub enum OpenFlag {
@@ -36,36 +33,6 @@ pub fn open_file(path: &str, flags: usize) -> Option<File> {
 pub enum FileType {
     Dir = 0,
     File = 1,
-}
-
-pub fn dirname(pathname: &str) -> &str {
-    let n = pathname.len();
-    let i = match pathname.rfind('/') {
-        Some(0) => 1,
-        Some(i) => i,
-        None => n,
-    };
-    &pathname[0..i]
-}
-
-pub fn filename(pathname: &str) -> &str {
-    let n = pathname.len();
-    let i = match pathname.rfind('/') {
-        Some(i) => i + 1,
-        None => 0,
-    };
-    &pathname[i..n]
-}
-
-// Transform "foo.txt" into "/path/to/foo.txt"
-pub fn realpath(pathname: &str) -> String {
-    if pathname.starts_with('/') {
-        pathname.into()
-    } else {
-        let dirname = sys::process::dir();
-        let sep = if dirname.ends_with('/') { "" } else { "/" };
-        format!("{}{}{}", dirname, sep, pathname)
-    }
 }
 
 // TODO: All this should be done dynamically

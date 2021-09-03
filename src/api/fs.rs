@@ -1,18 +1,40 @@
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
 use crate::sys;
-use alloc::string::{String, ToString};
-use alloc::vec;
-use alloc::vec::Vec;
 
-pub fn open(path: &str) -> Option<usize> {
-    let flags = 0;
-    syscall::open(path, flags)
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use alloc::vec;
+
+pub fn dirname(pathname: &str) -> &str {
+    let n = pathname.len();
+    let i = match pathname.rfind('/') {
+        Some(0) => 1,
+        Some(i) => i,
+        None => n,
+    };
+    &pathname[0..i]
 }
 
-pub fn create(path: &str) -> Option<usize> {
-    let flags = OpenFlag::Create as usize;
-    syscall::open(path, flags)
+pub fn filename(pathname: &str) -> &str {
+    let n = pathname.len();
+    let i = match pathname.rfind('/') {
+        Some(i) => i + 1,
+        None => 0,
+    };
+    &pathname[i..n]
+}
+
+// Transform "foo.txt" into "/path/to/foo.txt"
+pub fn realpath(pathname: &str) -> String {
+    if pathname.starts_with('/') {
+        pathname.into()
+    } else {
+        let dirname = sys::process::dir();
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
+        format!("{}{}{}", dirname, sep, pathname)
+    }
 }
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
@@ -28,6 +50,16 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
             Ok(path.to_string())
         }
     }
+}
+
+pub fn open(path: &str) -> Option<usize> {
+    let flags = 0;
+    syscall::open(path, flags)
+}
+
+pub fn create(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Create as usize;
+    syscall::open(path, flags)
 }
 
 pub fn read_to_string(path: &str) -> Result<String, ()> {

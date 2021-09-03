@@ -1,4 +1,5 @@
 use crate::{api, sys, usr};
+use crate::api::fs;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
 use alloc::format;
@@ -34,9 +35,9 @@ fn shell_completer(line: &str) -> Vec<String> {
             }
         }
     } else { // Autocomplete path
-        let pathname = sys::fs::realpath(args[i]);
-        let dirname = sys::fs::dirname(&pathname);
-        let filename = sys::fs::filename(&pathname);
+        let pathname = fs::realpath(args[i]);
+        let dirname = fs::dirname(&pathname);
+        let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
         if let Some(dir) = sys::fs::Dir::open(dirname) {
             for entry in dir.read() {
@@ -104,7 +105,7 @@ fn change_dir(args: &[&str]) -> ExitCode {
             ExitCode::CommandSuccessful
         },
         2 => {
-            let mut pathname = sys::fs::realpath(args[1]);
+            let mut pathname = fs::realpath(args[1]);
             if pathname.len() > 1 {
                 pathname = pathname.trim_end_matches('/').into();
             }
