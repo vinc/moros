@@ -1,5 +1,5 @@
 use crate::{sys, usr};
-use crate::sys::fs::FileIO;
+use crate::api::fs::FileIO;
 use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {

@@ -7,6 +7,11 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloc::vec;
 
+pub trait FileIO {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()>;
+}
+
 pub fn dirname(pathname: &str) -> &str {
     let n = pathname.len();
     let i = match pathname.rfind('/') {

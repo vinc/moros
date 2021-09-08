@@ -1,6 +1,6 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
-use crate::sys::fs::FileIO;
+use crate::api::fs::FileIO;
 use alloc::string::String;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {

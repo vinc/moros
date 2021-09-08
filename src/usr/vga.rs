@@ -1,6 +1,6 @@
 use crate::{api, sys, usr};
 use crate::api::vga::palette;
-use crate::sys::fs::FileIO;
+use crate::api::fs::FileIO;
 use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {

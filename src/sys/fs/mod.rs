@@ -9,7 +9,7 @@ mod read_dir;
 pub use dir::Dir;
 pub use file::{File, FileStat, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
-pub use crate::api::fs::{dirname, filename, realpath};
+pub use crate::api::fs::{dirname, filename, realpath, FileIO};
 pub use crate::sys::console::Console;
 
 use block_bitmap::BlockBitmap;
@@ -41,11 +41,6 @@ pub enum Resource {
     Dir(Dir),
     File(File),
     Device(Device),
-}
-
-pub trait FileIO {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
-    fn write(&mut self, buf: &[u8]) -> Result<usize, ()>;
 }
 
 impl FileIO for Resource {
