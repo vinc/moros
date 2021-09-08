@@ -95,5 +95,8 @@ fn test_file() {
     assert_eq!(open("/test", flags), Some(4));
 
     close(4);
+
+    assert!(write(1, b"Hello, World\n").is_some());
+
     dismount();
 }
