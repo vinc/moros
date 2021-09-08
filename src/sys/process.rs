@@ -1,4 +1,5 @@
 use crate::sys::fs::{Resource, Device};
+use crate::sys::console::Console;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -28,7 +29,10 @@ impl Process {
         let env = BTreeMap::new();
         let dir = dir.to_string();
         let user = user.map(String::from);
-        let file_handles = vec![None; MAX_FILE_HANDLES];
+        let mut file_handles = vec![None; MAX_FILE_HANDLES];
+        file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
+        file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
+        file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
         Self { id, env, dir, user, file_handles }
     }
 }

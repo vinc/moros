@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::fs::FileIO;
 use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
@@ -10,6 +11,39 @@ lazy_static! {
     pub static ref STDIN: Mutex<String> = Mutex::new(String::new());
     pub static ref ECHO: Mutex<bool> = Mutex::new(true);
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
+}
+
+#[derive(Clone)]
+pub struct Console;
+
+impl Console {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl FileIO for Console {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let input = if buf.len() == 1 {
+            get_char().to_string()
+        } else {
+            get_line()
+        };
+        let mut i = 0;
+        for b in input.bytes() {
+            i += 1;
+            if i == buf.len() {
+                break;
+            }
+            buf[i] = b;
+        }
+        Ok(i)
+    }
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        let s = String::from_utf8_lossy(buf);
+        print_fmt(format_args!("{}", s));
+        Ok(s.len())
+    }
 }
 
 pub fn cols() -> usize {

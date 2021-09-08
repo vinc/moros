@@ -10,6 +10,7 @@ pub use dir::Dir;
 pub use file::{File, FileStat, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
 pub use crate::api::fs::{dirname, filename, realpath};
+pub use crate::sys::console::Console;
 
 use block_bitmap::BlockBitmap;
 
@@ -66,12 +67,19 @@ impl FileIO for Resource {
 
 #[derive(Clone)]
 pub enum Device {
+    Console(Console)
 }
 
 impl FileIO for Device {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        match self {
+            Device::Console(io) => io.read(buf),
+        }
     }
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        match self {
+            Device::Console(io) => io.write(buf),
+        }
     }
 }
 

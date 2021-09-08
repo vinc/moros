@@ -1,8 +1,9 @@
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
-        // TODO: Use syscall instead
-        $crate::sys::console::print_fmt(format_args!($($arg)*));
+        use alloc::format;
+        let s = format!("{}", format_args!($($arg)*));
+        $crate::api::syscall::write(1, s.as_bytes());
     });
 }
 
