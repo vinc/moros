@@ -1,4 +1,4 @@
-use super::{dirname, filename, realpath};
+use super::{dirname, filename, realpath, FileIO};
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
 use super::block_bitmap::BlockBitmap;
@@ -71,7 +71,7 @@ impl Dir {
     }
 
     pub fn find(&self, name: &str) -> Option<DirEntry> {
-        for entry in self.read() {
+        for entry in self.entries() {
             if entry.name() == name {
                 return Some(entry);
             }
@@ -94,18 +94,18 @@ impl Dir {
         }
 
         // Read the whole dir to add an entry at the end
-        let mut read_dir = self.read();
-        while read_dir.next().is_some() {}
+        let mut entries = self.entries();
+        while entries.next().is_some() {}
 
         // Allocate a new block for the dir if no space left for adding the new entry
-        let space_left = read_dir.block.data().len() - read_dir.block_data_offset();
+        let space_left = entries.block.data().len() - entries.block_data_offset();
         let entry_len = DirEntry::empty_len() + name.len();
         if entry_len > space_left {
-            match read_dir.block.alloc_next() {
+            match entries.block.alloc_next() {
                 None => return None, // Disk is full
                 Some(new_block) => {
-                    read_dir.block = new_block;
-                    read_dir.block_data_offset = 0;
+                    entries.block = new_block;
+                    entries.block_data_offset = 0;
                 },
             }
         }
@@ -118,8 +118,8 @@ impl Dir {
         let entry_time = sys::clock::realtime() as u64;
         let entry_name = truncate(name, u8::MAX as usize);
         let n = entry_name.len();
-        let i = read_dir.block_data_offset();
-        let data = read_dir.block.data_mut();
+        let i = entries.block_data_offset();
+        let data = entries.block.data_mut();
 
         data[i] = entry_kind;
         data[(i + 1)..(i + 5)].clone_from_slice(&entry_addr.to_be_bytes());
@@ -128,7 +128,7 @@ impl Dir {
         data[i + 17] = n as u8;
         data[(i + 18)..(i + 18 + n)].clone_from_slice(&entry_name.as_bytes());
 
-        read_dir.block.write();
+        entries.block.write();
 
         Some(DirEntry::new(*self, kind, entry_addr, entry_size, entry_time, name))
     }
@@ -136,17 +136,17 @@ impl Dir {
     // Deleting an entry is done by setting the entry address to 0
     // TODO: If the entry is a directory, remove its entries recursively
     pub fn delete_entry(&mut self, name: &str) -> Result<(), ()> {
-        let mut read_dir = self.read();
-        for entry in &mut read_dir {
+        let mut entries = self.entries();
+        for entry in &mut entries {
             if entry.name() == name {
                 // Zeroing entry addr
-                let i = read_dir.block_data_offset() - entry.len();
-                let data = read_dir.block.data_mut();
+                let i = entries.block_data_offset() - entry.len();
+                let data = entries.block.data_mut();
                 data[i + 1] = 0;
                 data[i + 2] = 0;
                 data[i + 3] = 0;
                 data[i + 4] = 0;
-                read_dir.block.write();
+                entries.block.write();
 
                 // Freeing entry blocks
                 let mut entry_block = Block::read(entry.addr());
@@ -166,20 +166,20 @@ impl Dir {
 
     pub fn update_entry(&mut self, name: &str, size: u32) {
         let time = sys::clock::realtime() as u64;
-        let mut read_dir = self.read();
-        for entry in &mut read_dir {
+        let mut entries = self.entries();
+        for entry in &mut entries {
             if entry.name() == name {
-                let i = read_dir.block_data_offset() - entry.len();
-                let data = read_dir.block.data_mut();
+                let i = entries.block_data_offset() - entry.len();
+                let data = entries.block.data_mut();
                 data[(i + 5)..(i + 9)].clone_from_slice(&size.to_be_bytes());
                 data[(i + 9)..(i + 17)].clone_from_slice(&time.to_be_bytes());
-                read_dir.block.write();
+                entries.block.write();
                 break;
             }
         }
     }
 
-    pub fn read(&self) -> ReadDir {
+    pub fn entries(&self) -> ReadDir {
         ReadDir::from(self.clone())
     }
 
@@ -192,6 +192,15 @@ impl Dir {
         } else {
             Err(())
         }
+    }
+}
+
+impl FileIO for Dir {
+    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
+        Err(())
+    }
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        Err(())
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::sys::fs::FileIO;
 use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
@@ -18,7 +19,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if let Some(mut source_file) = sys::fs::File::open(source) {
         if let Some(mut dest_file) = sys::fs::File::create(dest) {
             let mut buf = vec![0; source_file.size()];
-            source_file.read(&mut buf);
+            source_file.read(&mut buf).ok();
             match dest_file.write(&buf) {
                 Ok(_) => {
                     usr::shell::ExitCode::CommandSuccessful

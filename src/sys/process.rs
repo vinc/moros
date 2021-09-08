@@ -1,4 +1,4 @@
-use crate::sys::fs::File;
+use crate::sys::fs::{Resource, Device};
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -19,7 +19,7 @@ pub struct Process {
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
-    file_handles: Vec<Option<File>>,
+    file_handles: Vec<Option<Resource>>,
 }
 
 impl Process {
@@ -65,7 +65,7 @@ pub fn set_user(user: &str) {
     PROCESS.lock().user = Some(user.into())
 }
 
-pub fn create_file_handle(file: File) -> Result<usize, ()> {
+pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
     let min = 4; // The first 4 file handles are reserved
     let max = MAX_FILE_HANDLES;
     let proc = &mut *PROCESS.lock();
@@ -78,7 +78,7 @@ pub fn create_file_handle(file: File) -> Result<usize, ()> {
     Err(())
 }
 
-pub fn update_file_handle(handle: usize, file: File) {
+pub fn update_file_handle(handle: usize, file: Resource) {
     let proc = &mut *PROCESS.lock();
     proc.file_handles[handle] = Some(file);
 }
@@ -88,7 +88,7 @@ pub fn delete_file_handle(handle: usize) {
     proc.file_handles[handle] = None;
 }
 
-pub fn file_handle(handle: usize) -> Option<File> {
+pub fn file_handle(handle: usize) -> Option<Resource> {
     let proc = &mut *PROCESS.lock();
     proc.file_handles[handle].clone()
 }

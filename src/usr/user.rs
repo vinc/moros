@@ -1,5 +1,6 @@
 use crate::{api, sys, usr};
 use crate::api::syscall;
+use crate::sys::fs::FileIO;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::String;

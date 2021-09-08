@@ -1,6 +1,7 @@
 use crate::{sys, usr};
 use crate::api::syscall;
 use crate::api::console::Style;
+use crate::sys::fs::FileIO;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -100,7 +101,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = format!("<h1>Index of {}</h1>\r\n", path);
-                                        let mut files: Vec<_> = dir.read().collect();
+                                        let mut files: Vec<_> = dir.entries().collect();
                                         files.sort_by_key(|f| f.name());
                                         for file in files {
                                             let sep = if path == "/" { "" } else { "/" };

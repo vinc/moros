@@ -19,7 +19,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if let Some(dir) = sys::fs::Dir::open(pathname) {
-        if dir.read().count() == 0 {
+        if dir.entries().count() == 0 {
             if sys::fs::Dir::delete(pathname).is_ok() {
                 usr::shell::ExitCode::CommandSuccessful
             } else {

@@ -36,7 +36,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if let Some(dir) = sys::fs::Dir::open(path) {
-        let mut files: Vec<_> = dir.read().collect();
+        let mut files: Vec<_> = dir.entries().collect();
 
         match sort {
             "name" => files.sort_by_key(|f| f.name()),

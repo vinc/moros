@@ -1,5 +1,7 @@
 use crate::sys;
+use crate::sys::fs::Resource;
 use crate::sys::fs::FileStat;
+use crate::sys::fs::FileIO;
 
 pub fn sleep(seconds: f64) {
     unsafe { asm!("sti") }; // Restore interrupts
@@ -26,7 +28,8 @@ pub fn stat(path: &str, stat: &mut FileStat) -> isize {
 
 pub fn open(path: &str, flags: usize) -> isize {
     if let Some(file) = sys::fs::open_file(path, flags) {
-        if let Ok(handle) = sys::process::create_file_handle(file) {
+        let resource = Resource::File(file);
+        if let Ok(handle) = sys::process::create_file_handle(resource) {
             return handle as isize;
         }
     }
@@ -35,9 +38,10 @@ pub fn open(path: &str, flags: usize) -> isize {
 
 pub fn read(handle: usize, buf: &mut [u8]) -> isize {
     if let Some(mut file) = sys::process::file_handle(handle) {
-        let bytes = file.read(buf);
-        sys::process::update_file_handle(handle, file);
-        return bytes as isize;
+        if let Ok(bytes) = file.read(buf) {
+            sys::process::update_file_handle(handle, file);
+            return bytes as isize;
+        }
     }
     -1
 }

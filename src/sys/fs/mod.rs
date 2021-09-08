@@ -35,6 +35,46 @@ pub enum FileType {
     File = 1,
 }
 
+#[derive(Clone)]
+pub enum Resource {
+    Dir(Dir),
+    File(File),
+    Device(Device),
+}
+
+pub trait FileIO {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()>;
+}
+
+impl FileIO for Resource {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        match self {
+            Resource::Dir(io) => io.read(buf),
+            Resource::File(io) => io.read(buf),
+            Resource::Device(io) => io.read(buf),
+        }
+    }
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        match self {
+            Resource::Dir(io) => io.write(buf),
+            Resource::File(io) => io.write(buf),
+            Resource::Device(io) => io.write(buf),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum Device {
+}
+
+impl FileIO for Device {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+    }
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+    }
+}
+
 // TODO: All this should be done dynamically
 // We could store the disk size in the superblock area
 // And we could maybe also have a counter of allocated block in there to make
