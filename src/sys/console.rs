@@ -25,17 +25,17 @@ impl Console {
 impl FileIO for Console {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let input = if buf.len() == 1 {
-            get_char().to_string()
+            read_char().to_string()
         } else {
-            get_line()
+            read_line()
         };
         let mut i = 0;
         for b in input.bytes() {
-            i += 1;
             if i == buf.len() {
                 break;
             }
             buf[i] = b;
+            i += 1;
         }
         Ok(i)
     }
@@ -144,8 +144,7 @@ pub fn drain() {
     })
 }
 
-// TODO: Rename to `read_char()`
-pub fn get_char() -> char {
+pub fn read_char() -> char {
     sys::console::disable_echo();
     sys::console::enable_raw();
     loop {
@@ -166,8 +165,7 @@ pub fn get_char() -> char {
     }
 }
 
-// TODO: Rename to `read_line()`
-pub fn get_line() -> String {
+pub fn read_line() -> String {
     loop {
         sys::time::halt();
         let res = interrupts::without_interrupts(|| {

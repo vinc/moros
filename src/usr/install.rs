@@ -1,6 +1,7 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::fs::FileIO;
+use crate::api::io;
 use alloc::string::String;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
@@ -10,7 +11,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     println!();
 
     print!("Proceed? [y/N] ");
-    if sys::console::get_line().trim() == "y" {
+    if io::stdin().read_line().trim() == "y" {
         println!();
 
         if !sys::fs::is_mounted() {
@@ -20,7 +21,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
             println!("{}Formatting disk ...{}", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
-            let pathname = sys::console::get_line();
+            let pathname = io::stdin().read_line();
             let res = usr::disk::main(&["disk", "format", pathname.trim_end()]);
             if res == usr::shell::ExitCode::CommandError {
                 return res;

@@ -1,5 +1,4 @@
-use crate::api::fs;
-use crate::api::console;
+use crate::api::{console, fs, io};
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -31,7 +30,7 @@ impl Prompt {
         self.cursor = self.offset;
         self.line = String::new();
         let mut parser = Parser::new();
-        while let Some(c) = console::read_char() {
+        while let Some(c) = io::stdin().read_char() {
             match c {
                 '\x03' => { // End of Text (^C)
                     println!();

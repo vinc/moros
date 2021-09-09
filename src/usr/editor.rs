@@ -1,6 +1,7 @@
 use crate::{sys, usr};
 use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::io;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -147,7 +148,7 @@ impl Editor {
         let mut escape = false;
         let mut csi = false;
         loop {
-            let c = sys::console::get_char();
+            let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
             match c {
                 '\x1B' => { // ESC

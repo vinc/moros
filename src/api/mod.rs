@@ -3,7 +3,7 @@ macro_rules! print {
     ($($arg:tt)*) => ({
         use alloc::format;
         let s = format!("{}", format_args!($($arg)*));
-        $crate::api::syscall::write(1, s.as_bytes());
+        $crate::api::io::stdout().write(&s);
     });
 }
 
@@ -20,6 +20,7 @@ macro_rules! println {
 pub mod console;
 pub mod font;
 pub mod fs;
+pub mod io;
 pub mod prompt;
 pub mod regex;
 pub mod syscall;

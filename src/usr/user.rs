@@ -1,9 +1,10 @@
 use crate::{api, sys, usr};
+use crate::api::io;
 use crate::api::syscall;
 use crate::api::fs::FileIO;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::str;
@@ -20,9 +21,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let username: String = if args.len() == 2 {
         print!("Username: ");
-        sys::console::get_line().trim_end().into()
+        io::stdin().read_line().trim_end().to_string()
     } else {
-        args[2].into()
+        args[2].to_string()
     };
 
     match args[1] {
@@ -49,10 +50,9 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
         Some(hash) => {
             print!("Password: ");
             sys::console::disable_echo();
-            let mut password = sys::console::get_line();
+            let password = io::stdin().read_line().trim_end().to_string();
             sys::console::enable_echo();
             println!();
-            password.pop();
             if !check(&password, &hash) {
                 println!();
                 syscall::sleep(1.0);
@@ -87,10 +87,9 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
 
     print!("Password: ");
     sys::console::disable_echo();
-    let mut password = sys::console::get_line();
+    let password = io::stdin().read_line().trim_end().to_string();
     sys::console::enable_echo();
     println!();
-    password.pop();
 
     if password.is_empty() {
         return usr::shell::ExitCode::CommandError;
@@ -98,10 +97,9 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
 
     print!("Confirm: ");
     sys::console::disable_echo();
-    let mut confirm = sys::console::get_line();
+    let confirm = io::stdin().read_line().trim_end().to_string();
     sys::console::enable_echo();
     println!();
-    confirm.pop();
 
     if password != confirm {
         println!("Password confirmation failed");

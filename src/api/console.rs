@@ -79,10 +79,6 @@ fn color_to_bg(name: &str) -> Option<usize> {
     color_to_fg(name).map(|fg| fg + 10)
 }
 
-pub fn read_char() -> Option<char> {
-    Some(sys::console::get_char())
-}
-
 pub fn is_printable(c: char) -> bool {
     if cfg!(feature = "video") {
         c.is_ascii() && sys::vga::is_printable(c as u8)
