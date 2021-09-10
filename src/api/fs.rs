@@ -125,7 +125,7 @@ fn test_file() {
     mount_mem();
     format_mem();
 
-    assert_eq!(open("/test"), None);
+    assert_eq!(open_file("/test"), None);
 
     // Write file
     let input = "Hello, world!".as_bytes();
