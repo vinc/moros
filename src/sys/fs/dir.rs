@@ -9,7 +9,7 @@ use crate::sys;
 use alloc::string::String;
 use core::convert::From;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Dir {
     addr: u32,
 }
@@ -86,6 +86,10 @@ impl Dir {
 
     pub fn create_dir(&self, name: &str) -> Option<DirEntry> {
         self.create_entry(FileType::Dir, name)
+    }
+
+    pub fn create_device(&self, name: &str) -> Option<DirEntry> {
+        self.create_entry(FileType::Device, name)
     }
 
     fn create_entry(&self, kind: FileType, name: &str) -> Option<DirEntry> {

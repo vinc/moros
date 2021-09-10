@@ -1,5 +1,4 @@
 use crate::sys;
-use crate::sys::fs::Resource;
 use crate::sys::fs::FileStat;
 use crate::sys::fs::FileIO;
 
@@ -18,8 +17,8 @@ pub fn realtime() -> f64 {
 }
 
 pub fn stat(path: &str, stat: &mut FileStat) -> isize {
-    if let Some(file) = sys::fs::File::open(path) {
-        *stat = file.stat();
+    if let Some(res) = sys::fs::stat(path) {
+        *stat = res;
         0
     } else {
         -1
@@ -27,8 +26,7 @@ pub fn stat(path: &str, stat: &mut FileStat) -> isize {
 }
 
 pub fn open(path: &str, flags: usize) -> isize {
-    if let Some(file) = sys::fs::open_file(path, flags) {
-        let resource = Resource::File(file);
+    if let Some(resource) = sys::fs::open(path, flags) {
         if let Ok(handle) = sys::process::create_file_handle(resource) {
             return handle as isize;
         }

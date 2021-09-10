@@ -1,42 +1,74 @@
 mod block;
 mod block_bitmap;
 mod block_device;
+mod device;
 mod dir;
 mod dir_entry;
 mod file;
 mod read_dir;
 
+pub use device::{Device, DeviceType};
 pub use dir::Dir;
-pub use file::{File, FileStat, SeekFrom};
+pub use dir_entry::FileStat;
+pub use file::{File, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
 pub use crate::api::fs::{dirname, filename, realpath, FileIO};
-pub use crate::sys::console::Console;
 
 use block_bitmap::BlockBitmap;
+use dir_entry::DirEntry;
 
 #[repr(u8)]
 pub enum OpenFlag {
-    Read = 1,
-    Write = 2,
+    Read   = 1,
+    Write  = 2,
     Create = 4,
+    Dir    = 8,
+    Device = 16,
 }
 
-pub fn open_file(path: &str, flags: usize) -> Option<File> {
-    let res = File::open(path);
-    if res.is_none() && flags & (OpenFlag::Create as usize) != 0 {
-        File::create(path)
-    } else {
-        res
+impl OpenFlag {
+    fn is_set(self, flags: usize) -> bool {
+        flags & (self as usize) != 0
     }
+}
+
+pub fn open(path: &str, flags: usize) -> Option<Resource> {
+    if OpenFlag::Dir.is_set(flags) {
+        let res = Dir::open(path);
+        if res.is_none() && OpenFlag::Create.is_set(flags) {
+            Dir::create(path)
+        } else {
+            res
+        }.map(|r| Resource::Dir(r))
+    } else if OpenFlag::Device.is_set(flags) {
+        let res = Device::open(path);
+        if res.is_none() && OpenFlag::Create.is_set(flags) {
+            Device::create(path)
+        } else {
+            res
+        }.map(|r| Resource::Device(r))
+    } else {
+        let res = File::open(path);
+        if res.is_none() && OpenFlag::Create.is_set(flags) {
+            File::create(path)
+        } else {
+            res
+        }.map(|r| Resource::File(r))
+    }
+}
+
+pub fn stat(pathname: &str) -> Option<FileStat> {
+    DirEntry::open(pathname).map(|e| e.stat())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
     Dir = 0,
     File = 1,
+    Device = 2,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum Resource {
     Dir(Dir),
     File(File),
@@ -51,29 +83,12 @@ impl FileIO for Resource {
             Resource::Device(io) => io.read(buf),
         }
     }
+
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match self {
             Resource::Dir(io) => io.write(buf),
             Resource::File(io) => io.write(buf),
             Resource::Device(io) => io.write(buf),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub enum Device {
-    Console(Console)
-}
-
-impl FileIO for Device {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        match self {
-            Device::Console(io) => io.read(buf),
-        }
-    }
-    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        match self {
-            Device::Console(io) => io.write(buf),
         }
     }
 }

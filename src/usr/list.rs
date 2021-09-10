@@ -54,12 +54,19 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         let width = max_size.to_string().len();
 
-        let csi_color = Style::color("Blue");
+        let csi_dir_color = Style::color("Blue");
+        let csi_dev_color = Style::color("Yellow");
         let csi_reset = Style::reset();
 
         for file in files {
             let date = OffsetDateTime::from_unix_timestamp(file.time() as i64);
-            let color = if file.is_dir() { csi_color } else { csi_reset };
+            let color = if file.is_dir() {
+                csi_dir_color
+            } else if file.is_device() {
+                csi_dev_color
+            } else {
+                csi_reset
+            };
             println!("{:width$} {} {}{}{}", file.size(), date.format("%F %H:%M:%S"), color, file.name(), csi_reset, width = width);
         }
         usr::shell::ExitCode::CommandSuccessful

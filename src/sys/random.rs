@@ -1,8 +1,32 @@
+use crate::sys::fs::FileIO;
+
 #[cfg(not(debug_assertions))]
 use rand_chacha::ChaChaRng;
 #[cfg(not(debug_assertions))]
 use rand_core::{RngCore, SeedableRng};
 use x86_64::instructions::random::RdRand;
+
+#[derive(Debug, Clone)]
+pub struct Random;
+
+impl Random {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl FileIO for Random {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let n = buf.len();
+        for i in 0..n {
+            buf[i] = get_u64() as u8;
+        }
+        Ok(n)
+    }
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        unimplemented!();
+    }
+}
 
 // FIXME: Compiling this with debug_assertions generate the following error:
 // LLVM ERROR: Do not know how to split the result of this operator!

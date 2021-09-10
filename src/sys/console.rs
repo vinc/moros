@@ -13,7 +13,7 @@ lazy_static! {
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Console;
 
 impl Console {

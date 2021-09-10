@@ -1,5 +1,5 @@
 use crate::api::syscall;
-use crate::sys::fs::OpenFlag;
+use crate::sys::fs::{OpenFlag, DeviceType};
 use crate::sys;
 
 use alloc::format;
@@ -57,14 +57,28 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
     }
 }
 
-pub fn open(path: &str) -> Option<usize> {
+pub fn open_file(path: &str) -> Option<usize> {
     let flags = 0;
     syscall::open(path, flags)
 }
 
-pub fn create(path: &str) -> Option<usize> {
+pub fn create_file(path: &str) -> Option<usize> {
     let flags = OpenFlag::Create as usize;
     syscall::open(path, flags)
+}
+
+pub fn open_device(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Device as usize;
+    syscall::open(path, flags)
+}
+
+pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
+    let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
+    if let Some(handle) = syscall::open(path, flags) {
+        let buf = [kind as u8; 1];
+        return syscall::write(handle, &buf);
+    }
+    None
 }
 
 pub fn read_to_string(path: &str) -> Result<String, ()> {
@@ -78,7 +92,8 @@ pub fn read(path: &str) -> Result<Vec<u8>, ()> {
         Err(_) => return Err(()),
     };
     if let Some(stat) = syscall::stat(&path) {
-        if let Some(handle) = open(&path) {
+        let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
+        if let Some(handle) = res {
             let mut buf = vec![0; stat.size() as usize];
             if let Some(bytes) = syscall::read(handle, &mut buf) {
                 buf.resize(bytes, 0);
@@ -95,7 +110,7 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
         Ok(path) => path,
         Err(_) => return Err(()),
     };
-    if let Some(handle) = create(&path) {
+    if let Some(handle) = create_file(&path) {
         if let Some(bytes) = syscall::write(handle, buf) {
             syscall::close(handle);
             return Ok(bytes)

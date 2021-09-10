@@ -1,6 +1,8 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::fs::FileIO;
+use crate::api::fs;
+use crate::api::syscall;
 use crate::api::io;
 use alloc::string::String;
 
@@ -39,6 +41,20 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         create_dir("/tmp"); // Temporaries
         create_dir("/usr"); // User directories
         create_dir("/var"); // Variables
+
+        create_dir("/dev/clk"); // Clocks
+        let pathname = "/dev/console";
+        if syscall::stat(pathname).is_none() {
+            if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() {
+                println!("Created '{}'", pathname);
+            }
+        }
+        let pathname = "/dev/random";
+        if syscall::stat(pathname).is_none() {
+            if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() {
+                println!("Created '{}'", pathname);
+            }
+        }
 
         copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"));
         copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));

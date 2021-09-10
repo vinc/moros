@@ -1,4 +1,5 @@
 use crate::{api, sys, usr};
+use crate::api::fs;
 use crate::api::syscall;
 use crate::sys::cmos::CMOS;
 use alloc::borrow::ToOwned;
@@ -28,19 +29,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         "/dev/clk/uptime" => {
             println!("{:.6}", syscall::uptime());
             usr::shell::ExitCode::CommandSuccessful
-        },
-        "/dev/random" => {
-            loop {
-                // Generate ASCII graphic chars
-                let i = (sys::random::get_u32() % (0x72 - 0x20)) + 0x20;
-                if let Some(c) = core::char::from_u32(i) {
-                    print!("{}", c);
-                }
-                if sys::console::end_of_text() {
-                    println!();
-                    return usr::shell::ExitCode::CommandSuccessful;
-                }
-            }
         },
         _ => {
             if pathname.starts_with("/net/") {
@@ -75,11 +63,31 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         }
                     }
                 }
-            } else if pathname.ends_with('/') {
-                usr::list::main(args)
-            } else if let Ok(contents) = api::fs::read_to_string(pathname) {
-                print!("{}", contents);
-                usr::shell::ExitCode::CommandSuccessful
+            } else if let Some(stat) = syscall::stat(pathname) {
+                if stat.is_file() {
+                    if let Ok(contents) = api::fs::read_to_string(pathname) {
+                        print!("{}", contents);
+                        usr::shell::ExitCode::CommandSuccessful
+                    } else {
+                        println!("Could not read '{}'", pathname);
+                        usr::shell::ExitCode::CommandError
+                    }
+                } else if stat.is_dir() {
+                    usr::list::main(args)
+                } else if stat.is_device() {
+                    loop {
+                        if let Ok(bytes) = fs::read(pathname) {
+                            print!("{}", bytes[0] as char);
+                        }
+                        if sys::console::end_of_text() {
+                            println!();
+                            return usr::shell::ExitCode::CommandSuccessful;
+                        }
+                    }
+                } else {
+                    println!("Could not read type of '{}'", pathname);
+                    usr::shell::ExitCode::CommandError
+                }
             } else {
                 println!("File not found '{}'", pathname);
                 usr::shell::ExitCode::CommandError
