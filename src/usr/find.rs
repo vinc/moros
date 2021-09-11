@@ -1,5 +1,6 @@
 use crate::{sys, usr};
 use crate::api::fs;
+use crate::api::syscall;
 use crate::api::regex::Regex;
 use crate::api::console::Style;
 
@@ -77,7 +78,7 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
                 print_matching_lines_in_file(&file_path, pattern, state);
             }
         }
-    } else if sys::fs::File::open(path).is_some() {
+    } else if syscall::stat(path).is_some() {
         print_matching_lines_in_file(&path, pattern, state);
     }
 }

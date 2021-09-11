@@ -1,9 +1,8 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
-use crate::api::fs::FileIO;
 use crate::api::fs;
-use crate::api::syscall;
 use crate::api::io;
+use crate::api::syscall;
 use alloc::string::String;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
@@ -99,21 +98,19 @@ fn create_dir(pathname: &str) {
 }
 
 fn copy_file(pathname: &str, buf: &[u8]) {
-    if sys::fs::File::open(pathname).is_some() {
+    if syscall::stat(pathname).is_some() {
         return;
     }
-    if let Some(mut file) = sys::fs::File::create(pathname) {
-        if pathname.ends_with(".txt") {
-            if let Ok(text) = String::from_utf8(buf.to_vec()) {
-                let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
-                file.write(text.as_bytes()).unwrap();
-            } else {
-                file.write(buf).unwrap();
-            }
+    if pathname.ends_with(".txt") {
+        if let Ok(text) = String::from_utf8(buf.to_vec()) {
+            let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
+            fs::write(pathname, text.as_bytes()).ok();
         } else {
-            file.write(buf).unwrap();
+            fs::write(pathname, buf).ok();
         }
-        // TODO: add File::write_all to split buf if needed
-        println!("Copied '{}'", pathname);
+    } else {
+        fs::write(pathname, buf).ok();
     }
+    // TODO: add File::write_all to split buf if needed
+    println!("Copied '{}'", pathname);
 }

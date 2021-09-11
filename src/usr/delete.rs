@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::syscall;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
@@ -30,7 +31,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             println!("Directory '{}' not empty", pathname);
             usr::shell::ExitCode::CommandError
         }
-    } else if sys::fs::File::open(pathname).is_some() {
+    } else if syscall::stat(pathname).is_some() {
         if sys::fs::File::delete(pathname).is_ok() {
             usr::shell::ExitCode::CommandSuccessful
         } else {
