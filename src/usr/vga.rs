@@ -1,7 +1,6 @@
 use crate::{api, sys, usr};
 use crate::api::vga::palette;
-use crate::api::fs::FileIO;
-use alloc::vec;
+use crate::api::fs;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
@@ -11,9 +10,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     match args[1] {
         "set" => {
             if args.len() == 4 && args[2] == "font" {
-                if let Some(mut file) = sys::fs::File::open(args[3]) {
-                    let mut buf = vec![0; file.size()];
-                    file.read(&mut buf).ok();
+                if let Ok(buf) = fs::read(args[3]) {
                     if let Ok(font) = api::font::from_bytes(&buf) {
                         sys::vga::set_font(&font);
                     } else {
@@ -22,8 +19,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                 }
             } else if args.len() == 4 && args[2] == "palette" {
-                if let Some(mut file) = sys::fs::File::open(args[3]) {
-                    if let Ok(palette) = palette::from_csv(&file.read_to_string()) {
+                if let Ok(csv) = fs::read_to_string(args[3]) {
+                    if let Ok(palette) = palette::from_csv(&csv) {
                         sys::vga::set_palette(palette);
                         // TODO: Instead of calling a kernel function we could
                         // use the following ANSI OSC command to set a palette:
