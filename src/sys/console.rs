@@ -24,11 +24,12 @@ impl Console {
 
 impl FileIO for Console {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let s = if buf.len() == 1 {
+        let mut s = if buf.len() == 1 {
             read_char().to_string()
         } else {
             read_line()
         };
+        s.truncate(buf.len());
         let n = s.len();
         buf[0..n].copy_from_slice(s.as_bytes());
         Ok(n)
