@@ -1,7 +1,7 @@
 use crate::{api, sys, usr};
+use crate::api::fs;
 use crate::api::io;
 use crate::api::syscall;
-use crate::api::fs::FileIO;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -194,17 +194,10 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     hashed_passwords.remove(username);
     hashed_passwords.insert(username.into(), hash.into());
 
-    let mut file = match sys::fs::File::open(PASSWORDS) {
-        None => match sys::fs::File::create(PASSWORDS) {
-            None => return Err(()),
-            Some(file) => file,
-        },
-        Some(file) => file,
-    };
-
-    let mut contents = String::new();
+    let mut csv = String::new();
     for (u, h) in hashed_passwords {
-        contents.push_str(&format!("{},{}\n", u, h));
+        csv.push_str(&format!("{},{}\n", u, h));
     }
-    file.write(contents.as_bytes())
+
+    fs::write(PASSWORDS, csv.as_bytes())
 }
