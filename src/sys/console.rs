@@ -24,25 +24,21 @@ impl Console {
 
 impl FileIO for Console {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let input = if buf.len() == 1 {
+        let s = if buf.len() == 1 {
             read_char().to_string()
         } else {
             read_line()
         };
-        let mut i = 0;
-        for b in input.bytes() {
-            if i == buf.len() {
-                break;
-            }
-            buf[i] = b;
-            i += 1;
-        }
-        Ok(i)
+        let n = s.len();
+        buf[0..n].copy_from_slice(s.as_bytes());
+        Ok(n)
     }
+
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let s = String::from_utf8_lossy(buf);
+        let n = s.len();
         print_fmt(format_args!("{}", s));
-        Ok(s.len())
+        Ok(n)
     }
 }
 
