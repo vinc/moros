@@ -1,6 +1,7 @@
 use crate::{api, sys, usr};
 use crate::api::fs;
 use crate::api::io;
+use crate::api::random;
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -147,7 +148,7 @@ pub fn hash(password: &str) -> String {
 
     // Generating salt
     for i in 0..2 {
-        let num = sys::random::get_u64();
+        let num = random::get_u64();
         let buf = num.to_be_bytes();
         let n = buf.len();
         for j in 0..n {

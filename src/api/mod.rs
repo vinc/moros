@@ -22,6 +22,7 @@ pub mod font;
 pub mod fs;
 pub mod io;
 pub mod prompt;
+pub mod random;
 pub mod regex;
 pub mod syscall;
 pub mod vga;

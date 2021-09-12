@@ -1,5 +1,6 @@
 use crate::{sys, usr};
 use crate::api::syscall;
+use crate::api::random;
 use alloc::borrow::ToOwned;
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -94,7 +95,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
                 state = match state {
                     State::Connect if !socket.is_active() => {
-                        let local_port = 49152 + sys::random::get_u16() % 16384;
+                        let local_port = 49152 + random::get_u16() % 16384;
                         println!("Connecting to {}:{}", address, port);
                         if socket.connect((address, port), local_port).is_err() {
                             println!("Could not connect to {}:{}", address, port);
