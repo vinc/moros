@@ -119,15 +119,15 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                 "PUT" => {
                                     if path.ends_with('/') { // Write directory
                                         let path = path.trim_end_matches('/');
-                                        if sys::fs::Dir::open(path).is_some() {
+                                        if syscall::stat(path).is_some() {
                                             code = 403;
                                             res.push_str("HTTP/1.0 403 Forbidden\r\n");
-                                        } else if sys::fs::Dir::create(path).is_none() {
-                                            code = 500;
-                                            res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
-                                        } else {
+                                        } else if fs::create_dir(path).is_some() {
                                             code = 200;
                                             res.push_str("HTTP/1.0 200 OK\r\n");
+                                        } else {
+                                            code = 500;
+                                            res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
                                         }
                                     } else { // Write file
                                         if fs::write(path, contents.as_bytes()).is_ok() {

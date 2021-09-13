@@ -67,6 +67,16 @@ pub fn create_file(path: &str) -> Option<usize> {
     syscall::open(path, flags)
 }
 
+pub fn open_dir(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Dir as usize;
+    syscall::open(path, flags)
+}
+
+pub fn create_dir(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Create as usize | OpenFlag::Dir as usize;
+    syscall::open(path, flags)
+}
+
 pub fn open_device(path: &str) -> Option<usize> {
     let flags = OpenFlag::Device as usize;
     syscall::open(path, flags)
