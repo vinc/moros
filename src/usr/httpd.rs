@@ -119,7 +119,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                 "PUT" => {
                                     if path.ends_with('/') { // Write directory
                                         let path = path.trim_end_matches('/');
-                                        if syscall::stat(path).is_some() {
+                                        if fs::exists(path) {
                                             code = 403;
                                             res.push_str("HTTP/1.0 403 Forbidden\r\n");
                                         } else if fs::create_dir(path).is_some() {
@@ -142,7 +142,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                     mime = "text/plain";
                                 },
                                 "DELETE" => {
-                                    if syscall::stat(path).is_some() {
+                                    if fs::exists(path) {
                                         if sys::fs::File::delete(path).is_ok() {
                                             code = 200;
                                             res.push_str("HTTP/1.0 200 OK\r\n");

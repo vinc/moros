@@ -98,7 +98,7 @@ fn create_dir(pathname: &str) {
 }
 
 fn copy_file(pathname: &str, buf: &[u8]) {
-    if syscall::stat(pathname).is_some() {
+    if fs::exists(pathname) {
         return;
     }
     if pathname.ends_with(".txt") {

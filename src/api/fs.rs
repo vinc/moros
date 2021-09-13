@@ -57,6 +57,10 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
     }
 }
 
+pub fn exists(path: &str) -> bool {
+    syscall::stat(path).is_some()
+}
+
 pub fn open_file(path: &str) -> Option<usize> {
     let flags = 0;
     syscall::open(path, flags)
