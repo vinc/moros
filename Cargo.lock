@@ -8,7 +8,7 @@ version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b824f15619f321aa08e161ca597aec0621c5195be81a6c945f7c4b75d50bd586"
 dependencies = [
- "bit_field 0.10.1",
+ "bit_field",
  "log",
  "rsdp",
 ]
@@ -19,7 +19,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6d6b9450ae5a8297444719e0030db6b098cab28ced173eef115e339555cfdc6"
 dependencies = [
- "bit_field 0.10.1",
+ "bit_field",
  "bitvec",
  "byteorder",
  "log",
@@ -49,12 +49,6 @@ name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
-
-[[package]]
-name = "bit_field"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed8765909f9009617974ab6b7d332625b320b33c326b1e9321382ef1999b5d56"
 
 [[package]]
 name = "bit_field"
@@ -250,7 +244,7 @@ dependencies = [
  "aml",
  "array-macro",
  "base64",
- "bit_field 0.10.1",
+ "bit_field",
  "bootloader",
  "float-cmp",
  "hmac",
@@ -636,11 +630,11 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.14.4"
+version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95947de37ad0d2d9a4a4dd22e0d042e034e5cbd7ab53edbca0d8035e0a6a64d"
+checksum = "4522ae25e1e0dbf4302ffde77e55c43afe3d7523cba662943b5de8ff04871f6c"
 dependencies = [
- "bit_field 0.9.0",
+ "bit_field",
  "bitflags",
  "volatile",
 ]
