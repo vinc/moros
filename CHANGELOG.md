@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Bump acpi from 3.1.0 to 4.0.0 (#243)
+- Bump sha2 from 0.9.6 to 0.9.8 (#244)
+- Bump x86_64 from 0.14.4 to 0.14.5 (#245)
+- Add file syscalls (#242)
+- Bump aml from 0.15.0 to 0.16.0 (#241)
+- Bump pic8259 from 0.10.1 to 0.10.2 (#235)
+- Bump aml from 0.14.0 to 0.15.0 (#236)
+- Bump pbkdf2 from 0.8.0 to 0.9.0 (#239)
+- Bump sha2 from 0.9.5 to 0.9.6 (#240)
 
 ## 0.6.0 (2021-08-21)
 - Add beep command ([#234](https://github.com/vinc/moros/pull/234))
