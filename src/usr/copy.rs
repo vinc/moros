@@ -1,5 +1,5 @@
-use crate::{sys, usr};
-use alloc::vec;
+use crate::usr;
+use crate::api::fs;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 3 {
@@ -15,21 +15,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    if let Some(mut source_file) = sys::fs::File::open(source) {
-        if let Some(mut dest_file) = sys::fs::File::create(dest) {
-            let mut buf = vec![0; source_file.size()];
-            source_file.read(&mut buf);
-            match dest_file.write(&buf) {
-                Ok(_) => {
-                    usr::shell::ExitCode::CommandSuccessful
-                },
-                Err(()) => {
-                    println!("Could not write to '{}'", dest);
-                    usr::shell::ExitCode::CommandError
-                }
-            }
+    if let Ok(contents) = fs::read(source) {
+        if fs::write(dest, &contents).is_ok() {
+            usr::shell::ExitCode::CommandSuccessful
         } else {
-            println!("Permission denied to write to '{}'", dest);
+            println!("Could not write to '{}'", dest);
             usr::shell::ExitCode::CommandError
         }
     } else {

@@ -1,5 +1,6 @@
+use crate::{api, sys, usr};
+use crate::api::fs;
 use crate::api::prompt::Prompt;
-use crate::{sys, usr};
 use crate::api::console::Style;
 use alloc::format;
 use alloc::vec::Vec;
@@ -34,12 +35,12 @@ fn shell_completer(line: &str) -> Vec<String> {
             }
         }
     } else { // Autocomplete path
-        let pathname = sys::fs::realpath(args[i]);
-        let dirname = sys::fs::dirname(&pathname);
-        let filename = sys::fs::filename(&pathname);
+        let pathname = fs::realpath(args[i]);
+        let dirname = fs::dirname(&pathname);
+        let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
         if let Some(dir) = sys::fs::Dir::open(dirname) {
-            for entry in dir.read() {
+            for entry in dir.entries() {
                 let name = entry.name();
                 if name.starts_with(filename) {
                     let end = if entry.is_dir() { "/" } else { "" };
@@ -104,7 +105,7 @@ fn change_dir(args: &[&str]) -> ExitCode {
             ExitCode::CommandSuccessful
         },
         2 => {
-            let mut pathname = sys::fs::realpath(args[1]);
+            let mut pathname = fs::realpath(args[1]);
             if pathname.len() > 1 {
                 pathname = pathname.trim_end_matches('/').into();
             }
@@ -221,8 +222,8 @@ pub fn main(args: &[&str]) -> ExitCode {
         },
         2 => {
             let pathname = args[1];
-            if let Some(mut file) = sys::fs::File::open(pathname) {
-                for line in file.read_to_string().split('\n') {
+            if let Ok(contents) = api::fs::read_to_string(pathname) {
+                for line in contents.split('\n') {
                     if !line.is_empty() {
                         exec(line);
                     }

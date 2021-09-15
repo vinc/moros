@@ -1,5 +1,8 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::io;
+use crate::api::syscall;
 use alloc::string::String;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
@@ -9,7 +12,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     println!();
 
     print!("Proceed? [y/N] ");
-    if sys::console::get_line().trim() == "y" {
+    if io::stdin().read_line().trim() == "y" {
         println!();
 
         if !sys::fs::is_mounted() {
@@ -19,7 +22,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
             println!("{}Formatting disk ...{}", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
-            let pathname = sys::console::get_line();
+            let pathname = io::stdin().read_line();
             let res = usr::disk::main(&["disk", "format", pathname.trim_end()]);
             if res == usr::shell::ExitCode::CommandError {
                 return res;
@@ -37,6 +40,20 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         create_dir("/tmp"); // Temporaries
         create_dir("/usr"); // User directories
         create_dir("/var"); // Variables
+
+        create_dir("/dev/clk"); // Clocks
+        let pathname = "/dev/console";
+        if syscall::stat(pathname).is_none() {
+            if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() {
+                println!("Created '{}'", pathname);
+            }
+        }
+        let pathname = "/dev/random";
+        if syscall::stat(pathname).is_none() {
+            if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() {
+                println!("Created '{}'", pathname);
+            }
+        }
 
         copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"));
         copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));
@@ -81,21 +98,19 @@ fn create_dir(pathname: &str) {
 }
 
 fn copy_file(pathname: &str, buf: &[u8]) {
-    if sys::fs::File::open(pathname).is_some() {
+    if fs::exists(pathname) {
         return;
     }
-    if let Some(mut file) = sys::fs::File::create(pathname) {
-        if pathname.ends_with(".txt") {
-            if let Ok(text) = String::from_utf8(buf.to_vec()) {
-                let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
-                file.write(text.as_bytes()).unwrap();
-            } else {
-                file.write(buf).unwrap();
-            }
+    if pathname.ends_with(".txt") {
+        if let Ok(text) = String::from_utf8(buf.to_vec()) {
+            let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
+            fs::write(pathname, text.as_bytes()).ok();
         } else {
-            file.write(buf).unwrap();
+            fs::write(pathname, buf).ok();
         }
-        // TODO: add File::write_all to split buf if needed
-        println!("Copied '{}'", pathname);
+    } else {
+        fs::write(pathname, buf).ok();
     }
+    // TODO: add File::write_all to split buf if needed
+    println!("Copied '{}'", pathname);
 }

@@ -1,7 +1,46 @@
+use crate::api::syscall;
+use crate::sys::fs::{OpenFlag, DeviceType};
 use crate::sys;
+
+use alloc::format;
 use alloc::string::{String, ToString};
-use alloc::vec;
 use alloc::vec::Vec;
+use alloc::vec;
+
+pub trait FileIO {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()>;
+}
+
+pub fn dirname(pathname: &str) -> &str {
+    let n = pathname.len();
+    let i = match pathname.rfind('/') {
+        Some(0) => 1,
+        Some(i) => i,
+        None => n,
+    };
+    &pathname[0..i]
+}
+
+pub fn filename(pathname: &str) -> &str {
+    let n = pathname.len();
+    let i = match pathname.rfind('/') {
+        Some(i) => i + 1,
+        None => 0,
+    };
+    &pathname[i..n]
+}
+
+// Transform "foo.txt" into "/path/to/foo.txt"
+pub fn realpath(pathname: &str) -> String {
+    if pathname.starts_with('/') {
+        pathname.into()
+    } else {
+        let dirname = sys::process::dir();
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
+        format!("{}{}{}", dirname, sep, pathname)
+    }
+}
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
     match sys::process::env("HOME") {
@@ -18,19 +57,47 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
     }
 }
 
-pub fn read_to_string(path: &str) -> Result<String, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
-    match sys::fs::File::open(&path) {
-        Some(mut file) => {
-            Ok(file.read_to_string())
-        },
-        None => {
-            Err(())
-        }
+pub fn exists(path: &str) -> bool {
+    syscall::stat(path).is_some()
+}
+
+pub fn open_file(path: &str) -> Option<usize> {
+    let flags = 0;
+    syscall::open(path, flags)
+}
+
+pub fn create_file(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Create as usize;
+    syscall::open(path, flags)
+}
+
+pub fn open_dir(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Dir as usize;
+    syscall::open(path, flags)
+}
+
+pub fn create_dir(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Create as usize | OpenFlag::Dir as usize;
+    syscall::open(path, flags)
+}
+
+pub fn open_device(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Device as usize;
+    syscall::open(path, flags)
+}
+
+pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
+    let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
+    if let Some(handle) = syscall::open(path, flags) {
+        let buf = [kind as u8; 1];
+        return syscall::write(handle, &buf);
     }
+    None
+}
+
+pub fn read_to_string(path: &str) -> Result<String, ()> {
+    let buf = read(path)?;
+    Ok(String::from_utf8_lossy(&buf).to_string())
 }
 
 pub fn read(path: &str) -> Result<Vec<u8>, ()> {
@@ -38,33 +105,48 @@ pub fn read(path: &str) -> Result<Vec<u8>, ()> {
         Ok(path) => path,
         Err(_) => return Err(()),
     };
-    match sys::fs::File::open(&path) {
-        Some(mut file) => {
-            let mut buf = vec![0; file.size()];
-            file.read(&mut buf);
-            Ok(buf)
-        },
-        None => {
-            Err(())
+    if let Some(stat) = syscall::stat(&path) {
+        let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
+        if let Some(handle) = res {
+            let mut buf = vec![0; stat.size() as usize];
+            if let Some(bytes) = syscall::read(handle, &mut buf) {
+                buf.resize(bytes, 0);
+                syscall::close(handle);
+                return Ok(buf)
+            }
         }
     }
+    Err(())
 }
 
-pub fn write(path: &str, buf: &[u8]) -> Result<(), ()> {
+pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
     let path = match canonicalize(path) {
         Ok(path) => path,
         Err(_) => return Err(()),
     };
-    let mut file = match sys::fs::File::open(&path) {
-        None => match sys::fs::File::create(&path) {
-            None => return Err(()),
-            Some(file) => file,
-        },
-        Some(file) => file,
-    };
-    // TODO: add File::write_all to split buf if needed
-    match file.write(buf) {
-        Ok(_) => Ok(()),
-        Err(_) => Err(()),
+    if let Some(handle) = create_file(&path) {
+        if let Some(bytes) = syscall::write(handle, buf) {
+            syscall::close(handle);
+            return Ok(bytes)
+        }
     }
+    Err(())
+}
+
+#[test_case]
+fn test_file() {
+    use crate::sys::fs::{mount_mem, format_mem, dismount};
+    mount_mem();
+    format_mem();
+
+    assert_eq!(open_file("/test"), None);
+
+    // Write file
+    let input = "Hello, world!".as_bytes();
+    assert_eq!(write("/test", &input), Ok(input.len()));
+
+    // Read file
+    assert_eq!(read("/test"), Ok(input.to_vec()));
+
+    dismount();
 }

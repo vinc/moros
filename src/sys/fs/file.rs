@@ -1,4 +1,4 @@
-use super::{dirname, filename, realpath};
+use super::{dirname, filename, realpath, FileIO};
 use super::dir::Dir;
 use super::block::Block;
 use super::dir_entry::DirEntry;
@@ -13,7 +13,7 @@ pub enum SeekFrom {
     End(i32),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct File {
     name: String,
     addr: u32,
@@ -84,9 +84,35 @@ impl File {
 
         Ok(self.offset)
     }
+    // TODO: add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
 
-    // TODO: return `Result<usize>`
-    pub fn read(&mut self, buf: &mut [u8]) -> usize {
+    // TODO: `return Result<String>`
+    pub fn read_to_string(&mut self) -> String {
+        let mut buf = vec![0; self.size()];
+        if let Ok(bytes) = self.read(&mut buf) {
+            buf.resize(bytes, 0);
+        }
+        String::from_utf8_lossy(&buf).to_string()
+    }
+
+    pub fn addr(&self) -> u32 {
+        self.addr
+    }
+
+    pub fn delete(pathname: &str) -> Result<(), ()> {
+        let pathname = realpath(pathname);
+        let dirname = dirname(&pathname);
+        let filename = filename(&pathname);
+        if let Some(mut dir) = Dir::open(dirname) {
+            dir.delete_entry(filename)
+        } else {
+            Err(())
+        }
+    }
+}
+
+impl FileIO for File {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let buf_len = buf.len();
         let mut addr = self.addr;
         let mut bytes = 0; // Number of bytes read
@@ -98,7 +124,7 @@ impl File {
             for i in 0..data_len {
                 if pos == self.offset {
                     if bytes == buf_len || pos as usize == self.size() {
-                        return bytes;
+                        return Ok(bytes);
                     }
                     buf[bytes] = data[i];
                     bytes += 1;
@@ -108,22 +134,12 @@ impl File {
             }
             match block.next() {
                 Some(next_block) => addr = next_block.addr(),
-                None => return bytes,
+                None => return Ok(bytes),
             }
         }
     }
 
-    // TODO: add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
-
-    // TODO: `return Result<String>`
-    pub fn read_to_string(&mut self) -> String {
-        let mut buf = vec![0; self.size()];
-        let bytes = self.read(&mut buf);
-        buf.resize(bytes, 0);
-        String::from_utf8_lossy(&buf).to_string()
-    }
-
-    pub fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let buf_len = buf.len();
         let mut addr = self.addr;
         let mut bytes = 0; // Number of bytes written
@@ -172,21 +188,6 @@ impl File {
         self.dir.update_entry(&self.name, self.size);
         Ok(bytes)
     }
-
-    pub fn addr(&self) -> u32 {
-        self.addr
-    }
-
-    pub fn delete(pathname: &str) -> Result<(), ()> {
-        let pathname = realpath(pathname);
-        let dirname = dirname(&pathname);
-        let filename = filename(&pathname);
-        if let Some(mut dir) = Dir::open(dirname) {
-            dir.delete_entry(filename)
-        } else {
-            Err(())
-        }
-    }
 }
 
 #[test_case]
@@ -230,7 +231,7 @@ fn test_file_read() {
 
     let mut file = File::open("/test").unwrap();
     let mut output = [0u8; 13];
-    assert_eq!(file.read(&mut output), input.len());
+    assert_eq!(file.read(&mut output), Ok(input.len()));
     assert_eq!(input, output);
     super::dismount();
 }

@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::fs::FileIO;
 use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
@@ -10,6 +11,36 @@ lazy_static! {
     pub static ref STDIN: Mutex<String> = Mutex::new(String::new());
     pub static ref ECHO: Mutex<bool> = Mutex::new(true);
     pub static ref RAW: Mutex<bool> = Mutex::new(false);
+}
+
+#[derive(Debug, Clone)]
+pub struct Console;
+
+impl Console {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl FileIO for Console {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let mut s = if buf.len() == 1 {
+            read_char().to_string()
+        } else {
+            read_line()
+        };
+        s.truncate(buf.len());
+        let n = s.len();
+        buf[0..n].copy_from_slice(s.as_bytes());
+        Ok(n)
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        let s = String::from_utf8_lossy(buf);
+        let n = s.len();
+        print_fmt(format_args!("{}", s));
+        Ok(n)
+    }
 }
 
 pub fn cols() -> usize {
@@ -110,8 +141,7 @@ pub fn drain() {
     })
 }
 
-// TODO: Rename to `read_char()`
-pub fn get_char() -> char {
+pub fn read_char() -> char {
     sys::console::disable_echo();
     sys::console::enable_raw();
     loop {
@@ -132,8 +162,7 @@ pub fn get_char() -> char {
     }
 }
 
-// TODO: Rename to `read_line()`
-pub fn get_line() -> String {
+pub fn read_line() -> String {
     loop {
         sys::time::halt();
         let res = interrupts::without_interrupts(|| {

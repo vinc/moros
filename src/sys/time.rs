@@ -30,7 +30,7 @@ pub fn last_rtc_update() -> usize {
 }
 
 pub fn halt() {
-    x86_64::instructions::hlt();
+    x86_64::instructions::interrupts::enable_and_hlt();
 }
 
 fn rdtsc() -> u64 {

@@ -1,54 +1,95 @@
 mod block;
 mod block_bitmap;
 mod block_device;
+mod device;
 mod dir;
 mod dir_entry;
 mod file;
 mod read_dir;
 
+pub use device::{Device, DeviceType};
 pub use dir::Dir;
+pub use dir_entry::FileStat;
 pub use file::{File, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
+pub use crate::api::fs::{dirname, filename, realpath, FileIO};
 
 use block_bitmap::BlockBitmap;
+use dir_entry::DirEntry;
 
-use crate::sys;
-use alloc::format;
-use alloc::string::String;
+#[repr(u8)]
+pub enum OpenFlag {
+    Read   = 1,
+    Write  = 2,
+    Create = 4,
+    Dir    = 8,
+    Device = 16,
+}
+
+impl OpenFlag {
+    fn is_set(self, flags: usize) -> bool {
+        flags & (self as usize) != 0
+    }
+}
+
+pub fn open(path: &str, flags: usize) -> Option<Resource> {
+    if OpenFlag::Dir.is_set(flags) {
+        let res = Dir::open(path);
+        if res.is_none() && OpenFlag::Create.is_set(flags) {
+            Dir::create(path)
+        } else {
+            res
+        }.map(|r| Resource::Dir(r))
+    } else if OpenFlag::Device.is_set(flags) {
+        let res = Device::open(path);
+        if res.is_none() && OpenFlag::Create.is_set(flags) {
+            Device::create(path)
+        } else {
+            res
+        }.map(|r| Resource::Device(r))
+    } else {
+        let res = File::open(path);
+        if res.is_none() && OpenFlag::Create.is_set(flags) {
+            File::create(path)
+        } else {
+            res
+        }.map(|r| Resource::File(r))
+    }
+}
+
+pub fn stat(pathname: &str) -> Option<FileStat> {
+    DirEntry::open(pathname).map(|e| e.stat())
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FileType {
     Dir = 0,
     File = 1,
+    Device = 2,
 }
 
-pub fn dirname(pathname: &str) -> &str {
-    let n = pathname.len();
-    let i = match pathname.rfind('/') {
-        Some(0) => 1,
-        Some(i) => i,
-        None => n,
-    };
-    &pathname[0..i]
+#[derive(Debug, Clone)]
+pub enum Resource {
+    Dir(Dir),
+    File(File),
+    Device(Device),
 }
 
-pub fn filename(pathname: &str) -> &str {
-    let n = pathname.len();
-    let i = match pathname.rfind('/') {
-        Some(i) => i + 1,
-        None => 0,
-    };
-    &pathname[i..n]
-}
+impl FileIO for Resource {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        match self {
+            Resource::Dir(io) => io.read(buf),
+            Resource::File(io) => io.read(buf),
+            Resource::Device(io) => io.read(buf),
+        }
+    }
 
-// Transform "foo.txt" into "/path/to/foo.txt"
-pub fn realpath(pathname: &str) -> String {
-    if pathname.starts_with('/') {
-        pathname.into()
-    } else {
-        let dirname = sys::process::dir();
-        let sep = if dirname.ends_with('/') { "" } else { "/" };
-        format!("{}{}{}", dirname, sep, pathname)
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        match self {
+            Resource::Dir(io) => io.write(buf),
+            Resource::File(io) => io.write(buf),
+            Resource::Device(io) => io.write(buf),
+        }
     }
 }
 
