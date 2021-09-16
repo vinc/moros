@@ -1,24 +1,56 @@
 pub mod number;
 pub mod service;
 
+use crate::sys::fs::FileStat;
+
 /*
  * Dispatching system calls
  */
 
-pub fn dispatcher(n: usize, arg1: usize, _arg2: usize, _arg3: usize) -> usize {
+pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
     match n {
-        number::SLEEP => { // sleep(f64)
+        number::SLEEP => {
             service::sleep(f64::from_bits(arg1 as u64));
             0
         }
-        number::UPTIME => { // uptime() -> f64
+        number::UPTIME => {
             service::uptime().to_bits() as usize
         }
-        number::REALTIME => { // realtime() -> f64
+        number::REALTIME => {
             service::realtime().to_bits() as usize
         }
-        number::TEST => { // test(usize) -> usize
-            service::test(arg1)
+        number::STAT => {
+            let ptr = arg1 as *mut u8;
+            let len = arg2;
+            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
+            let stat = unsafe { &mut *(arg3 as *mut FileStat) };
+            service::stat(path, stat) as usize
+        }
+        number::OPEN => {
+            let ptr = arg1 as *mut u8;
+            let len = arg2;
+            let flags = arg3;
+            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
+            service::open(path, flags) as usize
+        }
+        number::READ => {
+            let handle = arg1;
+            let ptr = arg2 as *mut u8;
+            let len = arg3;
+            let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            service::read(handle, &mut buf) as usize
+        }
+        number::WRITE => {
+            let handle = arg1;
+            let ptr = arg2 as *mut u8;
+            let len = arg3;
+            let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            service::write(handle, &mut buf) as usize
+        }
+        number::CLOSE => {
+            let handle = arg1;
+            service::close(handle);
+            0
         }
         _ => {
             unimplemented!();

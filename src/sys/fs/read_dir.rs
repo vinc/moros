@@ -74,6 +74,7 @@ impl Iterator for ReadDir {
                 let entry_kind = match self.read_u8() {
                     0 => FileType::Dir,
                     1 => FileType::File,
+                    2 => FileType::Device,
                     _ => {
                         self.block_data_offset = offset; // Rewind the cursor
                         break;

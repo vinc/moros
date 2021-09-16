@@ -1,5 +1,7 @@
 use crate::{sys, usr};
+use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::io;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -20,7 +22,6 @@ struct EditorConfig {
 }
 
 pub struct Editor {
-    file: Option<sys::fs::File>,
     pathname: String,
     lines: Vec<String>,
     x: usize,
@@ -39,23 +40,20 @@ impl Editor {
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
 
-        let file = match sys::fs::File::open(pathname) {
-            Some(mut file) => {
-                let contents = file.read_to_string();
+        match fs::read_to_string(pathname) {
+            Ok(contents) => {
                 for line in contents.split('\n') {
                     lines.push(line.into());
                 }
-                Some(file)
             },
-            None => {
+            Err(_) => {
                 lines.push(String::new());
-                sys::fs::File::create(pathname)
             }
         };
 
         let pathname = pathname.into();
 
-        Self { file, pathname, lines, x, y, dx, dy, config }
+        Self { pathname, lines, x, y, dx, dy, config }
     }
 
     pub fn save(&mut self) -> usr::shell::ExitCode {
@@ -68,9 +66,7 @@ impl Editor {
             }
         }
 
-        if let Some(file) = &mut self.file {
-            file.seek(sys::fs::SeekFrom::Start(0)).unwrap();
-            file.write(contents.as_bytes()).unwrap();
+        if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");
             usr::shell::ExitCode::CommandSuccessful
@@ -152,7 +148,7 @@ impl Editor {
         let mut escape = false;
         let mut csi = false;
         loop {
-            let c = sys::console::get_char();
+            let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
             match c {
                 '\x1B' => { // ESC

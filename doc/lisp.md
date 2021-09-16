@@ -3,7 +3,7 @@
 A minimalist Lisp interpreter is available in MOROS to extend the capabilities
 of the Shell.
 
-It started from [Risp][https://github.com/stopachka/risp] and was extended to
+It started from [Risp](https://github.com/stopachka/risp) and was extended to
 include the seven primitive operators and the two special forms of John
 McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
 Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.

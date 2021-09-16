@@ -1,4 +1,4 @@
-use crate::{sys, usr};
+use crate::{api, usr};
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
 use alloc::string::ToString;
@@ -520,7 +520,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     prompt.completion.set(&lisp_completer);
 
     while let Some(exp) = prompt.input(&prompt_string) {
-        if exp == "(exit)" {
+        if exp == "(exit)" || exp == "(quit)" {
             break;
         }
         match parse_eval(&exp, env) {
@@ -547,11 +547,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         },
         2 => {
             let pathname = args[1];
-            if let Some(mut file) = sys::fs::File::open(pathname) {
+            if let Ok(code) = api::fs::read_to_string(pathname) {
                 let mut block = String::new();
                 let mut opened = 0;
                 let mut closed = 0;
-                for line in file.read_to_string().split('\n') {
+                for line in code.split('\n') {
                     let line = strip_comments(line);
                     if !line.is_empty() {
                         opened += line.matches('(').count();

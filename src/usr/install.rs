@@ -1,5 +1,8 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::io;
+use crate::api::syscall;
 use alloc::string::String;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
@@ -9,7 +12,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     println!();
 
     print!("Proceed? [y/N] ");
-    if sys::console::get_line().trim() == "y" {
+    if io::stdin().read_line().trim() == "y" {
         println!();
 
         if !sys::fs::is_mounted() {
@@ -19,7 +22,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
             println!("{}Formatting disk ...{}", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
-            let pathname = sys::console::get_line();
+            let pathname = io::stdin().read_line();
             let res = usr::disk::main(&["disk", "format", pathname.trim_end()]);
             if res == usr::shell::ExitCode::CommandError {
                 return res;
@@ -40,17 +43,38 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
         copy_file("/bin/test", include_bytes!("../../dsk/bin/test"));
         copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"));
+
+        create_dir("/dev/clk"); // Clocks
+        let pathname = "/dev/console";
+        if syscall::stat(pathname).is_none() {
+            if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() {
+                println!("Created '{}'", pathname);
+            }
+        }
+        let pathname = "/dev/random";
+        if syscall::stat(pathname).is_none() {
+            if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() {
+                println!("Created '{}'", pathname);
+            }
+        }
+
         copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"));
         copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));
         copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"));
         copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"));
-        copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
-        copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"));
 
         create_dir("/ini/fonts");
         copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"));
         copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"));
         copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"));
+
+        copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
+        copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"));
+
+        create_dir("/tmp/beep");
+        copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"));
+        copy_file("/tmp/beep/starwars.sh", include_bytes!("../../dsk/tmp/beep/starwars.sh"));
+        copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"));
 
         if sys::process::user().is_none() {
             println!();
@@ -77,21 +101,19 @@ fn create_dir(pathname: &str) {
 }
 
 fn copy_file(pathname: &str, buf: &[u8]) {
-    if sys::fs::File::open(pathname).is_some() {
+    if fs::exists(pathname) {
         return;
     }
-    if let Some(mut file) = sys::fs::File::create(pathname) {
-        if pathname.ends_with(".txt") {
-            if let Ok(text) = String::from_utf8(buf.to_vec()) {
-                let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
-                file.write(text.as_bytes()).unwrap();
-            } else {
-                file.write(buf).unwrap();
-            }
+    if pathname.ends_with(".txt") {
+        if let Ok(text) = String::from_utf8(buf.to_vec()) {
+            let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
+            fs::write(pathname, text.as_bytes()).ok();
         } else {
-            file.write(buf).unwrap();
+            fs::write(pathname, buf).ok();
         }
-        // TODO: add File::write_all to split buf if needed
-        println!("Copied '{}'", pathname);
+    } else {
+        fs::write(pathname, buf).ok();
     }
+    // TODO: add File::write_all to split buf if needed
+    println!("Copied '{}'", pathname);
 }

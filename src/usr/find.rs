@@ -69,7 +69,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
     if let Some(dir) = sys::fs::Dir::open(path) {
         state.is_recursive = true;
-        for file in dir.read() {
+        for file in dir.entries() {
             let file_path = format!("{}/{}", path, file.name());
             if file.is_dir() {
                 print_matching_lines(&file_path, pattern, state);
@@ -77,7 +77,7 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
                 print_matching_lines_in_file(&file_path, pattern, state);
             }
         }
-    } else if sys::fs::File::open(path).is_some() {
+    } else if fs::exists(path) {
         print_matching_lines_in_file(&path, pattern, state);
     }
 }

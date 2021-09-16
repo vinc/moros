@@ -1,7 +1,9 @@
 pub mod base64;
+pub mod beep;
 pub mod clear;
 pub mod colors;
 pub mod copy;
+pub mod chess;
 pub mod date;
 pub mod delete;
 pub mod dhcp;

@@ -1,3 +1,6 @@
+use core::hint::spin_loop;
+
+use bit_field::BitField;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
@@ -21,7 +24,7 @@ enum Interrupt {
     Update = 1 << 4,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct RTC {
     pub year: u16,
     pub month: u8,
@@ -44,35 +47,48 @@ impl CMOS {
         }
     }
 
-    pub fn rtc(&mut self) -> RTC {
-        while self.is_updating() {
-            x86_64::instructions::hlt();
+    fn rtc_unchecked(&mut self) -> RTC {
+        RTC {
+            second: self.read_register(Register::Second),
+            minute: self.read_register(Register::Minute),
+            hour: self.read_register(Register::Hour),
+            day: self.read_register(Register::Day),
+            month: self.read_register(Register::Month),
+            year: self.read_register(Register::Year) as u16,
         }
-        let mut second = self.read_register(Register::Second);
-        let mut minute = self.read_register(Register::Minute);
-        let mut hour = self.read_register(Register::Hour);
-        let mut day = self.read_register(Register::Day);
-        let mut month = self.read_register(Register::Month);
-        let mut year = self.read_register(Register::Year) as u16;
+    }
+
+    pub fn rtc(&mut self) -> RTC {
+        // Read twice the RTC, discard the result and try again if the reads
+        // happened during an update
+        let mut rtc;
+        loop {
+            self.wait_end_of_update();
+            rtc = self.rtc_unchecked();
+            self.wait_end_of_update();
+            if rtc == self.rtc_unchecked() {
+                break;
+            }
+        }
 
         let b = self.read_register(Register::B);
 
         if b & 0x04 == 0 { // BCD Mode
-            second = (second & 0x0F) + ((second / 16) * 10);
-            minute = (minute & 0x0F) + ((minute / 16) * 10);
-            hour = ((hour & 0x0F) + (((hour & 0x70) / 16) * 10)) | (hour & 0x80);
-            day = (day & 0x0F) + ((day / 16) * 10);
-            month = (month & 0x0F) + ((month / 16) * 10);
-            year = (year & 0x0F) + ((year / 16) * 10);
+            rtc.second = (rtc.second & 0x0F) + ((rtc.second / 16) * 10);
+            rtc.minute = (rtc.minute & 0x0F) + ((rtc.minute / 16) * 10);
+            rtc.hour = ((rtc.hour & 0x0F) + (((rtc.hour & 0x70) / 16) * 10)) | (rtc.hour & 0x80);
+            rtc.day = (rtc.day & 0x0F) + ((rtc.day / 16) * 10);
+            rtc.month = (rtc.month & 0x0F) + ((rtc.month / 16) * 10);
+            rtc.year = (rtc.year & 0x0F) + ((rtc.year / 16) * 10);
         }
 
-        if (b & 0x02 == 0) && (hour & 0x80 == 0) { // 12 hour format
-            hour = ((hour & 0x7F) + 12) % 24;
+        if (b & 0x02 == 0) && (rtc.hour & 0x80 == 0) { // 12 hour format
+            rtc.hour = ((rtc.hour & 0x7F) + 12) % 24;
         }
 
-        year += 2000; // TODO: Don't forget to change this next century
+        rtc.year += 2000; // TODO: Don't forget to change this next century
 
-        RTC { year, month, day, hour, minute, second }
+        rtc
     }
 
     pub fn enable_periodic_interrupt(&mut self) {
@@ -124,10 +140,16 @@ impl CMOS {
         }
     }
 
+    fn wait_end_of_update(&mut self) {
+        while self.is_updating() {
+            spin_loop();
+        }
+    }
+
     fn is_updating(&mut self) -> bool {
         unsafe {
-            self.addr.write(0x0A as u8);
-            (self.data.read() & 0x80 as u8) == 1
+            self.addr.write(Register::A as u8);
+            self.data.read().get_bit(7)
         }
     }
 

@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::fs;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
@@ -19,7 +20,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if let Some(dir) = sys::fs::Dir::open(pathname) {
-        if dir.read().count() == 0 {
+        if dir.entries().count() == 0 {
             if sys::fs::Dir::delete(pathname).is_ok() {
                 usr::shell::ExitCode::CommandSuccessful
             } else {
@@ -30,7 +31,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             println!("Directory '{}' not empty", pathname);
             usr::shell::ExitCode::CommandError
         }
-    } else if sys::fs::File::open(pathname).is_some() {
+    } else if fs::exists(pathname) {
         if sys::fs::File::delete(pathname).is_ok() {
             usr::shell::ExitCode::CommandSuccessful
         } else {

@@ -1,5 +1,6 @@
 use crate::{sys, usr};
 use crate::api::syscall;
+use crate::api::fs;
 use crate::api::console::Style;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
@@ -91,16 +92,16 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
                                         body = "<h1>Moved Permanently</h1>\r\n".to_string();
                                         mime = "text/html";
-                                    } else if let Some(mut file) = sys::fs::File::open(path) {
+                                    } else if let Ok(contents) = fs::read_to_string(path) {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
-                                        body = file.read_to_string().replace("\n", "\r\n");
+                                        body = contents.replace("\n", "\r\n");
                                         mime = "text/plain";
                                     } else if let Some(dir) = sys::fs::Dir::open(path) {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = format!("<h1>Index of {}</h1>\r\n", path);
-                                        let mut files: Vec<_> = dir.read().collect();
+                                        let mut files: Vec<_> = dir.entries().collect();
                                         files.sort_by_key(|f| f.name());
                                         for file in files {
                                             let sep = if path == "/" { "" } else { "/" };
@@ -118,42 +119,30 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                 "PUT" => {
                                     if path.ends_with('/') { // Write directory
                                         let path = path.trim_end_matches('/');
-                                        if sys::fs::Dir::open(path).is_some() {
+                                        if fs::exists(path) {
                                             code = 403;
                                             res.push_str("HTTP/1.0 403 Forbidden\r\n");
-                                        } else if sys::fs::Dir::create(path).is_none() {
-                                            code = 500;
-                                            res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
-                                        } else {
+                                        } else if fs::create_dir(path).is_some() {
                                             code = 200;
                                             res.push_str("HTTP/1.0 200 OK\r\n");
+                                        } else {
+                                            code = 500;
+                                            res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
                                         }
                                     } else { // Write file
-                                        let maybe_file = match sys::fs::File::open(path) {
-                                            Some(file) => Some(file),
-                                            None => sys::fs::File::create(path),
-                                        };
-                                        match maybe_file {
-                                            Some(mut file) => {
-                                                if file.write(contents.as_bytes()).is_ok() {
-                                                    code = 200;
-                                                    res.push_str("HTTP/1.0 200 OK\r\n");
-                                                } else {
-                                                    code = 500;
-                                                    res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
-                                                }
-                                            },
-                                            None => {
-                                                code = 403;
-                                                res.push_str("HTTP/1.0 403 Forbidden\r\n");
-                                            }
+                                        if fs::write(path, contents.as_bytes()).is_ok() {
+                                            code = 200;
+                                            res.push_str("HTTP/1.0 200 OK\r\n");
+                                        } else {
+                                            code = 500;
+                                            res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
                                         }
                                     }
                                     body = "".to_string();
                                     mime = "text/plain";
                                 },
                                 "DELETE" => {
-                                    if sys::fs::File::open(path).is_some() {
+                                    if fs::exists(path) {
                                         if sys::fs::File::delete(path).is_ok() {
                                             code = 200;
                                             res.push_str("HTTP/1.0 200 OK\r\n");
