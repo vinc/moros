@@ -3,9 +3,7 @@ use crate::sys::fs::FileStat;
 use crate::sys::fs::FileIO;
 
 pub fn sleep(seconds: f64) {
-    unsafe { asm!("sti") }; // Restore interrupts
     sys::time::sleep(seconds);
-    unsafe { asm!("cli") }; // Disable interrupts
 }
 
 pub fn uptime() -> f64 {
