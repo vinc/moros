@@ -41,7 +41,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         create_dir("/usr"); // User directories
         create_dir("/var"); // Variables
 
-        copy_file("/bin/test", include_bytes!("../../dsk/bin/test"));
+        copy_file("/bin/hello", include_bytes!("../../dsk/bin/hello"));
         copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"));
 
         create_dir("/dev/clk"); // Clocks
