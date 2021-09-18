@@ -21,6 +21,7 @@ pub struct ProcessData {
     dir: String,
     user: Option<String>,
     file_handles: Vec<Option<Resource>>,
+    code_addr: u64,
 }
 
 impl ProcessData {
@@ -29,11 +30,12 @@ impl ProcessData {
         let env = BTreeMap::new();
         let dir = dir.to_string();
         let user = user.map(String::from);
+        let code_addr = 0;
         let mut file_handles = vec![None; MAX_FILE_HANDLES];
         file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
-        Self { id, env, dir, user, file_handles }
+        Self { id, env, dir, user, file_handles, code_addr }
     }
 }
 
@@ -97,6 +99,18 @@ pub fn file_handle(handle: usize) -> Option<Resource> {
     proc.file_handles[handle].clone()
 }
 
+pub fn code_addr() -> u64 {
+    PROCESS.lock().code_addr
+}
+
+pub fn set_code_addr(addr: u64) {
+    PROCESS.lock().code_addr = addr;
+}
+
+pub fn ptr_from_addr(addr: u64) -> *mut u8 {
+    (PROCESS.lock().code_addr + addr) as *mut u8
+}
+
 /************************
  * Userspace experiment *
  ************************/
@@ -148,6 +162,8 @@ impl Process {
                 core::ptr::write(code_addr.add(i), *op);
             }
         }
+
+        set_code_addr(code_addr);
 
         Process { stack_addr, code_addr }
     }
