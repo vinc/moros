@@ -69,7 +69,7 @@ pub fn mount_mem() {
 }
 
 pub fn format_mem() {
-    assert!(is_mounted());
+    debug_assert!(is_mounted());
     let root = Dir::root();
     BlockBitmap::alloc(root.addr());
 }
@@ -115,7 +115,7 @@ pub fn format_ata(bus: u8, dsk: u8) {
     }
 
     // Allocate root dir
-    assert!(is_mounted());
+    debug_assert!(is_mounted());
     let root = Dir::root();
     BlockBitmap::alloc(root.addr());
 }

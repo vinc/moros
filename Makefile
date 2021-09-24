@@ -15,6 +15,10 @@ nic = rtl8139
 
 export MOROS_KEYBOARD = $(keyboard)
 
+# Build userspace binaries
+nasm:
+	basename -s .s dsk/src/bin/*.s | xargs -I {} nasm dsk/src/bin/{}.s -o dsk/bin/{}
+
 bin = target/x86_64-moros/release/bootimage-moros.bin
 img = disk.img
 

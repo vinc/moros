@@ -134,7 +134,7 @@ impl Dir {
 
         entries.block.write();
 
-        Some(DirEntry::new(*self, kind, entry_addr, entry_size, entry_time, name))
+        Some(DirEntry::new(*self, kind, entry_addr, entry_size, entry_time, &entry_name))
     }
 
     // Deleting an entry is done by setting the entry address to 0

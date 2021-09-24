@@ -181,7 +181,14 @@ pub fn exec(cmd: &str) -> ExitCode {
         "lisp"                 => usr::lisp::main(&args),
         "chess"                => usr::chess::main(&args),
         "beep"                 => usr::beep::main(&args),
-        _                      => ExitCode::CommandUnknown,
+        cmd                    => {
+            if let Ok(process) = api::process::create(cmd) {
+                process.switch();
+                ExitCode::CommandSuccessful
+            } else {
+                ExitCode::CommandUnknown
+            }
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add basic userspace (#228)
 - Bump acpi from 3.1.0 to 4.0.0 (#243)
 - Bump sha2 from 0.9.6 to 0.9.8 (#244)
 - Bump x86_64 from 0.14.4 to 0.14.5 (#245)

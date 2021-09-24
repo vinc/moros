@@ -21,6 +21,7 @@ pub mod console;
 pub mod font;
 pub mod fs;
 pub mod io;
+pub mod process;
 pub mod prompt;
 pub mod random;
 pub mod regex;
