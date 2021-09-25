@@ -205,13 +205,13 @@ impl Process {
                 "push 0x200",
                 "push rdx",
                 "push rdi",
+                "jmp r8",
                 "iretq",
-                "jmp [r8]",
-                in("r8") self.entry,
                 in("rax") data,
                 in("rsi") self.stack_addr,
                 in("rdx") code,
                 in("rdi") self.code_addr,
+                in("r8") self.code_addr + self.entry,
             );
         }
     }
