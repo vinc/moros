@@ -1,4 +1,3 @@
-use crate::usr;
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
 use alloc::collections::btree_map::BTreeMap;
@@ -163,20 +162,14 @@ impl Process {
         let code_ptr = code_addr as *mut u8;
         if &bin[1..4] == b"ELF" {
             // ELF binary
-            printk!("DEBUG: ELF detected\n");
             if let Ok(obj) = object::File::parse(bin) {
                 entry = obj.entry();
-                printk!("DEBUG: ELF parsed\n");
-                printk!("DEBUG: ELF entry: {}\n", obj.entry());
-                printk!("DEBUG: ELF base: {}\n", obj.relative_address_base());
                 for name in [".text", ".data", ".rodata"] {
                     if let Some(section) = obj.section_by_name(name) {
                         let addr = section.address() as usize;
-                        let size = section.size();
-                        let align = section.align();
-                        printk!("DEBUG: ELF {} (addr: {}, size: {}, align: {})\n", name, addr, size, align);
+                        //let size = section.size();
+                        //let align = section.align();
                         if let Ok(data) = section.data() {
-                            usr::hex::print_hex(data);
                             unsafe {
                                 for (i, op) in data.iter().enumerate() {
                                     core::ptr::write(code_ptr.add(addr + i), *op);
