@@ -197,25 +197,24 @@ impl Process {
         Process { stack_addr, code_addr, entry }
     }
 
-    // Switch to userspace
+    // Switch to user mode
     pub fn switch(&self) {
+        //x86_64::instructions::tlb::flush_all();
         let data = GDT.1.user_data.0;
         let code = GDT.1.user_code.0;
         unsafe {
             interrupts::disable();
             asm!(
-                "push rax",
-                "push rsi",
-                "push 0x200",
-                "push rdx",
+                "push rax",   // Data segment
+                "push rsi",   // Stack pointer
+                "push 0x200", // Interrupt flag
+                "push rdx",   // Code segment
                 "push rdi",
-                "jmp r8",
                 "iretq",
                 in("rax") data,
                 in("rsi") self.stack_addr,
                 in("rdx") code,
-                in("rdi") self.code_addr,
-                in("r8") self.code_addr + self.entry,
+                in("rdi") self.code_addr + self.entry,
             );
         }
     }
