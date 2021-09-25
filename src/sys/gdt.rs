@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use x86_64::VirtAddr;
 use x86_64::instructions::segmentation::{CS, DS, Segment};
 use x86_64::instructions::tables::load_tss;
-use x86_64::structures::gdt::{Descriptor, DescriptorFlags, GlobalDescriptorTable, SegmentSelector};
+use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
 use x86_64::structures::tss::TaskStateSegment;
 
 const STACK_SIZE: usize = 8192;
@@ -36,22 +36,21 @@ lazy_static! {
 lazy_static! {
     pub static ref GDT: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
-        let kernel_data_flags = DescriptorFlags::USER_SEGMENT | DescriptorFlags::PRESENT | DescriptorFlags::WRITABLE;
 
-        let code = gdt.add_entry(Descriptor::kernel_code_segment());
-        let data = gdt.add_entry(Descriptor::UserSegment(kernel_data_flags.bits()));
         let tss = gdt.add_entry(Descriptor::tss_segment(&TSS));
+        let code = gdt.add_entry(Descriptor::kernel_code_segment());
+        let data = gdt.add_entry(Descriptor::kernel_data_segment());
         let user_code = gdt.add_entry(Descriptor::user_code_segment());
         let user_data = gdt.add_entry(Descriptor::user_data_segment());
 
-        (gdt, Selectors { code, data, tss, user_code, user_data })
+        (gdt, Selectors { tss, code, data, user_code, user_data })
     };
 }
 
 pub struct Selectors {
+    tss: SegmentSelector,
     code: SegmentSelector,
     data: SegmentSelector,
-    tss: SegmentSelector,
     pub user_code: SegmentSelector,
     pub user_data: SegmentSelector,
 }
