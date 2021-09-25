@@ -155,7 +155,6 @@ impl Process {
         let frame = frame_allocator.allocate_frame().unwrap();
         for i in 0..1024 {
             let addr = code_addr + i * PAGE_SIZE;
-            //printk!("DEBUG: map {:#x} (virt: {:#x})\n", addr, i * PAGE_SIZE);
             let page = Page::containing_address(VirtAddr::new(addr));
             unsafe {
                 mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
@@ -164,25 +163,19 @@ impl Process {
 
         let mut entry = 0;
         let code_ptr = code_addr as *mut u8;
-        if &bin[1..4] == b"ELF" {
-            // ELF binary
+        if &bin[1..4] == b"ELF" { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry = obj.entry();
                 for section in obj.sections() {
-                    use crate::api::syscall::sleep;
                     if let Ok(name) = section.name() {
                         let addr = section.address() as usize;
-                        //let size = section.size();
-                        //let align = section.align();
                         if name.is_empty() || addr == 0 {
                             continue;
                         }
                         if let Ok(data) = section.data() {
-                            //printk!("DEBUG: {}\n", name);
                             unsafe {
                                 for (i, op) in data.iter().enumerate() {
                                     let ptr = code_ptr.add(addr + i);
-                                    //printk!("DEBUG: ptr {:#x} (virt: {:#x})\n", ptr as usize, addr + i);
                                     core::ptr::write(ptr, *op);
                                 }
                             }
@@ -190,11 +183,11 @@ impl Process {
                     }
                 }
             }
-        } else {
-            // Raw binary
+        } else { // Raw binary
             unsafe {
                 for (i, op) in bin.iter().enumerate() {
-                    core::ptr::write(code_ptr.add(i), *op);
+                    let ptr = code_ptr.add(i);
+                    core::ptr::write(ptr, *op);
                 }
             }
         }
