@@ -127,8 +127,8 @@ use x86_64::instructions::interrupts;
 use x86_64::structures::paging::{Mapper, FrameAllocator};
 use x86_64::structures::paging::{Page, PageTableFlags};
 
-static STACK_ADDR: AtomicU64 = AtomicU64::new(0x600_000);
-static CODE_ADDR: AtomicU64 = AtomicU64::new(0x400_000);
+static CODE_ADDR: AtomicU64 = AtomicU64::new(0x40_0000);
+static STACK_ADDR: AtomicU64 = AtomicU64::new(0x80_0000);
 const PAGE_SIZE: u64 = 4 * 1024;
 
 pub struct Process {
@@ -153,9 +153,13 @@ impl Process {
 
         let code_addr = CODE_ADDR.fetch_add(PAGE_SIZE, Ordering::SeqCst);
         let frame = frame_allocator.allocate_frame().unwrap();
-        let page = Page::containing_address(VirtAddr::new(code_addr));
-        unsafe {
-            mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
+        for i in 0..1024 {
+            let addr = code_addr + i * PAGE_SIZE;
+            //printk!("DEBUG: map {:#x} (virt: {:#x})\n", addr, i * PAGE_SIZE);
+            let page = Page::containing_address(VirtAddr::new(addr));
+            unsafe {
+                mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
+            }
         }
 
         let mut entry = 0;
@@ -164,15 +168,22 @@ impl Process {
             // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry = obj.entry();
-                for name in [".text", ".data", ".rodata"] {
-                    if let Some(section) = obj.section_by_name(name) {
+                for section in obj.sections() {
+                    use crate::api::syscall::sleep;
+                    if let Ok(name) = section.name() {
                         let addr = section.address() as usize;
                         //let size = section.size();
                         //let align = section.align();
+                        if name.is_empty() || addr == 0 {
+                            continue;
+                        }
                         if let Ok(data) = section.data() {
+                            //printk!("DEBUG: {}\n", name);
                             unsafe {
                                 for (i, op) in data.iter().enumerate() {
-                                    core::ptr::write(code_ptr.add(addr + i), *op);
+                                    let ptr = code_ptr.add(addr + i);
+                                    //printk!("DEBUG: ptr {:#x} (virt: {:#x})\n", ptr as usize, addr + i);
+                                    core::ptr::write(ptr, *op);
                                 }
                             }
                         }
