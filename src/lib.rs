@@ -22,7 +22,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
-    unsafe { sys::pic::PICS.lock().initialize() };
+    sys::pic::init();
     x86_64::instructions::interrupts::enable();
 
     log!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
