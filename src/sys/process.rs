@@ -205,11 +205,11 @@ impl Process {
         unsafe {
             interrupts::disable();
             asm!(
-                "push rax",   // Data segment
-                "push rsi",   // Stack pointer
-                "push 0x200", // Interrupt flag
-                "push rdx",   // Code segment
-                "push rdi",
+                "push rax",   // Stack segment (SS)
+                "push rsi",   // Stack pointer (RSP)
+                "push 0x200", // RFLAGS with interrupt
+                "push rdx",   // Code segment (CS)
+                "push rdi",   // Instruction pointer (RIP)
                 "iretq",
                 in("rax") data,
                 in("rsi") self.stack_addr,
