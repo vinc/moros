@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add ELF loader (#248)
 - Add basic userspace (#228)
 - Bump acpi from 3.1.0 to 4.0.0 (#243)
 - Bump sha2 from 0.9.6 to 0.9.8 (#244)
