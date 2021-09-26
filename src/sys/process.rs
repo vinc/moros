@@ -6,6 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
+use object::{Object, ObjectSection};
 use spin::Mutex;
 
 const MAX_FILE_HANDLES: usize = 1024;
@@ -122,17 +123,17 @@ use crate::sys;
 use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
-use x86_64::instructions::interrupts;
 use x86_64::structures::paging::{Mapper, FrameAllocator};
 use x86_64::structures::paging::{Page, PageTableFlags};
 
-static STACK_ADDR: AtomicU64 = AtomicU64::new(0x600_000);
-static CODE_ADDR: AtomicU64 = AtomicU64::new(0x400_000);
-const PAGE_SIZE: u64 = 1024 * 4;
+static CODE_ADDR: AtomicU64 = AtomicU64::new(0x40_0000);
+static STACK_ADDR: AtomicU64 = AtomicU64::new(0x80_0000);
+const PAGE_SIZE: u64 = 4 * 1024;
 
 pub struct Process {
     stack_addr: u64,
     code_addr: u64,
+    entry_point: u64,
 }
 
 impl Process {
@@ -151,40 +152,68 @@ impl Process {
 
         let code_addr = CODE_ADDR.fetch_add(PAGE_SIZE, Ordering::SeqCst);
         let frame = frame_allocator.allocate_frame().unwrap();
-        let page = Page::containing_address(VirtAddr::new(code_addr));
-        unsafe {
-            mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
+        for i in 0..1024 {
+            let addr = code_addr + i * PAGE_SIZE;
+            let page = Page::containing_address(VirtAddr::new(addr));
+            unsafe {
+                mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
+            }
         }
 
-        unsafe {
-            let code_addr = code_addr as *mut u8;
-            for (i, op) in bin.iter().enumerate() {
-                core::ptr::write(code_addr.add(i), *op);
+        let mut entry_point = 0;
+        let code_ptr = code_addr as *mut u8;
+        if &bin[1..4] == b"ELF" { // ELF binary
+            if let Ok(obj) = object::File::parse(bin) {
+                entry_point = obj.entry();
+                for section in obj.sections() {
+                    if let Ok(name) = section.name() {
+                        let addr = section.address() as usize;
+                        if name.is_empty() || addr == 0 {
+                            continue;
+                        }
+                        if let Ok(data) = section.data() {
+                            unsafe {
+                                for (i, op) in data.iter().enumerate() {
+                                    let ptr = code_ptr.add(addr + i);
+                                    core::ptr::write(ptr, *op);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else { // Raw binary
+            unsafe {
+                for (i, op) in bin.iter().enumerate() {
+                    let ptr = code_ptr.add(i);
+                    core::ptr::write(ptr, *op);
+                }
             }
         }
 
         set_code_addr(code_addr);
 
-        Process { stack_addr, code_addr }
+        Process { stack_addr, code_addr, entry_point }
     }
 
-    // Switch to userspace
+    // Switch to user mode
     pub fn switch(&self) {
+        //x86_64::instructions::tlb::flush_all();
         let data = GDT.1.user_data.0;
         let code = GDT.1.user_code.0;
         unsafe {
-            interrupts::disable();
             asm!(
-                "push rax",
-                "push rsi",
-                "push 0x200",
-                "push rdx",
-                "push rdi",
+                "cli",        // Disable interrupts
+                "push rax",   // Stack segment (SS)
+                "push rsi",   // Stack pointer (RSP)
+                "push 0x200", // RFLAGS with interrupts enabled
+                "push rdx",   // Code segment (CS)
+                "push rdi",   // Instruction pointer (RIP)
                 "iretq",
                 in("rax") data,
                 in("rsi") self.stack_addr,
                 in("rdx") code,
-                in("rdi") self.code_addr,
+                in("rdi") self.code_addr + self.entry_point,
             );
         }
     }

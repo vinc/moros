@@ -53,7 +53,6 @@ pub fn set_keyboard(layout: &str) -> bool {
 
 pub fn init() {
     set_keyboard(option_env!("MOROS_KEYBOARD").unwrap_or("qwerty"));
-
     sys::idt::set_irq_handler(1, interrupt_handler);
 }
 

@@ -30,7 +30,11 @@ pub fn last_rtc_update() -> usize {
 }
 
 pub fn halt() {
-    x86_64::instructions::interrupts::enable_and_hlt();
+    let disabled = !interrupts::are_enabled();
+    interrupts::enable_and_hlt();
+    if disabled {
+        interrupts::disable();
+    }
 }
 
 fn rdtsc() -> u64 {

@@ -17,8 +17,7 @@ fn interrupt_index(irq: u8) -> u8 {
     sys::pic::PIC_1_OFFSET + irq
 }
 
-fn default_irq_handler() {
-}
+fn default_irq_handler() {}
 
 lazy_static! {
     pub static ref IRQ_HANDLERS: Mutex<[fn(); 16]> = Mutex::new([default_irq_handler; 16]);
@@ -144,43 +143,41 @@ macro_rules! wrap {
         #[naked]
         pub unsafe extern "sysv64" fn $w() {
             asm!(
-                "
-                push rbp
-                push rax
-                push rbx
-                push rcx
-                push rdx
-                push rsi
-                push rdi
-                push r8
-                push r9
-                push r10
-                push r11
-                push r12
-                push r13
-                push r14
-                push r15
-                mov rsi, rsp  // arg2: register list
-                mov rdi, rsp
-                add rdi, 15*8 // arg1: interupt frame
-                call {}
-                pop r15
-                pop r14
-                pop r13
-                pop r12
-                pop r11
-                pop r10
-                pop r9
-                pop r8
-                pop rdi
-                pop rsi
-                pop rdx
-                pop rcx
-                pop rbx
-                pop rax
-                pop rbp
-                iretq
-                ",
+                "push rbp",
+                "push rax",
+                "push rbx",
+                "push rcx",
+                "push rdx",
+                "push rsi",
+                "push rdi",
+                "push r8",
+                "push r9",
+                "push r10",
+                "push r11",
+                "push r12",
+                "push r13",
+                "push r14",
+                "push r15",
+                "mov rsi, rsp", // Arg #2: register list
+                "mov rdi, rsp", // Arg #1: interupt frame
+                "add rdi, 15 * 8",
+                "call {}",
+                "pop r15",
+                "pop r14",
+                "pop r13",
+                "pop r12",
+                "pop r11",
+                "pop r10",
+                "pop r9",
+                "pop r8",
+                "pop rdi",
+                "pop rsi",
+                "pop rdx",
+                "pop rcx",
+                "pop rbx",
+                "pop rax",
+                "pop rbp",
+                "iretq",
                 sym $fn,
                 options(noreturn)
             );

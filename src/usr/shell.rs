@@ -181,6 +181,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "lisp"                 => usr::lisp::main(&args),
         "chess"                => usr::chess::main(&args),
         "beep"                 => usr::beep::main(&args),
+        "elf"                  => usr::elf::main(&args),
         cmd                    => {
             if let Ok(process) = api::process::create(cmd) {
                 process.switch();
