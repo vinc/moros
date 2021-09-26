@@ -1,5 +1,6 @@
 use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
+use x86_64::instructions::interrupts;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate};
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -8,22 +9,24 @@ pub static mut PHYS_MEM_OFFSET: u64 = 0;
 pub static mut MEMORY_MAP: Option<&MemoryMap> = None;
 
 pub fn init(boot_info: &'static BootInfo) {
-    let mut memory_size = 0;
-    for region in boot_info.memory_map.iter() {
-        let start_addr = region.range.start_addr();
-        let end_addr = region.range.end_addr();
-        memory_size += end_addr - start_addr;
-        log!("MEM [{:#016X}-{:#016X}] {:?}\n", start_addr, end_addr, region.region_type);
-    }
-    log!("MEM {} KB\n", memory_size >> 10);
+    interrupts::without_interrupts(|| {
+        let mut memory_size = 0;
+        for region in boot_info.memory_map.iter() {
+            let start_addr = region.range.start_addr();
+            let end_addr = region.range.end_addr();
+            memory_size += end_addr - start_addr;
+            log!("MEM [{:#016X}-{:#016X}] {:?}\n", start_addr, end_addr, region.region_type);
+        }
+        log!("MEM {} KB\n", memory_size >> 10);
 
-    unsafe { PHYS_MEM_OFFSET = boot_info.physical_memory_offset; }
-    unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
+        unsafe { PHYS_MEM_OFFSET = boot_info.physical_memory_offset; }
+        unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
 
-    let mut mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
-    let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
+        let mut mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
+        let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
 
-    sys::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+        sys::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
+    });
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {

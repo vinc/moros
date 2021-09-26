@@ -22,14 +22,12 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
-    sys::pic::init();
-    x86_64::instructions::interrupts::enable();
+    sys::pic::init(); // Enable interrupts
+    sys::serial::init();
+    sys::keyboard::init();
+    sys::time::init();
 
     log!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
-
-    sys::time::init();
-    sys::keyboard::init();
-    sys::serial::init();
     sys::mem::init(boot_info);
     sys::cpu::init();
     sys::pci::init(); // Require MEM
