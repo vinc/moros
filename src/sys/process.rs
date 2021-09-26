@@ -134,7 +134,7 @@ const PAGE_SIZE: u64 = 4 * 1024;
 pub struct Process {
     stack_addr: u64,
     code_addr: u64,
-    entry: u64,
+    entry_point: u64,
 }
 
 impl Process {
@@ -161,11 +161,11 @@ impl Process {
             }
         }
 
-        let mut entry = 0;
+        let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;
         if &bin[1..4] == b"ELF" { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
-                entry = obj.entry();
+                entry_point = obj.entry();
                 for section in obj.sections() {
                     if let Ok(name) = section.name() {
                         let addr = section.address() as usize;
@@ -194,7 +194,7 @@ impl Process {
 
         set_code_addr(code_addr);
 
-        Process { stack_addr, code_addr, entry }
+        Process { stack_addr, code_addr, entry_point }
     }
 
     // Switch to user mode
@@ -214,7 +214,7 @@ impl Process {
                 in("rax") data,
                 in("rsi") self.stack_addr,
                 in("rdx") code,
-                in("rdi") self.code_addr + self.entry,
+                in("rdi") self.code_addr + self.entry_point,
             );
         }
     }
