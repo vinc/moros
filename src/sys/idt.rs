@@ -17,8 +17,7 @@ fn interrupt_index(irq: u8) -> u8 {
     sys::pic::PIC_1_OFFSET + irq
 }
 
-fn default_irq_handler() {
-}
+fn default_irq_handler() {}
 
 lazy_static! {
     pub static ref IRQ_HANDLERS: Mutex<[fn(); 16]> = Mutex::new([default_irq_handler; 16]);

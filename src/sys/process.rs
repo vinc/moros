@@ -123,7 +123,6 @@ use crate::sys;
 use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
-use x86_64::instructions::interrupts;
 use x86_64::structures::paging::{Mapper, FrameAllocator};
 use x86_64::structures::paging::{Page, PageTableFlags};
 
@@ -203,11 +202,11 @@ impl Process {
         let data = GDT.1.user_data.0;
         let code = GDT.1.user_code.0;
         unsafe {
-            interrupts::disable();
             asm!(
+                "cli",        // Disable interrupts
                 "push rax",   // Stack segment (SS)
                 "push rsi",   // Stack pointer (RSP)
-                "push 0x200", // RFLAGS with interrupt
+                "push 0x200", // RFLAGS with interrupts enabled
                 "push rdx",   // Code segment (CS)
                 "push rdi",   // Instruction pointer (RIP)
                 "iretq",
