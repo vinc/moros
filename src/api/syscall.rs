@@ -66,6 +66,12 @@ pub fn close(handle: usize) {
     unsafe { syscall!(CLOSE, handle as usize) };
 }
 
+pub fn spawn(path: &str) {
+    let ptr = path.as_ptr() as usize;
+    let len = path.len() as usize;
+    unsafe { syscall!(SPAWN, ptr, len) };
+}
+
 #[test_case]
 fn test_file() {
     use crate::sys::fs::{mount_mem, format_mem, dismount, OpenFlag};

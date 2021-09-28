@@ -1,6 +1,8 @@
 use crate::sys;
 use crate::sys::fs::FileStat;
 use crate::sys::fs::FileIO;
+use crate::sys::process::Process;
+use alloc::vec;
 
 pub fn sleep(seconds: f64) {
     sys::time::sleep(seconds);
@@ -54,4 +56,18 @@ pub fn write(handle: usize, buf: &mut [u8]) -> isize {
 
 pub fn close(handle: usize) {
     sys::process::delete_file_handle(handle);
+}
+
+pub fn spawn(path: &str) -> isize {
+    if let Some(mut file) = sys::fs::File::open(path) {
+        let mut buf = vec![0; file.size()];
+        if let Ok(bytes) = file.read(&mut buf) {
+            buf.resize(bytes, 0);
+            if let Ok(process) = Process::create(&buf) {
+                process.exec();
+                return 0;
+            }
+        }
+    }
+    -1
 }
