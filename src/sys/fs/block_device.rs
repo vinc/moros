@@ -3,13 +3,12 @@ use super::dir::Dir;
 
 use crate::sys;
 
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-pub const MAGIC: &str = "MOROS FS";
+pub const SIGNATURE: &[u8; 8] = b"MOROS FS";
 
 lazy_static! {
     pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
@@ -104,8 +103,16 @@ pub fn format_ata(bus: u8, dsk: u8) {
     let mut dev = AtaBlockDevice::new(bus, dsk);
 
     // Write superblock
-    let mut buf = MAGIC.as_bytes().to_vec();
-    buf.resize(super::BLOCK_SIZE, 0);
+    let mut buf = [0; super::BLOCK_SIZE];
+    buf[0..8].clone_from_slice(SIGNATURE);
+    if let Some(drive) = sys::ata::Drive::identify(bus, dsk) {
+        let count = drive.block_count();
+        let size = drive.block_size();
+        debug_assert!(size >= 512);
+        debug_assert!(size.is_power_of_two());
+        buf[8..12].clone_from_slice(&count.to_be_bytes());
+        buf[12] = (size.trailing_zeros() as u8) - 9; // 2 ^ (9 + n)
+    }
     dev.write(super::SUPERBLOCK_ADDR, &buf);
 
     // Write zeros into block bitmaps
@@ -133,7 +140,7 @@ pub fn init() {
         for dsk in 0..2 {
             let mut buf = [0u8; super::BLOCK_SIZE];
             sys::ata::read(bus, dsk, super::SUPERBLOCK_ADDR, &mut buf);
-            if String::from_utf8_lossy(&buf[0..8]) == MAGIC {
+            if &buf[0..8] == SIGNATURE {
                 log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
                 mount_ata(bus, dsk);
                 return;

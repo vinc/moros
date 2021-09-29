@@ -97,6 +97,17 @@ Structure:
 
     n = 512
 
+### Superblock
+
+     0                   1
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7      n
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+    | signature     | count |b| reserved       |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+
+    signature = "MOROS FS"
+    count = number of blocks
+    b = size of a block in 2 ^ (9 + b) bytes
 
 ### DirEntry
 
