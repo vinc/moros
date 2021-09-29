@@ -41,23 +41,23 @@ impl BlockDeviceIO for BlockDevice {
 }
 
 pub struct MemBlockDevice {
-    disk: Vec<[u8; super::BLOCK_SIZE]>,
+    dev: Vec<[u8; super::BLOCK_SIZE]>,
 }
 
 impl MemBlockDevice {
     pub fn new(len: usize) -> Self {
-        let disk = vec![[0; super::BLOCK_SIZE]; len];
-        Self { disk }
+        let dev = vec![[0; super::BLOCK_SIZE]; len];
+        Self { dev }
     }
 }
 
 impl BlockDeviceIO for MemBlockDevice {
     fn read(&self, block_index: u32, buf: &mut [u8]) {
-        buf[..].clone_from_slice(&self.disk[block_index as usize][..]);
+        buf[..].clone_from_slice(&self.dev[block_index as usize][..]);
     }
 
     fn write(&mut self, block_index: u32, buf: &[u8]) {
-        self.disk[block_index as usize][..].clone_from_slice(&buf[..]);
+        self.dev[block_index as usize][..].clone_from_slice(&buf[..]);
     }
 }
 
@@ -74,57 +74,65 @@ pub fn format_mem() {
 }
 
 pub struct AtaBlockDevice {
-    bus: u8,
-    dsk: u8,
+    dev: sys::ata::Drive
 }
 
 impl AtaBlockDevice {
-    pub fn new(bus: u8, dsk: u8) -> Self {
-        Self { bus, dsk }
+    pub fn new(bus: u8, dsk: u8) -> Option<Self> {
+        if let Some(dev) = sys::ata::Drive::identify(bus, dsk) {
+            Some(Self { dev })
+        } else {
+            None
+        }
+    }
+
+    pub fn block_size(&self) -> usize {
+        self.dev.block_size() as usize
+    }
+
+    pub fn block_count(&self) -> usize {
+        self.dev.block_count() as usize
     }
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
     fn read(&self, block_addr: u32, mut buf: &mut [u8]) {
-        sys::ata::read(self.bus, self.dsk, block_addr, &mut buf);
+        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut buf);
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) {
-        sys::ata::write(self.bus, self.dsk, block_addr, buf);
+        sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf);
     }
 }
 
 pub fn mount_ata(bus: u8, dsk: u8) {
-    let dev = AtaBlockDevice::new(bus, dsk);
-    *BLOCK_DEVICE.lock() = Some(BlockDevice::Ata(dev));
+    *BLOCK_DEVICE.lock() = AtaBlockDevice::new(bus, dsk).map(|dev| BlockDevice::Ata(dev));
 }
 
 pub fn format_ata(bus: u8, dsk: u8) {
-    let mut dev = AtaBlockDevice::new(bus, dsk);
-
-    // Write superblock
-    let mut buf = [0; super::BLOCK_SIZE];
-    buf[0..8].clone_from_slice(SIGNATURE);
-    if let Some(drive) = sys::ata::Drive::identify(bus, dsk) {
-        let count = drive.block_count();
-        let size = drive.block_size();
+    if let Some(mut dev) = AtaBlockDevice::new(bus, dsk) {
+        // Write superblock
+        let mut buf = [0; super::BLOCK_SIZE];
+        buf[0..8].clone_from_slice(SIGNATURE);
+        let count = dev.block_count() as u32;
+        let size = dev.block_size() as u32;
         debug_assert!(size >= 512);
         debug_assert!(size.is_power_of_two());
         buf[8..12].clone_from_slice(&count.to_be_bytes());
         buf[12] = (size.trailing_zeros() as u8) - 9; // 2 ^ (9 + n)
-    }
-    dev.write(super::SUPERBLOCK_ADDR, &buf);
+        dev.write(super::SUPERBLOCK_ADDR, &buf);
 
-    // Write zeros into block bitmaps
-    let buf = vec![0; super::BLOCK_SIZE];
-    for addr in super::BITMAP_ADDR..super::DATA_ADDR {
-        dev.write(addr, &buf);
-    }
+        // Write zeros into block bitmaps
+        let buf = vec![0; super::BLOCK_SIZE];
+        for addr in super::BITMAP_ADDR..super::DATA_ADDR {
+            dev.write(addr, &buf);
+        }
 
-    // Allocate root dir
-    debug_assert!(is_mounted());
-    let root = Dir::root();
-    BlockBitmap::alloc(root.addr());
+        // Allocate root dir
+        debug_assert!(is_mounted());
+        let root = Dir::root();
+        BlockBitmap::alloc(root.addr());
+    }
 }
 
 pub fn is_mounted() -> bool {
