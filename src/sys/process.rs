@@ -137,7 +137,7 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn create(bin: &[u8]) -> Process {
+    pub fn create(bin: &[u8]) -> Result<Process, ()> {
         let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
         let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
 
@@ -193,11 +193,11 @@ impl Process {
 
         set_code_addr(code_addr);
 
-        Process { stack_addr, code_addr, entry_point }
+        Ok(Process { stack_addr, code_addr, entry_point })
     }
 
-    // Switch to user mode
-    pub fn switch(&self) {
+    // Switch to user mode and execute the program
+    pub fn exec(&self) {
         //x86_64::instructions::tlb::flush_all();
         let data = GDT.1.user_data.0;
         let code = GDT.1.user_code.0;
