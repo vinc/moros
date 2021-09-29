@@ -15,6 +15,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             format(args[2])
         },
+        "usage" => {
+            usage()
+        },
         "list" => {
             list()
         },
