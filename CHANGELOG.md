@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add dynamical disk information (#252)
 - Add ELF loader (#248)
 - Add basic userspace (#228)
 - Bump acpi from 3.1.0 to 4.0.0 (#243)
