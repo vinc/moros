@@ -13,6 +13,7 @@ pub use dir_entry::FileStat;
 pub use file::{File, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
 pub use crate::api::fs::{dirname, filename, realpath, FileIO};
+pub use crate::sys::ata::BLOCK_SIZE;
 
 use block_bitmap::BlockBitmap;
 use dir_entry::DirEntry;
@@ -97,7 +98,6 @@ impl FileIO for Resource {
 // We could store the disk size in the superblock area
 // And we could maybe also have a counter of allocated block in there to make
 // disk usage report O(1)
-const BLOCK_SIZE: usize = 512;
 const DISK_SIZE: usize = (8 << 20) / BLOCK_SIZE; // 8 MB disk
 const KERNEL_SIZE: usize = (2 << 20) / BLOCK_SIZE; // 2 MB for the kernel binary
 const MAX_BLOCKS: usize = (DISK_SIZE - KERNEL_SIZE) / 2; // FIXME: Replace `/ 2` with `- SUPELBLOCK_AREA_SIZE - BITMAP_AREA_SIZE`

@@ -54,8 +54,8 @@ fn format(pathname: &str) -> usr::shell::ExitCode {
 
 fn list() -> usr::shell::ExitCode {
     println!("Path            Name (Size)");
-    for (bus, drive, model, serial, size, unit) in sys::ata::list() {
-        println!("/dev/ata/{}/{}    {} {} ({} {})", bus, drive, model, serial, size, unit);
+    for drive in sys::ata::list() {
+        println!("/dev/ata/{}/{}    {}", drive.bus, drive.dsk, drive);
     }
     usr::shell::ExitCode::CommandSuccessful
 }
