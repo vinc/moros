@@ -3,7 +3,6 @@ use crate::sys::allocator::PhysBuf;
 use crate::sys::net::Stats;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use array_macro::array;
 use core::convert::TryInto;
 use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy;
@@ -157,7 +156,7 @@ impl RTL8139 {
             rx_buffer: PhysBuf::new(RX_BUFFER_LEN + MTU),
 
             rx_offset: 0,
-            tx_buffers: array![PhysBuf::new(TX_BUFFER_LEN); TX_BUFFERS_COUNT],
+            tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(TX_BUFFER_LEN)),
 
             // Before a transmission begin the id is incremented,
             // so the first transimission will start at 0.
