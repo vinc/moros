@@ -183,8 +183,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "beep"                 => usr::beep::main(&args),
         "elf"                  => usr::elf::main(&args),
         cmd                    => {
-            if let Ok(process) = api::process::create(cmd) {
-                process.switch();
+            if api::process::spawn(cmd).is_ok() {
                 ExitCode::CommandSuccessful
             } else {
                 ExitCode::CommandUnknown

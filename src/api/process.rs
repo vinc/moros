@@ -1,10 +1,12 @@
-use crate::sys::process::Process;
+use crate::api::syscall;
 use crate::api::fs;
 
-pub fn create(path: &str) -> Result<Process, ()> {
-    if let Ok(bin) = fs::read(path) {
-        Ok(Process::create(&bin))
-    } else {
-        Err(())
+pub fn spawn(path: &str) -> Result<(), ()> {
+    if let Ok(path) = fs::canonicalize(path) {
+        if syscall::stat(&path).is_some() {
+            syscall::spawn(&path);
+            return Ok(());
+        }
     }
+    Err(())
 }

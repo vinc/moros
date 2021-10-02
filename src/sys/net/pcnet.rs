@@ -5,7 +5,6 @@ use crate::sys::net::Stats;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use array_macro::array;
 use bit_field::BitField;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::Result;
@@ -155,8 +154,8 @@ impl PCNET {
             stats: Stats::new(),
             ports: Ports::new(io_base),
             eth_addr: None,
-            rx_buffers: array![PhysBuf::new(MTU); RX_BUFFERS_COUNT],
-            tx_buffers: array![PhysBuf::new(MTU); TX_BUFFERS_COUNT],
+            rx_buffers: [(); RX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
+            tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
             rx_des: PhysBuf::new(RX_BUFFERS_COUNT * DE_LEN),
             tx_des: PhysBuf::new(TX_BUFFERS_COUNT * DE_LEN),
             rx_id: Arc::new(AtomicUsize::new(0)),
