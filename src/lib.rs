@@ -2,6 +2,7 @@
 #![cfg_attr(test, no_main)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
+#![feature(array_map)]
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
