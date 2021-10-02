@@ -106,7 +106,7 @@ const KERNEL_SIZE: usize = (2 << 20) / BLOCK_SIZE; // 2 MB for the kernel binary
 const MAX_BLOCKS: usize = (DISK_SIZE - KERNEL_SIZE) / 2; // FIXME: Replace `/ 2` with `- SUPELBLOCK_AREA_SIZE - BITMAP_AREA_SIZE`
 const SUPERBLOCK_ADDR: u32 = KERNEL_SIZE as u32; // Address of the block
 const BITMAP_ADDR: u32 = SUPERBLOCK_ADDR + 2;
-const DATA_ADDR: u32 = BITMAP_ADDR + ((MAX_BLOCKS as u32) / bitmap_block::BITMAP_SIZE as u32 / 8); // 1 bit per block in bitmap
+const DATA_ADDR: u32 = BITMAP_ADDR + ((MAX_BLOCKS as u32) / BLOCK_SIZE as u32 / 8); // 1 bit per block in bitmap
 
 pub fn disk_size() -> usize {
     (SuperBlock::read().block_count as usize) * BLOCK_SIZE
