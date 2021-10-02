@@ -1,11 +1,11 @@
-use super::block::LinkedBlock;
+use super::block::Block;
 use super::block_device::BlockDeviceIO;
 use super::super_block;
 
 use alloc::vec;
 use bit_field::BitField;
 
-pub const BITMAP_SIZE: usize = super::BLOCK_SIZE - 4; // TODO: Bitmap should use the full block
+pub const BITMAP_SIZE: usize = super::BLOCK_SIZE;
 
 // A BlockBitmap store the allocation status of BITMAP_SIZE * 8 data blocks
 pub struct BlockBitmap {}
@@ -23,7 +23,7 @@ impl BlockBitmap {
     }
 
     pub fn alloc(addr: u32) {
-        let mut block = LinkedBlock::read(BlockBitmap::block_index(addr));
+        let mut block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data_mut();
         let i = BlockBitmap::buffer_index(addr);
         if !bitmap[i / 8].get_bit(i % 8) {
@@ -34,7 +34,7 @@ impl BlockBitmap {
     }
 
     pub fn free(addr: u32) {
-        let mut block = LinkedBlock::read(BlockBitmap::block_index(addr));
+        let mut block = Block::read(BlockBitmap::block_index(addr));
         let bitmap = block.data_mut();
         let i = BlockBitmap::buffer_index(addr);
         bitmap[i / 8].set_bit(i % 8, false);
@@ -46,7 +46,7 @@ impl BlockBitmap {
         let size = BITMAP_SIZE as u32;
         let n = super::MAX_BLOCKS as u32 / size / 8;
         for i in 0..n {
-            let block = LinkedBlock::read(super::BITMAP_ADDR + i);
+            let block = Block::read(super::BITMAP_ADDR + i);
             let bitmap = block.data();
             for j in 0..size {
                 for k in 0..8 {
