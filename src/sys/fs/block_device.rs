@@ -1,5 +1,6 @@
 use super::block_bitmap::BlockBitmap;
 use super::dir::Dir;
+use super::superblock::Superblock;
 
 use crate::sys;
 
@@ -49,6 +50,12 @@ impl MemBlockDevice {
         let dev = vec![[0; super::BLOCK_SIZE]; len];
         Self { dev }
     }
+
+    /*
+    pub fn len(&self) -> usize {
+        self.dev.len()
+    }
+    */
 }
 
 impl BlockDeviceIO for MemBlockDevice {
@@ -73,6 +80,7 @@ pub fn format_mem() {
     BlockBitmap::alloc(root.addr());
 }
 
+#[derive(Clone)]
 pub struct AtaBlockDevice {
     dev: sys::ata::Drive
 }
@@ -93,6 +101,12 @@ impl AtaBlockDevice {
     pub fn block_count(&self) -> usize {
         self.dev.block_count() as usize
     }
+
+    /*
+    pub fn len(&self) -> usize {
+        self.block_size() * self.block_count()
+    }
+    */
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
@@ -112,15 +126,7 @@ pub fn mount_ata(bus: u8, dsk: u8) {
 pub fn format_ata(bus: u8, dsk: u8) {
     if let Some(mut dev) = AtaBlockDevice::new(bus, dsk) {
         // Write superblock
-        let mut buf = [0; super::BLOCK_SIZE];
-        buf[0..8].clone_from_slice(SIGNATURE);
-        let count = dev.block_count() as u32;
-        let size = dev.block_size() as u32;
-        debug_assert!(size >= 512);
-        debug_assert!(size.is_power_of_two());
-        buf[8..12].clone_from_slice(&count.to_be_bytes());
-        buf[12] = (size.trailing_zeros() as u8) - 9; // 2 ^ (9 + n)
-        dev.write(super::SUPERBLOCK_ADDR, &buf);
+        Superblock::from_ata(&dev).write();
 
         // Write zeros into block bitmaps
         let buf = vec![0; super::BLOCK_SIZE];

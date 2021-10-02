@@ -6,6 +6,7 @@ mod dir;
 mod dir_entry;
 mod file;
 mod read_dir;
+mod superblock;
 
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
@@ -15,8 +16,10 @@ pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem,
 pub use crate::api::fs::{dirname, filename, realpath, FileIO};
 pub use crate::sys::ata::BLOCK_SIZE;
 
-use block_bitmap::BlockBitmap;
 use dir_entry::DirEntry;
+use superblock::Superblock;
+
+pub const VERSION: u8 = 1;
 
 #[repr(u8)]
 pub enum OpenFlag {
@@ -106,20 +109,11 @@ const BITMAP_ADDR: u32 = SUPERBLOCK_ADDR + 2;
 const DATA_ADDR: u32 = BITMAP_ADDR + ((MAX_BLOCKS as u32) / block_bitmap::BITMAP_SIZE as u32 / 8); // 1 bit per block in bitmap
 
 pub fn disk_size() -> usize {
-    DISK_SIZE * BLOCK_SIZE
+    (Superblock::read().block_count as usize) * BLOCK_SIZE
 }
 
-// FIXME: this should be BLOCK_SIZE times faster
 pub fn disk_used() -> usize {
-    let mut used_blocks_count = 0;
-    let n = MAX_BLOCKS as u32;
-    for i in 0..n {
-        let addr = DATA_ADDR + i;
-        if BlockBitmap::is_alloc(addr) {
-            used_blocks_count += 1;
-        }
-    }
-    used_blocks_count * BLOCK_SIZE
+    (Superblock::read().alloc_count as usize) * BLOCK_SIZE
 }
 
 pub fn disk_free() -> usize {

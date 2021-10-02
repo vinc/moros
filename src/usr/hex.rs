@@ -18,6 +18,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
+// TODO: move this to api::hex::print_hex
 pub fn print_hex(buf: &[u8]) {
     let n = buf.len() / 2;
     for i in 0..n {

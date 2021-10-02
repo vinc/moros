@@ -254,6 +254,7 @@ pub fn init() {
     }
 }
 
+#[derive(Clone)]
 pub struct Drive {
     pub bus: u8,
     pub dsk: u8,
