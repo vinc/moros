@@ -6,7 +6,7 @@ mod dir;
 mod dir_entry;
 mod file;
 mod read_dir;
-mod superblock;
+mod super_block;
 
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
@@ -17,7 +17,7 @@ pub use crate::api::fs::{dirname, filename, realpath, FileIO};
 pub use crate::sys::ata::BLOCK_SIZE;
 
 use dir_entry::DirEntry;
-use superblock::Superblock;
+use super_block::SuperBlock;
 
 pub const VERSION: u8 = 1;
 
@@ -98,7 +98,7 @@ impl FileIO for Resource {
 }
 
 // TODO: All this should be done dynamically
-// We could store the disk size in the superblock area
+// We could store the disk size in the super_block area
 // And we could maybe also have a counter of allocated block in there to make
 // disk usage report O(1)
 const DISK_SIZE: usize = (8 << 20) / BLOCK_SIZE; // 8 MB disk
@@ -109,11 +109,11 @@ const BITMAP_ADDR: u32 = SUPERBLOCK_ADDR + 2;
 const DATA_ADDR: u32 = BITMAP_ADDR + ((MAX_BLOCKS as u32) / block_bitmap::BITMAP_SIZE as u32 / 8); // 1 bit per block in bitmap
 
 pub fn disk_size() -> usize {
-    (Superblock::read().block_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().block_count as usize) * BLOCK_SIZE
 }
 
 pub fn disk_used() -> usize {
-    (Superblock::read().alloc_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().alloc_count as usize) * BLOCK_SIZE
 }
 
 pub fn disk_free() -> usize {
@@ -124,7 +124,7 @@ pub fn init() {
     /*
     printk!("disk size       = {} blocks\n", DISK_SIZE);
     printk!("kernel size     = {} blocks\n", KERNEL_SIZE);
-    printk!("superblock addr = {}\n", SUPERBLOCK_ADDR);
+    printk!("super_block addr = {}\n", SUPERBLOCK_ADDR);
     printk!("bitmap addr     = {}\n", BITMAP_ADDR);
     printk!("data addr       = {}\n", DATA_ADDR);
     printk!("end addr        = {}\n", DATA_ADDR + MAX_BLOCKS as u32);

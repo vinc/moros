@@ -5,7 +5,7 @@ use core::convert::TryInto;
 pub const SIGNATURE: &[u8; 8] = b"MOROS FS";
 
 #[derive(Debug)]
-pub struct Superblock {
+pub struct SuperBlock {
     signature: &'static[u8; 8],
     version: u8,
     block_size: u32,
@@ -13,7 +13,7 @@ pub struct Superblock {
     pub alloc_count: u32,
 }
 
-impl Superblock {
+impl SuperBlock {
     pub fn from_ata(dev: &AtaBlockDevice) -> Self {
         Self {
             signature: SIGNATURE,
@@ -56,13 +56,13 @@ impl Superblock {
 }
 
 pub fn inc_alloc_count() {
-    let mut sb = Superblock::read();
+    let mut sb = SuperBlock::read();
     sb.alloc_count += 1;
     sb.write();
 }
 
 pub fn dec_alloc_count() {
-    let mut sb = Superblock::read();
+    let mut sb = SuperBlock::read();
     sb.alloc_count -= 1;
     sb.write();
 }

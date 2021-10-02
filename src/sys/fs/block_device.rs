@@ -1,6 +1,6 @@
 use super::block_bitmap::BlockBitmap;
 use super::dir::Dir;
-use super::superblock::Superblock;
+use super::super_block::SuperBlock;
 
 use crate::sys;
 
@@ -125,8 +125,8 @@ pub fn mount_ata(bus: u8, dsk: u8) {
 
 pub fn format_ata(bus: u8, dsk: u8) {
     if let Some(mut dev) = AtaBlockDevice::new(bus, dsk) {
-        // Write superblock
-        Superblock::from_ata(&dev).write();
+        // Write super_block
+        SuperBlock::from_ata(&dev).write();
 
         // Write zeros into block bitmaps
         let buf = vec![0; super::BLOCK_SIZE];
@@ -155,7 +155,7 @@ pub fn init() {
             let mut buf = [0u8; super::BLOCK_SIZE];
             sys::ata::read(bus, dsk, super::SUPERBLOCK_ADDR, &mut buf);
             if &buf[0..8] == SIGNATURE {
-                log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
+                log!("MFS SuperBlock found in ATA {}:{}\n", bus, dsk);
                 mount_ata(bus, dsk);
                 return;
             }

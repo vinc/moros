@@ -1,5 +1,5 @@
 use super::block::LinkedBlock;
-use super::superblock;
+use super::super_block;
 
 use bit_field::BitField;
 
@@ -27,7 +27,7 @@ impl BlockBitmap {
         if !bitmap[i / 8].get_bit(i % 8) {
             bitmap[i / 8].set_bit(i % 8, true);
             block.write();
-            superblock::inc_alloc_count();
+            super_block::inc_alloc_count();
         }
     }
 
@@ -37,7 +37,7 @@ impl BlockBitmap {
         let i = BlockBitmap::buffer_index(addr);
         bitmap[i / 8].set_bit(i % 8, false);
         block.write();
-        superblock::dec_alloc_count();
+        super_block::dec_alloc_count();
     }
 
     pub fn next_free_addr() -> Option<u32> {
