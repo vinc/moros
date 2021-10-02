@@ -57,6 +57,23 @@ impl SuperBlock {
 
         block.write();
     }
+
+    pub fn block_size(&self) -> u32 {
+        self.block_size
+    }
+
+    pub fn block_count(&self) -> u32 {
+        self.block_count
+    }
+
+    pub fn bitmap_area(&self) -> u32 {
+        super::SUPERBLOCK_ADDR + 2
+    }
+
+    pub fn data_area(&self) -> u32 {
+        let max_blocks = (self.block_count - super::KERNEL_SIZE as u32) / 2; // FIXME
+        self.bitmap_area() + max_blocks / (8 * self.block_size)
+    }
 }
 
 pub fn inc_alloc_count() {

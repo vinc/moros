@@ -1,6 +1,7 @@
 use super::block::Block;
 use super::block_device::BlockDeviceIO;
 use super::super_block;
+use super::super_block::SuperBlock;
 
 use alloc::vec;
 use bit_field::BitField;
@@ -11,14 +12,16 @@ pub struct BitmapBlock {}
 
 impl BitmapBlock {
     fn block_index(addr: u32) -> u32 {
-        let size = super::BLOCK_SIZE as u32;
-        let i = addr - super::DATA_ADDR;
-        super::BITMAP_ADDR + (i / size / 8)
+        let sb = SuperBlock::read();
+        let size = sb.block_size();
+        let i = addr - sb.data_area();
+        sb.bitmap_area() + (i / size / 8)
     }
 
     fn buffer_index(addr: u32) -> usize {
-        let i = (addr - super::DATA_ADDR) as usize;
-        i % super::BLOCK_SIZE
+        let sb = SuperBlock::read();
+        let i = (addr - sb.data_area()) as usize;
+        i % sb.block_size() as usize
     }
 
     pub fn alloc(addr: u32) {
@@ -42,15 +45,16 @@ impl BitmapBlock {
     }
 
     pub fn next_free_addr() -> Option<u32> {
-        let size = super::BLOCK_SIZE as u32;
-        let n = super::MAX_BLOCKS as u32 / size / 8;
+        let sb = SuperBlock::read();
+        let size = sb.block_size();
+        let n = sb.block_count() / size / 8;
         for i in 0..n {
-            let block = Block::read(super::BITMAP_ADDR + i);
+            let block = Block::read(sb.bitmap_area() + i);
             let bitmap = block.data();
             for j in 0..size {
                 for k in 0..8 {
                     if !bitmap[j as usize].get_bit(k) {
-                        let addr = super::DATA_ADDR + i * 512 * 8 + j * 8 + k as u32;
+                        let addr = sb.data_area() + i * 512 * 8 + j * 8 + k as u32;
                         return Some(addr);
                     }
                 }
@@ -62,8 +66,12 @@ impl BitmapBlock {
 
 pub fn free_all() {
     if let Some(ref mut dev) = *super::block_device::BLOCK_DEVICE.lock() {
-        let buf = vec![0; super::BLOCK_SIZE];
-        for addr in super::BITMAP_ADDR..super::DATA_ADDR {
+        let sb = SuperBlock::read();
+        let a = sb.bitmap_area();
+        let b = sb.data_area();
+        let n = sb.block_size() as usize;
+        let buf = vec![0; n];
+        for addr in a..b {
             dev.write(addr, &buf);
         }
     }
