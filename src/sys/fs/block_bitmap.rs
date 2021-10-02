@@ -1,6 +1,8 @@
 use super::block::LinkedBlock;
+use super::block_device::BlockDeviceIO;
 use super::super_block;
 
+use alloc::vec;
 use bit_field::BitField;
 
 pub const BITMAP_SIZE: usize = super::BLOCK_SIZE - 4; // TODO: Bitmap should use the full block
@@ -56,5 +58,14 @@ impl BlockBitmap {
             }
         }
         None
+    }
+}
+
+pub fn free_all() {
+    if let Some(ref mut dev) = *super::block_device::BLOCK_DEVICE.lock() {
+        let buf = vec![0; super::BLOCK_SIZE];
+        for addr in super::BITMAP_ADDR..super::DATA_ADDR {
+            dev.write(addr, &buf);
+        }
     }
 }

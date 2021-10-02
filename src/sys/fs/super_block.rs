@@ -1,5 +1,5 @@
 use super::block::Block;
-use super::block_device::AtaBlockDevice;
+use super::block_device::BlockDeviceIO;
 use core::convert::TryInto;
 
 pub const SIGNATURE: &[u8; 8] = b"MOROS FS";
@@ -14,13 +14,17 @@ pub struct SuperBlock {
 }
 
 impl SuperBlock {
-    pub fn from_ata(dev: &AtaBlockDevice) -> Self {
-        Self {
-            signature: SIGNATURE,
-            version: super::VERSION,
-            block_size: dev.block_size() as u32,
-            block_count: dev.block_count() as u32,
-            alloc_count: 0,
+    pub fn new() -> Option<Self> {
+        if let Some(ref dev) = *super::block_device::BLOCK_DEVICE.lock() {
+            Some(Self {
+                signature: SIGNATURE,
+                version: super::VERSION,
+                block_size: dev.block_size() as u32,
+                block_count: dev.block_count() as u32,
+                alloc_count: 0,
+            })
+        } else {
+            None
         }
     }
 

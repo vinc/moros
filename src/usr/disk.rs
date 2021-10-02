@@ -48,7 +48,7 @@ fn format(pathname: &str) -> usr::shell::ExitCode {
     let bus = path[3].parse().expect("Could not parse <bus>");
     let dsk = path[4].parse().expect("Could not parse <dsk>");
     sys::fs::mount_ata(bus, dsk);
-    sys::fs::format_ata(bus, dsk);
+    sys::fs::format_ata();
     println!("Disk successfully formatted");
     println!("MFS is now mounted to '/'");
 
