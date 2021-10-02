@@ -1,7 +1,7 @@
 use super::{dirname, filename, realpath, FileIO};
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
-use super::block_bitmap::BlockBitmap;
+use super::bitmap_block::BitmapBlock;
 use super::FileType;
 use super::block::LinkedBlock;
 use crate::sys;
@@ -155,7 +155,7 @@ impl Dir {
                 // Freeing entry blocks
                 let mut entry_block = LinkedBlock::read(entry.addr());
                 loop {
-                    BlockBitmap::free(entry_block.addr());
+                    BitmapBlock::free(entry_block.addr());
                     match entry_block.next() {
                         Some(next_block) => entry_block = next_block,
                         None => break,

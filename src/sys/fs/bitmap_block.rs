@@ -5,27 +5,26 @@ use super::super_block;
 use alloc::vec;
 use bit_field::BitField;
 
-pub const BITMAP_SIZE: usize = super::BLOCK_SIZE;
+// A BitmapBlock store the allocation status of (8 * BLOCK_SIZE) blocks, or 8
+// data blocks per byte of a bitmap block.
+pub struct BitmapBlock {}
 
-// A BlockBitmap store the allocation status of BITMAP_SIZE * 8 data blocks
-pub struct BlockBitmap {}
-
-impl BlockBitmap {
+impl BitmapBlock {
     fn block_index(addr: u32) -> u32 {
-        let size = BITMAP_SIZE as u32;
+        let size = super::BLOCK_SIZE as u32;
         let i = addr - super::DATA_ADDR;
         super::BITMAP_ADDR + (i / size / 8)
     }
 
     fn buffer_index(addr: u32) -> usize {
         let i = (addr - super::DATA_ADDR) as usize;
-        i % BITMAP_SIZE
+        i % super::BLOCK_SIZE
     }
 
     pub fn alloc(addr: u32) {
-        let mut block = Block::read(BlockBitmap::block_index(addr));
+        let mut block = Block::read(BitmapBlock::block_index(addr));
         let bitmap = block.data_mut();
-        let i = BlockBitmap::buffer_index(addr);
+        let i = BitmapBlock::buffer_index(addr);
         if !bitmap[i / 8].get_bit(i % 8) {
             bitmap[i / 8].set_bit(i % 8, true);
             block.write();
@@ -34,16 +33,16 @@ impl BlockBitmap {
     }
 
     pub fn free(addr: u32) {
-        let mut block = Block::read(BlockBitmap::block_index(addr));
+        let mut block = Block::read(BitmapBlock::block_index(addr));
         let bitmap = block.data_mut();
-        let i = BlockBitmap::buffer_index(addr);
+        let i = BitmapBlock::buffer_index(addr);
         bitmap[i / 8].set_bit(i % 8, false);
         block.write();
         super_block::dec_alloc_count();
     }
 
     pub fn next_free_addr() -> Option<u32> {
-        let size = BITMAP_SIZE as u32;
+        let size = super::BLOCK_SIZE as u32;
         let n = super::MAX_BLOCKS as u32 / size / 8;
         for i in 0..n {
             let block = Block::read(super::BITMAP_ADDR + i);

@@ -1,4 +1,4 @@
-use super::block_bitmap::BlockBitmap;
+use super::bitmap_block::BitmapBlock;
 use super::block_device::BlockDeviceIO;
 
 use core::convert::TryInto;
@@ -24,12 +24,12 @@ impl Block {
     }
 
     pub fn alloc() -> Option<Self> {
-        match BlockBitmap::next_free_addr() {
+        match BitmapBlock::next_free_addr() {
             None => {
                 None
             }
             Some(addr) => {
-                BlockBitmap::alloc(addr);
+                BitmapBlock::alloc(addr);
 
                 // Initialize block
                 let mut block = Block::read(addr);

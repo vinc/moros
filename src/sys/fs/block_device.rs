@@ -1,4 +1,4 @@
-use super::block_bitmap::BlockBitmap;
+use super::bitmap_block::BitmapBlock;
 use super::dir::Dir;
 use super::super_block::SuperBlock;
 
@@ -103,7 +103,7 @@ pub fn format_mem() {
     if let Some(sb) = SuperBlock::new() {
         sb.write();
         let root = Dir::root();
-        BlockBitmap::alloc(root.addr());
+        BitmapBlock::alloc(root.addr());
     }
 }
 
@@ -156,12 +156,12 @@ pub fn format_ata() {
         sb.write();
 
         // Write zeros into block bitmaps
-        super::block_bitmap::free_all();
+        super::bitmap_block::free_all();
 
         // Allocate root dir
         debug_assert!(is_mounted());
         let root = Dir::root();
-        BlockBitmap::alloc(root.addr());
+        BitmapBlock::alloc(root.addr());
     }
 }
 
