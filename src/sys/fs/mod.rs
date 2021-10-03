@@ -97,16 +97,9 @@ impl FileIO for Resource {
     }
 }
 
-// TODO: All this should be done dynamically
-// We could store the disk size in the super_block area
-// And we could maybe also have a counter of allocated block in there to make
-// disk usage report O(1)
-const DISK_SIZE: usize = (8 << 20) / BLOCK_SIZE; // 8 MB disk
+// TODO: Remove those constants
 const KERNEL_SIZE: usize = (2 << 20) / BLOCK_SIZE; // 2 MB for the kernel binary
-const MAX_BLOCKS: usize = (DISK_SIZE - KERNEL_SIZE) / 2; // FIXME: Replace `/ 2` with `- SUPELBLOCK_AREA_SIZE - BITMAP_AREA_SIZE`
 const SUPERBLOCK_ADDR: u32 = KERNEL_SIZE as u32; // Address of the block
-const BITMAP_ADDR: u32 = SUPERBLOCK_ADDR + 2;
-const DATA_ADDR: u32 = BITMAP_ADDR + ((MAX_BLOCKS as u32) / BLOCK_SIZE as u32 / 8); // 1 bit per block in bitmap
 
 pub fn disk_size() -> usize {
     (SuperBlock::read().block_count as usize) * BLOCK_SIZE
@@ -121,14 +114,5 @@ pub fn disk_free() -> usize {
 }
 
 pub fn init() {
-    /*
-    printk!("disk size       = {} blocks\n", DISK_SIZE);
-    printk!("kernel size     = {} blocks\n", KERNEL_SIZE);
-    printk!("super_block addr = {}\n", SUPERBLOCK_ADDR);
-    printk!("bitmap addr     = {}\n", BITMAP_ADDR);
-    printk!("data addr       = {}\n", DATA_ADDR);
-    printk!("end addr        = {}\n", DATA_ADDR + MAX_BLOCKS as u32);
-    */
-
     block_device::init();
 }

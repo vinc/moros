@@ -1,4 +1,5 @@
 use super::{dirname, filename, realpath, FileIO};
+use super::super_block::SuperBlock;
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
 use super::bitmap_block::BitmapBlock;
@@ -22,7 +23,7 @@ impl From<DirEntry> for Dir {
 
 impl Dir {
     pub fn root() -> Self {
-        Self { addr: super::DATA_ADDR }
+        Self { addr: SuperBlock::read().data_area() }
     }
 
     pub fn create(pathname: &str) -> Option<Self> {
