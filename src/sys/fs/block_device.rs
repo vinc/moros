@@ -172,18 +172,6 @@ pub fn dismount() {
     *BLOCK_DEVICE.lock() = None;
 }
 
-pub fn init() {
-    for bus in 0..2 {
-        for dsk in 0..2 {
-            if SuperBlock::check_ata(bus, dsk) {
-                log!("MFS SuperBlock found in ATA {}:{}\n", bus, dsk);
-                mount_ata(bus, dsk);
-                return;
-            }
-        }
-    }
-}
-
 #[test_case]
 fn test_mount_mem() {
     assert!(!is_mounted());

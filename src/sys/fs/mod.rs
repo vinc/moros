@@ -110,5 +110,13 @@ pub fn disk_free() -> usize {
 }
 
 pub fn init() {
-    block_device::init();
+    for bus in 0..2 {
+        for dsk in 0..2 {
+            if SuperBlock::check_ata(bus, dsk) {
+                log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
+                mount_ata(bus, dsk);
+                return;
+            }
+        }
+    }
 }
