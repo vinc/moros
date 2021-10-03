@@ -9,9 +9,9 @@ A hard drive is separated in blocks of 512 bytes, grouped into 4 areas:
     +------------+
     | Superblock | (2 blocks)
     +------------+
-    | Bitmap     | (512 blocks)
+    | Bitmap     | (n / (8 * 512) blocks)
     +------------+
-    | Data       |
+    | Data       | (n blocks)
     +------------+
 
 The first area contains the bootloader and the kernel, the second is a

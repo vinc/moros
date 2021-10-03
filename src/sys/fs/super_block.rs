@@ -71,8 +71,11 @@ impl SuperBlock {
     }
 
     pub fn data_area(&self) -> u32 {
-        let max_blocks = (self.block_count - super::KERNEL_SIZE as u32) / 2; // FIXME
-        self.bitmap_area() + max_blocks / (8 * self.block_size)
+        let bm = 8 * self.block_size();
+        let offset = (super::KERNEL_SIZE + 2) as u32;
+        let total = self.block_count;
+        let rest = bm * (total - offset) / bm + 1;
+        self.bitmap_area() + rest / bm
     }
 }
 
