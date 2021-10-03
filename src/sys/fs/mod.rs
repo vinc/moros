@@ -97,10 +97,6 @@ impl FileIO for Resource {
     }
 }
 
-// TODO: Remove those constants
-const KERNEL_SIZE: usize = (2 << 20) / BLOCK_SIZE; // 2 MB for the kernel binary
-const SUPERBLOCK_ADDR: u32 = KERNEL_SIZE as u32; // Address of the block
-
 pub fn disk_size() -> usize {
     (SuperBlock::read().block_count as usize) * BLOCK_SIZE
 }

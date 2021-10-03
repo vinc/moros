@@ -9,8 +9,6 @@ use alloc::vec::Vec;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-pub const SIGNATURE: &[u8; 8] = b"MOROS FS";
-
 lazy_static! {
     pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
 }
@@ -177,9 +175,7 @@ pub fn dismount() {
 pub fn init() {
     for bus in 0..2 {
         for dsk in 0..2 {
-            let mut buf = [0u8; super::BLOCK_SIZE];
-            sys::ata::read(bus, dsk, super::SUPERBLOCK_ADDR, &mut buf);
-            if &buf[0..8] == SIGNATURE {
+            if SuperBlock::check_ata(bus, dsk) {
                 log!("MFS SuperBlock found in ATA {}:{}\n", bus, dsk);
                 mount_ata(bus, dsk);
                 return;

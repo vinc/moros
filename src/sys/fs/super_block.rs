@@ -1,8 +1,11 @@
+use crate::sys;
+use crate::KERNEL_SIZE;
 use super::block::Block;
 use super::block_device::BlockDeviceIO;
 use core::convert::TryInto;
 
-pub const SIGNATURE: &[u8; 8] = b"MOROS FS";
+const SUPERBLOCK_ADDR: u32 = (KERNEL_SIZE / super::BLOCK_SIZE) as u32;
+const SIGNATURE: &[u8; 8] = b"MOROS FS";
 
 #[derive(Debug)]
 pub struct SuperBlock {
@@ -14,6 +17,12 @@ pub struct SuperBlock {
 }
 
 impl SuperBlock {
+    pub fn check_ata(bus: u8, dsk: u8) -> bool {
+        let mut buf = [0u8; super::BLOCK_SIZE];
+        sys::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
+        &buf[0..8] == SIGNATURE
+    }
+
     pub fn new() -> Option<Self> {
         if let Some(ref dev) = *super::block_device::BLOCK_DEVICE.lock() {
             Some(Self {
@@ -29,7 +38,7 @@ impl SuperBlock {
     }
 
     pub fn read() -> Self {
-        let block = Block::read(super::SUPERBLOCK_ADDR);
+        let block = Block::read(SUPERBLOCK_ADDR);
         let data = block.data();
         debug_assert_eq!(&data[0..8], SIGNATURE);
         Self {
@@ -42,7 +51,7 @@ impl SuperBlock {
     }
 
     pub fn write(&self) {
-        let mut block = Block::new(super::SUPERBLOCK_ADDR);
+        let mut block = Block::new(SUPERBLOCK_ADDR);
         let data = block.data_mut();
 
         data[0..8].clone_from_slice(self.signature);
@@ -67,12 +76,12 @@ impl SuperBlock {
     }
 
     pub fn bitmap_area(&self) -> u32 {
-        super::SUPERBLOCK_ADDR + 2
+        SUPERBLOCK_ADDR + 2
     }
 
     pub fn data_area(&self) -> u32 {
         let bm = 8 * self.block_size();
-        let offset = (super::KERNEL_SIZE + 2) as u32;
+        let offset = self.bitmap_area();
         let total = self.block_count;
         let rest = bm * (total - offset) / bm + 1;
         self.bitmap_area() + rest / bm
