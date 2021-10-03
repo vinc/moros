@@ -1,9 +1,7 @@
 use super::block::Block;
-use super::block_device::BlockDeviceIO;
 use super::super_block;
 use super::super_block::SuperBlock;
 
-use alloc::vec;
 use bit_field::BitField;
 
 // A BitmapBlock store the allocation status of (8 * BLOCK_SIZE) blocks, or 8
@@ -65,14 +63,10 @@ impl BitmapBlock {
 }
 
 pub fn free_all() {
-    if let Some(ref mut dev) = *super::block_device::BLOCK_DEVICE.lock() {
-        let sb = SuperBlock::read();
-        let a = sb.bitmap_area();
-        let b = sb.data_area();
-        let n = sb.block_size() as usize;
-        let buf = vec![0; n];
-        for addr in a..b {
-            dev.write(addr, &buf);
-        }
+    let sb = SuperBlock::read();
+    let a = sb.bitmap_area();
+    let b = sb.data_area();
+    for addr in a..b {
+        Block::new(addr).write();
     }
 }
