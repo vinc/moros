@@ -83,7 +83,7 @@ class MorosFuse(Operations):
         bitmap_area = self.image_offset + 2
         bs = 8 * self.block_size
         total = self.block_count // self.block_size
-        rest = bs * (total - bitmap_area) // bs + 1
+        rest = (total - bitmap_area) * bs // (bs + 1)
         data_area = bitmap_area + rest // bs
 
         next_block_addr = data_area * self.block_size
