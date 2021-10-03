@@ -81,10 +81,10 @@ class MorosFuse(Operations):
         d = dirs.pop(0)
 
         bitmap_area = self.image_offset + 2
-        bm = 8 * self.block_size
+        bs = 8 * self.block_size
         total = self.block_count // self.block_size
-        rest = bm * (total - bitmap_area) // bm + 1
-        data_area = bitmap_area + rest // bm
+        rest = bs * (total - bitmap_area) // bs + 1
+        data_area = bitmap_area + rest // bs
 
         next_block_addr = data_area * self.block_size
         if d == "":

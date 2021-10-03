@@ -4,8 +4,10 @@ use super::super_block::SuperBlock;
 
 use bit_field::BitField;
 
-// A BitmapBlock store the allocation status of (8 * BLOCK_SIZE) blocks, or 8
-// data blocks per byte of a bitmap block.
+pub const BITMAP_SIZE: usize = 8 * super::BLOCK_SIZE;
+
+// A BitmapBlock store the allocation status of BITMAP_SIZE blocks, or 8
+// data blocks per byte (1 per bit) of a bitmap block.
 pub struct BitmapBlock {}
 
 impl BitmapBlock {
@@ -52,7 +54,8 @@ impl BitmapBlock {
             for j in 0..size {
                 for k in 0..8 {
                     if !bitmap[j as usize].get_bit(k) {
-                        let addr = sb.data_area() + i * 512 * 8 + j * 8 + k as u32;
+                        let bs = BITMAP_SIZE as u32;
+                        let addr = sb.data_area() + i * bs + j * 8 + k as u32;
                         return Some(addr);
                     }
                 }

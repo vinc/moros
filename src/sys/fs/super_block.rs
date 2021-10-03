@@ -80,11 +80,11 @@ impl SuperBlock {
     }
 
     pub fn data_area(&self) -> u32 {
-        let bm = 8 * self.block_size();
+        let bs = super::BITMAP_SIZE as u32;
         let offset = self.bitmap_area();
         let total = self.block_count;
-        let rest = bm * (total - offset) / bm + 1;
-        self.bitmap_area() + rest / bm
+        let rest = bs * (total - offset) / bs + 1;
+        self.bitmap_area() + rest / bs
     }
 }
 

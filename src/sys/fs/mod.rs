@@ -8,6 +8,7 @@ mod file;
 mod read_dir;
 mod super_block;
 
+pub use bitmap_block::BITMAP_SIZE;
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
 pub use dir_entry::FileStat;
