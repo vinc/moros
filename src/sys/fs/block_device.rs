@@ -91,8 +91,8 @@ impl BlockDeviceIO for MemBlockDevice {
 }
 
 pub fn mount_mem() {
-    let mem = sys::mem::memory_size() as usize; // In bytes
-    let len = mem / super::BLOCK_SIZE / 4; // TODO: take a size argument
+    let mem = sys::allocator::memory_size() / 2; // Half the allocatable memory
+    let len = mem / super::BLOCK_SIZE; // TODO: take a size argument
     let dev = MemBlockDevice::new(len);
     *BLOCK_DEVICE.lock() = Some(BlockDevice::Mem(dev));
 }
