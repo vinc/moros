@@ -1,9 +1,10 @@
 use super::{dirname, filename, realpath, FileIO};
+use super::super_block::SuperBlock;
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
-use super::block_bitmap::BlockBitmap;
+use super::bitmap_block::BitmapBlock;
 use super::FileType;
-use super::block::Block;
+use super::block::LinkedBlock;
 use crate::sys;
 
 use alloc::string::String;
@@ -22,7 +23,7 @@ impl From<DirEntry> for Dir {
 
 impl Dir {
     pub fn root() -> Self {
-        Self { addr: super::DATA_ADDR }
+        Self { addr: SuperBlock::read().data_area() }
     }
 
     pub fn create(pathname: &str) -> Option<Self> {
@@ -115,7 +116,7 @@ impl Dir {
         }
 
         // Create a new entry
-        let entry_block = Block::alloc().unwrap();
+        let entry_block = LinkedBlock::alloc().unwrap();
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;
@@ -153,9 +154,9 @@ impl Dir {
                 entries.block.write();
 
                 // Freeing entry blocks
-                let mut entry_block = Block::read(entry.addr());
+                let mut entry_block = LinkedBlock::read(entry.addr());
                 loop {
-                    BlockBitmap::free(entry_block.addr());
+                    BitmapBlock::free(entry_block.addr());
                     match entry_block.next() {
                         Some(next_block) => entry_block = next_block,
                         None => break,

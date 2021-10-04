@@ -1,5 +1,5 @@
 use super::dir_entry::DirEntry;
-use super::block::Block;
+use super::block::LinkedBlock;
 use super::dir::Dir;
 use super::FileType;
 
@@ -10,7 +10,7 @@ use core::convert::TryInto;
 pub struct ReadDir {
     // TODO: make those fields private
     pub dir: Dir,
-    pub block: Block,
+    pub block: LinkedBlock,
     pub block_data_offset: usize,
 }
 
@@ -18,7 +18,7 @@ impl From<Dir> for ReadDir {
     fn from(dir: Dir) -> Self {
         Self {
             dir: dir,
-            block: Block::read(dir.addr()),
+            block: LinkedBlock::read(dir.addr()),
             block_data_offset: 0,
         }
     }

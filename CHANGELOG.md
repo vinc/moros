@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add dynamical disk information (#252)
 - Add spawn syscall (#251)
 - Add ELF loader (#248)
 - Add basic userspace (#228)

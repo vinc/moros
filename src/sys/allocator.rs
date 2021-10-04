@@ -3,6 +3,7 @@ use alloc::slice::SliceIndex;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use core::cmp;
 use core::ops::{Index, IndexMut};
 use linked_list_allocator::LockedHeap;
 use spin::Mutex;
@@ -11,15 +12,17 @@ use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, S
 use x86_64::VirtAddr;
 
 pub const HEAP_START: usize = 0x4444_4444_0000;
-pub const HEAP_SIZE: usize = 16 << 20; // MB
 
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
+    // Use half of the memory for the heap, caped to 16 GB because the allocator is too slow
+    let heap_size = cmp::min(sys::mem::memory_size() / 2, 16 << 20);
+
     let page_range = {
         let heap_start = VirtAddr::new(HEAP_START as u64);
-        let heap_end = heap_start + HEAP_SIZE - 1u64;
+        let heap_end = heap_start + heap_size - 1u64;
         let heap_start_page = Page::containing_address(heap_start);
         let heap_end_page = Page::containing_address(heap_end);
         Page::range_inclusive(heap_start_page, heap_end_page)
@@ -34,7 +37,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     }
 
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+        ALLOCATOR.lock().init(HEAP_START, heap_size as usize);
     }
 
     Ok(())

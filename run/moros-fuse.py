@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 from errno import ENOENT
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 from stat import S_IFDIR, S_IFREG
@@ -22,9 +23,12 @@ class MorosFuse(Operations):
         self.image = open(path, "rb")
         self.image_offset = 4096
         self.block_size = 512
+        self.block_count = os.path.getsize(path)
         addr = self.image_offset * self.block_size
         self.image.seek(addr)
         block = self.image.read(self.block_size)
+        assert block[0:8] == b"MOROS FS" # Signature
+        assert block[8] == 1 # Version
 
     def destroy(self, path):
         self.image.close()
@@ -75,7 +79,14 @@ class MorosFuse(Operations):
     def __scan(self, path):
         dirs = path[1:].split("/")
         d = dirs.pop(0)
-        next_block_addr = (self.image_offset + 2 + self.block_size) * self.block_size
+
+        bitmap_area = self.image_offset + 2
+        bs = 8 * self.block_size
+        total = self.block_count // self.block_size
+        rest = (total - bitmap_area) * bs // (bs + 1)
+        data_area = bitmap_area + rest // bs
+
+        next_block_addr = data_area * self.block_size
         if d == "":
             return (0, next_block_addr, 0, 0, d)
         while next_block_addr != 0:

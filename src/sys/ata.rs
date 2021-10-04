@@ -2,10 +2,13 @@ use crate::sys;
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
+use core::fmt;
 use core::hint::spin_loop;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
+
+pub const BLOCK_SIZE: usize = 512;
 
 #[repr(u16)]
 enum Command {
@@ -209,7 +212,7 @@ impl Bus {
     }
 
     pub fn read(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
-        assert!(buf.len() == 512);
+        assert!(buf.len() == BLOCK_SIZE);
         self.setup(drive, block);
         self.write_command(Command::Read);
         self.busy_loop();
@@ -221,7 +224,7 @@ impl Bus {
     }
 
     pub fn write(&mut self, drive: u8, block: u32, buf: &[u8]) {
-        assert!(buf.len() == 512);
+        assert!(buf.len() == BLOCK_SIZE);
         self.setup(drive, block);
         self.write_command(Command::Write);
         self.busy_loop();
@@ -239,15 +242,6 @@ lazy_static! {
     pub static ref BUSES: Mutex<Vec<Bus>> = Mutex::new(Vec::new());
 }
 
-fn disk_size(sectors: u32) -> (u32, String) {
-    let bytes = sectors * 512;
-    if bytes >> 20 < 1000 {
-        (bytes >> 20, String::from("MB"))
-    } else {
-        (bytes >> 30, String::from("GB"))
-    }
-}
-
 pub fn init() {
     {
         let mut buses = BUSES.lock();
@@ -255,34 +249,77 @@ pub fn init() {
         buses.push(Bus::new(1, 0x170, 0x376, 15));
     }
 
-    for (bus, drive, model, serial, size, unit) in list() {
-        log!("ATA {}:{} {} {} ({} {})\n", bus, drive, model, serial, size, unit);
+    for drive in list() {
+        log!("ATA {}:{} {}\n", drive.bus, drive.dsk, drive);
     }
 }
 
-pub fn list() -> Vec<(u8, u8, String, String, u32, String)> {
-    let mut buses = BUSES.lock();
+#[derive(Clone)]
+pub struct Drive {
+    pub bus: u8,
+    pub dsk: u8,
+    blocks: u32,
+    model: String,
+    serial: String,
+}
+
+impl Drive {
+    pub fn identify(bus: u8, dsk: u8) -> Option<Self> {
+        let mut buses = BUSES.lock();
+        if let Some(buf) = buses[bus as usize].identify_drive(dsk) {
+            let mut serial = String::new();
+            for i in 10..20 {
+                for &b in &buf[i].to_be_bytes() {
+                    serial.push(b as char);
+                }
+            }
+            serial = serial.trim().into();
+            let mut model = String::new();
+            for i in 27..47 {
+                for &b in &buf[i].to_be_bytes() {
+                    model.push(b as char);
+                }
+            }
+            model = model.trim().into();
+            // Total number of 28-bit LBA addressable blocks
+            let blocks = (buf[61] as u32) << 16 | (buf[60] as u32);
+            Some(Self { bus, dsk, model, serial, blocks })
+        } else {
+            None
+        }
+    }
+
+    pub const fn block_size(&self) -> u32 {
+        BLOCK_SIZE as u32
+    }
+
+    pub fn block_count(&self) -> u32 {
+        self.blocks
+    }
+
+    fn humanized_size(&self) -> (u32, String) {
+        let bytes = self.block_size() * self.block_count();
+        if bytes >> 20 < 1000 {
+            (bytes >> 20, String::from("MB"))
+        } else {
+            (bytes >> 30, String::from("GB"))
+        }
+    }
+}
+
+impl fmt::Display for Drive {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let (size, unit) = self.humanized_size();
+        write!(f, "{} {} ({} {})", self.model, self.serial, size, unit)
+    }
+}
+
+pub fn list() -> Vec<Drive> {
     let mut res = Vec::new();
     for bus in 0..2 {
-        for drive in 0..2 {
-            if let Some(buf) = buses[bus as usize].identify_drive(drive) {
-                let mut serial = String::new();
-                for i in 10..20 {
-                    for &b in &buf[i].to_be_bytes() {
-                        serial.push(b as char);
-                    }
-                }
-                serial = serial.trim().into();
-                let mut model = String::new();
-                for i in 27..47 {
-                    for &b in &buf[i].to_be_bytes() {
-                        model.push(b as char);
-                    }
-                }
-                model = model.trim().into();
-                let sectors = (buf[61] as u32) << 16 | (buf[60] as u32);
-                let (size, unit) = disk_size(sectors);
-                res.push((bus, drive, model, serial, size, unit));
+        for dsk in 0..2 {
+            if let Some(drive) = Drive::identify(bus, dsk) {
+                res.push(drive)
             }
         }
     }

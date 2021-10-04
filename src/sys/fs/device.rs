@@ -1,7 +1,7 @@
 use super::{dirname, filename, realpath, FileIO};
 use super::dir::Dir;
 use super::file::File;
-use super::block::Block;
+use super::block::LinkedBlock;
 
 use crate::sys::console::Console;
 use crate::sys::random::Random;
@@ -48,7 +48,7 @@ impl Device {
         if let Some(dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.find(filename) {
                 if dir_entry.is_device() {
-                    let block = Block::read(dir_entry.addr());
+                    let block = LinkedBlock::read(dir_entry.addr());
                     let data = block.data();
                     return Some(Self::new(data[0]));
                 }

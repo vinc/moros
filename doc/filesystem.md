@@ -9,9 +9,9 @@ A hard drive is separated in blocks of 512 bytes, grouped into 4 areas:
     +------------+
     | Superblock | (2 blocks)
     +------------+
-    | Bitmap     | (512 blocks)
+    | Bitmap     | (n / (8 * 512) blocks)
     +------------+
-    | Data       |
+    | Data       | (n blocks)
     +------------+
 
 The first area contains the bootloader and the kernel, the second is a
@@ -97,6 +97,19 @@ Structure:
 
     n = 512
 
+### Superblock
+
+     0                   1                   2
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2    n
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+    | signature     |v|b| count | alloc | reserved       |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+
+    signature = "MOROS FS"
+    v = version number of the FS
+    b = size of a block in 2 ^ (9 + b) bytes
+    count = number of blocks
+    alloc = number of allocated blocks
 
 ### DirEntry
 

@@ -1,6 +1,6 @@
 use super::{dirname, filename, realpath, FileIO};
 use super::dir::Dir;
-use super::block::Block;
+use super::block::LinkedBlock;
 use super::dir_entry::DirEntry;
 
 use alloc::string::{String, ToString};
@@ -118,7 +118,7 @@ impl FileIO for File {
         let mut bytes = 0; // Number of bytes read
         let mut pos = 0; // Position in the file
         loop {
-            let block = Block::read(addr);
+            let block = LinkedBlock::read(addr);
             let data = block.data();
             let data_len = data.len();
             for i in 0..data_len {
@@ -145,7 +145,7 @@ impl FileIO for File {
         let mut bytes = 0; // Number of bytes written
         let mut pos = 0; // Position in the file
         while bytes < buf_len {
-            let mut block = Block::read(addr);
+            let mut block = LinkedBlock::read(addr);
             let data = block.data_mut();
             let data_len = data.len();
             for i in 0..data_len {
@@ -171,7 +171,7 @@ impl FileIO for File {
                 }
                 None => {
                     if bytes < buf_len {
-                        match Block::alloc() {
+                        match LinkedBlock::alloc() {
                             Some(next_block) => next_block.addr(),
                             None => return Err(()),
                         }

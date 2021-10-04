@@ -15,6 +15,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             format(args[2])
         },
+        "usage" => {
+            usage()
+        },
         "list" => {
             list()
         },
@@ -45,7 +48,7 @@ fn format(pathname: &str) -> usr::shell::ExitCode {
     let bus = path[3].parse().expect("Could not parse <bus>");
     let dsk = path[4].parse().expect("Could not parse <dsk>");
     sys::fs::mount_ata(bus, dsk);
-    sys::fs::format_ata(bus, dsk);
+    sys::fs::format_ata();
     println!("Disk successfully formatted");
     println!("MFS is now mounted to '/'");
 
@@ -54,8 +57,8 @@ fn format(pathname: &str) -> usr::shell::ExitCode {
 
 fn list() -> usr::shell::ExitCode {
     println!("Path            Name (Size)");
-    for (bus, drive, model, serial, size, unit) in sys::ata::list() {
-        println!("/dev/ata/{}/{}    {} {} ({} {})", bus, drive, model, serial, size, unit);
+    for drive in sys::ata::list() {
+        println!("/dev/ata/{}/{}    {}", drive.bus, drive.dsk, drive);
     }
     usr::shell::ExitCode::CommandSuccessful
 }
