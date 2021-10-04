@@ -3,6 +3,7 @@ use alloc::slice::SliceIndex;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use core::cmp;
 use core::ops::{Index, IndexMut};
 use linked_list_allocator::LockedHeap;
 use spin::Mutex;
@@ -16,7 +17,9 @@ pub const HEAP_START: usize = 0x4444_4444_0000;
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
-    let heap_size = sys::mem::memory_size() / 2;
+    // Use half of the memory for the heap, caped to 8 GB because the allocator is too slow
+    let heap_size = cmp::min(sys::mem::memory_size() / 2, 8 << 20);
+
     let page_range = {
         let heap_start = VirtAddr::new(HEAP_START as u64);
         let heap_end = heap_start + heap_size - 1u64;
