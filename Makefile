@@ -29,7 +29,7 @@ $(img):
 image: $(img)
 	touch src/lib.rs
 	env | grep MOROS
-	cargo bootimage --no-default-features --features $(output),$(nic) --release
+	cargo bootimage --no-default-features --features $(output),$(nic) --release --bin moros
 	dd conv=notrunc if=$(bin) of=$(img)
 
 opts = -m 32 -cpu max -nic model=$(nic) -hda $(img) -soundhw pcspk
