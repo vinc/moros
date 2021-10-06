@@ -6,7 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
-use object::{Object, ObjectSection};
+use object::{Object, ObjectSegment};
 use spin::Mutex;
 
 const MAX_FILE_HANDLES: usize = 1024;
@@ -165,18 +165,13 @@ impl Process {
         if &bin[1..4] == b"ELF" { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry_point = obj.entry();
-                for section in obj.sections() {
-                    if let Ok(name) = section.name() {
-                        let addr = section.address() as usize;
-                        if name.is_empty() || addr == 0 {
-                            continue;
-                        }
-                        if let Ok(data) = section.data() {
-                            unsafe {
-                                for (i, op) in data.iter().enumerate() {
-                                    let ptr = code_ptr.add(addr + i);
-                                    core::ptr::write(ptr, *op);
-                                }
+                for segment in obj.segments() {
+                    let addr = segment.address() as usize;
+                    if let Ok(data) = segment.data() {
+                        unsafe {
+                            for (i, op) in data.iter().enumerate() {
+                                let ptr = code_ptr.add(addr + i);
+                                core::ptr::write(ptr, *op);
                             }
                         }
                     }
