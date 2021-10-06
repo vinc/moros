@@ -16,8 +16,17 @@ nic = rtl8139
 export MOROS_KEYBOARD = $(keyboard)
 
 # Build userspace binaries
-nasm:
-	basename -s .s dsk/src/bin/*.s | xargs -I {} nasm dsk/src/bin/{}.s -o dsk/bin/{}
+user-nasm:
+	basename -s .s dsk/src/bin/*.s | xargs -I {} \
+		nasm dsk/src/bin/{}.s -o dsk/bin/{}
+user-rust:
+	basename -s .rs src/bin/*.rs | xargs -I {} \
+		cargo rustc --release --bin {} -- \
+			-C linker-flavor=ld \
+			-C link-args="-Ttext=1000 -Trodata=4000" \
+			-C relocation-model=static
+	basename -s .rs src/bin/*.rs | xargs -I {} \
+		cp target/x86_64-moros/release/{} dsk/bin/{}
 
 bin = target/x86_64-moros/release/bootimage-moros.bin
 img = disk.img

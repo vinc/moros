@@ -18,7 +18,7 @@ pub unsafe extern "sysv64" fn _start() -> ! {
 
 fn main(_argc: isize, _argv: *mut *const u8) {
     loop {
-        syscall::write(1, b"Hello, World!\n");
+        syscall::sleep(1.0);
     }
 }
 
