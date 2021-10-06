@@ -21,6 +21,8 @@ user-nasm:
 		nasm dsk/src/bin/{}.s -o dsk/bin/{}
 user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
+		touch dsk/bin/{}
+	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cargo rustc --release --bin {} -- \
 			-C linker-flavor=ld \
 			-C link-args="-Ttext=1000 -Trodata=4000" \
