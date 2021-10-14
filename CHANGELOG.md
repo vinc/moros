@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add rust binaries support (#255)
 - Add dynamical disk information (#252)
 - Add spawn syscall (#251)
 - Add ELF loader (#248)

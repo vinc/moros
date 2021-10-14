@@ -20,7 +20,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     // Use half of the memory for the heap, caped to 16 GB because the allocator is too slow
     let heap_size = cmp::min(sys::mem::memory_size() / 2, 16 << 20);
 
-    let page_range = {
+    let pages = {
         let heap_start = VirtAddr::new(HEAP_START as u64);
         let heap_end = heap_start + heap_size - 1u64;
         let heap_start_page = Page::containing_address(heap_start);
@@ -29,7 +29,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     };
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
-    for page in page_range {
+    for page in pages {
         let frame = frame_allocator.allocate_frame().ok_or(MapToError::FrameAllocationFailed)?;
         unsafe {
             mapper.map_to(page, frame, flags, frame_allocator)?.flush();
