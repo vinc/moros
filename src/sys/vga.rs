@@ -260,7 +260,7 @@ impl Writer {
 }
 
 // Convert 8-bit to 6-bit color
-fn vga_color(color: u8) {
+fn vga_color(color: u8) -> u8 {
     color >> 2
 }
 
@@ -469,17 +469,32 @@ pub fn set_palette(palette: Palette) {
     })
 }
 
-pub fn init() {
+fn disable_blinking() {
     let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
     let mut aadr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
     let mut adrr: Port<u8> = Port::new(ATTR_DATA_READ_REG);
-
-    // Disable blinking
     unsafe {
         isr.read();                // Reset to address mode
         aadr.write(0x30);          // Select attribute mode control register
         let value = adrr.read();   // Read attribute mode control register
         aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
     }
+}
+
+// 0x00 -> top
+// 0x0F -> bottom
+// 0x1F -> max (invisible)
+fn set_underline_location(location: u8) {
+    let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
+    let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
+    unsafe {
+        addr.write(0x14); // Underline Location Register
+        data.write(location);
+    }
+}
+
+pub fn init() {
+    disable_blinking();
+    set_underline_location(0x1F); // Disable underline
     WRITER.lock().clear_screen();
 }
