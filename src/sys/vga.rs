@@ -192,6 +192,12 @@ impl Writer {
         }
     }
 
+    fn clear_screen(&mut self) {
+        for y in 0..BUFFER_HEIGHT {
+            self.clear_row_after(0, y);
+        }
+    }
+
     pub fn set_color(&mut self, foreground: Color, background: Color) {
         self.color_code = ColorCode::new(foreground, background);
     }
@@ -244,13 +250,18 @@ impl Writer {
                 let code = color::from_index(i as usize).to_palette_code();
                 unsafe {
                     addr.write(code);
-                    data.write(r >> 2); // Convert 8-bit color to 6-bit color
-                    data.write(g >> 2);
-                    data.write(b >> 2);
+                    data.write(vga_color(r));
+                    data.write(vga_color(g));
+                    data.write(vga_color(b));
                 }
             }
         }
     }
+}
+
+// Convert 8-bit to 6-bit color
+fn vga_color(color: u8) {
+    color >> 2
 }
 
 /// See https://vt100.net/emu/dec_ansi_parser
@@ -356,11 +367,7 @@ impl Perform for Writer {
                 }
                 match n {
                     // TODO: 0 and 1, from cursor to begining or to end of screen
-                    2 => {
-                        for y in 0..BUFFER_HEIGHT {
-                            self.clear_row_after(0, y);
-                        }
-                    }
+                    2 => self.clear_screen(),
                     _ => return,
                 }
                 self.set_writer_position(0, 0);
@@ -474,4 +481,5 @@ pub fn init() {
         let value = adrr.read();   // Read attribute mode control register
         aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
     }
+    WRITER.lock().clear_screen();
 }
