@@ -471,62 +471,83 @@ pub fn set_palette(palette: Palette) {
     })
 }
 
-fn disable_blinking() {
-    let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
-    let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
-    let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
-    // The data register is read from the data port but must be written to the
-    // addr port.
-    unsafe {
-        isr.read();                // Reset to address mode
-        addr.write(0x30);          // Select attribute mode control register
-        let value = data.read();   // Read attribute mode control register
-        addr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
-    }
-}
-
 // 0x00 -> top
 // 0x0F -> bottom
 // 0x1F -> max (invisible)
 fn set_underline_location(location: u8) {
-    let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
-    let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
-    unsafe {
-        addr.write(0x14); // Underline Location Register
-        data.write(location);
-    }
+    interrupts::without_interrupts(|| {
+        let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
+        let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
+        unsafe {
+            addr.write(0x14); // Underline Location Register
+            data.write(location);
+        }
+    })
 }
 
-fn set_palette_register(index: u8, value: u8) {
-    let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
-    //let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
-    unsafe {
-        addr.write(index);
-        //log!("VGA Palette Register {:#x}: {:#x} -> {:#x}", index, data.read(), value);
-        addr.write(value);
-    }
+fn set_attr_ctrl_reg(index: u8, value: u8) {
+    interrupts::without_interrupts(|| {
+        // See http://www.osdever.net/FreeVGA/vga/vgareg.htm#attribute
+        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
+        let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
+        let index = index | 0x20; // Set "Palette Address Source" bit
+        unsafe {
+            isr.read(); // Reset to address mode
+            let tmp = addr.read();
+            addr.write(index);
+            addr.write(value);
+            addr.write(tmp);
+        }
+    })
+}
+
+// TODO: Make this private when debug is done
+pub fn get_attr_ctrl_reg(index: u8) -> u8 {
+    interrupts::without_interrupts(|| {
+        // See http://www.osdever.net/FreeVGA/vga/vgareg.htm#attribute
+        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
+        let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
+        let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
+        let index = index | 0x20; // Set "Palette Address Source" bit
+        unsafe {
+            isr.read(); // Reset to address mode
+            let tmp = addr.read();
+            addr.write(index);
+            let res = data.read();
+            addr.write(tmp);
+            res
+        }
+    })
 }
 
 pub fn init() {
-    set_palette_register(0x0, 0x00);
-    set_palette_register(0x1, 0x01);
-    set_palette_register(0x2, 0x02);
-    set_palette_register(0x3, 0x03);
-    set_palette_register(0x4, 0x04);
-    set_palette_register(0x5, 0x05);
-    set_palette_register(0x6, 0x14);
-    set_palette_register(0x7, 0x07);
-    set_palette_register(0x8, 0x38);
-    set_palette_register(0x9, 0x39);
-    set_palette_register(0xA, 0x3A);
-    set_palette_register(0xB, 0x3B);
-    set_palette_register(0xC, 0x3C);
-    set_palette_register(0xD, 0x3D);
-    set_palette_register(0xE, 0x3E);
-    set_palette_register(0xF, 0x3F);
+    // Map palette register to color register
+    set_attr_ctrl_reg(0x0, 0x00);
+    set_attr_ctrl_reg(0x1, 0x01);
+    set_attr_ctrl_reg(0x2, 0x02);
+    set_attr_ctrl_reg(0x3, 0x03);
+    set_attr_ctrl_reg(0x4, 0x04);
+    set_attr_ctrl_reg(0x5, 0x05);
+    set_attr_ctrl_reg(0x6, 0x14);
+    set_attr_ctrl_reg(0x7, 0x07);
+    set_attr_ctrl_reg(0x8, 0x38);
+    set_attr_ctrl_reg(0x9, 0x39);
+    set_attr_ctrl_reg(0xA, 0x3A);
+    set_attr_ctrl_reg(0xB, 0x3B);
+    set_attr_ctrl_reg(0xC, 0x3C);
+    set_attr_ctrl_reg(0xD, 0x3D);
+    set_attr_ctrl_reg(0xE, 0x3E);
+    set_attr_ctrl_reg(0xF, 0x3F);
 
-    disable_blinking();
     set_palette(Palette::default());
+
+    // Disable blinking
+    let reg = 0x10; // Attribute Mode Control Register
+    let mut attr = get_attr_ctrl_reg(reg);
+    attr.set_bit(3, false); // Clear "Blinking Enable" bit
+    set_attr_ctrl_reg(reg, attr);
+
     set_underline_location(0x1F); // Disable underline
+
     WRITER.lock().clear_screen();
 }
