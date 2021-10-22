@@ -15,9 +15,11 @@ use x86_64::instructions::port::Port;
 const ATTR_ADDR_DATA_REG:      u16 = 0x3C0;
 const ATTR_DATA_READ_REG:      u16 = 0x3C1;
 const SEQUENCER_ADDR_REG:      u16 = 0x3C4;
+const SEQUENCER_DATA_REG:      u16 = 0x3C5;
 const DAC_ADDR_WRITE_MODE_REG: u16 = 0x3C8;
 const DAC_DATA_REG:            u16 = 0x3C9;
 const GRAPHICS_ADDR_REG:       u16 = 0x3CE;
+const GRAPHICS_DATA_REG:       u16 = 0x3CF;
 const CRTC_ADDR_REG:           u16 = 0x3D4;
 const CRTC_DATA_REG:           u16 = 0x3D5;
 const INPUT_STATUS_REG:        u16 = 0x3DA;
@@ -471,13 +473,15 @@ pub fn set_palette(palette: Palette) {
 
 fn disable_blinking() {
     let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
-    let mut aadr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
-    let mut adrr: Port<u8> = Port::new(ATTR_DATA_READ_REG);
+    let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
+    let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
+    // The data register is read from the data port but must be written to the
+    // addr port.
     unsafe {
         isr.read();                // Reset to address mode
-        aadr.write(0x30);          // Select attribute mode control register
-        let value = adrr.read();   // Read attribute mode control register
-        aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
+        addr.write(0x30);          // Select attribute mode control register
+        let value = data.read();   // Read attribute mode control register
+        addr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
     }
 }
 
@@ -493,7 +497,34 @@ fn set_underline_location(location: u8) {
     }
 }
 
+fn set_palette_register(index: u8, value: u8) {
+    let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
+    //let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
+    unsafe {
+        addr.write(index);
+        //log!("VGA Palette Register {:#x}: {:#x} -> {:#x}", index, data.read(), value);
+        addr.write(value);
+    }
+}
+
 pub fn init() {
+    set_palette_register(0x0, 0x00);
+    set_palette_register(0x1, 0x01);
+    set_palette_register(0x2, 0x02);
+    set_palette_register(0x3, 0x03);
+    set_palette_register(0x4, 0x04);
+    set_palette_register(0x5, 0x05);
+    set_palette_register(0x6, 0x14);
+    set_palette_register(0x7, 0x07);
+    set_palette_register(0x8, 0x38);
+    set_palette_register(0x9, 0x39);
+    set_palette_register(0xA, 0x3A);
+    set_palette_register(0xB, 0x3B);
+    set_palette_register(0xC, 0x3C);
+    set_palette_register(0xD, 0x3D);
+    set_palette_register(0xE, 0x3E);
+    set_palette_register(0xF, 0x3F);
+
     disable_blinking();
     set_underline_location(0x1F); // Disable underline
     WRITER.lock().clear_screen();
