@@ -17,7 +17,7 @@ pub const HEAP_START: usize = 0x4444_4444_0000;
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
-    // Use half of the memory for the heap, caped to 16 GB because the allocator is too slow
+    // Use half of the memory for the heap, caped to 16 MB because the allocator is too slow
     let heap_size = cmp::min(sys::mem::memory_size() / 2, 16 << 20);
 
     let pages = {

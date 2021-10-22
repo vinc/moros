@@ -15,11 +15,11 @@ use x86_64::instructions::port::Port;
 const ATTR_ADDR_DATA_REG:      u16 = 0x3C0;
 const ATTR_DATA_READ_REG:      u16 = 0x3C1;
 const SEQUENCER_ADDR_REG:      u16 = 0x3C4;
-const SEQUENCER_DATA_REG:      u16 = 0x3C5;
+// const SEQUENCER_DATA_REG:   u16 = 0x3C5;
 const DAC_ADDR_WRITE_MODE_REG: u16 = 0x3C8;
 const DAC_DATA_REG:            u16 = 0x3C9;
 const GRAPHICS_ADDR_REG:       u16 = 0x3CE;
-const GRAPHICS_DATA_REG:       u16 = 0x3CF;
+// const GRAPHICS_DATA_REG:    u16 = 0x3CF;
 const CRTC_ADDR_REG:           u16 = 0x3D4;
 const CRTC_DATA_REG:           u16 = 0x3D5;
 const INPUT_STATUS_REG:        u16 = 0x3DA;
@@ -249,9 +249,9 @@ impl Writer {
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         for (i, r, g, b) in palette.colors {
             if i < 16 {
-                let code = color::from_index(i as usize).to_palette_code();
+                let reg = color::from_index(i as usize).to_vga_reg();
                 unsafe {
-                    addr.write(code);
+                    addr.write(reg);
                     data.write(vga_color(r));
                     data.write(vga_color(g));
                     data.write(vga_color(b));
@@ -526,6 +526,7 @@ pub fn init() {
     set_palette_register(0xF, 0x3F);
 
     disable_blinking();
+    set_palette(Palette::default());
     set_underline_location(0x1F); // Disable underline
     WRITER.lock().clear_screen();
 }
