@@ -10,7 +10,8 @@ use vte::{Params, Parser, Perform};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
-// See: https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vga.htm
+// See https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vga.htm
+// And https://01.org/sites/default/files/documentation/snb_ihd_os_vol3_part1_0.pdf
 
 const ATTR_ADDR_DATA_REG:      u16 = 0x3C0;
 const ATTR_DATA_READ_REG:      u16 = 0x3C1;
@@ -192,6 +193,12 @@ impl Writer {
         }
     }
 
+    fn clear_screen(&mut self) {
+        for y in 0..BUFFER_HEIGHT {
+            self.clear_row_after(0, y);
+        }
+    }
+
     pub fn set_color(&mut self, foreground: Color, background: Color) {
         self.color_code = ColorCode::new(foreground, background);
     }
@@ -239,18 +246,23 @@ impl Writer {
     pub fn set_palette(&mut self, palette: Palette) {
         let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
-        for (i, r, g, b) in palette.colors {
+        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
             if i < 16 {
-                let code = color::from_index(i as usize).to_palette_code();
+                let reg = color::from_index(i as usize).to_vga_reg();
                 unsafe {
-                    addr.write(code);
-                    data.write(r >> 2); // Convert 8-bit color to 6-bit color
-                    data.write(g >> 2);
-                    data.write(b >> 2);
+                    addr.write(reg);
+                    data.write(vga_color(*r));
+                    data.write(vga_color(*g));
+                    data.write(vga_color(*b));
                 }
             }
         }
     }
+}
+
+// Convert 8-bit to 6-bit color
+fn vga_color(color: u8) -> u8 {
+    color >> 2
 }
 
 /// See https://vt100.net/emu/dec_ansi_parser
@@ -356,11 +368,7 @@ impl Perform for Writer {
                 }
                 match n {
                     // TODO: 0 and 1, from cursor to begining or to end of screen
-                    2 => {
-                        for y in 0..BUFFER_HEIGHT {
-                            self.clear_row_after(0, y);
-                        }
-                    }
+                    2 => self.clear_screen(),
                     _ => return,
                 }
                 self.set_writer_position(0, 0);
@@ -462,16 +470,79 @@ pub fn set_palette(palette: Palette) {
     })
 }
 
+// 0x00 -> top
+// 0x0F -> bottom
+// 0x1F -> max (invisible)
+fn set_underline_location(location: u8) {
+    interrupts::without_interrupts(|| {
+        let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
+        let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
+        unsafe {
+            addr.write(0x14); // Underline Location Register
+            data.write(location);
+        }
+    })
+}
+
+fn set_attr_ctrl_reg(index: u8, value: u8) {
+    interrupts::without_interrupts(|| {
+        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
+        let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
+        unsafe {
+            isr.read(); // Reset to address mode
+            let tmp = addr.read();
+            addr.write(index);
+            addr.write(value);
+            addr.write(tmp);
+        }
+    })
+}
+
+fn get_attr_ctrl_reg(index: u8) -> u8 {
+    interrupts::without_interrupts(|| {
+        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
+        let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
+        let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
+        let index = index | 0x20; // Set "Palette Address Source" bit
+        unsafe {
+            isr.read(); // Reset to address mode
+            let tmp = addr.read();
+            addr.write(index);
+            let res = data.read();
+            addr.write(tmp);
+            res
+        }
+    })
+}
+
 pub fn init() {
-    let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
-    let mut aadr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
-    let mut adrr: Port<u8> = Port::new(ATTR_DATA_READ_REG);
+    // Map palette registers to color registers
+    set_attr_ctrl_reg(0x0, 0x00);
+    set_attr_ctrl_reg(0x1, 0x01);
+    set_attr_ctrl_reg(0x2, 0x02);
+    set_attr_ctrl_reg(0x3, 0x03);
+    set_attr_ctrl_reg(0x4, 0x04);
+    set_attr_ctrl_reg(0x5, 0x05);
+    set_attr_ctrl_reg(0x6, 0x14);
+    set_attr_ctrl_reg(0x7, 0x07);
+    set_attr_ctrl_reg(0x8, 0x38);
+    set_attr_ctrl_reg(0x9, 0x39);
+    set_attr_ctrl_reg(0xA, 0x3A);
+    set_attr_ctrl_reg(0xB, 0x3B);
+    set_attr_ctrl_reg(0xC, 0x3C);
+    set_attr_ctrl_reg(0xD, 0x3D);
+    set_attr_ctrl_reg(0xE, 0x3E);
+    set_attr_ctrl_reg(0xF, 0x3F);
+
+    set_palette(Palette::default());
 
     // Disable blinking
-    unsafe {
-        isr.read();                // Reset to address mode
-        aadr.write(0x30);          // Select attribute mode control register
-        let value = adrr.read();   // Read attribute mode control register
-        aadr.write(value & !0x08); // Use `value | 0x08` to enable and `value ^ 0x08` to toggle
-    }
+    let reg = 0x10; // Attribute Mode Control Register
+    let mut attr = get_attr_ctrl_reg(reg);
+    attr.set_bit(3, false); // Clear "Blinking Enable" bit
+    set_attr_ctrl_reg(reg, attr);
+
+    set_underline_location(0x1F); // Disable underline
+
+    WRITER.lock().clear_screen();
 }

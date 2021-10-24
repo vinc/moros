@@ -11,6 +11,7 @@ entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
     moros::init(boot_info);
+    print!("\x1b[?25h"); // Enable cursor
     loop {
         let bootrc = "/ini/boot.sh";
         if sys::fs::File::open(bootrc).is_some() {

@@ -18,7 +18,6 @@ pub struct File {
     name: String,
     addr: u32,
     size: u32,
-    time: u64,
     dir: Dir, // TODO: Replace with `parent: Some(Dir)` and also add it to `Dir`
     offset: u32,
 }
@@ -29,7 +28,6 @@ impl From<DirEntry> for File {
             name: entry.name(),
             addr: entry.addr(),
             size: entry.size(),
-            time: entry.time(),
             dir: entry.dir(),
             offset: 0,
         }
