@@ -485,12 +485,15 @@ fn set_underline_location(location: u8) {
     })
 }
 
+const PALETTE_ADDRESS_SOURCE: u8 = 0x20;
+
+// See http://www.osdever.net/FreeVGA/vga/vgareg.htm#attribute
+// And https://01.org/sites/default/files/documentation/snb_ihd_os_vol3_part1_0.pdf
+
 fn set_attr_ctrl_reg(index: u8, value: u8) {
     interrupts::without_interrupts(|| {
-        // See http://www.osdever.net/FreeVGA/vga/vgareg.htm#attribute
         let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
         let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
-        let index = index | 0x20; // Set "Palette Address Source" bit
         unsafe {
             isr.read(); // Reset to address mode
             let tmp = addr.read();
@@ -504,11 +507,10 @@ fn set_attr_ctrl_reg(index: u8, value: u8) {
 // TODO: Make this private when debug is done
 pub fn get_attr_ctrl_reg(index: u8) -> u8 {
     interrupts::without_interrupts(|| {
-        // See http://www.osdever.net/FreeVGA/vga/vgareg.htm#attribute
         let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
         let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
         let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
-        let index = index | 0x20; // Set "Palette Address Source" bit
+        let index = index | PALETTE_ADDRESS_SOURCE;
         unsafe {
             isr.read(); // Reset to address mode
             let tmp = addr.read();
