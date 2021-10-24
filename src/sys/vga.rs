@@ -10,16 +10,15 @@ use vte::{Params, Parser, Perform};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
-// See: https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vga.htm
+// See https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vga.htm
+// And https://01.org/sites/default/files/documentation/snb_ihd_os_vol3_part1_0.pdf
 
 const ATTR_ADDR_DATA_REG:      u16 = 0x3C0;
 const ATTR_DATA_READ_REG:      u16 = 0x3C1;
 const SEQUENCER_ADDR_REG:      u16 = 0x3C4;
-// const SEQUENCER_DATA_REG:   u16 = 0x3C5;
 const DAC_ADDR_WRITE_MODE_REG: u16 = 0x3C8;
 const DAC_DATA_REG:            u16 = 0x3C9;
 const GRAPHICS_ADDR_REG:       u16 = 0x3CE;
-// const GRAPHICS_DATA_REG:    u16 = 0x3CF;
 const CRTC_ADDR_REG:           u16 = 0x3D4;
 const CRTC_DATA_REG:           u16 = 0x3D5;
 const INPUT_STATUS_REG:        u16 = 0x3DA;
@@ -247,14 +246,14 @@ impl Writer {
     pub fn set_palette(&mut self, palette: Palette) {
         let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
-        for (i, r, g, b) in palette.colors {
+        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
             if i < 16 {
                 let reg = color::from_index(i as usize).to_vga_reg();
                 unsafe {
                     addr.write(reg);
-                    data.write(vga_color(r));
-                    data.write(vga_color(g));
-                    data.write(vga_color(b));
+                    data.write(vga_color(*r));
+                    data.write(vga_color(*g));
+                    data.write(vga_color(*b));
                 }
             }
         }
@@ -485,9 +484,6 @@ fn set_underline_location(location: u8) {
     })
 }
 
-// See http://www.osdever.net/FreeVGA/vga/vgareg.htm#attribute
-// And https://01.org/sites/default/files/documentation/snb_ihd_os_vol3_part1_0.pdf
-
 fn set_attr_ctrl_reg(index: u8, value: u8) {
     interrupts::without_interrupts(|| {
         let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
@@ -520,7 +516,7 @@ fn get_attr_ctrl_reg(index: u8) -> u8 {
 }
 
 pub fn init() {
-    // Map palette register to color register
+    // Map palette registers to color registers
     set_attr_ctrl_reg(0x0, 0x00);
     set_attr_ctrl_reg(0x1, 0x01);
     set_attr_ctrl_reg(0x2, 0x02);
