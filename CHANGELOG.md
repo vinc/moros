@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix VGA issues with real hardware (#258)
 - Add rust binaries support (#255)
 - Add dynamical disk information (#252)
 - Add spawn syscall (#251)
