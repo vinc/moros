@@ -1,5 +1,6 @@
 use crate::{api, sys, usr};
 use crate::api::fs;
+use crate::api::regex::Regex;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
 use alloc::format;
@@ -126,38 +127,56 @@ fn change_dir(args: &[&str]) -> ExitCode {
 pub fn exec(cmd: &str) -> ExitCode {
     let mut args = split_args(cmd);
 
-    // Redirections
+    // Redirections like `print hello => /tmp/hello`
+    // Pipes like `print hello -> write /tmp/hello` or `p hello > w /tmp/hello`
     let mut n = args.len();
     let mut i = 0;
     loop {
         if i == n {
             break;
         }
-        let mut chars = args[i].chars();
-        let mut handle = match chars.next_back() {
-            Some('<') => 0,
-            Some('>') => 1,
-            _ => {
-                i += 1;
-                continue;
-            }
-        };
-        let s = chars.as_str();
+
+        let mut is_fat_arrow = false;
+        let mut is_thin_arrow = false;
+        let mut left_handle;
+
+        if Regex::new("<=+").is_match(args[i]) { // Redirect input stream
+            is_fat_arrow = true;
+            left_handle = 0;
+        } else if Regex::new("\\d*=+>").is_match(args[i]) { // Redirect output stream(s)
+            is_fat_arrow = true;
+            left_handle = 1;
+        } else if Regex::new("\\d*-*>\\d*").is_match(args[i]) { // Pipe output stream(s)
+            is_thin_arrow = true;
+            left_handle = 1;
+            // TODO: right_handle?
+        } else {
+            i += 1;
+            continue;
+        }
+
+        let s = args[i].chars().take_while(|c| c.is_numeric()).collect::<String>();
         if let Ok(h) = s.parse() {
-            handle = h;
+            left_handle = h;
         }
-        if i == n - 1 {
-            println!("Could not parse path for redirection");
+
+        if is_fat_arrow { // Redirections
+            if i == n - 1 {
+                println!("Could not parse path for redirection");
+                return ExitCode::CommandError;
+            }
+            let path = args[i + 1];
+            if api::fs::reopen(path, left_handle).is_err() {
+                println!("Could not open path for redirection");
+                return ExitCode::CommandError;
+            }
+            args.remove(i); // Remove redirection from args
+            args.remove(i); // Remove path from args
+            n -= 2;
+        } else if is_thin_arrow { // TODO: Implement pipes
+            println!("Could not parse arrow");
             return ExitCode::CommandError;
         }
-        let path = args[i + 1];
-        if api::fs::reopen(path, handle).is_err() {
-            println!("Could not open path for redirection");
-            return ExitCode::CommandError;
-        }
-        args.remove(i); // Remove redirection from args
-        args.remove(i); // Remove path from args
-        n -= 2;
     }
 
     let res = match args[0] {
