@@ -34,6 +34,14 @@ pub fn open(path: &str, flags: usize) -> isize {
     -1
 }
 
+pub fn dup(old_handle: usize, new_handle: usize) -> isize {
+    if let Some(file) = sys::process::file_handle(old_handle) {
+        sys::process::update_file_handle(new_handle, file);
+        return new_handle as isize;
+    }
+    -1
+}
+
 pub fn read(handle: usize, buf: &mut [u8]) -> isize {
     if let Some(mut file) = sys::process::file_handle(handle) {
         if let Ok(bytes) = file.read(buf) {

@@ -40,6 +40,15 @@ pub fn open(path: &str, flags: usize) -> Option<usize> {
     }
 }
 
+pub fn dup(old_handle: usize, new_handle: usize) -> Option<usize> {
+    let res = unsafe { syscall!(DUP, old_handle, new_handle) } as isize;
+    if res.is_negative() {
+        None
+    } else {
+        Some(res as usize)
+    }
+}
+
 pub fn read(handle: usize, buf: &mut [u8]) -> Option<usize> {
     let ptr = buf.as_ptr() as usize;
     let len = buf.len() as usize;
