@@ -124,9 +124,43 @@ fn change_dir(args: &[&str]) -> ExitCode {
 }
 
 pub fn exec(cmd: &str) -> ExitCode {
-    let args = split_args(cmd);
+    let mut args = split_args(cmd);
 
-    match args[0] {
+    // Redirections
+    let mut n = args.len();
+    let mut i = 0;
+    loop {
+        if i == n {
+            break;
+        }
+        let mut chars = args[i].chars();
+        let mut handle = match chars.next_back() {
+            Some('<') => 0,
+            Some('>') => 1,
+            _ => {
+                i += 1;
+                continue;
+            }
+        };
+        let s = chars.as_str();
+        if let Ok(h) = s.parse() {
+            handle = h;
+        }
+        if i == n - 1 {
+            println!("Could not parse path for redirection");
+            return ExitCode::CommandError;
+        }
+        let path = args[i + 1];
+        if api::fs::reopen(path, handle).is_err() {
+            println!("Could not open path for redirection");
+            return ExitCode::CommandError;
+        }
+        args.remove(i); // Remove redirection from args
+        args.remove(i); // Remove path from args
+        n -= 2;
+    }
+
+    let res = match args[0] {
         ""                     => ExitCode::CommandError,
         "a" | "alias"          => ExitCode::CommandUnknown,
         "b"                    => ExitCode::CommandUnknown,
@@ -189,7 +223,14 @@ pub fn exec(cmd: &str) -> ExitCode {
                 ExitCode::CommandUnknown
             }
         }
+    };
+
+    // TODO: Remove this when redirections are done in spawned process
+    for i in 0..3 {
+        api::fs::reopen("/dev/console", i).ok();
     }
+
+    return res;
 }
 
 pub fn run() -> usr::shell::ExitCode {
