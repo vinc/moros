@@ -32,10 +32,6 @@ pub enum Exp {
 // Parser
 
 fn parse(input: &str) -> IResult<&str, Exp> {
-    parse_math_exp(input)
-}
-
-fn parse_math_exp(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_term(input)?;
     let (input, exps) = many0(tuple((alt((char('+'), char('-'))), parse_term)))(input)?;
     Ok((input, parse_exp(num1, exps)))
@@ -53,12 +49,12 @@ fn parse_factor(input: &str) -> IResult<&str, Exp> {
     Ok((input, parse_exp(num1, exps)))
 }
 
-fn parse_num(input: &str) -> IResult<&str, Exp> {
-    map(delimited(space0, float, space0), Exp::Num)(input)
+fn parse_parens(input: &str) -> IResult<&str, Exp> {
+    delimited(space0, delimited(char('('), parse, char(')')), space0)(input)
 }
 
-fn parse_parens(input: &str) -> IResult<&str, Exp> {
-    delimited(space0, delimited(char('('), parse_math_exp, char(')')), space0)(input)
+fn parse_num(input: &str) -> IResult<&str, Exp> {
+    map(delimited(space0, float, space0), Exp::Num)(input)
 }
 
 fn parse_exp(exp: Exp, rem: Vec<(char, Exp)>) -> Exp {
