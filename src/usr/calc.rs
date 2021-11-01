@@ -6,10 +6,10 @@ use alloc::boxed::Box;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::str::FromStr;
 
 use nom::branch::alt;
-use nom::character::complete::{char, digit1, space0};
+use nom::character::complete::{char, space0};
+use nom::number::complete::float;
 use nom::combinator::map;
 use nom::multi::many0;
 use nom::sequence::{delimited, tuple};
@@ -58,12 +58,7 @@ fn parse_operation(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_number(input: &str) -> IResult<&str, Exp> {
-    map(delimited(space0, digit1, space0), parse_num)(input)
-}
-
-fn parse_num(parsed_num: &str) -> Exp {
-    let num = f32::from_str(parsed_num).unwrap();
-    Exp::Num(num)
+    map(delimited(space0, float, space0), Exp::Num)(input)
 }
 
 fn parse_parens(input: &str) -> IResult<&str, Exp> {
