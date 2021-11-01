@@ -3,13 +3,16 @@
 [![Travis](https://img.shields.io/travis/vinc/moros/master.svg)](https://travis-ci.org/vinc/moros/branches)
 [![Crates.io](https://img.shields.io/crates/v/moros.svg)](https://crates.io/crates/moros)
 
-MOROS is a hobby operating system written in Rust for the x86 architecture.
+![screenshot](doc/moros.png)
+
+MOROS is a hobby operating system written in Rust by [Vincent Ollivier](https://vinc.cc).
+
+It targets computers with a x86-64 architecture and a BIOS, so mostly from 2005
+to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).
 
 This project started from the [seventh post][1] of the second edition of
 [Writing an OS in Rust][2] by Philipp Oppermann and by reading the
 [OSDev wiki][3] along with many open source kernels.
-
-![screenshot](doc/moros.png)
 
 
 ## Features
