@@ -1,11 +1,13 @@
-# MOROS
-
-MOROS is a hobby operating system written in Rust for the x86 architecture.
-
-It targets 64 bits processors with a legacy BIOS, so roughly computers from the
-2010 era, but it also run well on most hypervisors.
+# MOROS: Obscure Rust Operating System
 
 ![screenshot](moros.png)
+
+MOROS is a hobby operating system written in Rust by [Vincent Ollivier](https://vinc.cc).
+
+It targets computers with a x86-64 architecture and a BIOS, so mostly from 2005
+to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).
+
+* * *
 
 The first task when running the OS is to install the
 [filesystem](filesystem.md) on a disk (or in RAM) using the `install` program,
