@@ -22,18 +22,14 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/clk", verbose); // Clocks
     let pathname = "/dev/console";
     if syscall::stat(pathname).is_none() {
-        if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() {
-            if verbose {
-                println!("Created '{}'", pathname);
-            }
+        if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() && verbose {
+            println!("Created '{}'", pathname);
         }
     }
     let pathname = "/dev/random";
     if syscall::stat(pathname).is_none() {
-        if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() {
-            if verbose {
-                println!("Created '{}'", pathname);
-            }
+        if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() && verbose {
+            println!("Created '{}'", pathname);
         }
     }
 
