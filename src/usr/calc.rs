@@ -1,0 +1,168 @@
+use crate::usr;
+use crate::api::prompt::Prompt;
+use crate::api::console::Style;
+
+use alloc::boxed::Box;
+use alloc::format;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::str::FromStr;
+
+use nom::branch::alt;
+use nom::character::complete::{char, digit1, space0};
+use nom::combinator::map;
+use nom::multi::many0;
+use nom::sequence::{delimited, tuple};
+use nom::IResult;
+
+// Adapted from Basic Calculator
+// Copyright 2021 Balaji Sivaraman
+// https://github.com/balajisivaraman/basic_calculator_rs
+
+#[derive(Debug, PartialEq)]
+pub enum Exp {
+    Num(f32),
+    Add(Box<Exp>, Box<Exp>),
+    Sub(Box<Exp>, Box<Exp>),
+    Mul(Box<Exp>, Box<Exp>),
+    Div(Box<Exp>, Box<Exp>),
+    Exp(Box<Exp>, Box<Exp>),
+}
+
+// Parser
+
+fn parse(input: &str) -> IResult<&str, Exp> {
+    parse_math_exp(input)
+}
+
+fn parse_math_exp(input: &str) -> IResult<&str, Exp> {
+    let (input, num1) = parse_term(input)?;
+    let (input, exps) = many0(tuple((alt((char('+'), char('-'))), parse_term)))(input)?;
+    Ok((input, parse_exp(num1, exps)))
+}
+
+fn parse_term(input: &str) -> IResult<&str, Exp> {
+    let (input, num1) = parse_factor(input)?;
+    let (input, exps) = many0(tuple((alt((char('/'), char('*'))), parse_factor)))(input)?;
+    Ok((input, parse_exp(num1, exps)))
+}
+
+fn parse_factor(input: &str) -> IResult<&str, Exp> {
+    let (input, num1) = parse_operation(input)?;
+    let (input, exps) = many0(tuple((char('^'), parse_factor)))(input)?;
+    Ok((input, parse_exp(num1, exps)))
+}
+
+fn parse_operation(input: &str) -> IResult<&str, Exp> {
+    alt((parse_parens, parse_number))(input)
+}
+
+fn parse_number(input: &str) -> IResult<&str, Exp> {
+    map(delimited(space0, digit1, space0), parse_num)(input)
+}
+
+fn parse_num(parsed_num: &str) -> Exp {
+    let num = f32::from_str(parsed_num).unwrap();
+    Exp::Num(num)
+}
+
+fn parse_parens(input: &str) -> IResult<&str, Exp> {
+    delimited(space0, delimited(char('('), parse_math_exp, char(')')), space0)(input)
+}
+
+fn parse_exp(exp: Exp, rem: Vec<(char, Exp)>) -> Exp {
+    rem.into_iter().fold(exp, |acc, val| parse_op(val, acc))
+}
+
+fn parse_op(tup: (char, Exp), exp1: Exp) -> Exp {
+    let (op, exp2) = tup;
+    match op {
+        '+' => Exp::Add(Box::new(exp1), Box::new(exp2)),
+        '-' => Exp::Sub(Box::new(exp1), Box::new(exp2)),
+        '*' => Exp::Mul(Box::new(exp1), Box::new(exp2)),
+        '/' => Exp::Div(Box::new(exp1), Box::new(exp2)),
+        '^' => Exp::Exp(Box::new(exp1), Box::new(exp2)),
+        _ => panic!("Unknown operation"),
+    }
+}
+
+// Evaluation
+
+fn eval(exp: Exp) -> f32 {
+    match exp {
+        Exp::Num(num) => num,
+        Exp::Add(exp1, exp2) => eval(*exp1) + eval(*exp2),
+        Exp::Sub(exp1, exp2) => eval(*exp1) - eval(*exp2),
+        Exp::Mul(exp1, exp2) => eval(*exp1) * eval(*exp2),
+        Exp::Div(exp1, exp2) => eval(*exp1) / eval(*exp2),
+        Exp::Exp(exp1, exp2) => libm::powf(eval(*exp1), eval(*exp2)),
+    }
+}
+
+// REPL
+
+fn parse_eval(line: &str) -> Result<f32, String> {
+    match parse(&line) {
+        Ok((line, parsed)) => {
+            if line.is_empty() {
+                Ok(eval(parsed))
+            } else {
+                Err(format!("Could not parse '{}'", line))
+            }
+        },
+        Err(_) => {
+            Err(format!("Could not parse '{}'", line))
+        },
+    }
+}
+
+fn repl() -> usr::shell::ExitCode {
+    println!("MOROS Calc v0.1.0\n");
+    let csi_color = Style::color("Cyan");
+    let csi_error = Style::color("LightRed");
+    let csi_reset = Style::reset();
+    let prompt_string = format!("{}>{} ", csi_color, csi_reset);
+
+    let mut prompt = Prompt::new();
+    let history_file = "~/.calc-history";
+    prompt.history.load(history_file);
+
+    while let Some(line) = prompt.input(&prompt_string) {
+        if line == "exit" || line == "quit" {
+            break;
+        }
+
+        match parse_eval(&line) {
+            Ok(res) => {
+                println!("{}\n", res);
+            }
+            Err(msg) => {
+                println!("{}Error:{} {}\n", csi_error, csi_reset, msg);
+                continue;
+            }
+        }
+
+        if !line.is_empty() {
+            prompt.history.add(&line);
+            prompt.history.save(history_file);
+        }
+    }
+    usr::shell::ExitCode::CommandSuccessful
+}
+
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    if args.len() == 1 {
+        repl()
+    } else {
+        match parse_eval(&args[1..].join(" ")) {
+            Ok(res) => {
+                println!("{}", res);
+                usr::shell::ExitCode::CommandSuccessful
+            }
+            Err(msg) => {
+                println!("{}", msg);
+                usr::shell::ExitCode::CommandError
+            }
+        }
+    }
+}

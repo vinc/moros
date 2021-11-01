@@ -78,11 +78,11 @@ fn tokenize(expr: &str) -> Vec<String> {
 }
 
 fn parse(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
-    let (token, rest) = tokens.split_first().ok_or(Err::Reason("could not get token".to_string()))?;
+    let (token, rest) = tokens.split_first().ok_or(Err::Reason("Could not get token".to_string()))?;
     match &token[..] {
         "'" => parse_quoted(rest),
         "(" => read_seq(rest),
-        ")" => Err(Err::Reason("unexpected `)`".to_string())),
+        ")" => Err(Err::Reason("Unexpected `)`".to_string())),
         _ => Ok((parse_atom(token), rest)),
     }
 }
@@ -91,7 +91,7 @@ fn read_seq(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let mut res: Vec<Exp> = vec![];
     let mut xs = tokens;
     loop {
-        let (next_token, rest) = xs.split_first().ok_or(Err::Reason("could not find closing `)`".to_string()))?;
+        let (next_token, rest) = xs.split_first().ok_or(Err::Reason("Could not find closing `)`".to_string()))?;
         if next_token == ")" {
             return Ok((Exp::List(res), rest)) // skip `)`, head to the token after
         }
@@ -103,7 +103,7 @@ fn read_seq(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
 
 fn parse_quoted(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
     let xs = tokens;
-    let (next_token, _) = xs.split_first().ok_or(Err::Reason("could not parse quote".to_string()))?;
+    let (next_token, _) = xs.split_first().ok_or(Err::Reason("Could not parse quote".to_string()))?;
     let (exp, rest) = if next_token == "(" {
         read_seq(&tokens[1..])? // Skip "("
     } else {
@@ -133,7 +133,7 @@ macro_rules! ensure_tonicity {
     ($check_fn:expr) => {
         |args: &[Exp]| -> Result<Exp, Err> {
             let floats = parse_list_of_floats(args)?;
-            let first = floats.first().ok_or(Err::Reason("expected at least one number".to_string()))?;
+            let first = floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
             let rest = &floats[1..];
             fn f (prev: &f64, xs: &[f64]) -> bool {
                 match xs.first() {
@@ -171,7 +171,7 @@ fn default_env<'a>() -> Env<'a> {
         Exp::Func(
             |args: &[Exp]| -> Result<Exp, Err> {
                 let floats = parse_list_of_floats(args)?;
-                let first = *floats.first().ok_or(Err::Reason("expected at least one number".to_string()))?;
+                let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
                 let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
                 Ok(Exp::Number(first - sum_of_rest))
             }
@@ -208,19 +208,19 @@ fn parse_list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
 fn parse_single_float(exp: &Exp) -> Result<f64, Err> {
     match exp {
         Exp::Number(num) => Ok(*num),
-        _ => Err(Err::Reason("expected a number".to_string())),
+        _ => Err(Err::Reason("Expected a number".to_string())),
     }
 }
 
 // Eval
 
 fn eval_quote_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     Ok(first_form.clone())
 }
 
 fn eval_atom_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     let first_eval = eval(first_form, env)?;
     match first_eval {
         Exp::Symbol(_) => Ok(Exp::Bool(true)),
@@ -229,9 +229,9 @@ fn eval_atom_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     let first_eval = eval(first_form, env)?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
     let second_eval = eval(second_form, env)?;
     match first_eval {
         Exp::Symbol(a) => {
@@ -255,54 +255,54 @@ fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_car_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     let first_eval = eval(first_form, env)?;
     match first_eval {
         Exp::List(list) => {
-            let exp = list.first().ok_or(Err::Reason("list cannot be empty".to_string()))?; // TODO: return nil?
+            let exp = list.first().ok_or(Err::Reason("List cannot be empty".to_string()))?; // TODO: return nil?
             Ok(exp.clone())
         },
-        _ => Err(Err::Reason("expected list form".to_string())),
+        _ => Err(Err::Reason("Expected list form".to_string())),
     }
 }
 
 fn eval_cdr_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     let first_eval = eval(first_form, env)?;
     match first_eval {
         Exp::List(list) => {
             if list.is_empty() {
-                return Err(Err::Reason("list cannot be empty".to_string())) // TODO: return nil?
+                return Err(Err::Reason("List cannot be empty".to_string())) // TODO: return nil?
             }
             Ok(Exp::List(list[1..].to_vec()))
         },
-        _ => Err(Err::Reason("expected list form".to_string())),
+        _ => Err(Err::Reason("Expected list form".to_string())),
     }
 }
 
 fn eval_cons_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     let first_eval = eval(first_form, env)?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
     let second_eval = eval(second_form, env)?;
     match second_eval {
         Exp::List(mut list) => {
             list.insert(0, first_eval);
             Ok(Exp::List(list.to_vec()))
         },
-        _ => Err(Err::Reason("expected list form".to_string())),
+        _ => Err(Err::Reason("Expected list form".to_string())),
     }
 }
 
 fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     if arg_forms.is_empty() {
-        return Err(Err::Reason("expected at least one form".to_string()))
+        return Err(Err::Reason("Expected at least one form".to_string()))
     }
     for arg_form in arg_forms {
         match arg_form {
             Exp::List(list) => {
                 if list.len() != 2 {
-                    return Err(Err::Reason("expected lists of predicate and expression".to_string()))
+                    return Err(Err::Reason("Expected lists of predicate and expression".to_string()))
                 }
                 let pred = eval(&list[0], env)?;
                 let exp = eval(&list[1], env)?;
@@ -315,21 +315,21 @@ fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
                     _ => continue,
                 }
             },
-            _ => return Err(Err::Reason("expected lists of predicate and expression".to_string())),
+            _ => return Err(Err::Reason("Expected lists of predicate and expression".to_string())),
         }
     }
     Ok(Exp::List(Vec::new()))
 }
 
 fn eval_label_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     let first_str = match first_form {
         Exp::Symbol(s) => Ok(s.clone()),
-        _ => Err(Err::Reason("expected first form to be a symbol".to_string()))
+        _ => Err(Err::Reason("Expected first form to be a symbol".to_string()))
     }?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
     if arg_forms.len() > 2 {
-        return Err(Err::Reason("label can only have two forms".to_string()))
+        return Err(Err::Reason("Label can only have two forms".to_string()))
     } 
     let second_eval = eval(second_form, env)?;
     env.data.insert(first_str, second_eval);
@@ -337,10 +337,10 @@ fn eval_label_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
-    let params_exp = arg_forms.first().ok_or(Err::Reason("expected args form".to_string()))?;
-    let body_exp = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?;
+    let params_exp = arg_forms.first().ok_or(Err::Reason("Expected args form".to_string()))?;
+    let body_exp = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
     if arg_forms.len() > 2 {
-        return Err(Err::Reason("lambda definition can only have two forms".to_string()))
+        return Err(Err::Reason("Lambda definition can only have two forms".to_string()))
     }
     Ok(Exp::Lambda(Lambda {
         body_exp: Rc::new(body_exp.clone()),
@@ -349,18 +349,18 @@ fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
 }
 
 fn eval_defun_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let name = arg_forms.get(0).ok_or(Err::Reason("expected first form".to_string()))?.clone();
-    let params = arg_forms.get(1).ok_or(Err::Reason("expected second form".to_string()))?.clone();
-    let exp = arg_forms.get(2).ok_or(Err::Reason("expected third form".to_string()))?.clone();
+    let name = arg_forms.get(0).ok_or(Err::Reason("Expected first form".to_string()))?.clone();
+    let params = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?.clone();
+    let exp = arg_forms.get(2).ok_or(Err::Reason("Expected third form".to_string()))?.clone();
     let lambda_args = vec![Exp::Symbol("lambda".to_string()), params, exp];
     let label_args = vec![name, Exp::List(lambda_args)];
     eval_label_args(&label_args, env)
 }
 
 fn eval_print_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("expected first form".to_string()))?;
+    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
     if arg_forms.len() > 1 {
-        return Err(Err::Reason("print can only have one form".to_string()))
+        return Err(Err::Reason("Print can only have one form".to_string()))
     }
     match eval(first_form, env) {
         Ok(res) => {
@@ -414,12 +414,12 @@ fn env_get(k: &str, env: &Env) -> Option<Exp> {
 fn parse_list_of_symbol_strings(form: Rc<Exp>) -> Result<Vec<String>, Err> {
     let list = match form.as_ref() {
         Exp::List(s) => Ok(s.clone()),
-        _ => Err(Err::Reason("expected args form to be a list".to_string()))
+        _ => Err(Err::Reason("Expected args form to be a list".to_string()))
     }?;
     list.iter().map(|x| {
         match x {
             Exp::Symbol(s) => Ok(s.clone()),
-            _ => Err(Err::Reason("expected symbols in the argument list".to_string()))
+            _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
         }   
     }).collect()
 }
@@ -427,7 +427,7 @@ fn parse_list_of_symbol_strings(form: Rc<Exp>) -> Result<Vec<String>, Err> {
 fn env_for_lambda<'a>(params: Rc<Exp>, arg_forms: &[Exp], outer_env: &'a mut Env) -> Result<Env<'a>, Err> {
     let ks = parse_list_of_symbol_strings(params)?;
     if ks.len() != arg_forms.len() {
-        return Err(Err::Reason(format!("expected {} arguments, got {}", ks.len(), arg_forms.len())));
+        return Err(Err::Reason(format!("Expected {} arguments, got {}", ks.len(), arg_forms.len())));
     }
     let vs = eval_forms(arg_forms, outer_env)?;
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
@@ -446,11 +446,11 @@ fn eval_forms(arg_forms: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
 
 fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
     match exp {
-        Exp::Symbol(k) => env_get(k, env).ok_or(Err::Reason(format!("unexpected symbol k='{}'", k))),
+        Exp::Symbol(k) => env_get(k, env).ok_or(Err::Reason(format!("Unexpected symbol k='{}'", k))),
         Exp::Bool(_a) => Ok(exp.clone()),
         Exp::Number(_a) => Ok(exp.clone()),
         Exp::List(list) => {
-            let first_form = list.first().ok_or(Err::Reason("expected a non-empty list".to_string()))?;
+            let first_form = list.first().ok_or(Err::Reason("Expected a non-empty list".to_string()))?;
             let arg_forms = &list[1..];
             match eval_built_in_form(first_form, arg_forms, env) {
                 Some(res) => res,
@@ -464,13 +464,13 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
                             let new_env = &mut env_for_lambda(lambda.params_exp, arg_forms, env)?;
                             eval(&lambda.body_exp, new_env)
                         },
-                        _ => Err(Err::Reason("first form must be a function".to_string())),
+                        _ => Err(Err::Reason("First form must be a function".to_string())),
                     }
                 }
             }
         },
-        Exp::Func(_) => Err(Err::Reason("unexpected form".to_string())),
-        Exp::Lambda(_) => Err(Err::Reason("unexpected form".to_string())),
+        Exp::Func(_) => Err(Err::Reason("Unexpected form".to_string())),
+        Exp::Lambda(_) => Err(Err::Reason("Unexpected form".to_string())),
     }
 }
 
@@ -510,7 +510,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     println!("MOROS Lisp v0.1.0\n");
 
     let csi_color = Style::color("Cyan");
-    let csi_error = Style::color("Red");
+    let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -528,7 +528,7 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
                 println!("{}\n", res);
             }
             Err(e) => match e {
-                Err::Reason(msg) => println!("{}Error: {}{}\n", csi_error, msg, csi_reset),
+                Err::Reason(msg) => println!("{}Error:{} {}\n", csi_error, csi_reset, msg),
             },
         }
         if !exp.is_empty() {
