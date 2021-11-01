@@ -48,16 +48,12 @@ fn parse_term(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_factor(input: &str) -> IResult<&str, Exp> {
-    let (input, num1) = parse_operation(input)?;
+    let (input, num1) = alt((parse_parens, parse_num))(input)?;
     let (input, exps) = many0(tuple((char('^'), parse_factor)))(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
-fn parse_operation(input: &str) -> IResult<&str, Exp> {
-    alt((parse_parens, parse_number))(input)
-}
-
-fn parse_number(input: &str) -> IResult<&str, Exp> {
+fn parse_num(input: &str) -> IResult<&str, Exp> {
     map(delimited(space0, float, space0), Exp::Num)(input)
 }
 
