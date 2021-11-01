@@ -155,7 +155,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 #[test_case]
-pub fn test_calc() {
+fn test_calc() {
     macro_rules! eval {
         ($e:expr) => {
             format!("{}", parse_eval($e).unwrap())

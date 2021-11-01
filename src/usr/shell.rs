@@ -307,3 +307,17 @@ pub fn main(args: &[&str]) -> ExitCode {
         },
     }
 }
+
+#[test_case]
+fn test_shell() {
+    use alloc::string::ToString;
+
+    sys::fs::mount_mem();
+    sys::fs::format_mem();
+    usr::install::copy_files(false);
+
+    exec("print test => /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("test\n".to_string()));
+
+    sys::fs::dismount();
+}

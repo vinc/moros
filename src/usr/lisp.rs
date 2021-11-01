@@ -586,7 +586,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 #[test_case]
-pub fn test_lisp() {
+fn test_lisp() {
     let env = &mut default_env();
 
     macro_rules! eval {
