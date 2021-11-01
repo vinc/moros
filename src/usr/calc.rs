@@ -157,3 +157,30 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     }
 }
+
+#[test_case]
+pub fn test_calc() {
+    macro_rules! eval {
+        ($e:expr) => {
+            format!("{}", parse_eval($e).unwrap())
+        };
+    }
+
+    assert_eq!(eval!("1"),           "1");
+    assert_eq!(eval!("1.5"),         "1.5");
+
+    assert_eq!(eval!("1 + 2"),       "3");
+    assert_eq!(eval!("1 + 2 + 3"),   "6");
+    assert_eq!(eval!("1 + 2.5"),     "3.5");
+    assert_eq!(eval!("1 + 2.5"),     "3.5");
+    assert_eq!(eval!("2 - 1"),       "1");
+    assert_eq!(eval!("1 - 2"),       "-1");
+    assert_eq!(eval!("2 * 3"),       "6");
+    assert_eq!(eval!("2 * 3.5"),     "7");
+    assert_eq!(eval!("6 / 2"),       "3");
+    assert_eq!(eval!("6 / 4"),       "1.5");
+    assert_eq!(eval!("2 ^ 4"),       "16");
+
+    assert_eq!(eval!("2 * 3 + 4"),   "10");
+    assert_eq!(eval!("2 * (3 + 4)"), "14");
+}
