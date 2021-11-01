@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Add calc command #263
+- Add website (#261)
 - Fix VGA issues with real hardware (#258)
 - Add rust binaries support (#255)
 - Add dynamical disk information (#252)
