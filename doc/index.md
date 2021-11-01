@@ -1,4 +1,4 @@
-# MOROS
+# MOROS: Obscure Rust Operating System
 
 ![screenshot](moros.png)
 
