@@ -180,7 +180,7 @@ pub fn exec(cmd: &str) -> ExitCode {
     }
 
     let res = match args[0] {
-        ""                     => ExitCode::CommandError,
+        ""                     => ExitCode::CommandSuccessful,
         "a" | "alias"          => ExitCode::CommandUnknown,
         "b"                    => ExitCode::CommandUnknown,
         "c" | "copy"           => usr::copy::main(&args),
