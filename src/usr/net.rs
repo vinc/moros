@@ -6,7 +6,7 @@ use smoltcp::time::Instant;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
-        println!("Usage: net <command>");
+        eprintln!("Usage: net <command>");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -14,7 +14,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         match args[1] {
             "config" => {
                 if args.len() < 4 {
-                    println!("Usage: net config <key> <value>");
+                    eprintln!("Usage: net config <key> <value>");
                     return usr::shell::ExitCode::CommandError;
                 }
                 match args[2] {
@@ -23,13 +23,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             "1" | "on" | "enable" => true,
                             "0" | "off" | "disable" => false,
                             _ => {
-                                println!("Invalid config value");
+                                eprintln!("Invalid config value");
                                 return usr::shell::ExitCode::CommandError;
                             }
                         }
                     }
                     _ => {
-                        println!("Invalid config key");
+                        eprintln!("Invalid config key");
                         return usr::shell::ExitCode::CommandError;
                     }
                 }
@@ -73,7 +73,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
             }
             _ => {
-                println!("Invalid command");
+                eprintln!("Invalid command");
                 return usr::shell::ExitCode::CommandError;
             }
         }

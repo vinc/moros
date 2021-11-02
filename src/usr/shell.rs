@@ -316,8 +316,22 @@ fn test_shell() {
     sys::fs::format_mem();
     usr::install::copy_files(false);
 
-    exec("print test => /test");
-    assert_eq!(api::fs::read_to_string("/test"), Ok("test\n".to_string()));
+
+    // Redirect standard output
+    exec("print test1 => /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("test1\n".to_string()));
+
+    // Overwrite content of existing file
+    exec("print test2 => /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("test2\n".to_string()));
+
+    // Redirect standard output explicitely
+    exec("print test3 1=> /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
+
+    // Redirect standard error explicitely
+    exec("http 2=> /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("Usage: http <host> <path>\n".to_string()));
 
     sys::fs::dismount();
 }

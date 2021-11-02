@@ -35,13 +35,13 @@ fn help() -> usr::shell::ExitCode {
     println!("  list");
     println!("  usage");
 
-    usr::shell::ExitCode::CommandError
+    usr::shell::ExitCode::CommandSuccessful
 }
 
 fn format(pathname: &str) -> usr::shell::ExitCode {
     let path: Vec<_> = pathname.split('/').collect();
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
-        println!("Could not find disk at '{}'", pathname);
+        eprintln!("Could not find disk at '{}'", pathname);
         return usr::shell::ExitCode::CommandError;
     }
 

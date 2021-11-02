@@ -17,6 +17,25 @@ macro_rules! println {
     });
 }
 
+#[macro_export]
+macro_rules! eprint {
+    ($($arg:tt)*) => ({
+        use alloc::format;
+        let s = format!("{}", format_args!($($arg)*));
+        $crate::api::io::stderr().write(&s);
+    });
+}
+
+#[macro_export]
+macro_rules! eprintln {
+    () => ({
+        eprint!("\n");
+    });
+    ($($arg:tt)*) => ({
+        eprint!("{}\n", format_args!($($arg)*));
+    });
+}
+
 pub mod console;
 pub mod font;
 pub mod fs;

@@ -39,7 +39,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 // > read /net/tcp/time.nist.gov:13
                 let parts: Vec<_> = pathname.split('/').collect();
                 if parts.len() < 4 {
-                    println!("Usage: read /net/http/<host>/<path>");
+                    eprintln!("Usage: read /net/http/<host>/<path>");
                     usr::shell::ExitCode::CommandError
                 } else {
                     match parts[2] {
@@ -58,7 +58,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             usr::http::main(&["http", host, &path])
                         }
                         _ => {
-                            println!("Error: unknown protocol '{}'", parts[2]);
+                            eprintln!("Error: unknown protocol '{}'", parts[2]);
                             usr::shell::ExitCode::CommandError
                         }
                     }
@@ -69,7 +69,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         print!("{}", contents);
                         usr::shell::ExitCode::CommandSuccessful
                     } else {
-                        println!("Could not read '{}'", pathname);
+                        eprintln!("Could not read '{}'", pathname);
                         usr::shell::ExitCode::CommandError
                     }
                 } else if stat.is_dir() {
@@ -85,11 +85,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         }
                     }
                 } else {
-                    println!("Could not read type of '{}'", pathname);
+                    eprintln!("Could not read type of '{}'", pathname);
                     usr::shell::ExitCode::CommandError
                 }
             } else {
-                println!("File not found '{}'", pathname);
+                eprintln!("File not found '{}'", pathname);
                 usr::shell::ExitCode::CommandError
             }
         }

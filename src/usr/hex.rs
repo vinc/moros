@@ -13,7 +13,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         print_hex(&buf);
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        println!("File not found '{}'", pathname);
+        eprintln!("File not found '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

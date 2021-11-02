@@ -35,7 +35,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn usage() -> usr::shell::ExitCode {
-    println!("Usage: user [{}] <username>", COMMANDS.join("|"));
+    eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
     usr::shell::ExitCode::CommandError
 }
 
@@ -82,7 +82,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     if hashed_password(username).is_some() {
-        println!("Username exists");
+        eprintln!("Username exists");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -103,12 +103,12 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     println!();
 
     if password != confirm {
-        println!("Password confirmation failed");
+        eprintln!("Password confirmation failed");
         return usr::shell::ExitCode::CommandError;
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
-        println!("Could not save user");
+        eprintln!("Could not save user");
         return usr::shell::ExitCode::CommandError;
     }
 

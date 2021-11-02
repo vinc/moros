@@ -17,7 +17,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     sort = args[i + 1];
                     i += 1;
                 } else {
-                    println!("Missing sort key");
+                    eprintln!("Missing sort key");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
@@ -43,7 +43,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             "size" => files.sort_by_key(|f| f.size()),
             "time" => files.sort_by_key(|f| f.time()),
             _ => {
-                println!("Invalid sort key '{}'", sort);
+                eprintln!("Invalid sort key '{}'", sort);
                 return usr::shell::ExitCode::CommandError;
             }
         }
@@ -71,7 +71,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        println!("Dir not found '{}'", path);
+        eprintln!("Dir not found '{}'", path);
         usr::shell::ExitCode::CommandError
     }
 }

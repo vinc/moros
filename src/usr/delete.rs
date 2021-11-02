@@ -9,7 +9,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut pathname = args[1];
 
     if pathname.starts_with("/dev") || pathname.starts_with("/sys") {
-        println!("Permission denied to delete '{}'", pathname);
+        eprintln!("Permission denied to delete '{}'", pathname);
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -24,22 +24,22 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             if sys::fs::Dir::delete(pathname).is_ok() {
                 usr::shell::ExitCode::CommandSuccessful
             } else {
-                println!("Could not delete directory '{}'", pathname);
+                eprintln!("Could not delete directory '{}'", pathname);
                 usr::shell::ExitCode::CommandError
             }
         } else {
-            println!("Directory '{}' not empty", pathname);
+            eprintln!("Directory '{}' not empty", pathname);
             usr::shell::ExitCode::CommandError
         }
     } else if fs::exists(pathname) {
         if sys::fs::File::delete(pathname).is_ok() {
             usr::shell::ExitCode::CommandSuccessful
         } else {
-            println!("Could not delete file '{}'", pathname);
+            eprintln!("Could not delete file '{}'", pathname);
             usr::shell::ExitCode::CommandError
         }
     } else {
-        println!("File not found '{}'", pathname);
+        eprintln!("File not found '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

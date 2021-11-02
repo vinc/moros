@@ -44,6 +44,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn error(message: &str) -> usr::shell::ExitCode {
-    println!("Error: {}", message);
+    eprintln!("Error: {}", message);
     usr::shell::ExitCode::CommandError
 }
