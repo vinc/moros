@@ -16,7 +16,7 @@ rtl8139 = []
 pcnet = []
 
 [dependencies]
-acpi = "4.0.0"
+acpi = "4.1.0"
 aml = "0.16.0"
 base64 = { version = "0.13.0", default-features = false }
 bit_field = "0.10.0"
