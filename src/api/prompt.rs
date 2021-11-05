@@ -10,7 +10,7 @@ pub struct Prompt {
     pub history: History,
     offset: usize, // Offset line by the length of the prompt string
     cursor: usize,
-    line: Vec<char>,
+    line: Vec<char>, // UTF-32
 }
 
 impl Prompt {
@@ -45,7 +45,7 @@ impl Prompt {
                     self.update_completion();
                     self.update_history();
                     println!();
-                    return Some(self.line.clone().into_iter().collect());
+                    return Some(self.line.iter().collect());
                 },
                 c => {
                    for b in c.encode_utf8(&mut bytes).as_bytes() {
@@ -92,7 +92,7 @@ impl Prompt {
                 }
             },
             None => {
-                let s: String = self.line.clone().into_iter().collect();
+                let s: String = self.line.iter().collect();
                 self.completion.entries = (self.completion.completer)(&s);
                 if !self.completion.entries.is_empty() {
                     (0, 0)
@@ -135,11 +135,10 @@ impl Prompt {
             Some(i) => (self.history.entries[i].chars().count(), i + 1),
             None => return,
         };
-        let line: String = self.line.clone().into_iter().collect();
         let (pos, line) = if i < n {
-            (Some(i), &self.history.entries[i])
+            (Some(i), self.history.entries[i].clone())
         } else {
-            (None, &line)
+            (None, self.line.iter().collect())
         };
         let erase = '\x08'.to_string().repeat(bs);
         print!("{}{}", erase, line);
