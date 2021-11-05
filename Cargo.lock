@@ -283,8 +283,8 @@ checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
 
 [[package]]
 name = "nom"
-version = "7.0.0"
-source = "git+https://github.com/Geal/nom#02433c2c98a0448d30818ee057d303f2e63b8288"
+version = "7.1.0"
+source = "git+https://github.com/Geal/nom#b6f79c4d375ae55e1fd1a35032ebb47a52ea3389"
 dependencies = [
  "memchr",
  "minimal-lexical",
