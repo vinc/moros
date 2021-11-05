@@ -5,6 +5,53 @@ use crate::api::io;
 use crate::api::syscall;
 use alloc::string::String;
 
+pub fn copy_files(verbose: bool) {
+    create_dir("/bin", verbose); // Binaries
+    create_dir("/dev", verbose); // Devices
+    create_dir("/ini", verbose); // Initializers
+    create_dir("/lib", verbose); // Libraries
+    create_dir("/net", verbose); // Network
+    create_dir("/src", verbose); // Sources
+    create_dir("/tmp", verbose); // Temporaries
+    create_dir("/usr", verbose); // User directories
+    create_dir("/var", verbose); // Variables
+
+    copy_file("/bin/hello", include_bytes!("../../dsk/bin/hello"), verbose);
+    copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
+
+    create_dir("/dev/clk", verbose); // Clocks
+    let pathname = "/dev/console";
+    if syscall::stat(pathname).is_none() {
+        if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() && verbose {
+            println!("Created '{}'", pathname);
+        }
+    }
+    let pathname = "/dev/random";
+    if syscall::stat(pathname).is_none() {
+        if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() && verbose {
+            println!("Created '{}'", pathname);
+        }
+    }
+
+    copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
+    copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
+    copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
+    copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"), verbose);
+
+    create_dir("/ini/fonts", verbose);
+    copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
+    copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"), verbose);
+    copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"), verbose);
+
+    copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"), verbose);
+    copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"), verbose);
+
+    create_dir("/tmp/beep", verbose);
+    copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"), verbose);
+    copy_file("/tmp/beep/starwars.sh", include_bytes!("../../dsk/tmp/beep/starwars.sh"), verbose);
+    copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"), verbose);
+}
+
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -31,50 +78,8 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         }
 
         println!("{}Populating filesystem...{}", csi_color, csi_reset);
-        create_dir("/bin"); // Binaries
-        create_dir("/dev"); // Devices
-        create_dir("/ini"); // Initializers
-        create_dir("/lib"); // Libraries
-        create_dir("/net"); // Network
-        create_dir("/src"); // Sources
-        create_dir("/tmp"); // Temporaries
-        create_dir("/usr"); // User directories
-        create_dir("/var"); // Variables
-
-        copy_file("/bin/hello", include_bytes!("../../dsk/bin/hello"));
-        copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"));
-
-        create_dir("/dev/clk"); // Clocks
-        let pathname = "/dev/console";
-        if syscall::stat(pathname).is_none() {
-            if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() {
-                println!("Created '{}'", pathname);
-            }
-        }
-        let pathname = "/dev/random";
-        if syscall::stat(pathname).is_none() {
-            if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() {
-                println!("Created '{}'", pathname);
-            }
-        }
-
-        copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"));
-        copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"));
-        copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"));
-        copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"));
-
-        create_dir("/ini/fonts");
-        copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"));
-        copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"));
-        copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"));
-
-        copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"));
-        copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"));
-
-        create_dir("/tmp/beep");
-        copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"));
-        copy_file("/tmp/beep/starwars.sh", include_bytes!("../../dsk/tmp/beep/starwars.sh"));
-        copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"));
+        let verbose = true;
+        copy_files(verbose);
 
         if sys::process::user().is_none() {
             println!();
@@ -94,13 +99,13 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     usr::shell::ExitCode::CommandSuccessful
 }
 
-fn create_dir(pathname: &str) {
-    if sys::fs::Dir::create(pathname).is_some() {
+fn create_dir(pathname: &str, verbose: bool) {
+    if sys::fs::Dir::create(pathname).is_some() && verbose {
         println!("Created '{}'", pathname);
     }
 }
 
-fn copy_file(pathname: &str, buf: &[u8]) {
+fn copy_file(pathname: &str, buf: &[u8], verbose: bool) {
     if fs::exists(pathname) {
         return;
     }
@@ -115,5 +120,7 @@ fn copy_file(pathname: &str, buf: &[u8]) {
         fs::write(pathname, buf).ok();
     }
     // TODO: add File::write_all to split buf if needed
-    println!("Copied '{}'", pathname);
+    if verbose {
+        println!("Copied '{}'", pathname);
+    }
 }

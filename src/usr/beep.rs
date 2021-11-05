@@ -42,12 +42,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     if let Ok(value) = args[i + 1].parse() {
                         freq = value;
                     } else {
-                        println!("Could not parse freq");
+                        eprintln!("Could not parse freq");
                         return usr::shell::ExitCode::CommandError;
                     }
                     i += 1;
                 } else {
-                    println!("Missing freq");
+                    eprintln!("Missing freq");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
@@ -56,12 +56,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     if let Ok(value) = args[i + 1].parse() {
                         len = value;
                     } else {
-                        println!("Could not parse len");
+                        eprintln!("Could not parse len");
                         return usr::shell::ExitCode::CommandError;
                     }
                     i += 1;
                 } else {
-                    println!("Missing len");
+                    eprintln!("Missing len");
                     return usr::shell::ExitCode::CommandError;
                 }
             },

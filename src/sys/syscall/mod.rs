@@ -53,6 +53,11 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
             service::close(handle);
             0
         }
+        number::DUP => {
+            let old_handle = arg1;
+            let new_handle = arg2;
+            service::dup(old_handle, new_handle) as usize
+        }
         number::SPAWN => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;

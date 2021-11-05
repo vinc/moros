@@ -64,7 +64,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if args.len() != 3 {
-        println!("Usage: http <host> <path>");
+        eprintln!("Usage: http <host> <path>");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -79,7 +79,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 ip_addr
             }
             Err(e) => {
-                println!("Could not resolve host: {:?}", e);
+                eprintln!("Could not resolve host: {:?}", e);
                 return usr::shell::ExitCode::CommandError;
             }
         }
@@ -98,11 +98,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                println!("Error: Interface not ready");
+                eprintln!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                println!("Error: Interface not ready");
+                eprintln!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             _ => {}
@@ -113,18 +113,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                println!("Timeout reached");
+                eprintln!("Timeout reached");
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
-                println!();
+                eprintln!();
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
             match iface.poll(&mut sockets, timestamp) {
                 Err(smoltcp::Error::Unrecognized) => {}
                 Err(e) => {
-                    println!("Network Error: {}", e);
+                    eprintln!("Network Error: {}", e);
                 }
                 Ok(_) => {}
             }
@@ -139,7 +139,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             println!("* Connecting to {}:{}", address, url.port);
                         }
                         if socket.connect((address, url.port), local_port).is_err() {
-                            println!("Could not connect to {}:{}", address, url.port);
+                            eprintln!("Could not connect to {}:{}", address, url.port);
                             return usr::shell::ExitCode::CommandError;
                         }
                         State::Request

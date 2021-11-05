@@ -29,11 +29,11 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                println!("Timeout reached");
+                eprintln!("Timeout reached");
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
-                println!();
+                eprintln!();
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);

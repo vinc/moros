@@ -562,7 +562,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             if let Err(e) = parse_eval(&block, env) {
                                 match e {
                                     Err::Reason(msg) => {
-                                        println!("{}", msg);
+                                        eprintln!("{}", msg);
                                         return usr::shell::ExitCode::CommandError;
                                     }
                                 }
@@ -575,7 +575,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
                 usr::shell::ExitCode::CommandSuccessful
             } else {
-                println!("File not found '{}'", pathname);
+                eprintln!("File not found '{}'", pathname);
                 usr::shell::ExitCode::CommandError
             }
         },
@@ -586,7 +586,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 #[test_case]
-pub fn test_lisp() {
+fn test_lisp() {
     let env = &mut default_env();
 
     macro_rules! eval {

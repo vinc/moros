@@ -21,11 +21,11 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match iface.ipv4_addr() {
             None => {
-                println!("Error: Interface not ready");
+                eprintln!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             Some(ip_addr) if ip_addr.is_unspecified() => {
-                println!("Error: Interface not ready");
+                eprintln!("Error: Interface not ready");
                 return usr::shell::ExitCode::CommandError;
             }
             _ => {}
@@ -195,7 +195,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             }
         }
     } else {
-        println!("Error: Could not find network interface");
+        eprintln!("Error: Could not find network interface");
         usr::shell::ExitCode::CommandError
     }
 }

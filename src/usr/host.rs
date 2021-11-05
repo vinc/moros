@@ -218,7 +218,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
-        println!("Usage: host <name>");
+        eprintln!("Usage: host <name>");
         return usr::shell::ExitCode::CommandError;
     }
     let name = args[1];
@@ -228,7 +228,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(e) => {
-            println!("Could not resolve host: {:?}", e);
+            eprintln!("Could not resolve host: {:?}", e);
             usr::shell::ExitCode::CommandError
         }
     }

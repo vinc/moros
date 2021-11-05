@@ -36,7 +36,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     name = Some(args[i + 1]);
                     i += 1;
                 } else {
-                    println!("Missing name");
+                    eprintln!("Missing name");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
@@ -45,7 +45,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     line = Some(args[i + 1]);
                     i += 1;
                 } else {
-                    println!("Missing line");
+                    eprintln!("Missing line");
                     return usr::shell::ExitCode::CommandError;
                 }
             },

@@ -112,7 +112,7 @@ pub fn read(path: &str) -> Result<Vec<u8>, ()> {
             if let Some(bytes) = syscall::read(handle, &mut buf) {
                 buf.resize(bytes, 0);
                 syscall::close(handle);
-                return Ok(buf)
+                return Ok(buf);
             }
         }
     }
@@ -127,8 +127,29 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
     if let Some(handle) = create_file(&path) {
         if let Some(bytes) = syscall::write(handle, buf) {
             syscall::close(handle);
-            return Ok(bytes)
+            return Ok(bytes);
         }
+    }
+    Err(())
+}
+
+pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
+    let path = match canonicalize(path) {
+        Ok(path) => path,
+        Err(_) => return Err(()),
+    };
+    let res = if let Some(stat) = syscall::stat(&path) {
+        if stat.is_device() {
+            open_device(&path)
+        } else {
+            open_file(&path)
+        }
+    } else {
+        create_file(&path)
+    };
+    if let Some(old_handle) = res {
+        syscall::dup(old_handle, handle);
+        return Ok(old_handle);
     }
     Err(())
 }

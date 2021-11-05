@@ -1,7 +1,8 @@
 # Changelog
 
 ## Unreleased
-- Add calc command #263
+- Add shell redirections (#262)
+- Add calc command (#263)
 - Add website (#261)
 - Fix VGA issues with real hardware (#258)
 - Add rust binaries support (#255)

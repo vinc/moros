@@ -1,5 +1,6 @@
 use crate::{api, sys, usr};
 use crate::api::fs;
+use crate::api::regex::Regex;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
 use alloc::format;
@@ -124,10 +125,62 @@ fn change_dir(args: &[&str]) -> ExitCode {
 }
 
 pub fn exec(cmd: &str) -> ExitCode {
-    let args = split_args(cmd);
+    let mut args = split_args(cmd);
 
-    match args[0] {
-        ""                     => ExitCode::CommandError,
+    // Redirections like `print hello => /tmp/hello`
+    // Pipes like `print hello -> write /tmp/hello` or `p hello > w /tmp/hello`
+    let mut n = args.len();
+    let mut i = 0;
+    loop {
+        if i == n {
+            break;
+        }
+
+        let mut is_fat_arrow = false;
+        let mut is_thin_arrow = false;
+        let mut left_handle;
+
+        if Regex::new("<=+").is_match(args[i]) { // Redirect input stream
+            is_fat_arrow = true;
+            left_handle = 0;
+        } else if Regex::new("\\d*=+>").is_match(args[i]) { // Redirect output stream(s)
+            is_fat_arrow = true;
+            left_handle = 1;
+        } else if Regex::new("\\d*-*>\\d*").is_match(args[i]) { // Pipe output stream(s)
+            is_thin_arrow = true;
+            left_handle = 1;
+            // TODO: right_handle?
+        } else {
+            i += 1;
+            continue;
+        }
+
+        let s = args[i].chars().take_while(|c| c.is_numeric()).collect::<String>();
+        if let Ok(h) = s.parse() {
+            left_handle = h;
+        }
+
+        if is_fat_arrow { // Redirections
+            if i == n - 1 {
+                println!("Could not parse path for redirection");
+                return ExitCode::CommandError;
+            }
+            let path = args[i + 1];
+            if api::fs::reopen(path, left_handle).is_err() {
+                println!("Could not open path for redirection");
+                return ExitCode::CommandError;
+            }
+            args.remove(i); // Remove redirection from args
+            args.remove(i); // Remove path from args
+            n -= 2;
+        } else if is_thin_arrow { // TODO: Implement pipes
+            println!("Could not parse arrow");
+            return ExitCode::CommandError;
+        }
+    }
+
+    let res = match args[0] {
+        ""                     => ExitCode::CommandSuccessful,
         "a" | "alias"          => ExitCode::CommandUnknown,
         "b"                    => ExitCode::CommandUnknown,
         "c" | "copy"           => usr::copy::main(&args),
@@ -190,7 +243,14 @@ pub fn exec(cmd: &str) -> ExitCode {
                 ExitCode::CommandUnknown
             }
         }
+    };
+
+    // TODO: Remove this when redirections are done in spawned process
+    for i in 0..3 {
+        api::fs::reopen("/dev/console", i).ok();
     }
+
+    return res;
 }
 
 pub fn run() -> usr::shell::ExitCode {
@@ -246,4 +306,32 @@ pub fn main(args: &[&str]) -> ExitCode {
             ExitCode::CommandError
         },
     }
+}
+
+#[test_case]
+fn test_shell() {
+    use alloc::string::ToString;
+
+    sys::fs::mount_mem();
+    sys::fs::format_mem();
+    usr::install::copy_files(false);
+
+
+    // Redirect standard output
+    exec("print test1 => /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("test1\n".to_string()));
+
+    // Overwrite content of existing file
+    exec("print test2 => /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("test2\n".to_string()));
+
+    // Redirect standard output explicitely
+    exec("print test3 1=> /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
+
+    // Redirect standard error explicitely
+    exec("http 2=> /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("Usage: http <host> <path>\n".to_string()));
+
+    sys::fs::dismount();
 }

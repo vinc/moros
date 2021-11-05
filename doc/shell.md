@@ -79,15 +79,22 @@ double them.
 
 ## Pipes (TODO)
 
-The pipe symbol `|` from UNIX is replaced by `-->`, shortened to `>`, and `>`
-is replaced by `--> write` or `> w` in short. An additional standard stream
-stdnil(3) is added to simplify writing to `/dev/null`.
+The pipe symbol `|` from UNIX is replaced by a thin arrow `->`, shortened to
+`>`, and the redirection symbol `>` from UNIX is replaced by a fat arrow `=>`
+(see below).
+
+Piping the standard output of a program to the `write` command to emulate a
+redirection for example would be `-> write` or `> w` in short.
+
+An additional standard stream stdnull(3) is added to simplify writing to `/dev/null`.
+
+Examples:
 
 Read file A and redirect stdout(1) to stdin(0) of write file B:
 
     > r a.txt > w b.txt
     > r a.txt 1>0 w b.txt # with explicit streams
-    > r a.txt --> w b.txt # with arrow
+    > r a.txt -> w b.txt # with thin arrow
 
 Read file A and redirect stderr(2) to stdin(0) of write file B:
 
@@ -102,3 +109,15 @@ Redirect stdout(1) to stdin(0) and stderr(2) to stdnil(3):
 
     > r a.txt > 2>3 w b.txt
     > r a.txt 1>0 2>3 w b.txt
+
+## Redirections
+
+Redirecting standard IO streams can be done with a fat arrow, for example the
+output of the print command can be written to a file like so:
+
+    > print hello => /tmp/hello
+
+Which is more efficient than doing:
+
+    > print hello -> write /tmp/hello
+

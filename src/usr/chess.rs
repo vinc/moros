@@ -119,7 +119,7 @@ impl Chess {
             ("m", "ove <move>",         "Play <move> on the board\n"),
             ("u", "ndo",                "Undo the last move\n"),
             ("s", "how <attr>",         "Show <attr>\n"),
-            ("p", "erf [<dept>]",       "Count the nodes at each depth\n"),
+            ("p", "erf [<depth>]",       "Count the nodes at each depth\n"),
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("LightGreen");

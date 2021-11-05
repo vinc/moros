@@ -5,6 +5,7 @@ use alloc::string::{String, ToString};
 
 pub struct Stdin;
 pub struct Stdout;
+pub struct Stderr;
 
 impl Stdin {
     fn new() -> Self {
@@ -42,10 +43,24 @@ impl Stdout {
     }
 }
 
-pub fn stdout() -> Stdout {
-    Stdout::new()
+impl Stderr {
+    fn new() -> Self {
+        Self {}
+    }
+
+    pub fn write(&self, s: &str) {
+        syscall::write(2, s.as_bytes());
+    }
 }
 
 pub fn stdin() -> Stdin {
     Stdin::new()
+}
+
+pub fn stdout() -> Stdout {
+    Stdout::new()
+}
+
+pub fn stderr() -> Stderr {
+    Stderr::new()
 }

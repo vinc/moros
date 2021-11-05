@@ -11,7 +11,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         });
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        println!("Could not find network interface");
+        eprintln!("Could not find network interface");
         usr::shell::ExitCode::CommandError
     }
 }

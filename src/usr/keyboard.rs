@@ -2,7 +2,7 @@ use crate::{sys, usr};
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
-        println!("Usage: keyboard <command>");
+        eprintln!("Usage: keyboard <command>");
         return usr::shell::ExitCode::CommandError;
     }
     match args[1] {
@@ -23,7 +23,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     usr::shell::ExitCode::CommandSuccessful
 }
 
+// TODO: Move that to API
 fn error(message: &str) -> usr::shell::ExitCode {
-    println!("Error: {}", message);
+    eprintln!("Error: {}", message);
     usr::shell::ExitCode::CommandError
 }
