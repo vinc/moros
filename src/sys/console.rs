@@ -24,7 +24,7 @@ impl Console {
 
 impl FileIO for Console {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let mut s = if buf.len() == 1 {
+        let mut s = if buf.len() == 4 {
             read_char().to_string()
         } else {
             read_line()
@@ -105,7 +105,7 @@ pub fn key_handle(key: char) {
             if is_echo_enabled() {
                 let n = match c {
                     ETX_KEY | EOT_KEY | ESC_KEY => 2,
-                    _ => c.len_utf8(),
+                    _ => if (c as u32) < 0xFF { 1 } else { c.len_utf8() },
                 };
                 print_fmt(format_args!("{}", BS_KEY.to_string().repeat(n)));
             }
