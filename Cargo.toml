@@ -27,7 +27,7 @@ lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.1"
 linked_list_allocator = "0.9.1"
 littlewing = { version = "0.7.0", default-features = false }
-nom = { git = "https://github.com/Geal/nom", default-features = false, features = ["alloc"] }
+nom = { version = "7.1.0", default-features = false, features = ["alloc"] }
 object = { version = "0.26.2", default-features = false, features = ["read"] }
 pbkdf2 = { version = "0.9.0", default-features = false }
 pc-keyboard = "0.5.1"
