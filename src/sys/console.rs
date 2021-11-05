@@ -111,6 +111,7 @@ pub fn key_handle(key: char) {
             }
         }
     } else {
+        let key = if (key as u32) < 0xFF { (key as u8) as char } else { key };
         stdin.push(key);
         if is_echo_enabled() {
             match key {
