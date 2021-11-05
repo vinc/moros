@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "acpi"
-version = "4.0.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee817a324f75ec8fa4db9b79ca77dcde7114718d37d3dc7c94f6361c30f7d9ae"
+checksum = "55237649c6e747ea67e5ed45125af5e6a35ea1250c5e44995eb6049a955bd004"
 dependencies = [
  "bit_field",
  "log",
