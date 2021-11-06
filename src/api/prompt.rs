@@ -31,7 +31,6 @@ impl Prompt {
         self.line = Vec::with_capacity(80);
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
-            let mut bytes = [0; 4];
             match c {
                 '\x03' => { // End of Text (^C)
                     println!();
@@ -48,7 +47,7 @@ impl Prompt {
                     return Some(self.line.iter().collect());
                 },
                 c => {
-                   for b in c.encode_utf8(&mut bytes).as_bytes() {
+                   for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
                     }
                 }
@@ -92,8 +91,8 @@ impl Prompt {
                 }
             },
             None => {
-                let s: String = self.line.iter().collect();
-                self.completion.entries = (self.completion.completer)(&s);
+                let line: String = self.line.iter().collect();
+                self.completion.entries = (self.completion.completer)(&line);
                 if !self.completion.entries.is_empty() {
                     (0, 0)
                 } else {
@@ -170,9 +169,9 @@ impl Prompt {
         if self.cursor < self.offset + self.line.len() {
             let i = self.cursor - self.offset;
             self.line.remove(i);
-            let s = &self.line[i..];
+            let s = &self.line[i..]; // UTF-32
             let n = s.len() + 1;
-            let s: String = s.into_iter().collect();
+            let s: String = s.into_iter().collect(); // UTF-8
             print!("{} \x1b[{}D", s, n);
         }
     }
@@ -183,9 +182,9 @@ impl Prompt {
         if self.cursor > self.offset {
             let i = self.cursor - self.offset - 1;
             self.line.remove(i);
-            let s = &self.line[i..];
+            let s = &self.line[i..]; // UTF-32
             let n = s.len() + 1;
-            let s: String = s.into_iter().collect();
+            let s: String = s.into_iter().collect(); // UTF-8
             print!("{}{} \x1b[{}D", '\x08', s, n);
             self.cursor -= 1;
         }
@@ -198,9 +197,9 @@ impl Prompt {
             let c = (c as u8) as char;
             let i = self.cursor - self.offset;
             self.line.insert(i, c);
-            let s = &self.line[i..];
+            let s = &self.line[i..]; // UTF-32
             let n = s.len();
-            let s: String = s.into_iter().collect();
+            let s: String = s.into_iter().collect(); // UTF-8
             print!("{} \x1b[{}D", s, n);
             self.cursor += 1;
         } else {
