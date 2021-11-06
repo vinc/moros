@@ -1,7 +1,6 @@
 use crate::{sys, usr};
-use crate::api::fs;
+use crate::api::{console, fs, io};
 use crate::api::console::Style;
-use crate::api::io;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -88,7 +87,7 @@ impl Editor {
     fn print_editing_status(&mut self) {
         let max = 50;
         let mut path = self.pathname.clone();
-        if self.pathname.len() > max {
+        if self.pathname.chars().count() > max {
             path.truncate(max - 3);
             path.push_str("...");
         }
@@ -99,7 +98,7 @@ impl Editor {
         let n = y * 100 / self.lines.len();
         let end = format!("{},{} {:3}%", y, x, n);
 
-        let width = self.cols() - start.len();
+        let width = self.cols() - start.chars().count();
         let status = format!("{}{:>width$}", start, end, width = width);
 
         self.print_status(&status, "LightGray");
@@ -119,23 +118,23 @@ impl Editor {
         // Render line into a row of the screen, or an empty row when past eof
         let line = if y < self.lines.len() { &self.lines[y] } else { "" };
 
-        let mut row = format!("{:cols$}", line, cols = self.dx);
+        let mut row: Vec<char> = format!("{:cols$}", line, cols = self.dx).chars().collect();
         let n = self.dx + self.cols();
-        if row.len() > n {
+        let mut after: Vec<char> = if row.len() > n {
             row.truncate(n - 1);
-            row.push_str(&truncated_line_indicator());
+            truncated_line_indicator()
         } else {
-            row.push_str(&" ".repeat(n - row.len()));
-        }
-        row[self.dx..].to_string()
+            " ".repeat(n - row.len())
+        }.chars().collect();
+        row.append(&mut after);
+        row[self.dx..].iter().collect()
     }
 
     fn render_char(&self, c: char) -> Option<String> {
         match c {
-            '!'..='~' => Some(c.to_string()), // graphic char
-            ' '       => Some(" ".to_string()),
-            '\t'      => Some(" ".repeat(self.config.tab_size)),
-            _         => None,
+            '\t'                          => Some(" ".repeat(self.config.tab_size)),
+            c if console::is_printable(c) => Some(c.to_string()),
+            _                             => None,
         }
     }
 
@@ -180,8 +179,12 @@ impl Editor {
                     return res;
                 },
                 '\n' => { // Newline
-                    let line = self.lines[self.dy + self.y].split_off(self.dx + self.x);
-                    self.lines.insert(self.dy + self.y + 1, line);
+                    let y = self.dy + self.y;
+                    let old_line = self.lines[y].clone();
+                    let mut row: Vec<char> = old_line.chars().collect();
+                    let new_line = row.split_off(self.dx + self.x).into_iter().collect();
+                    self.lines[y] = row.into_iter().collect();
+                    self.lines.insert(y + 1, new_line);
                     if self.y == self.rows() - 1 {
                         self.dy += 1;
                     } else {
@@ -217,7 +220,7 @@ impl Editor {
                 },
                 'C' if csi => { // Arrow right
                     let line = &self.lines[self.dy + self.y];
-                    if line.is_empty() || self.x + self.dx >= line.len() {
+                    if line.is_empty() || self.x + self.dx >= line.chars().count() {
                         print!("\x1b[?25h"); // Enable cursor
                         continue
                     } else if self.x == self.cols() - 1 {
@@ -261,22 +264,27 @@ impl Editor {
                     self.print_screen();
                 },
                 '\x05' => { // Ctrl E -> Go to end of line
-                    let n = self.lines[self.dy + self.y].len();
+                    let n = self.lines[self.dy + self.y].chars().count();
                     let w = self.cols();
                     self.x = n % w;
                     self.dx = w * (n / w);
                     self.print_screen();
                 },
                 '\x08' => { // Backspace
+                    let y = self.dy + self.y;
                     if self.dx + self.x > 0 { // Remove char from line
-                        self.lines[self.dy + self.y].remove(self.dx + self.x - 1);
+
+                        let mut row: Vec<char> = self.lines[y].chars().collect();
+                        row.remove(self.dx + self.x - 1);
+                        self.lines[y] = row.into_iter().collect();
+
                         if self.x == 0 {
                             self.dx -= self.cols();
                             self.x = self.cols() - 1;
                             self.print_screen();
                         } else {
                             self.x -= 1;
-                            let line = self.render_line(self.dy + self.y);
+                            let line = self.render_line(y);
                             print!("\x1b[2K\x1b[1G{}", line);
                         }
                     } else { // Remove newline from previous line
@@ -286,14 +294,14 @@ impl Editor {
                         }
 
                         // Move cursor below the end of the previous line
-                        let n = self.lines[self.dy + self.y - 1].len();
+                        let n = self.lines[y - 1].chars().count();
                         let w = self.cols();
                         self.x = n % w;
                         self.dx = w * (n / w);
 
                         // Move line to the end of the previous line
-                        let line = self.lines.remove(self.dy + self.y);
-                        self.lines[self.dy + self.y - 1].push_str(&line);
+                        let line = self.lines.remove(y);
+                        self.lines[y - 1].push_str(&line);
 
                         // Move cursor up to the previous line
                         if self.y > 0 {
@@ -306,21 +314,27 @@ impl Editor {
                     }
                 },
                 '\x7f' => { // Delete
-                    let n = self.lines[self.dy + self.y].len();
+                    let y = self.dy + self.y;
+                    let n = self.lines[y].chars().count();
                     if self.dx + self.x >= n { // Remove newline from line
-                        let line = self.lines.remove(self.dy + self.y + 1);
-                        self.lines[self.dy + self.y].push_str(&line);
+                        let line = self.lines.remove(y + 1);
+                        self.lines[y].push_str(&line);
                         self.print_screen();
                     } else { // Remove char from line
-                        self.lines[self.dy + self.y].remove(self.dx + self.x);
-                        let line = self.render_line(self.dy + self.y);
+                        self.lines[y].remove(self.dx + self.x);
+                        let line = self.render_line(y);
                         print!("\x1b[2K\x1b[1G{}", line);
                     }
                 },
                 c => {
                     if let Some(s) = self.render_char(c) {
-                        self.lines[self.dy + self.y].insert_str(self.dx + self.x, &s);
-                        self.x += s.len();
+                        let y = self.dy + self.y;
+                        let mut row: Vec<char> = self.lines[y].chars().collect();
+                        for c in s.chars() {
+                            row.insert(self.dx + self.x, c);
+                            self.x += 1;
+                        }
+                        self.lines[y] = row.into_iter().collect();
                         if self.x >= self.cols() {
                             self.dx += self.cols();
                             self.x -= self.cols();
@@ -343,7 +357,7 @@ impl Editor {
 
     // Move cursor past end of line to end of line or left of the screen
     fn next_pos(&self, x: usize, y: usize) -> usize {
-        let eol = self.lines[self.dy + y].len();
+        let eol = self.lines[self.dy + y].chars().count();
         if eol <= self.dx + x {
             if eol <= self.dx {
                 0

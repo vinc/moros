@@ -13,10 +13,11 @@ impl Stdin {
     }
 
     pub fn read_char(&self) -> Option<char> {
-        let mut buf = vec![0; 1];
+        let mut buf = vec![0; 4];
         if let Some(bytes) = syscall::read(0, &mut buf) {
             if bytes > 0 {
-                return Some(buf[0] as char);
+                buf.resize(bytes, 0);
+                return Some(String::from_utf8_lossy(&buf).to_string().remove(0));
             }
         }
         None

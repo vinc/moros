@@ -10,7 +10,7 @@ pub struct Prompt {
     pub history: History,
     offset: usize, // Offset line by the length of the prompt string
     cursor: usize,
-    line: String,
+    line: Vec<char>, // UTF-32
 }
 
 impl Prompt {
@@ -20,7 +20,7 @@ impl Prompt {
             history: History::new(),
             offset: 0,
             cursor: 0,
-            line: String::new(),
+            line: Vec::with_capacity(80),
         }
     }
 
@@ -28,7 +28,7 @@ impl Prompt {
         print!("{}", prompt);
         self.offset = offset_from_prompt(prompt);
         self.cursor = self.offset;
-        self.line = String::new();
+        self.line = Vec::with_capacity(80);
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
@@ -44,11 +44,11 @@ impl Prompt {
                     self.update_completion();
                     self.update_history();
                     println!();
-                    return Some(self.line.clone());
+                    return Some(self.line.iter().collect());
                 },
                 c => {
-                    if c.is_ascii() {
-                        parser.advance(self, c as u8);
+                   for b in c.to_string().as_bytes() {
+                        parser.advance(self, *b);
                     }
                 }
             }
@@ -59,15 +59,15 @@ impl Prompt {
 
     fn update_history(&mut self) {
         if let Some(i) = self.history.pos {
-            self.line = self.history.entries[i].clone();
+            self.line = self.history.entries[i].chars().collect();
             self.history.pos = None;
         }
     }
 
     fn update_completion(&mut self) {
         if let Some(i) = self.completion.pos {
-            let complete = self.completion.entries[i].clone();
-            self.line.push_str(&complete);
+            let mut complete: Vec<char> = self.completion.entries[i].chars().collect();
+            self.line.append(&mut complete);
             self.cursor += complete.len();
             self.completion.pos = None;
             self.completion.entries = Vec::new();
@@ -83,7 +83,7 @@ impl Prompt {
                     self.update_completion();
                     return;
                 }
-                let bs = self.completion.entries[pos].len();
+                let bs = self.completion.entries[pos].chars().count();
                 if pos + 1 < n {
                     (bs, pos + 1)
                 } else {
@@ -91,7 +91,8 @@ impl Prompt {
                 }
             },
             None => {
-                self.completion.entries = (self.completion.completer)(&self.line);
+                let line: String = self.line.iter().collect();
+                self.completion.entries = (self.completion.completer)(&line);
                 if !self.completion.entries.is_empty() {
                     (0, 0)
                 } else {
@@ -112,14 +113,14 @@ impl Prompt {
             return;
         }
         let (bs, i) = match self.history.pos {
-            Some(i) => (self.history.entries[i].len(), cmp::max(i, 1) - 1),
+            Some(i) => (self.history.entries[i].chars().count(), cmp::max(i, 1) - 1),
             None => (self.line.len(), n - 1),
         };
         let line = &self.history.entries[i];
         let blank = ' '.to_string().repeat((self.offset + bs) - self.cursor);
         let erase = '\x08'.to_string().repeat(bs);
         print!("{}{}{}", blank, erase, line);
-        self.cursor = self.offset + line.len();
+        self.cursor = self.offset + line.chars().count();
         self.history.pos = Some(i);
     }
 
@@ -130,17 +131,17 @@ impl Prompt {
             return;
         }
         let (bs, i) = match self.history.pos {
-            Some(i) => (self.history.entries[i].len(), i + 1),
+            Some(i) => (self.history.entries[i].chars().count(), i + 1),
             None => return,
         };
         let (pos, line) = if i < n {
-            (Some(i), &self.history.entries[i])
+            (Some(i), self.history.entries[i].clone())
         } else {
-            (None, &self.line)
+            (None, self.line.iter().collect())
         };
         let erase = '\x08'.to_string().repeat(bs);
         print!("{}{}", erase, line);
-        self.cursor = self.offset + line.len();
+        self.cursor = self.offset + line.chars().count();
         self.history.pos = pos;
     }
 
@@ -168,8 +169,10 @@ impl Prompt {
         if self.cursor < self.offset + self.line.len() {
             let i = self.cursor - self.offset;
             self.line.remove(i);
-            let s = &self.line[i..];
-            print!("{} \x1b[{}D", s, s.len() + 1);
+            let s = &self.line[i..]; // UTF-32
+            let n = s.len() + 1;
+            let s: String = s.into_iter().collect(); // UTF-8
+            print!("{} \x1b[{}D", s, n);
         }
     }
 
@@ -179,8 +182,10 @@ impl Prompt {
         if self.cursor > self.offset {
             let i = self.cursor - self.offset - 1;
             self.line.remove(i);
-            let s = &self.line[i..];
-            print!("{}{} \x1b[{}D", '\x08', s, s.len() + 1);
+            let s = &self.line[i..]; // UTF-32
+            let n = s.len() + 1;
+            let s: String = s.into_iter().collect(); // UTF-8
+            print!("{}{} \x1b[{}D", '\x08', s, n);
             self.cursor -= 1;
         }
     }
@@ -189,11 +194,15 @@ impl Prompt {
         self.update_completion();
         self.update_history();
         if console::is_printable(c) {
+            let c = (c as u8) as char;
             let i = self.cursor - self.offset;
             self.line.insert(i, c);
-            let s = &self.line[i..];
-            print!("{} \x1b[{}D", s, s.len());
+            let s = &self.line[i..]; // UTF-32
+            let n = s.len();
+            let s: String = s.into_iter().collect(); // UTF-8
+            print!("{} \x1b[{}D", s, n);
             self.cursor += 1;
+        } else {
         }
     }
 }

@@ -1,13 +1,18 @@
 # Changelog
 
 ## Unreleased
+- Improve UTF-8 support (#267)
+- Bump acpi from 4.0.0 to 4.1.0 (#265)
 - Add shell redirections (#262)
+- Bump linked_list_allocator from 0.9.0 to 0.9.1 (#256)
 - Add calc command (#263)
 - Add website (#261)
 - Fix VGA issues with real hardware (#258)
 - Add rust binaries support (#255)
 - Add dynamical disk information (#252)
+- Remove array-macro dependency (#253)
 - Add spawn syscall (#251)
+- Bump x86_64 from 0.14.5 to 0.14.6 (#247)
 - Add ELF loader (#248)
 - Add basic userspace (#228)
 - Bump acpi from 3.1.0 to 4.0.0 (#243)

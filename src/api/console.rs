@@ -81,7 +81,9 @@ fn color_to_bg(name: &str) -> Option<usize> {
 
 pub fn is_printable(c: char) -> bool {
     if cfg!(feature = "video") {
-        c.is_ascii() && sys::vga::is_printable(c as u8)
+        // Check if the char can be converted to ASCII or Extended ASCII before
+        // asking the VGA driver if it's printable.
+        ((c as u32) < 0xFF) && sys::vga::is_printable(c as u8)
     } else {
         true // TODO
     }

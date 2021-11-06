@@ -79,11 +79,11 @@ impl Regex {
         self.find(text).is_some()
     }
     pub fn find(&self, text: &str) -> Option<(usize, usize)> {
-        let vec_re: Vec<char> = self.0.chars().collect();
-        let vec_text: Vec<char> = text.chars().collect();
+        let text: Vec<char> = text.chars().collect(); // UTF-32
+        let re: Vec<char> = self.0.chars().collect(); // UTF-32
         let mut start = 0;
         let mut end = 0;
-        if is_match(&vec_re[..], &vec_text[..], &mut start, &mut end) {
+        if is_match(&re[..], &text[..], &mut start, &mut end) {
             Some((start, end))
         } else {
             None
