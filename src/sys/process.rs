@@ -10,75 +10,106 @@ use object::{Object, ObjectSegment};
 use spin::Mutex;
 
 const MAX_FILE_HANDLES: usize = 1024;
+const PID: AtomicUsize = AtomicUsize::new(0);
 
 lazy_static! {
-    pub static ref PIDS: AtomicUsize = AtomicUsize::new(0);
-    pub static ref PROCESS: Mutex<ProcessData> = Mutex::new(ProcessData::new("/", None)); // TODO
+    pub static ref PROCESS_TABLE: Mutex<Vec<Process>> = Mutex::new(Vec::new());
 }
 
+pub fn init() {
+    let data = ProcessData::new("/", None);
+    unsafe {
+        PROCESS_TABLE.lock().push(Process {
+            id: 0,
+            stack_size: 256 * PAGE_SIZE,
+            stack_addr: 0,
+            code_addr: 0,
+            entry_point: 0,
+            data
+        });
+    }
+}
+
+#[derive(Clone)]
 pub struct ProcessData {
-    id: usize,
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
     file_handles: Vec<Option<Resource>>,
-    code_addr: u64,
 }
 
 impl ProcessData {
     pub fn new(dir: &str, user: Option<&str>) -> Self {
-        let id = PIDS.fetch_add(1, Ordering::SeqCst);
         let env = BTreeMap::new();
         let dir = dir.to_string();
         let user = user.map(String::from);
-        let code_addr = 0;
         let mut file_handles = vec![None; MAX_FILE_HANDLES];
         file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
-        Self { id, env, dir, user, file_handles, code_addr }
+        Self { env, dir, user, file_handles }
     }
 }
 
 pub fn id() -> usize {
-    PROCESS.lock().id
+    PID.load(Ordering::Relaxed)
+}
+
+pub fn set_id(id: usize) {
+    PID.store(id, Ordering::Relaxed)
 }
 
 pub fn env(key: &str) -> Option<String> {
-    PROCESS.lock().env.get(key).cloned()
+    let table = PROCESS_TABLE.lock();
+    let proc = &table[id()];
+    proc.data.env.get(key).cloned()
 }
 
 pub fn envs() -> BTreeMap<String, String> {
-    PROCESS.lock().env.clone()
+    let table = PROCESS_TABLE.lock();
+    let proc = &table[id()];
+    proc.data.env.clone()
 }
 
 pub fn dir() -> String {
-    PROCESS.lock().dir.clone()
+    let table = PROCESS_TABLE.lock();
+    let proc = &table[id()];
+    proc.data.dir.clone()
 }
 
 pub fn user() -> Option<String> {
-    PROCESS.lock().user.clone()
+    let table = PROCESS_TABLE.lock();
+    let proc = &table[id()];
+    proc.data.user.clone()
 }
 
 pub fn set_env(key: &str, val: &str) {
-    PROCESS.lock().env.insert(key.into(), val.into());
+    let mut table = PROCESS_TABLE.lock();
+    let proc = &mut table[id()];
+    proc.data.env.insert(key.into(), val.into());
 }
 
 pub fn set_dir(dir: &str) {
-    PROCESS.lock().dir = dir.into();
+    let mut table = PROCESS_TABLE.lock();
+    let proc = &mut table[id()];
+    proc.data.dir = dir.into();
 }
 
 pub fn set_user(user: &str) {
-    PROCESS.lock().user = Some(user.into())
+    let mut table = PROCESS_TABLE.lock();
+    let proc = &mut table[id()];
+    proc.data.user = Some(user.into())
 }
 
 pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
+    let mut table = PROCESS_TABLE.lock();
+    let proc = &mut table[id()];
+
     let min = 4; // The first 4 file handles are reserved
     let max = MAX_FILE_HANDLES;
-    let proc = &mut *PROCESS.lock();
     for handle in min..max {
-        if proc.file_handles[handle].is_none() {
-            proc.file_handles[handle] = Some(file);
+        if proc.data.file_handles[handle].is_none() {
+            proc.data.file_handles[handle] = Some(file);
             return Ok(handle);
         }
     }
@@ -86,30 +117,37 @@ pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
 }
 
 pub fn update_file_handle(handle: usize, file: Resource) {
-    let proc = &mut *PROCESS.lock();
-    proc.file_handles[handle] = Some(file);
+    let mut table = PROCESS_TABLE.lock();
+    let proc = &mut table[id()];
+    proc.data.file_handles[handle] = Some(file);
 }
 
 pub fn delete_file_handle(handle: usize) {
-    let proc = &mut *PROCESS.lock();
-    proc.file_handles[handle] = None;
+    let mut table = PROCESS_TABLE.lock();
+    let proc = &mut table[id()];
+    proc.data.file_handles[handle] = None;
 }
 
 pub fn file_handle(handle: usize) -> Option<Resource> {
-    let proc = &mut *PROCESS.lock();
-    proc.file_handles[handle].clone()
+    let table = PROCESS_TABLE.lock();
+    let proc = &table[id()];
+    proc.data.file_handles[handle].clone()
 }
 
 pub fn code_addr() -> u64 {
-    PROCESS.lock().code_addr
+    let table = PROCESS_TABLE.lock();
+    let proc = &table[id()];
+    proc.code_addr
 }
 
 pub fn set_code_addr(addr: u64) {
-    PROCESS.lock().code_addr = addr;
+    let mut table = PROCESS_TABLE.lock();
+    let mut proc = &mut table[id()];
+    proc.code_addr = addr;
 }
 
 pub fn ptr_from_addr(addr: u64) -> *mut u8 {
-    (PROCESS.lock().code_addr + addr) as *mut u8
+    (code_addr() + addr) as *mut u8
 }
 
 /************************
@@ -130,11 +168,14 @@ static STACK_ADDR: AtomicU64 = AtomicU64::new(0x200_0000);
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0x100_0000);
 const PAGE_SIZE: u64 = 4 * 1024;
 
+#[derive(Clone)]
 pub struct Process {
+    id: usize,
     stack_addr: u64,
     stack_size: u64,
     code_addr: u64,
     entry_point: u64,
+    data: ProcessData,
 }
 
 impl Process {
@@ -199,16 +240,19 @@ impl Process {
             }
         }
 
-        set_code_addr(code_addr);
+        let mut table = PROCESS_TABLE.lock();
+        let parent = &table[id()];
+        let data = parent.data.clone();
+        let id = table.len();
+        let proc = Process { id, stack_addr, stack_size, code_addr, entry_point, data };
+        table.push(proc.clone());
 
-        Ok(Process { stack_addr, stack_size, code_addr, entry_point })
+        Ok(proc)
     }
 
     // Switch to user mode and execute the program
     pub fn exec(&self) {
-        //x86_64::instructions::tlb::flush_all();
-        let data = GDT.1.user_data.0;
-        let code = GDT.1.user_code.0;
+        set_id(self.id); // Change PID
         unsafe {
             asm!(
                 "cli",        // Disable interrupts
@@ -218,9 +262,9 @@ impl Process {
                 "push rdx",   // Code segment (CS)
                 "push rdi",   // Instruction pointer (RIP)
                 "iretq",
-                in("rax") data,
+                in("rax") GDT.1.user_data.0,
                 in("rsi") self.stack_addr + self.stack_size,
-                in("rdx") code,
+                in("rdx") GDT.1.user_code.0,
                 in("rdi") self.code_addr + self.entry_point,
             );
         }
