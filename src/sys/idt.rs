@@ -1,4 +1,6 @@
 use crate::sys;
+use crate::sys::process::Registers;
+
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
@@ -116,27 +118,6 @@ extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStac
     panic!("EXCEPTION: SEGMENT NOT PRESENT\n{:#?}", stack_frame);
 }
 
-// See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L92
-#[repr(align(8), C)]
-#[derive(Debug, Clone, Default)]
-pub struct Registers {
-    r15: usize,
-    r14: usize,
-    r13: usize,
-    r12: usize,
-    r11: usize,
-    r10: usize,
-    r9: usize,
-    r8: usize,
-    rdi: usize,
-    rsi: usize,
-    rdx: usize,
-    rcx: usize,
-    rbx: usize,
-    rax: usize,
-    rbp: usize,
-}
-
 // See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L112
 macro_rules! wrap {
     ($fn: ident => $w:ident) => {
@@ -191,6 +172,8 @@ wrap!(syscall_handler => wrapped_syscall_handler);
 // return a result in the RAX register and it will be overwritten when the
 // context of the caller is restored.
 extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
+    sys::process::set_registers(*regs);
+
     // The registers order follow the System V ABI convention
     let n    = regs.rax;
     let arg1 = regs.rdi;

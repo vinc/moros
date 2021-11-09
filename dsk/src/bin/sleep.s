@@ -5,4 +5,6 @@ _start:
   mov rsi, 0
   mov rdx, 0
   int 0x80
-  jmp _start
+  mov rax, 1                ; syscall number for EXIT
+  mov rdi, 1                ; no error
+  int 0x80

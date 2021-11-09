@@ -11,7 +11,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[no_mangle]
 pub unsafe extern "sysv64" fn _start() -> ! {
-    loop {
-        syscall::write(1, b"Hello, World!\n");
-    }
+    syscall::write(1, b"Hello, World!\n");
+    syscall::exit(0);
+    loop {}
 }
