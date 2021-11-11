@@ -12,5 +12,5 @@ _start:
   mov rdx, 14               ; size of string
   int 0x80
   mov rax, 1                ; syscall number for EXIT
-  mov rdi, 1                ; no error
+  mov rdi, 0                ; no error
   int 0x80
