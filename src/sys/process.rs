@@ -10,10 +10,10 @@ use object::{Object, ObjectSegment};
 use spin::Mutex;
 
 const MAX_FILE_HANDLES: usize = 64;
-const PID: AtomicUsize = AtomicUsize::new(0);
 
 lazy_static! {
     pub static ref PROCESS_TABLE: Mutex<Vec<Process>> = Mutex::new(Vec::new());
+    pub static ref PID: AtomicUsize = AtomicUsize::new(0);
 }
 
 pub fn init() {
