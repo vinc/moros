@@ -50,11 +50,11 @@ impl ProcessData {
 }
 
 pub fn id() -> usize {
-    PID.load(Ordering::Relaxed)
+    PID.load(Ordering::SeqCst)
 }
 
 pub fn set_id(id: usize) {
-    PID.store(id, Ordering::Relaxed)
+    PID.store(id, Ordering::SeqCst)
 }
 
 pub fn env(key: &str) -> Option<String> {
