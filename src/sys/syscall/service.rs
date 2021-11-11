@@ -5,6 +5,8 @@ use crate::sys::process::Process;
 use alloc::vec;
 
 pub fn exit(code: usize) -> usize {
+    printk!("DEBUG: exit({})\n", code);
+    //sys::process::exit();
     // TODO
     0
 }

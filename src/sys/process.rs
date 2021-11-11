@@ -241,7 +241,7 @@ impl Process {
             }
         }
 
-        printk!("DEBUG: process create: alloc code\n");
+        //printk!("DEBUG: process create: alloc code\n");
         let code_size = 1024 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
         let pages = {
@@ -291,15 +291,16 @@ impl Process {
         let registers = Registers::default();
         let proc = Process { id, stack_addr, stack_size, code_addr, entry_point, data, registers };
         table.push(proc);
+        //printk!("DEBUG: create proc: release write lock\n");
 
         Ok(id)
     }
 
     // Switch to user mode and execute the program
     fn exec(&self) {
-        printk!("DEBUG: process exec pid={}\n", self.id);
+        //printk!("DEBUG: process exec pid={}\n", self.id);
         set_id(self.id); // Change PID
-        printk!("DEBUG: process exec switch\n");
+        //printk!("DEBUG: process exec switch\n");
         unsafe {
             asm!(
                 "cli",        // Disable interrupts
