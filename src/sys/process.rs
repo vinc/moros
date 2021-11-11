@@ -7,17 +7,17 @@ use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
-use spin::Mutex;
+use spin::RwLock;
 
 const MAX_FILE_HANDLES: usize = 64;
 
 lazy_static! {
-    pub static ref PROCESS_TABLE: Mutex<Vec<Process>> = Mutex::new(Vec::new());
+    pub static ref PROCESS_TABLE: RwLock<Vec<Process>> = RwLock::new(Vec::new());
     pub static ref PID: AtomicUsize = AtomicUsize::new(0);
 }
 
 pub fn init() {
-    PROCESS_TABLE.lock().push(Process {
+    PROCESS_TABLE.write().push(Process {
         id: 0,
         stack_size: 256 * PAGE_SIZE,
         stack_addr: 0,
@@ -58,49 +58,49 @@ pub fn set_id(id: usize) {
 }
 
 pub fn env(key: &str) -> Option<String> {
-    let table = PROCESS_TABLE.lock();
+    let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.env.get(key).cloned()
 }
 
 pub fn envs() -> BTreeMap<String, String> {
-    let table = PROCESS_TABLE.lock();
+    let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.env.clone()
 }
 
 pub fn dir() -> String {
-    let table = PROCESS_TABLE.lock();
+    let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.dir.clone()
 }
 
 pub fn user() -> Option<String> {
-    let table = PROCESS_TABLE.lock();
+    let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.user.clone()
 }
 
 pub fn set_env(key: &str, val: &str) {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
     proc.data.env.insert(key.into(), val.into());
 }
 
 pub fn set_dir(dir: &str) {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
     proc.data.dir = dir.into();
 }
 
 pub fn set_user(user: &str) {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
     proc.data.user = Some(user.into())
 }
 
 pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
 
     let min = 4; // The first 4 file handles are reserved
@@ -115,31 +115,31 @@ pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
 }
 
 pub fn update_file_handle(handle: usize, file: Resource) {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
     proc.data.file_handles[handle] = Some(file);
 }
 
 pub fn delete_file_handle(handle: usize) {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
     proc.data.file_handles[handle] = None;
 }
 
 pub fn file_handle(handle: usize) -> Option<Resource> {
-    let table = PROCESS_TABLE.lock();
+    let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.file_handles[handle].clone()
 }
 
 pub fn code_addr() -> u64 {
-    let table = PROCESS_TABLE.lock();
+    let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.code_addr
 }
 
 pub fn set_code_addr(addr: u64) {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let mut proc = &mut table[id()];
     proc.code_addr = addr;
 }
@@ -149,13 +149,13 @@ pub fn ptr_from_addr(addr: u64) -> *mut u8 {
 }
 
 pub fn registers() -> Registers {
-    let table = PROCESS_TABLE.lock();
+    let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.registers.clone()
 }
 
 pub fn set_registers(regs: Registers) {
-    let mut table = PROCESS_TABLE.lock();
+    let mut table = PROCESS_TABLE.write();
     let mut proc = &mut table[id()];
     proc.registers = regs;
 }
@@ -212,7 +212,7 @@ pub struct Process {
 impl Process {
     pub fn spawn(bin: &[u8]) {
         if let Ok(pid) = Self::create(bin) {
-            let table = PROCESS_TABLE.lock();
+            let table = PROCESS_TABLE.read();
             table[pid].exec();
         }
     }
@@ -238,6 +238,7 @@ impl Process {
             }
         }
 
+        printk!("DEBUG: process create: alloc code\n");
         let code_size = 1024 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
         let pages = {
@@ -278,7 +279,7 @@ impl Process {
             }
         }
 
-        let mut table = PROCESS_TABLE.lock();
+        let mut table = PROCESS_TABLE.write();
         let parent = &table[id()];
         let dir = parent.data.dir.clone();
         let user = parent.data.user.clone();
@@ -293,7 +294,7 @@ impl Process {
 
     // Switch to user mode and execute the program
     fn exec(&self) {
-        printk!("DEBUG: process exec\n");
+        printk!("DEBUG: process exec pid={}\n", self.id);
         set_id(self.id); // Change PID
         printk!("DEBUG: process exec switch\n");
         unsafe {
