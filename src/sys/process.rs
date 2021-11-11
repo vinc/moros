@@ -212,8 +212,11 @@ pub struct Process {
 impl Process {
     pub fn spawn(bin: &[u8]) {
         if let Ok(pid) = Self::create(bin) {
-            let table = PROCESS_TABLE.read();
-            table[pid].exec();
+            let proc = {
+                let table = PROCESS_TABLE.read();
+                table[pid].clone()
+            };
+            proc.exec();
         }
     }
 
