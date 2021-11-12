@@ -268,11 +268,7 @@ impl Process {
 
         let mut table = PROCESS_TABLE.write();
         let parent = &table[id()];
-        //let data = parent.data.clone();
-        let dir = &parent.data.dir;
-        let user = parent.data.user.as_deref();
-        //let data = ProcessData::new(&dir, user.as_deref());
-        let data = ProcessData::new(dir, user);
+        let data = parent.data.clone();
         let id = PID.fetch_add(1, Ordering::SeqCst);
         let registers = Registers::default();
         let proc = Process { id, code_addr, code_size, entry_point, data, registers };
