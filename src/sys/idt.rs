@@ -172,8 +172,10 @@ wrap!(syscall_handler => wrapped_syscall_handler);
 // return a result in the RAX register and it will be overwritten when the
 // context of the caller is restored.
 extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
-    printk!("DEBUG syscall handler: begin\n");
-    sys::process::set_registers(*regs);
+    use x86_64::registers::segmentation::{Segment, CS, DS};
+    let cs = CS::get_reg();
+    let ds = DS::get_reg();
+    debug!("syscall handler cs={:?}, ds={:?}\n", cs, ds);
 
     // The registers order follow the System V ABI convention
     let n    = regs.rax;
@@ -181,9 +183,12 @@ extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs:
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
 
-    printk!("DEBUG syscall handler: n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}\n", n, arg1, arg2, arg3);
+    if n == sys::syscall::number::EXIT || n == sys::syscall::number::SPAWN {
+        sys::process::set_registers(*regs);
+    }
+
+    debug!("syscall handler n={}, arg1={}, arg2={}, arg3={}\n", n, arg1, arg2, arg3);
     regs.rax = sys::syscall::dispatcher(n, arg1, arg2, arg3);
-    printk!("DEBUG syscall handler: end\n");
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
 

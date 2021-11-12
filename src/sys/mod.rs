@@ -6,6 +6,17 @@ macro_rules! printk {
 }
 
 #[macro_export]
+macro_rules! debug {
+    ($($arg:tt)*) => ({
+        let csi_color = $crate::api::console::Style::color("Yellow");
+        let csi_reset = $crate::api::console::Style::reset();
+        $crate::sys::console::print_fmt(format_args!("{}DEBUG: ", csi_color));
+        $crate::sys::console::print_fmt(format_args!($($arg)*));
+        $crate::sys::console::print_fmt(format_args!("{}", csi_reset));
+    });
+}
+
+#[macro_export]
 macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
