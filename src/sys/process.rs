@@ -2,37 +2,28 @@ use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
-use alloc::vec;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
 
-const MAX_FILE_HANDLES: usize = 64;
+const MAX_FILE_HANDLES: usize = 16;
+const MAX_PROCS: usize = 2;
 
 lazy_static! {
-    pub static ref PROCESS_TABLE: RwLock<Vec<Process>> = RwLock::new(Vec::new());
     pub static ref PID: AtomicUsize = AtomicUsize::new(0);
+    pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(0);
+    pub static ref PROCESS_TABLE: RwLock<[Process; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Process::new(0)));
 }
 
-pub fn init() {
-    PROCESS_TABLE.write().push(Process {
-        id: 0,
-        code_addr: 0,
-        code_size: 0,
-        entry_point: 0,
-        registers: Registers::default(),
-        data: ProcessData::new("/", None),
-    });
-}
+pub fn init() {}
 
 #[derive(Clone, Debug)]
 pub struct ProcessData {
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
-    file_handles: Vec<Option<Resource>>,
+    file_handles: [Option<Resource>; MAX_FILE_HANDLES],
 }
 
 impl ProcessData {
@@ -40,7 +31,7 @@ impl ProcessData {
         let env = BTreeMap::new();
         let dir = dir.to_string();
         let user = user.map(String::from);
-        let mut file_handles = vec![None; MAX_FILE_HANDLES];
+        let mut file_handles = [(); MAX_FILE_HANDLES].map(|_| None);
         file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
@@ -207,6 +198,17 @@ pub struct Process {
 }
 
 impl Process {
+    pub fn new(id: usize) -> Self {
+        Self {
+            id,
+            code_addr: 0,
+            code_size: 0,
+            entry_point: 0,
+            registers: Registers::default(),
+            data: ProcessData::new("/", None),
+        }
+    }
+
     pub fn spawn(bin: &[u8]) {
         if let Ok(pid) = Self::create(bin) {
             let proc = {
@@ -224,7 +226,6 @@ impl Process {
 
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
 
-        //printk!("DEBUG: process create: alloc code\n");
         let code_size = 1024 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
         let pages = {
@@ -267,23 +268,22 @@ impl Process {
 
         let mut table = PROCESS_TABLE.write();
         let parent = &table[id()];
-        let dir = parent.data.dir.clone();
-        let user = parent.data.user.clone();
-        let data = ProcessData::new(&dir, user.as_deref());
-        let id = table.len();
+        //let data = parent.data.clone();
+        let dir = &parent.data.dir;
+        let user = parent.data.user.as_deref();
+        //let data = ProcessData::new(&dir, user.as_deref());
+        let data = ProcessData::new(dir, user);
+        let id = PID.fetch_add(1, Ordering::SeqCst);
         let registers = Registers::default();
         let proc = Process { id, code_addr, code_size, entry_point, data, registers };
-        table.push(proc);
-        //printk!("DEBUG: create proc: release write lock\n");
+        table[id] = proc;
 
         Ok(id)
     }
 
     // Switch to user mode and execute the program
     fn exec(&self) {
-        //printk!("DEBUG: process exec pid={}\n", self.id);
         set_id(self.id); // Change PID
-        //printk!("DEBUG: process exec switch\n");
         unsafe {
             asm!(
                 "cli",        // Disable interrupts
