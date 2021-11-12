@@ -13,5 +13,6 @@ fn panic(_info: &PanicInfo) -> ! {
 pub unsafe extern "sysv64" fn _start() -> ! {
     loop {
         syscall::sleep(1.0);
+        syscall::exit(0);
     }
 }
