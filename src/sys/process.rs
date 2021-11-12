@@ -19,9 +19,8 @@ lazy_static! {
 pub fn init() {
     PROCESS_TABLE.write().push(Process {
         id: 0,
-        stack_size: 256 * PAGE_SIZE,
-        stack_addr: 0,
         code_addr: 0,
+        code_size: 0,
         entry_point: 0,
         registers: Registers::default(),
         data: ProcessData::new("/", None),
@@ -174,7 +173,6 @@ use x86_64::VirtAddr;
 use x86_64::structures::paging::{Mapper, FrameAllocator};
 use x86_64::structures::paging::{Page, PageTableFlags};
 
-static STACK_ADDR: AtomicU64 = AtomicU64::new(0x200_0000);
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0x100_0000);
 const PAGE_SIZE: u64 = 4 * 1024;
 
@@ -201,9 +199,8 @@ pub struct Registers {
 #[derive(Clone, Debug)]
 pub struct Process {
     id: usize,
-    stack_addr: u64,
-    stack_size: u64,
     code_addr: u64,
+    code_size: u64,
     entry_point: u64,
     registers: Registers,
     data: ProcessData,
@@ -226,20 +223,6 @@ impl Process {
 
 
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
-
-        let stack_size = 256 * PAGE_SIZE;
-        let stack_addr = STACK_ADDR.fetch_add(stack_size, Ordering::SeqCst);
-        let pages = {
-            let stack_start_page = Page::containing_address(VirtAddr::new(stack_addr));
-            let stack_end_page = Page::containing_address(VirtAddr::new(stack_addr + stack_size));
-            Page::range_inclusive(stack_start_page, stack_end_page)
-        };
-        for page in pages {
-            let frame = frame_allocator.allocate_frame().unwrap();
-            unsafe {
-                mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
-            }
-        }
 
         //printk!("DEBUG: process create: alloc code\n");
         let code_size = 1024 * PAGE_SIZE;
@@ -289,7 +272,7 @@ impl Process {
         let data = ProcessData::new(&dir, user.as_deref());
         let id = table.len();
         let registers = Registers::default();
-        let proc = Process { id, stack_addr, stack_size, code_addr, entry_point, data, registers };
+        let proc = Process { id, code_addr, code_size, entry_point, data, registers };
         table.push(proc);
         //printk!("DEBUG: create proc: release write lock\n");
 
@@ -311,7 +294,7 @@ impl Process {
                 "push rdi",   // Instruction pointer (RIP)
                 "iretq",
                 in("rax") GDT.1.user_data.0,
-                in("rsi") self.stack_addr + self.stack_size,
+                in("rsi") self.code_addr + self.code_size,
                 in("rdx") GDT.1.user_code.0,
                 in("rdi") self.code_addr + self.entry_point,
             );
