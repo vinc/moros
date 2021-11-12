@@ -12,7 +12,7 @@ const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
 
 lazy_static! {
     pub static ref PID: AtomicUsize = AtomicUsize::new(0);
-    pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(0);
+    pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(1);
     pub static ref PROCESS_TABLE: RwLock<[Process; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Process::new(0)));
 }
 
@@ -269,7 +269,7 @@ impl Process {
         let mut table = PROCESS_TABLE.write();
         let parent = &table[id()];
         let data = parent.data.clone();
-        let id = PID.fetch_add(1, Ordering::SeqCst);
+        let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
         let registers = Registers::default();
         let proc = Process { id, code_addr, code_size, entry_point, data, registers };
         table[id] = proc;
