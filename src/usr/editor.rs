@@ -81,7 +81,7 @@ impl Editor {
         let reset = Style::reset();
         print!("\x1b[{};1H", self.rows() + 1); // Move cursor to the bottom of the screen
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-        //print!("\x1b[{};{}H", self.y + 1, self.x + 1); // Move cursor back
+        print!("\x1b[{};{}H", self.y + 1, self.x + 1); // Move cursor back
     }
 
     fn print_editing_status(&mut self) {
