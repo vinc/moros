@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
 
-const MAX_FILE_HANDLES: usize = 32;
+const MAX_FILE_HANDLES: usize = 16;
 const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
 
 lazy_static! {
