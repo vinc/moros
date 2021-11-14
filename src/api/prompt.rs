@@ -100,7 +100,7 @@ impl Prompt {
                 }
             },
         };
-        let erase = '\x08'.to_string().repeat(bs);
+        let erase = "\x08".repeat(bs);
         let complete = &self.completion.entries[pos];
         print!("{}{}", erase, complete);
         self.completion.pos = Some(pos);
@@ -194,7 +194,6 @@ impl Prompt {
         self.update_completion();
         self.update_history();
         if console::is_printable(c) {
-            let c = (c as u8) as char;
             let i = self.cursor - self.offset;
             self.line.insert(i, c);
             let s = &self.line[i..]; // UTF-32
@@ -202,7 +201,6 @@ impl Prompt {
             let s: String = s.into_iter().collect(); // UTF-8
             print!("{} \x1b[{}D", s, n);
             self.cursor += 1;
-        } else {
         }
     }
 }
