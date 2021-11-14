@@ -66,9 +66,9 @@ impl Prompt {
 
     fn update_completion(&mut self) {
         if let Some(i) = self.completion.pos {
-            let mut complete: Vec<char> = self.completion.entries[i].chars().collect();
-            self.line.append(&mut complete);
-            self.cursor += complete.len();
+            let complete = self.completion.entries[i].chars();
+            self.cursor += complete.clone().count();
+            self.line.extend(complete);
             self.completion.pos = None;
             self.completion.entries = Vec::new();
         }
