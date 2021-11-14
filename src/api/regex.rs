@@ -3,16 +3,6 @@ use alloc::vec::Vec;
 use core::convert::From;
 use core::ops::RangeBounds;
 
-// TODO: Remove this when tests are done
-const DEBUG: bool = false;
-macro_rules! debug {
-    ($($arg:tt)*) => ({
-        if DEBUG {
-            println!("{}", format_args!($($arg)*));
-        }
-    });
-}
-
 // See "A Regular Expression Matcher" by Rob Pike and Brian Kernighan (2007)
 
 #[derive(Debug)]
@@ -72,7 +62,6 @@ pub struct Regex(String);
 
 impl Regex {
     pub fn new(re: &str) -> Self {
-        debug!("debug: Regex::new({:?})", re);
         Self(re.to_string())
     }
     pub fn is_match(&self, text: &str) -> bool {
@@ -92,7 +81,6 @@ impl Regex {
 }
 
 fn is_match(re: &[char], text: &[char], start: &mut usize, end: &mut usize) -> bool {
-    debug!("debug: is_match({:?}, {:?})", re, text);
     if re.len() == 0 {
         return true;
     }
@@ -116,7 +104,6 @@ fn is_match(re: &[char], text: &[char], start: &mut usize, end: &mut usize) -> b
 }
 
 fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
-    debug!("debug: is_match_here({:?}, {:?})", re, text);
     if re.len() == 0 {
         return true;
     }
@@ -148,22 +135,18 @@ fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
 }
 
 fn is_match_star(lazy: bool, mc: MetaChar, re: &[char], text: &[char], end: &mut usize) -> bool {
-    debug!("debug: is_match_star({:?}, {:?}, {:?}", mc, re, text);
     is_match_char(lazy, mc, re, text, .., end)
 }
 
 fn is_match_plus(lazy: bool, mc: MetaChar, re: &[char], text: &[char], end: &mut usize) -> bool {
-    debug!("debug: is_match_plus({:?}, {:?}, {:?}", mc, re, text);
     is_match_char(lazy, mc, re, text, 1.., end)
 }
 
 fn is_match_ques(lazy: bool, mc: MetaChar, re: &[char], text: &[char], end: &mut usize) -> bool {
-    debug!("debug: is_match_ques({:?}, {:?}, {:?}", mc, re, text);
     is_match_char(lazy, mc, re, text, ..2, end)
 }
 
 fn is_match_char<T: RangeBounds<usize>>(lazy: bool, mc: MetaChar, re: &[char], text: &[char], range: T, end: &mut usize) -> bool {
-    debug!("debug: is_match_char({:?}, {:?}, {:?}", mc, re, text);
     let mut i = 0;
     let n = text.len();
 

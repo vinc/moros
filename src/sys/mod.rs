@@ -12,7 +12,7 @@ macro_rules! debug {
         let csi_reset = $crate::api::console::Style::reset();
         $crate::sys::console::print_fmt(format_args!("{}DEBUG: ", csi_color));
         $crate::sys::console::print_fmt(format_args!($($arg)*));
-        $crate::sys::console::print_fmt(format_args!("{}", csi_reset));
+        $crate::sys::console::print_fmt(format_args!("{}\n", csi_reset));
     });
 }
 
@@ -25,6 +25,7 @@ macro_rules! log {
             let csi_reset = $crate::api::console::Style::reset();
             $crate::sys::console::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
             $crate::sys::console::print_fmt(format_args!($($arg)*));
+            // TODO: Add newline
         }
     });
 }
