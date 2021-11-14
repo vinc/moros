@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
 
-const MAX_FILE_HANDLES: usize = 16;
+const MAX_FILE_HANDLES: usize = 16; // FIXME Increasing this cause boot crashes
 const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
 
 lazy_static! {
@@ -15,8 +15,6 @@ lazy_static! {
     pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(1);
     pub static ref PROCESS_TABLE: RwLock<[Process; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Process::new(0)));
 }
-
-pub fn init() {}
 
 #[derive(Clone, Debug)]
 pub struct ProcessData {
