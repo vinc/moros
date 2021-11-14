@@ -120,13 +120,13 @@ impl Editor {
 
         let mut row: Vec<char> = format!("{:cols$}", line, cols = self.dx).chars().collect();
         let n = self.dx + self.cols();
-        let mut after: Vec<char> = if row.len() > n {
+        let after = if row.len() > n {
             row.truncate(n - 1);
             truncated_line_indicator()
         } else {
             " ".repeat(n - row.len())
-        }.chars().collect();
-        row.append(&mut after);
+        };
+        row.extend(after.chars());
         row[self.dx..].iter().collect()
     }
 

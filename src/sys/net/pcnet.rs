@@ -330,8 +330,7 @@ impl<'a> Device<'a> for PCNET {
             ]) as usize;
 
             let n = if end_of_packet { packet_size } else { self.rx_buffers[rx_id].len() };
-            let mut buffer = self.rx_buffers[rx_id][0..n].to_vec();
-            packet.append(&mut buffer);
+            packet.extend(&self.rx_buffers[rx_id][0..n]);
 
             self.rx_des[rx_id * DE_LEN + 7].set_bit(DE_OWN, true); // Give back ownership
             rx_id = (rx_id + 1) % RX_BUFFERS_COUNT;
