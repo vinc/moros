@@ -118,6 +118,10 @@ fn repl() -> usr::shell::ExitCode {
         if line == "exit" || line == "quit" {
             break;
         }
+        if line.is_empty() {
+            println!();
+            continue;
+        }
 
         match parse_eval(&line) {
             Ok(res) => {
@@ -129,10 +133,8 @@ fn repl() -> usr::shell::ExitCode {
             }
         }
 
-        if !line.is_empty() {
-            prompt.history.add(&line);
-            prompt.history.save(history_file);
-        }
+        prompt.history.add(&line);
+        prompt.history.save(history_file);
     }
     usr::shell::ExitCode::CommandSuccessful
 }

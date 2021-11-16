@@ -519,11 +519,15 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     prompt.history.load(history_file);
     prompt.completion.set(&lisp_completer);
 
-    while let Some(exp) = prompt.input(&prompt_string) {
-        if exp == "(exit)" || exp == "(quit)" {
+    while let Some(line) = prompt.input(&prompt_string) {
+        if line == "(exit)" || line == "(quit)" {
             break;
         }
-        match parse_eval(&exp, env) {
+        if line.is_empty() {
+            println!();
+            continue;
+        }
+        match parse_eval(&line, env) {
             Ok(res) => {
                 println!("{}\n", res);
             }
@@ -531,10 +535,8 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
                 Err::Reason(msg) => println!("{}Error:{} {}\n", csi_error, csi_reset, msg),
             },
         }
-        if !exp.is_empty() {
-            prompt.history.add(&exp);
-            prompt.history.save(history_file);
-        }
+        prompt.history.add(&line);
+        prompt.history.save(history_file);
     }
     usr::shell::ExitCode::CommandSuccessful
 }
