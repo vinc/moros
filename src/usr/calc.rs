@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 
 use nom::branch::alt;
 use nom::character::complete::{char, space0};
-use nom::number::complete::float;
+use nom::number::complete::double;
 use nom::combinator::map;
 use nom::multi::many0;
 use nom::sequence::{delimited, tuple};
@@ -21,7 +21,7 @@ use nom::IResult;
 
 #[derive(Debug, PartialEq)]
 pub enum Exp {
-    Num(f32),
+    Num(f64),
     Add(Box<Exp>, Box<Exp>),
     Sub(Box<Exp>, Box<Exp>),
     Mul(Box<Exp>, Box<Exp>),
@@ -54,7 +54,7 @@ fn parse_parens(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
-    map(delimited(space0, float, space0), Exp::Num)(input)
+    map(delimited(space0, double, space0), Exp::Num)(input)
 }
 
 fn parse_exp(exp: Exp, rem: Vec<(char, Exp)>) -> Exp {
@@ -75,20 +75,20 @@ fn parse_op(tup: (char, Exp), exp1: Exp) -> Exp {
 
 // Evaluation
 
-fn eval(exp: Exp) -> f32 {
+fn eval(exp: Exp) -> f64 {
     match exp {
         Exp::Num(num) => num,
         Exp::Add(exp1, exp2) => eval(*exp1) + eval(*exp2),
         Exp::Sub(exp1, exp2) => eval(*exp1) - eval(*exp2),
         Exp::Mul(exp1, exp2) => eval(*exp1) * eval(*exp2),
         Exp::Div(exp1, exp2) => eval(*exp1) / eval(*exp2),
-        Exp::Exp(exp1, exp2) => libm::powf(eval(*exp1), eval(*exp2)),
+        Exp::Exp(exp1, exp2) => libm::pow(eval(*exp1), eval(*exp2)),
     }
 }
 
 // REPL
 
-fn parse_eval(line: &str) -> Result<f32, String> {
+fn parse_eval(line: &str) -> Result<f64, String> {
     match parse(&line) {
         Ok((line, parsed)) => {
             if line.is_empty() {
