@@ -39,12 +39,12 @@ impl Dir {
     }
 
     pub fn open(pathname: &str) -> Option<Self> {
-        let pathname = realpath(pathname);
-        let mut dir = Dir::root();
-
         if !super::is_mounted() {
             return None;
         }
+
+        let mut dir = Dir::root();
+        let pathname = realpath(pathname);
 
         if pathname == "/" {
             return Some(dir);

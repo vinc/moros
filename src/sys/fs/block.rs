@@ -11,9 +11,6 @@ pub struct Block {
     buf: [u8; super::BLOCK_SIZE],
 }
 
-// TODO: Add LinkedBlock that contains the next block address used by a data
-// block and give Block the full block size for the data of a bitmap block.
-
 // Block structure:
 // 0..4 => next block address
 // 4..512 => block data
