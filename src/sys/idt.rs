@@ -183,14 +183,14 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
         debug!("syscall handler: exit: stack frame (before): {:#?}", stack_frame);
         debug!("syscall handler: exit: registers (before): {:#?}", regs);
         // Restore CPU context
-        let isf = sys::process::stack_frame();
+        let sf = sys::process::stack_frame();
         unsafe {
-            //stack_frame.as_mut().write(sys::process::stack_frame());
-            core::ptr::write_volatile(stack_frame.as_mut().extract_inner() as *mut InterruptStackFrameValue, isf);
+            //stack_frame.as_mut().write(sf);
+            core::ptr::write_volatile(stack_frame.as_mut().extract_inner() as *mut InterruptStackFrameValue, sf);
+            core::ptr::write_volatile(regs, sys::process::registers());
         }
-        *regs = sys::process::registers();
         debug!("syscall handler: exit: stack frame (after): {:#?}", stack_frame);
-        debug!("syscall handler: spawn: registers (after): {:#?}", regs);
+        debug!("syscall handler: exit: registers (after): {:#?}", regs);
     }
 
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
