@@ -118,15 +118,14 @@ extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStac
     panic!("EXCEPTION: SEGMENT NOT PRESENT\n{:#?}", stack_frame);
 }
 
-// See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L112
+// Naked function wrapper saving all scratch registers to the stack
+// See: https://os.phil-opp.com/returning-from-exceptions/#a-naked-wrapper-function
 macro_rules! wrap {
     ($fn: ident => $w:ident) => {
         #[naked]
         pub unsafe extern "sysv64" fn $w() {
             asm!(
-                "push rbp",
                 "push rax",
-                "push rbx",
                 "push rcx",
                 "push rdx",
                 "push rsi",
@@ -135,18 +134,10 @@ macro_rules! wrap {
                 "push r9",
                 "push r10",
                 "push r11",
-                "push r12",
-                "push r13",
-                "push r14",
-                "push r15",
                 "mov rsi, rsp", // Arg #2: register list
                 "mov rdi, rsp", // Arg #1: interupt frame
-                "add rdi, 15 * 8",
+                "add rdi, 9 * 8",
                 "call {}",
-                "pop r15",
-                "pop r14",
-                "pop r13",
-                "pop r12",
                 "pop r11",
                 "pop r10",
                 "pop r9",
@@ -155,9 +146,7 @@ macro_rules! wrap {
                 "pop rsi",
                 "pop rdx",
                 "pop rcx",
-                "pop rbx",
                 "pop rax",
-                "pop rbp",
                 "iretq",
                 sym $fn,
                 options(noreturn)
@@ -181,6 +170,7 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
     if n == sys::syscall::number::SPAWN {
         debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
         debug!("syscall handler: spawn: stack frame: {:#?}", stack_frame);
+        debug!("syscall handler: spawn: registers: {:#?}", regs);
         sys::process::set_stack_frame(stack_frame.clone());
         sys::process::set_registers(regs.clone());
     }
@@ -191,6 +181,7 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
     if n == sys::syscall::number::EXIT {
         debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
         debug!("syscall handler: exit: stack frame (before): {:#?}", stack_frame);
+        debug!("syscall handler: exit: registers (before): {:#?}", regs);
         // Restore CPU context
         let isf = sys::process::stack_frame();
         unsafe {
@@ -199,6 +190,7 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
         }
         *regs = sys::process::registers();
         debug!("syscall handler: exit: stack frame (after): {:#?}", stack_frame);
+        debug!("syscall handler: spawn: registers (after): {:#?}", regs);
     }
 
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };

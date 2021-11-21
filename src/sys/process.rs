@@ -181,10 +181,6 @@ const PAGE_SIZE: u64 = 4 * 1024;
 #[repr(align(8), C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Registers {
-    pub r15: usize,
-    pub r14: usize,
-    pub r13: usize,
-    pub r12: usize,
     pub r11: usize,
     pub r10: usize,
     pub r9:  usize,
@@ -193,9 +189,7 @@ pub struct Registers {
     pub rsi: usize,
     pub rdx: usize,
     pub rcx: usize,
-    pub rbx: usize,
     pub rax: usize,
-    pub rbp: usize,
 }
 
 const ELF_MAGIC: [u8; 4] = [0x74, b'E', b'L', b'F'];
