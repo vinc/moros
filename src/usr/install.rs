@@ -18,7 +18,6 @@ pub fn copy_files(verbose: bool) {
 
     copy_file("/bin/hello", include_bytes!("../../dsk/bin/hello"), verbose);
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
-    copy_file("/bin/test", include_bytes!("../../dsk/bin/test"), verbose);
 
     create_dir("/dev/clk", verbose); // Clocks
     let pathname = "/dev/console";
