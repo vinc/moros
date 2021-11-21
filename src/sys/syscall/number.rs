@@ -1,4 +1,3 @@
-pub const NULL:     usize = 0x0;
 pub const EXIT:     usize = 0x1;
 pub const SPAWN:    usize = 0x2;
 pub const READ:     usize = 0x3;
