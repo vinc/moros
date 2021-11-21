@@ -176,7 +176,7 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
     }
 
     //debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
-    regs.rax = sys::syscall::dispatcher(n, arg1, arg2, arg3);
+    let res = sys::syscall::dispatcher(n, arg1, arg2, arg3);
 
     if n == sys::syscall::number::EXIT {
         debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
@@ -192,6 +192,8 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
         debug!("syscall handler: exit: stack frame (after): {:#?}", stack_frame);
         debug!("syscall handler: exit: registers (after): {:#?}", regs);
     }
+
+    regs.rax = res;
 
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
