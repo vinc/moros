@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue, PageFaultErrorCode};
 
 const PIC1: u16 = 0x21;
 const PIC2: u16 = 0xA1;
@@ -179,15 +179,26 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
     let arg3 = regs.rdx;
 
     if n == sys::syscall::number::SPAWN {
-        debug!("syscall handler: SPAWN: {:#?}", stack_frame);
-        //sys::process::set_registers(*regs);
+        debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
+        debug!("syscall handler: spawn: stack frame: {:#?}", stack_frame);
+        sys::process::set_stack_frame(stack_frame.clone());
+        sys::process::set_registers(regs.clone());
     }
 
     //debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
     regs.rax = sys::syscall::dispatcher(n, arg1, arg2, arg3);
 
     if n == sys::syscall::number::EXIT {
-        debug!("syscall handler: EXIT: {:#?}", stack_frame);
+        debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
+        debug!("syscall handler: exit: stack frame (before): {:#?}", stack_frame);
+        // Restore CPU context
+        let isf = sys::process::stack_frame();
+        unsafe {
+            //stack_frame.as_mut().write(sys::process::stack_frame());
+            core::ptr::write_volatile(stack_frame.as_mut().extract_inner() as *mut InterruptStackFrameValue, isf);
+        }
+        *regs = sys::process::registers();
+        debug!("syscall handler: exit: stack frame (after): {:#?}", stack_frame);
     }
 
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };

@@ -6,6 +6,7 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
+use x86_64::structures::idt::InterruptStackFrameValue;
 
 const MAX_FILE_HANDLES: usize = 16; // FIXME Increasing this cause boot crashes
 const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
@@ -145,7 +146,19 @@ pub fn registers() -> Registers {
 pub fn set_registers(regs: Registers) {
     let mut table = PROCESS_TABLE.write();
     let mut proc = &mut table[id()];
-    proc.registers = regs;
+    proc.registers = regs
+}
+
+pub fn stack_frame() -> InterruptStackFrameValue {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.stack_frame.clone()
+}
+
+pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
+    let mut table = PROCESS_TABLE.write();
+    let mut proc = &mut table[id()];
+    proc.stack_frame = stack_frame;
 }
 
 /************************
@@ -185,23 +198,34 @@ pub struct Registers {
     pub rbp: usize,
 }
 
+const ELF_MAGIC: [u8; 4] = [0x74, b'E', b'L', b'F'];
+
 #[derive(Clone, Debug)]
 pub struct Process {
     id: usize,
     code_addr: u64,
     code_size: u64,
     entry_point: u64,
+    stack_frame: InterruptStackFrameValue,
     registers: Registers,
     data: ProcessData,
 }
 
 impl Process {
     pub fn new(id: usize) -> Self {
+        let isf = InterruptStackFrameValue {
+            instruction_pointer: VirtAddr::new(0),
+            code_segment: 0,
+            cpu_flags: 0,
+            stack_pointer: VirtAddr::new(0),
+            stack_segment: 0,
+        };
         Self {
             id,
             code_addr: 0,
             code_size: 0,
             entry_point: 0,
+            stack_frame: isf,
             registers: Registers::default(),
             data: ProcessData::new("/", None),
         }
@@ -240,7 +264,7 @@ impl Process {
 
         let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;
-        if &bin[1..4] == b"ELF" { // ELF binary
+        if &bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry_point = obj.entry();
                 for segment in obj.segments() {
@@ -266,10 +290,13 @@ impl Process {
 
         let mut table = PROCESS_TABLE.write();
         let parent = &table[id()];
+
         let data = parent.data.clone();
+        let registers = parent.registers.clone();
+        let stack_frame = parent.stack_frame.clone();
+
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
-        let registers = Registers::default();
-        let proc = Process { id, code_addr, code_size, entry_point, data, registers };
+        let proc = Process { id, code_addr, code_size, entry_point, data, stack_frame, registers };
         table[id] = proc;
 
         Ok(id)
