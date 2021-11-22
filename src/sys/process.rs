@@ -182,8 +182,6 @@ use crate::sys;
 use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
-use x86_64::structures::paging::{Mapper, FrameAllocator};
-use x86_64::structures::paging::{Page, PageTableFlags};
 
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0x100_0000);
 const PAGE_SIZE: u64 = 4 * 1024;
@@ -246,24 +244,9 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
-        let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
-        let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
-
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
-
         let code_size = 1024 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
-        let pages = {
-            let code_start_page = Page::containing_address(VirtAddr::new(code_addr));
-            let code_end_page = Page::containing_address(VirtAddr::new(code_addr + code_size));
-            Page::range_inclusive(code_start_page, code_end_page)
-        };
-        for page in pages {
-            let frame = frame_allocator.allocate_frame().unwrap();
-            unsafe {
-                mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
-            }
-        }
+        sys::allocator::alloc_pages(code_addr, code_size);
 
         let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;
