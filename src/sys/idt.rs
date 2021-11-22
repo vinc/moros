@@ -169,6 +169,7 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
 
     if n == sys::syscall::number::SPAWN {
         debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
+        debug!("syscall handler: spawn: pid={}", sys::process::id());
         debug!("syscall handler: spawn: stack frame: {:#?}", stack_frame);
         debug!("syscall handler: spawn: registers: {:#?}", regs);
         sys::process::set_stack_frame(stack_frame.clone());
@@ -180,6 +181,7 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
 
     if n == sys::syscall::number::EXIT {
         debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
+        debug!("syscall handler: exit: pid={}", sys::process::id());
         debug!("syscall handler: exit: stack frame (before): {:#?}", stack_frame);
         debug!("syscall handler: exit: registers (before): {:#?}", regs);
         // Restore CPU context

@@ -138,27 +138,37 @@ pub fn ptr_from_addr(addr: u64) -> *mut u8 {
 }
 
 pub fn registers() -> Registers {
+    debug!("get registers: pid={}", id());
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.registers.clone()
 }
 
 pub fn set_registers(regs: Registers) {
+    debug!("set registers: pid={}", id());
     let mut table = PROCESS_TABLE.write();
     let mut proc = &mut table[id()];
     proc.registers = regs
 }
 
 pub fn stack_frame() -> InterruptStackFrameValue {
+    debug!("get stack frame: pid={}", id());
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.stack_frame.clone()
 }
 
 pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
+    debug!("set stack frame: pid={}", id());
     let mut table = PROCESS_TABLE.write();
     let mut proc = &mut table[id()];
     proc.stack_frame = stack_frame;
+}
+
+pub fn exit() {
+    // TODO unmap memory
+    MAX_PID.fetch_sub(1, Ordering::SeqCst);
+    set_id(0); // FIXME: No process manager so we switch back to process 0
 }
 
 /************************
@@ -238,7 +248,6 @@ impl Process {
     fn create(bin: &[u8]) -> Result<usize, ()> {
         let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
         let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
-
 
         let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
 
