@@ -167,32 +167,20 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
 
-    if n == sys::syscall::number::SPAWN {
-        debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
-        debug!("syscall handler: spawn: pid={}", sys::process::id());
-        debug!("syscall handler: spawn: stack frame: {:#?}", stack_frame);
-        debug!("syscall handler: spawn: registers: {:#?}", regs);
+    if n == sys::syscall::number::SPAWN { // Backup CPU context
         sys::process::set_stack_frame(stack_frame.clone());
         sys::process::set_registers(regs.clone());
     }
 
-    //debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
     let res = sys::syscall::dispatcher(n, arg1, arg2, arg3);
 
-    if n == sys::syscall::number::EXIT {
-        debug!("syscall handler n={:#x}, arg1={:#x}, arg2={:#x}, arg3={:#x}", n, arg1, arg2, arg3);
-        debug!("syscall handler: exit: pid={}", sys::process::id());
-        debug!("syscall handler: exit: stack frame (before): {:#?}", stack_frame);
-        debug!("syscall handler: exit: registers (before): {:#?}", regs);
-        // Restore CPU context
+    if n == sys::syscall::number::EXIT { // Restore CPU context
         let sf = sys::process::stack_frame();
         unsafe {
             //stack_frame.as_mut().write(sf);
-            core::ptr::write_volatile(stack_frame.as_mut().extract_inner() as *mut InterruptStackFrameValue, sf);
+            core::ptr::write_volatile(stack_frame.as_mut().extract_inner() as *mut InterruptStackFrameValue, sf); // FIXME
             core::ptr::write_volatile(regs, sys::process::registers());
         }
-        debug!("syscall handler: exit: stack frame (after): {:#?}", stack_frame);
-        debug!("syscall handler: exit: registers (after): {:#?}", regs);
     }
 
     regs.rax = res;

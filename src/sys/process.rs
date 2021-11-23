@@ -138,28 +138,24 @@ pub fn ptr_from_addr(addr: u64) -> *mut u8 {
 }
 
 pub fn registers() -> Registers {
-    debug!("get registers: pid={}", id());
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.registers.clone()
 }
 
 pub fn set_registers(regs: Registers) {
-    debug!("set registers: pid={}", id());
     let mut table = PROCESS_TABLE.write();
     let mut proc = &mut table[id()];
     proc.registers = regs
 }
 
 pub fn stack_frame() -> InterruptStackFrameValue {
-    debug!("get stack frame: pid={}", id());
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.stack_frame.clone()
 }
 
 pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
-    debug!("set stack frame: pid={}", id());
     let mut table = PROCESS_TABLE.write();
     let mut proc = &mut table[id()];
     proc.stack_frame = stack_frame;

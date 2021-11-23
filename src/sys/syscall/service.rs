@@ -4,8 +4,7 @@ use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
 use alloc::vec;
 
-pub fn exit(code: usize) -> usize {
-    debug!("exit({})", code);
+pub fn exit(_code: usize) -> usize {
     sys::process::exit();
     0
 }
