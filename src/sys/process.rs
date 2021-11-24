@@ -181,7 +181,7 @@ use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
 
-static CODE_ADDR: AtomicU64 = AtomicU64::new(0x100_0000);
+static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20)); // 16 MB
 const PAGE_SIZE: u64 = 4 * 1024;
 
 #[repr(align(8), C)]
