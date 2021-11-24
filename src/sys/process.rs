@@ -162,7 +162,9 @@ pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
 }
 
 pub fn exit() {
-    // TODO unmap memory
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    sys::allocator::free_pages(proc.code_addr, proc.code_size);
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(0); // FIXME: No process manager so we switch back to process 0
 }
