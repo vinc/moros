@@ -78,7 +78,7 @@ pub fn free_pages(addr: u64, size: u64) {
         if let Ok((_frame, mapping)) = mapper.unmap(page) {
             mapping.flush();
         } else {
-            debug!("Could not unmap {:?}", page);
+            //debug!("Could not unmap {:?}", page);
         }
     }
 }
