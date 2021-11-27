@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Improve user experience (#274)
+- Add process table and exit syscall (#268)
 - Improve UTF-8 support (#267)
 - Bump acpi from 4.0.0 to 4.1.0 (#265)
 - Add shell redirections (#262)

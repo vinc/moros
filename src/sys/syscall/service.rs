@@ -4,6 +4,11 @@ use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
 use alloc::vec;
 
+pub fn exit(_code: usize) -> usize {
+    sys::process::exit();
+    0
+}
+
 pub fn sleep(seconds: f64) {
     sys::time::sleep(seconds);
 }
@@ -71,10 +76,8 @@ pub fn spawn(path: &str) -> isize {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if let Ok(process) = Process::create(&buf) {
-                process.exec();
-                return 0;
-            }
+            Process::spawn(&buf);
+            return 0;
         }
     }
     -1

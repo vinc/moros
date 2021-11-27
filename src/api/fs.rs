@@ -149,7 +149,8 @@ pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
     };
     if let Some(old_handle) = res {
         syscall::dup(old_handle, handle);
-        return Ok(old_handle);
+        syscall::close(old_handle);
+        return Ok(handle);
     }
     Err(())
 }

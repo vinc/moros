@@ -10,6 +10,9 @@ use crate::sys::fs::FileStat;
 
 pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
     match n {
+        number::EXIT => {
+            service::exit(arg1)
+        }
         number::SLEEP => {
             service::sleep(f64::from_bits(arg1 as u64));
             0
