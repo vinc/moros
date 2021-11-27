@@ -1,9 +1,11 @@
 use crate::sys;
+use crate::sys::process::Registers;
+
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode};
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue, PageFaultErrorCode};
 
 const PIC1: u16 = 0x21;
 const PIC2: u16 = 0xA1;
@@ -116,36 +118,14 @@ extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStac
     panic!("EXCEPTION: SEGMENT NOT PRESENT\n{:#?}", stack_frame);
 }
 
-// See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L92
-#[repr(align(8), C)]
-#[derive(Debug, Clone, Default)]
-pub struct Registers {
-    r15: usize,
-    r14: usize,
-    r13: usize,
-    r12: usize,
-    r11: usize,
-    r10: usize,
-    r9: usize,
-    r8: usize,
-    rdi: usize,
-    rsi: usize,
-    rdx: usize,
-    rcx: usize,
-    rbx: usize,
-    rax: usize,
-    rbp: usize,
-}
-
-// See: https://github.com/xfoxfu/rust-xos/blob/8a07a69ef/kernel/src/interrupts/handlers.rs#L112
+// Naked function wrapper saving all scratch registers to the stack
+// See: https://os.phil-opp.com/returning-from-exceptions/#a-naked-wrapper-function
 macro_rules! wrap {
     ($fn: ident => $w:ident) => {
         #[naked]
         pub unsafe extern "sysv64" fn $w() {
             asm!(
-                "push rbp",
                 "push rax",
-                "push rbx",
                 "push rcx",
                 "push rdx",
                 "push rsi",
@@ -154,18 +134,10 @@ macro_rules! wrap {
                 "push r9",
                 "push r10",
                 "push r11",
-                "push r12",
-                "push r13",
-                "push r14",
-                "push r15",
                 "mov rsi, rsp", // Arg #2: register list
                 "mov rdi, rsp", // Arg #1: interupt frame
-                "add rdi, 15 * 8",
+                "add rdi, 9 * 8",
                 "call {}",
-                "pop r15",
-                "pop r14",
-                "pop r13",
-                "pop r12",
                 "pop r11",
                 "pop r10",
                 "pop r9",
@@ -174,9 +146,7 @@ macro_rules! wrap {
                 "pop rsi",
                 "pop rdx",
                 "pop rcx",
-                "pop rbx",
                 "pop rax",
-                "pop rbp",
                 "iretq",
                 sym $fn,
                 options(noreturn)
@@ -190,13 +160,31 @@ wrap!(syscall_handler => wrapped_syscall_handler);
 // NOTE: We can't use "x86-interrupt" for syscall_handler because we need to
 // return a result in the RAX register and it will be overwritten when the
 // context of the caller is restored.
-extern "sysv64" fn syscall_handler(_stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
+extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
     // The registers order follow the System V ABI convention
     let n    = regs.rax;
     let arg1 = regs.rdi;
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
-    regs.rax = sys::syscall::dispatcher(n, arg1, arg2, arg3);
+
+    if n == sys::syscall::number::SPAWN { // Backup CPU context
+        sys::process::set_stack_frame(stack_frame.clone());
+        sys::process::set_registers(regs.clone());
+    }
+
+    let res = sys::syscall::dispatcher(n, arg1, arg2, arg3);
+
+    if n == sys::syscall::number::EXIT { // Restore CPU context
+        let sf = sys::process::stack_frame();
+        unsafe {
+            //stack_frame.as_mut().write(sf);
+            core::ptr::write_volatile(stack_frame.as_mut().extract_inner() as *mut InterruptStackFrameValue, sf); // FIXME
+            core::ptr::write_volatile(regs, sys::process::registers());
+        }
+    }
+
+    regs.rax = res;
+
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
 

@@ -2,6 +2,10 @@ use crate::syscall;
 use crate::sys::syscall::number::*;
 use crate::sys::fs::FileStat;
 
+pub fn exit(code: usize) -> usize {
+    unsafe { syscall!(EXIT, code as u64) }
+}
+
 pub fn sleep(seconds: f64) {
     unsafe { syscall!(SLEEP, seconds.to_bits()) };
 }

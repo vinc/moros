@@ -2,83 +2,101 @@ use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
-use alloc::vec;
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
-use spin::Mutex;
+use spin::RwLock;
+use x86_64::structures::idt::InterruptStackFrameValue;
 
-const MAX_FILE_HANDLES: usize = 1024;
+const MAX_FILE_HANDLES: usize = 16; // FIXME Increasing this cause boot crashes
+const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
 
 lazy_static! {
-    pub static ref PIDS: AtomicUsize = AtomicUsize::new(0);
-    pub static ref PROCESS: Mutex<ProcessData> = Mutex::new(ProcessData::new("/", None)); // TODO
+    pub static ref PID: AtomicUsize = AtomicUsize::new(0);
+    pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(1);
+    pub static ref PROCESS_TABLE: RwLock<[Process; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Process::new(0)));
 }
 
+#[derive(Clone, Debug)]
 pub struct ProcessData {
-    id: usize,
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
-    file_handles: Vec<Option<Resource>>,
-    code_addr: u64,
+    file_handles: [Option<Resource>; MAX_FILE_HANDLES],
 }
 
 impl ProcessData {
     pub fn new(dir: &str, user: Option<&str>) -> Self {
-        let id = PIDS.fetch_add(1, Ordering::SeqCst);
         let env = BTreeMap::new();
         let dir = dir.to_string();
         let user = user.map(String::from);
-        let code_addr = 0;
-        let mut file_handles = vec![None; MAX_FILE_HANDLES];
+        let mut file_handles = [(); MAX_FILE_HANDLES].map(|_| None);
         file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
-        Self { id, env, dir, user, file_handles, code_addr }
+        Self { env, dir, user, file_handles }
     }
 }
 
 pub fn id() -> usize {
-    PROCESS.lock().id
+    PID.load(Ordering::SeqCst)
+}
+
+pub fn set_id(id: usize) {
+    PID.store(id, Ordering::SeqCst)
 }
 
 pub fn env(key: &str) -> Option<String> {
-    PROCESS.lock().env.get(key).cloned()
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.env.get(key).cloned()
 }
 
 pub fn envs() -> BTreeMap<String, String> {
-    PROCESS.lock().env.clone()
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.env.clone()
 }
 
 pub fn dir() -> String {
-    PROCESS.lock().dir.clone()
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.dir.clone()
 }
 
 pub fn user() -> Option<String> {
-    PROCESS.lock().user.clone()
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.user.clone()
 }
 
 pub fn set_env(key: &str, val: &str) {
-    PROCESS.lock().env.insert(key.into(), val.into());
+    let mut table = PROCESS_TABLE.write();
+    let proc = &mut table[id()];
+    proc.data.env.insert(key.into(), val.into());
 }
 
 pub fn set_dir(dir: &str) {
-    PROCESS.lock().dir = dir.into();
+    let mut table = PROCESS_TABLE.write();
+    let proc = &mut table[id()];
+    proc.data.dir = dir.into();
 }
 
 pub fn set_user(user: &str) {
-    PROCESS.lock().user = Some(user.into())
+    let mut table = PROCESS_TABLE.write();
+    let proc = &mut table[id()];
+    proc.data.user = Some(user.into())
 }
 
 pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
+    let mut table = PROCESS_TABLE.write();
+    let proc = &mut table[id()];
+
     let min = 4; // The first 4 file handles are reserved
     let max = MAX_FILE_HANDLES;
-    let proc = &mut *PROCESS.lock();
     for handle in min..max {
-        if proc.file_handles[handle].is_none() {
-            proc.file_handles[handle] = Some(file);
+        if proc.data.file_handles[handle].is_none() {
+            proc.data.file_handles[handle] = Some(file);
             return Ok(handle);
         }
     }
@@ -86,30 +104,69 @@ pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
 }
 
 pub fn update_file_handle(handle: usize, file: Resource) {
-    let proc = &mut *PROCESS.lock();
-    proc.file_handles[handle] = Some(file);
+    let mut table = PROCESS_TABLE.write();
+    let proc = &mut table[id()];
+    proc.data.file_handles[handle] = Some(file);
 }
 
 pub fn delete_file_handle(handle: usize) {
-    let proc = &mut *PROCESS.lock();
-    proc.file_handles[handle] = None;
+    let mut table = PROCESS_TABLE.write();
+    let proc = &mut table[id()];
+    proc.data.file_handles[handle] = None;
 }
 
 pub fn file_handle(handle: usize) -> Option<Resource> {
-    let proc = &mut *PROCESS.lock();
-    proc.file_handles[handle].clone()
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.file_handles[handle].clone()
 }
 
 pub fn code_addr() -> u64 {
-    PROCESS.lock().code_addr
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.code_addr
 }
 
 pub fn set_code_addr(addr: u64) {
-    PROCESS.lock().code_addr = addr;
+    let mut table = PROCESS_TABLE.write();
+    let mut proc = &mut table[id()];
+    proc.code_addr = addr;
 }
 
 pub fn ptr_from_addr(addr: u64) -> *mut u8 {
-    (PROCESS.lock().code_addr + addr) as *mut u8
+    (code_addr() + addr) as *mut u8
+}
+
+pub fn registers() -> Registers {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.registers.clone()
+}
+
+pub fn set_registers(regs: Registers) {
+    let mut table = PROCESS_TABLE.write();
+    let mut proc = &mut table[id()];
+    proc.registers = regs
+}
+
+pub fn stack_frame() -> InterruptStackFrameValue {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.stack_frame.clone()
+}
+
+pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
+    let mut table = PROCESS_TABLE.write();
+    let mut proc = &mut table[id()];
+    proc.stack_frame = stack_frame;
+}
+
+pub fn exit() {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    sys::allocator::free_pages(proc.code_addr, proc.code_size);
+    MAX_PID.fetch_sub(1, Ordering::SeqCst);
+    set_id(0); // FIXME: No process manager so we switch back to process 0
 }
 
 /************************
@@ -123,66 +180,82 @@ use crate::sys;
 use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
-use x86_64::structures::paging::{Mapper, FrameAllocator};
-use x86_64::structures::paging::{Page, PageTableFlags};
 
-static STACK_ADDR: AtomicU64 = AtomicU64::new(0x200_0000);
-static CODE_ADDR: AtomicU64 = AtomicU64::new(0x100_0000);
+static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20)); // 16 MB
 const PAGE_SIZE: u64 = 4 * 1024;
 
+#[repr(align(8), C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Registers {
+    pub r11: usize,
+    pub r10: usize,
+    pub r9:  usize,
+    pub r8:  usize,
+    pub rdi: usize,
+    pub rsi: usize,
+    pub rdx: usize,
+    pub rcx: usize,
+    pub rax: usize,
+}
+
+const ELF_MAGIC: [u8; 4] = [0x74, b'E', b'L', b'F'];
+
+#[derive(Clone, Debug)]
 pub struct Process {
-    stack_addr: u64,
-    stack_size: u64,
+    id: usize,
     code_addr: u64,
+    code_size: u64,
     entry_point: u64,
+    stack_frame: InterruptStackFrameValue,
+    registers: Registers,
+    data: ProcessData,
 }
 
 impl Process {
-    pub fn create(bin: &[u8]) -> Result<Process, ()> {
-        let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
-        let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
-
-
-        let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
-
-        let stack_size = 256 * PAGE_SIZE;
-        let stack_addr = STACK_ADDR.fetch_add(stack_size, Ordering::SeqCst);
-        let pages = {
-            let stack_start_page = Page::containing_address(VirtAddr::new(stack_addr));
-            let stack_end_page = Page::containing_address(VirtAddr::new(stack_addr + stack_size));
-            Page::range_inclusive(stack_start_page, stack_end_page)
+    pub fn new(id: usize) -> Self {
+        let isf = InterruptStackFrameValue {
+            instruction_pointer: VirtAddr::new(0),
+            code_segment: 0,
+            cpu_flags: 0,
+            stack_pointer: VirtAddr::new(0),
+            stack_segment: 0,
         };
-        for page in pages {
-            let frame = frame_allocator.allocate_frame().unwrap();
-            unsafe {
-                mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
-            }
+        Self {
+            id,
+            code_addr: 0,
+            code_size: 0,
+            entry_point: 0,
+            stack_frame: isf,
+            registers: Registers::default(),
+            data: ProcessData::new("/", None),
         }
+    }
 
+    pub fn spawn(bin: &[u8]) {
+        if let Ok(pid) = Self::create(bin) {
+            let proc = {
+                let table = PROCESS_TABLE.read();
+                table[pid].clone()
+            };
+            proc.exec();
+        }
+    }
+
+    fn create(bin: &[u8]) -> Result<usize, ()> {
         let code_size = 1024 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
-        let pages = {
-            let code_start_page = Page::containing_address(VirtAddr::new(code_addr));
-            let code_end_page = Page::containing_address(VirtAddr::new(code_addr + code_size));
-            Page::range_inclusive(code_start_page, code_end_page)
-        };
-        for page in pages {
-            let frame = frame_allocator.allocate_frame().unwrap();
-            unsafe {
-                mapper.map_to(page, frame, flags, &mut frame_allocator).unwrap().flush();
-            }
-        }
+        sys::allocator::alloc_pages(code_addr, code_size);
 
         let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;
-        if &bin[1..4] == b"ELF" { // ELF binary
+        if &bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry_point = obj.entry();
                 for segment in obj.segments() {
                     let addr = segment.address() as usize;
                     if let Ok(data) = segment.data() {
-                        unsafe {
-                            for (i, op) in data.iter().enumerate() {
+                        for (i, op) in data.iter().enumerate() {
+                            unsafe {
                                 let ptr = code_ptr.add(addr + i);
                                 core::ptr::write(ptr, *op);
                             }
@@ -191,24 +264,31 @@ impl Process {
                 }
             }
         } else { // Raw binary
-            unsafe {
-                for (i, op) in bin.iter().enumerate() {
+            for (i, op) in bin.iter().enumerate() {
+                unsafe {
                     let ptr = code_ptr.add(i);
                     core::ptr::write(ptr, *op);
                 }
             }
         }
 
-        set_code_addr(code_addr);
+        let mut table = PROCESS_TABLE.write();
+        let parent = &table[id()];
 
-        Ok(Process { stack_addr, stack_size, code_addr, entry_point })
+        let data = parent.data.clone();
+        let registers = parent.registers.clone();
+        let stack_frame = parent.stack_frame.clone();
+
+        let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
+        let proc = Process { id, code_addr, code_size, entry_point, data, stack_frame, registers };
+        table[id] = proc;
+
+        Ok(id)
     }
 
     // Switch to user mode and execute the program
-    pub fn exec(&self) {
-        //x86_64::instructions::tlb::flush_all();
-        let data = GDT.1.user_data.0;
-        let code = GDT.1.user_code.0;
+    fn exec(&self) {
+        set_id(self.id); // Change PID
         unsafe {
             asm!(
                 "cli",        // Disable interrupts
@@ -218,9 +298,9 @@ impl Process {
                 "push rdx",   // Code segment (CS)
                 "push rdi",   // Instruction pointer (RIP)
                 "iretq",
-                in("rax") data,
-                in("rsi") self.stack_addr + self.stack_size,
-                in("rdx") code,
+                in("rax") GDT.1.user_data.0,
+                in("rsi") self.code_addr + self.code_size,
+                in("rdx") GDT.1.user_code.0,
                 in("rdi") self.code_addr + self.entry_point,
             );
         }

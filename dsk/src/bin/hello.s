@@ -11,4 +11,6 @@ _start:
   mov rsi, msg              ; addr of string
   mov rdx, 14               ; size of string
   int 0x80
-  jmp _start
+  mov rax, 1                ; syscall number for EXIT
+  mov rdi, 0                ; no error
+  int 0x80

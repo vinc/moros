@@ -43,6 +43,46 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     Ok(())
 }
 
+pub fn alloc_pages(addr: u64, size: u64) {
+    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
+    let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
+    let pages = {
+        let start_page = Page::containing_address(VirtAddr::new(addr));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size));
+        Page::range_inclusive(start_page, end_page)
+    };
+    for page in pages {
+        let frame = frame_allocator.allocate_frame().unwrap();
+        unsafe {
+            if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
+                mapping.flush();
+            } else {
+                debug!("Could not map {:?}", page);
+            }
+        }
+    }
+}
+
+use x86_64::structures::paging::page::PageRangeInclusive;
+
+// TODO: Replace `free` by `dealloc`
+pub fn free_pages(addr: u64, size: u64) {
+    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
+    let pages: PageRangeInclusive<Size4KiB> = {
+        let start_page = Page::containing_address(VirtAddr::new(addr));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size));
+        Page::range_inclusive(start_page, end_page)
+    };
+    for page in pages {
+        if let Ok((_frame, mapping)) = mapper.unmap(page) {
+            mapping.flush();
+        } else {
+            //debug!("Could not unmap {:?}", page);
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct PhysBuf {
     buf: Arc<Mutex<Vec<u8>>>,
