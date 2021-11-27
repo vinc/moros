@@ -135,13 +135,13 @@ macro_rules! ensure_tonicity {
             let floats = parse_list_of_floats(args)?;
             let first = floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
             let rest = &floats[1..];
-            fn f (prev: &f64, xs: &[f64]) -> bool {
+            fn func(prev: &f64, xs: &[f64]) -> bool {
                 match xs.first() {
-                    Some(x) => $check_fn(*prev, *x) && f(x, &xs[1..]),
+                    Some(x) => $check_fn(*prev, *x) && func(x, &xs[1..]),
                     None => true,
                 }
             }
-            Ok(Exp::Bool(f(first, rest)))
+            Ok(Exp::Bool(func(first, rest)))
         }
     };
 }
@@ -150,32 +150,26 @@ fn default_env<'a>() -> Env<'a> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     data.insert(
         "*".to_string(),
-        Exp::Func(
-            |args: &[Exp]| -> Result<Exp, Err> {
-                let res = parse_list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
-                Ok(Exp::Number(res))
-            }
-        )
+        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+            let res = parse_list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
+            Ok(Exp::Number(res))
+        })
     );
     data.insert(
         "+".to_string(), 
-        Exp::Func(
-            |args: &[Exp]| -> Result<Exp, Err> {
-                let res = parse_list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
-                Ok(Exp::Number(res))
-            }
-        )
+        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+            let res = parse_list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
+            Ok(Exp::Number(res))
+        })
     );
     data.insert(
         "-".to_string(), 
-        Exp::Func(
-            |args: &[Exp]| -> Result<Exp, Err> {
-                let floats = parse_list_of_floats(args)?;
-                let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
-                let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
-                Ok(Exp::Number(first - sum_of_rest))
-            }
-        )
+        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+            let floats = parse_list_of_floats(args)?;
+            let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
+            let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
+            Ok(Exp::Number(first - sum_of_rest))
+        })
     );
     data.insert(
         "=".to_string(), 
@@ -198,7 +192,7 @@ fn default_env<'a>() -> Env<'a> {
         Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b))
     );
 
-    Env {data, outer: None}
+    Env { data, outer: None }
 }
 
 fn parse_list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
@@ -236,18 +230,14 @@ fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     match first_eval {
         Exp::Symbol(a) => {
             match second_eval {
-                Exp::Symbol(b) => {
-                    Ok(Exp::Bool(a == b))
-                },
-                _ => Ok(Exp::Bool(false))
+                Exp::Symbol(b) => Ok(Exp::Bool(a == b)),
+                _              => Ok(Exp::Bool(false)),
             }
         },
         Exp::List(a) => {
             match second_eval {
-                Exp::List(b) => {
-                    Ok(Exp::Bool(a.is_empty() && b.is_empty()))
-                },
-                _ => Ok(Exp::Bool(false))
+                Exp::List(b) => Ok(Exp::Bool(a.is_empty() && b.is_empty())),
+                _            => Ok(Exp::Bool(false))
             }
         },
         _ => Ok(Exp::Bool(false))
@@ -457,8 +447,8 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
                 None => {
                     let first_eval = eval(first_form, env)?;
                     match first_eval {
-                        Exp::Func(f) => {
-                            f(&eval_forms(arg_forms, env)?)
+                        Exp::Func(func) => {
+                            func(&eval_forms(arg_forms, env)?)
                         },
                         Exp::Lambda(lambda) => {
                             let new_env = &mut env_for_lambda(lambda.params_exp, arg_forms, env)?;
@@ -519,11 +509,15 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
     prompt.history.load(history_file);
     prompt.completion.set(&lisp_completer);
 
-    while let Some(exp) = prompt.input(&prompt_string) {
-        if exp == "(exit)" || exp == "(quit)" {
+    while let Some(line) = prompt.input(&prompt_string) {
+        if line == "(exit)" || line == "(quit)" {
             break;
         }
-        match parse_eval(&exp, env) {
+        if line.is_empty() {
+            println!();
+            continue;
+        }
+        match parse_eval(&line, env) {
             Ok(res) => {
                 println!("{}\n", res);
             }
@@ -531,10 +525,8 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
                 Err::Reason(msg) => println!("{}Error:{} {}\n", csi_error, csi_reset, msg),
             },
         }
-        if !exp.is_empty() {
-            prompt.history.add(&exp);
-            prompt.history.save(history_file);
-        }
+        prompt.history.add(&line);
+        prompt.history.save(history_file);
     }
     usr::shell::ExitCode::CommandSuccessful
 }

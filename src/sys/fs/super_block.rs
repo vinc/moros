@@ -37,6 +37,7 @@ impl SuperBlock {
         }
     }
 
+    // NOTE: FS must be mounted
     pub fn read() -> Self {
         let block = Block::read(SUPERBLOCK_ADDR);
         let data = block.data();
