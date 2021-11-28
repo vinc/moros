@@ -180,6 +180,8 @@ pub fn init() {
 
     let devs = PCI_DEVICES.lock();
     for dev in devs.iter() {
+        // NOTE: There's not yet an AHCI driver for SATA disks so we must
+        // switch to IDE legacy mode for the ATA driver.
         if dev.class == 0x01 && dev.subclass == 0x01 { // IDE Controller
             let mut register = ConfigRegister::new(dev.bus, dev.device, dev.function, 0x08);
             let mut data = register.read();
