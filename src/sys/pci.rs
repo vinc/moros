@@ -92,12 +92,6 @@ pub fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     None
 }
 
-pub fn init() {
-    for bus in 0..256 {
-        check_bus(bus as u8);
-    }
-}
-
 fn check_bus(bus: u8) {
     for device in 0..32 {
         check_device(bus, device);
@@ -175,6 +169,37 @@ impl ConfigRegister {
         unsafe {
             self.addr_port.write(self.addr);
             self.data_port.write(data);
+        }
+    }
+}
+
+pub fn init() {
+    for bus in 0..256 {
+        check_bus(bus as u8);
+    }
+
+    let devs = PCI_DEVICES.lock();
+    for dev in devs.iter() {
+        if dev.class == 0x01 && dev.subclass == 0x01 { // IDE Controller
+            let mut register = ConfigRegister::new(dev.bus, dev.device, dev.function, 0x08);
+            let mut data = register.read();
+            let prog_offset = 8; // The programing interface start at bit 8
+
+            // Switching primary channel to compatibility mode
+            if dev.prog.get_bit(0) { // PCI native mode
+                if dev.prog.get_bit(1) { // Modifiable
+                    data.set_bit(prog_offset, false);
+                    register.write(data);
+                }
+            }
+
+            // Switching secondary channel to compatibility mode
+            if dev.prog.get_bit(2) { // PCI native mode
+                if dev.prog.get_bit(3) { // Modifiable
+                    data.set_bit(prog_offset + 2, false);
+                    register.write(data);
+                }
+            }
         }
     }
 }
