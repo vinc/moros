@@ -178,3 +178,7 @@ impl ConfigRegister {
         }
     }
 }
+
+pub fn list() -> Vec<DeviceConfig> {
+    PCI_DEVICES.lock().clone()
+}
