@@ -84,9 +84,7 @@ impl Bus {
     }
 
     fn wait(&mut self) {
-        for _ in 0..4 { // Wait about 4 x 100 ns
-            unsafe { self.alternate_status_register.read(); }
-        }
+        sys::time::nanowait(400); // Wait at least 400 us
     }
 
     fn write_command(&mut self, cmd: Command) {
@@ -172,6 +170,7 @@ impl Bus {
         self.reset();
         self.wait();
         self.select_drive(drive);
+        self.wait();
         unsafe {
             self.sector_count_register.write(0);
             self.lba0_register.write(0);
@@ -180,6 +179,7 @@ impl Bus {
         }
 
         self.write_command(Command::Identify);
+        self.wait();
 
         if self.status() == 0 {
             return None;
@@ -192,7 +192,7 @@ impl Bus {
         }
 
         for i in 0.. {
-            if i == 256 {
+            if i == 25 { // Waited 10ms (400ns * 25)
                 self.reset();
                 return None;
             }
@@ -202,6 +202,7 @@ impl Bus {
             if self.is_ready() {
                 break;
             }
+            self.wait();
         }
 
         let mut res = [0; 256];
