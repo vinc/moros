@@ -13,6 +13,10 @@ pub struct DeviceConfig {
     pub device_id: u16,
     pub status: u16,
     pub command: u16,
+    pub rev: u8,
+    pub prog: u8,
+    pub class: u8,
+    pub subclass: u8,
     pub base_addresses: [u32; 6],
     pub interrupt_pin: u8,
     pub interrupt_line: u8,
@@ -27,6 +31,13 @@ impl DeviceConfig {
         let data = register.read();
         let command = data.get_bits(0..16) as u16;
         let status = data.get_bits(16..32) as u16;
+
+        let mut register = ConfigRegister::new(bus, device, function, 0x08);
+        let data = register.read();
+        let rev = data.get_bits(0..8) as u8;
+        let prog = data.get_bits(8..16) as u8;
+        let subclass = data.get_bits(16..24) as u8;
+        let class = data.get_bits(24..32) as u8;
 
         let mut register = ConfigRegister::new(bus, device, function, 0x3C);
         let data = register.read();
@@ -50,6 +61,10 @@ impl DeviceConfig {
             device_id,
             status,
             command,
+            rev,
+            prog,
+            class,
+            subclass,
             base_addresses,
             interrupt_pin,
             interrupt_line,
@@ -113,7 +128,7 @@ fn check_device(bus: u8, device: u8) {
 fn add_device(bus: u8, device: u8, function: u8) {
     let config = DeviceConfig::new(bus, device, function);
     PCI_DEVICES.lock().push(config);
-    log!("PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n", bus, device, function, config.vendor_id, config.device_id);
+    log!("PCI {:04X}:{:02X}:{:02X} [{:04X}:{:04X}]\n", bus, device, function, config.vendor_id, config.device_id);
 }
 
 fn get_vendor_id(bus: u8, device: u8, function: u8) -> u16 {
