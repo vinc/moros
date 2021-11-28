@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add pci command and switch IDE controllers to compatible mode (#276)
 - Improve user experience (#274)
 - Add process table and exit syscall (#268)
 - Improve UTF-8 support (#267)
