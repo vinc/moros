@@ -25,9 +25,9 @@ use float_cmp::approx_eq;
 
 #[derive(Clone)]
 enum Exp {
-    Bool(bool),
     Symbol(String),
     Number(f64),
+    Bool(bool),
     List(Vec<Exp>),
     Func(fn(&[Exp]) -> Result<Exp, Err>),
     Lambda(Lambda),
