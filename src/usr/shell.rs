@@ -234,6 +234,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "mem" | "memory"       => usr::mem::main(&args),
         "kb" | "keyboard"      => usr::keyboard::main(&args),
         "lisp"                 => usr::lisp::main(&args),
+        "lisp2"                => usr::lisp2::main(&args),
         "chess"                => usr::chess::main(&args),
         "beep"                 => usr::beep::main(&args),
         "elf"                  => usr::elf::main(&args),
