@@ -1,21 +1,19 @@
-use alloc::string::ToString;
-use alloc::string::String;
-use alloc::vec::Vec;
 use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use alloc::vec;
 
 use nom::IResult;
 use nom::branch::alt;
-use nom::character::complete::{alpha1, alphanumeric0, char};
+use nom::character::complete::char;
 use nom::character::complete::multispace0;
-use nom::character::complete::anychar;
-use nom::character::is_space;
-use nom::bytes::complete::take_till;
+use nom::bytes::complete::take_while1;
 use nom::bytes::complete::is_not;
-use nom::combinator::recognize;
+use nom::sequence::preceded;
 use nom::multi::many0;
 use nom::number::complete::double;
 use nom::sequence::delimited;
-use nom::sequence::pair;
 
 #[derive(Debug, PartialEq)]
 pub enum Exp {
@@ -25,14 +23,25 @@ pub enum Exp {
     List(Vec<Exp>),
 }
 
-// Parser
+// Parse
+
+fn is_symbol_letter(c: char) -> bool {
+    let chars = "-+*/";
+    c.is_alphanumeric() || chars.contains(c)
+}
 
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
-    delimited(multispace0, alt((parse_num, parse_str, parse_list, parse_sym)), multispace0)(input)
+    delimited(multispace0, alt((parse_num, parse_str, parse_list, parse_quote, parse_sym)), multispace0)(input)
 }
 
 fn parse_list(input: &str) -> IResult<&str, Exp> {
     let (input, list) = delimited(char('('), many0(parse_exp), char(')'))(input)?;
+    Ok((input, Exp::List(list)))
+}
+
+fn parse_quote(input: &str) -> IResult<&str, Exp> {
+    let (input, list) = preceded(char('\''), parse_exp)(input)?;
+    let list = vec![Exp::Sym("quote".to_string()), list];
     Ok((input, Exp::List(list)))
 }
 
@@ -42,7 +51,7 @@ fn parse_str(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_sym(input: &str) -> IResult<&str, Exp> {
-    let (input, sym) = recognize(pair(alpha1, alphanumeric0))(input)?;
+    let (input, sym) = take_while1(is_symbol_letter)(input)?;
     Ok((input, Exp::Sym(sym.to_string())))
 }
 
@@ -68,6 +77,10 @@ fn test_lisp2() {
     println!("{}", eval!("(1)"));
     println!("{}", eval!("(1.23)"));
     println!("{}", eval!("(1 2 3)"));
+    println!("{}", eval!("(a-b-c)"));
+    println!("{}", eval!("(+ 1 2 3)"));
     println!("{}", eval!("(print \"test\")"));
+    println!("{}", eval!("'1"));
+    println!("{}", eval!("'(1 2 3)"));
     assert!(true);
 }
