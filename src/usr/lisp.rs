@@ -12,6 +12,8 @@ use core::fmt;
 use float_cmp::approx_eq;
 
 use nom::IResult;
+use nom::combinator::value;
+use nom::bytes::complete::escaped_transform;
 use nom::branch::alt;
 use nom::character::complete::char;
 use nom::character::complete::multispace0;
@@ -92,7 +94,12 @@ fn is_symbol_letter(c: char) -> bool {
 }
 
 fn parse_str(input: &str) -> IResult<&str, Exp> {
-    let (input, s) = delimited(char('"'), is_not("\""), char('"'))(input)?;
+    let escaped = escaped_transform(is_not("\\\""), '\\', alt((
+        value("\\", tag("\\")),
+        value("\"", tag("\"")),
+        value("\n", tag("n")),
+    )));
+    let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
     Ok((input, Exp::Str(s.to_string())))
 }
 
