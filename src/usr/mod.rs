@@ -24,7 +24,6 @@ pub mod install;
 pub mod ip;
 pub mod keyboard;
 pub mod lisp;
-pub mod lisp2;
 pub mod list;
 pub mod mem;
 pub mod net;
