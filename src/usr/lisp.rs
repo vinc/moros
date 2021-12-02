@@ -89,7 +89,7 @@ struct Env<'a> {
 // Parser
 
 fn is_symbol_letter(c: char) -> bool {
-    let chars = "<>=-+*/";
+    let chars = "<>=-+*?:/";
     c.is_alphanumeric() || chars.contains(c)
 }
 
