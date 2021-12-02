@@ -1,4 +1,5 @@
 use crate::{api, usr};
+use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
 use alloc::string::ToString;
@@ -184,6 +185,19 @@ fn default_env<'a>() -> Env<'a> {
         Ok(Exp::Num(first - sum_of_rest))
     }));
 
+    data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let arg = first(args)?;
+        let path = string(&arg)?;
+        let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
+        Ok(Exp::Str(contents))
+    }));
+    data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let arg = first(args)?;
+        let s = string(&arg)?;
+        let lines = s.lines().map(|line| Exp::Str(line.to_string())).collect();
+        Ok(Exp::List(lines))
+    }));
+
     Env { data, outer: None }
 }
 
@@ -202,6 +216,13 @@ fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
         Exp::Num(num) => Ok(*num),
         _ => Err(Err::Reason("Expected a number".to_string())),
+    }
+}
+
+fn string(exp: &Exp) -> Result<String, Err> {
+    match exp {
+        Exp::Str(s) => Ok(s.to_string()),
+        _ => Err(Err::Reason("Expected a string".to_string())),
     }
 }
 
