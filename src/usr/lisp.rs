@@ -202,7 +202,14 @@ fn default_env<'a>() -> Env<'a> {
 }
 
 fn first(exps: &[Exp]) -> Result<Exp, Err> {
-    match exps.first() {
+    match exps.get(0) {
+        Some(exp) => Ok(exp.clone()),
+        None => Err(Err::Reason("Expected an expression".to_string()))
+    }
+}
+
+fn second(exps: &[Exp]) -> Result<Exp, Err> {
+    match exps.get(1) {
         Some(exp) => Ok(exp.clone()),
         None => Err(Err::Reason("Expected an expression".to_string()))
     }
@@ -239,20 +246,16 @@ fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
-    let second_eval = eval(second_form, env)?;
-    match first_eval {
+fn eval_eq_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
         Exp::Sym(a) => {
-            match second_eval {
+            match eval(&second(args)?, env)? {
                 Exp::Sym(b) => Ok(Exp::Bool(a == b)),
                 _           => Ok(Exp::Bool(false)),
             }
         },
         Exp::List(a) => {
-            match second_eval {
+            match eval(&second(args)?, env)? {
                 Exp::List(b) => Ok(Exp::Bool(a.is_empty() && b.is_empty())),
                 _            => Ok(Exp::Bool(false))
             }
@@ -283,26 +286,22 @@ fn eval_cdr_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cons_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
-    let second_eval = eval(second_form, env)?;
-    match second_eval {
+fn eval_cons_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&second(args)?, env)? {
         Exp::List(mut list) => {
-            list.insert(0, first_eval);
+            list.insert(0, eval(&first(args)?, env)?);
             Ok(Exp::List(list.to_vec()))
         },
         _ => Err(Err::Reason("Expected list form".to_string())),
     }
 }
 
-fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    if arg_forms.is_empty() {
+fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    if args.is_empty() {
         return Err(Err::Reason("Expected at least one form".to_string()))
     }
-    for arg_form in arg_forms {
-        match arg_form {
+    for arg in args {
+        match arg {
             Exp::List(list) => {
                 if list.len() != 2 {
                     return Err(Err::Reason("Expected lists of predicate and expression".to_string()))
