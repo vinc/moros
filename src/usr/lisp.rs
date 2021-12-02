@@ -162,58 +162,43 @@ macro_rules! ensure_tonicity {
 
 fn default_env<'a>() -> Env<'a> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
-    data.insert(
-        "*".to_string(),
-        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-            let res = list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
-            Ok(Exp::Num(res))
-        })
-    );
-    data.insert(
-        "+".to_string(), 
-        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-            let res = list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
-            Ok(Exp::Num(res))
-        })
-    );
-    data.insert(
-        "-".to_string(), 
-        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-            let floats = list_of_floats(args)?;
-            let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
-            let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
-            Ok(Exp::Num(first - sum_of_rest))
-        })
-    );
-    data.insert(
-        "=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b)))
-    );
-    data.insert(
-        ">".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b))
-    );
-    data.insert(
-        ">=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b))
-    );
-    data.insert(
-        "<".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b))
-    );
-    data.insert(
-        "<=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b))
-    );
+
+    data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
+    data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
+    data.insert(">=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
+    data.insert("<".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
+    data.insert("<=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
+
+    data.insert("*".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let res = list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
+        Ok(Exp::Num(res))
+    }));
+    data.insert("+".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let res = list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
+        Ok(Exp::Num(res))
+    }));
+    data.insert("-".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let floats = list_of_floats(args)?;
+        let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
+        let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
+        Ok(Exp::Num(first - sum_of_rest))
+    }));
 
     Env { data, outer: None }
 }
 
-fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
-    args.iter().map(|x| single_float(x)).collect()
+fn first(exps: &[Exp]) -> Result<Exp, Err> {
+    match exps.first() {
+        Some(exp) => Ok(exp.clone()),
+        None => Err(Err::Reason("Expected an expression".to_string()))
+    }
 }
 
-fn single_float(exp: &Exp) -> Result<f64, Err> {
+fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
+    args.iter().map(|x| float(x)).collect()
+}
+
+fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
         Exp::Num(num) => Ok(*num),
         _ => Err(Err::Reason("Expected a number".to_string())),
@@ -222,15 +207,12 @@ fn single_float(exp: &Exp) -> Result<f64, Err> {
 
 // Eval
 
-fn eval_quote_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    Ok(first_form.clone())
+fn eval_quote_args(args: &[Exp]) -> Result<Exp, Err> {
+    first(args)
 }
 
-fn eval_atom_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    match first_eval {
+fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
         Exp::Sym(_) => Ok(Exp::Bool(true)),
         _           => Ok(Exp::Bool(false)),
     }
@@ -258,10 +240,8 @@ fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_car_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    match first_eval {
+fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
         Exp::List(list) => {
             let exp = list.first().ok_or(Err::Reason("List cannot be empty".to_string()))?; // TODO: return nil?
             Ok(exp.clone())
@@ -270,10 +250,8 @@ fn eval_car_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cdr_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    match first_eval {
+fn eval_cdr_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
         Exp::List(list) => {
             if list.is_empty() {
                 return Err(Err::Reason("List cannot be empty".to_string())) // TODO: return nil?
@@ -311,11 +289,7 @@ fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
                 let pred = eval(&list[0], env)?;
                 let exp = eval(&list[1], env)?;
                 match pred {
-                    Exp::Bool(b) => {
-                        if b {
-                            return Ok(exp);
-                        }
-                    },
+                    Exp::Bool(b) if b => return Ok(exp),
                     _ => continue,
                 }
             },
@@ -361,12 +335,11 @@ fn eval_defun_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     eval_label_args(&label_args, env)
 }
 
-fn eval_print_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    if arg_forms.len() > 1 {
+fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    if args.len() > 1 {
         return Err(Err::Reason("Print can only have one form".to_string()))
     }
-    match eval(first_form, env) {
+    match eval(&first(args)?, env) {
         Ok(Exp::Str(s)) => {
             println!("{}", s);
             Ok(Exp::Str(s))
@@ -419,7 +392,7 @@ fn env_get(k: &str, env: &Env) -> Option<Exp> {
     }
 }
 
-fn list_of_symbol_strings(form: Rc<Exp>) -> Result<Vec<String>, Err> {
+fn list_of_symbols(form: Rc<Exp>) -> Result<Vec<String>, Err> {
     let list = match form.as_ref() {
         Exp::List(s) => Ok(s.clone()),
         _ => Err(Err::Reason("Expected args form to be a list".to_string()))
@@ -433,7 +406,7 @@ fn list_of_symbol_strings(form: Rc<Exp>) -> Result<Vec<String>, Err> {
 }
 
 fn env_for_lambda<'a>(params: Rc<Exp>, arg_forms: &[Exp], outer_env: &'a mut Env) -> Result<Env<'a>, Err> {
-    let ks = list_of_symbol_strings(params)?;
+    let ks = list_of_symbols(params)?;
     if ks.len() != arg_forms.len() {
         return Err(Err::Reason(format!("Expected {} arguments, got {}", ks.len(), arg_forms.len())));
     }
@@ -454,7 +427,7 @@ fn eval_forms(arg_forms: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
 
 fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
     match exp {
-        Exp::Sym(k) => env_get(k, env).ok_or(Err::Reason(format!("Unexpected symbol k='{}'", k))),
+        Exp::Sym(k) => env_get(k, env).ok_or(Err::Reason(format!("Unexpected symbol '{}'", k))),
         Exp::Bool(_) => Ok(exp.clone()),
         Exp::Num(_) => Ok(exp.clone()),
         Exp::Str(_) => Ok(exp.clone()),
@@ -676,4 +649,7 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
+
+    // string
+    assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
 }
