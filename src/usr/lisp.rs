@@ -197,6 +197,12 @@ fn default_env<'a>() -> Env<'a> {
         let lines = s.lines().map(|line| Exp::Str(line.to_string())).collect();
         Ok(Exp::List(lines))
     }));
+    data.insert("parse".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let arg = first(args)?;
+        let s = string(&arg)?;
+        let n = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
+        Ok(Exp::Num(n))
+    }));
 
     Env { data, outer: None }
 }
