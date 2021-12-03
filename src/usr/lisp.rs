@@ -551,6 +551,10 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let line_color = Style::color("Yellow");
+    let error_color = Style::color("LightRed");
+    let reset = Style::reset();
+
     let env = &mut default_env();
     match args.len() {
         1 => {
@@ -562,7 +566,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let mut block = String::new();
                 let mut opened = 0;
                 let mut closed = 0;
-                for line in code.split('\n') {
+                for (i, line) in code.split('\n').enumerate() {
                     let line = strip_comments(line);
                     if !line.is_empty() {
                         opened += line.matches('(').count();
@@ -572,7 +576,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             if let Err(e) = parse_eval(&block, env) {
                                 match e {
                                     Err::Reason(msg) => {
-                                        eprintln!("{}", msg);
+                                        eprintln!("{}Error:{} {}", error_color, reset, msg);
+                                        eprintln!();
+                                        eprintln!("  {}{}:{} {}", line_color, i, reset, line);
                                         return usr::shell::ExitCode::CommandError;
                                     }
                                 }
