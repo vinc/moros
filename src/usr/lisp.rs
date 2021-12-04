@@ -161,7 +161,7 @@ macro_rules! ensure_tonicity {
     };
 }
 
-macro_rules! ensure_len {
+macro_rules! ensure_length {
     ($list:expr, $count:expr) => {
         if $list.len() != $count {
             let plural = if $count != 1 { "s" } else { "" };
@@ -344,7 +344,7 @@ fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_label_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    ensure_len!(args, 2);
+    ensure_length!(args, 2);
     let id = match first(args)? {
         Exp::Sym(s) => Ok(s.clone()),
         _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
@@ -355,7 +355,7 @@ fn eval_label_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_len!(args, 2);
+    ensure_length!(args, 2);
     let params = first(args)?;
     let body = second(args)?;
     Ok(Exp::Lambda(Lambda {
@@ -365,7 +365,7 @@ fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
 }
 
 fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    ensure_len!(args, 3);
+    ensure_length!(args, 3);
     let name = first(args)?;
     let params = second(args)?;
     let exp = third(args)?;
@@ -402,7 +402,7 @@ fn eval_map_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    ensure_len!(args, 1);
+    ensure_length!(args, 1);
     match eval(&first(args)?, env) {
         Ok(Exp::Str(s)) => {
             println!("{}", s);
