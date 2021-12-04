@@ -374,6 +374,33 @@ fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     eval_label_args(&label_args, env)
 }
 
+fn eval_map_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    ensure_length!(args, 2);
+    let sym = match eval(&first(args)?, env) {
+        Ok(Exp::Sym(k)) => env_get(&k, env),
+        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string())),
+    }?;
+    match eval(&second(args)?, env) {
+        Ok(Exp::List(list)) => {
+            Ok(Exp::List(list.iter().map(|exp| {
+                match &sym {
+                    Exp::Func(func) => {
+                        func(&eval_forms(&vec![exp.clone()], env)?)
+                    }
+                    Exp::Lambda(lambda) => {
+                        let lambda = lambda.clone();
+                        let env = &mut env_for_lambda(lambda.params, &vec![exp.clone()], env)?;
+                        eval(&lambda.body, env)
+                    }
+                    _ => Err(Err::Reason("Expected first argument to be a symbol of function or lambda".to_string())),
+                }
+            }).collect::<Result<Vec<Exp>, Err>>()?))
+        }
+        _ => Err(Err::Reason("Expected second argument to be a list".to_string())),
+    }
+
+}
+
 fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     ensure_len!(args, 1);
     match eval(&first(args)?, env) {
@@ -409,6 +436,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
                 "lambda" | "fn"  => Some(eval_lambda_args(args)),
 
                 "defun" | "defn" => Some(eval_defun_args(args, env)),
+                "map"            => Some(eval_map_args(args, env)),
                 "print"          => Some(eval_print_args(args, env)),
                 _                => None,
             }
@@ -417,13 +445,13 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
     }
 }
 
-fn env_get(k: &str, env: &Env) -> Option<Exp> {
+fn env_get(k: &str, env: &Env) -> Result<Exp, Err> {
     match env.data.get(k) {
-        Some(exp) => Some(exp.clone()),
+        Some(exp) => Ok(exp.clone()),
         None => {
             match &env.outer {
                 Some(outer_env) => env_get(k, outer_env),
-                None => None
+                None => Err(Err::Reason(format!("Unexpected symbol '{}'", k))),
             }
         }
     }
@@ -465,7 +493,7 @@ fn eval_forms(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
 
 fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
     match exp {
-        Exp::Sym(k) => env_get(k, env).ok_or(Err::Reason(format!("Unexpected symbol '{}'", k))),
+        Exp::Sym(k) => env_get(k, env),
         Exp::Bool(_) => Ok(exp.clone()),
         Exp::Num(_) => Ok(exp.clone()),
         Exp::Str(_) => Ok(exp.clone()),
@@ -481,8 +509,8 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
                             func(&eval_forms(args, env)?)
                         },
                         Exp::Lambda(lambda) => {
-                            let new_env = &mut env_for_lambda(lambda.params, args, env)?;
-                            eval(&lambda.body, new_env)
+                            let env = &mut env_for_lambda(lambda.params, args, env)?;
+                            eval(&lambda.body, env)
                         },
                         _ => Err(Err::Reason("First form must be a function".to_string())),
                     }
@@ -698,4 +726,9 @@ fn test_lisp() {
     assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
     assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
+
+    // map
+    eval!("(defun inc (a) (+ a 1))");
+    assert_eq!(eval!("(map 'inc '(1 2))"), "(2 3)");
+    assert_eq!(eval!("(map 'parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
 }
