@@ -72,8 +72,8 @@ impl fmt::Display for Exp {
 
 #[derive(Clone)]
 struct Lambda {
-    params_exp: Rc<Exp>,
-    body_exp: Rc<Exp>,
+    params: Rc<Exp>,
+    body: Rc<Exp>,
 }
 
 #[derive(Debug)]
@@ -210,14 +210,21 @@ fn default_env<'a>() -> Env<'a> {
 fn first(exps: &[Exp]) -> Result<Exp, Err> {
     match exps.get(0) {
         Some(exp) => Ok(exp.clone()),
-        None => Err(Err::Reason("Expected an expression".to_string()))
+        None => Err(Err::Reason("Expected first expression".to_string()))
     }
 }
 
 fn second(exps: &[Exp]) -> Result<Exp, Err> {
     match exps.get(1) {
         Some(exp) => Ok(exp.clone()),
-        None => Err(Err::Reason("Expected an expression".to_string()))
+        None => Err(Err::Reason("Expected second expression".to_string()))
+    }
+}
+
+fn third(exps: &[Exp]) -> Result<Exp, Err> {
+    match exps.get(2) {
+        Some(exp) => Ok(exp.clone()),
+        None => Err(Err::Reason("Expected third expression".to_string()))
     }
 }
 
@@ -273,8 +280,10 @@ fn eval_eq_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     match eval(&first(args)?, env)? {
         Exp::List(list) => {
-            let exp = list.first().ok_or(Err::Reason("List cannot be empty".to_string()))?; // TODO: return nil?
-            Ok(exp.clone())
+            if list.is_empty() {
+                return Err(Err::Reason("List cannot be empty".to_string())) // TODO: return nil?
+            }
+            Ok(list[0].clone())
         },
         _ => Err(Err::Reason("Expected list form".to_string())),
     }
@@ -326,36 +335,34 @@ fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_label_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = args.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_str = match first_form {
-        Exp::Sym(s) => Ok(s.clone()),
-        _ => Err(Err::Reason("Expected first form to be a symbol".to_string()))
-    }?;
-    let second_form = args.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
     if args.len() > 2 {
-        return Err(Err::Reason("Label can only have two forms".to_string()))
+        return Err(Err::Reason("Too many arguments".to_string()))
     } 
-    let second_eval = eval(second_form, env)?;
-    env.data.insert(first_str, second_eval);
-    Ok(first_form.clone())
+    let id = match first(args)? {
+        Exp::Sym(s) => Ok(s.clone()),
+        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+    }?;
+    let exp = eval(&second(args)?, env)?;
+    env.data.insert(id.clone(), exp);
+    Ok(Exp::Sym(id))
 }
 
 fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
-    let params_exp = args.first().ok_or(Err::Reason("Expected args form".to_string()))?;
-    let body_exp = args.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
     if args.len() > 2 {
-        return Err(Err::Reason("Lambda definition can only have two forms".to_string()))
+        return Err(Err::Reason("Too many arguments".to_string()))
     }
+    let params = first(args)?;
+    let body = second(args)?;
     Ok(Exp::Lambda(Lambda {
-        body_exp: Rc::new(body_exp.clone()),
-        params_exp: Rc::new(params_exp.clone()),
+        body: Rc::new(body.clone()),
+        params: Rc::new(params.clone()),
     }))
 }
 
 fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let name = args.get(0).ok_or(Err::Reason("Expected first form".to_string()))?.clone();
-    let params = args.get(1).ok_or(Err::Reason("Expected second form".to_string()))?.clone();
-    let exp = args.get(2).ok_or(Err::Reason("Expected third form".to_string()))?.clone();
+    let name = first(args)?;
+    let params = second(args)?;
+    let exp = third(args)?;
     let lambda_args = vec![Exp::Sym("lambda".to_string()), params, exp];
     let label_args = vec![name, Exp::List(lambda_args)];
     eval_label_args(&label_args, env)
@@ -363,7 +370,7 @@ fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 
 fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     if args.len() > 1 {
-        return Err(Err::Reason("Print can only have one form".to_string()))
+        return Err(Err::Reason("Too many arguments".to_string()))
     }
     match eval(&first(args)?, env) {
         Ok(Exp::Str(s)) => {
@@ -470,8 +477,8 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
                             func(&eval_forms(args, env)?)
                         },
                         Exp::Lambda(lambda) => {
-                            let new_env = &mut env_for_lambda(lambda.params_exp, args, env)?;
-                            eval(&lambda.body_exp, new_env)
+                            let new_env = &mut env_for_lambda(lambda.params, args, env)?;
+                            eval(&lambda.body, new_env)
                         },
                         _ => Err(Err::Reason("First form must be a function".to_string())),
                     }
