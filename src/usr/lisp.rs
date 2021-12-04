@@ -1,4 +1,5 @@
 use crate::{api, usr};
+use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
 use alloc::string::ToString;
@@ -9,14 +10,30 @@ use alloc::vec;
 use alloc::collections::BTreeMap;
 use alloc::rc::Rc;
 use core::fmt;
-use core::num::ParseFloatError;
 use float_cmp::approx_eq;
 
-// Adapted from Risp
+use nom::IResult;
+use nom::combinator::value;
+use nom::bytes::complete::escaped_transform;
+use nom::branch::alt;
+use nom::character::complete::char;
+use nom::character::complete::multispace0;
+use nom::bytes::complete::tag;
+use nom::bytes::complete::take_while1;
+use nom::bytes::complete::is_not;
+use nom::sequence::preceded;
+use nom::multi::many0;
+use nom::number::complete::double;
+use nom::sequence::delimited;
+
+// Eval & Env adapted from Risp
 // Copyright 2019 Stepan Parunashvili
 // https://github.com/stopachka/risp
 //
-// See "Recursive Functions of Symbolic Expressions and Their Computation by Machine" by John McCarthy (1960)
+// Parser rewritten from scratch using Nom
+// https://github.com/geal/nom
+//
+// See "Recursive Functions of Symic Expressions and Their Computation by Machine" by John McCarthy (1960)
 // And "The Roots of Lisp" by Paul Graham (2002)
 //
 // MOROS Lisp is also inspired by Racket and Clojure
@@ -26,25 +43,21 @@ use float_cmp::approx_eq;
 #[derive(Clone)]
 enum Exp {
     Bool(bool),
-    Symbol(String),
-    Number(f64),
-    List(Vec<Exp>),
     Func(fn(&[Exp]) -> Result<Exp, Err>),
     Lambda(Lambda),
-}
-
-#[derive(Clone)]
-struct Lambda {
-    params_exp: Rc<Exp>,
-    body_exp: Rc<Exp>,
+    List(Vec<Exp>),
+    Num(f64),
+    Str(String),
+    Sym(String),
 }
 
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let str = match self {
+            Exp::Str(s) => format!("\"{}\"", s),
             Exp::Bool(a) => a.to_string(),
-            Exp::Symbol(s) => s.clone(),
-            Exp::Number(n) => n.to_string(),
+            Exp::Sym(s) => s.clone(),
+            Exp::Num(n) => n.to_string(),
             Exp::List(list) => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
@@ -55,6 +68,12 @@ impl fmt::Display for Exp {
 
         write!(f, "{}", str)
     }
+}
+
+#[derive(Clone)]
+struct Lambda {
+    params: Rc<Exp>,
+    body: Rc<Exp>,
 }
 
 #[derive(Debug)]
@@ -68,62 +87,58 @@ struct Env<'a> {
     outer: Option<&'a Env<'a>>,
 }
 
-// Parse
+// Parser
 
-fn tokenize(expr: &str) -> Vec<String> {
-    expr.replace("(", " ( ")
-        .replace(")", " ) ")
-        .replace("'", " ' ")
-        .split_whitespace().map(|x| x.to_string()).collect()
+fn is_symbol_letter(c: char) -> bool {
+    let chars = "<>=-+*?:/";
+    c.is_alphanumeric() || chars.contains(c)
 }
 
-fn parse(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
-    let (token, rest) = tokens.split_first().ok_or(Err::Reason("Could not get token".to_string()))?;
-    match &token[..] {
-        "'" => parse_quoted(rest),
-        "(" => read_seq(rest),
-        ")" => Err(Err::Reason("Unexpected `)`".to_string())),
-        _ => Ok((parse_atom(token), rest)),
-    }
+fn parse_str(input: &str) -> IResult<&str, Exp> {
+    let escaped = escaped_transform(is_not("\\\""), '\\', alt((
+        value("\\", tag("\\")),
+        value("\"", tag("\"")),
+        value("\n", tag("n")),
+    )));
+    let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
+    Ok((input, Exp::Str(s.to_string())))
 }
 
-fn read_seq(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
-    let mut res: Vec<Exp> = vec![];
-    let mut xs = tokens;
-    loop {
-        let (next_token, rest) = xs.split_first().ok_or(Err::Reason("Could not find closing `)`".to_string()))?;
-        if next_token == ")" {
-            return Ok((Exp::List(res), rest)) // skip `)`, head to the token after
-        }
-        let (exp, new_xs) = parse(xs)?;
-        res.push(exp);
-        xs = new_xs;
-    }
+fn parse_sym(input: &str) -> IResult<&str, Exp> {
+    let (input, sym) = take_while1(is_symbol_letter)(input)?;
+    Ok((input, Exp::Sym(sym.to_string())))
 }
 
-fn parse_quoted(tokens: &[String]) -> Result<(Exp, &[String]), Err> {
-    let xs = tokens;
-    let (next_token, _) = xs.split_first().ok_or(Err::Reason("Could not parse quote".to_string()))?;
-    let (exp, rest) = if next_token == "(" {
-        read_seq(&tokens[1..])? // Skip "("
+fn parse_num(input: &str) -> IResult<&str, Exp> {
+    let (input, num) = double(input)?;
+    Ok((input, Exp::Num(num)))
+}
+
+fn parse_bool(input: &str) -> IResult<&str, Exp> {
+    let (input, s) = alt((tag("true"), tag("false")))(input)?;
+    Ok((input, Exp::Bool(s == "true")))
+}
+
+fn parse_list(input: &str) -> IResult<&str, Exp> {
+    let (input, list) = delimited(char('('), many0(parse_exp), char(')'))(input)?;
+    Ok((input, Exp::List(list)))
+}
+
+fn parse_quote(input: &str) -> IResult<&str, Exp> {
+    let (input, list) = preceded(char('\''), parse_exp)(input)?;
+    let list = vec![Exp::Sym("quote".to_string()), list];
+    Ok((input, Exp::List(list)))
+}
+
+fn parse_exp(input: &str) -> IResult<&str, Exp> {
+    delimited(multispace0, alt((parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_sym)), multispace0)(input)
+}
+
+fn parse(input: &str)-> Result<(String, Exp), Err> {
+    if let Ok((input, exp)) = parse_exp(input) {
+        Ok((input.to_string(), exp))
     } else {
-        parse(tokens)?
-    };
-    let list = vec![Exp::Symbol("quote".to_string()), exp];
-    Ok((Exp::List(list), rest))
-}
-
-fn parse_atom(token: &str) -> Exp {
-    match token {
-        "true" => Exp::Bool(true),
-        "false" => Exp::Bool(false),
-        _ => {
-            let potential_float: Result<f64, ParseFloatError> = token.parse();
-            match potential_float {
-                Ok(v) => Exp::Number(v),
-                Err(_) => Exp::Symbol(token.to_string())
-            }
-        }
+        Err(Err::Reason("Could not parse input".to_string()))
     }
 }
 
@@ -132,7 +147,7 @@ fn parse_atom(token: &str) -> Exp {
 macro_rules! ensure_tonicity {
     ($check_fn:expr) => {
         |args: &[Exp]| -> Result<Exp, Err> {
-            let floats = parse_list_of_floats(args)?;
+            let floats = list_of_floats(args)?;
             let first = floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
             let rest = &floats[1..];
             fn func(prev: &f64, xs: &[f64]) -> bool {
@@ -146,96 +161,123 @@ macro_rules! ensure_tonicity {
     };
 }
 
+macro_rules! ensure_len {
+    ($list:expr, $count:expr) => {
+        if $list.len() != $count {
+            let plural = if $count != 1 { "s" } else { "" };
+            return Err(Err::Reason(format!("Expected {} expression{}", $count, plural)))
+        }
+    };
+}
+
 fn default_env<'a>() -> Env<'a> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
-    data.insert(
-        "*".to_string(),
-        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-            let res = parse_list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
-            Ok(Exp::Number(res))
-        })
-    );
-    data.insert(
-        "+".to_string(), 
-        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-            let res = parse_list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
-            Ok(Exp::Number(res))
-        })
-    );
-    data.insert(
-        "-".to_string(), 
-        Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-            let floats = parse_list_of_floats(args)?;
-            let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
-            let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
-            Ok(Exp::Number(first - sum_of_rest))
-        })
-    );
-    data.insert(
-        "=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b)))
-    );
-    data.insert(
-        ">".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b))
-    );
-    data.insert(
-        ">=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b))
-    );
-    data.insert(
-        "<".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b))
-    );
-    data.insert(
-        "<=".to_string(), 
-        Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b))
-    );
+
+    data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
+    data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
+    data.insert(">=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
+    data.insert("<".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
+    data.insert("<=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
+
+    data.insert("*".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let res = list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
+        Ok(Exp::Num(res))
+    }));
+    data.insert("+".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let res = list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
+        Ok(Exp::Num(res))
+    }));
+    data.insert("-".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let floats = list_of_floats(args)?;
+        let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
+        let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
+        Ok(Exp::Num(first - sum_of_rest))
+    }));
+
+    data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let arg = first(args)?;
+        let path = string(&arg)?;
+        let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
+        Ok(Exp::Str(contents))
+    }));
+    data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let arg = first(args)?;
+        let s = string(&arg)?;
+        let lines = s.lines().map(|line| Exp::Str(line.to_string())).collect();
+        Ok(Exp::List(lines))
+    }));
+    data.insert("parse".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let arg = first(args)?;
+        let s = string(&arg)?;
+        let n = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
+        Ok(Exp::Num(n))
+    }));
 
     Env { data, outer: None }
 }
 
-fn parse_list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
-    args.iter().map(|x| parse_single_float(x)).collect()
+fn first(exps: &[Exp]) -> Result<Exp, Err> {
+    match exps.get(0) {
+        Some(exp) => Ok(exp.clone()),
+        None => Err(Err::Reason("Expected first expression".to_string()))
+    }
 }
 
-fn parse_single_float(exp: &Exp) -> Result<f64, Err> {
+fn second(exps: &[Exp]) -> Result<Exp, Err> {
+    match exps.get(1) {
+        Some(exp) => Ok(exp.clone()),
+        None => Err(Err::Reason("Expected second expression".to_string()))
+    }
+}
+
+fn third(exps: &[Exp]) -> Result<Exp, Err> {
+    match exps.get(2) {
+        Some(exp) => Ok(exp.clone()),
+        None => Err(Err::Reason("Expected third expression".to_string()))
+    }
+}
+
+fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
+    args.iter().map(|x| float(x)).collect()
+}
+
+fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
-        Exp::Number(num) => Ok(*num),
+        Exp::Num(num) => Ok(*num),
         _ => Err(Err::Reason("Expected a number".to_string())),
+    }
+}
+
+fn string(exp: &Exp) -> Result<String, Err> {
+    match exp {
+        Exp::Str(s) => Ok(s.to_string()),
+        _ => Err(Err::Reason("Expected a string".to_string())),
     }
 }
 
 // Eval
 
-fn eval_quote_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    Ok(first_form.clone())
+fn eval_quote_args(args: &[Exp]) -> Result<Exp, Err> {
+    first(args)
 }
 
-fn eval_atom_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    match first_eval {
-        Exp::Symbol(_) => Ok(Exp::Bool(true)),
-        _              => Ok(Exp::Bool(false)),
+fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
+        Exp::Sym(_) => Ok(Exp::Bool(true)),
+        _           => Ok(Exp::Bool(false)),
     }
 }
 
-fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
-    let second_eval = eval(second_form, env)?;
-    match first_eval {
-        Exp::Symbol(a) => {
-            match second_eval {
-                Exp::Symbol(b) => Ok(Exp::Bool(a == b)),
-                _              => Ok(Exp::Bool(false)),
+fn eval_eq_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
+        Exp::Sym(a) => {
+            match eval(&second(args)?, env)? {
+                Exp::Sym(b) => Ok(Exp::Bool(a == b)),
+                _           => Ok(Exp::Bool(false)),
             }
         },
         Exp::List(a) => {
-            match second_eval {
+            match eval(&second(args)?, env)? {
                 Exp::List(b) => Ok(Exp::Bool(a.is_empty() && b.is_empty())),
                 _            => Ok(Exp::Bool(false))
             }
@@ -244,22 +286,20 @@ fn eval_eq_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_car_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    match first_eval {
+fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
         Exp::List(list) => {
-            let exp = list.first().ok_or(Err::Reason("List cannot be empty".to_string()))?; // TODO: return nil?
-            Ok(exp.clone())
+            if list.is_empty() {
+                return Err(Err::Reason("List cannot be empty".to_string())) // TODO: return nil?
+            }
+            Ok(list[0].clone())
         },
         _ => Err(Err::Reason("Expected list form".to_string())),
     }
 }
 
-fn eval_cdr_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    match first_eval {
+fn eval_cdr_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&first(args)?, env)? {
         Exp::List(list) => {
             if list.is_empty() {
                 return Err(Err::Reason("List cannot be empty".to_string())) // TODO: return nil?
@@ -270,26 +310,22 @@ fn eval_cdr_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cons_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_eval = eval(first_form, env)?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
-    let second_eval = eval(second_form, env)?;
-    match second_eval {
+fn eval_cons_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    match eval(&second(args)?, env)? {
         Exp::List(mut list) => {
-            list.insert(0, first_eval);
+            list.insert(0, eval(&first(args)?, env)?);
             Ok(Exp::List(list.to_vec()))
         },
         _ => Err(Err::Reason("Expected list form".to_string())),
     }
 }
 
-fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    if arg_forms.is_empty() {
+fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    if args.is_empty() {
         return Err(Err::Reason("Expected at least one form".to_string()))
     }
-    for arg_form in arg_forms {
-        match arg_form {
+    for arg in args {
+        match arg {
             Exp::List(list) => {
                 if list.len() != 2 {
                     return Err(Err::Reason("Expected lists of predicate and expression".to_string()))
@@ -297,11 +333,7 @@ fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
                 let pred = eval(&list[0], env)?;
                 let exp = eval(&list[1], env)?;
                 match pred {
-                    Exp::Bool(b) => {
-                        if b {
-                            return Ok(exp);
-                        }
-                    },
+                    Exp::Bool(b) if b => return Ok(exp),
                     _ => continue,
                 }
             },
@@ -311,77 +343,73 @@ fn eval_cond_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     Ok(Exp::List(Vec::new()))
 }
 
-fn eval_label_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    let first_str = match first_form {
-        Exp::Symbol(s) => Ok(s.clone()),
-        _ => Err(Err::Reason("Expected first form to be a symbol".to_string()))
+fn eval_label_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    ensure_len!(args, 2);
+    let id = match first(args)? {
+        Exp::Sym(s) => Ok(s.clone()),
+        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
     }?;
-    let second_form = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
-    if arg_forms.len() > 2 {
-        return Err(Err::Reason("Label can only have two forms".to_string()))
-    } 
-    let second_eval = eval(second_form, env)?;
-    env.data.insert(first_str, second_eval);
-    Ok(first_form.clone())
+    let exp = eval(&second(args)?, env)?;
+    env.data.insert(id.clone(), exp);
+    Ok(Exp::Sym(id))
 }
 
-fn eval_lambda_args(arg_forms: &[Exp]) -> Result<Exp, Err> {
-    let params_exp = arg_forms.first().ok_or(Err::Reason("Expected args form".to_string()))?;
-    let body_exp = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?;
-    if arg_forms.len() > 2 {
-        return Err(Err::Reason("Lambda definition can only have two forms".to_string()))
-    }
+fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_len!(args, 2);
+    let params = first(args)?;
+    let body = second(args)?;
     Ok(Exp::Lambda(Lambda {
-        body_exp: Rc::new(body_exp.clone()),
-        params_exp: Rc::new(params_exp.clone()),
+        body: Rc::new(body.clone()),
+        params: Rc::new(params.clone()),
     }))
 }
 
-fn eval_defun_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let name = arg_forms.get(0).ok_or(Err::Reason("Expected first form".to_string()))?.clone();
-    let params = arg_forms.get(1).ok_or(Err::Reason("Expected second form".to_string()))?.clone();
-    let exp = arg_forms.get(2).ok_or(Err::Reason("Expected third form".to_string()))?.clone();
-    let lambda_args = vec![Exp::Symbol("lambda".to_string()), params, exp];
+fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    ensure_len!(args, 3);
+    let name = first(args)?;
+    let params = second(args)?;
+    let exp = third(args)?;
+    let lambda_args = vec![Exp::Sym("lambda".to_string()), params, exp];
     let label_args = vec![name, Exp::List(lambda_args)];
     eval_label_args(&label_args, env)
 }
 
-fn eval_print_args(arg_forms: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    let first_form = arg_forms.first().ok_or(Err::Reason("Expected first form".to_string()))?;
-    if arg_forms.len() > 1 {
-        return Err(Err::Reason("Print can only have one form".to_string()))
-    }
-    match eval(first_form, env) {
+fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    ensure_len!(args, 1);
+    match eval(&first(args)?, env) {
+        Ok(Exp::Str(s)) => {
+            println!("{}", s);
+            Ok(Exp::Str(s))
+        },
         Ok(res) => {
             println!("{}", res);
             Ok(res)
         },
         Err(res) => {
             Err(res)
-        },
+        }
     }
 }
 
-fn eval_built_in_form(exp: &Exp, arg_forms: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {
+fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {
     match exp {
-        Exp::Symbol(s) => {
+        Exp::Sym(s) => {
             match s.as_ref() {
                 // Seven Primitive Operators
-                "quote"          => Some(eval_quote_args(arg_forms)),
-                "atom" | "atom?" => Some(eval_atom_args(arg_forms, env)),
-                "eq" | "eq?"     => Some(eval_eq_args(arg_forms, env)),
-                "car" | "first"  => Some(eval_car_args(arg_forms, env)),
-                "cdr" | "rest"   => Some(eval_cdr_args(arg_forms, env)),
-                "cons"           => Some(eval_cons_args(arg_forms, env)),
-                "cond"           => Some(eval_cond_args(arg_forms, env)),
+                "quote"          => Some(eval_quote_args(args)),
+                "atom" | "atom?" => Some(eval_atom_args(args, env)),
+                "eq" | "eq?"     => Some(eval_eq_args(args, env)),
+                "car" | "first"  => Some(eval_car_args(args, env)),
+                "cdr" | "rest"   => Some(eval_cdr_args(args, env)),
+                "cons"           => Some(eval_cons_args(args, env)),
+                "cond"           => Some(eval_cond_args(args, env)),
 
                 // Two Special Forms
-                "label" | "def"  => Some(eval_label_args(arg_forms, env)),
-                "lambda" | "fn"  => Some(eval_lambda_args(arg_forms)),
+                "label" | "def"  => Some(eval_label_args(args, env)),
+                "lambda" | "fn"  => Some(eval_lambda_args(args)),
 
-                "defun" | "defn" => Some(eval_defun_args(arg_forms, env)),
-                "print"          => Some(eval_print_args(arg_forms, env)),
+                "defun" | "defn" => Some(eval_defun_args(args, env)),
+                "print"          => Some(eval_print_args(args, env)),
                 _                => None,
             }
         },
@@ -401,25 +429,26 @@ fn env_get(k: &str, env: &Env) -> Option<Exp> {
     }
 }
 
-fn parse_list_of_symbol_strings(form: Rc<Exp>) -> Result<Vec<String>, Err> {
+fn list_of_symbols(form: Rc<Exp>) -> Result<Vec<String>, Err> {
     let list = match form.as_ref() {
         Exp::List(s) => Ok(s.clone()),
         _ => Err(Err::Reason("Expected args form to be a list".to_string()))
     }?;
     list.iter().map(|x| {
         match x {
-            Exp::Symbol(s) => Ok(s.clone()),
+            Exp::Sym(s) => Ok(s.clone()),
             _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
         }   
     }).collect()
 }
 
-fn env_for_lambda<'a>(params: Rc<Exp>, arg_forms: &[Exp], outer_env: &'a mut Env) -> Result<Env<'a>, Err> {
-    let ks = parse_list_of_symbol_strings(params)?;
-    if ks.len() != arg_forms.len() {
-        return Err(Err::Reason(format!("Expected {} arguments, got {}", ks.len(), arg_forms.len())));
+fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer_env: &'a mut Env) -> Result<Env<'a>, Err> {
+    let ks = list_of_symbols(params)?;
+    if ks.len() != args.len() {
+        let plural = if ks.len() == 1 { "" } else { "s" };
+        return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
     }
-    let vs = eval_forms(arg_forms, outer_env)?;
+    let vs = eval_forms(args, outer_env)?;
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
@@ -430,29 +459,30 @@ fn env_for_lambda<'a>(params: Rc<Exp>, arg_forms: &[Exp], outer_env: &'a mut Env
     })
 }
 
-fn eval_forms(arg_forms: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
-    arg_forms.iter().map(|x| eval(x, env)).collect()
+fn eval_forms(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
+    args.iter().map(|x| eval(x, env)).collect()
 }
 
 fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
     match exp {
-        Exp::Symbol(k) => env_get(k, env).ok_or(Err::Reason(format!("Unexpected symbol k='{}'", k))),
-        Exp::Bool(_a) => Ok(exp.clone()),
-        Exp::Number(_a) => Ok(exp.clone()),
+        Exp::Sym(k) => env_get(k, env).ok_or(Err::Reason(format!("Unexpected symbol '{}'", k))),
+        Exp::Bool(_) => Ok(exp.clone()),
+        Exp::Num(_) => Ok(exp.clone()),
+        Exp::Str(_) => Ok(exp.clone()),
         Exp::List(list) => {
             let first_form = list.first().ok_or(Err::Reason("Expected a non-empty list".to_string()))?;
-            let arg_forms = &list[1..];
-            match eval_built_in_form(first_form, arg_forms, env) {
+            let args = &list[1..];
+            match eval_built_in_form(first_form, args, env) {
                 Some(res) => res,
                 None => {
                     let first_eval = eval(first_form, env)?;
                     match first_eval {
                         Exp::Func(func) => {
-                            func(&eval_forms(arg_forms, env)?)
+                            func(&eval_forms(args, env)?)
                         },
                         Exp::Lambda(lambda) => {
-                            let new_env = &mut env_for_lambda(lambda.params_exp, arg_forms, env)?;
-                            eval(&lambda.body_exp, new_env)
+                            let new_env = &mut env_for_lambda(lambda.params, args, env)?;
+                            eval(&lambda.body, new_env)
                         },
                         _ => Err(Err::Reason("First form must be a function".to_string())),
                     }
@@ -466,10 +496,10 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
 
 // REPL
 
-fn parse_eval(expr: &str, env: &mut Env) -> Result<Exp, Err> {
-    let (parsed_exp, _) = parse(&tokenize(expr))?;
-    let evaled_exp = eval(&parsed_exp, env)?;
-    Ok(evaled_exp)
+fn parse_eval(exp: &str, env: &mut Env) -> Result<Exp, Err> {
+    let (_, exp) = parse(exp)?;
+    let exp = eval(&exp, env)?;
+    Ok(exp)
 }
 
 fn strip_comments(s: &str) -> String {
@@ -497,12 +527,12 @@ fn lisp_completer(line: &str) -> Vec<String> {
 }
 
 fn repl(env: &mut Env) -> usr::shell::ExitCode {
-    println!("MOROS Lisp v0.1.0\n");
-
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
+
+    println!("MOROS Lisp v0.2.0\n");
 
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
@@ -532,6 +562,10 @@ fn repl(env: &mut Env) -> usr::shell::ExitCode {
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let line_color = Style::color("Yellow");
+    let error_color = Style::color("LightRed");
+    let reset = Style::reset();
+
     let env = &mut default_env();
     match args.len() {
         1 => {
@@ -543,18 +577,19 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let mut block = String::new();
                 let mut opened = 0;
                 let mut closed = 0;
-                for line in code.split('\n') {
+                for (i, line) in code.split('\n').enumerate() {
                     let line = strip_comments(line);
                     if !line.is_empty() {
                         opened += line.matches('(').count();
                         closed += line.matches(')').count();
                         block.push_str(&line);
                         if closed >= opened {
-                            //println!("eval: '{}'", block);
                             if let Err(e) = parse_eval(&block, env) {
                                 match e {
                                     Err::Reason(msg) => {
-                                        eprintln!("{}", msg);
+                                        eprintln!("{}Error:{} {}", error_color, reset, msg);
+                                        eprintln!();
+                                        eprintln!("  {}{}:{} {}", line_color, i, reset, line);
                                         return usr::shell::ExitCode::CommandError;
                                     }
                                 }
@@ -658,4 +693,9 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
+
+    // string
+    assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
+    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(parse \"9.75\")"), "9.75");
 }
