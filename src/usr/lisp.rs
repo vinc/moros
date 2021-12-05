@@ -376,14 +376,16 @@ fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 
 fn eval_map_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     ensure_length!(args, 2);
-    let sym = match eval(&first(args)?, env) {
+    let f = match eval(&first(args)?, env) {
         Ok(Exp::Sym(k)) => env_get(&k, env),
+        Ok(Exp::Lambda(l)) => Ok(Exp::Lambda(l)),
+        Ok(Exp::Func(f)) => Ok(Exp::Func(f)),
         _ => Err(Err::Reason("Expected first argument to be a symbol".to_string())),
     }?;
     match eval(&second(args)?, env) {
         Ok(Exp::List(list)) => {
             Ok(Exp::List(list.iter().map(|exp| {
-                match &sym {
+                match &f {
                     Exp::Func(func) => {
                         func(&eval_forms(&vec![exp.clone()], env)?)
                     }
@@ -732,4 +734,5 @@ fn test_lisp() {
     eval!("(defun inc (a) (+ a 1))");
     assert_eq!(eval!("(map 'inc '(1 2))"), "(2 3)");
     assert_eq!(eval!("(map 'parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
+    assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
 }
