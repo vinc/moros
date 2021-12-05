@@ -398,8 +398,9 @@ fn eval_map_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
         }
         _ => Err(Err::Reason("Expected second argument to be a list".to_string())),
     }
-
 }
+
+// TODO: Add filter
 
 fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     ensure_length!(args, 1);
