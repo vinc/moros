@@ -374,7 +374,7 @@ fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     eval_label_args(&label_args, env)
 }
 
-fn eval_map_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     ensure_length!(args, 2);
     let f = match eval(&first(args)?, env) {
         Ok(Exp::Sym(k)) => env_get(&k, env),
@@ -439,7 +439,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
                 "lambda" | "fn"  => Some(eval_lambda_args(args)),
 
                 "defun" | "defn" => Some(eval_defun_args(args, env)),
-                "map"            => Some(eval_map_args(args, env)),
+                "mapcar" | "map" => Some(eval_mapcar_args(args, env)),
                 "print"          => Some(eval_print_args(args, env)),
                 _                => None,
             }
