@@ -458,6 +458,13 @@ fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
+fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let arg = first(args)?;
+    let path = string(&arg)?;
+    let code = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
+    parse_eval(&code, env)
+}
+
 fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {
     match exp {
         Exp::Sym(s) => {
@@ -478,6 +485,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
                 "defun" | "defn" => Some(eval_defun_args(args, env)),
                 "mapcar" | "map" => Some(eval_mapcar_args(args, env)),
                 "print"          => Some(eval_print_args(args, env)),
+                "load"           => Some(eval_load_args(args, env)),
                 _                => None,
             }
         },
