@@ -54,7 +54,7 @@ enum Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let str = match self {
-            Exp::Str(s) => format!("\"{}\"", s),
+            Exp::Str(s) => format!("\"{}\"", s.replace('"', "\\\"")),
             Exp::Bool(a) => a.to_string(),
             Exp::Sym(s) => s.clone(),
             Exp::Num(n) => n.to_string(),
