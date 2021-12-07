@@ -294,8 +294,8 @@ fn eval_quote_args(args: &[Exp]) -> Result<Exp, Err> {
 
 fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     match eval(&first(args)?, env)? {
-        Exp::Sym(_) => Ok(Exp::Bool(true)),
-        _           => Ok(Exp::Bool(false)),
+        Exp::List(_) => Ok(Exp::Bool(false)),
+        _            => Ok(Exp::Bool(true)),
     }
 }
 
@@ -702,7 +702,7 @@ fn test_lisp() {
     // atom
     assert_eq!(eval!("(atom (quote a))"), "true");
     assert_eq!(eval!("(atom (quote (1 2 3)))"), "false");
-    assert_eq!(eval!("(atom 1)"), "false");
+    assert_eq!(eval!("(atom 1)"), "true");
 
     // eq
     assert_eq!(eval!("(eq (quote a) (quote a))"), "true");
