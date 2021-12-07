@@ -230,6 +230,19 @@ fn default_env<'a>() -> Env<'a> {
         let n = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
         Ok(Exp::Num(n))
     }));
+    data.insert("type".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let arg = first(args)?;
+        let res = match arg {
+            Exp::Str(_) => "string",
+            Exp::Bool(_) => "boolean",
+            Exp::Sym(_) => "symbol",
+            Exp::Num(_) => "number",
+            Exp::List(_) => "list",
+            Exp::Func(_) => "function",
+            Exp::Lambda(_) => "lambda",
+        };
+        Ok(Exp::Str(res.to_string()))
+    }));
 
     Env { data, outer: None }
 }
