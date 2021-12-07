@@ -461,8 +461,16 @@ fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let arg = first(args)?;
     let path = string(&arg)?;
-    let code = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
-    parse_eval(&code, env)
+    let mut code = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
+    loop {
+        let (rest, exp) = parse(&code)?;
+        eval(&exp, env)?;
+        if rest.is_empty() {
+            break;
+        }
+        code = rest;
+    }
+    return Ok(Exp::Bool(true));
 }
 
 fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {
