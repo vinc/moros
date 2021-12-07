@@ -301,6 +301,12 @@ fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 
 fn eval_eq_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     match eval(&first(args)?, env)? {
+        Exp::Str(a) => {
+            match eval(&second(args)?, env)? {
+                Exp::Str(b) => Ok(Exp::Bool(a == b)),
+                _           => Ok(Exp::Bool(false)),
+            }
+        },
         Exp::Sym(a) => {
             match eval(&second(args)?, env)? {
                 Exp::Sym(b) => Ok(Exp::Bool(a == b)),
@@ -703,6 +709,9 @@ fn test_lisp() {
     assert_eq!(eval!("(eq (quote a) (quote b))"), "false");
     assert_eq!(eval!("(eq (quote a) (quote ()))"), "false");
     assert_eq!(eval!("(eq (quote ()) (quote ()))"), "true");
+    assert_eq!(eval!("(eq \"a\" \"a\")"), "true");
+    assert_eq!(eval!("(eq \"a\" \"b\")"), "false");
+    assert_eq!(eval!("(eq \"a\" 'b)"), "false");
 
     // car
     assert_eq!(eval!("(car (quote (1)))"), "1");
