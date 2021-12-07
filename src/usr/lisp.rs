@@ -90,7 +90,7 @@ struct Env<'a> {
 // Parser
 
 fn is_symbol_letter(c: char) -> bool {
-    let chars = "<>=-+*?:/";
+    let chars = "<>=-+*/%^?:";
     c.is_alphanumeric() || chars.contains(c)
 }
 
@@ -180,18 +180,36 @@ fn default_env<'a>() -> Env<'a> {
     data.insert("<=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
 
     data.insert("*".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_floats(args)?.iter().fold(1.0, |res, a| res * a);
+        let res = list_of_floats(args)?.iter().fold(1.0, |acc, a| acc * a);
         Ok(Exp::Num(res))
     }));
     data.insert("+".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_floats(args)?.iter().fold(0.0, |res, a| res + a);
+        let res = list_of_floats(args)?.iter().fold(0.0, |acc, a| acc + a);
         Ok(Exp::Num(res))
     }));
     data.insert("-".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let floats = list_of_floats(args)?;
-        let first = *floats.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
-        let sum_of_rest = floats[1..].iter().fold(0.0, |sum, a| sum + a);
-        Ok(Exp::Num(first - sum_of_rest))
+        let args = list_of_floats(args)?;
+        let car = *args.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
+        let cdr = args[1..].iter().fold(0.0, |acc, a| acc + a);
+        Ok(Exp::Num(car - cdr))
+    }));
+    data.insert("/".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let args = list_of_floats(args)?;
+        let first = *args.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
+        let res = args[1..].iter().fold(first, |acc, a| acc / a);
+        Ok(Exp::Num(res))
+    }));
+    data.insert("%".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let args = list_of_floats(args)?;
+        let first = *args.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
+        let res = args[1..].iter().fold(first, |acc, a| libm::fmod(acc, *a));
+        Ok(Exp::Num(res))
+    }));
+    data.insert("^".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let args = list_of_floats(args)?;
+        let first = *args.first().ok_or(Err::Reason("Expected at least one number".to_string()))?;
+        let res = args[1..].iter().fold(first, |acc, a| libm::pow(acc, *a));
+        Ok(Exp::Num(res))
     }));
 
     data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
@@ -713,10 +731,28 @@ fn test_lisp() {
     assert_eq!(eval!("(+ 2 3 4)"), "9");
     assert_eq!(eval!("(+ 2 (+ 3 4))"), "9");
 
+    // subtraction
+    assert_eq!(eval!("(- 8 4 2)"), "2");
+    assert_eq!(eval!("(- 2 1)"), "1");
+    assert_eq!(eval!("(- 1 2)"), "-1");
+    assert_eq!(eval!("(- 2 -1)"), "3");
+
     // multiplication
     assert_eq!(eval!("(* 2 2)"), "4");
     assert_eq!(eval!("(* 2 3 4)"), "24");
     assert_eq!(eval!("(* 2 (* 3 4))"), "24");
+
+    // division
+    assert_eq!(eval!("(/ 4 2)"), "2");
+    assert_eq!(eval!("(/ 1 2)"), "0.5");
+    assert_eq!(eval!("(/ 8 4 2)"), "1");
+
+    // exponential
+    assert_eq!(eval!("(^ 2 4)"), "16");
+    assert_eq!(eval!("(^ 2 4 2)"), "256"); // Left to right
+
+    // modulo
+    assert_eq!(eval!("(% 3 2)"), "1");
 
     // comparisons
     assert_eq!(eval!("(< 6 4)"), "false");
