@@ -212,6 +212,18 @@ fn default_env<'a>() -> Env<'a> {
         Ok(Exp::Num(res))
     }));
 
+    data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        match first(args)? {
+            Exp::Str(s) => {
+                println!("{}", s);
+                Ok(Exp::Str(s))
+            },
+            res => {
+                println!("{}", res);
+                Ok(res)
+            }
+        }
+    }));
     data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         let arg = first(args)?;
         let path = string(&arg)?;
@@ -441,23 +453,6 @@ fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 
 // TODO: Add filter
 
-fn eval_print_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    ensure_length!(args, 1);
-    match eval(&first(args)?, env) {
-        Ok(Exp::Str(s)) => {
-            println!("{}", s);
-            Ok(Exp::Str(s))
-        },
-        Ok(res) => {
-            println!("{}", res);
-            Ok(res)
-        },
-        Err(res) => {
-            Err(res)
-        }
-    }
-}
-
 fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let arg = first(args)?;
     let path = string(&arg)?;
@@ -492,7 +487,6 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
 
                 "defun" | "defn" => Some(eval_defun_args(args, env)),
                 "mapcar" | "map" => Some(eval_mapcar_args(args, env)),
-                "print"          => Some(eval_print_args(args, env)),
                 "load"           => Some(eval_load_args(args, env)),
                 _                => None,
             }
