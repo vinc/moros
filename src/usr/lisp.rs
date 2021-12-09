@@ -36,7 +36,8 @@ use nom::sequence::delimited;
 // See "Recursive Functions of Symic Expressions and Their Computation by Machine" by John McCarthy (1960)
 // And "The Roots of Lisp" by Paul Graham (2002)
 //
-// MOROS Lisp is also inspired by Racket and Clojure
+// MOROS Lisp is a lisp-1 like Scheme and Clojure
+// See "Technical Issues of Separation in Function Cells and Value Cells" by Richard P. Gabriel (1982)
 
 // Types
 
@@ -785,4 +786,7 @@ fn test_lisp() {
     assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
     assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
     assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
+
+    eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
+    assert_eq!(eval!("(apply2 + 1 2)"), "3");
 }
