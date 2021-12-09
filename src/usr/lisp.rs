@@ -425,33 +425,15 @@ fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 
 fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     ensure_length!(args, 2);
-    let f = match eval(&first(args)?, env) {
-        Ok(Exp::Sym(k)) => env_get(&k, env),
-        Ok(Exp::Lambda(l)) => Ok(Exp::Lambda(l)),
-        Ok(Exp::Func(f)) => Ok(Exp::Func(f)),
-        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string())),
-    }?;
     match eval(&second(args)?, env) {
         Ok(Exp::List(list)) => {
             Ok(Exp::List(list.iter().map(|exp| {
-                match &f {
-                    Exp::Func(func) => {
-                        func(&eval_forms(&vec![exp.clone()], env)?)
-                    }
-                    Exp::Lambda(lambda) => {
-                        let lambda = lambda.clone();
-                        let env = &mut env_for_lambda(lambda.params, &vec![exp.clone()], env)?;
-                        eval(&lambda.body, env)
-                    }
-                    _ => Err(Err::Reason("Expected first argument to be a symbol of function or lambda".to_string())),
-                }
+                eval(&Exp::List(vec!(first(args)?, exp.clone())), env)
             }).collect::<Result<Vec<Exp>, Err>>()?))
         }
         _ => Err(Err::Reason("Expected second argument to be a list".to_string())),
     }
 }
-
-// TODO: Add filter
 
 fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let arg = first(args)?;
