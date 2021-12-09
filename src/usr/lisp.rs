@@ -782,7 +782,7 @@ fn test_lisp() {
 
     // map
     eval!("(defun inc (a) (+ a 1))");
-    assert_eq!(eval!("(map 'inc '(1 2))"), "(2 3)");
-    assert_eq!(eval!("(map 'parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
+    assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
+    assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
     assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
 }
