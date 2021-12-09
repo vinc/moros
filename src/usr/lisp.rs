@@ -224,7 +224,7 @@ fn default_env<'a>() -> Env<'a> {
             }
         }
     }));
-    data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         let arg = first(args)?;
         let path = string(&arg)?;
         let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
