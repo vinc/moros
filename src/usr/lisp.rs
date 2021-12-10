@@ -691,6 +691,9 @@ fn test_lisp() {
     assert_eq!(eval!("(eq \"a\" \"a\")"), "true");
     assert_eq!(eval!("(eq \"a\" \"b\")"), "false");
     assert_eq!(eval!("(eq \"a\" 'b)"), "false");
+    assert_eq!(eval!("(eq 1 1)"), "true");
+    assert_eq!(eval!("(eq 1 2)"), "false");
+    assert_eq!(eval!("(eq 1 1.0)"), "true");
 
     // car
     assert_eq!(eval!("(car (quote (1)))"), "1");
