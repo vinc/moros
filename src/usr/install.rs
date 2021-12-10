@@ -33,6 +33,7 @@ pub fn copy_files(verbose: bool) {
         }
     }
 
+    copy_file("/ini/lib.lsp", include_bytes!("../../dsk/ini/lib.lsp"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
