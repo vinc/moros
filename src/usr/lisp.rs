@@ -395,13 +395,16 @@ fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 
 fn eval_label_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     ensure_length!(args, 2);
-    let id = match first(args)? {
-        Exp::Sym(s) => Ok(s.clone()),
-        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
-    }?;
-    let exp = eval(&second(args)?, env)?;
-    env.data.insert(id.clone(), exp);
-    Ok(Exp::Sym(id))
+    match first(args)? {
+        Exp::Sym(key) => {
+            let exp = eval(&second(args)?, env)?;
+            env.data.insert(key.clone(), exp);
+            Ok(Exp::Sym(key))
+        }
+        _ => {
+            Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+        }
+    }
 }
 
 fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
@@ -491,33 +494,31 @@ fn env_get(k: &str, env: &Env) -> Result<Exp, Err> {
 }
 
 fn list_of_symbols(form: Rc<Exp>) -> Result<Vec<String>, Err> {
-    let list = match form.as_ref() {
-        Exp::List(s) => Ok(s.clone()),
+    match form.as_ref() {
+        Exp::List(list) => {
+            list.iter().map(|exp| {
+                match exp {
+                    Exp::Sym(sym) => Ok(sym.clone()),
+                    _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
+                }
+            }).collect()
+        }
         _ => Err(Err::Reason("Expected args form to be a list".to_string()))
-    }?;
-    list.iter().map(|x| {
-        match x {
-            Exp::Sym(s) => Ok(s.clone()),
-            _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
-        }   
-    }).collect()
+    }
 }
 
-fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer_env: &'a mut Env) -> Result<Env<'a>, Err> {
+fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer: &'a mut Env) -> Result<Env<'a>, Err> {
     let ks = list_of_symbols(params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
         return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
     }
-    let vs = eval_forms(args, outer_env)?;
+    let vs = eval_forms(args, outer)?;
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
     }
-    Ok(Env {
-        data,
-        outer: Some(outer_env),
-    })
+    Ok(Env { data, outer: Some(outer) })
 }
 
 fn eval_forms(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
@@ -526,7 +527,7 @@ fn eval_forms(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
 
 fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
     match exp {
-        Exp::Sym(k) => env_get(k, env),
+        Exp::Sym(key) => env_get(key, env),
         Exp::Bool(_) => Ok(exp.clone()),
         Exp::Num(_) => Ok(exp.clone()),
         Exp::Str(_) => Ok(exp.clone()),
