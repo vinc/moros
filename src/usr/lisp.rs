@@ -43,10 +43,10 @@ use nom::sequence::delimited;
 
 #[derive(Clone)]
 enum Exp {
-    Bool(bool),
-    Func(fn(&[Exp]) -> Result<Exp, Err>),
     Lambda(Lambda),
+    Func(fn(&[Exp]) -> Result<Exp, Err>),
     List(Vec<Exp>),
+    Bool(bool),
     Num(f64),
     Str(String),
     Sym(String),
@@ -55,12 +55,12 @@ enum Exp {
 impl PartialEq for Exp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Exp::Bool(a),   Exp::Bool(b))   => a == b,
             (Exp::Lambda(a), Exp::Lambda(b)) => a == b,
+            (Exp::List(a),   Exp::List(b))   => a == b,
+            (Exp::Bool(a),   Exp::Bool(b))   => a == b,
             (Exp::Num(a),    Exp::Num(b))    => a == b,
             (Exp::Str(a),    Exp::Str(b))    => a == b,
             (Exp::Sym(a),    Exp::Sym(b))    => a == b,
-            (Exp::List(a),   Exp::List(b))   => a == b,
             _ => false,
         }
     }
@@ -69,18 +69,17 @@ impl PartialEq for Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let str = match self {
-            Exp::Str(s) => format!("\"{}\"", s.replace('"', "\\\"")),
-            Exp::Bool(a) => a.to_string(),
-            Exp::Sym(s) => s.clone(),
-            Exp::Num(n) => n.to_string(),
-            Exp::Func(_) => "Function {}".to_string(),
-            Exp::Lambda(_) => "Lambda {}".to_string(),
+            Exp::Lambda(_)  => "Lambda {}".to_string(),
+            Exp::Func(_)    => "Function {}".to_string(),
+            Exp::Bool(a)    => a.to_string(),
+            Exp::Num(n)     => n.to_string(),
+            Exp::Sym(s)     => s.clone(),
+            Exp::Str(s)     => format!("\"{}\"", s.replace('"', "\\\"")),
             Exp::List(list) => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
             },
         };
-
         write!(f, "{}", str)
     }
 }
@@ -197,13 +196,11 @@ macro_rules! ensure_length_gt {
 
 fn default_env<'a>() -> Env<'a> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
-
     data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
     data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
     data.insert(">=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
     data.insert("<".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
     data.insert("<=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
-
     data.insert("*".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         let res = list_of_floats(args)?.iter().fold(1.0, |acc, a| acc * a);
         Ok(Exp::Num(res))
@@ -240,7 +237,6 @@ fn default_env<'a>() -> Env<'a> {
         let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
         Ok(Exp::Num(res))
     }));
-
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match args[0].clone() {
@@ -285,8 +281,21 @@ fn default_env<'a>() -> Env<'a> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
-
     Env { data, outer: None }
+}
+
+fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
+    match form {
+        Exp::List(list) => {
+            list.iter().map(|exp| {
+                match exp {
+                    Exp::Sym(sym) => Ok(sym.clone()),
+                    _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
+                }
+            }).collect()
+        }
+        _ => Err(Err::Reason("Expected args form to be a list".to_string()))
+    }
 }
 
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
@@ -477,27 +486,13 @@ fn env_get(key: &str, env: &Env) -> Result<Exp, Err> {
     }
 }
 
-fn list_of_symbols(form: Rc<Exp>) -> Result<Vec<String>, Err> {
-    match form.as_ref() {
-        Exp::List(list) => {
-            list.iter().map(|exp| {
-                match exp {
-                    Exp::Sym(sym) => Ok(sym.clone()),
-                    _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
-                }
-            }).collect()
-        }
-        _ => Err(Err::Reason("Expected args form to be a list".to_string()))
-    }
-}
-
 fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer: &'a mut Env) -> Result<Env<'a>, Err> {
-    let ks = list_of_symbols(params)?;
+    let ks = list_of_symbols(&params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
         return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
     }
-    let vs = eval_forms(args, outer)?;
+    let vs = eval_args(args, outer)?;
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
@@ -505,7 +500,7 @@ fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer: &'a mut Env) -> Resu
     Ok(Env { data, outer: Some(outer) })
 }
 
-fn eval_forms(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
+fn eval_args(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
     args.iter().map(|x| eval(x, env)).collect()
 }
 
@@ -525,7 +520,7 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
                     let first_eval = eval(first_form, env)?;
                     match first_eval {
                         Exp::Func(func) => {
-                            func(&eval_forms(args, env)?)
+                            func(&eval_args(args, env)?)
                         },
                         Exp::Lambda(lambda) => {
                             let env = &mut env_for_lambda(lambda.params, args, env)?;
