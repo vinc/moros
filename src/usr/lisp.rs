@@ -52,6 +52,20 @@ enum Exp {
     Sym(String),
 }
 
+impl PartialEq for Exp {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Exp::Bool(a),   Exp::Bool(b))   => a == b,
+            (Exp::Lambda(a), Exp::Lambda(b)) => a == b,
+            (Exp::Num(a),    Exp::Num(b))    => a == b,
+            (Exp::Str(a),    Exp::Str(b))    => a == b,
+            (Exp::Sym(a),    Exp::Sym(b))    => a == b,
+            (Exp::List(a),   Exp::List(b))   => a == b,
+            _ => false,
+        }
+    }
+}
+
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let str = match self {
@@ -59,19 +73,19 @@ impl fmt::Display for Exp {
             Exp::Bool(a) => a.to_string(),
             Exp::Sym(s) => s.clone(),
             Exp::Num(n) => n.to_string(),
+            Exp::Func(_) => "Function {}".to_string(),
+            Exp::Lambda(_) => "Lambda {}".to_string(),
             Exp::List(list) => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
             },
-            Exp::Func(_) => "Function {}".to_string(),
-            Exp::Lambda(_) => "Lambda {}".to_string(),
         };
 
         write!(f, "{}", str)
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 struct Lambda {
     params: Rc<Exp>,
     body: Rc<Exp>,
@@ -313,27 +327,10 @@ fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 }
 
 fn eval_eq_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
-    match eval(&first(args)?, env)? {
-        Exp::Str(a) => {
-            match eval(&second(args)?, env)? {
-                Exp::Str(b) => Ok(Exp::Bool(a == b)),
-                _           => Ok(Exp::Bool(false)),
-            }
-        },
-        Exp::Sym(a) => {
-            match eval(&second(args)?, env)? {
-                Exp::Sym(b) => Ok(Exp::Bool(a == b)),
-                _           => Ok(Exp::Bool(false)),
-            }
-        },
-        Exp::List(a) => {
-            match eval(&second(args)?, env)? {
-                Exp::List(b) => Ok(Exp::Bool(a.is_empty() && b.is_empty())),
-                _            => Ok(Exp::Bool(false))
-            }
-        },
-        _ => Ok(Exp::Bool(false))
-    }
+    ensure_length!(args, 2);
+    let a = eval(&args[0], env)?;
+    let b = eval(&args[1], env)?;
+    Ok(Exp::Bool(a == b))
 }
 
 fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
