@@ -444,10 +444,10 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
             match s.as_ref() {
                 // Seven Primitive Operators
                 "quote"          => Some(eval_quote_args(args)),
-                "atom" | "atom?" => Some(eval_atom_args(args, env)),
-                "eq" | "eq?"     => Some(eval_eq_args(args, env)),
-                "car" | "first"  => Some(eval_car_args(args, env)),
-                "cdr" | "rest"   => Some(eval_cdr_args(args, env)),
+                "atom"           => Some(eval_atom_args(args, env)),
+                "eq"             => Some(eval_eq_args(args, env)),
+                "car"            => Some(eval_car_args(args, env)),
+                "cdr"            => Some(eval_cdr_args(args, env)),
                 "cons"           => Some(eval_cons_args(args, env)),
                 "cond"           => Some(eval_cond_args(args, env)),
 
