@@ -33,11 +33,13 @@ pub fn copy_files(verbose: bool) {
         }
     }
 
-    copy_file("/ini/lisp/core.lsp", include_bytes!("../../dsk/ini/lisp/core.lsp"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
     copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"), verbose);
+
+    create_dir("/ini/lisp", verbose);
+    copy_file("/ini/lisp/core.lsp", include_bytes!("../../dsk/ini/lisp/core.lsp"), verbose);
 
     create_dir("/ini/fonts", verbose);
     copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
