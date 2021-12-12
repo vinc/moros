@@ -122,7 +122,7 @@ impl Message {
 }
 
 pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
-    let dns_address = IpAddress::v4(192, 168, 1, 3);
+    let dns_address = IpAddress::v4(8, 8, 8, 8);
     let dns_port = 53;
     let server = IpEndpoint::new(dns_address, dns_port);
 
