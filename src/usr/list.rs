@@ -1,8 +1,8 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
+use crate::api::time;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use time::OffsetDateTime;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut path: &str = &sys::process::dir();
@@ -59,7 +59,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let csi_reset = Style::reset();
 
         for file in files {
-            let date = OffsetDateTime::from_unix_timestamp(file.time() as i64);
+            let date = time::from_timestamp(file.time() as i64);
             let color = if file.is_dir() {
                 csi_dir_color
             } else if file.is_device() {
