@@ -1,0 +1,21 @@
+--- src/api/vga/color.rs
++++ src/api/vga/color.rs
+@@ -71,7 +71,7 @@ pub fn from_ansi(code: u8) -> Color {
+ }
+ 
+ impl Color {
+-    pub fn to_palette_code(&self) -> u8 {
++    pub fn to_vga_reg(&self) -> u8 {
+         match self {
+             Color::Black      => 0x00,
+             Color::Blue       => 0x01,
+@@ -79,8 +79,8 @@ impl Color {
+             Color::Cyan       => 0x03,
+             Color::Red        => 0x04,
+             Color::Magenta    => 0x05,
+-            Color::LightGray  => 0x07,
+             Color::Brown      => 0x14,
++            Color::LightGray  => 0x07,
+             Color::DarkGray   => 0x38,
+             Color::LightBlue  => 0x39,
+             Color::LightGreen => 0x3A,
