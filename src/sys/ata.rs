@@ -114,18 +114,6 @@ impl Bus {
         unsafe { self.data_register.write(data) }
     }
 
-    fn busy_loop(&mut self) {
-        self.wait();
-        let start = sys::clock::uptime();
-        while self.is_busy() {
-            if sys::clock::uptime() - start > 1.0 { // Hanged
-                return self.reset();
-            }
-
-            spin_loop();
-        }
-    }
-
     fn is_busy(&mut self) -> bool {
         self.status().get_bit(Status::BSY as usize)
     }
@@ -135,24 +123,45 @@ impl Bus {
     }
 
     fn is_ready(&mut self) -> bool {
-        self.status().get_bit(Status::RDY as usize)
+        self.status().get_bit(Status::DRQ as usize)
+    }
+
+    fn busy_loop(&mut self) -> Result<(), ()> {
+        let start = sys::clock::uptime();
+        while self.is_busy() {
+            if sys::clock::uptime() - start > 1.0 {
+                //debug!("ATA: busy loop hanged");
+                return Err(());
+            }
+            spin_loop();
+        }
+        Ok(())
+    }
+
+    fn ready_loop(&mut self) -> Result<(), ()> {
+        let start = sys::clock::uptime();
+        while self.is_ready() {
+            if sys::clock::uptime() - start > 1.0 {
+                //debug!("ATA: ready loop hanged");
+                self.debug();
+                return Err(());
+            }
+            spin_loop();
+        }
+        Ok(())
     }
 
     fn select_drive(&mut self, drive: u8) {
         // Drive #0 (primary) = 0xA0
         // Drive #1 (secondary) = 0xB0
-        let drive_id = 0xA0 | (drive << 4);
-        unsafe {
-            self.drive_register.write(drive_id);
-        }
+        unsafe { self.drive_register.write(0xA0 | (drive << 4)) }
     }
 
     #[allow(dead_code)]
     fn debug(&mut self) {
-        self.wait();
         unsafe {
-            printk!("drive register: 0b{:08b}\n", self.drive_register.read());
-            printk!("status:         0b{:08b}\n", self.status_register.read());
+            printk!("drive:  0b{:08b}\n", self.drive_register.read());
+            printk!("status: 0b{:08b}\n", self.status_register.read());
         }
     }
 
@@ -168,48 +177,39 @@ impl Bus {
     }
 
     pub fn identify_drive(&mut self, drive: u8) -> Option<[u16; 256]> {
+        //debug!("ATA: identify /dev/ata/{}/{}", self.id, drive);
         self.reset();
-        self.wait();
+        if self.busy_loop().is_err() || self.is_error() || self.ready_loop().is_err() {
+            //debug!("ATA: identify error: drive not found");
+            return None;
+        }
         self.select_drive(drive);
-        self.wait();
         unsafe {
             self.sector_count_register.write(0);
             self.lba0_register.write(0);
             self.lba1_register.write(0);
             self.lba2_register.write(0);
         }
-
         self.write_command(Command::Identify);
-        self.wait();
-
-        if self.status() == 0 {
+        if self.busy_loop().is_err() {
+            //debug!("ATA: identify error: hanged after command");
             return None;
         }
 
-        self.busy_loop();
+        if !self.is_ready() {
+            //debug!("ATA: identify error: command error");
+            return None;
+        }
 
         if self.lba1() != 0 || self.lba2() != 0 {
             return None;
-        }
-
-        for i in 0.. {
-            if i == 25 { // Waited 10ms (400ns * 25)
-                self.reset();
-                return None;
-            }
-            if self.is_error() {
-                return None;
-            }
-            if self.is_ready() {
-                break;
-            }
-            self.wait();
         }
 
         let mut res = [0; 256];
         for i in 0..256 {
             res[i] = self.read_data();
         }
+
         Some(res)
     }
 
@@ -217,7 +217,7 @@ impl Bus {
         assert!(buf.len() == BLOCK_SIZE);
         self.setup(drive, block);
         self.write_command(Command::Read);
-        self.busy_loop();
+        self.busy_loop().ok();
         for i in 0..256 {
             let data = self.read_data();
             buf[i * 2] = data.get_bits(0..8) as u8;
@@ -229,14 +229,14 @@ impl Bus {
         assert!(buf.len() == BLOCK_SIZE);
         self.setup(drive, block);
         self.write_command(Command::Write);
-        self.busy_loop();
+        self.busy_loop().ok();
         for i in 0..256 {
             let mut data = 0 as u16;
             data.set_bits(0..8, buf[i * 2] as u16);
             data.set_bits(8..16, buf[i * 2 + 1] as u16);
             self.write_data(data);
         }
-        self.busy_loop();
+        self.busy_loop().ok();
     }
 }
 
