@@ -2,6 +2,7 @@ use crate::sys;
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
+use core::convert::TryInto;
 use core::fmt;
 use core::hint::spin_loop;
 use lazy_static::lazy_static;
@@ -267,23 +268,11 @@ pub struct Drive {
 impl Drive {
     pub fn identify(bus: u8, dsk: u8) -> Option<Self> {
         let mut buses = BUSES.lock();
-        if let Some(buf) = buses[bus as usize].identify_drive(dsk) {
-            let mut serial = String::new();
-            for i in 10..20 {
-                for &b in &buf[i].to_be_bytes() {
-                    serial.push(b as char);
-                }
-            }
-            serial = serial.trim().into();
-            let mut model = String::new();
-            for i in 27..47 {
-                for &b in &buf[i].to_be_bytes() {
-                    model.push(b as char);
-                }
-            }
-            model = model.trim().into();
-            // Total number of 28-bit LBA addressable blocks
-            let blocks = (buf[61] as u32) << 16 | (buf[60] as u32);
+        if let Some(res) = buses[bus as usize].identify_drive(dsk) {
+            let buf = res.map(u16::to_be_bytes).concat();
+            let serial = String::from_utf8_lossy(&buf[20..40]).trim().into();
+            let model = String::from_utf8_lossy(&buf[54..94]).trim().into();
+            let blocks = u32::from_be_bytes(buf[120..124].try_into().unwrap()).rotate_left(16);
             Some(Self { bus, dsk, model, serial, blocks })
         } else {
             None
