@@ -287,8 +287,10 @@ impl Drive {
         self.blocks
     }
 
-    fn humanized_size(&self) -> (u32, String) {
-        let bytes = self.block_size() * self.block_count();
+    fn humanized_size(&self) -> (usize, String) {
+        let size = self.block_size() as usize;
+        let count = self.block_count() as usize;
+        let bytes = size * count;
         if bytes >> 20 < 1000 {
             (bytes >> 20, String::from("MB"))
         } else {
