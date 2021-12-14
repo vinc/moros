@@ -95,7 +95,7 @@ impl Bus {
     }
 
     fn status(&mut self) -> u8 {
-        unsafe { self.status_register.read() }
+        unsafe { self.alternate_status_register.read() }
     }
 
     fn lba1(&mut self) -> u8 {
