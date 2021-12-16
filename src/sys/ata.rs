@@ -12,6 +12,7 @@ use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 pub const BLOCK_SIZE: usize = 512;
 
 #[repr(u16)]
+#[derive(Debug, Clone, Copy)]
 enum Command {
     Read = 0x20,
     Write = 0x30,
@@ -20,15 +21,16 @@ enum Command {
 
 #[allow(dead_code)]
 #[repr(usize)]
+#[derive(Debug, Clone, Copy)]
 enum Status {
-    ERR = 0,
-    IDX = 1,
-    CORR = 2,
-    DRQ = 3,
-    SRV = 4,
-    DF = 5,
-    RDY = 6,
-    BSY = 7,
+    ERR  = 0, // Error
+    IDX  = 1, // (obsolete)
+    CORR = 2, // (obsolete)
+    DRQ  = 3, // Data Request
+    DSC  = 4, // (command dependant)
+    DF   = 5, // (command dependant)
+    DRDY = 6, // Device Ready
+    BSY  = 7, // Busy
 }
 
 #[allow(dead_code)]
@@ -75,23 +77,23 @@ impl Bus {
         }
     }
 
-    fn reset(&mut self) {
-        unsafe {
-            self.control_register.write(4); // Set SRST bit
-            sys::time::nanowait(5); // Wait at least 5 us
-            self.control_register.write(0); // Then clear it
-            sys::time::nanowait(2000); // Wait at least 2 ms
+    fn check_floating_bus(&mut self) -> Result<(), ()> {
+        match self.status() {
+            0xFF | 0x7F => { // Floating bus
+                Err(())
+            }
+            _ => {
+                Ok(())
+            }
         }
     }
 
-    fn wait(&mut self) {
-        sys::time::nanowait(400); // Wait at least 400 us
+    fn wait(&mut self, ns: u64) {
+        sys::time::nanowait(ns);
     }
 
-    fn write_command(&mut self, cmd: Command) {
-        unsafe {
-            self.command_register.write(cmd as u8);
-        }
+    fn clear_interrupt(&mut self) -> u8 {
+        unsafe { self.status_register.read() }
     }
 
     fn status(&mut self) -> u8 {
@@ -114,35 +116,15 @@ impl Bus {
         unsafe { self.data_register.write(data) }
     }
 
-    fn is_busy(&mut self) -> bool {
-        self.status().get_bit(Status::BSY as usize)
-    }
-
     fn is_error(&mut self) -> bool {
         self.status().get_bit(Status::ERR as usize)
     }
 
-    fn is_ready(&mut self) -> bool {
-        self.status().get_bit(Status::DRQ as usize)
-    }
-
-    fn busy_loop(&mut self) -> Result<(), ()> {
+    fn poll(&mut self, bit: Status, val: bool) -> Result<(), ()> {
         let start = sys::clock::uptime();
-        while self.is_busy() {
+        while self.status().get_bit(bit as usize) != val {
             if sys::clock::uptime() - start > 1.0 {
-                //debug!("ATA: busy loop hanged");
-                return Err(());
-            }
-            spin_loop();
-        }
-        Ok(())
-    }
-
-    fn ready_loop(&mut self) -> Result<(), ()> {
-        let start = sys::clock::uptime();
-        while self.is_ready() {
-            if sys::clock::uptime() - start > 1.0 {
-                //debug!("ATA: ready loop hanged");
+                debug!("ATA: hanged while polling {:?} bit in status register", bit);
                 self.debug();
                 return Err(());
             }
@@ -151,92 +133,153 @@ impl Bus {
         Ok(())
     }
 
-    fn select_drive(&mut self, drive: u8) {
-        // Drive #0 (primary) = 0xA0
-        // Drive #1 (secondary) = 0xB0
-        unsafe { self.drive_register.write(0xA0 | (drive << 4)) }
-    }
-
-    #[allow(dead_code)]
-    fn debug(&mut self) {
+    fn select_drive(&mut self, drive: u8) -> Result<(), ()> {
+        self.poll(Status::BSY, false)?;
+        self.poll(Status::DRQ, false)?;
         unsafe {
-            printk!("drive:  0b{:08b}\n", self.drive_register.read());
-            printk!("status: 0b{:08b}\n", self.status_register.read());
+            // Bit 4 => DEV
+            // Bit 5 => 1
+            // Bit 7 => 1
+            self.drive_register.write(0xA0 | (drive << 4))
         }
+        sys::time::nanowait(400); // Wait at least 400 ns
+        self.poll(Status::BSY, false)?;
+        self.poll(Status::DRQ, false)?;
+        Ok(())
     }
 
-    fn setup(&mut self, drive: u8, block: u32) {
-        let drive_id = 0xE0 | (drive << 4);
+    fn write_command_params(&mut self, drive: u8, block: u32) -> Result<(), ()> {
+        let lba = true;
+        let mut bytes = block.to_le_bytes();
+        bytes[3].set_bit(4, drive > 0);
+        bytes[3].set_bit(5, true);
+        bytes[3].set_bit(6, lba);
+        bytes[3].set_bit(7, true);
         unsafe {
-            self.drive_register.write(drive_id | ((block.get_bits(24..28) as u8) & 0x0F));
             self.sector_count_register.write(1);
-            self.lba0_register.write(block.get_bits(0..8) as u8);
-            self.lba1_register.write(block.get_bits(8..16) as u8);
-            self.lba2_register.write(block.get_bits(16..24) as u8);
+            self.lba0_register.write(bytes[0]);
+            self.lba1_register.write(bytes[1]);
+            self.lba2_register.write(bytes[2]);
+            self.drive_register.write(bytes[3]);
         }
+        Ok(())
     }
 
-    pub fn identify_drive(&mut self, drive: u8) -> Option<[u16; 256]> {
-        //debug!("ATA: identify /dev/ata/{}/{}", self.id, drive);
-        self.reset();
-        if self.busy_loop().is_err() || self.is_error() || self.ready_loop().is_err() {
-            //debug!("ATA: identify error: drive not found");
-            return None;
+    fn write_command(&mut self, cmd: Command) -> Result<(), ()> {
+        unsafe { self.command_register.write(cmd as u8) }
+        self.wait(400); // Wait at least 400 ns
+        self.status(); // Ignore results of first read
+        self.clear_interrupt();
+        if self.status() == 0 { // Drive does not exist
+            return Err(());
         }
-        self.select_drive(drive);
-        unsafe {
-            self.sector_count_register.write(0);
-            self.lba0_register.write(0);
-            self.lba1_register.write(0);
-            self.lba2_register.write(0);
+        if self.is_error() {
+            debug!("ATA: command {:?}: error", cmd);
+            self.debug();
+            return Err(());
         }
-        self.write_command(Command::Identify);
-        if self.busy_loop().is_err() {
-            //debug!("ATA: identify error: hanged after command");
-            return None;
-        }
-
-        if !self.is_ready() {
-            //debug!("ATA: identify error: command error");
-            return None;
-        }
-
-        if self.lba1() != 0 || self.lba2() != 0 {
-            return None;
-        }
-
-        let mut res = [0; 256];
-        for i in 0..256 {
-            res[i] = self.read_data();
-        }
-
-        Some(res)
+        self.poll(Status::BSY, false)?;
+        self.poll(Status::DRQ, true)?;
+        Ok(())
     }
 
-    pub fn read(&mut self, drive: u8, block: u32, buf: &mut [u8]) {
-        assert!(buf.len() == BLOCK_SIZE);
-        self.setup(drive, block);
-        self.write_command(Command::Read);
-        self.busy_loop().ok();
+    fn setup_pio(&mut self, drive: u8, block: u32) -> Result<(), ()> {
+        self.select_drive(drive)?;
+        self.write_command_params(drive, block)?;
+        Ok(())
+    }
+
+    pub fn read(&mut self, drive: u8, block: u32, buf: &mut [u8]) -> Result<(), ()> {
+        debug_assert!(buf.len() == BLOCK_SIZE);
+        self.setup_pio(drive, block)?;
+        self.write_command(Command::Read)?;
         for i in 0..256 {
             let data = self.read_data();
             buf[i * 2] = data.get_bits(0..8) as u8;
             buf[i * 2 + 1] = data.get_bits(8..16) as u8;
         }
+        if self.is_error() {
+            debug!("ATA: read: data error");
+            self.debug();
+            Err(())
+        } else {
+            Ok(())
+        }
     }
 
-    pub fn write(&mut self, drive: u8, block: u32, buf: &[u8]) {
-        assert!(buf.len() == BLOCK_SIZE);
-        self.setup(drive, block);
-        self.write_command(Command::Write);
-        self.busy_loop().ok();
+    pub fn write(&mut self, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {
+        debug_assert!(buf.len() == BLOCK_SIZE);
+        self.setup_pio(drive, block)?;
+        self.write_command(Command::Write)?;
         for i in 0..256 {
             let mut data = 0 as u16;
             data.set_bits(0..8, buf[i * 2] as u16);
             data.set_bits(8..16, buf[i * 2 + 1] as u16);
             self.write_data(data);
         }
-        self.busy_loop().ok();
+        if self.is_error() {
+            debug!("ATA: write: data error");
+            self.debug();
+            Err(())
+        } else {
+            Ok(())
+        }
+    }
+
+    // TODO: Return Result<IdentifyResponse, ()> with the following:
+    // - IdentifyResponse::Ata([u16; 256])
+    // - IdentifyResponse::Atapi
+    // - IdentifyResponse::Sata
+    // - IdentifyResponse::None
+    pub fn identify_drive(&mut self, drive: u8) -> Result<[u16; 256], ()> {
+        if self.check_floating_bus().is_err() {
+            debug!("ATA: identify({}, {}): no drive", self.id, drive);
+            return Err(());
+        }
+        self.select_drive(drive)?;
+        self.write_command_params(drive, 0)?;
+        if self.write_command(Command::Identify).is_err() && self.status() == 0 {
+            debug!("ATA: identify({}, {}): no drive", self.id, drive);
+            return Err(());
+        }
+        match (self.lba1(), self.lba2()) {
+            (0, 0) => {}
+            (0x14, 0xEB) => {
+                debug!("ATA: identify({}, {}): ATAPI drive", self.id, drive);
+                return Err(());
+            }
+            (0x3C, 0x3C) => {
+                debug!("ATA: identify({}, {}): SATA drive", self.id, drive);
+                return Err(());
+            }
+            (lba1, lba2) => {
+                debug!("ATA: identify({}, {}): unknown drive ({:#x}, {:#x})", self.id, drive, lba1, lba2);
+                return Err(());
+            }
+        }
+
+        let mut res = [0; 256];
+        for i in 0..256 {
+            res[i] = self.read_data();
+        }
+        debug!("ATA: identify({}, {}): ATA drive", self.id, drive);
+        Ok(res)
+    }
+
+    fn reset(&mut self) {
+        unsafe {
+            self.control_register.write(4); // Set SRST bit
+            self.wait(5);                   // Wait at least 5 ns
+            self.control_register.write(0); // Then clear it
+            self.wait(2000);                // Wait at least 2 ms
+        }
+    }
+
+    #[allow(dead_code)]
+    fn debug(&mut self) {
+        unsafe {
+            debug!("ATA: status register: 0b{:08b} <BSY|DRDY|DF|DSC|DRQ|CORR|IDX|ERR>", self.alternate_status_register.read());
+        }
     }
 }
 
@@ -268,7 +311,7 @@ pub struct Drive {
 impl Drive {
     pub fn identify(bus: u8, dsk: u8) -> Option<Self> {
         let mut buses = BUSES.lock();
-        if let Some(res) = buses[bus as usize].identify_drive(dsk) {
+        if let Ok(res) = buses[bus as usize].identify_drive(dsk) {
             let buf = res.map(u16::to_be_bytes).concat();
             let serial = String::from_utf8_lossy(&buf[20..40]).trim().into();
             let model = String::from_utf8_lossy(&buf[54..94]).trim().into();
@@ -318,12 +361,12 @@ pub fn list() -> Vec<Drive> {
     res
 }
 
-pub fn read(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) {
+pub fn read(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) -> Result<(), ()> {
     let mut buses = BUSES.lock();
-    buses[bus as usize].read(drive, block, &mut buf);
+    buses[bus as usize].read(drive, block, &mut buf)
 }
 
-pub fn write(bus: u8, drive: u8, block: u32, buf: &[u8]) {
+pub fn write(bus: u8, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {
     let mut buses = BUSES.lock();
-    buses[bus as usize].write(drive, block, buf);
+    buses[bus as usize].write(drive, block, buf)
 }

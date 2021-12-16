@@ -19,7 +19,9 @@ pub struct SuperBlock {
 impl SuperBlock {
     pub fn check_ata(bus: u8, dsk: u8) -> bool {
         let mut buf = [0u8; super::BLOCK_SIZE];
-        sys::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf);
+        if sys::ata::read(bus, dsk, SUPERBLOCK_ADDR, &mut buf).is_err() {
+            return false;
+        }
         &buf[0..8] == SIGNATURE
     }
 
