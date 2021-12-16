@@ -181,8 +181,8 @@ impl Bus {
             return Err(());
         }
         if self.is_error() {
-            debug!("ATA {:?} command errored", cmd);
-            self.debug();
+            //debug!("ATA {:?} command errored", cmd);
+            //self.debug();
             return Err(());
         }
         self.poll(Status::BSY, false)?;
@@ -254,6 +254,7 @@ impl Bus {
         }
     }
 
+    #[allow(dead_code)]
     fn reset(&mut self) {
         unsafe {
             self.control_register.write(4); // Set SRST bit
