@@ -62,7 +62,7 @@ fn format(pathname: &str) -> usr::shell::ExitCode {
 fn erase(pathname: &str) -> usr::shell::ExitCode {
     match parse_disk_path(pathname) {
         Ok((bus, dsk)) => {
-            if let Some(drive) = Drive::identify(bus, dsk) {
+            if let Some(drive) = Drive::open(bus, dsk) {
                 print!("Proceed? [y/N] ");
                 if io::stdin().read_line().trim() == "y" {
                     println!();

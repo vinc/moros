@@ -117,11 +117,9 @@ pub struct AtaBlockDevice {
 
 impl AtaBlockDevice {
     pub fn new(bus: u8, dsk: u8) -> Option<Self> {
-        if let Some(dev) = sys::ata::Drive::identify(bus, dsk) {
-            Some(Self { dev })
-        } else {
-            None
-        }
+        sys::ata::Drive::open(bus, dsk).map(|dev| {
+            Self { dev }
+        })
     }
 
     /*
