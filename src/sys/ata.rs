@@ -233,11 +233,6 @@ impl Bus {
         }
     }
 
-    // TODO: Return Result<IdentifyResponse, ()> with the following:
-    // - IdentifyResponse::Ata([u16; 256])
-    // - IdentifyResponse::Atapi
-    // - IdentifyResponse::Sata
-    // - IdentifyResponse::None
     fn identify_drive(&mut self, drive: u8) -> Result<IdentifyResponse, ()> {
         if self.check_floating_bus().is_err() {
             return Ok(IdentifyResponse::None);
@@ -252,23 +247,10 @@ impl Bus {
             }
         }
         match (self.lba1(), self.lba2()) {
-            (0, 0) => {
-                let mut res = [0; 256];
-                for i in 0..256 {
-                    res[i] = self.read_data();
-                }
-                Ok(IdentifyResponse::Ata(res))
-            }
-            (0x14, 0xEB) => {
-                Ok(IdentifyResponse::Atapi)
-            }
-            (0x3C, 0x3C) => {
-                Ok(IdentifyResponse::Sata)
-            }
-            (lba1, lba2) => {
-                debug!("ATA: identify({}, {}): unknown drive ({:#x}, {:#x})", self.id, drive, lba1, lba2);
-                Err(())
-            }
+            (0x00, 0x00) => Ok(IdentifyResponse::Ata([(); 256].map(|_| { self.read_data() }))),
+            (0x14, 0xEB) => Ok(IdentifyResponse::Atapi),
+            (0x3C, 0x3C) => Ok(IdentifyResponse::Sata),
+            (_, _) => Err(()),
         }
     }
 
