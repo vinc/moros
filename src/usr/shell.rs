@@ -129,6 +129,7 @@ pub fn exec(cmd: &str) -> ExitCode {
 
     // Redirections like `print hello => /tmp/hello`
     // Pipes like `print hello -> write /tmp/hello` or `p hello > w /tmp/hello`
+    let mut is_redirected = false;
     let mut n = args.len();
     let mut i = 0;
     loop {
@@ -161,6 +162,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         }
 
         if is_fat_arrow { // Redirections
+            is_redirected = true;
             if i == n - 1 {
                 println!("Could not parse path for redirection");
                 return ExitCode::CommandError;
@@ -248,8 +250,10 @@ pub fn exec(cmd: &str) -> ExitCode {
     };
 
     // TODO: Remove this when redirections are done in spawned process
-    for i in 0..3 {
-        api::fs::reopen("/dev/console", i).ok();
+    if is_redirected {
+        for i in 0..3 {
+            api::fs::reopen("/dev/console", i).ok();
+        }
     }
 
     return res;
