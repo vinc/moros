@@ -16,9 +16,7 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: nightly
-        default: true
-        override: true
+        profile: minimal
     - run: sudo apt-get -qqy update
     - run: sudo apt-get -qqy install qemu-system-x86
     - run: rustup component add rust-src
