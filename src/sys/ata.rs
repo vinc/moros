@@ -86,12 +86,8 @@ impl Bus {
 
     fn check_floating_bus(&mut self) -> Result<(), ()> {
         match self.status() {
-            0xFF | 0x7F => { // Floating bus
-                Err(())
-            }
-            _ => {
-                Ok(())
-            }
+            0xFF | 0x7F => Err(()),
+            _ => Ok(()),
         }
     }
 
@@ -200,10 +196,9 @@ impl Bus {
         debug_assert!(buf.len() == BLOCK_SIZE);
         self.setup_pio(drive, block)?;
         self.write_command(Command::Read)?;
-        for i in 0..256 {
-            let data = self.read_data();
-            buf[i * 2] = data.get_bits(0..8) as u8;
-            buf[i * 2 + 1] = data.get_bits(8..16) as u8;
+        for chunk in buf.chunks_mut(2) {
+            let data = self.read_data().to_le_bytes();
+            chunk.clone_from_slice(&data);
         }
         if self.is_error() {
             debug!("ATA read: data error");
@@ -218,10 +213,8 @@ impl Bus {
         debug_assert!(buf.len() == BLOCK_SIZE);
         self.setup_pio(drive, block)?;
         self.write_command(Command::Write)?;
-        for i in 0..256 {
-            let mut data = 0 as u16;
-            data.set_bits(0..8, buf[i * 2] as u16);
-            data.set_bits(8..16, buf[i * 2 + 1] as u16);
+        for chunk in buf.chunks(2) {
+            let data = u16::from_le_bytes(chunk.try_into().unwrap());
             self.write_data(data);
         }
         if self.is_error() {
