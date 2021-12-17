@@ -9,6 +9,8 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
+// See "Information Technology - AT Attachment with Packet Interface Extension (ATA/ATAPI-4)" (1998)
+
 pub const BLOCK_SIZE: usize = 512;
 
 #[repr(u16)]
