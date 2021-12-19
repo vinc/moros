@@ -102,7 +102,7 @@ class MorosFuse(Operations):
                 time = int.from_bytes(self.image.read(8), "big")
                 n = int.from_bytes(self.image.read(1), "big")
                 name = self.image.read(n).decode("utf-8")
-                offset += 1 + 4 + 4 + 1 + n
+                offset += 1 + 4 + 4 + 8 + 1 + n
                 if name == d:
                     if len(dirs) == 0:
                         return (kind, addr, size, time, name)
