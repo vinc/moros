@@ -1,3 +1,4 @@
+use crate::sys;
 use crate::sys::fs::FileIO;
 
 #[cfg(not(debug_assertions))]
@@ -42,8 +43,11 @@ pub fn get_u64() -> u64 {
                 }
             }
         }
+    } else {
+        // FIXME: RDRAND instruction is not available on old CPUs
+        seed[0..8].clone_from_slice(&sys::clock::realtime().to_be_bytes());
+        seed[8..16].clone_from_slice(&sys::clock::uptime().to_be_bytes());
     }
-
     let mut chacha = ChaChaRng::from_seed(seed);
     chacha.next_u64()
 }
