@@ -78,7 +78,7 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
             }
         }
     } else if fs::exists(path) {
-        print_matching_lines_in_file(&path, pattern, state);
+        print_matching_lines_in_file(path, pattern, state);
     }
 }
 

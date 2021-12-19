@@ -140,7 +140,7 @@ pub fn ptr_from_addr(addr: u64) -> *mut u8 {
 pub fn registers() -> Registers {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.registers.clone()
+    proc.registers
 }
 
 pub fn set_registers(regs: Registers) {
@@ -248,7 +248,7 @@ impl Process {
 
         let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;
-        if &bin[0..4] == ELF_MAGIC { // ELF binary
+        if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry_point = obj.entry();
                 for segment in obj.segments() {
@@ -276,7 +276,7 @@ impl Process {
         let parent = &table[id()];
 
         let data = parent.data.clone();
-        let registers = parent.registers.clone();
+        let registers = parent.registers;
         let stack_frame = parent.stack_frame.clone();
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);

@@ -148,7 +148,6 @@ impl Chess {
             },
             attr => {
                 println!("{}Error:{} unknown '{}' attribute\n", self.csi_error, self.csi_reset, attr);
-                return;
             }
         }
     }
@@ -218,7 +217,7 @@ impl Chess {
     }
 
     fn cmd_undo(&mut self, _args: Vec<&str>) {
-        if self.game.history.len() > 0 {
+        if !self.game.history.is_empty() {
             if let Some(m) = self.game.history.pop() {
                 self.game.undo_move(m);
             }

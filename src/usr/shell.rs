@@ -255,7 +255,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         }
     }
 
-    return res;
+    res
 }
 
 pub fn run() -> usr::shell::ExitCode {

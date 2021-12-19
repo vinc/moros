@@ -171,7 +171,7 @@ impl Prompt {
             self.line.remove(i);
             let s = &self.line[i..]; // UTF-32
             let n = s.len() + 1;
-            let s: String = s.into_iter().collect(); // UTF-8
+            let s: String = s.iter().collect(); // UTF-8
             print!("{} \x1b[{}D", s, n);
         }
     }
@@ -184,8 +184,8 @@ impl Prompt {
             self.line.remove(i);
             let s = &self.line[i..]; // UTF-32
             let n = s.len() + 1;
-            let s: String = s.into_iter().collect(); // UTF-8
-            print!("{}{} \x1b[{}D", '\x08', s, n);
+            let s: String = s.iter().collect(); // UTF-8
+            print!("\x08{} \x1b[{}D", s, n);
             self.cursor -= 1;
         }
     }
@@ -198,7 +198,7 @@ impl Prompt {
             self.line.insert(i, c);
             let s = &self.line[i..]; // UTF-32
             let n = s.len();
-            let s: String = s.into_iter().collect(); // UTF-8
+            let s: String = s.iter().collect(); // UTF-8
             print!("{} \x1b[{}D", s, n);
             self.cursor += 1;
         }

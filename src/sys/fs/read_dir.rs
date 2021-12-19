@@ -17,7 +17,7 @@ pub struct ReadDir {
 impl From<Dir> for ReadDir {
     fn from(dir: Dir) -> Self {
         Self {
-            dir: dir,
+            dir,
             block: LinkedBlock::read(dir.addr()),
             block_data_offset: 0,
         }

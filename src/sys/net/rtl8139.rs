@@ -321,10 +321,10 @@ const OWN: u32 = 1 << 13; // DMA operation completed
 impl phy::TxToken for TxToken {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> Result<R> where F: FnOnce(&mut [u8]) -> Result<R> {
         let tx_id = self.device.tx_id;
-        let mut buf = &mut self.device.tx_buffers[tx_id][0..len];
+        let buf = &mut self.device.tx_buffers[tx_id][0..len];
 
         // 1. Copy the packet to a physically contiguous buffer in memory.
-        let res = f(&mut buf);
+        let res = f(buf);
 
         // 2. Fill in Start Address(physical address) of this buffer.
         // NOTE: This has was done during init
