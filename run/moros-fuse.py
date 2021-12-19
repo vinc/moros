@@ -60,27 +60,11 @@ class MorosFuse(LoggingMixIn, Operations):
     def readdir(self, path, fh):
         files = [".", ".."]
         (_, next_block_addr, _, _, _) = self.__scan(path)
-        while next_block_addr != 0:
-            self.image.seek(next_block_addr)
-            next_block_addr = int.from_bytes(self.image.read(4), "big")
-            offset = 4
-            while offset < self.block_size:
-                kind = int.from_bytes(self.image.read(1), "big")
-                addr = int.from_bytes(self.image.read(4), "big") * self.block_size
-                if addr == 0:
-                    break
-                size = int.from_bytes(self.image.read(4), "big")
-                time = int.from_bytes(self.image.read(8), "big")
-                n = int.from_bytes(self.image.read(1), "big")
-                name = self.image.read(n).decode("utf-8")
-                offset += 1 + 4 + 4 + 8 + 1 + n
-                files.append(name)
+        for (kind, addr, size, time, name) in self.__read(next_block_addr):
+            files.append(name)
         return files
 
     def __scan(self, path):
-        dirs = path[1:].split("/")
-        d = dirs.pop(0)
-
         bitmap_area = self.image_offset + 2
         bs = 8 * self.block_size
         total = self.block_count // self.block_size
@@ -88,8 +72,18 @@ class MorosFuse(LoggingMixIn, Operations):
         data_area = bitmap_area + rest // bs
 
         next_block_addr = data_area * self.block_size
-        if d == "":
-            return (0, next_block_addr, 0, 0, d)
+        res = (0, next_block_addr, 0, 0, "")
+        for d in path[1:].split("/"):
+            if d == "":
+                return res
+            for (kind, addr, size, time, name) in self.__read(next_block_addr):
+                if name == d:
+                    res = (kind, addr, size, time, name)
+                    next_block_addr = addr
+                    break
+        return res
+
+    def __read(self, next_block_addr):
         while next_block_addr != 0:
             self.image.seek(next_block_addr)
             next_block_addr = int.from_bytes(self.image.read(4), "big")
@@ -103,15 +97,8 @@ class MorosFuse(LoggingMixIn, Operations):
                 time = int.from_bytes(self.image.read(8), "big")
                 n = int.from_bytes(self.image.read(1), "big")
                 name = self.image.read(n).decode("utf-8")
+                yield (kind, addr, size, time, name)
                 offset += 1 + 4 + 4 + 8 + 1 + n
-                if name == d:
-                    if len(dirs) == 0:
-                        return (kind, addr, size, time, name)
-                    else:
-                        next_block_addr = addr
-                        d = dirs.pop(0)
-                    break
-        return (0, 0, 0, 0, "")
 
 if __name__ == '__main__':
     import argparse
