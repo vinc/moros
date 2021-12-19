@@ -41,6 +41,11 @@ fn usage() -> usr::shell::ExitCode {
 
 // TODO: Add max number of attempts
 pub fn login(username: &str) -> usr::shell::ExitCode {
+    if !fs::exists(PASSWORDS) {
+        eprintln!("Could not read '{}'", PASSWORDS);
+        return usr::shell::ExitCode::CommandError;
+    }
+
     if username.is_empty() {
         println!();
         syscall::sleep(1.0);

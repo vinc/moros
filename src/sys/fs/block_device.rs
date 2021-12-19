@@ -19,21 +19,21 @@ pub enum BlockDevice {
 }
 
 pub trait BlockDeviceIO {
-    fn read(&self, addr: u32, buf: &mut [u8]);
-    fn write(&mut self, addr: u32, buf: &[u8]);
+    fn read(&self, addr: u32, buf: &mut [u8]) -> Result<(), ()>;
+    fn write(&mut self, addr: u32, buf: &[u8]) -> Result<(), ()>;
     fn block_size(&self) -> usize;
     fn block_count(&self) -> usize;
 }
 
 impl BlockDeviceIO for BlockDevice {
-    fn read(&self, addr: u32, buf: &mut [u8]) {
+    fn read(&self, addr: u32, buf: &mut [u8]) -> Result<(), ()> {
         match self {
             BlockDevice::Mem(dev) => dev.read(addr, buf),
             BlockDevice::Ata(dev) => dev.read(addr, buf),
         }
     }
 
-    fn write(&mut self, addr: u32, buf: &[u8]) {
+    fn write(&mut self, addr: u32, buf: &[u8]) -> Result<(), ()> {
         match self {
             BlockDevice::Mem(dev) => dev.write(addr, buf),
             BlockDevice::Ata(dev) => dev.write(addr, buf),
@@ -73,12 +73,16 @@ impl MemBlockDevice {
 }
 
 impl BlockDeviceIO for MemBlockDevice {
-    fn read(&self, block_index: u32, buf: &mut [u8]) {
+    fn read(&self, block_index: u32, buf: &mut [u8]) -> Result<(), ()> {
+        // TODO: check for overflow
         buf[..].clone_from_slice(&self.dev[block_index as usize][..]);
+        Ok(())
     }
 
-    fn write(&mut self, block_index: u32, buf: &[u8]) {
+    fn write(&mut self, block_index: u32, buf: &[u8]) -> Result<(), ()> {
+        // TODO: check for overflow
         self.dev[block_index as usize][..].clone_from_slice(&buf[..]);
+        Ok(())
     }
 
     fn block_size(&self) -> usize {
@@ -113,11 +117,9 @@ pub struct AtaBlockDevice {
 
 impl AtaBlockDevice {
     pub fn new(bus: u8, dsk: u8) -> Option<Self> {
-        if let Some(dev) = sys::ata::Drive::identify(bus, dsk) {
-            Some(Self { dev })
-        } else {
-            None
-        }
+        sys::ata::Drive::open(bus, dsk).map(|dev| {
+            Self { dev }
+        })
     }
 
     /*
@@ -128,12 +130,12 @@ impl AtaBlockDevice {
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
-    fn read(&self, block_addr: u32, mut buf: &mut [u8]) {
-        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut buf);
+    fn read(&self, block_addr: u32, mut buf: &mut [u8]) -> Result<(), ()> {
+        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut buf)
     }
 
-    fn write(&mut self, block_addr: u32, buf: &[u8]) {
-        sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf);
+    fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
+        sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)
     }
 
     fn block_size(&self) -> usize {

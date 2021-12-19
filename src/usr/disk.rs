@@ -1,29 +1,24 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
+use crate::api::io;
+use crate::sys::ata::Drive;
+
+use alloc::format;
+use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use alloc::vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
         return usage();
     }
-
     match args[1] {
-        "format" => {
-            if args.len() == 2 {
-                return help();
-            }
-            format(args[2])
-        },
-        "usage" => {
-            usage()
-        },
-        "list" => {
-            list()
-        },
-        _ => {
-            help()
-        }
+        "format" if args.len() == 3 => format(args[2]),
+        "erase" if args.len() == 3 => erase(args[2]),
+        "usage" => usage(),
+        "list" => list(),
+        _ => help(),
     }
 }
 
@@ -32,27 +27,71 @@ fn help() -> usr::shell::ExitCode {
     println!();
     println!("Commands:");
     println!("  format <path>");
+    println!("  erase <path>");
     println!("  list");
     println!("  usage");
-
     usr::shell::ExitCode::CommandSuccessful
 }
 
-fn format(pathname: &str) -> usr::shell::ExitCode {
+fn parse_disk_path(pathname: &str) -> Result<(u8, u8), String> {
     let path: Vec<_> = pathname.split('/').collect();
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
-        eprintln!("Could not find disk at '{}'", pathname);
-        return usr::shell::ExitCode::CommandError;
+        return Err(format!("Could not find disk at '{}'", pathname));
     }
+    let bus = path[3].parse().or(Err("Could not parse <bus>".to_string()))?;
+    let dsk = path[4].parse().or(Err("Could not parse <dsk>".to_string()))?;
+    Ok((bus, dsk))
+}
 
-    let bus = path[3].parse().expect("Could not parse <bus>");
-    let dsk = path[4].parse().expect("Could not parse <dsk>");
-    sys::fs::mount_ata(bus, dsk);
-    sys::fs::format_ata();
-    println!("Disk successfully formatted");
-    println!("MFS is now mounted to '/'");
+fn format(pathname: &str) -> usr::shell::ExitCode {
+    match parse_disk_path(pathname) {
+        Ok((bus, dsk)) => {
+            sys::fs::mount_ata(bus, dsk);
+            sys::fs::format_ata();
+            println!("Disk successfully formatted");
+            println!("MFS is now mounted to '/'");
+            usr::shell::ExitCode::CommandSuccessful
+        }
+        Err(msg) => {
+            eprintln!("{}", msg);
+            usr::shell::ExitCode::CommandError
+        }
+    }
+}
 
-    usr::shell::ExitCode::CommandSuccessful
+fn erase(pathname: &str) -> usr::shell::ExitCode {
+    match parse_disk_path(pathname) {
+        Ok((bus, dsk)) => {
+            if let Some(drive) = Drive::open(bus, dsk) {
+                print!("Proceed? [y/N] ");
+                if io::stdin().read_line().trim() == "y" {
+                    println!();
+
+                    let n = drive.block_count();
+                    let buf = vec![0; drive.block_size() as usize];
+                    print!("\x1b[?25l"); // Disable cursor
+                    for i in 0..n {
+                        if sys::console::end_of_text() {
+                            println!();
+                            print!("\x1b[?25h"); // Enable cursor
+                            return usr::shell::ExitCode::CommandError;
+                        }
+                        print!("\x1b[2K\x1b[1G");
+                        print!("Erasing block {}/{}", i, n);
+                        // TODO: Implement drive.write(block, buf)
+                        sys::ata::write(bus, dsk, i, &buf).ok();
+                    }
+                    println!();
+                    print!("\x1b[?25h"); // Enable cursor
+                }
+            }
+            usr::shell::ExitCode::CommandSuccessful
+        }
+        Err(msg) => {
+            eprintln!("{}", msg);
+            usr::shell::ExitCode::CommandError
+        }
+    }
 }
 
 fn list() -> usr::shell::ExitCode {
