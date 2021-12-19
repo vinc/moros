@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
+import logging
 import os
 from errno import ENOENT
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 from stat import S_IFDIR, S_IFREG
 
-class MorosFuse(Operations):
+class MorosFuse(LoggingMixIn, Operations):
     chmod = None
     chown = None
     create = None
@@ -118,4 +119,5 @@ if __name__ == '__main__':
     parser.add_argument('image')
     parser.add_argument('mount')
     args = parser.parse_args()
+    #logging.basicConfig(level=logging.DEBUG)
     fuse = FUSE(MorosFuse(args.image), args.mount, ro=True, foreground=True, allow_other=True)
