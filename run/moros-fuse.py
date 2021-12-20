@@ -72,10 +72,11 @@ class MorosFuse(LoggingMixIn, Operations):
         data_area = bitmap_area + rest // bs
 
         next_block_addr = data_area * self.block_size
-        res = (0, next_block_addr, 0, 0, "")
+        res = (0, next_block_addr, 0, 0, "") # Root dir
         for d in path[1:].split("/"):
             if d == "":
                 return res
+            res = (0, 0, 0, 0, "") # Not found
             for (kind, addr, size, time, name) in self.__read(next_block_addr):
                 if name == d:
                     res = (kind, addr, size, time, name)
