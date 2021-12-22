@@ -79,9 +79,9 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.9.19"
+version = "0.9.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7c452074efc3c0bfb241fb7bc87df04741c7c85e926f6a07c05f8fbd6008240"
+checksum = "6b0718f186cd449b21f044683933284ed90fb83f3e13949ff0e03b0b6f02e38e"
 
 [[package]]
 name = "byteorder"
