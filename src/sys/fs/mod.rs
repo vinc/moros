@@ -22,6 +22,7 @@ use super_block::SuperBlock;
 
 pub const VERSION: u8 = 1;
 
+#[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum OpenFlag {
     Read   = 1,
@@ -32,8 +33,8 @@ pub enum OpenFlag {
 }
 
 impl OpenFlag {
-    fn is_set(self, flags: usize) -> bool {
-        flags & (self as usize) != 0
+    fn is_set(&self, flags: usize) -> bool {
+        flags & (*self as usize) != 0
     }
 }
 
@@ -44,21 +45,21 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
             Dir::create(path)
         } else {
             res
-        }.map(|r| Resource::Dir(r))
+        }.map(Resource::Dir)
     } else if OpenFlag::Device.is_set(flags) {
         let res = Device::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             Device::create(path)
         } else {
             res
-        }.map(|r| Resource::Device(r))
+        }.map(Resource::Device)
     } else {
         let res = File::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             File::create(path)
         } else {
             res
-        }.map(|r| Resource::File(r))
+        }.map(Resource::File)
     }
 }
 

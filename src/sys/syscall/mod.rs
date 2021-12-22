@@ -41,15 +41,15 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
-            let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
-            service::read(handle, &mut buf) as usize
+            let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            service::read(handle, buf) as usize
         }
         number::WRITE => {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
-            let mut buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
-            service::write(handle, &mut buf) as usize
+            let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            service::write(handle, buf) as usize
         }
         number::CLOSE => {
             let handle = arg1;

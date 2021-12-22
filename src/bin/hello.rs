@@ -13,5 +13,5 @@ fn panic(_info: &PanicInfo) -> ! {
 pub unsafe extern "sysv64" fn _start() -> ! {
     syscall::write(1, b"Hello, World!\n");
     syscall::exit(0);
-    loop {}
+    unreachable!();
 }

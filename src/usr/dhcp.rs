@@ -11,7 +11,6 @@ use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        let mut iface = iface;
         let mut sockets = SocketSet::new(vec![]);
         let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 900]);
         let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 600]);
@@ -44,7 +43,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 }
                 Ok(_) => {}
             }
-            let res = dhcp.poll(&mut iface, &mut sockets, timestamp).unwrap_or_else(|e| {
+            let res = dhcp.poll(iface, &mut sockets, timestamp).unwrap_or_else(|e| {
                 println!("DHCP Error: {:?}", e);
                 None
             });

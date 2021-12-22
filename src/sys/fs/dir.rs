@@ -131,7 +131,7 @@ impl Dir {
         data[(i + 5)..(i + 9)].clone_from_slice(&entry_size.to_be_bytes());
         data[(i + 9)..(i + 17)].clone_from_slice(&entry_time.to_be_bytes());
         data[i + 17] = n as u8;
-        data[(i + 18)..(i + 18 + n)].clone_from_slice(&entry_name.as_bytes());
+        data[(i + 18)..(i + 18 + n)].clone_from_slice(entry_name.as_bytes());
 
         entries.block.write();
 
@@ -185,7 +185,7 @@ impl Dir {
     }
 
     pub fn entries(&self) -> ReadDir {
-        ReadDir::from(self.clone())
+        ReadDir::from(*self)
     }
 
     pub fn delete(pathname: &str) -> Result<(), ()> {

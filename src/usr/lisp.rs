@@ -115,7 +115,7 @@ fn parse_str(input: &str) -> IResult<&str, Exp> {
         value("\n", tag("n")),
     )));
     let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
-    Ok((input, Exp::Str(s.to_string())))
+    Ok((input, Exp::Str(s)))
 }
 
 fn parse_sym(input: &str) -> IResult<&str, Exp> {
@@ -299,7 +299,7 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
 }
 
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
-    args.iter().map(|x| float(x)).collect()
+    args.iter().map(float).collect()
 }
 
 fn float(exp: &Exp) -> Result<f64, Err> {
@@ -444,7 +444,7 @@ fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
         }
         code = rest;
     }
-    return Ok(Exp::Bool(true));
+    Ok(Exp::Bool(true))
 }
 
 fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {

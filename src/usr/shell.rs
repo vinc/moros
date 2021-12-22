@@ -183,7 +183,6 @@ pub fn exec(cmd: &str) -> ExitCode {
 
     let res = match args[0] {
         ""                     => ExitCode::CommandSuccessful,
-        "test"                 => { api::syscall::exit(0); ExitCode::CommandSuccessful },
         "a" | "alias"          => ExitCode::CommandUnknown,
         "b"                    => ExitCode::CommandUnknown,
         "c" | "copy"           => usr::copy::main(&args),
@@ -256,7 +255,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         }
     }
 
-    return res;
+    res
 }
 
 pub fn run() -> usr::shell::ExitCode {

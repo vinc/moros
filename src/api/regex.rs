@@ -81,7 +81,7 @@ impl Regex {
 }
 
 fn is_match(re: &[char], text: &[char], start: &mut usize, end: &mut usize) -> bool {
-    if re.len() == 0 {
+    if re.is_empty() {
         return true;
     }
     if re[0] == '^' {
@@ -104,11 +104,11 @@ fn is_match(re: &[char], text: &[char], start: &mut usize, end: &mut usize) -> b
 }
 
 fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
-    if re.len() == 0 {
+    if re.is_empty() {
         return true;
     }
     if re[0] == '$' {
-        return text.len() == 0;
+        return text.is_empty();
     }
     let (mc, i) = if re.len() > 1 && re[0] == '\\' {
         (MetaChar::from_escaped(re[1]), 1)
@@ -126,7 +126,7 @@ fn is_match_here(re: &[char], text: &[char], end: &mut usize) -> bool {
             _ => {}
         }
     }
-    if text.len() != 0 && mc.contains(text[0]) {
+    if !text.is_empty() && mc.contains(text[0]) {
         *end += 1;
         let j = i + 1;
         return is_match_here(&re[j..], &text[1..], end);

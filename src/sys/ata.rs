@@ -346,9 +346,9 @@ pub fn list() -> Vec<Drive> {
     res
 }
 
-pub fn read(bus: u8, drive: u8, block: u32, mut buf: &mut [u8]) -> Result<(), ()> {
+pub fn read(bus: u8, drive: u8, block: u32, buf: &mut [u8]) -> Result<(), ()> {
     let mut buses = BUSES.lock();
-    buses[bus as usize].read(drive, block, &mut buf)
+    buses[bus as usize].read(drive, block, buf)
 }
 
 pub fn write(bus: u8, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {

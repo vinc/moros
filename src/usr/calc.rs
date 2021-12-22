@@ -92,7 +92,7 @@ fn eval(exp: Exp) -> f64 {
 // REPL
 
 fn parse_eval(line: &str) -> Result<f64, String> {
-    match parse(&line) {
+    match parse(line) {
         Ok((line, parsed)) => {
             if line.is_empty() {
                 Ok(eval(parsed))

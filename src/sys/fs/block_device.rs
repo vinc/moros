@@ -81,7 +81,7 @@ impl BlockDeviceIO for MemBlockDevice {
 
     fn write(&mut self, block_index: u32, buf: &[u8]) -> Result<(), ()> {
         // TODO: check for overflow
-        self.dev[block_index as usize][..].clone_from_slice(&buf[..]);
+        self.dev[block_index as usize][..].clone_from_slice(buf);
         Ok(())
     }
 
@@ -130,8 +130,8 @@ impl AtaBlockDevice {
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
-    fn read(&self, block_addr: u32, mut buf: &mut [u8]) -> Result<(), ()> {
-        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut buf)
+    fn read(&self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
+        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf)
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
@@ -148,7 +148,7 @@ impl BlockDeviceIO for AtaBlockDevice {
 }
 
 pub fn mount_ata(bus: u8, dsk: u8) {
-    *BLOCK_DEVICE.lock() = AtaBlockDevice::new(bus, dsk).map(|dev| BlockDevice::Ata(dev));
+    *BLOCK_DEVICE.lock() = AtaBlockDevice::new(bus, dsk).map(BlockDevice::Ata);
 }
 
 pub fn format_ata() {
