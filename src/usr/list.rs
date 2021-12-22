@@ -7,23 +7,17 @@ use alloc::vec::Vec;
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut path: &str = &sys::process::dir();
     let mut sort = "name";
+    let mut hide_dot_files = true;
 
     let mut i = 1;
     let n = args.len();
     while i < n {
         match args[i] {
-            "--sort" => {
-                if i + 1 < n {
-                    sort = args[i + 1];
-                    i += 1;
-                } else {
-                    eprintln!("Missing sort key");
-                    return usr::shell::ExitCode::CommandError;
-                }
-            },
-            "-t" => sort = "time",
-            "-s" => sort = "size",
-            "-n" => sort = "name",
+            "-h" | "--help" => return help(),
+            "-a" | "--all"  => hide_dot_files = false,
+            "-n" | "--name" => sort = "name",
+            "-s" | "--size" => sort = "size",
+            "-t" | "--time" => sort = "time",
             _ => path = args[i],
         }
         i += 1;
@@ -36,7 +30,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if let Some(dir) = sys::fs::Dir::open(path) {
-        let mut files: Vec<_> = dir.entries().collect();
+        let mut files: Vec<_> = dir.entries().filter(|entry| {
+            !(entry.name().starts_with('.') && hide_dot_files)
+        }).collect();
 
         match sort {
             "name" => files.sort_by_key(|f| f.name()),
@@ -74,4 +70,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         eprintln!("Dir not found '{}'", path);
         usr::shell::ExitCode::CommandError
     }
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} list {}<options>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-a{1},{0} --all{1}     Show dot files", csi_option, csi_reset);
+    println!("  {0}-n{1},{0} --name{1}    Sort by name", csi_option, csi_reset);
+    println!("  {0}-s{1},{0} --size{1}    Sort by size", csi_option, csi_reset);
+    println!("  {0}-t{1},{0} --time{1}    Sort by time", csi_option, csi_reset);
+    usr::shell::ExitCode::CommandSuccessful
 }
