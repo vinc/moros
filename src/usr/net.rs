@@ -1,5 +1,6 @@
 use crate::{sys, usr};
 use crate::api::syscall;
+use crate::api::console::Style;
 //use smoltcp::wire::Ipv4Address;
 use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
@@ -12,6 +13,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         match args[1] {
+            "-h" | "--help" => {
+                return help();
+            }
             "config" => {
                 if args.len() < 4 {
                     eprintln!("Usage: net config <key> <value>");
@@ -20,8 +24,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 match args[2] {
                     "debug" => {
                         iface.device_mut().debug_mode = match args[3] {
-                            "1" | "on" | "enable" => true,
-                            "0" | "off" | "disable" => false,
+                            "1" | "true" => true,
+                            "0" | "false" => false,
                             _ => {
                                 eprintln!("Invalid config value");
                                 return usr::shell::ExitCode::CommandError;
@@ -78,5 +82,17 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
         }
     }
+    usr::shell::ExitCode::CommandSuccessful
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} net {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Commands:{}", csi_title, csi_reset);
+    println!("  {}config{}     List detected disks", csi_option, csi_reset);
+    println!("  {}monitor{}    List disk usage", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }

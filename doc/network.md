@@ -4,7 +4,7 @@
 
 The `net` command allows you to configure your network interface:
 
-    > net config debug on
+    > net config debug true
 
 And listen what is happening on the network:
 
