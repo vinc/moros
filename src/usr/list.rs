@@ -9,9 +9,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut sort = "name";
     let mut hide_dot_files = true;
 
-    let mut i = 1;
     let n = args.len();
-    while i < n {
+    for i in 1..n {
         match args[i] {
             "-h" | "--help" => return help(),
             "-a" | "--all"  => hide_dot_files = false,
@@ -20,7 +19,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             "-t" | "--time" => sort = "time",
             _ => path = args[i],
         }
-        i += 1;
     }
 
     // The commands `list /usr/alice/` and `list /usr/alice` are equivalent,
