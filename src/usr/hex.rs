@@ -2,14 +2,13 @@ use crate::usr;
 use crate::api::fs;
 use crate::api::console::Style;
 
+// TODO: add `--skip` and `--length` params
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
         return usr::shell::ExitCode::CommandError;
     }
-
     let pathname = args[1];
-
-    if let Ok(buf) = fs::read(pathname) {
+    if let Ok(buf) = fs::read(pathname) { // TODO: read chunks
         print_hex(&buf);
         usr::shell::ExitCode::CommandSuccessful
     } else {

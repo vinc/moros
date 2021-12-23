@@ -1,4 +1,5 @@
 use crate::{api, sys, usr};
+use crate::api::console::Style;
 
 use x86_64::instructions::port::Port;
 
@@ -37,7 +38,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let n = args.len();
     while i < n {
         match args[i] {
-            "--freq" | "-f" => {
+            "-h" | "--help" => {
+                return help();
+            }
+            "-f" | "--freq" => {
                 if i + 1 < n {
                     if let Ok(value) = args[i + 1].parse() {
                         freq = value;
@@ -51,7 +55,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     return usr::shell::ExitCode::CommandError;
                 }
             },
-            "--len" | "-l" => {
+            "-l" | "--len" => {
                 if i + 1 < n {
                     if let Ok(value) = args[i + 1].parse() {
                         len = value;
@@ -71,5 +75,17 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     beep(freq, len / 1000.0);
+    usr::shell::ExitCode::CommandSuccessful
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} beep {}<options>{1}", csi_title, csi_reset, csi_option);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-f{1},{0} --freq <hertz>{1}          Tone frequency", csi_option, csi_reset);
+    println!("  {0}-l{1},{0} --len <milliseconds>{1}    Tone length", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }

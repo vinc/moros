@@ -31,7 +31,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let n = args.len();
     while i < n {
         match args[i] {
-            "--name" | "-n" => {
+            "-h" | "--help" => {
+                return help();
+            }
+            "-n" | "--name" => {
                 if i + 1 < n {
                     name = Some(args[i + 1]);
                     i += 1;
@@ -40,7 +43,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     return usr::shell::ExitCode::CommandError;
                 }
             },
-            "--line" | "-l" => {
+            "-l" | "--line" => {
                 if i + 1 < n {
                     line = Some(args[i + 1]);
                     i += 1;
@@ -131,4 +134,16 @@ fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingS
             }
         }
     }
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} find {}<options> <path>{1}", csi_title, csi_reset, csi_option);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-n{1},{0} --name <pattern>{1}    Find file name matching {0}<pattern>{1}", csi_option, csi_reset);
+    println!("  {0}-l{1},{0} --line <pattern>{1}    Find lines matching {0}<pattern>{1}", csi_option, csi_reset);
+    usr::shell::ExitCode::CommandSuccessful
 }

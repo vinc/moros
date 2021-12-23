@@ -6,6 +6,7 @@
 #![feature(asm_sym)]
 #![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
+#![feature(destructuring_assignment)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
