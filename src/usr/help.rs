@@ -26,32 +26,27 @@ fn help_summary() -> usr::shell::ExitCode {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Commands:{}", csi_color, csi_reset);
-    println!();
-
     let cmds = [
-        ("c", "opy <file> <file>", "Copy file from source to destination\n"),
-        ("d", "elete <file>",      "Delete file or empty directory\n"),
-        ("e", "dit <file>",        "Edit existing or new file\n"),
-        ("g", "oto <dir>",         "Go to directory\n"),
-        ("h", "elp <command>",     "Display help about a command\n"),
-        ("l", "ist <dir>",         "List entries in directory\n"),
-        ("m", "ove <file> <file>", "Move file from source to destination\n"),
-        ("p", "rint <string>",     "Print string to screen\n"),
-        ("q", "uit",               "Quit the shell\n"),
-        ("r", "ead <file>",        "Read file to screen\n"),
-        ("w", "rite <file>",       "Write file or directory\n"),
+        ("c", "opy <file> <file>", "Copy file from source to destination"),
+        ("d", "elete <file>",      "Delete file or empty directory"),
+        ("e", "dit <file>",        "Edit existing or new file"),
+        ("g", "oto <dir>",         "Go to directory"),
+        ("h", "elp <command>",     "Display help about a command"),
+        ("l", "ist <dir>",         "List entries in directory"),
+        ("m", "ove <file> <file>", "Move file from source to destination"),
+        ("p", "rint <string>",     "Print string to screen"),
+        ("q", "uit",               "Quit the shell"),
+        ("r", "ead <file>",        "Read file to screen"),
+        ("w", "rite <file>",       "Write file or directory"),
     ];
     for (alias, command, usage) in &cmds {
         let csi_col1 = Style::color("LightGreen");
         let csi_col2 = Style::color("LightCyan");
-        print!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
+        println!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
     }
     println!();
-
     println!("{}Credits:{}", csi_color, csi_reset);
-    println!();
-
-    println!("Made with <3 in 2019-2021 by Vincent Ollivier <v@vinc.cc>");
+    println!("  Made with <3 in 2019-2021 by Vincent Ollivier <v@vinc.cc>");
     usr::shell::ExitCode::CommandSuccessful
 }
 
@@ -62,8 +57,6 @@ fn help_edit() -> usr::shell::ExitCode {
     println!("of features.");
     println!();
     println!("{}Shortcuts:{}", csi_color, csi_reset);
-    println!();
-
     let shortcuts = [
         ("^Q", "Quit editor"),
         ("^W", "Write to file"),
@@ -74,7 +67,7 @@ fn help_edit() -> usr::shell::ExitCode {
         ("^E", "Go to end of line"),
     ];
     for (shortcut, usage) in &shortcuts {
-        let csi_color = Style::color("LightGreen");
+        let csi_color = Style::color("LightCyan");
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, shortcut, csi_reset, usage);
     }
@@ -87,8 +80,6 @@ fn help_date() -> usr::shell::ExitCode {
     println!("The date command's formatting behavior is based on strftime in C");
     println!();
     println!("{}Specifiers:{}", csi_color, csi_reset);
-    println!();
-
     let specifiers = [
         ("%a", "Abbreviated weekday name", "Thu"),
         ("%A", "Full weekday name", "Thursday"),
@@ -124,7 +115,7 @@ fn help_date() -> usr::shell::ExitCode {
         ("%%", "Literal %", "%"),
     ];
     for (specifier, usage, _exemple) in &specifiers {
-        let csi_color = Style::color("LightGreen");
+        let csi_color = Style::color("LightCyan");
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }

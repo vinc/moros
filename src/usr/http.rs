@@ -1,10 +1,10 @@
 use crate::{sys, usr};
-use crate::api::syscall;
+use crate::api::console::Style;
 use crate::api::random;
+use crate::api::syscall;
 use alloc::borrow::ToOwned;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec;
-use alloc::vec::Vec;
 use core::str::{self, FromStr};
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
@@ -43,31 +43,46 @@ impl URL {
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     // Parse command line options
     let mut is_verbose = false;
-    let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).filter(|arg| {
-        if arg == "--verbose" {
-            is_verbose = true;
-        }
-        !arg.starts_with("--")
-    }).collect();
-
-    // Split <host> and <path>
-    if args.len() == 2 {
-        if let Some(i) = args[1].find('/') {
-            let arg = args[1].clone();
-            let (host, path) = arg.split_at(i);
-            args[1] = host.to_string();
-            args.push(path.to_string());
-        } else {
-            args.push("/".to_string());
+    let mut host = "";
+    let mut path = "";
+    let n = args.len();
+    for i in 1..n {
+        match args[i] {
+            "-h" | "--help" => {
+                return help();
+            }
+            "--verbose" => {
+                is_verbose = true;
+            }
+            _ if args[i].starts_with("--") => {
+                eprintln!("Invalid option '{}'", args[i]);
+                return usr::shell::ExitCode::CommandError;
+            }
+            _ if host.is_empty() => {
+                host = args[i]
+            }
+            _ if path.is_empty() => {
+                path = args[i]
+            }
+            _ => {
+                eprintln!("Too many arguments");
+                return usr::shell::ExitCode::CommandError;
+            }
         }
     }
 
-    if args.len() != 3 {
-        eprintln!("Usage: http <host> <path>");
+    if host.is_empty() && path.is_empty() {
+        eprintln!("Missing URL");
         return usr::shell::ExitCode::CommandError;
+    } else if path.is_empty() {
+        if let Some(i) = args[1].find('/') {
+            (host, path) = host.split_at(i);
+        } else {
+            path = "/"
+        }
     }
 
-    let url = "http://".to_owned() + &args[1] + &args[2];
+    let url = "http://".to_owned() + host + path;
     let url = URL::parse(&url).expect("invalid URL format");
 
     let address = if url.host.ends_with(char::is_numeric) {
@@ -191,4 +206,15 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     } else {
         usr::shell::ExitCode::CommandError
     }
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} http {}<options> <url>{1}", csi_title, csi_reset, csi_option);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
+    usr::shell::ExitCode::CommandSuccessful
 }
