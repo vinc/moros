@@ -46,9 +46,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut is_verbose = false;
     let mut host = "";
     let mut path = "";
-    let i = 1;
     let n = args.len();
-    while i < n {
+    for i in 1..n {
         match args[i] {
             "-h" | "--help" => {
                 return help();

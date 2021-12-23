@@ -335,8 +335,8 @@ fn test_shell() {
     assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
 
     // Redirect standard error explicitely
-    exec("http 2=> /test");
-    assert_eq!(api::fs::read_to_string("/test"), Ok("Usage: http <host> <path>\n".to_string()));
+    exec("hex /nope 2=> /test");
+    assert_eq!(api::fs::read_to_string("/test"), Ok("File not found '/nope'\n".to_string()));
 
     sys::fs::dismount();
 }
