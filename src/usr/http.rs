@@ -2,8 +2,7 @@ use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::random;
 use crate::api::syscall;
-use alloc::borrow::ToOwned;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use core::str::{self, FromStr};
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
@@ -82,7 +81,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     }
 
-    let url = "http://".to_owned() + host + path;
+    let url = "http://".to_string() + host + path;
     let url = URL::parse(&url).expect("invalid URL format");
 
     let address = if url.host.ends_with(char::is_numeric) {
@@ -107,18 +106,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut state = State::Connect;
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        match iface.ipv4_addr() {
-            None => {
-                eprintln!("Error: Interface not ready");
-                return usr::shell::ExitCode::CommandError;
-            }
-            Some(ip_addr) if ip_addr.is_unspecified() => {
-                eprintln!("Error: Interface not ready");
-                return usr::shell::ExitCode::CommandError;
-            }
-            _ => {}
-        }
-
         let tcp_handle = iface.add_socket(tcp_socket);
 
         let mut is_header = true;
@@ -127,10 +114,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         loop {
             if syscall::realtime() - started > timeout {
                 eprintln!("Timeout reached");
+                iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
                 eprintln!();
+                iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
@@ -175,18 +164,24 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 State::Response if socket.can_recv() => {
                     socket.recv(|data| {
                         let contents = String::from_utf8_lossy(data);
+                        let mut header = vec![];
+                        let mut body = vec![];
                         for line in contents.lines() {
                             if is_header {
                                 if line.is_empty() {
                                     is_header = false;
                                 }
-                                if is_verbose {
-                                    println!("< {}", line);
-                                }
+                                header.push(line);
                             } else {
-                                println!("{}", line);
+                                body.push(line);
                             }
                         }
+                        if is_verbose {
+                            for line in header {
+                                println!("< {}", line);
+                            }
+                        }
+                        print!("{}", body.join("\n"));
                         (data.len(), ())
                     }).unwrap();
                     State::Response
@@ -202,6 +197,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
         }
         iface.remove_socket(tcp_handle);
+        println!();
         usr::shell::ExitCode::CommandSuccessful
     } else {
         usr::shell::ExitCode::CommandError

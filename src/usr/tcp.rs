@@ -54,18 +54,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut state = State::Connect;
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        match iface.ipv4_addr() {
-            None => {
-                eprintln!("Interface not ready");
-                return usr::shell::ExitCode::CommandError;
-            }
-            Some(ip_addr) if ip_addr.is_unspecified() => {
-                eprintln!("Interface not ready");
-                return usr::shell::ExitCode::CommandError;
-            }
-            _ => {}
-        }
-
         let tcp_handle = iface.add_socket(tcp_socket);
 
         let timeout = 5.0;
@@ -73,10 +61,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         loop {
             if syscall::realtime() - started > timeout {
                 eprintln!("Timeout reached");
+                iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
                 eprintln!();
+                iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);

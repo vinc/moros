@@ -78,7 +78,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             }
 
             if let Some(wait_duration) = iface.poll_delay(timestamp) {
-                syscall::sleep(wait_duration.total_micros() as f64) / 1000000.0);
+                syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
     }

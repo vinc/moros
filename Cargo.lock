@@ -258,7 +258,6 @@ dependencies = [
  "libm",
  "linked_list_allocator",
  "littlewing",
- "log",
  "nom",
  "object",
  "pbkdf2",
@@ -485,7 +484,6 @@ checksum = "d2308a1657c8db1f5b4993bab4e620bdbe5623bd81f254cf60326767bb243237"
 dependencies = [
  "bitflags",
  "byteorder",
- "log",
  "managed",
 ]
 

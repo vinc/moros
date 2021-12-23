@@ -14,23 +14,11 @@ use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+    let csi_color = Style::color("Yellow");
+    let csi_reset = Style::reset();
     let port = 80;
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        match iface.ipv4_addr() {
-            None => {
-                eprintln!("Error: Interface not ready");
-                return usr::shell::ExitCode::CommandError;
-            }
-            Some(ip_addr) if ip_addr.is_unspecified() => {
-                eprintln!("Error: Interface not ready");
-                return usr::shell::ExitCode::CommandError;
-            }
-            _ => {}
-        }
-
-        let csi_color = Style::color("Yellow");
-        let csi_reset = Style::reset();
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
         let mtu = iface.device().capabilities().max_transmission_unit;
