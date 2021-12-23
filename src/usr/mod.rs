@@ -25,7 +25,7 @@ pub mod ip;
 pub mod keyboard;
 pub mod lisp;
 pub mod list;
-pub mod mem;
+pub mod memory;
 pub mod net;
 pub mod pci;
 pub mod print;

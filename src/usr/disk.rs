@@ -112,9 +112,9 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Usage:{} disk {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}list{}            List detected disks", csi_option, csi_reset);
-    println!("  {}usage{}           List disk usage", csi_option, csi_reset);
-    println!("  {}format <path>{}   Format disk", csi_option, csi_reset);
-    println!("  {}erase <path>{}    Erase disk", csi_option, csi_reset);
+    println!("  {}list{}             List detected disks", csi_option, csi_reset);
+    println!("  {}usage{}            List disk usage", csi_option, csi_reset);
+    println!("  {}format <path>{}    Format disk", csi_option, csi_reset);
+    println!("  {}erase <path>{}     Erase disk", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }

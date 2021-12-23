@@ -232,7 +232,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "colors"               => usr::colors::main(&args),
         "dsk" | "disk"         => usr::disk::main(&args),
         "user"                 => usr::user::main(&args),
-        "mem" | "memory"       => usr::mem::main(&args),
+        "mem" | "memory"       => usr::memory::main(&args),
         "kb" | "keyboard"      => usr::keyboard::main(&args),
         "lisp"                 => usr::lisp::main(&args),
         "chess"                => usr::chess::main(&args),
