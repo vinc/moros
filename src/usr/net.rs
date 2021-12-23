@@ -1,8 +1,7 @@
 use crate::{sys, usr};
 use crate::api::syscall;
 //use smoltcp::wire::Ipv4Address;
-use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
-use smoltcp::time::Instant;
+use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
@@ -39,14 +38,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
                 let mut server_rx_buffer = [0; 2048];
                 let mut server_tx_buffer = [0; 2048];
-                let server_socket = TcpSocket::new(
+                let _server_socket = TcpSocket::new(
                     TcpSocketBuffer::new(&mut server_rx_buffer[..]),
                     TcpSocketBuffer::new(&mut server_tx_buffer[..]),
                 );
-
-                let mut sockets_storage = [None, None];
-                let mut sockets = SocketSet::new(&mut sockets_storage[..]);
-                let _server_handle = sockets.add(server_socket);
 
                 loop {
                     if sys::console::end_of_text() {
@@ -54,21 +49,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         return usr::shell::ExitCode::CommandSuccessful;
                     }
 
-                    let now = syscall::uptime();
-                    match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
-                        Ok(true) => {
-                            //println!("{}", "-".repeat(66));
-                            //println!("Polling result: Ok(true)");
-                        },
-                        Ok(false) => {
-                            //println!("{}", "-".repeat(66));
-                            //println!("Polling Result: Ok(false)\n");
-                        },
-                        Err(_) => {
-                            //println!("{}", "-".repeat(66));
-                            //println!("polling result: err({})", e);
-                        }
-                    }
+                    // TODO
+
                     syscall::sleep(0.1);
                 }
             }

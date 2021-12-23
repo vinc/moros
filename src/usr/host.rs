@@ -6,8 +6,7 @@ use alloc::vec::Vec;
 use bit_field::BitField;
 use core::convert::TryInto;
 use core::str;
-use core::time::Duration;
-use smoltcp::socket::{SocketSet, UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
+use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 
@@ -134,13 +133,11 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let qclass = QueryClass::IN;
     let query = Message::query(qname, qtype, qclass);
 
-    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
-    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
+    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 1024]);
+    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 1024]);
     let udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
 
-    let mut sockets = SocketSet::new(vec![]);
-    let udp_handle = sockets.add(udp_socket);
-
+    #[derive(Debug)]
     enum State { Bind, Query, Response }
     let mut state = State::Bind;
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
@@ -154,61 +151,59 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             _ => {}
         }
 
+        let udp_handle = iface.add_socket(udp_socket);
+
         let timeout = 5.0;
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
+                iface.remove_socket(udp_handle);
                 return Err(ResponseCode::NetworkError);
             }
-            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-            match iface.poll(&mut sockets, timestamp) {
-                Err(smoltcp::Error::Unrecognized) => {}
-                Err(e) => {
-                    println!("Network Error: {}", e);
-                }
-                Ok(_) => {}
+            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            if let Err(e) = iface.poll(timestamp) {
+                eprintln!("Network Error: {}", e);
             }
 
-            {
-                let mut socket = sockets.get::<UdpSocket>(udp_handle);
+            let socket = iface.get_socket::<UdpSocket>(udp_handle);
 
-                state = match state {
-                    State::Bind if !socket.is_open() => {
-                        socket.bind(client).unwrap();
-                        State::Query
-                    }
-                    State::Query if socket.can_send() => {
-                        socket.send_slice(&query.datagram, server).expect("cannot send");
-                        State::Response
-                    }
-                    State::Response if socket.can_recv() => {
-                        let (data, _) = socket.recv().expect("cannot receive");
-                        let message = Message::from(data);
-                        if message.id() == query.id() && message.is_response() {
-                            return match message.rcode() {
-                                ResponseCode::NoError => {
-                                    // TODO: Parse the datagram instead of
-                                    // extracting the last 4 bytes.
-                                    //let rdata = message.answer().rdata();
-                                    let n = message.datagram.len();
-                                    let rdata = &message.datagram[(n - 4)..];
+            state = match state {
+                State::Bind if !socket.is_open() => {
+                    socket.bind(client).unwrap();
+                    State::Query
+                }
+                State::Query if socket.can_send() => {
+                    socket.send_slice(&query.datagram, server).expect("cannot send");
+                    State::Response
+                }
+                State::Response if socket.can_recv() => {
+                    let (data, _) = socket.recv().expect("cannot receive");
+                    let message = Message::from(data);
+                    if message.id() == query.id() && message.is_response() {
+                        iface.remove_socket(udp_handle);
+                        return match message.rcode() {
+                            ResponseCode::NoError => {
+                                // TODO: Parse the datagram instead of
+                                // extracting the last 4 bytes.
+                                //let rdata = message.answer().rdata();
+                                let n = message.datagram.len();
+                                let rdata = &message.datagram[(n - 4)..];
 
-                                    Ok(IpAddress::from(Ipv4Address::from_bytes(rdata)))
-                                }
-                                rcode => {
-                                    Err(rcode)
-                                }
+                                Ok(IpAddress::from(Ipv4Address::from_bytes(rdata)))
+                            }
+                            rcode => {
+                                Err(rcode)
                             }
                         }
-                        state
                     }
-                    _ => state
+                    state
                 }
-            }
+                _ => state
+            };
 
-            if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
-                let wait_duration: Duration = wait_duration.into();
-                syscall::sleep(wait_duration.as_secs_f64());
+            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+                syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+
             }
         }
     } else {

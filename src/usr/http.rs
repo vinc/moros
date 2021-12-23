@@ -6,8 +6,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::{self, FromStr};
-use core::time::Duration;
-use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
+use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
@@ -89,9 +88,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
     let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
 
-    let mut sockets = SocketSet::new(vec![]);
-    let tcp_handle = sockets.add(tcp_socket);
-
     enum State { Connect, Request, Response }
     let mut state = State::Connect;
 
@@ -108,6 +104,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             _ => {}
         }
 
+        let tcp_handle = iface.add_socket(tcp_socket);
+
         let mut is_header = true;
         let timeout = 5.0;
         let started = syscall::realtime();
@@ -120,80 +118,75 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 eprintln!();
                 return usr::shell::ExitCode::CommandError;
             }
-            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-            match iface.poll(&mut sockets, timestamp) {
-                Err(smoltcp::Error::Unrecognized) => {}
-                Err(e) => {
-                    eprintln!("Network Error: {}", e);
+            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            if let Err(e) = iface.poll(timestamp) {
+                eprintln!("Network Error: {}", e);
+            }
+
+            let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
+
+            state = match state {
+                State::Connect if !socket.is_active() => {
+                    let local_port = 49152 + random::get_u16() % 16384;
+                    if is_verbose {
+                        println!("* Connecting to {}:{}", address, url.port);
+                    }
+                    if socket.connect(cx, (address, url.port), local_port).is_err() {
+                        eprintln!("Could not connect to {}:{}", address, url.port);
+                        iface.remove_socket(tcp_handle);
+                        return usr::shell::ExitCode::CommandError;
+                    }
+                    State::Request
                 }
-                Ok(_) => {}
-            }
-
-            {
-                let mut socket = sockets.get::<TcpSocket>(tcp_handle);
-
-                state = match state {
-                    State::Connect if !socket.is_active() => {
-                        let local_port = 49152 + random::get_u16() % 16384;
-                        if is_verbose {
-                            println!("* Connecting to {}:{}", address, url.port);
-                        }
-                        if socket.connect((address, url.port), local_port).is_err() {
-                            eprintln!("Could not connect to {}:{}", address, url.port);
-                            return usr::shell::ExitCode::CommandError;
-                        }
-                        State::Request
+                State::Request if socket.may_send() => {
+                    let http_get = "GET ".to_string() + &url.path + " HTTP/1.1\r\n";
+                    let http_host = "Host: ".to_string() + &url.host + "\r\n";
+                    let http_ua = "User-Agent: MOROS/".to_string() + env!("CARGO_PKG_VERSION") + "\r\n";
+                    let http_connection = "Connection: close\r\n".to_string();
+                    if is_verbose {
+                        print!("> {}", http_get);
+                        print!("> {}", http_host);
+                        print!("> {}", http_ua);
+                        print!("> {}", http_connection);
+                        println!(">");
                     }
-                    State::Request if socket.may_send() => {
-                        let http_get = "GET ".to_owned() + &url.path + " HTTP/1.1\r\n";
-                        let http_host = "Host: ".to_owned() + &url.host + "\r\n";
-                        let http_ua = "User-Agent: MOROS/".to_owned() + env!("CARGO_PKG_VERSION") + "\r\n";
-                        let http_connection = "Connection: close\r\n".to_owned();
-                        if is_verbose {
-                            print!("> {}", http_get);
-                            print!("> {}", http_host);
-                            print!("> {}", http_ua);
-                            print!("> {}", http_connection);
-                            println!(">");
-                        }
-                        socket.send_slice(http_get.as_ref()).expect("cannot send");
-                        socket.send_slice(http_host.as_ref()).expect("cannot send");
-                        socket.send_slice(http_ua.as_ref()).expect("cannot send");
-                        socket.send_slice(http_connection.as_ref()).expect("cannot send");
-                        socket.send_slice(b"\r\n").expect("cannot send");
-                        State::Response
-                    }
-                    State::Response if socket.can_recv() => {
-                        socket.recv(|data| {
-                            let contents = String::from_utf8_lossy(data);
-                            for line in contents.lines() {
-                                if is_header {
-                                    if line.is_empty() {
-                                        is_header = false;
-                                    }
-                                    if is_verbose {
-                                        println!("< {}", line);
-                                    }
-                                } else {
-                                    println!("{}", line);
+                    socket.send_slice(http_get.as_ref()).expect("cannot send");
+                    socket.send_slice(http_host.as_ref()).expect("cannot send");
+                    socket.send_slice(http_ua.as_ref()).expect("cannot send");
+                    socket.send_slice(http_connection.as_ref()).expect("cannot send");
+                    socket.send_slice(b"\r\n").expect("cannot send");
+                    State::Response
+                }
+                State::Response if socket.can_recv() => {
+                    socket.recv(|data| {
+                        let contents = String::from_utf8_lossy(data);
+                        for line in contents.lines() {
+                            if is_header {
+                                if line.is_empty() {
+                                    is_header = false;
                                 }
+                                if is_verbose {
+                                    println!("< {}", line);
+                                }
+                            } else {
+                                println!("{}", line);
                             }
-                            (data.len(), ())
-                        }).unwrap();
-                        State::Response
-                    }
-                    State::Response if !socket.may_recv() => {
-                        break;
-                    }
-                    _ => state
-                };
-            }
+                        }
+                        (data.len(), ())
+                    }).unwrap();
+                    State::Response
+                }
+                State::Response if !socket.may_recv() => {
+                    break;
+                }
+                _ => state
+            };
 
-            if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
-                let wait_duration: Duration = wait_duration.into();
-                syscall::sleep(wait_duration.as_secs_f64());
+            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+                syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
+        iface.remove_socket(tcp_handle);
         usr::shell::ExitCode::CommandSuccessful
     } else {
         usr::shell::ExitCode::CommandError

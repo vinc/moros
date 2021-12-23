@@ -1,18 +1,21 @@
 use crate::{sys, usr};
+use crate::api::console::Style;
+
 use core::str::FromStr;
 use smoltcp::wire::IpCidr;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let csi_color = Style::color("LightCyan");
+    let csi_reset = Style::reset();
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         if args.len() == 1 {
-            println!("Link: {}", iface.ethernet_addr());
+            println!("{}Link:{} {}", csi_color, csi_reset, iface.hardware_addr());
             for ip_cidr in iface.ip_addrs() {
-                println!("Addr: {}/{}", ip_cidr.address(), ip_cidr.prefix_len());
+                println!("{}Addr:{} {}/{}", csi_color, csi_reset, ip_cidr.address(), ip_cidr.prefix_len());
             }
-            println!("RX packets: {}", iface.device().stats.rx_packets_count());
-            println!("TX packets: {}", iface.device().stats.tx_packets_count());
-            println!("RX bytes: {}", iface.device().stats.rx_bytes_count());
-            println!("TX bytes: {}", iface.device().stats.tx_bytes_count());
+            let stats = iface.device().stats.clone();
+            println!("{}RX:{}   {} packets ({} bytes)", csi_color, csi_reset, stats.rx_packets_count(), stats.rx_bytes_count());
+            println!("{}TX:{}   {} packets ({} bytes)", csi_color, csi_reset, stats.tx_packets_count(), stats.tx_bytes_count());
         } else {
             match args[1] {
                 "set" => {

@@ -33,9 +33,9 @@ The `dhcp` command configures your network automatically:
     > dhcp
     DHCP Discover transmitted
     DHCP Offer received
-    Leased: 10.0.2.15/24
-    Router: 10.0.2.2
-    DNS: 10.0.2.3
+    IP Address:   10.0.2.15/24
+    Gateway:      10.0.2.2
+    DNS:          10.0.2.3
 
 ## IP
 
