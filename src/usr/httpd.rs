@@ -7,9 +7,8 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
-use smoltcp::socket::TcpSocket;
+use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
-use smoltcp::socket::TcpSocketBuffer;
 use smoltcp::phy::Device;
 use time::OffsetDateTime;
 

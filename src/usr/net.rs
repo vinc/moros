@@ -1,12 +1,16 @@
-use crate::{sys, usr};
+use crate::{sys, usr, debug};
 use crate::api::syscall;
 use crate::api::console::Style;
-//use smoltcp::wire::Ipv4Address;
+use alloc::vec;
+use alloc::borrow::ToOwned;
+use smoltcp::wire::{EthernetFrame, PrettyPrinter};
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
+use smoltcp::time::Instant;
+use smoltcp::phy::Device;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
-        eprintln!("Usage: net <command>");
+        help();
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -40,22 +44,33 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             "monitor" => {
                 iface.device_mut().debug_mode = true;
 
-                let mut server_rx_buffer = [0; 2048];
-                let mut server_tx_buffer = [0; 2048];
-                let _server_socket = TcpSocket::new(
-                    TcpSocketBuffer::new(&mut server_rx_buffer[..]),
-                    TcpSocketBuffer::new(&mut server_tx_buffer[..]),
-                );
+                let mtu = iface.device().capabilities().max_transmission_unit;
+                let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+                let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+                let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
+                let tcp_handle = iface.add_socket(tcp_socket);
 
                 loop {
                     if sys::console::end_of_text() {
                         println!();
                         return usr::shell::ExitCode::CommandSuccessful;
                     }
-
-                    // TODO
-
                     syscall::sleep(0.1);
+
+                    let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+                    if let Err(e) = iface.poll(timestamp) {
+                        eprintln!("Network Error: {}", e);
+                    }
+
+                    let socket = iface.get_socket::<TcpSocket>(tcp_handle);
+                    if socket.may_recv() {
+                        socket.recv(|buffer| {
+                            let recvd_len = buffer.len();
+                            let data = buffer.to_owned();
+                            debug!("{}", PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &buffer));
+                            (recvd_len, data)
+                        }).unwrap();
+                    }
                 }
             }
             _ => {
