@@ -43,6 +43,11 @@ This project started from the [seventh post][1] of the second edition of
 - [ ] C standard library port
 
 
+## Documentation
+
+Documentation is available [here](doc/index.md)
+
+
 ## Setup
 
 Clone the repo:
