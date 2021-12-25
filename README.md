@@ -19,19 +19,19 @@ This project started from the [seventh post][1] of the second edition of
 - [x] External bootloader (using [bootloader](https://github.com/rust-osdev/bootloader))
 - [x] x86 CPU support (using [x86_64](https://crates.io/crates/x86_64))
 - [x] Hardware interrupts (using [pic8259](https://crates.io/crates/pic8259))
-- [x] PS/2 Keyboard (using [pc-keyboard](https://crates.io/crates/pc-keyboard))
-- [x] VGA Text mode output
+- [x] PS/2 Keyboard with customizable layout (using [pc-keyboard](https://crates.io/crates/pc-keyboard))
+- [x] VGA Text mode with customizable font and color palette
 - [x] Serial output (using [uart_16550](https://crates.io/crates/uart_16550))
 - [x] Paging
 - [x] Heap allocation (using [linked_list_allocator](https://crates.io/crates/linked_list_allocator))
 - [x] ACPI shutdown (using [acpi](https://crates.io/crates/acpi) and [aml](https://crates.io/crates/aml))
 - [x] RTC clock
-- [x] PCI enumeration
+- [x] PCI devices
 - [x] ATA PIO mode
 - [x] Random number generator (using [rand_chacha](https://crates.io/crates/rand_chacha))
 - [x] RTL8139 network card
 - [x] AMD PCNET network card
-- [x] DHCP/IP/TCP/UDP/DNS/HTTP protocols (using [smoltcp](https://crates.io/crates/smoltcp))
+- [x] DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp](https://crates.io/crates/smoltcp))
 - [x] Basic [filesystem](doc/filesystem.md)
 - [x] Basic [shell](doc/shell.md)
 - [x] Basic [text editor](doc/editor.md)
