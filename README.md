@@ -45,7 +45,12 @@ This project started from the [seventh post][1] of the second edition of
 
 ## Setup
 
-Install the required tools:
+Clone the repo:
+
+    $ git clone https://github.com/vinc/moros
+    $ cd moros
+
+Install the required tools with `make setup` or the following commands:
 
     $ curl https://sh.rustup.rs -sSf | sh
     $ rustup install nightly
@@ -53,11 +58,6 @@ Install the required tools:
     $ rustup component add rust-src
     $ rustup component add llvm-tools-preview
     $ cargo install bootimage
-
-Clone the repo:
-
-    $ git clone https://github.com/vinc/moros
-    $ cd moros
 
 
 ## Usage
@@ -72,19 +72,19 @@ Run MOROS in QEMU:
 
 Run natively on a x86 computer by copying the bootloader and the kernel to a
 hard drive or USB stick (but there is currently no USB driver so the filesystem
-will not be available):
+will not be available in that case):
 
     $ sudo dd if=target/x86_64-moros/release/bootimage-moros.bin of=/dev/sdx && sync
 
-In both cases, MOROS will open a console in diskless mode after boot if no
-filesystem is detected. The following command will setup the filesystem on the
-first hard drive of the first ATA bus, allowing you to exit the diskless mode
-and log in as a normal user:
+MOROS will open a console in diskless mode after boot if no filesystem is
+detected. The following command will setup the filesystem on a hard drive,
+allowing you to exit the diskless mode and log in as a normal user:
 
     > install
 
 **Be careful not to overwrite the hard drive of your OS when using `dd` inside
-your OS, and `install` or `disk format` inside MOROS.**
+your OS, and `install` or `disk format` inside MOROS if you don't use an
+emulator.**
 
 
 ## Tests
