@@ -101,11 +101,11 @@ Read file A and redirect stderr(2) to stdin(0) of write file B:
     > r a.txt 2> w b.txt
     > r a.txt 2>0 w b.txt
 
-Suppress errors by redirecting stderr(2) to stdnil(3):
+Suppress errors by redirecting stderr(2) to stdnull(3):
 
     > r a.txt 2>3 w b.txt
 
-Redirect stdout(1) to stdin(0) and stderr(2) to stdnil(3):
+Redirect stdout(1) to stdin(0) and stderr(2) to stdnull(3):
 
     > r a.txt > 2>3 w b.txt
     > r a.txt 1>0 2>3 w b.txt
