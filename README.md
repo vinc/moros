@@ -38,7 +38,9 @@ This project started from the [seventh post][1] of the second edition of
 - [x] Basic [lisp](doc/lisp.md) interpreter
 - [x] Basic file and [network](doc/network.md) commands
 - [x] Basic userspace for nasm binaries
-- [ ] Multitasking
+- [ ] Support for Rust binaries
+- [ ] Support for multitasking
+- [ ] C standard library port
 
 
 ## Setup
