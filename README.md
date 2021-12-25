@@ -32,11 +32,11 @@ This project started from the [seventh post][1] of the second edition of
 - [x] RTL8139 network card
 - [x] AMD PCNET network card
 - [x] DHCP/IP/TCP/UDP/DNS/HTTP protocols (using [smoltcp](https://crates.io/crates/smoltcp))
-- [x] Basic filesystem
-- [x] Basic shell
-- [x] Basic text editor
-- [x] Basic lisp interpreter
-- [x] Basic file and network commands
+- [x] Basic [filesystem](doc/filesystem.md)
+- [x] Basic [shell](doc/shell.md)
+- [x] Basic [text editor](doc/editor.md)
+- [x] Basic [lisp](doc/lisp.md) interpreter
+- [x] Basic file and [network](doc/network.md) commands
 - [x] Basic userspace for nasm binaries
 - [ ] Multitasking
 
