@@ -92,8 +92,8 @@ impl Chess {
                 "t" | "time" => self.cmd_time(args),
                 "m" | "move" => self.cmd_move(args),
                 "u" | "undo" => self.cmd_undo(args),
-                "s" | "show" => self.cmd_show(args),
                 "p" | "perf" => self.cmd_perf(args),
+                //"s" | "show" => self.cmd_show(args),
                 cmd => {
                     if cmd.is_empty() {
                         println!();
@@ -118,8 +118,8 @@ impl Chess {
             ("t", "ime <moves> <time>", "Set clock to <moves> in <time> (in seconds)\n"),
             ("m", "ove <move>",         "Play <move> on the board\n"),
             ("u", "ndo",                "Undo the last move\n"),
-            ("s", "how <attr>",         "Show <attr>\n"),
             ("p", "erf [<depth>]",       "Count the nodes at each depth\n"),
+            //("s", "how <attr>",         "Show <attr>\n"),
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("LightGreen");
@@ -136,6 +136,8 @@ impl Chess {
         println!("{}", self.game);
     }
 
+    /*
+    // TODO: implement hide command
     fn cmd_show(&mut self, args: Vec<&str>) {
         if args.len() == 1 {
             println!("{}Error:{} no <attr> given\n", self.csi_error, self.csi_reset);
@@ -151,6 +153,7 @@ impl Chess {
             }
         }
     }
+    */
 
     fn cmd_time(&mut self, args: Vec<&str>) {
         match args.len() {
