@@ -239,6 +239,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "beep"                 => usr::beep::main(&args),
         "elf"                  => usr::elf::main(&args),
         "pci"                  => usr::pci::main(&args),
+        "pow"                  => usr::pow::main(&args),
         cmd                    => {
             if api::process::spawn(cmd).is_ok() {
                 ExitCode::CommandSuccessful
