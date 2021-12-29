@@ -41,7 +41,6 @@ impl Game {
                     for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
                     }
-                    self.seed();
                     print!("\x1b[20A{}", self);
                 }
             }
@@ -91,24 +90,28 @@ impl Game {
 
     fn handle_up_key(&mut self) {
         self.compute();
+        self.seed();
     }
 
     fn handle_down_key(&mut self) {
         self.rotate(2);
         self.compute();
         self.rotate(2);
+        self.seed();
     }
 
     fn handle_forward_key(&mut self) {
         self.rotate(3);
         self.compute();
         self.rotate(1);
+        self.seed();
     }
 
     fn handle_backward_key(&mut self) {
         self.rotate(1);
         self.compute();
         self.rotate(3);
+        self.seed();
     }
 }
 
@@ -159,4 +162,16 @@ impl Perform for Game {
             _ => {},
         }
     }
+}
+
+#[test_case]
+fn test_2048_rotate() {
+    let mut game = Game::new();
+    game.seed();
+    game.seed();
+    game.seed();
+    let before = game.board;
+    game.rotate(1);
+    game.rotate(3);
+    assert_eq!(game.board, before);
 }
