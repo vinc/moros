@@ -8,8 +8,15 @@ use alloc::vec::Vec;
 use vte::{Params, Parser, Perform};
 
 struct Game {
-    pub score: usize,
-    pub board: [usize; 16],
+    score: usize,
+    board: [usize; 16],
+}
+
+pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+    print!("\x1b[?25l"); // Disable cursor
+    Game::new().run();
+    print!("\x1b[?25h"); // Enable cursor
+    usr::shell::ExitCode::CommandSuccessful
 }
 
 impl Game {
@@ -20,7 +27,48 @@ impl Game {
         }
     }
 
-    pub fn compute(&mut self) {
+    pub fn run(&mut self) {
+        self.seed();
+        self.seed();
+        print!("{}", self);
+        let mut parser = Parser::new();
+        while let Some(c) = io::stdin().read_char() {
+            match c {
+                'q' | '\x03' | '\x04' => { // ^C and ^D
+                    return;
+                },
+                c => {
+                    for b in c.to_string().as_bytes() {
+                        parser.advance(self, *b);
+                    }
+                    self.seed();
+                    print!("\x1b[20A{}", self);
+                }
+            }
+        }
+    }
+
+    fn seed(&mut self) {
+        let zeros: Vec<_> = (0..16).filter(|i| self.board[*i] == 0).collect();
+
+        if !zeros.is_empty() {
+            let i = (random::get_u64() as usize) % zeros.len();
+            self.board[zeros[i]] = 2;
+        }
+    }
+
+    fn rotate(&mut self, times: usize) {
+        for _ in 0..times {
+            let tmp = self.board;
+            for x in 0..4 {
+                for y in 0..4 {
+                    self.board[4 * y + 3 - x] = tmp[4 * x + y];
+                }
+            }
+        }
+    }
+
+    fn compute(&mut self) {
         for i in 0..16 {
             let mut j = i;
             while j > 3 {
@@ -41,69 +89,26 @@ impl Game {
         }
     }
 
-    pub fn rotate(&mut self, times: usize) {
-        for _ in 0..times {
-            let mut rotate = [3, 7, 11, 15, 2, 6, 10, 14, 1, 5, 9, 13, 0, 4, 8, 12];
-            for i in 0..16 {
-                rotate[i] = self.board[rotate[i]];
-            }
-            self.board = rotate;
-        }
-    }
-
-    pub fn seed(&mut self) {
-        let zeros: Vec<_> = (0..16).filter(|i| self.board[*i] == 0).collect();
-        let n = zeros.len();
-        if n == 0 {
-            return;
-        }
-        let r = random::get_u64() as usize;
-        let i = r % n;
-        self.board[zeros[i]] = 2;
-    }
-
     fn handle_up_key(&mut self) {
         self.compute();
-        self.seed();
     }
 
     fn handle_down_key(&mut self) {
         self.rotate(2);
         self.compute();
         self.rotate(2);
-        self.seed();
     }
 
     fn handle_forward_key(&mut self) {
-        self.rotate(1);
-        self.compute();
         self.rotate(3);
-        self.seed();
+        self.compute();
+        self.rotate(1);
     }
 
     fn handle_backward_key(&mut self) {
-        self.rotate(3);
-        self.compute();
         self.rotate(1);
-        self.seed();
-    }
-
-    pub fn run(&mut self) {
-        let mut parser = Parser::new();
-        print!("{}", self);
-        while let Some(c) = io::stdin().read_char() {
-            match c {
-                'q' | '\x03' | '\x04' => { // ^C and ^D
-                    return;
-                },
-                c => {
-                    for b in c.to_string().as_bytes() {
-                        parser.advance(self, *b);
-                    }
-                    print!("\x1b[20A{}", self);
-                }
-            }
-        }
+        self.compute();
+        self.rotate(3);
     }
 }
 
@@ -145,12 +150,6 @@ impl fmt::Display for Game {
 }
 
 impl Perform for Game {
-    fn execute(&mut self, _b: u8) {
-    }
-
-    fn print(&mut self, _c: char) {
-    }
-
     fn csi_dispatch(&mut self, _params: &Params, _intermediates: &[u8], _ignore: bool, c: char) {
         match c {
             'A' => self.handle_up_key(),
@@ -160,14 +159,4 @@ impl Perform for Game {
             _ => {},
         }
     }
-}
-
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
-    print!("\x1b[?25l"); // Disable cursor
-    let mut game = Game::new();
-    game.seed();
-    game.seed();
-    game.run();
-    print!("\x1b[?25h"); // Enable cursor
-    usr::shell::ExitCode::CommandSuccessful
 }
