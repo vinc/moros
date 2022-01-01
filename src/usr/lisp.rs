@@ -250,6 +250,14 @@ fn default_env<'a>() -> Env<'a> {
             }
         }
     }));
+    data.insert("read-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let path = string(&args[0])?;
+        let len = float(&args[1])?;
+        let mut buf = vec![0; len as usize];
+        fs::read_exact(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
+        Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
+    }));
     data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let path = string(&args[0])?;
