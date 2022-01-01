@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Add 2048 game (#295)
+- Improve documentation (#294)
+- Improve help (#291)
+- Refactor code (#288)
+- Improve ATA driver (#286)
+- Pin rustc version (#287)
+- Bump bootloader from 0.9.19 to 0.9.20 (#290)
+- Bump x86_64 from 0.14.6 to 0.14.7 (#289)
+
 
 ## 0.7.0 (2021-12-12)
 - Add ELF loader ([#248](https://github.com/vinc/moros/pull/248))
