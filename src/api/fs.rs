@@ -42,21 +42,6 @@ pub fn realpath(pathname: &str) -> String {
     }
 }
 
-pub fn canonicalize(path: &str) -> Result<String, ()> {
-    match sys::process::env("HOME") {
-        Some(home) => {
-            if path.starts_with('~') {
-                Ok(path.replace('~', &home))
-            } else {
-                Ok(path.to_string())
-            }
-        },
-        None => {
-            Ok(path.to_string())
-        }
-    }
-}
-
 pub fn exists(path: &str) -> bool {
     syscall::stat(path).is_some()
 }
@@ -101,10 +86,6 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
 }
 
 pub fn read(path: &str) -> Result<Vec<u8>, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
     if let Some(stat) = syscall::stat(&path) {
         let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
         if let Some(handle) = res {
@@ -120,10 +101,6 @@ pub fn read(path: &str) -> Result<Vec<u8>, ()> {
 }
 
 pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
     if let Some(handle) = create_file(&path) {
         if let Some(bytes) = syscall::write(handle, buf) {
             syscall::close(handle);
@@ -134,10 +111,6 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
 }
 
 pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
     let res = if let Some(stat) = syscall::stat(&path) {
         if stat.is_device() {
             open_device(&path)

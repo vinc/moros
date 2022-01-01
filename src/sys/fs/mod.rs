@@ -8,6 +8,8 @@ mod file;
 mod read_dir;
 mod super_block;
 
+use crate::sys;
+
 pub use bitmap_block::BITMAP_SIZE;
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
@@ -19,6 +21,8 @@ pub use crate::sys::ata::BLOCK_SIZE;
 
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
+
+use alloc::string::{String, ToString};
 
 pub const VERSION: u8 = 1;
 
@@ -95,6 +99,21 @@ impl FileIO for Resource {
             Resource::Dir(io) => io.write(buf),
             Resource::File(io) => io.write(buf),
             Resource::Device(io) => io.write(buf),
+        }
+    }
+}
+
+pub fn canonicalize(path: &str) -> Result<String, ()> {
+    match sys::process::env("HOME") {
+        Some(home) => {
+            if path.starts_with('~') {
+                Ok(path.replace('~', &home))
+            } else {
+                Ok(path.to_string())
+            }
+        },
+        None => {
+            Ok(path.to_string())
         }
     }
 }

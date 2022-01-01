@@ -22,7 +22,11 @@ pub fn realtime() -> f64 {
 }
 
 pub fn stat(path: &str, stat: &mut FileStat) -> isize {
-    if let Some(res) = sys::fs::stat(path) {
+    let path = match sys::fs::canonicalize(path) {
+        Ok(path) => path,
+        Err(_) => return -1,
+    };
+    if let Some(res) = sys::fs::stat(&path) {
         *stat = res;
         0
     } else {
@@ -31,7 +35,11 @@ pub fn stat(path: &str, stat: &mut FileStat) -> isize {
 }
 
 pub fn open(path: &str, flags: usize) -> isize {
-    if let Some(resource) = sys::fs::open(path, flags) {
+    let path = match sys::fs::canonicalize(path) {
+        Ok(path) => path,
+        Err(_) => return -1,
+    };
+    if let Some(resource) = sys::fs::open(&path, flags) {
         if let Ok(handle) = sys::process::create_file_handle(resource) {
             return handle as isize;
         }
@@ -72,7 +80,11 @@ pub fn close(handle: usize) {
 }
 
 pub fn spawn(path: &str) -> isize {
-    if let Some(mut file) = sys::fs::File::open(path) {
+    let path = match sys::fs::canonicalize(path) {
+        Ok(path) => path,
+        Err(_) => return -1,
+    };
+    if let Some(mut file) = sys::fs::File::open(&path) {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
