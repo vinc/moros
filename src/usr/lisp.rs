@@ -250,6 +250,12 @@ fn default_env<'a>() -> Env<'a> {
             }
         }
     }));
+    data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let path = string(&args[0])?;
+        let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
+        Ok(Exp::Str(contents))
+    }));
     data.insert("read-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
@@ -258,11 +264,16 @@ fn default_env<'a>() -> Env<'a> {
         fs::read_exact(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("str".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let path = string(&args[0])?;
-        let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
-        Ok(Exp::Str(contents))
+        match &args[0] {
+            Exp::List(list) => {
+                let buf = list_of_floats(list)?.iter().map(|b| *b as u8).collect();
+                let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
+                Ok(Exp::Str(s))
+            }
+            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
     }));
     data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
