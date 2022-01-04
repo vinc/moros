@@ -265,6 +265,10 @@ fn default_env<'a>() -> Env<'a> {
         buf.resize(bytes, 0);
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
+    data.insert("bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let s = string(&args[0])?;
+        let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
     data.insert("str".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
