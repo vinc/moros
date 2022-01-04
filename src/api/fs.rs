@@ -80,17 +80,13 @@ pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
     None
 }
 
-pub fn read_exact(path: &str, buf: &mut [u8]) -> Result<(), ()> {
+pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {
     if let Some(stat) = syscall::stat(&path) {
         let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
         if let Some(handle) = res {
             if let Some(bytes) = syscall::read(handle, buf) {
-                if buf.len() != bytes {
-                    return Err(());
-                }
-
                 syscall::close(handle);
-                return Ok(());
+                return Ok(bytes);
             }
         }
     }

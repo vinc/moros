@@ -261,7 +261,10 @@ fn default_env<'a>() -> Env<'a> {
         let path = string(&args[0])?;
         let len = float(&args[1])?;
         let mut buf = vec![0; len as usize];
-        fs::read_exact(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
+        let bytes = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
+        buf.resize(bytes, 0);
+        Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
+    }));
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
     data.insert("str".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
