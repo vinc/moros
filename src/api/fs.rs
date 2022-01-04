@@ -154,7 +154,7 @@ fn test_file() {
     assert_eq!(write("/test", &input), Ok(input.len()));
 
     // Read file
-    assert_eq!(read("/test"), Ok(input.to_vec()));
+    assert_eq!(read_to_bytes("/test"), Ok(input.to_vec()));
 
     dismount();
 }
