@@ -98,11 +98,11 @@ pub fn read_exact(path: &str, buf: &mut [u8]) -> Result<(), ()> {
 }
 
 pub fn read_to_string(path: &str) -> Result<String, ()> {
-    let buf = read(path)?;
+    let buf = read_to_bytes(path)?;
     Ok(String::from_utf8_lossy(&buf).to_string())
 }
 
-pub fn read(path: &str) -> Result<Vec<u8>, ()> {
+pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
     if let Some(stat) = syscall::stat(&path) {
         let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
         if let Some(handle) = res {

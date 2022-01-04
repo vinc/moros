@@ -10,7 +10,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     match args[1] {
         "set" => {
             if args.len() == 4 && args[2] == "font" {
-                if let Ok(buf) = fs::read(args[3]) {
+                if let Ok(buf) = fs::read_to_bytes(args[3]) {
                     if let Ok(font) = api::font::from_bytes(&buf) {
                         sys::vga::set_font(&font);
                     } else {

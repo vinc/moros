@@ -8,7 +8,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
     let pathname = args[1];
-    if let Ok(buf) = fs::read(pathname) { // TODO: read chunks
+    if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
         print_hex(&buf);
         usr::shell::ExitCode::CommandSuccessful
     } else {
