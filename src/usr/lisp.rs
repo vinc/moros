@@ -458,6 +458,14 @@ fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
+fn eval_progn_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+    let mut res = Ok(Exp::List(vec![]));
+    for arg in args {
+        res = Ok(eval(&arg, env)?);
+    }
+    res
+}
+
 fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&args[0])?;
@@ -492,6 +500,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
 
                 "defun" | "defn" => Some(eval_defun_args(args, env)),
                 "mapcar" | "map" => Some(eval_mapcar_args(args, env)),
+                "progn" | "do"   => Some(eval_progn_args(args, env)),
                 "load"           => Some(eval_load_args(args, env)),
                 _                => None,
             }
