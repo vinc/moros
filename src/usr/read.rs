@@ -76,7 +76,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     usr::list::main(args)
                 } else if stat.is_device() {
                     loop {
-                        if let Ok(bytes) = fs::read(pathname) {
+                        if let Ok(bytes) = fs::read_to_bytes(pathname) {
                             print!("{}", bytes[0] as char);
                         }
                         if sys::console::end_of_text() {

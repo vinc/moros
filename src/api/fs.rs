@@ -42,21 +42,6 @@ pub fn realpath(pathname: &str) -> String {
     }
 }
 
-pub fn canonicalize(path: &str) -> Result<String, ()> {
-    match sys::process::env("HOME") {
-        Some(home) => {
-            if path.starts_with('~') {
-                Ok(path.replace('~', &home))
-            } else {
-                Ok(path.to_string())
-            }
-        },
-        None => {
-            Ok(path.to_string())
-        }
-    }
-}
-
 pub fn exists(path: &str) -> bool {
     syscall::stat(path).is_some()
 }
@@ -95,16 +80,25 @@ pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
     None
 }
 
+pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {
+    if let Some(stat) = syscall::stat(&path) {
+        let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
+        if let Some(handle) = res {
+            if let Some(bytes) = syscall::read(handle, buf) {
+                syscall::close(handle);
+                return Ok(bytes);
+            }
+        }
+    }
+    Err(())
+}
+
 pub fn read_to_string(path: &str) -> Result<String, ()> {
-    let buf = read(path)?;
+    let buf = read_to_bytes(path)?;
     Ok(String::from_utf8_lossy(&buf).to_string())
 }
 
-pub fn read(path: &str) -> Result<Vec<u8>, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
+pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
     if let Some(stat) = syscall::stat(&path) {
         let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
         if let Some(handle) = res {
@@ -120,10 +114,6 @@ pub fn read(path: &str) -> Result<Vec<u8>, ()> {
 }
 
 pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
     if let Some(handle) = create_file(&path) {
         if let Some(bytes) = syscall::write(handle, buf) {
             syscall::close(handle);
@@ -134,10 +124,6 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
 }
 
 pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
-    let path = match canonicalize(path) {
-        Ok(path) => path,
-        Err(_) => return Err(()),
-    };
     let res = if let Some(stat) = syscall::stat(&path) {
         if stat.is_device() {
             open_device(&path)
@@ -168,7 +154,7 @@ fn test_file() {
     assert_eq!(write("/test", &input), Ok(input.len()));
 
     // Read file
-    assert_eq!(read("/test"), Ok(input.to_vec()));
+    assert_eq!(read_to_bytes("/test"), Ok(input.to_vec()));
 
     dismount();
 }

@@ -15,7 +15,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    if let Ok(contents) = fs::read(source) {
+    if let Ok(contents) = fs::read_to_bytes(source) {
         if fs::write(dest, &contents).is_ok() {
             usr::shell::ExitCode::CommandSuccessful
         } else {
