@@ -229,6 +229,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "install"              => usr::install::main(&args),
         "ip"                   => usr::ip::main(&args),
         "geotime"              => usr::geotime::main(&args),
+        "geodate"              => usr::geodate::main(&args),
         "colors"               => usr::colors::main(&args),
         "dsk" | "disk"         => usr::disk::main(&args),
         "user"                 => usr::user::main(&args),

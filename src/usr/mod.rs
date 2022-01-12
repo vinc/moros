@@ -14,6 +14,7 @@ pub mod elf;
 pub mod env;
 pub mod find;
 pub mod geotime;
+pub mod geodate;
 pub mod halt;
 pub mod help;
 pub mod hex;

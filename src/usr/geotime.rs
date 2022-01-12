@@ -5,7 +5,7 @@ use core::f64::consts::PI;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() < 2 {
-        eprintln!("Usage: <longitude> [<timestamp>]");
+        eprintln!("Usage: geotime <longitude> [<timestamp>]");
         return usr::shell::ExitCode::CommandError;
     }
 
