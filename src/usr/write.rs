@@ -1,4 +1,4 @@
-use crate::{sys, usr};
+use crate::{api, usr};
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
@@ -17,9 +17,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     // create a file.
     let success = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
-        sys::fs::Dir::create(pathname).is_some()
+        api::fs::create_dir(pathname).is_some()
     } else {
-        sys::fs::File::create(pathname).is_some()
+        api::fs::create_file(pathname).is_some()
     };
 
     if success {
