@@ -21,6 +21,14 @@ pub fn realtime() -> f64 {
     sys::clock::realtime()
 }
 
+pub fn delete(path: &str) -> isize {
+    if sys::fs::delete(path).is_ok() {
+        0
+    } else {
+        -1
+    }
+}
+
 pub fn stat(path: &str, stat: &mut FileStat) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,

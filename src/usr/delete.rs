@@ -19,27 +19,22 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         pathname = pathname.trim_end_matches('/');
     }
 
-    if let Some(dir) = sys::fs::Dir::open(pathname) {
-        if dir.entries().count() == 0 {
-            if sys::fs::Dir::delete(pathname).is_ok() {
-                usr::shell::ExitCode::CommandSuccessful
-            } else {
-                eprintln!("Could not delete directory '{}'", pathname);
-                usr::shell::ExitCode::CommandError
-            }
-        } else {
-            eprintln!("Directory '{}' not empty", pathname);
-            usr::shell::ExitCode::CommandError
-        }
-    } else if fs::exists(pathname) {
-        if sys::fs::File::delete(pathname).is_ok() {
-            usr::shell::ExitCode::CommandSuccessful
-        } else {
-            eprintln!("Could not delete file '{}'", pathname);
-            usr::shell::ExitCode::CommandError
-        }
-    } else {
+    if !fs::exists(pathname) {
         eprintln!("File not found '{}'", pathname);
+        return usr::shell::ExitCode::CommandError;
+    }
+
+    if let Some(dir) = sys::fs::Dir::open(pathname) {
+        if dir.entries().count() != 0 {
+            eprintln!("Directory '{}' not empty", pathname);
+            return usr::shell::ExitCode::CommandError;
+        }
+    }
+
+    if fs::delete(pathname).is_ok() {
+        usr::shell::ExitCode::CommandSuccessful
+    } else {
+        eprintln!("Could not delete file '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

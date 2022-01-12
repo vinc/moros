@@ -67,6 +67,17 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
     }
 }
 
+pub fn delete(path: &str) -> Result<(), ()> {
+    if let Some(stat) = stat(path) {
+        if stat.is_file() {
+            return File::delete(path);
+        } else if stat.is_dir() {
+            return Dir::delete(path);
+        }
+    }
+    Err(())
+}
+
 pub fn stat(pathname: &str) -> Option<FileStat> {
     DirEntry::open(pathname).map(|e| e.stat())
 }

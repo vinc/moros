@@ -23,6 +23,12 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
         number::REALTIME => {
             service::realtime().to_bits() as usize
         }
+        number::DELETE => {
+            let ptr = sys::process::ptr_from_addr(arg1 as u64);
+            let len = arg2;
+            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
+            service::delete(path) as usize
+        }
         number::STAT => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;

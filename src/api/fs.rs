@@ -46,6 +46,10 @@ pub fn exists(path: &str) -> bool {
     syscall::stat(path).is_some()
 }
 
+pub fn delete(path: &str) -> Result<(), ()> {
+    syscall::delete(path)
+}
+
 pub fn open_file(path: &str) -> Option<usize> {
     let flags = 0;
     syscall::open(path, flags)

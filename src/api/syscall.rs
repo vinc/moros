@@ -20,6 +20,17 @@ pub fn realtime() -> f64 {
     f64::from_bits(res as u64)
 }
 
+pub fn delete(path: &str) -> Result<(), ()> {
+    let path_ptr = path.as_ptr() as usize;
+    let path_len = path.len() as usize;
+    let res = unsafe { syscall!(DELETE, path_ptr, path_len) } as isize;
+    if res.is_negative() {
+        Err(())
+    } else {
+        Ok(())
+    }
+}
+
 pub fn stat(path: &str) -> Option<FileStat> {
     let path_ptr = path.as_ptr() as usize;
     let path_len = path.len() as usize;

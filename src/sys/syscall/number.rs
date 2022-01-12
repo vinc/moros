@@ -9,3 +9,4 @@ pub const DUP:      usize = 0x8;
 pub const SLEEP:    usize = 0x9;
 pub const UPTIME:   usize = 0xA;
 pub const REALTIME: usize = 0xB;
+pub const DELETE:   usize = 0xC;
