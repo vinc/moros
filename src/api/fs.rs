@@ -1,6 +1,7 @@
-use crate::api::syscall;
-use crate::sys::fs::{OpenFlag, DeviceType};
 use crate::sys;
+use crate::sys::fs::{OpenFlag, DeviceType};
+use crate::sys::fs::FileStat;
+use crate::api::syscall;
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -104,9 +105,16 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
 
 pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
     if let Some(stat) = syscall::stat(&path) {
-        let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
-        if let Some(handle) = res {
-            let mut buf = vec![0; stat.size() as usize];
+        let f = if stat.is_device() {
+            open_device(&path)
+        } else if stat.is_dir() {
+            open_dir(&path)
+        } else {
+            open_file(&path)
+        };
+        if let Some(handle) = f {
+            let n = stat.size() as usize;
+            let mut buf = vec![0; n];
             if let Some(bytes) = syscall::read(handle, &mut buf) {
                 buf.resize(bytes, 0);
                 syscall::close(handle);
@@ -141,6 +149,29 @@ pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
         syscall::dup(old_handle, handle);
         syscall::close(old_handle);
         return Ok(handle);
+    }
+    Err(())
+}
+
+pub fn read_dir(path: &str) -> Result<Vec<FileStat>, ()> {
+    if let Some(stat) = syscall::stat(&path) {
+        if stat.is_dir() {
+            if let Ok(buf) = read_to_bytes(path) {
+                let mut res = Vec::new();
+                let mut i = 0;
+                let n = buf.len();
+                while i < n {
+                    let j = i + 14 + buf[i + 13] as usize;
+                    if j > n {
+                        break;
+                    }
+                    let stat = FileStat::from(&buf[i..j]);
+                    res.push(stat);
+                    i = j;
+                }
+                return Ok(res);
+            }
+        }
     }
     Err(())
 }
