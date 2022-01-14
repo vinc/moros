@@ -12,6 +12,7 @@ pub struct ReadDir {
     pub dir: Dir,
     pub block: LinkedBlock,
     pub block_data_offset: usize,
+    block_index: usize,
 }
 
 impl From<Dir> for ReadDir {
@@ -20,6 +21,7 @@ impl From<Dir> for ReadDir {
             dir,
             block: LinkedBlock::read(dir.addr()),
             block_data_offset: 0,
+            block_index: 0,
         }
     }
 }
@@ -37,10 +39,17 @@ macro_rules! read_uint_fn {
 }
 
 impl ReadDir {
+    /// Total number of bytes read
+    pub fn offset(&self) -> usize {
+        self.block_index * self.block.len() + self.block_data_offset
+    }
+
+    /// Number of bytes read in current block
     pub fn block_data_offset(&self) -> usize {
         self.block_data_offset
     }
 
+    /// Address of current block
     pub fn block_addr(&self) -> u32 {
         self.block.addr()
     }
@@ -106,6 +115,7 @@ impl Iterator for ReadDir {
                 Some(next_block) => {
                     self.block = next_block;
                     self.block_data_offset = 0;
+                    self.block_index += 1;
                 }
                 None => break,
             }
