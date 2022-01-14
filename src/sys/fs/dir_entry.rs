@@ -1,6 +1,7 @@
 use super::{dirname, filename, realpath, FileType};
 use super::dir::Dir;
 use alloc::string::String;
+use alloc::vec::Vec;
 
 #[derive(Clone)]
 pub struct DirEntry {
@@ -9,9 +10,9 @@ pub struct DirEntry {
 
     // FileStat
     kind: FileType,
-    name: String,
     size: u32,
     time: u64,
+    name: String,
 }
 
 impl DirEntry {
@@ -83,16 +84,16 @@ impl DirEntry {
     }
 
     pub fn stat(&self) -> FileStat {
-        FileStat { kind: self.kind, name: self.name.clone(), size: self.size, time: self.time }
+        FileStat { kind: self.kind, name: self.name(), size: self.size(), time: self.time }
     }
 }
 
 #[derive(Debug)]
 pub struct FileStat {
     kind: FileType,
-    name: String,
     size: u32,
     time: u64,
+    name: String,
 }
 
 impl FileStat {
@@ -123,5 +124,35 @@ impl FileStat {
 
     pub fn is_device(&self) -> bool {
         self.kind == FileType::Device
+    }
+
+    // TODO: Use bincode?
+    pub fn as_bytes(&self) -> Vec<u8> {
+        debug_assert!(self.name.len() < 256);
+        let mut res = Vec::new();
+        res.push(self.kind as u8);
+        res.extend_from_slice(&self.size.to_be_bytes());
+        res.extend_from_slice(&self.time.to_be_bytes());
+        res.push(self.name.len() as u8);
+        res.extend_from_slice(self.name.as_bytes());
+        res
+    }
+}
+
+use core::convert::TryInto;
+use core::convert::From;
+impl From<&[u8]> for FileStat {
+    fn from(buf: &[u8]) -> Self {
+        let kind = match buf[0] { // TODO: Add FileType::from(u8)
+            0 => FileType::Dir,
+            1 => FileType::File,
+            2 => FileType::Device,
+            _ => panic!(),
+        };
+        let size = u32::from_be_bytes(buf[1..5].try_into().unwrap());
+        let time = u64::from_be_bytes(buf[5..13].try_into().unwrap());
+        let i = 14 + buf[13] as usize;
+        let name = String::from_utf8_lossy(&buf[14..i]).into();
+        Self { kind, name, size, time }
     }
 }
