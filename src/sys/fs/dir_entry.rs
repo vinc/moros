@@ -71,7 +71,11 @@ impl DirEntry {
     }
 
     pub fn size(&self) -> u32 {
-        self.size
+        if self.is_dir() {
+            Dir::from(self.clone()).size() as u32 // FIXME: self.size is zero
+        } else {
+            self.size
+        }
     }
 
     pub fn time(&self) -> u64 {

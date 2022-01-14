@@ -189,6 +189,16 @@ impl Dir {
         ReadDir::from(*self)
     }
 
+    pub fn size(&self) -> usize {
+        // FIXME: we could use `size` attr of `DirEntry` but the root dir does
+        // not have a parent to store its DirEntry, so this attr is always nil
+        // at the moment. But we could use it and return a dynamic size only
+        // in the case of the root dir.
+        let mut entries = self.entries();
+        while entries.next().is_some() {}
+        entries.offset()
+    }
+
     pub fn delete(pathname: &str) -> Result<(), ()> {
         let pathname = realpath(pathname);
         let dirname = dirname(&pathname);
