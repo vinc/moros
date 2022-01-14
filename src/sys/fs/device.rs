@@ -33,7 +33,7 @@ impl Device {
         let pathname = realpath(pathname);
         let dirname = dirname(&pathname);
         let filename = filename(&pathname);
-        if let Some(dir) = Dir::open(dirname) {
+        if let Some(mut dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_device(filename) {
                 return Some(Device::File(dir_entry.into()))
             }

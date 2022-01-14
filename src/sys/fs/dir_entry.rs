@@ -64,7 +64,7 @@ impl DirEntry {
     }
 
     pub fn dir(&self) -> Dir {
-        self.dir
+        self.dir.clone()
     }
 
     pub fn name(&self) -> String {
@@ -72,11 +72,7 @@ impl DirEntry {
     }
 
     pub fn size(&self) -> u32 {
-        if self.is_dir() {
-            Dir::from(self.clone()).size() as u32 // FIXME: self.size is zero
-        } else {
-            self.size
-        }
+        self.size
     }
 
     pub fn time(&self) -> u64 {

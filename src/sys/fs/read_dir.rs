@@ -18,7 +18,7 @@ pub struct ReadDir {
 impl From<Dir> for ReadDir {
     fn from(dir: Dir) -> Self {
         Self {
-            dir,
+            dir: dir.clone(),
             block: LinkedBlock::read(dir.addr()),
             block_data_offset: 0,
             block_index: 0,
@@ -108,7 +108,8 @@ impl Iterator for ReadDir {
                     continue;
                 }
 
-                return Some(DirEntry::new(self.dir, entry_kind, entry_addr, entry_size, entry_time, &entry_name));
+                let dir = self.dir.clone();
+                return Some(DirEntry::new(dir, entry_kind, entry_addr, entry_size, entry_time, &entry_name));
             }
 
             match self.block.next() {

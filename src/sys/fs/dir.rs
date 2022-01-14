@@ -7,31 +7,43 @@ use super::FileType;
 use super::block::LinkedBlock;
 use crate::sys;
 
+use alloc::boxed::Box;
 use alloc::string::String;
 use core::convert::From;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Dir {
+    parent: Option<Box<Dir>>,
+    name: String,
     addr: u32,
+    size: u32,
     offset: u32,
 }
 
 impl From<DirEntry> for Dir {
     fn from(entry: DirEntry) -> Self {
-        Self { addr: entry.addr(), offset: 0 }
+        Self { parent: Some(Box::new(entry.dir())), name: entry.name(), addr: entry.addr(), size: entry.size(), offset: 0 }
     }
 }
 
 impl Dir {
     pub fn root() -> Self {
-        Self { addr: SuperBlock::read().data_area(), offset: 0 }
+        let name = String::new();
+        let addr = SuperBlock::read().data_area();
+        let mut root = Self { parent: None, name, addr, size: 0, offset: 0 };
+        root.update_size();
+        root
+    }
+
+    pub fn is_root(&self) -> bool {
+        self.parent.is_none()
     }
 
     pub fn create(pathname: &str) -> Option<Self> {
         let pathname = realpath(pathname);
         let dirname = dirname(&pathname);
         let filename = filename(&pathname);
-        if let Some(dir) = Dir::open(dirname) {
+        if let Some(mut dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_dir(filename) {
                 return Some(dir_entry.into());
             }
@@ -82,19 +94,19 @@ impl Dir {
     }
 
     // TODO: return a Result
-    pub fn create_file(&self, name: &str) -> Option<DirEntry> {
+    pub fn create_file(&mut self, name: &str) -> Option<DirEntry> {
         self.create_entry(FileType::File, name)
     }
 
-    pub fn create_dir(&self, name: &str) -> Option<DirEntry> {
+    pub fn create_dir(&mut self, name: &str) -> Option<DirEntry> {
         self.create_entry(FileType::Dir, name)
     }
 
-    pub fn create_device(&self, name: &str) -> Option<DirEntry> {
+    pub fn create_device(&mut self, name: &str) -> Option<DirEntry> {
         self.create_entry(FileType::Device, name)
     }
 
-    fn create_entry(&self, kind: FileType, name: &str) -> Option<DirEntry> {
+    fn create_entry(&mut self, kind: FileType, name: &str) -> Option<DirEntry> {
         if self.find(name).is_some() {
             return None;
         }
@@ -135,8 +147,9 @@ impl Dir {
         data[(i + 18)..(i + 18 + n)].clone_from_slice(entry_name.as_bytes());
 
         entries.block.write();
+        self.update_size();
 
-        Some(DirEntry::new(*self, kind, entry_addr, entry_size, entry_time, &entry_name))
+        Some(DirEntry::new(self.clone(), kind, entry_addr, entry_size, entry_time, &entry_name))
     }
 
     // Deleting an entry is done by setting the entry address to 0
@@ -153,6 +166,7 @@ impl Dir {
                 data[i + 3] = 0;
                 data[i + 4] = 0;
                 entries.block.write();
+                self.update_size();
 
                 // Freeing entry blocks
                 let mut entry_block = LinkedBlock::read(entry.addr());
@@ -163,14 +177,13 @@ impl Dir {
                         None => break,
                     }
                 }
-
                 return Ok(());
             }
         }
         Err(())
     }
 
-    pub fn update_entry(&mut self, name: &str, size: u32) {
+    pub fn update_entry(&self, name: &str, size: u32) {
         let time = sys::clock::realtime() as u64;
         let mut entries = self.entries();
         for entry in &mut entries {
@@ -186,17 +199,11 @@ impl Dir {
     }
 
     pub fn entries(&self) -> ReadDir {
-        ReadDir::from(*self)
+        ReadDir::from(self.clone())
     }
 
     pub fn size(&self) -> usize {
-        // FIXME: we could use `size` attr of `DirEntry` but the root dir does
-        // not have a parent to store its DirEntry, so this attr is always nil
-        // at the moment. But we could use it and return a dynamic size only
-        // in the case of the root dir.
-        let mut entries = self.entries();
-        while entries.next().is_some() {}
-        entries.offset()
+        self.size as usize
     }
 
     pub fn delete(pathname: &str) -> Result<(), ()> {
@@ -207,6 +214,15 @@ impl Dir {
             dir.delete_entry(filename)
         } else {
             Err(())
+        }
+    }
+
+    fn update_size(&mut self) {
+        // The size of a dir is the sum of its dir entries
+        let size: usize = self.entries().map(|e| e.len()).sum();
+        self.size = size as u32;
+        if let Some(dir) = self.parent.clone() {
+            dir.update_entry(&self.name, self.size);
         }
     }
 }
