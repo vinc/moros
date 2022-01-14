@@ -5,11 +5,13 @@ use alloc::string::String;
 #[derive(Clone)]
 pub struct DirEntry {
     dir: Dir,
-    kind: FileType,
     addr: u32,
+
+    // FileStat
+    kind: FileType,
+    name: String,
     size: u32,
     time: u64,
-    name: String,
 }
 
 impl DirEntry {
@@ -77,20 +79,21 @@ impl DirEntry {
     }
 
     pub fn stat(&self) -> FileStat {
-        FileStat { kind: self.kind, size: self.size, time: self.time }
+        FileStat { kind: self.kind, name: self.name.clone(), size: self.size, time: self.time }
     }
 }
 
 #[derive(Debug)]
 pub struct FileStat {
     kind: FileType,
+    name: String,
     size: u32,
     time: u64,
 }
 
 impl FileStat {
     pub fn new() -> Self {
-        Self { kind: FileType::File, size: 0, time: 0 }
+        Self { kind: FileType::File, name: String::new(), size: 0, time: 0 }
     }
 
     pub fn size(&self) -> u32 {
@@ -99,6 +102,10 @@ impl FileStat {
 
     pub fn time(&self) -> u64 {
         self.time
+    }
+
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
     // TODO: Duplicated from dir entry
