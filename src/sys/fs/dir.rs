@@ -212,8 +212,25 @@ impl Dir {
 }
 
 impl FileIO for Dir {
-    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
-        Err(())
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let mut i = 0;
+        for entry in self.entries().skip(self.offset as usize) {
+            let stat = entry.stat();
+            let bytes = stat.as_bytes();
+            let j = i + bytes.len();
+            if j < buf.len() {
+                buf[i..j].copy_from_slice(&bytes);
+                self.offset += 1;
+                i = j;
+            } else {
+                break;
+            }
+        }
+        if i > 0 {
+            Ok(i)
+        } else {
+            Err(())
+        }
     }
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         Err(())
