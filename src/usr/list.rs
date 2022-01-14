@@ -1,6 +1,7 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::time;
+use crate::api::fs;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
@@ -27,8 +28,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         path = path.trim_end_matches('/');
     }
 
-    if let Some(dir) = sys::fs::Dir::open(path) {
-        let mut files: Vec<_> = dir.entries().filter(|entry| {
+    if let Ok(entries) = fs::read_dir(path) {
+        let mut files: Vec<_> = entries.iter().filter(|entry| {
             !(entry.name().starts_with('.') && hide_dot_files)
         }).collect();
 
