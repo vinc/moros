@@ -101,6 +101,14 @@ impl FileStat {
         Self { kind: FileType::File, name: String::new(), size: 0, time: 0 }
     }
 
+    pub fn root() -> Self {
+        let kind = FileType::Dir;
+        let name = String::new();
+        let size = Dir::root().size() as u32;
+        let time = 0;
+        Self { kind, name, size, time }
+    }
+
     pub fn size(&self) -> u32 {
         self.size
     }

@@ -79,6 +79,9 @@ pub fn delete(path: &str) -> Result<(), ()> {
 }
 
 pub fn stat(pathname: &str) -> Option<FileStat> {
+    if pathname == "/" {
+        return Some(FileStat::root());
+    }
     DirEntry::open(pathname).map(|e| e.stat())
 }
 
