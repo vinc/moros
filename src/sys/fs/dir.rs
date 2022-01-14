@@ -13,17 +13,18 @@ use core::convert::From;
 #[derive(Debug, Clone, Copy)]
 pub struct Dir {
     addr: u32,
+    offset: u32,
 }
 
 impl From<DirEntry> for Dir {
     fn from(entry: DirEntry) -> Self {
-        Self { addr: entry.addr() }
+        Self { addr: entry.addr(), offset: 0 }
     }
 }
 
 impl Dir {
     pub fn root() -> Self {
-        Self { addr: SuperBlock::read().data_area() }
+        Self { addr: SuperBlock::read().data_area(), offset: 0 }
     }
 
     pub fn create(pathname: &str) -> Option<Self> {
