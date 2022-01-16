@@ -80,7 +80,8 @@ pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
     let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
     if let Some(handle) = syscall::open(path, flags) {
         let buf = [kind as u8; 1];
-        return syscall::write(handle, &buf);
+        syscall::write(handle, &buf);
+        return Some(handle);
     }
     None
 }
