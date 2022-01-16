@@ -1,10 +1,10 @@
 use crate::{api, sys, usr};
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::fs::DeviceType;
 use crate::api::io;
 use crate::api::syscall;
 use alloc::string::String;
-use crate::sys::fs::DeviceType;
 
 pub fn copy_files(verbose: bool) {
     create_dir("/bin", verbose); // Binaries

@@ -3,7 +3,7 @@ use crate::api::console::Style;
 use crate::api::time;
 use crate::api::fs;
 use crate::api::syscall;
-use crate::sys::fs::FileStat;
+use crate::api::fs::FileStat;
 
 use alloc::string::ToString;
 use alloc::vec::Vec;

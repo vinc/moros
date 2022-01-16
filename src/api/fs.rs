@@ -1,12 +1,13 @@
 use crate::sys;
-use crate::sys::fs::{OpenFlag, DeviceType};
-use crate::sys::fs::FileStat;
+use crate::sys::fs::OpenFlag;
 use crate::api::syscall;
 
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloc::vec;
+
+pub use crate::sys::fs::{FileStat, DeviceType};
 
 pub trait FileIO {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
