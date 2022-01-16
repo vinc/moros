@@ -118,7 +118,9 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     // Create home dir
-    if api::fs::create_dir(&format!("/usr/{}", username)).is_none() {
+    if let Some(handle) = api::fs::create_dir(&format!("/usr/{}", username)) {
+        api::syscall::close(handle);
+    } else {
         eprintln!("Could not create home dir");
         return usr::shell::ExitCode::CommandError;
     }
