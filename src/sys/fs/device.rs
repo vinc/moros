@@ -11,6 +11,7 @@ pub enum DeviceType {
     File = 0,
     Console = 1,
     Random = 2,
+    Null = 3,
 }
 
 #[derive(Debug, Clone)]
@@ -18,6 +19,7 @@ pub enum Device {
     File(File),
     Console(Console),
     Random(Random),
+    Null,
 }
 
 impl Device {
@@ -25,6 +27,7 @@ impl Device {
         match i {
             i if i == DeviceType::Console as u8 => Device::Console(Console::new()),
             i if i == DeviceType::Random as u8 => Device::Random(Random::new()),
+            i if i == DeviceType::Null as u8 => Device::Null,
             _ => unimplemented!(),
         }
     }
@@ -64,6 +67,7 @@ impl FileIO for Device {
             Device::File(io) => io.read(buf),
             Device::Console(io) => io.read(buf),
             Device::Random(io) => io.read(buf),
+            Device::Null => Ok(0),
         }
     }
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
@@ -71,6 +75,7 @@ impl FileIO for Device {
             Device::File(io) => io.write(buf),
             Device::Console(io) => io.write(buf),
             Device::Random(io) => io.write(buf),
+            Device::Null => Ok(0),
         }
     }
 }

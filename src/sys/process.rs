@@ -36,6 +36,7 @@ impl ProcessData {
         file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
+        file_handles[3] = Some(Resource::Device(Device::Null));
         Self { env, dir, user, file_handles }
     }
 }
