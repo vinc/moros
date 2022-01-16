@@ -57,6 +57,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         i += 1;
     }
 
+    if path.len() > 1 {
+        path = path.trim_end_matches('/');
+    }
+
     if name.is_some() {
         todo!();
     }
@@ -70,9 +74,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
-    if let Some(dir) = sys::fs::Dir::open(path) {
+    if let Ok(files) = fs::read_dir(path) {
         state.is_recursive = true;
-        for file in dir.entries() {
+        for file in files {
             let file_path = format!("{}/{}", path, file.name());
             if file.is_dir() {
                 print_matching_lines(&file_path, pattern, state);

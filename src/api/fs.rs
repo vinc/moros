@@ -47,6 +47,14 @@ pub fn exists(path: &str) -> bool {
     syscall::stat(path).is_some()
 }
 
+pub fn is_dir(path: &str) -> bool {
+    if let Some(stat) = syscall::stat(path) {
+        stat.is_dir()
+    } else {
+        false
+    }
+}
+
 pub fn delete(path: &str) -> Result<(), ()> {
     syscall::delete(path)
 }

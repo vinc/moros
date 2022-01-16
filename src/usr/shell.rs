@@ -110,11 +110,11 @@ fn change_dir(args: &[&str]) -> ExitCode {
             if pathname.len() > 1 {
                 pathname = pathname.trim_end_matches('/').into();
             }
-            if sys::fs::Dir::open(&pathname).is_some() {
+            if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
                 ExitCode::CommandSuccessful
             } else {
-                println!("File not found '{}'", pathname);
+                eprintln!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },

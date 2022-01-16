@@ -1,4 +1,5 @@
-use crate::{sys, usr};
+use crate::usr;
+use crate::api::syscall;
 use crate::api::fs;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
@@ -24,8 +25,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    if let Some(dir) = sys::fs::Dir::open(pathname) {
-        if dir.entries().count() != 0 {
+    if let Some(stat) = syscall::stat(pathname) {
+        if stat.is_dir() && stat.size() > 0 {
             eprintln!("Directory '{}' not empty", pathname);
             return usr::shell::ExitCode::CommandError;
         }

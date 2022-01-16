@@ -1,9 +1,10 @@
-use crate::{sys, usr};
+use crate::{api, sys, usr};
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
 use crate::api::syscall;
 use alloc::string::String;
+use crate::sys::fs::DeviceType;
 
 pub fn copy_files(verbose: bool) {
     create_dir("/bin", verbose); // Binaries
@@ -20,18 +21,8 @@ pub fn copy_files(verbose: bool) {
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
 
     create_dir("/dev/clk", verbose); // Clocks
-    let pathname = "/dev/console";
-    if syscall::stat(pathname).is_none() {
-        if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() && verbose {
-            println!("Created '{}'", pathname);
-        }
-    }
-    let pathname = "/dev/random";
-    if syscall::stat(pathname).is_none() {
-        if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() && verbose {
-            println!("Created '{}'", pathname);
-        }
-    }
+    create_dev("/dev/random", DeviceType::Random, verbose);
+    create_dev("/dev/console", DeviceType::Console, verbose);
 
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
@@ -103,8 +94,22 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn create_dir(pathname: &str, verbose: bool) {
-    if sys::fs::Dir::create(pathname).is_some() && verbose {
-        println!("Created '{}'", pathname);
+    if let Some(handle) = api::fs::create_dir(pathname) {
+        syscall::close(handle);
+        if verbose {
+            println!("Created '{}'", pathname);
+        }
+    }
+}
+
+fn create_dev(pathname: &str, dev: DeviceType, verbose: bool) {
+    if syscall::stat(pathname).is_none() {
+        if let Some(handle) = fs::create_device(pathname, dev) {
+            syscall::close(handle);
+            if verbose {
+                println!("Created '{}'", pathname);
+            }
+        }
     }
 }
 

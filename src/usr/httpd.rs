@@ -97,11 +97,10 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = contents.replace("\n", "\r\n");
                                         mime = "text/plain";
-                                    } else if let Some(dir) = sys::fs::Dir::open(path) {
+                                    } else if let Ok(mut files) = fs::read_dir(path) {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                         body = format!("<h1>Index of {}</h1>\r\n", path);
-                                        let mut files: Vec<_> = dir.entries().collect();
                                         files.sort_by_key(|f| f.name());
                                         for file in files {
                                             let sep = if path == "/" { "" } else { "/" };
@@ -122,7 +121,8 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                         if fs::exists(path) {
                                             code = 403;
                                             res.push_str("HTTP/1.0 403 Forbidden\r\n");
-                                        } else if fs::create_dir(path).is_some() {
+                                        } else if let Some(handle) = fs::create_dir(path) {
+                                            syscall::close(handle);
                                             code = 200;
                                             res.push_str("HTTP/1.0 200 OK\r\n");
                                         } else {

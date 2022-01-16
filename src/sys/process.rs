@@ -91,7 +91,6 @@ pub fn set_user(user: &str) {
 pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-
     let min = 4; // The first 4 file handles are reserved
     let max = MAX_FILE_HANDLES;
     for handle in min..max {
@@ -100,6 +99,7 @@ pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
             return Ok(handle);
         }
     }
+    debug!("Could not create file handle");
     Err(())
 }
 

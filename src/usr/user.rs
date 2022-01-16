@@ -118,7 +118,10 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     // Create home dir
-    sys::fs::Dir::create(&format!("/usr/{}", username)).unwrap();
+    if api::fs::create_dir(&format!("/usr/{}", username)).is_none() {
+        eprintln!("Could not create home dir");
+        return usr::shell::ExitCode::CommandError;
+    }
 
     usr::shell::ExitCode::CommandSuccessful
 }

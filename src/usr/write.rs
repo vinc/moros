@@ -15,14 +15,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     // The command `write /usr/alice/` with a trailing slash will create
     // a directory, while the same command without a trailing slash will
     // create a file.
-    let success = if pathname.ends_with('/') {
+    let res = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
-        api::fs::create_dir(pathname).is_some()
+        api::fs::create_dir(pathname)
     } else {
-        api::fs::create_file(pathname).is_some()
+        api::fs::create_file(pathname)
     };
-
-    if success {
+    if let Some(handle) = res {
+        api::syscall::close(handle);
         usr::shell::ExitCode::CommandSuccessful
     } else {
         eprintln!("Could not write to '{}'", pathname);
