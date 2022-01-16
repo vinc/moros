@@ -3,7 +3,7 @@ use crate::api::console::Style;
 use crate::api::time;
 use crate::api::fs;
 use crate::api::syscall;
-use crate::api::fs::FileStat;
+use crate::api::fs::FileInfo;
 
 use alloc::string::ToString;
 use alloc::vec::Vec;
@@ -31,8 +31,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         path = path.trim_end_matches('/');
     }
 
-    if let Some(stat) = syscall::stat(path) {
-        if stat.is_dir() {
+    if let Some(info) = syscall::info(path) {
+        if info.is_dir() {
             if let Ok(entries) = fs::read_dir(path) {
                 let mut files: Vec<_> = entries.iter().filter(|entry| {
                     !(entry.name().starts_with('.') && hide_dot_files)
@@ -64,7 +64,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 usr::shell::ExitCode::CommandError
             }
         } else {
-            print_file(&stat, stat.size().to_string().len());
+            print_file(&info, info.size().to_string().len());
             usr::shell::ExitCode::CommandSuccessful
         }
     } else {
@@ -73,7 +73,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
-fn print_file(file: &FileStat, width: usize) {
+fn print_file(file: &FileInfo, width: usize) {
     let csi_dir_color = Style::color("Blue");
     let csi_dev_color = Style::color("Yellow");
     let csi_reset = Style::reset();

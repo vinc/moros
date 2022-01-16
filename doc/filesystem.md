@@ -176,7 +176,7 @@ Structure:
 
 ### FileStat
 
-The `stat` syscall on a file or directory and the `read` syscall on a directory
+The `info` syscall on a file or directory and the `read` syscall on a directory
 return a subset of a directory entry for userspace programs.
 
 Structure:

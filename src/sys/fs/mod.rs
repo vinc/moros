@@ -13,7 +13,7 @@ use crate::sys;
 pub use bitmap_block::BITMAP_SIZE;
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
-pub use dir_entry::FileStat;
+pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
 pub use crate::api::fs::{dirname, filename, realpath, FileIO};
@@ -68,21 +68,21 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
 }
 
 pub fn delete(path: &str) -> Result<(), ()> {
-    if let Some(stat) = stat(path) {
-        if stat.is_file() {
+    if let Some(info) = info(path) {
+        if info.is_file() {
             return File::delete(path);
-        } else if stat.is_dir() {
+        } else if info.is_dir() {
             return Dir::delete(path);
         }
     }
     Err(())
 }
 
-pub fn stat(pathname: &str) -> Option<FileStat> {
+pub fn info(pathname: &str) -> Option<FileInfo> {
     if pathname == "/" {
-        return Some(FileStat::root());
+        return Some(FileInfo::root());
     }
-    DirEntry::open(pathname).map(|e| e.stat())
+    DirEntry::open(pathname).map(|e| e.info())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

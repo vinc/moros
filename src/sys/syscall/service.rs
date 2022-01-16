@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::fs::FileStat;
+use crate::sys::fs::FileInfo;
 use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
 use alloc::vec;
@@ -29,13 +29,13 @@ pub fn delete(path: &str) -> isize {
     }
 }
 
-pub fn stat(path: &str, stat: &mut FileStat) -> isize {
+pub fn info(path: &str, info: &mut FileInfo) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return -1,
     };
-    if let Some(res) = sys::fs::stat(&path) {
-        *stat = res;
+    if let Some(res) = sys::fs::info(&path) {
+        *info = res;
         0
     } else {
         -1

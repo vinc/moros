@@ -104,7 +104,7 @@ fn create_dir(pathname: &str, verbose: bool) {
 }
 
 fn create_dev(pathname: &str, dev: DeviceType, verbose: bool) {
-    if syscall::stat(pathname).is_none() {
+    if syscall::info(pathname).is_none() {
         if let Some(handle) = fs::create_device(pathname, dev) {
             syscall::close(handle);
             if verbose {

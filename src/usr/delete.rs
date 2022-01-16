@@ -20,8 +20,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    if let Some(stat) = syscall::stat(pathname) {
-        if stat.is_dir() && stat.size() > 0 {
+    if let Some(info) = syscall::info(pathname) {
+        if info.is_dir() && info.size() > 0 {
             eprintln!("Directory '{}' not empty", pathname);
             return usr::shell::ExitCode::CommandError;
         }

@@ -8,7 +8,7 @@ pub struct DirEntry {
     dir: Dir,
     addr: u32,
 
-    // FileStat
+    // FileInfo
     kind: FileType,
     size: u32,
     time: u64,
@@ -79,20 +79,20 @@ impl DirEntry {
         self.time
     }
 
-    pub fn stat(&self) -> FileStat {
-        FileStat { kind: self.kind, name: self.name(), size: self.size(), time: self.time }
+    pub fn info(&self) -> FileInfo {
+        FileInfo { kind: self.kind, name: self.name(), size: self.size(), time: self.time }
     }
 }
 
 #[derive(Debug)]
-pub struct FileStat {
+pub struct FileInfo {
     kind: FileType,
     size: u32,
     time: u64,
     name: String,
 }
 
-impl FileStat {
+impl FileInfo {
     pub fn new() -> Self {
         Self { kind: FileType::File, name: String::new(), size: 0, time: 0 }
     }
@@ -145,7 +145,7 @@ impl FileStat {
 
 use core::convert::TryInto;
 use core::convert::From;
-impl From<&[u8]> for FileStat {
+impl From<&[u8]> for FileInfo {
     fn from(buf: &[u8]) -> Self {
         let kind = match buf[0] { // TODO: Add FileType::from(u8)
             0 => FileType::Dir,

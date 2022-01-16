@@ -69,8 +69,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         }
                     }
                 }
-            } else if let Some(stat) = syscall::stat(path) {
-                if stat.is_file() {
+            } else if let Some(info) = syscall::info(path) {
+                if info.is_file() {
                     if let Ok(contents) = api::fs::read_to_string(path) {
                         print!("{}", contents);
                         usr::shell::ExitCode::CommandSuccessful
@@ -78,9 +78,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         eprintln!("Could not read '{}'", path);
                         usr::shell::ExitCode::CommandError
                     }
-                } else if stat.is_dir() {
+                } else if info.is_dir() {
                     usr::list::main(args)
-                } else if stat.is_device() {
+                } else if info.is_device() {
                     loop {
                         if let Ok(bytes) = fs::read_to_bytes(path) {
                             print!("{}", bytes[0] as char);

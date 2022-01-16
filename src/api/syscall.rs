@@ -1,6 +1,6 @@
 use crate::syscall;
 use crate::sys::syscall::number::*;
-use crate::sys::fs::FileStat;
+use crate::sys::fs::FileInfo;
 
 pub fn exit(code: usize) -> usize {
     unsafe { syscall!(EXIT, code as u64) }
@@ -31,16 +31,16 @@ pub fn delete(path: &str) -> Result<(), ()> {
     }
 }
 
-pub fn stat(path: &str) -> Option<FileStat> {
+pub fn info(path: &str) -> Option<FileInfo> {
     let path_ptr = path.as_ptr() as usize;
     let path_len = path.len() as usize;
-    let mut stat = FileStat::new();
-    let stat_ptr = &mut stat as *mut FileStat as usize;
-    let res = unsafe { syscall!(STAT, path_ptr, path_len, stat_ptr) } as isize;
+    let mut info = FileInfo::new();
+    let stat_ptr = &mut info as *mut FileInfo as usize;
+    let res = unsafe { syscall!(INFO, path_ptr, path_len, stat_ptr) } as isize;
     if res.is_negative() {
         None
     } else {
-        Some(stat)
+        Some(info)
     }
 }
 

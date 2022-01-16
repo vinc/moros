@@ -231,8 +231,8 @@ impl FileIO for Dir {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let mut i = 0;
         for entry in self.entries().skip(self.offset as usize) {
-            let stat = entry.stat();
-            let bytes = stat.as_bytes();
+            let info = entry.info();
+            let bytes = info.as_bytes();
             let j = i + bytes.len();
             if j < buf.len() {
                 buf[i..j].copy_from_slice(&bytes);
