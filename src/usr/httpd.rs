@@ -143,7 +143,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                                 },
                                 "DELETE" => {
                                     if fs::exists(path) {
-                                        if sys::fs::File::delete(path).is_ok() {
+                                        if fs::delete(path).is_ok() {
                                             code = 200;
                                             res.push_str("HTTP/1.0 200 OK\r\n");
                                         } else {
