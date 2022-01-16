@@ -99,6 +99,36 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
     args
 }
 
+fn proc(args: &[&str]) -> ExitCode {
+    match args.len() {
+        1 => {
+            ExitCode::CommandSuccessful
+        },
+        2 => {
+            match args[1] {
+                "id" => {
+                    println!("{}", sys::process::id());
+                    ExitCode::CommandSuccessful
+                }
+                "files" => {
+                    for (i, handle) in sys::process::file_handles().iter().enumerate() {
+                        if let Some(resource) = handle {
+                            println!("{}: {:?}", i, resource);
+                        }
+                    }
+                    ExitCode::CommandSuccessful
+                }
+                _ => {
+                    ExitCode::CommandError
+                }
+            }
+        },
+        _ => {
+            ExitCode::CommandError
+        }
+    }
+}
+
 fn change_dir(args: &[&str]) -> ExitCode {
     match args.len() {
         1 => {
@@ -240,6 +270,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "elf"                  => usr::elf::main(&args),
         "pci"                  => usr::pci::main(&args),
         "2048"                 => usr::pow::main(&args),
+        "proc"                 => proc(&args),
         cmd                    => {
             if api::process::spawn(cmd).is_ok() {
                 ExitCode::CommandSuccessful

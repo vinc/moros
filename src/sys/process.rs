@@ -1,7 +1,9 @@
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
+
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
@@ -119,6 +121,12 @@ pub fn file_handle(handle: usize) -> Option<Resource> {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.file_handles[handle].clone()
+}
+
+pub fn file_handles() -> Vec<Option<Resource>> {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.file_handles.to_vec()
 }
 
 pub fn code_addr() -> u64 {
