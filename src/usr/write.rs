@@ -7,11 +7,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let pathname = args[1];
 
-    if pathname.starts_with("/dev") || pathname.starts_with("/sys") {
-        eprintln!("Permission denied to write to '{}'", pathname);
-        return usr::shell::ExitCode::CommandError;
-    }
-
     // The command `write /usr/alice/` with a trailing slash will create
     // a directory, while the same command without a trailing slash will
     // create a file.
@@ -21,6 +16,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     } else {
         api::fs::create_file(pathname)
     };
+
     if let Some(handle) = res {
         api::syscall::close(handle);
         usr::shell::ExitCode::CommandSuccessful

@@ -9,11 +9,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let mut pathname = args[1];
 
-    if pathname.starts_with("/dev") || pathname.starts_with("/sys") {
-        eprintln!("Permission denied to delete '{}'", pathname);
-        return usr::shell::ExitCode::CommandError;
-    }
-
     // The commands `delete /usr/alice/` and `delete /usr/alice` are equivalent,
     // but `delete /` should not be modified.
     if pathname.len() > 1 {
