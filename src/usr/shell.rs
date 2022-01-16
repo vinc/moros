@@ -40,11 +40,11 @@ fn shell_completer(line: &str) -> Vec<String> {
         let dirname = fs::dirname(&pathname);
         let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
-        if let Some(dir) = sys::fs::Dir::open(dirname) {
-            for entry in dir.entries() {
-                let name = entry.name();
+        if let Ok(files) = fs::read_dir(dirname) {
+            for file in files {
+                let name = file.name();
                 if name.starts_with(filename) {
-                    let end = if entry.is_dir() { "/" } else { "" };
+                    let end = if file.is_dir() { "/" } else { "" };
                     let path = format!("{}{}{}{}", dirname, sep, name, end);
                     entries.push(path[pathname.len()..].into());
                 }
