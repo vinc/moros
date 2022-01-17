@@ -24,7 +24,7 @@ impl PrintingState {
 
 // > find /tmp -name *.txt -line hello
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    let mut path: &str = &sys::process::dir();
+    let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut name = None;
     let mut line = None;
     let mut i = 1;

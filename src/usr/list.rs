@@ -9,7 +9,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    let mut path: &str = &sys::process::dir();
+    let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut sort = "name";
     let mut hide_dot_files = true;
 

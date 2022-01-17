@@ -17,12 +17,12 @@ pub struct Dir {
     name: String,
     addr: u32,
     size: u32,
-    offset: u32,
+    entry_index: u32,
 }
 
 impl From<DirEntry> for Dir {
     fn from(entry: DirEntry) -> Self {
-        Self { parent: Some(Box::new(entry.dir())), name: entry.name(), addr: entry.addr(), size: entry.size(), offset: 0 }
+        Self { parent: Some(Box::new(entry.dir())), name: entry.name(), addr: entry.addr(), size: entry.size(), entry_index: 0 }
     }
 }
 
@@ -30,7 +30,7 @@ impl Dir {
     pub fn root() -> Self {
         let name = String::new();
         let addr = SuperBlock::read().data_area();
-        let mut root = Self { parent: None, name, addr, size: 0, offset: 0 };
+        let mut root = Self { parent: None, name, addr, size: 0, entry_index: 0 };
         root.update_size();
         root
     }
@@ -116,14 +116,14 @@ impl Dir {
         while entries.next().is_some() {}
 
         // Allocate a new block for the dir if no space left for adding the new entry
-        let space_left = entries.block.data().len() - entries.block_data_offset();
+        let space_left = entries.block.data().len() - entries.block_offset();
         let entry_len = DirEntry::empty_len() + name.len();
         if entry_len > space_left {
             match entries.block.alloc_next() {
                 None => return None, // Disk is full
                 Some(new_block) => {
                     entries.block = new_block;
-                    entries.block_data_offset = 0;
+                    entries.block_offset = 0;
                 },
             }
         }
@@ -136,7 +136,7 @@ impl Dir {
         let entry_time = sys::clock::realtime() as u64;
         let entry_name = truncate(name, u8::MAX as usize);
         let n = entry_name.len();
-        let i = entries.block_data_offset();
+        let i = entries.block_offset();
         let data = entries.block.data_mut();
 
         data[i] = entry_kind;
@@ -159,7 +159,7 @@ impl Dir {
         for entry in &mut entries {
             if entry.name() == name {
                 // Zeroing entry addr
-                let i = entries.block_data_offset() - entry.len();
+                let i = entries.block_offset() - entry.len();
                 let data = entries.block.data_mut();
                 data[i + 1] = 0;
                 data[i + 2] = 0;
@@ -188,7 +188,7 @@ impl Dir {
         let mut entries = self.entries();
         for entry in &mut entries {
             if entry.name() == name {
-                let i = entries.block_data_offset() - entry.len();
+                let i = entries.block_offset() - entry.len();
                 let data = entries.block.data_mut();
                 data[(i + 5)..(i + 9)].clone_from_slice(&size.to_be_bytes());
                 data[(i + 9)..(i + 17)].clone_from_slice(&time.to_be_bytes());
@@ -230,13 +230,13 @@ impl Dir {
 impl FileIO for Dir {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let mut i = 0;
-        for entry in self.entries().skip(self.offset as usize) {
+        for entry in self.entries().skip(self.entry_index as usize) {
             let info = entry.info();
             let bytes = info.as_bytes();
             let j = i + bytes.len();
             if j < buf.len() {
                 buf[i..j].copy_from_slice(&bytes);
-                self.offset += 1;
+                self.entry_index += 1;
                 i = j;
             } else {
                 break;
