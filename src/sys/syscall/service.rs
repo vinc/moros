@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::fs::FileStat;
+use crate::sys::fs::FileInfo;
 use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
 use alloc::vec;
@@ -21,13 +21,21 @@ pub fn realtime() -> f64 {
     sys::clock::realtime()
 }
 
-pub fn stat(path: &str, stat: &mut FileStat) -> isize {
+pub fn delete(path: &str) -> isize {
+    if sys::fs::delete(path).is_ok() {
+        0
+    } else {
+        -1
+    }
+}
+
+pub fn info(path: &str, info: &mut FileInfo) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return -1,
     };
-    if let Some(res) = sys::fs::stat(&path) {
-        *stat = res;
+    if let Some(res) = sys::fs::info(&path) {
+        *info = res;
         0
     } else {
         -1

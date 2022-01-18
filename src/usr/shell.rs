@@ -40,11 +40,11 @@ fn shell_completer(line: &str) -> Vec<String> {
         let dirname = fs::dirname(&pathname);
         let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
-        if let Some(dir) = sys::fs::Dir::open(dirname) {
-            for entry in dir.entries() {
-                let name = entry.name();
+        if let Ok(files) = fs::read_dir(dirname) {
+            for file in files {
+                let name = file.name();
                 if name.starts_with(filename) {
-                    let end = if entry.is_dir() { "/" } else { "" };
+                    let end = if file.is_dir() { "/" } else { "" };
                     let path = format!("{}{}{}{}", dirname, sep, name, end);
                     entries.push(path[pathname.len()..].into());
                 }
@@ -99,6 +99,36 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
     args
 }
 
+fn proc(args: &[&str]) -> ExitCode {
+    match args.len() {
+        1 => {
+            ExitCode::CommandSuccessful
+        },
+        2 => {
+            match args[1] {
+                "id" => {
+                    println!("{}", sys::process::id());
+                    ExitCode::CommandSuccessful
+                }
+                "files" => {
+                    for (i, handle) in sys::process::file_handles().iter().enumerate() {
+                        if let Some(resource) = handle {
+                            println!("{}: {:?}", i, resource);
+                        }
+                    }
+                    ExitCode::CommandSuccessful
+                }
+                _ => {
+                    ExitCode::CommandError
+                }
+            }
+        },
+        _ => {
+            ExitCode::CommandError
+        }
+    }
+}
+
 fn change_dir(args: &[&str]) -> ExitCode {
     match args.len() {
         1 => {
@@ -110,11 +140,11 @@ fn change_dir(args: &[&str]) -> ExitCode {
             if pathname.len() > 1 {
                 pathname = pathname.trim_end_matches('/').into();
             }
-            if sys::fs::Dir::open(&pathname).is_some() {
+            if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
                 ExitCode::CommandSuccessful
             } else {
-                println!("File not found '{}'", pathname);
+                eprintln!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },
@@ -240,6 +270,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "elf"                  => usr::elf::main(&args),
         "pci"                  => usr::pci::main(&args),
         "2048"                 => usr::pow::main(&args),
+        "proc"                 => proc(&args),
         cmd                    => {
             if api::process::spawn(cmd).is_ok() {
                 ExitCode::CommandSuccessful

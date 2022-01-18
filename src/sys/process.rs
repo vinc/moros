@@ -1,7 +1,9 @@
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
+
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
@@ -34,6 +36,7 @@ impl ProcessData {
         file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
         file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
+        file_handles[3] = Some(Resource::Device(Device::Null));
         Self { env, dir, user, file_handles }
     }
 }
@@ -91,7 +94,6 @@ pub fn set_user(user: &str) {
 pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-
     let min = 4; // The first 4 file handles are reserved
     let max = MAX_FILE_HANDLES;
     for handle in min..max {
@@ -100,6 +102,7 @@ pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
             return Ok(handle);
         }
     }
+    debug!("Could not create file handle");
     Err(())
 }
 
@@ -119,6 +122,12 @@ pub fn file_handle(handle: usize) -> Option<Resource> {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.file_handles[handle].clone()
+}
+
+pub fn file_handles() -> Vec<Option<Resource>> {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.file_handles.to_vec()
 }
 
 pub fn code_addr() -> u64 {

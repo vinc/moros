@@ -1,11 +1,13 @@
-use crate::api::syscall;
-use crate::sys::fs::{OpenFlag, DeviceType};
 use crate::sys;
+use crate::sys::fs::OpenFlag;
+use crate::api::syscall;
 
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use alloc::vec;
+
+pub use crate::sys::fs::{FileInfo, DeviceType};
 
 pub trait FileIO {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
@@ -43,7 +45,19 @@ pub fn realpath(pathname: &str) -> String {
 }
 
 pub fn exists(path: &str) -> bool {
-    syscall::stat(path).is_some()
+    syscall::info(path).is_some()
+}
+
+pub fn is_dir(path: &str) -> bool {
+    if let Some(info) = syscall::info(path) {
+        info.is_dir()
+    } else {
+        false
+    }
+}
+
+pub fn delete(path: &str) -> Result<(), ()> {
+    syscall::delete(path)
 }
 
 pub fn open_file(path: &str) -> Option<usize> {
@@ -75,14 +89,15 @@ pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
     let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
     if let Some(handle) = syscall::open(path, flags) {
         let buf = [kind as u8; 1];
-        return syscall::write(handle, &buf);
+        syscall::write(handle, &buf);
+        return Some(handle);
     }
     None
 }
 
 pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {
-    if let Some(stat) = syscall::stat(&path) {
-        let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
+    if let Some(info) = syscall::info(&path) {
+        let res = if info.is_device() { open_device(&path) } else { open_file(&path) };
         if let Some(handle) = res {
             if let Some(bytes) = syscall::read(handle, buf) {
                 syscall::close(handle);
@@ -99,10 +114,17 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
 }
 
 pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
-    if let Some(stat) = syscall::stat(&path) {
-        let res = if stat.is_device() { open_device(&path) } else { open_file(&path) };
-        if let Some(handle) = res {
-            let mut buf = vec![0; stat.size() as usize];
+    if let Some(info) = syscall::info(&path) {
+        let f = if info.is_device() {
+            open_device(&path)
+        } else if info.is_dir() {
+            open_dir(&path)
+        } else {
+            open_file(&path)
+        };
+        if let Some(handle) = f {
+            let n = info.size() as usize;
+            let mut buf = vec![0; n];
             if let Some(bytes) = syscall::read(handle, &mut buf) {
                 buf.resize(bytes, 0);
                 syscall::close(handle);
@@ -124,8 +146,8 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
 }
 
 pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
-    let res = if let Some(stat) = syscall::stat(&path) {
-        if stat.is_device() {
+    let res = if let Some(info) = syscall::info(&path) {
+        if info.is_device() {
             open_device(&path)
         } else {
             open_file(&path)
@@ -137,6 +159,29 @@ pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
         syscall::dup(old_handle, handle);
         syscall::close(old_handle);
         return Ok(handle);
+    }
+    Err(())
+}
+
+pub fn read_dir(path: &str) -> Result<Vec<FileInfo>, ()> {
+    if let Some(info) = syscall::info(&path) {
+        if info.is_dir() {
+            if let Ok(buf) = read_to_bytes(path) {
+                let mut res = Vec::new();
+                let mut i = 0;
+                let n = buf.len();
+                while i < n {
+                    let j = i + 14 + buf[i + 13] as usize;
+                    if j > n {
+                        break;
+                    }
+                    let info = FileInfo::from(&buf[i..j]);
+                    res.push(info);
+                    i = j;
+                }
+                return Ok(res);
+            }
+        }
     }
     Err(())
 }
