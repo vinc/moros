@@ -95,10 +95,12 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn create_dir(pathname: &str, verbose: bool) {
-    if let Some(handle) = api::fs::create_dir(pathname) {
-        syscall::close(handle);
-        if verbose {
-            println!("Created '{}'", pathname);
+    if syscall::info(pathname).is_none() {
+        if let Some(handle) = api::fs::create_dir(pathname) {
+            syscall::close(handle);
+            if verbose {
+                println!("Created '{}'", pathname);
+            }
         }
     }
 }
