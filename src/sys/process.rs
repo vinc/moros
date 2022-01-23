@@ -12,7 +12,7 @@ use spin::RwLock;
 use x86_64::structures::idt::InterruptStackFrameValue;
 
 const MAX_FILE_HANDLES: usize = 64;
-const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
+const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
 
 lazy_static! {
     pub static ref PID: AtomicUsize = AtomicUsize::new(0);
