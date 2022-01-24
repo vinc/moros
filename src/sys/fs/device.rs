@@ -35,8 +35,8 @@ pub enum Device {
     Null,
 }
 
-impl Device {
-    fn new(i: u8) -> Self {
+impl From<u8> for Device {
+    fn from(i: u8) -> Self {
         match i {
             i if i == DeviceType::Console as u8 => Device::Console(Console::new()),
             i if i == DeviceType::Random as u8 => Device::Random(Random::new()),
@@ -44,7 +44,9 @@ impl Device {
             _ => unimplemented!(),
         }
     }
+}
 
+impl Device {
     pub fn create(pathname: &str) -> Option<Self> {
         let pathname = realpath(pathname);
         let dirname = dirname(&pathname);
@@ -66,7 +68,7 @@ impl Device {
                 if dir_entry.is_device() {
                     let block = LinkedBlock::read(dir_entry.addr());
                     let data = block.data();
-                    return Some(Self::new(data[0]));
+                    return Some(data[0].into());
                 }
             }
         }
