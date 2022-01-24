@@ -91,6 +91,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             for b in bytes {
                                 print!("{}", b as char);
                             }
+                        } else {
+                            eprintln!("Could not read '{}'", path);
+                            return usr::shell::ExitCode::CommandError;
                         }
                     }
                 } else {
