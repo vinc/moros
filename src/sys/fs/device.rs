@@ -3,15 +3,28 @@ use super::dir::Dir;
 use super::file::File;
 use super::block::LinkedBlock;
 
+use alloc::vec;
+use alloc::vec::Vec;
 use crate::sys::console::Console;
 use crate::sys::random::Random;
 
+#[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum DeviceType {
     File = 0,
     Console = 1,
     Random = 2,
     Null = 3,
+}
+
+impl DeviceType {
+    pub fn buf(self) -> Vec<u8> {
+        if self == DeviceType::Console {
+            vec![self as u8, 0, 0, 0] // 4 bytes
+        } else {
+            vec![self as u8] // 1 byte
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
