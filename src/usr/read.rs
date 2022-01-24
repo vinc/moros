@@ -2,6 +2,7 @@ use crate::{api, sys, usr};
 use crate::api::fs;
 use crate::api::syscall;
 use crate::sys::cmos::CMOS;
+
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 
@@ -82,12 +83,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     usr::list::main(args)
                 } else if info.is_device() {
                     loop {
-                        if let Ok(bytes) = fs::read_to_bytes(path) {
-                            print!("{}", bytes[0] as char);
-                        }
                         if sys::console::end_of_text() {
                             println!();
                             return usr::shell::ExitCode::CommandSuccessful;
+                        }
+                        if let Ok(bytes) = fs::read_to_bytes(path) {
+                            for b in bytes {
+                                print!("{}", b as char);
+                            }
                         }
                     }
                 } else {
