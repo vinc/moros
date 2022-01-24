@@ -82,7 +82,7 @@ impl FileIO for Device {
             Device::File(io) => io.read(buf),
             Device::Console(io) => io.read(buf),
             Device::Random(io) => io.read(buf),
-            Device::Null => Ok(0),
+            Device::Null => Err(()),
         }
     }
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
