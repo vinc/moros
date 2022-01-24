@@ -1,6 +1,7 @@
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
 
+use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -10,13 +11,13 @@ use object::{Object, ObjectSegment};
 use spin::RwLock;
 use x86_64::structures::idt::InterruptStackFrameValue;
 
-const MAX_FILE_HANDLES: usize = 16; // FIXME Increasing this cause boot crashes
-const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
+const MAX_FILE_HANDLES: usize = 64;
+const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
 
 lazy_static! {
     pub static ref PID: AtomicUsize = AtomicUsize::new(0);
     pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(1);
-    pub static ref PROCESS_TABLE: RwLock<[Process; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Process::new(0)));
+    pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new(0))));
 }
 
 #[derive(Clone, Debug)]
@@ -24,7 +25,7 @@ pub struct ProcessData {
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
-    file_handles: [Option<Resource>; MAX_FILE_HANDLES],
+    file_handles: [Option<Box<Resource>>; MAX_FILE_HANDLES],
 }
 
 impl ProcessData {
@@ -33,10 +34,10 @@ impl ProcessData {
         let dir = dir.to_string();
         let user = user.map(String::from);
         let mut file_handles = [(); MAX_FILE_HANDLES].map(|_| None);
-        file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
-        file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
-        file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
-        file_handles[3] = Some(Resource::Device(Device::Null));
+        file_handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
+        file_handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
+        file_handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
+        file_handles[3] = Some(Box::new(Resource::Device(Device::Null)));
         Self { env, dir, user, file_handles }
     }
 }
@@ -98,7 +99,7 @@ pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
     let max = MAX_FILE_HANDLES;
     for handle in min..max {
         if proc.data.file_handles[handle].is_none() {
-            proc.data.file_handles[handle] = Some(file);
+            proc.data.file_handles[handle] = Some(Box::new(file));
             return Ok(handle);
         }
     }
@@ -109,7 +110,7 @@ pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
 pub fn update_file_handle(handle: usize, file: Resource) {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-    proc.data.file_handles[handle] = Some(file);
+    proc.data.file_handles[handle] = Some(Box::new(file));
 }
 
 pub fn delete_file_handle(handle: usize) {
@@ -118,13 +119,13 @@ pub fn delete_file_handle(handle: usize) {
     proc.data.file_handles[handle] = None;
 }
 
-pub fn file_handle(handle: usize) -> Option<Resource> {
+pub fn file_handle(handle: usize) -> Option<Box<Resource>> {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.file_handles[handle].clone()
 }
 
-pub fn file_handles() -> Vec<Option<Resource>> {
+pub fn file_handles() -> Vec<Option<Box<Resource>>> {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.file_handles.to_vec()
@@ -290,7 +291,7 @@ impl Process {
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
         let proc = Process { id, code_addr, code_size, entry_point, data, stack_frame, registers };
-        table[id] = proc;
+        table[id] = Box::new(proc);
 
         Ok(id)
     }
