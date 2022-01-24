@@ -242,11 +242,7 @@ impl FileIO for Dir {
                 break;
             }
         }
-        if i > 0 {
-            Ok(i)
-        } else {
-            Err(())
-        }
+        Ok(i)
     }
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         Err(())
