@@ -1,6 +1,8 @@
 use crate::sys;
 use core::fmt;
 
+pub use crate::sys::console::{ETX_KEY, EOT_KEY};
+
 #[derive(Clone, Copy)]
 pub struct Style {
     foreground: Option<usize>,

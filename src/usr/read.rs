@@ -1,4 +1,5 @@
 use crate::{api, sys, usr};
+use crate::api::console;
 use crate::api::fs;
 use crate::api::syscall;
 use crate::sys::cmos::CMOS;
@@ -19,6 +20,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         path = path.trim_end_matches('/');
     }
 
+    // TODO: Create device drivers for `/dev` and `/net` hardcoded commands
     match path {
         "/dev/rtc" => {
             let rtc = CMOS::new().rtc();
@@ -82,12 +84,26 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 } else if info.is_dir() {
                     usr::list::main(args)
                 } else if info.is_device() {
+                    let is_console = info.size() == 4; // TODO: Improve device detection
                     loop {
                         if sys::console::end_of_text() {
                             println!();
                             return usr::shell::ExitCode::CommandSuccessful;
                         }
                         if let Ok(bytes) = fs::read_to_bytes(path) {
+                            if is_console && bytes.len() == 1 {
+                                match bytes[0] as char {
+                                    console::ETX_KEY => {
+                                        println!("^C");
+                                        return usr::shell::ExitCode::CommandSuccessful;
+                                    }
+                                    console::EOT_KEY => {
+                                        println!("^D");
+                                        return usr::shell::ExitCode::CommandSuccessful;
+                                    }
+                                    _ => {}
+                                }
+                            }
                             for b in bytes {
                                 print!("{}", b as char);
                             }
