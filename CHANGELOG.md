@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+
+- Fix various issues while reading files (#307)
+- Add Box to process data (#306)
+- Fix dir creation during install
+- Add directory support to userspace (#303)
+- Bump rand_chacha from 0.3.0 to 0.3.1 (#175)
+- Bump aml from 0.16.0 to 0.16.1 (#297)
+- Bump sha2 from 0.10.0 to 0.10.1 (#299)
+- Bump uart_16550 from 0.2.15 to 0.2.16 (#301)
+- Bump bootloader from 0.9.20 to 0.9.21 (#302)
+- Improve file reading (#296)
+- Display RTC during boot (#298)
 - Add 2048 game (#295)
 - Improve documentation (#294)
 - Improve help (#291)
