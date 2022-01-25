@@ -32,11 +32,11 @@ impl Prompt {
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
-                '\x03' => { // End of Text (^C)
+                console::ETX_KEY => { // End of Text (^C)
                     println!();
                     return Some(String::new());
                 },
-                '\x04' => { // End of Transmission (^D)
+                console::EOT_KEY => { // End of Transmission (^D)
                     println!();
                     return None;
                 },
