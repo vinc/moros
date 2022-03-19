@@ -33,7 +33,7 @@ object = { version = "0.27.1", default-features = false, features = ["read"] }
 pbkdf2 = { version = "0.10.0", default-features = false }
 pc-keyboard = "0.5.1"
 pic8259 = "0.10.2"
-rand = { version = "0.8.4", default-features = false }
+rand = { version = "0.8.5", default-features = false }
 rand_chacha = { version = "0.3.1", default-features = false }
 rand_core = { version = "0.6.3", default-features = false }
 raw-cpuid = "10.2.0"
