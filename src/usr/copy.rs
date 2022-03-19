@@ -10,12 +10,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let source = args[1];
     let dest = args[2];
 
-    if dest.starts_with("/dev") || dest.starts_with("/sys") {
-        eprintln!("Permission denied to write to '{}'", dest);
-        return usr::shell::ExitCode::CommandError;
-    }
-
-    if let Ok(contents) = fs::read(source) {
+    if let Ok(contents) = fs::read_to_bytes(source) {
         if fs::write(dest, &contents).is_ok() {
             usr::shell::ExitCode::CommandSuccessful
         } else {

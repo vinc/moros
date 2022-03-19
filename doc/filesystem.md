@@ -1,5 +1,6 @@
 # MOROS Filesystem
 
+
 ## Hard drive
 
 A hard drive is separated in blocks of 512 bytes, grouped into 4 areas:
@@ -97,6 +98,7 @@ Structure:
 
     n = 512
 
+
 ### Superblock
 
      0                   1                   2
@@ -111,26 +113,24 @@ Structure:
     count = number of blocks
     alloc = number of allocated blocks
 
-### DirEntry
 
-A directory entry represents a file or a directory contained inside a
-directory. Each entry use a variable number of bytes that must fit inside the
-data of one block. Those bytes represent the kind of entry (file or dir), the
-address of the first block, the filesize (max 4GB), the last modified time in
-seconds since Unix Epoch, the length of the filename, and the filename (max
-255 chars) of the entry.
+### File
+
+The first block of a contains the address of the next block where its contents
+is stored and the beginning of its contents in the rest of the block.
+
+If all contents can fit into one block the address of the next block will be
+empty.
 
 Structure:
 
-     0                   1                   2
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4      m
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    |k| addr  | size  | time          |n| name buffer        |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+     0
+     0 1 2 3 4 5 6 7 8      n
+    +-+-+-+-+-+-+-+-+-+ // +-+
+    | addr  | contents       |
+    +-+-+-+-+-+-+-+-+-+ // +-+
 
-    k = kind of entry
-    n = length of name buffer
-    m = 9 + n
+    n = 512
 
 
 ### Dir
@@ -152,20 +152,41 @@ Structure:
     n = 512
 
 
-### File
+### DirEntry
 
-The first block of a contains the address of the next block where its contents
-is stored and the beginning of its contents in the rest of the block.
-
-If all contents can fit into one block the address of the next block will be
-empty.
+A directory entry represents a file or a directory contained inside a
+directory. Each entry use a variable number of bytes that must fit inside the
+data of one block. Those bytes represent the kind of entry (file or dir), the
+address of the first block, the filesize (max 4GB), the last modified time in
+seconds since Unix Epoch, the length of the filename, and the filename (max
+255 chars) of the entry.
 
 Structure:
 
-     0
-     0 1 2 3 4 5 6 7 8      n
-    +-+-+-+-+-+-+-+-+-+ // +-+
-    | addr  | contents       |
-    +-+-+-+-+-+-+-+-+-+ // +-+
+     0                   1                   2
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4      m
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+    |k| addr  | size  | time          |n| name buffer        |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
 
-    n = 512
+    k = kind of entry
+    n = length of name buffer
+    m = 17 + n
+
+
+### FileInfo
+
+The `info` syscall on a file or directory and the `read` syscall on a directory
+return a subset of a directory entry for userspace programs.
+
+Structure:
+
+     0                   1                   2
+     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0      m
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+    |k| size  | time          |n| name buffer        |
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+
+    k = kind of entry
+    n = length of name buffer
+    m = 13 + n

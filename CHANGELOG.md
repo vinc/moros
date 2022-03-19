@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- Fix various issues while reading files (#307)
+- Add Box to process data (#306)
+- Fix dir creation during install
+- Add directory support to userspace (#303)
+- Bump rand_chacha from 0.3.0 to 0.3.1 (#175)
+- Bump aml from 0.16.0 to 0.16.1 (#297)
+- Bump sha2 from 0.10.0 to 0.10.1 (#299)
+- Bump uart_16550 from 0.2.15 to 0.2.16 (#301)
+- Bump bootloader from 0.9.20 to 0.9.21 (#302)
+- Improve file reading (#296)
+- Display RTC during boot (#298)
+- Add 2048 game (#295)
+- Improve documentation (#294)
+- Improve help (#291)
+- Refactor code (#288)
+- Improve ATA driver (#286)
+- Pin rustc version (#287)
+- Bump bootloader from 0.9.19 to 0.9.20 (#290)
+- Bump x86_64 from 0.14.6 to 0.14.7 (#289)
+
+
 ## 0.7.0 (2021-12-12)
 - Add ELF loader ([#248](https://github.com/vinc/moros/pull/248))
 - Add basic userspace ([#228](https://github.com/vinc/moros/pull/228))
