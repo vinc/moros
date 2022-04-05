@@ -31,11 +31,11 @@ And listen what is happening on the network:
 The `dhcp` command configures your network automatically:
 
     > dhcp
-    DHCP Discover transmitted
-    DHCP Offer received
-    Leased: 10.0.2.15/24
-    Router: 10.0.2.2
-    DNS: 10.0.2.3
+    DEBUG: DHCP Discover transmitted
+    DEBUG: DHCP Offer received
+    IP Address: 10.0.2.15/24
+    Gateway:    10.0.2.2
+    DNS:        10.0.2.3
 
 ## IP
 
@@ -44,10 +44,8 @@ The `ip` command displays information about your IP address:
     > ip
     Link: 52-54-00-12-34-56
     Addr: 10.0.2.15/24
-    RX packets: 1
-    TX packets: 1
-    RX bytes: 590
-    TX bytes: 299
+    RX:   14 packets (4112 bytes)
+    TX:   16 packets (1589 bytes)
 
 It can also be used to set your IP address:
 

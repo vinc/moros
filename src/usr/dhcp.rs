@@ -1,86 +1,84 @@
-use crate::{sys, usr};
+use crate::{sys, usr, debug};
+use crate::api::console::Style;
 use crate::api::syscall;
-use alloc::string::ToString;
-use alloc::vec;
+use crate::alloc::string::ToString;
 use alloc::vec::Vec;
-use core::time::Duration;
-use smoltcp::dhcp::Dhcpv4Client;
-use smoltcp::socket::{RawPacketMetadata, RawSocketBuffer, SocketSet};
+use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 
 pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+    let csi_color = Style::color("LightCyan");
+    let csi_reset = Style::reset();
+
+    // TODO: Add `--verbose` option
+
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        let mut sockets = SocketSet::new(vec![]);
-        let dhcp_rx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 900]);
-        let dhcp_tx_buffer = RawSocketBuffer::new([RawPacketMetadata::EMPTY; 1], vec![0; 600]);
+        let dhcp_socket = Dhcpv4Socket::new();
+        let dhcp_handle = iface.add_socket(dhcp_socket);
 
-        let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-        let mut dhcp = Dhcpv4Client::new(&mut sockets, dhcp_rx_buffer, dhcp_tx_buffer, timestamp);
-
-        let prev_cidr = match iface.ip_addrs().first() {
+        let previous_address = match iface.ip_addrs().first() {
             Some(IpCidr::Ipv4(ip_addr)) => *ip_addr,
             _ => Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0),
         };
 
-        println!("DHCP Discover transmitted");
+        debug!("DHCP Discover transmitted");
         let timeout = 30.0;
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
                 eprintln!("Timeout reached");
+                iface.remove_socket(dhcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
                 eprintln!();
+                iface.remove_socket(dhcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
-            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-            match iface.poll(&mut sockets, timestamp) {
-                Err(smoltcp::Error::Unrecognized) => {}
-                Err(e) => {
-                    println!("Network Error: {}", e);
-                }
-                Ok(_) => {}
+
+            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            if let Err(e) = iface.poll(timestamp) {
+                eprintln!("Network Error: {}", e);
             }
-            let res = dhcp.poll(iface, &mut sockets, timestamp).unwrap_or_else(|e| {
-                println!("DHCP Error: {:?}", e);
-                None
-            });
-            if let Some(config) = res {
-                println!("DHCP Offer received");
-                if let Some(cidr) = config.address {
-                    if cidr != prev_cidr {
+
+            let event = iface.get_socket::<Dhcpv4Socket>(dhcp_handle).poll();
+            match event {
+                None => {}
+                Some(Dhcpv4Event::Configured(config)) => {
+                    debug!("DHCP Offer received");
+                    if config.address != previous_address {
                         iface.update_ip_addrs(|addrs| {
                             if let Some(addr) = addrs.iter_mut().next() {
-                                *addr = IpCidr::Ipv4(cidr);
+                                *addr = IpCidr::Ipv4(config.address);
                             }
                         });
-                        println!("Leased: {}", cidr);
+                        println!("{}IP Address:{} {}", csi_color, csi_reset, config.address);
                     }
-                }
 
-                config.router.map(|router| {
-                    iface.routes_mut().add_default_ipv4_route(router).unwrap()
-                });
-                iface.routes_mut().update(|routes_map| {
-                    let unspecified = IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0);
-                    if let Some(default_route) = routes_map.get(&unspecified) {
-                        println!("Router: {}", default_route.via_router);
+                    if let Some(router) = config.router {
+                        println!("{}Gateway:{}    {}", csi_color, csi_reset, router);
+                        iface.routes_mut().add_default_ipv4_route(router).unwrap();
+                    } else {
+                        println!("{}Gateway:{}    none", csi_color, csi_reset);
+                        iface.routes_mut().remove_default_ipv4_route();
                     }
-                });
 
-                let dns_servers: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
-                if !dns_servers.is_empty() {
-                    println!("DNS: {}", dns_servers.join(", "));
+                    // TODO: save DNS servers in `/ini/dns` and use them with `host` command
+                    let dns_servers: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
+                    if !dns_servers.is_empty() {
+                        println!("{}DNS:{}        {}", csi_color, csi_reset, dns_servers.join(", "));
+                    }
+
+                    iface.remove_socket(dhcp_handle);
+                    return usr::shell::ExitCode::CommandSuccessful;
                 }
-
-                return usr::shell::ExitCode::CommandSuccessful;
+                Some(Dhcpv4Event::Deconfigured) => {
+                }
             }
 
-            if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
-                let wait_duration: Duration = wait_duration.into();
-                syscall::sleep(wait_duration.as_secs_f64());
+            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+                syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
     }

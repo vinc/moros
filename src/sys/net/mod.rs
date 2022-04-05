@@ -3,15 +3,15 @@ use core::sync::atomic::{AtomicU64, Ordering};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-// TODO: Support dyn EthernetInterface
-pub type EthernetInterface<T> = smoltcp::iface::EthernetInterface<'static, T>;
+// TODO: Support dyn Interface
+pub type Interface<T> = smoltcp::iface::Interface<'static, T>;
 
 #[cfg(feature = "rtl8139")]
 pub mod rtl8139;
 
 #[cfg(feature = "rtl8139")]
 lazy_static! {
-    pub static ref IFACE: Mutex<Option<EthernetInterface<rtl8139::RTL8139>>> = Mutex::new(None);
+    pub static ref IFACE: Mutex<Option<Interface<rtl8139::RTL8139>>> = Mutex::new(None);
 }
 
 #[cfg(feature = "rtl8139")]
@@ -24,7 +24,7 @@ pub mod pcnet;
 
 #[cfg(feature = "pcnet")]
 lazy_static! {
-    pub static ref IFACE: Mutex<Option<EthernetInterface<pcnet::PCNET>>> = Mutex::new(None);
+    pub static ref IFACE: Mutex<Option<Interface<pcnet::PCNET>>> = Mutex::new(None);
 }
 
 #[cfg(feature = "pcnet")]

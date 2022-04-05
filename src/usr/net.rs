@@ -1,13 +1,16 @@
-use crate::{sys, usr};
+use crate::{sys, usr, debug};
 use crate::api::syscall;
 use crate::api::console::Style;
-//use smoltcp::wire::Ipv4Address;
-use smoltcp::socket::{SocketSet, TcpSocket, TcpSocketBuffer};
+use alloc::vec;
+use alloc::borrow::ToOwned;
+use smoltcp::wire::{EthernetFrame, PrettyPrinter};
+use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
+use smoltcp::phy::Device;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() == 1 {
-        eprintln!("Usage: net <command>");
+        help();
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -41,39 +44,33 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             "monitor" => {
                 iface.device_mut().debug_mode = true;
 
-                let mut server_rx_buffer = [0; 2048];
-                let mut server_tx_buffer = [0; 2048];
-                let server_socket = TcpSocket::new(
-                    TcpSocketBuffer::new(&mut server_rx_buffer[..]),
-                    TcpSocketBuffer::new(&mut server_tx_buffer[..]),
-                );
-
-                let mut sockets_storage = [None, None];
-                let mut sockets = SocketSet::new(&mut sockets_storage[..]);
-                let _server_handle = sockets.add(server_socket);
+                let mtu = iface.device().capabilities().max_transmission_unit;
+                let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+                let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+                let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
+                let tcp_handle = iface.add_socket(tcp_socket);
 
                 loop {
                     if sys::console::end_of_text() {
                         println!();
                         return usr::shell::ExitCode::CommandSuccessful;
                     }
-
-                    let now = syscall::uptime();
-                    match iface.poll(&mut sockets, Instant::from_millis((now * 1000.0) as i64)) {
-                        Ok(true) => {
-                            //println!("{}", "-".repeat(66));
-                            //println!("Polling result: Ok(true)");
-                        },
-                        Ok(false) => {
-                            //println!("{}", "-".repeat(66));
-                            //println!("Polling Result: Ok(false)\n");
-                        },
-                        Err(_) => {
-                            //println!("{}", "-".repeat(66));
-                            //println!("polling result: err({})", e);
-                        }
-                    }
                     syscall::sleep(0.1);
+
+                    let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+                    if let Err(e) = iface.poll(timestamp) {
+                        eprintln!("Network Error: {}", e);
+                    }
+
+                    let socket = iface.get_socket::<TcpSocket>(tcp_handle);
+                    if socket.may_recv() {
+                        socket.recv(|buffer| {
+                            let recvd_len = buffer.len();
+                            let data = buffer.to_owned();
+                            debug!("{}", PrettyPrinter::<EthernetFrame<&[u8]>>::new("", &buffer));
+                            (recvd_len, data)
+                        }).unwrap();
+                    }
                 }
             }
             _ => {
@@ -92,7 +89,7 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Usage:{} net {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}config{}     List detected disks", csi_option, csi_reset);
-    println!("  {}monitor{}    List disk usage", csi_option, csi_reset);
+    println!("  {}config{}     Configure network", csi_option, csi_reset);
+    println!("  {}monitor{}    Monitor network", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }
