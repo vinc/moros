@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Bump object from 0.27.1 to 0.28.3 (#305)
+- Upgrade smoltcp (#293)
+- Bump uart_16550 from 0.2.16 to 0.2.17 (#318)
+- Bump x86_64 from 0.14.8 to 0.14.9 (#319)
+- Update rust toolchain (#320)
+- Bump raw-cpuid from 10.2.0 to 10.3.0 (#317)
+- Bump pbkdf2 from 0.10.0 to 0.11.0 (#316)
+- Bump x86_64 from 0.14.7 to 0.14.8 (#308)
+- Bump libm from 0.2.1 to 0.2.2 (#309)
+- Bump rand from 0.8.4 to 0.8.5 (#310)
+- Bump sha2 from 0.10.1 to 0.10.2 (#312)
+- Bump hmac from 0.12.0 to 0.12.1 (#313)
+- Bump nom from 7.1.0 to 7.1.1 (#315)
 - Fix various issues while reading files (#307)
 - Add Box to process data (#306)
 - Fix dir creation during install
