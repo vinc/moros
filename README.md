@@ -60,8 +60,6 @@ Install the required tools with `make setup` or the following commands:
     $ curl https://sh.rustup.rs -sSf | sh
     $ rustup install nightly
     $ rustup default nightly
-    $ rustup component add rust-src
-    $ rustup component add llvm-tools-preview
     $ cargo install bootimage
 
 
