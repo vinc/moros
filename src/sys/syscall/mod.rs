@@ -4,6 +4,8 @@ pub mod service;
 use crate::sys;
 use crate::sys::fs::FileInfo;
 
+use core::arch::asm;
+
 /*
  * Dispatching system calls
  */
