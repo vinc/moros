@@ -14,12 +14,7 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
     - run: sudo apt-get -qqy update
     - run: sudo apt-get -qqy install qemu-system-x86
-    - run: rustup component add rust-src
-    - run: rustup component add llvm-tools-preview
-    - run: cargo install bootimage
+    - run: make
     - run: make test

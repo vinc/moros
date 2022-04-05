@@ -2,11 +2,9 @@
 .EXPORT_ALL_VARIABLES:
 
 setup:
-	curl https://sh.rustup.rs -sSf | sh
+	curl https://sh.rustup.rs -sSf | sh -s -- -y
 	rustup install nightly
 	rustup default nightly
-	rustup component add rust-src
-	rustup component add llvm-tools-preview
 	cargo install bootimage
 
 output = video
