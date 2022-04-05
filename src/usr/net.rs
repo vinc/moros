@@ -89,7 +89,7 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Usage:{} net {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}config{}     List detected disks", csi_option, csi_reset);
-    println!("  {}monitor{}    List disk usage", csi_option, csi_reset);
+    println!("  {}config{}     Configure network", csi_option, csi_reset);
+    println!("  {}monitor{}    Monitor network", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }
