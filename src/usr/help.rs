@@ -46,7 +46,7 @@ fn help_summary() -> usr::shell::ExitCode {
     }
     println!();
     println!("{}Credits:{}", csi_color, csi_reset);
-    println!("  Made with <3 in 2019-2021 by Vincent Ollivier <v@vinc.cc>");
+    println!("  Made with <3 in 2019-2022 by Vincent Ollivier <v@vinc.cc>");
     usr::shell::ExitCode::CommandSuccessful
 }
 
