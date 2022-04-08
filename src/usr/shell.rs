@@ -8,11 +8,11 @@ use alloc::vec::Vec;
 use alloc::string::String;
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 39] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 37] = [
     "2048", "base64", "calc", "clear", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
     "env", "exit", "geotime", "goto", "halt", "help", "hex", "host", "http", "httpd", "install",
-    "ip", "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read", "route",
-    "shell", "sleep", "tcp", "user", "vga", "write"
+    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read", "shell", "sleep",
+    "tcp", "user", "vga", "write"
 ];
 
 #[repr(u8)]
@@ -250,14 +250,12 @@ pub fn exec(cmd: &str) -> ExitCode {
         "halt"                 => usr::halt::main(&args),
         "hex"                  => usr::hex::main(&args),
         "net"                  => usr::net::main(&args),
-        "route"                => usr::route::main(&args),
         "dhcp"                 => usr::dhcp::main(&args),
         "http"                 => usr::http::main(&args),
         "httpd"                => usr::httpd::main(&args),
         "tcp"                  => usr::tcp::main(&args),
         "host"                 => usr::host::main(&args),
         "install"              => usr::install::main(&args),
-        "ip"                   => usr::ip::main(&args),
         "geotime"              => usr::geotime::main(&args),
         "colors"               => usr::colors::main(&args),
         "dsk" | "disk"         => usr::disk::main(&args),
