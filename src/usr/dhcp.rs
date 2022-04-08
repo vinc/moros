@@ -5,15 +5,25 @@ use alloc::vec::Vec;
 use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let mut verbose = false;
     let mut dhcp_config = None;
 
-    // TODO: Add `--verbose` option
+    for arg in args {
+        match *arg {
+            "-v" | "--verbose" => {
+                verbose = true;
+            }
+            _ => {}
+        }
+    }
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let dhcp_socket = Dhcpv4Socket::new();
         let dhcp_handle = iface.add_socket(dhcp_socket);
-        debug!("DHCP Discover transmitted");
+        if verbose {
+            debug!("DHCP Discover transmitted");
+        }
         let timeout = 30.0;
         let started = syscall::realtime();
         loop {
@@ -37,8 +47,10 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             match event {
                 None => {}
                 Some(Dhcpv4Event::Configured(config)) => {
-                    debug!("DHCP Offer received");
                     dhcp_config = Some(config);
+                    if verbose {
+                        debug!("DHCP Offer received");
+                    }
                     iface.remove_socket(dhcp_handle);
                     break;
                 }
