@@ -99,9 +99,9 @@ fn usage() -> usr::shell::ExitCode {
     let width = size.to_string().len();
     let color = Style::color("LightCyan");
     let reset = Style::reset();
-    println!("{}Size:{} {:width$}", color, reset, size, width = width);
-    println!("{}Used:{} {:width$}", color, reset, used, width = width);
-    println!("{}Free:{} {:width$}", color, reset, free, width = width);
+    println!("{}size:{} {:width$} bytes", color, reset, size, width = width);
+    println!("{}used:{} {:width$} bytes", color, reset, used, width = width);
+    println!("{}free:{} {:width$} bytes", color, reset, free, width = width);
     usr::shell::ExitCode::CommandSuccessful
 }
 

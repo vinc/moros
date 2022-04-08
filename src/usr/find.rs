@@ -90,8 +90,8 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
 }
 
 fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingState) {
-    let name_color = Style::color("LightBlue");
-    let line_color = Style::color("Yellow");
+    let name_color = Style::color("Yellow");
+    let line_color = Style::color("LightCyan");
     let match_color = Style::color("LightRed");
     let reset = Style::reset();
 
