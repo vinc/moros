@@ -21,7 +21,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         api::syscall::close(handle);
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        eprintln!("Could not write to '{}'", pathname);
+        error!("Could not write to '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

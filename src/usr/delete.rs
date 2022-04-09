@@ -16,13 +16,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if !fs::exists(pathname) {
-        eprintln!("File not found '{}'", pathname);
+        error!("File not found '{}'", pathname);
         return usr::shell::ExitCode::CommandError;
     }
 
     if let Some(info) = syscall::info(pathname) {
         if info.is_dir() && info.size() > 0 {
-            eprintln!("Directory '{}' not empty", pathname);
+            error!("Directory '{}' not empty", pathname);
             return usr::shell::ExitCode::CommandError;
         }
     }
@@ -30,7 +30,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if fs::delete(pathname).is_ok() {
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        eprintln!("Could not delete file '{}'", pathname);
+        error!("Could not delete file '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

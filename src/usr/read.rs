@@ -67,7 +67,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             usr::http::main(&["http", host, &path])
                         }
                         _ => {
-                            eprintln!("Error: unknown protocol '{}'", parts[2]);
+                            error!("Unknown protocol '{}'", parts[2]);
                             usr::shell::ExitCode::CommandError
                         }
                     }
@@ -78,7 +78,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         print!("{}", contents);
                         usr::shell::ExitCode::CommandSuccessful
                     } else {
-                        eprintln!("Could not read '{}'", path);
+                        error!("Could not read '{}'", path);
                         usr::shell::ExitCode::CommandError
                     }
                 } else if info.is_dir() {
@@ -108,16 +108,16 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                                 print!("{}", b as char);
                             }
                         } else {
-                            eprintln!("Could not read '{}'", path);
+                            error!("Could not read '{}'", path);
                             return usr::shell::ExitCode::CommandError;
                         }
                     }
                 } else {
-                    eprintln!("Could not read type of '{}'", path);
+                    error!("Could not read type of '{}'", path);
                     usr::shell::ExitCode::CommandError
                 }
             } else {
-                eprintln!("File not found '{}'", path);
+                error!("File not found '{}'", path);
                 usr::shell::ExitCode::CommandError
             }
         }

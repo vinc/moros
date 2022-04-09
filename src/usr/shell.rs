@@ -144,7 +144,7 @@ fn change_dir(args: &[&str]) -> ExitCode {
                 sys::process::set_dir(&pathname);
                 ExitCode::CommandSuccessful
             } else {
-                eprintln!("File not found '{}'", pathname);
+                error!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },

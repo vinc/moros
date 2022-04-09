@@ -36,7 +36,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let socket = iface.get_socket::<TcpSocket>(tcp_handle);
@@ -180,7 +180,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             }
         }
     } else {
-        eprintln!("Error: Could not find network interface");
+        error!("Could not find network interface");
         usr::shell::ExitCode::CommandError
     }
 }

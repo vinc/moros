@@ -14,11 +14,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         if fs::write(dest, &contents).is_ok() {
             usr::shell::ExitCode::CommandSuccessful
         } else {
-            eprintln!("Could not write to '{}'", dest);
+            error!("Could not write to '{}'", dest);
             usr::shell::ExitCode::CommandError
         }
     } else {
-        eprintln!("File not found '{}'", source);
+        error!("File not found '{}'", source);
         usr::shell::ExitCode::CommandError
     }
 }
