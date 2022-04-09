@@ -106,6 +106,38 @@ impl Prompt {
         self.completion.pos = Some(pos);
     }
 
+    fn handle_backtab_key(&mut self) {
+        self.update_history();
+        let (bs, pos) = match self.completion.pos {
+            Some(pos) => {
+                let n = self.completion.entries.len();
+                if n == 1 {
+                    self.update_completion();
+                    return;
+                }
+                let bs = self.completion.entries[pos].chars().count();
+                if pos == 0 {
+                    (bs, n - 1)
+                } else {
+                    (bs, pos - 1)
+                }
+            },
+            None => {
+                let line: String = self.line.iter().collect();
+                self.completion.entries = (self.completion.completer)(&line);
+                if !self.completion.entries.is_empty() {
+                    (0, 0)
+                } else {
+                    return
+                }
+            },
+        };
+        let erase = "\x08".repeat(bs);
+        let complete = &self.completion.entries[pos];
+        print!("{}{}", erase, complete);
+        self.completion.pos = Some(pos);
+    }
+
     fn handle_up_key(&mut self) {
         self.update_completion();
         let n = self.history.entries.len();
@@ -228,6 +260,7 @@ impl Perform for Prompt {
             'B' => self.handle_down_key(),
             'C' => self.handle_forward_key(),
             'D' => self.handle_backward_key(),
+            'Z' => self.handle_backtab_key(),
             '~' => {
                 for param in params.iter() {
                     if param[0] == 3 { // Delete
