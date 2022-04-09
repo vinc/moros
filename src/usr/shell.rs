@@ -366,7 +366,7 @@ fn test_shell() {
 
     // Redirect standard error explicitely
     exec("hex /nope 2=> /test");
-    assert_eq!(api::fs::read_to_string("/test"), Ok("File not found '/nope'\n".to_string()));
+    assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
 
     sys::fs::dismount();
 }
