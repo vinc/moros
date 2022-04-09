@@ -9,13 +9,15 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     match args[1] {
         "set" => {
             if args.len() == 2 {
-                error("keyboard layout missing")
+                error!("Keyboard layout missing");
+                usr::shell::ExitCode::CommandError
             } else {
                 let layout = args[2];
                 if sys::keyboard::set_keyboard(layout) {
                     usr::shell::ExitCode::CommandSuccessful
                 } else {
-                    error("unknown keyboard layout")
+                    error!("Unknown keyboard layout");
+                    usr::shell::ExitCode::CommandError
                 }
             }
         }
@@ -23,15 +25,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             help()
         }
         _ => {
-            error("invalid command")
+            error!("Invalid command");
+            usr::shell::ExitCode::CommandError
         }
     }
-}
-
-// TODO: Move that to API
-fn error(message: &str) -> usr::shell::ExitCode {
-    eprintln!("Error: {}", message);
-    usr::shell::ExitCode::CommandError
 }
 
 fn help() -> usr::shell::ExitCode {

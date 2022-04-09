@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::console::Style;
 use crate::api::syscall;
 use crate::api::random;
 use alloc::vec;
@@ -174,7 +175,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let socket = iface.get_socket::<UdpSocket>(udp_handle);
@@ -226,18 +227,26 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     // TODO: Add `--server <address>` option
     if args.len() != 2 {
-        eprintln!("Usage: host <name>");
+        help();
         return usr::shell::ExitCode::CommandError;
     }
-    let name = args[1];
-    match resolve(name) {
-        Ok(ip_addr) => {
-            println!("{} has address {}", name, ip_addr);
+    let domain = args[1];
+    match resolve(domain) {
+        Ok(addr) => {
+            println!("{} has address {}", domain, addr);
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(e) => {
-            eprintln!("Could not resolve host: {:?}", e);
+            error!("Could not resolve host: {:?}", e);
             usr::shell::ExitCode::CommandError
         }
     }
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} host {}<domain>{1}", csi_title, csi_reset, csi_option);
+    usr::shell::ExitCode::CommandSuccessful
 }

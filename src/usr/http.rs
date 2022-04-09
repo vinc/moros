@@ -57,7 +57,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 is_verbose = true;
             }
             _ if args[i].starts_with("--") => {
-                eprintln!("Invalid option '{}'", args[i]);
+                error!("Invalid option '{}'", args[i]);
                 return usr::shell::ExitCode::CommandError;
             }
             _ if host.is_empty() => {
@@ -67,14 +67,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 path = args[i]
             }
             _ => {
-                eprintln!("Too many arguments");
+                error!("Too many arguments");
                 return usr::shell::ExitCode::CommandError;
             }
         }
     }
 
     if host.is_empty() && path.is_empty() {
-        eprintln!("Missing URL");
+        error!("Missing URL");
         return usr::shell::ExitCode::CommandError;
     } else if path.is_empty() {
         if let Some(i) = args[1].find('/') {
@@ -95,7 +95,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 ip_addr
             }
             Err(e) => {
-                eprintln!("Could not resolve host: {:?}", e);
+                error!("Could not resolve host: {:?}", e);
                 return usr::shell::ExitCode::CommandError;
             }
         }
@@ -116,18 +116,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                eprintln!("Timeout reached");
+                error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
-                eprintln!();
+                eprintln!(); // FIXME
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
@@ -141,7 +141,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         print!("{}", csi_reset);
                     }
                     if socket.connect(cx, (address, url.port), local_port).is_err() {
-                        eprintln!("Could not connect to {}:{}", address, url.port);
+                        error!("Could not connect to {}:{}", address, url.port);
                         iface.remove_socket(tcp_handle);
                         return usr::shell::ExitCode::CommandError;
                     }

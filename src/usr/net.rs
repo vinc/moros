@@ -66,7 +66,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
                     let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
                     if let Err(e) = iface.poll(timestamp) {
-                        error(&format!("Network Error: {}", e));
+                        error!("Network Error: {}", e);
                     }
 
                     let socket = iface.get_socket::<TcpSocket>(tcp_handle);
@@ -82,7 +82,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
         }
         _ => {
-            error("Invalid command");
+            error!("Invalid command");
             return usr::shell::ExitCode::CommandError;
         }
     }
@@ -161,16 +161,16 @@ pub fn get_config(attribute: &str) -> Option<String> {
                 if servers.split(",").all(|s| Ipv4Address::from_str(s).is_ok()) {
                     Some(servers.to_string())
                 } else {
-                    error(&format!("Could not parse '{}'", servers));
+                    error!("Could not parse '{}'", servers);
                     None
                 }
             } else {
-                error(&format!("Could not read '{}'", DNS_FILE));
+                error!("Could not read '{}'", DNS_FILE);
                 None
             }
         }
         _ => {
-            error("Invalid config attribute");
+            error!("Invalid config attribute");
             None
         }
     }
@@ -184,7 +184,7 @@ pub fn set_config(attribute: &str, value: &str) {
                     "1" | "true" => true,
                     "0" | "false" => false,
                     _ => {
-                        error("Invalid config value");
+                        error!("Invalid config value");
                         false
                     }
                 }
@@ -200,7 +200,7 @@ pub fn set_config(attribute: &str, value: &str) {
                     });
                 }
             } else {
-                error("Could not parse address");
+                error!("Could not parse address");
             }
         }
         "gw" => {
@@ -209,27 +209,21 @@ pub fn set_config(attribute: &str, value: &str) {
                     iface.routes_mut().add_default_ipv4_route(ip).unwrap();
                 }
             } else {
-                error("Could not parse address");
+                error!("Could not parse address");
             }
         }
         "dns" => {
             let servers = value.trim();
             if servers.split(",").all(|s| Ipv4Address::from_str(s).is_ok()) {
                 if fs::write(DNS_FILE, format!("{}\n", servers).as_bytes()).is_err() {
-                    error(&format!("Could not write to '{}'", DNS_FILE));
+                    error!("Could not write to '{}'", DNS_FILE);
                 }
             } else {
-                error(&format!("Could not parse '{}'", servers));
+                error!("Could not parse '{}'", servers);
             }
         }
         _ => {
-            error("Invalid config key");
+            error!("Invalid config key");
         }
     }
-}
-
-fn error(message: &str) {
-    let csi_color = Style::color("LightRed");
-    let csi_reset = Style::reset();
-    eprintln!("{}Error:{} {}", csi_color, csi_reset, message);
 }
