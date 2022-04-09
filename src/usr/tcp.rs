@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::console::Style;
 use crate::api::syscall;
 use crate::api::random;
 use alloc::borrow::ToOwned;
@@ -24,7 +25,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if args.len() != 3 {
-        eprintln!("Usage: tcp <host> <port>");
+        help();
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -40,7 +41,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 ip_addr
             }
             Err(e) => {
-                eprintln!("Could not resolve host: {:?}", e);
+                error!("Could not resolve host: {:?}", e);
                 return usr::shell::ExitCode::CommandError;
             }
         }
@@ -60,7 +61,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                eprintln!("Timeout reached");
+                error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
@@ -71,7 +72,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
@@ -81,7 +82,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     let local_port = 49152 + random::get_u16() % 16384;
                     println!("Connecting to {}:{}", address, port);
                     if socket.connect(cx, (address, port), local_port).is_err() {
-                        eprintln!("Could not connect to {}:{}", address, port);
+                        error!("Could not connect to {}:{}", address, port);
                         return usr::shell::ExitCode::CommandError;
                     }
                     State::Request
@@ -117,4 +118,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     } else {
         usr::shell::ExitCode::CommandError
     }
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} tcp {}<host> <port>{1}", csi_title, csi_reset, csi_option);
+    usr::shell::ExitCode::CommandSuccessful
 }

@@ -45,6 +45,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let csi_reset = Style::reset();
                 println!("{}rx:{} {} packets ({} bytes)", csi_color, csi_reset, stats.rx_packets_count(), stats.rx_bytes_count());
                 println!("{}tx:{} {} packets ({} bytes)", csi_color, csi_reset, stats.tx_packets_count(), stats.tx_bytes_count());
+            } else {
+                error!("Network error");
             }
         }
         "monitor" => {
@@ -79,6 +81,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         }).unwrap();
                     }
                 }
+            } else {
+                error!("Network error");
             }
         }
         _ => {
@@ -132,6 +136,8 @@ pub fn get_config(attribute: &str) -> Option<String> {
         "mac" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 return Some(iface.hardware_addr().to_string());
+            } else {
+                error!("Network error");
             }
             None
         }
@@ -140,6 +146,8 @@ pub fn get_config(attribute: &str) -> Option<String> {
                 for ip_cidr in iface.ip_addrs() {
                     return Some(format!("{}/{}", ip_cidr.address(), ip_cidr.prefix_len()));
                 }
+            } else {
+                error!("Network error");
             }
             None
         }
@@ -152,6 +160,8 @@ pub fn get_config(attribute: &str) -> Option<String> {
                         break;
                     }
                 });
+            } else {
+                error!("Network error");
             }
             res
         }
@@ -188,6 +198,8 @@ pub fn set_config(attribute: &str, value: &str) {
                         false
                     }
                 }
+            } else {
+                error!("Network error");
             }
         }
         "ip" => {
@@ -198,6 +210,8 @@ pub fn set_config(attribute: &str, value: &str) {
                             *addr = ip;
                         }
                     });
+                } else {
+                    error!("Network error");
                 }
             } else {
                 error!("Could not parse address");
@@ -207,6 +221,8 @@ pub fn set_config(attribute: &str, value: &str) {
             if let Ok(ip) = Ipv4Address::from_str(value) {
                 if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                     iface.routes_mut().add_default_ipv4_route(ip).unwrap();
+                } else {
+                    error!("Network error");
                 }
             } else {
                 error!("Could not parse address");

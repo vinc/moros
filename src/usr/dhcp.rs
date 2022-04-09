@@ -7,7 +7,7 @@ use smoltcp::time::Instant;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut verbose = false;
-    let mut dhcp_config = None;
+    let dhcp_config;
 
     for arg in args {
         match *arg {
@@ -28,7 +28,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                eprintln!("Timeout reached");
+                error!("Timeout reached");
                 iface.remove_socket(dhcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
@@ -40,7 +40,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let event = iface.get_socket::<Dhcpv4Socket>(dhcp_handle).poll();
@@ -62,6 +62,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
+    } else {
+        error!("Network Error");
+        return usr::shell::ExitCode::CommandError;
     }
 
     if let Some(config) = dhcp_config {
