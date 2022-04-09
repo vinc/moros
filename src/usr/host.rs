@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use bit_field::BitField;
 use core::convert::TryInto;
 use core::str;
+use core::str::FromStr;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
@@ -120,9 +121,20 @@ impl Message {
     }
 }
 
+fn dns_address() -> Option<IpAddress> {
+    if let Some(servers) = usr::net::get_config("dns") {
+        if let Some((server, _)) = servers.split_once(",") {
+            if let Ok(addr) = IpAddress::from_str(server) {
+                return Some(addr);
+            }
+        }
+    }
+    None
+}
+
 pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
-    let dns_address = IpAddress::v4(8, 8, 8, 8);
     let dns_port = 53;
+    let dns_address = dns_address().unwrap_or(IpAddress::v4(8, 8, 8, 8));
     let server = IpEndpoint::new(dns_address, dns_port);
 
     let local_port = 49152 + random::get_u16() % 16384;
@@ -212,6 +224,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    // TODO: Add `--server <address>` option
     if args.len() != 2 {
         eprintln!("Usage: host <name>");
         return usr::shell::ExitCode::CommandError;
