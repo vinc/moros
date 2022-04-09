@@ -74,7 +74,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn print_file(file: &FileInfo, width: usize) {
-    let csi_dir_color = Style::color("Blue");
+    let csi_dir_color = Style::color("LightCyan");
     let csi_dev_color = Style::color("Yellow");
     let csi_reset = Style::reset();
 
