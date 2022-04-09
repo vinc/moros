@@ -40,6 +40,9 @@ impl URL {
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let csi_verbose = Style::color("LightBlue");
+    let csi_reset = Style::reset();
+
     // Parse command line options
     let mut is_verbose = false;
     let mut host = "";
@@ -133,7 +136,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 State::Connect if !socket.is_active() => {
                     let local_port = 49152 + random::get_u16() % 16384;
                     if is_verbose {
+                        print!("{}", csi_verbose);
                         println!("* Connecting to {}:{}", address, url.port);
+                        print!("{}", csi_reset);
                     }
                     if socket.connect(cx, (address, url.port), local_port).is_err() {
                         eprintln!("Could not connect to {}:{}", address, url.port);
@@ -148,11 +153,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     let http_ua = "User-Agent: MOROS/".to_string() + env!("CARGO_PKG_VERSION") + "\r\n";
                     let http_connection = "Connection: close\r\n".to_string();
                     if is_verbose {
+                        print!("{}", csi_verbose);
                         print!("> {}", http_get);
                         print!("> {}", http_host);
                         print!("> {}", http_ua);
                         print!("> {}", http_connection);
                         println!(">");
+                        print!("{}", csi_reset);
                     }
                     socket.send_slice(http_get.as_ref()).expect("cannot send");
                     socket.send_slice(http_host.as_ref()).expect("cannot send");
@@ -177,9 +184,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             }
                         }
                         if is_verbose {
+                            print!("{}", csi_verbose);
                             for line in header {
                                 println!("< {}", line);
                             }
+                            print!("{}", csi_reset);
                         }
                         print!("{}", body.join("\n"));
                         (data.len(), ())

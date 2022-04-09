@@ -25,7 +25,7 @@ pub fn print_hex(buf: &[u8]) {
         if i % 8 == 0 {
             print!("{:08X}: ", i * 2);
         }
-        print!("{}", Style::color("LightBlue"));
+        print!("{}", Style::color("Pink"));
         print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
         print!("{}", Style::reset());
         if i % 8 == 7 || i == n - 1 {

@@ -18,8 +18,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn list(verbose: bool) -> usr::shell::ExitCode {
-    let color1 = Style::color("Cyan");
-    let color2 = Style::color("Yellow");
+    let color1 = Style::color("Blue");
+    let color2 = Style::color("LightBlue");
     let reset = Style::reset();
     if verbose {
         println!("{}+-------------------->{} bus num{}", color1, color2, reset);
