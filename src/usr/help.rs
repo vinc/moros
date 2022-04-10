@@ -18,7 +18,7 @@ fn help_command(cmd: &str) -> usr::shell::ExitCode {
 }
 
 fn help_unknown(cmd: &str) -> usr::shell::ExitCode {
-    eprintln!("Help not found for command '{}'", cmd);
+    error!("Help not found for command '{}'", cmd);
     usr::shell::ExitCode::CommandError
 }
 

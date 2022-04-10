@@ -2,11 +2,30 @@
 
 ## NET
 
-The `net` command allows you to configure your network interface:
+Display the network configuration:
 
-    > net config debug true
+    > net config
+    mac: 52-54-00-12-34-56
+    ip:  10.0.2.15/24
+    gw:  10.0.2.2
+    dns: 10.0.2.3
 
-And listen what is happening on the network:
+Display one attribute of the network configuration:
+
+    > net config dns
+    dns: 10.0.2.3
+
+Set one attribute of the network configuration:
+
+    > net config dns 10.0.2.3
+
+Display network statistics:
+
+    > net stat
+    rx: 13 packets (4052 bytes)
+    tx: 15 packets (1518 bytes)
+
+Listen for packets transmitted on the network:
 
     > net monitor
     ------------------------------------------------------------------
@@ -28,38 +47,14 @@ And listen what is happening on the network:
 
 ## DHCP
 
-The `dhcp` command configures your network automatically:
+The `dhcp` command configures the network automatically:
 
-    > dhcp
+    > dhcp -v
     DEBUG: DHCP Discover transmitted
     DEBUG: DHCP Offer received
-    IP Address: 10.0.2.15/24
-    Gateway:    10.0.2.2
-    DNS:        10.0.2.3
-
-## IP
-
-The `ip` command displays information about your IP address:
-
-    > ip
-    Link: 52-54-00-12-34-56
-    Addr: 10.0.2.15/24
-    RX:   14 packets (4112 bytes)
-    TX:   16 packets (1589 bytes)
-
-It can also be used to set your IP address:
-
-    > ip set 10.0.2.15/24
-
-## ROUTE
-
-The `route` command displays the IP routing table:
-
-    > route
-    Destination         Gateway
-    0.0.0.0/0           10.0.2.2
-
-NOTE: It will later allow you to manipulate it.
+    ip:  10.0.2.15/24
+    gw:  10.0.2.2
+    dns: 10.0.2.3
 
 ## HOST
 

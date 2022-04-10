@@ -40,6 +40,9 @@ impl URL {
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let csi_verbose = Style::color("LightBlue");
+    let csi_reset = Style::reset();
+
     // Parse command line options
     let mut is_verbose = false;
     let mut host = "";
@@ -54,7 +57,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 is_verbose = true;
             }
             _ if args[i].starts_with("--") => {
-                eprintln!("Invalid option '{}'", args[i]);
+                error!("Invalid option '{}'", args[i]);
                 return usr::shell::ExitCode::CommandError;
             }
             _ if host.is_empty() => {
@@ -64,14 +67,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 path = args[i]
             }
             _ => {
-                eprintln!("Too many arguments");
+                error!("Too many arguments");
                 return usr::shell::ExitCode::CommandError;
             }
         }
     }
 
     if host.is_empty() && path.is_empty() {
-        eprintln!("Missing URL");
+        error!("Missing URL");
         return usr::shell::ExitCode::CommandError;
     } else if path.is_empty() {
         if let Some(i) = args[1].find('/') {
@@ -92,7 +95,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 ip_addr
             }
             Err(e) => {
-                eprintln!("Could not resolve host: {:?}", e);
+                error!("Could not resolve host: {:?}", e);
                 return usr::shell::ExitCode::CommandError;
             }
         }
@@ -113,18 +116,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                eprintln!("Timeout reached");
+                error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
-                eprintln!();
+                eprintln!(); // FIXME
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
@@ -133,10 +136,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 State::Connect if !socket.is_active() => {
                     let local_port = 49152 + random::get_u16() % 16384;
                     if is_verbose {
+                        print!("{}", csi_verbose);
                         println!("* Connecting to {}:{}", address, url.port);
+                        print!("{}", csi_reset);
                     }
                     if socket.connect(cx, (address, url.port), local_port).is_err() {
-                        eprintln!("Could not connect to {}:{}", address, url.port);
+                        error!("Could not connect to {}:{}", address, url.port);
                         iface.remove_socket(tcp_handle);
                         return usr::shell::ExitCode::CommandError;
                     }
@@ -148,11 +153,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     let http_ua = "User-Agent: MOROS/".to_string() + env!("CARGO_PKG_VERSION") + "\r\n";
                     let http_connection = "Connection: close\r\n".to_string();
                     if is_verbose {
+                        print!("{}", csi_verbose);
                         print!("> {}", http_get);
                         print!("> {}", http_host);
                         print!("> {}", http_ua);
                         print!("> {}", http_connection);
                         println!(">");
+                        print!("{}", csi_reset);
                     }
                     socket.send_slice(http_get.as_ref()).expect("cannot send");
                     socket.send_slice(http_host.as_ref()).expect("cannot send");
@@ -177,9 +184,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             }
                         }
                         if is_verbose {
+                            print!("{}", csi_verbose);
                             for line in header {
                                 println!("< {}", line);
                             }
+                            print!("{}", csi_reset);
                         }
                         print!("{}", body.join("\n"));
                         (data.len(), ())

@@ -42,7 +42,7 @@ fn usage() -> usr::shell::ExitCode {
 // TODO: Add max number of attempts
 pub fn login(username: &str) -> usr::shell::ExitCode {
     if !fs::exists(PASSWORDS) {
-        eprintln!("Could not read '{}'", PASSWORDS);
+        error!("Could not read '{}'", PASSWORDS);
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -87,7 +87,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     if hashed_password(username).is_some() {
-        eprintln!("Username exists");
+        error!("Username exists");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -108,12 +108,12 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     println!();
 
     if password != confirm {
-        eprintln!("Password confirmation failed");
+        error!("Password confirmation failed");
         return usr::shell::ExitCode::CommandError;
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
-        eprintln!("Could not save user");
+        error!("Could not save user");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -121,7 +121,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     if let Some(handle) = api::fs::create_dir(&format!("/usr/{}", username)) {
         api::syscall::close(handle);
     } else {
-        eprintln!("Could not create home dir");
+        error!("Could not create home dir");
         return usr::shell::ExitCode::CommandError;
     }
 

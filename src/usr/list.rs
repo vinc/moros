@@ -43,7 +43,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     "size" => files.sort_by_key(|f| f.size()),
                     "time" => files.sort_by_key(|f| f.time()),
                     _ => {
-                        eprintln!("Invalid sort key '{}'", sort);
+                        error!("Invalid sort key '{}'", sort);
                         return usr::shell::ExitCode::CommandError;
                     }
                 }
@@ -60,7 +60,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
                 usr::shell::ExitCode::CommandSuccessful
             } else {
-                eprintln!("Could not read directory '{}'", path);
+                error!("Could not read directory '{}'", path);
                 usr::shell::ExitCode::CommandError
             }
         } else {
@@ -68,13 +68,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             usr::shell::ExitCode::CommandSuccessful
         }
     } else {
-        eprintln!("Could not find file or directory '{}'", path);
+        error!("Could not find file or directory '{}'", path);
         usr::shell::ExitCode::CommandError
     }
 }
 
 fn print_file(file: &FileInfo, width: usize) {
-    let csi_dir_color = Style::color("Blue");
+    let csi_dir_color = Style::color("LightCyan");
     let csi_dev_color = Style::color("Yellow");
     let csi_reset = Style::reset();
 

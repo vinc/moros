@@ -1,33 +1,34 @@
 use crate::{sys, usr, debug};
-use crate::api::console::Style;
 use crate::api::syscall;
-use crate::alloc::string::ToString;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
-use smoltcp::wire::{IpCidr, Ipv4Address, Ipv4Cidr};
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
-    let csi_color = Style::color("LightCyan");
-    let csi_reset = Style::reset();
+pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let mut verbose = false;
+    let dhcp_config;
 
-    // TODO: Add `--verbose` option
+    for arg in args {
+        match *arg {
+            "-v" | "--verbose" => {
+                verbose = true;
+            }
+            _ => {}
+        }
+    }
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let dhcp_socket = Dhcpv4Socket::new();
         let dhcp_handle = iface.add_socket(dhcp_socket);
-
-        let previous_address = match iface.ip_addrs().first() {
-            Some(IpCidr::Ipv4(ip_addr)) => *ip_addr,
-            _ => Ipv4Cidr::new(Ipv4Address::UNSPECIFIED, 0),
-        };
-
-        debug!("DHCP Discover transmitted");
+        if verbose {
+            debug!("DHCP Discover transmitted");
+        }
         let timeout = 30.0;
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                eprintln!("Timeout reached");
+                error!("Timeout reached");
                 iface.remove_socket(dhcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
@@ -39,39 +40,19 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let event = iface.get_socket::<Dhcpv4Socket>(dhcp_handle).poll();
             match event {
                 None => {}
                 Some(Dhcpv4Event::Configured(config)) => {
-                    debug!("DHCP Offer received");
-                    if config.address != previous_address {
-                        iface.update_ip_addrs(|addrs| {
-                            if let Some(addr) = addrs.iter_mut().next() {
-                                *addr = IpCidr::Ipv4(config.address);
-                            }
-                        });
-                        println!("{}IP Address:{} {}", csi_color, csi_reset, config.address);
+                    dhcp_config = Some(config);
+                    if verbose {
+                        debug!("DHCP Offer received");
                     }
-
-                    if let Some(router) = config.router {
-                        println!("{}Gateway:{}    {}", csi_color, csi_reset, router);
-                        iface.routes_mut().add_default_ipv4_route(router).unwrap();
-                    } else {
-                        println!("{}Gateway:{}    none", csi_color, csi_reset);
-                        iface.routes_mut().remove_default_ipv4_route();
-                    }
-
-                    // TODO: save DNS servers in `/ini/dns` and use them with `host` command
-                    let dns_servers: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
-                    if !dns_servers.is_empty() {
-                        println!("{}DNS:{}        {}", csi_color, csi_reset, dns_servers.join(", "));
-                    }
-
                     iface.remove_socket(dhcp_handle);
-                    return usr::shell::ExitCode::CommandSuccessful;
+                    break;
                 }
                 Some(Dhcpv4Event::Deconfigured) => {
                 }
@@ -81,6 +62,29 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
+    } else {
+        error!("Network Error");
+        return usr::shell::ExitCode::CommandError;
+    }
+
+    if let Some(config) = dhcp_config {
+        usr::net::main(&["net", "config", "ip", &config.address.to_string()]);
+        usr::net::main(&["net", "config", "ip"]);
+
+        if let Some(router) = config.router {
+            //iface.routes_mut().add_default_ipv4_route(router).unwrap();
+            usr::net::main(&["net", "config", "gw", &router.to_string()]);
+        } else {
+            //iface.routes_mut().remove_default_ipv4_route();
+            usr::net::main(&["net", "config", "gw", ""]);
+        }
+        usr::net::main(&["net", "config", "gw"]);
+
+        let dns: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
+        usr::net::main(&["net", "config", "dns", &dns.join(",")]);
+        usr::net::main(&["net", "config", "dns"]);
+
+        return usr::shell::ExitCode::CommandSuccessful;
     }
 
     usr::shell::ExitCode::CommandError

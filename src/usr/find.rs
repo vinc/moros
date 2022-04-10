@@ -39,7 +39,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     name = Some(args[i + 1]);
                     i += 1;
                 } else {
-                    eprintln!("Missing name");
+                    error!("Missing name");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
@@ -48,7 +48,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     line = Some(args[i + 1]);
                     i += 1;
                 } else {
-                    eprintln!("Missing line");
+                    error!("Missing line");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
@@ -90,8 +90,8 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
 }
 
 fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingState) {
-    let name_color = Style::color("LightBlue");
-    let line_color = Style::color("Yellow");
+    let name_color = Style::color("Yellow");
+    let line_color = Style::color("LightCyan");
     let match_color = Style::color("LightRed");
     let reset = Style::reset();
 

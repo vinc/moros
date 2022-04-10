@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::console::Style;
 use crate::api::syscall;
 use crate::api::random;
 use alloc::vec;
@@ -6,6 +7,7 @@ use alloc::vec::Vec;
 use bit_field::BitField;
 use core::convert::TryInto;
 use core::str;
+use core::str::FromStr;
 use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
@@ -120,9 +122,20 @@ impl Message {
     }
 }
 
+fn dns_address() -> Option<IpAddress> {
+    if let Some(servers) = usr::net::get_config("dns") {
+        if let Some((server, _)) = servers.split_once(",") {
+            if let Ok(addr) = IpAddress::from_str(server) {
+                return Some(addr);
+            }
+        }
+    }
+    None
+}
+
 pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
-    let dns_address = IpAddress::v4(8, 8, 8, 8);
     let dns_port = 53;
+    let dns_address = dns_address().unwrap_or(IpAddress::v4(8, 8, 8, 8));
     let server = IpEndpoint::new(dns_address, dns_port);
 
     let local_port = 49152 + random::get_u16() % 16384;
@@ -162,7 +175,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
-                eprintln!("Network Error: {}", e);
+                error!("Network Error: {}", e);
             }
 
             let socket = iface.get_socket::<UdpSocket>(udp_handle);
@@ -212,19 +225,28 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    // TODO: Add `--server <address>` option
     if args.len() != 2 {
-        eprintln!("Usage: host <name>");
+        help();
         return usr::shell::ExitCode::CommandError;
     }
-    let name = args[1];
-    match resolve(name) {
-        Ok(ip_addr) => {
-            println!("{} has address {}", name, ip_addr);
+    let domain = args[1];
+    match resolve(domain) {
+        Ok(addr) => {
+            println!("{} has address {}", domain, addr);
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(e) => {
-            eprintln!("Could not resolve host: {:?}", e);
+            error!("Could not resolve host: {:?}", e);
             usr::shell::ExitCode::CommandError
         }
     }
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} host {}<domain>{1}", csi_title, csi_reset, csi_option);
+    usr::shell::ExitCode::CommandSuccessful
 }
