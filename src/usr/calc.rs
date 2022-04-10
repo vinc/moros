@@ -152,7 +152,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 usr::shell::ExitCode::CommandSuccessful
             }
             Err(msg) => {
-                eprintln!("{}", msg);
+                error!("{}", msg);
                 usr::shell::ExitCode::CommandError
             }
         }
