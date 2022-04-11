@@ -17,7 +17,7 @@ pub fn init(boot_info: &'static BootInfo) {
             let start_addr = region.range.start_addr();
             let end_addr = region.range.end_addr();
             memory_size += end_addr - start_addr;
-            log!("MEM [{:#016X}-{:#016X}] {:?}\n", start_addr, end_addr, region.region_type);
+            log!("MEM [{:#016X}-{:#016X}] {:?}\n", start_addr, end_addr - 1, region.region_type);
         }
         log!("MEM {} KB\n", memory_size >> 10);
         MEMORY_SIZE.store(memory_size, Ordering::Relaxed);

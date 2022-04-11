@@ -49,7 +49,7 @@ pub fn alloc_pages(addr: u64, size: u64) {
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
@@ -71,7 +71,7 @@ pub fn free_pages(addr: u64, size: u64) {
     let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
