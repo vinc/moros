@@ -92,8 +92,8 @@ impl Chess {
                 "t" | "time" => self.cmd_time(args),
                 "m" | "move" => self.cmd_move(args),
                 "u" | "undo" => self.cmd_undo(args),
-                "s" | "show" => self.cmd_show(args),
                 "p" | "perf" => self.cmd_perf(args),
+                //"s" | "show" => self.cmd_show(args),
                 cmd => {
                     if cmd.is_empty() {
                         println!();
@@ -110,7 +110,6 @@ impl Chess {
 
     fn cmd_help(&mut self, _args: Vec<&str>) {
         println!("{}Commands:{}", self.csi_notif, self.csi_reset);
-        println!();
         let cmds = [
             ("q", "uit",                "Exit this program\n"),
             ("h", "elp",                "Display this screen\n"),
@@ -118,8 +117,8 @@ impl Chess {
             ("t", "ime <moves> <time>", "Set clock to <moves> in <time> (in seconds)\n"),
             ("m", "ove <move>",         "Play <move> on the board\n"),
             ("u", "ndo",                "Undo the last move\n"),
-            ("s", "how <attr>",         "Show <attr>\n"),
             ("p", "erf [<depth>]",       "Count the nodes at each depth\n"),
+            //("s", "how <attr>",         "Show <attr>\n"),
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("LightGreen");
@@ -136,6 +135,8 @@ impl Chess {
         println!("{}", self.game);
     }
 
+    /*
+    // TODO: implement hide command
     fn cmd_show(&mut self, args: Vec<&str>) {
         if args.len() == 1 {
             println!("{}Error:{} no <attr> given\n", self.csi_error, self.csi_reset);
@@ -148,10 +149,10 @@ impl Chess {
             },
             attr => {
                 println!("{}Error:{} unknown '{}' attribute\n", self.csi_error, self.csi_reset, attr);
-                return;
             }
         }
     }
+    */
 
     fn cmd_time(&mut self, args: Vec<&str>) {
         match args.len() {
@@ -218,7 +219,7 @@ impl Chess {
     }
 
     fn cmd_undo(&mut self, _args: Vec<&str>) {
-        if self.game.history.len() > 0 {
+        if !self.game.history.is_empty() {
             if let Some(m) = self.game.history.pop() {
                 self.game.undo_move(m);
             }
@@ -228,6 +229,9 @@ impl Chess {
     }
 
     fn cmd_perf(&mut self, args: Vec<&str>) {
+        let csi_color = Style::color("Cyan");
+        let csi_reset = Style::reset();
+
         let mut depth = if args.len() > 1 {
             if let Ok(d) = args[1].parse() {
                 d
@@ -244,7 +248,7 @@ impl Chess {
             let n = self.game.perft(depth);
             let s = (((self.game.clock.system_time)() - started_at) as f64) / 1000.0;
             let nps = (n as f64) / s;
-            println!("perft {} -> {} ({:.2} s, {:.2e} nps)", depth, n, s, nps);
+            println!("{}perft {}:{} {} ({:.2} s, {:.2e} nps)", csi_color, depth, csi_reset, n, s, nps);
 
             if args.len() > 1 || sys::console::end_of_text() {
                 break;

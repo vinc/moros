@@ -303,8 +303,8 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 // TODO: Don't go past edge
-                self.writer[1] += n;
-                self.cursor[1] += n;
+                self.writer[1] -= n;
+                self.cursor[1] -= n;
             },
             'B' => { // Cursor Down
                 let mut n = 1;
@@ -312,8 +312,8 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 // TODO: Don't go past edge
-                self.writer[1] -= n;
-                self.cursor[1] -= n;
+                self.writer[1] += n;
+                self.cursor[1] += n;
             },
             'C' => { // Cursor Forward
                 let mut n = 1;

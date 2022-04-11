@@ -8,11 +8,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    let color = Style::color("LightBlue");
+    let color = Style::color("Yellow");
     let reset = Style::reset();
 
     let pathname = args[1];
-    if let Ok(buf) = fs::read(pathname) {
+    if let Ok(buf) = fs::read_to_bytes(pathname) {
         let bin = buf.as_slice();
         if let Ok(obj) = object::File::parse(bin) {
             println!("ELF entry address: {:#x}", obj.entry());

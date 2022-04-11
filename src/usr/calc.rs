@@ -27,6 +27,7 @@ pub enum Exp {
     Mul(Box<Exp>, Box<Exp>),
     Div(Box<Exp>, Box<Exp>),
     Exp(Box<Exp>, Box<Exp>),
+    Mod(Box<Exp>, Box<Exp>),
 }
 
 // Parser
@@ -39,7 +40,7 @@ fn parse(input: &str) -> IResult<&str, Exp> {
 
 fn parse_term(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_factor(input)?;
-    let (input, exps) = many0(tuple((alt((char('/'), char('*'))), parse_factor)))(input)?;
+    let (input, exps) = many0(tuple((alt((char('%'), char('/'), char('*'))), parse_factor)))(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
@@ -69,6 +70,7 @@ fn parse_op(tup: (char, Exp), exp1: Exp) -> Exp {
         '*' => Exp::Mul(Box::new(exp1), Box::new(exp2)),
         '/' => Exp::Div(Box::new(exp1), Box::new(exp2)),
         '^' => Exp::Exp(Box::new(exp1), Box::new(exp2)),
+        '%' => Exp::Mod(Box::new(exp1), Box::new(exp2)),
         _ => panic!("Unknown operation"),
     }
 }
@@ -83,13 +85,14 @@ fn eval(exp: Exp) -> f64 {
         Exp::Mul(exp1, exp2) => eval(*exp1) * eval(*exp2),
         Exp::Div(exp1, exp2) => eval(*exp1) / eval(*exp2),
         Exp::Exp(exp1, exp2) => libm::pow(eval(*exp1), eval(*exp2)),
+        Exp::Mod(exp1, exp2) => libm::fmod(eval(*exp1), eval(*exp2)),
     }
 }
 
 // REPL
 
 fn parse_eval(line: &str) -> Result<f64, String> {
-    match parse(&line) {
+    match parse(line) {
         Ok((line, parsed)) => {
             if line.is_empty() {
                 Ok(eval(parsed))
@@ -149,7 +152,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 usr::shell::ExitCode::CommandSuccessful
             }
             Err(msg) => {
-                eprintln!("{}", msg);
+                error!("{}", msg);
                 usr::shell::ExitCode::CommandError
             }
         }
@@ -164,21 +167,28 @@ fn test_calc() {
         };
     }
 
-    assert_eq!(eval!("1"),           "1");
-    assert_eq!(eval!("1.5"),         "1.5");
+    assert_eq!(eval!("1"),                       "1");
+    assert_eq!(eval!("1.5"),                   "1.5");
 
-    assert_eq!(eval!("1 + 2"),       "3");
-    assert_eq!(eval!("1 + 2 + 3"),   "6");
-    assert_eq!(eval!("1 + 2.5"),     "3.5");
-    assert_eq!(eval!("1 + 2.5"),     "3.5");
-    assert_eq!(eval!("2 - 1"),       "1");
-    assert_eq!(eval!("1 - 2"),       "-1");
-    assert_eq!(eval!("2 * 3"),       "6");
-    assert_eq!(eval!("2 * 3.5"),     "7");
-    assert_eq!(eval!("6 / 2"),       "3");
-    assert_eq!(eval!("6 / 4"),       "1.5");
-    assert_eq!(eval!("2 ^ 4"),       "16");
+    assert_eq!(eval!("+1"),                      "1");
+    assert_eq!(eval!("-1"),                     "-1");
 
-    assert_eq!(eval!("2 * 3 + 4"),   "10");
-    assert_eq!(eval!("2 * (3 + 4)"), "14");
+    assert_eq!(eval!("1 + 2"),                   "3");
+    assert_eq!(eval!("1 + 2 + 3"),               "6");
+    assert_eq!(eval!("1 + 2.5"),               "3.5");
+    assert_eq!(eval!("1 + 2.5"),               "3.5");
+    assert_eq!(eval!("2 - 1"),                   "1");
+    assert_eq!(eval!("1 - 2"),                  "-1");
+    assert_eq!(eval!("2 * 3"),                   "6");
+    assert_eq!(eval!("2 * 3.5"),                 "7");
+    assert_eq!(eval!("6 / 2"),                   "3");
+    assert_eq!(eval!("6 / 4"),                 "1.5");
+    assert_eq!(eval!("2 ^ 4"),                  "16");
+    assert_eq!(eval!("3 % 2"),                   "1");
+
+    assert_eq!(eval!("2 * 3 + 4"),              "10");
+    assert_eq!(eval!("2 * (3 + 4)"),            "14");
+    assert_eq!(eval!("2 ^ 4 + 1"),              "17");
+    assert_eq!(eval!("1 + 2 ^ 4"),              "17");
+    assert_eq!(eval!("1 + 3 * 2 ^ 4 * 2 + 3"), "100");
 }

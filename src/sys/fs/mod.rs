@@ -8,10 +8,12 @@ mod file;
 mod read_dir;
 mod super_block;
 
+use crate::sys;
+
 pub use bitmap_block::BITMAP_SIZE;
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
-pub use dir_entry::FileStat;
+pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
 pub use crate::api::fs::{dirname, filename, realpath, FileIO};
@@ -20,8 +22,11 @@ pub use crate::sys::ata::BLOCK_SIZE;
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
 
+use alloc::string::{String, ToString};
+
 pub const VERSION: u8 = 1;
 
+#[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum OpenFlag {
     Read   = 1,
@@ -32,8 +37,8 @@ pub enum OpenFlag {
 }
 
 impl OpenFlag {
-    fn is_set(self, flags: usize) -> bool {
-        flags & (self as usize) != 0
+    fn is_set(&self, flags: usize) -> bool {
+        flags & (*self as usize) != 0
     }
 }
 
@@ -44,26 +49,40 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
             Dir::create(path)
         } else {
             res
-        }.map(|r| Resource::Dir(r))
+        }.map(Resource::Dir)
     } else if OpenFlag::Device.is_set(flags) {
         let res = Device::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             Device::create(path)
         } else {
             res
-        }.map(|r| Resource::Device(r))
+        }.map(Resource::Device)
     } else {
         let res = File::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             File::create(path)
         } else {
             res
-        }.map(|r| Resource::File(r))
+        }.map(Resource::File)
     }
 }
 
-pub fn stat(pathname: &str) -> Option<FileStat> {
-    DirEntry::open(pathname).map(|e| e.stat())
+pub fn delete(path: &str) -> Result<(), ()> {
+    if let Some(info) = info(path) {
+        if info.is_file() {
+            return File::delete(path);
+        } else if info.is_dir() {
+            return Dir::delete(path);
+        }
+    }
+    Err(())
+}
+
+pub fn info(pathname: &str) -> Option<FileInfo> {
+    if pathname == "/" {
+        return Some(FileInfo::root());
+    }
+    DirEntry::open(pathname).map(|e| e.info())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +113,21 @@ impl FileIO for Resource {
             Resource::Dir(io) => io.write(buf),
             Resource::File(io) => io.write(buf),
             Resource::Device(io) => io.write(buf),
+        }
+    }
+}
+
+pub fn canonicalize(path: &str) -> Result<String, ()> {
+    match sys::process::env("HOME") {
+        Some(home) => {
+            if path.starts_with('~') {
+                Ok(path.replace('~', &home))
+            } else {
+                Ok(path.to_string())
+            }
+        },
+        None => {
+            Ok(path.to_string())
         }
     }
 }

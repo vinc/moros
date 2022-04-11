@@ -32,11 +32,11 @@ impl Prompt {
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
-                '\x03' => { // End of Text (^C)
+                console::ETX_KEY => { // End of Text (^C)
                     println!();
                     return Some(String::new());
                 },
-                '\x04' => { // End of Transmission (^D)
+                console::EOT_KEY => { // End of Transmission (^D)
                     println!();
                     return None;
                 },
@@ -88,6 +88,38 @@ impl Prompt {
                     (bs, pos + 1)
                 } else {
                     (bs, 0)
+                }
+            },
+            None => {
+                let line: String = self.line.iter().collect();
+                self.completion.entries = (self.completion.completer)(&line);
+                if !self.completion.entries.is_empty() {
+                    (0, 0)
+                } else {
+                    return
+                }
+            },
+        };
+        let erase = "\x08".repeat(bs);
+        let complete = &self.completion.entries[pos];
+        print!("{}{}", erase, complete);
+        self.completion.pos = Some(pos);
+    }
+
+    fn handle_backtab_key(&mut self) {
+        self.update_history();
+        let (bs, pos) = match self.completion.pos {
+            Some(pos) => {
+                let n = self.completion.entries.len();
+                if n == 1 {
+                    self.update_completion();
+                    return;
+                }
+                let bs = self.completion.entries[pos].chars().count();
+                if pos == 0 {
+                    (bs, n - 1)
+                } else {
+                    (bs, pos - 1)
                 }
             },
             None => {
@@ -171,7 +203,7 @@ impl Prompt {
             self.line.remove(i);
             let s = &self.line[i..]; // UTF-32
             let n = s.len() + 1;
-            let s: String = s.into_iter().collect(); // UTF-8
+            let s: String = s.iter().collect(); // UTF-8
             print!("{} \x1b[{}D", s, n);
         }
     }
@@ -184,8 +216,8 @@ impl Prompt {
             self.line.remove(i);
             let s = &self.line[i..]; // UTF-32
             let n = s.len() + 1;
-            let s: String = s.into_iter().collect(); // UTF-8
-            print!("{}{} \x1b[{}D", '\x08', s, n);
+            let s: String = s.iter().collect(); // UTF-8
+            print!("\x08{} \x1b[{}D", s, n);
             self.cursor -= 1;
         }
     }
@@ -198,7 +230,7 @@ impl Prompt {
             self.line.insert(i, c);
             let s = &self.line[i..]; // UTF-32
             let n = s.len();
-            let s: String = s.into_iter().collect(); // UTF-8
+            let s: String = s.iter().collect(); // UTF-8
             print!("{} \x1b[{}D", s, n);
             self.cursor += 1;
         }
@@ -228,6 +260,7 @@ impl Perform for Prompt {
             'B' => self.handle_down_key(),
             'C' => self.handle_forward_key(),
             'D' => self.handle_backward_key(),
+            'Z' => self.handle_backtab_key(),
             '~' => {
                 for param in params.iter() {
                     if param[0] == 3 { // Delete

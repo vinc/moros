@@ -1,6 +1,7 @@
-use crate::{sys, usr};
+use crate::{api, sys, usr};
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::fs::DeviceType;
 use crate::api::io;
 use crate::api::syscall;
 use alloc::string::String;
@@ -20,23 +21,20 @@ pub fn copy_files(verbose: bool) {
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
 
     create_dir("/dev/clk", verbose); // Clocks
-    let pathname = "/dev/console";
-    if syscall::stat(pathname).is_none() {
-        if fs::create_device(pathname, sys::fs::DeviceType::Console).is_some() && verbose {
-            println!("Created '{}'", pathname);
-        }
-    }
-    let pathname = "/dev/random";
-    if syscall::stat(pathname).is_none() {
-        if fs::create_device(pathname, sys::fs::DeviceType::Random).is_some() && verbose {
-            println!("Created '{}'", pathname);
-        }
-    }
+    create_dev("/dev/clk/uptime", DeviceType::File, verbose); // TODO
+    create_dev("/dev/clk/realtime", DeviceType::File, verbose); // TODO
+    create_dev("/dev/rtc", DeviceType::File, verbose); // TODO
+    create_dev("/dev/null", DeviceType::Null, verbose);
+    create_dev("/dev/random", DeviceType::Random, verbose);
+    create_dev("/dev/console", DeviceType::Console, verbose);
 
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
     copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"), verbose);
+
+    create_dir("/ini/lisp", verbose);
+    copy_file("/ini/lisp/core.lsp", include_bytes!("../../dsk/ini/lisp/core.lsp"), verbose);
 
     create_dir("/ini/fonts", verbose);
     copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
@@ -44,7 +42,7 @@ pub fn copy_files(verbose: bool) {
     copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"), verbose);
 
     copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"), verbose);
-    copy_file("/tmp/fibonacci.lisp", include_bytes!("../../dsk/tmp/fibonacci.lisp"), verbose);
+    copy_file("/tmp/fibonacci.lsp", include_bytes!("../../dsk/tmp/fibonacci.lsp"), verbose);
 
     create_dir("/tmp/beep", verbose);
     copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"), verbose);
@@ -100,8 +98,24 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn create_dir(pathname: &str, verbose: bool) {
-    if sys::fs::Dir::create(pathname).is_some() && verbose {
-        println!("Created '{}'", pathname);
+    if syscall::info(pathname).is_none() {
+        if let Some(handle) = api::fs::create_dir(pathname) {
+            syscall::close(handle);
+            if verbose {
+                println!("Created '{}'", pathname);
+            }
+        }
+    }
+}
+
+fn create_dev(pathname: &str, dev: DeviceType, verbose: bool) {
+    if syscall::info(pathname).is_none() {
+        if let Some(handle) = fs::create_device(pathname, dev) {
+            syscall::close(handle);
+            if verbose {
+                println!("Created '{}'", pathname);
+            }
+        }
     }
 }
 

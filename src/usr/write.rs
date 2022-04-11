@@ -1,4 +1,4 @@
-use crate::{sys, usr};
+use crate::{api, usr};
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
@@ -7,25 +7,21 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     let pathname = args[1];
 
-    if pathname.starts_with("/dev") || pathname.starts_with("/sys") {
-        eprintln!("Permission denied to write to '{}'", pathname);
-        return usr::shell::ExitCode::CommandError;
-    }
-
     // The command `write /usr/alice/` with a trailing slash will create
     // a directory, while the same command without a trailing slash will
     // create a file.
-    let success = if pathname.ends_with('/') {
+    let res = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
-        sys::fs::Dir::create(pathname).is_some()
+        api::fs::create_dir(pathname)
     } else {
-        sys::fs::File::create(pathname).is_some()
+        api::fs::create_file(pathname)
     };
 
-    if success {
+    if let Some(handle) = res {
+        api::syscall::close(handle);
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        eprintln!("Could not write to '{}'", pathname);
+        error!("Could not write to '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }

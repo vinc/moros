@@ -1,13 +1,15 @@
 use crate::sys;
 
+use core::sync::atomic::{AtomicBool, Ordering};
 use lazy_static::lazy_static;
-use pc_keyboard::{layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, Keyboard, ScancodeSet1};
+use pc_keyboard::{layouts, DecodedKey, Error, HandleControl, KeyState, KeyCode, KeyEvent, Keyboard, ScancodeSet1};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
 lazy_static! {
     pub static ref KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
 }
+pub static SHIFT: AtomicBool = AtomicBool::new(false);
 
 pub enum KeyboardLayout {
     Azerty(Keyboard<layouts::Azerty, ScancodeSet1>),
@@ -75,13 +77,20 @@ fn interrupt_handler() {
     if let Some(ref mut keyboard) = *KEYBOARD.lock() {
         let scancode = read_scancode();
         if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+            match key_event.code {
+                KeyCode::ShiftLeft | KeyCode::ShiftRight => SHIFT.store(key_event.state == KeyState::Down, Ordering::Relaxed),
+                _ => {}
+            }
+            let is_shifted = SHIFT.load(Ordering::Relaxed);
+
             if let Some(key) = keyboard.process_keyevent(key_event) {
                 match key {
-                    DecodedKey::Unicode(c)                  => send_key(c),
                     DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi('A'),
                     DecodedKey::RawKey(KeyCode::ArrowDown)  => send_csi('B'),
                     DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi('C'),
                     DecodedKey::RawKey(KeyCode::ArrowLeft)  => send_csi('D'),
+                    DecodedKey::Unicode('\t') if is_shifted => send_csi('Z'), // Convert Shift+Tab into Backtab
+                    DecodedKey::Unicode(c)                  => send_key(c),
                     _ => {},
                 };
             }

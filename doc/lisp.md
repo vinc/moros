@@ -10,6 +10,10 @@ Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.
 
 MOROS Lisp dialect is also inspired by Scheme and Clojure.
 
+In version 0.2.0 the whole implementation was refactored and the parser was
+rewritten to use [Nom](https://github.com/Geal/nom). This allowed the addition
+of strings to the language and reading from the filesystem.
+
 ## Seven Primitive Operators
 - `quote` (with the `'` syntax)
 - `atom` (aliased to `atom?`)
@@ -23,9 +27,13 @@ MOROS Lisp dialect is also inspired by Scheme and Clojure.
 - `label` (aliased to `def`)
 - `lambda` (aliased to `fn`)
 
-## Additional primitives
+## Additional Builtins
 - `defun` (aliased to `defn`)
+- `mapcar` (aliased to `map`)
 - `print`
+- `read-file`
+- `lines`
+- `parse`
 
 ## Usage
 
@@ -41,9 +49,8 @@ MOROS Lisp v0.1.0
 > (exit)
 ```
 
-And it can execute a file.
-
-For example a file located in `/tmp/fib.ls` with the following content:
+And it can execute a file. For example a file located in `/tmp/fibonacci.lsp`
+with the following content:
 
 ```lisp
 (label fib
@@ -58,6 +65,6 @@ For example a file located in `/tmp/fib.ls` with the following content:
 Would produce the following output:
 
 ```
-> lisp /tmp/fib.ls
+> lisp /tmp/fibonacci.lsp
 8
 ```

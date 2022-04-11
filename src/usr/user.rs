@@ -41,6 +41,11 @@ fn usage() -> usr::shell::ExitCode {
 
 // TODO: Add max number of attempts
 pub fn login(username: &str) -> usr::shell::ExitCode {
+    if !fs::exists(PASSWORDS) {
+        error!("Could not read '{}'", PASSWORDS);
+        return usr::shell::ExitCode::CommandError;
+    }
+
     if username.is_empty() {
         println!();
         syscall::sleep(1.0);
@@ -82,7 +87,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     if hashed_password(username).is_some() {
-        eprintln!("Username exists");
+        error!("Username exists");
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -103,17 +108,22 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     println!();
 
     if password != confirm {
-        eprintln!("Password confirmation failed");
+        error!("Password confirmation failed");
         return usr::shell::ExitCode::CommandError;
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
-        eprintln!("Could not save user");
+        error!("Could not save user");
         return usr::shell::ExitCode::CommandError;
     }
 
     // Create home dir
-    sys::fs::Dir::create(&format!("/usr/{}", username)).unwrap();
+    if let Some(handle) = api::fs::create_dir(&format!("/usr/{}", username)) {
+        api::syscall::close(handle);
+    } else {
+        error!("Could not create home dir");
+        return usr::shell::ExitCode::CommandError;
+    }
 
     usr::shell::ExitCode::CommandSuccessful
 }

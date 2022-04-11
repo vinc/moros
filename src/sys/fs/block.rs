@@ -43,14 +43,18 @@ impl Block {
     pub fn read(addr: u32) -> Self {
         let mut buf = [0; super::BLOCK_SIZE];
         if let Some(ref block_device) = *super::block_device::BLOCK_DEVICE.lock() {
-            block_device.read(addr, &mut buf);
+            if block_device.read(addr, &mut buf).is_err() {
+                debug!("MFS: could not read block {:#x}", addr);
+            }
         }
         Self { addr, buf }
     }
 
     pub fn write(&self) {
         if let Some(ref mut block_device) = *super::block_device::BLOCK_DEVICE.lock() {
-            block_device.write(self.addr, &self.buf);
+            if block_device.write(self.addr, &self.buf).is_err() {
+                debug!("MFS: could not write block {:#x}", self.addr);
+            }
         }
     }
 

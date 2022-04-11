@@ -13,6 +13,10 @@ pub struct DeviceConfig {
     pub device_id: u16,
     pub status: u16,
     pub command: u16,
+    pub rev: u8,
+    pub prog: u8,
+    pub class: u8,
+    pub subclass: u8,
     pub base_addresses: [u32; 6],
     pub interrupt_pin: u8,
     pub interrupt_line: u8,
@@ -27,6 +31,13 @@ impl DeviceConfig {
         let data = register.read();
         let command = data.get_bits(0..16) as u16;
         let status = data.get_bits(16..32) as u16;
+
+        let mut register = ConfigRegister::new(bus, device, function, 0x08);
+        let data = register.read();
+        let rev = data.get_bits(0..8) as u8;
+        let prog = data.get_bits(8..16) as u8;
+        let subclass = data.get_bits(16..24) as u8;
+        let class = data.get_bits(24..32) as u8;
 
         let mut register = ConfigRegister::new(bus, device, function, 0x3C);
         let data = register.read();
@@ -50,6 +61,10 @@ impl DeviceConfig {
             device_id,
             status,
             command,
+            rev,
+            prog,
+            class,
+            subclass,
             base_addresses,
             interrupt_pin,
             interrupt_line,
@@ -75,12 +90,6 @@ pub fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
         }
     }
     None
-}
-
-pub fn init() {
-    for bus in 0..256 {
-        check_bus(bus as u8);
-    }
 }
 
 fn check_bus(bus: u8) {
@@ -113,7 +122,7 @@ fn check_device(bus: u8, device: u8) {
 fn add_device(bus: u8, device: u8, function: u8) {
     let config = DeviceConfig::new(bus, device, function);
     PCI_DEVICES.lock().push(config);
-    log!("PCI {:04}:{:02}:{:02} [{:04X}:{:04X}]\n", bus, device, function, config.vendor_id, config.device_id);
+    log!("PCI {:04X}:{:02X}:{:02X} [{:04X}:{:04X}]\n", bus, device, function, config.vendor_id, config.device_id);
 }
 
 fn get_vendor_id(bus: u8, device: u8, function: u8) -> u16 {
@@ -162,4 +171,41 @@ impl ConfigRegister {
             self.data_port.write(data);
         }
     }
+}
+
+pub fn init() {
+    for bus in 0..256 {
+        check_bus(bus as u8);
+    }
+
+    let devs = PCI_DEVICES.lock();
+    for dev in devs.iter() {
+        // NOTE: There's not yet an AHCI driver for SATA disks so we must
+        // switch to IDE legacy mode for the ATA driver.
+        if dev.class == 0x01 && dev.subclass == 0x01 { // IDE Controller
+            let mut register = ConfigRegister::new(dev.bus, dev.device, dev.function, 0x08);
+            let mut data = register.read();
+            let prog_offset = 8; // The programing interface start at bit 8
+
+            // Switching primary channel to compatibility mode
+            if dev.prog.get_bit(0) { // PCI native mode
+                if dev.prog.get_bit(1) { // Modifiable
+                    data.set_bit(prog_offset, false);
+                    register.write(data);
+                }
+            }
+
+            // Switching secondary channel to compatibility mode
+            if dev.prog.get_bit(2) { // PCI native mode
+                if dev.prog.get_bit(3) { // Modifiable
+                    data.set_bit(prog_offset + 2, false);
+                    register.write(data);
+                }
+            }
+        }
+    }
+}
+
+pub fn list() -> Vec<DeviceConfig> {
+    PCI_DEVICES.lock().clone()
 }
