@@ -192,7 +192,7 @@ use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
 
-static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20)); // 16 MB
+static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20) + 3 * 4096);
 const PAGE_SIZE: u64 = 4 * 1024;
 
 #[repr(align(8), C)]
@@ -253,12 +253,8 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
-        let heap_size = core::cmp::min(sys::mem::memory_size() / 2, 16 << 20);
-        let heap_addr = sys::allocator::HEAP_START as u64;
-
-        let code_size = 1024;
-        let code_addr = heap_addr + heap_size;
-        //let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
+        let code_size = 1 * PAGE_SIZE;
+        let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
 
         sys::allocator::alloc_pages(code_addr, code_size);
 

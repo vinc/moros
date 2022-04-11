@@ -1,6 +1,6 @@
 use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate};
 use x86_64::{PhysAddr, VirtAddr};
@@ -9,6 +9,8 @@ use x86_64::{PhysAddr, VirtAddr};
 pub static mut PHYS_MEM_OFFSET: u64 = 0;
 pub static mut MEMORY_MAP: Option<&MemoryMap> = None;
 pub static MEMORY_SIZE: AtomicU64 = AtomicU64::new(0);
+
+static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
 
 pub fn init(boot_info: &'static BootInfo) {
     interrupts::without_interrupts(|| {
@@ -26,7 +28,7 @@ pub fn init(boot_info: &'static BootInfo) {
         unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
 
         let mut mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
-        let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map, 0) };
+        let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
 
         sys::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
     });
@@ -63,13 +65,12 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr) -> &'static mut
 }
 
 pub struct BootInfoFrameAllocator {
-    memory_map: &'static MemoryMap,
-    next: usize,
+    memory_map: &'static MemoryMap
 }
 
 impl BootInfoFrameAllocator {
-    pub unsafe fn init(memory_map: &'static MemoryMap, next: usize) -> Self {
-        BootInfoFrameAllocator { memory_map, next }
+    pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
+        BootInfoFrameAllocator { memory_map }
     }
 
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
@@ -83,10 +84,11 @@ impl BootInfoFrameAllocator {
 
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
+        let next = ALLOCATED_FRAMES.fetch_add(1, Ordering::SeqCst);
+
         // FIXME: creating an iterator for each allocation is very slow if
         // the heap is larger than a few megabytes.
-        let frame = self.usable_frames().nth(self.next);
-        self.next += 1;
+        let frame = self.usable_frames().nth(next);
         frame
     }
 }
