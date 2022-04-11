@@ -253,8 +253,13 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
-        let code_size = 1024 * PAGE_SIZE;
-        let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
+        let heap_size = core::cmp::min(sys::mem::memory_size() / 2, 16 << 20);
+        let heap_addr = sys::allocator::HEAP_START as u64;
+
+        let code_size = 1024;
+        let code_addr = heap_addr + heap_size;
+        //let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
+
         sys::allocator::alloc_pages(code_addr, code_size);
 
         let mut entry_point = 0;
