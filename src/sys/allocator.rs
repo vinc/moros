@@ -49,7 +49,7 @@ pub fn alloc_pages(addr: u64, size: u64) {
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
@@ -71,7 +71,7 @@ pub fn free_pages(addr: u64, size: u64) {
     let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
@@ -109,9 +109,8 @@ impl PhysBuf {
     }
 }
 
-fn phys_addr(ptr: &u8) -> u64 {
-    let rx_ptr = ptr as *const u8;
-    let virt_addr = VirtAddr::new(rx_ptr as u64);
+pub fn phys_addr(ptr: *const u8) -> u64 {
+    let virt_addr = VirtAddr::new(ptr as u64);
     let phys_addr = sys::mem::virt_to_phys(virt_addr).unwrap();
     phys_addr.as_u64()
 }
