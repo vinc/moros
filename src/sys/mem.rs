@@ -26,7 +26,7 @@ pub fn init(boot_info: &'static BootInfo) {
         unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
 
         let mut mapper = unsafe { mapper(VirtAddr::new(PHYS_MEM_OFFSET)) };
-        let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
+        let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map, 0) };
 
         sys::allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
     });
@@ -68,8 +68,8 @@ pub struct BootInfoFrameAllocator {
 }
 
 impl BootInfoFrameAllocator {
-    pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
-        BootInfoFrameAllocator { memory_map, next: 0 }
+    pub unsafe fn init(memory_map: &'static MemoryMap, next: usize) -> Self {
+        BootInfoFrameAllocator { memory_map, next }
     }
 
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {

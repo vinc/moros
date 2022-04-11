@@ -44,8 +44,9 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
 }
 
 pub fn alloc_pages(addr: u64, size: u64) {
+    let offset = ((addr as usize) - sys::allocator::HEAP_START) / 4096;
     let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
-    let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
+    let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap(), offset) };
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
