@@ -256,7 +256,7 @@ impl Process {
         let code_size = 1 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
 
-        sys::allocator::alloc_pages(code_addr, code_size);
+        //sys::allocator::alloc_pages(code_addr, code_size);
 
         let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;

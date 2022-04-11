@@ -44,6 +44,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
 }
 
 pub fn alloc_pages(addr: u64, size: u64) {
+    debug!("alloc addr={:#x} size={}", addr, size);
     let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
     let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
@@ -53,7 +54,9 @@ pub fn alloc_pages(addr: u64, size: u64) {
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
+        debug!("alloc page {:?}", page);
         if let Some(frame) = frame_allocator.allocate_frame() {
+            debug!("alloc frame {:?}", frame);
             unsafe {
                 if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
                     mapping.flush();
