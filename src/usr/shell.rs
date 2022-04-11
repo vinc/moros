@@ -213,7 +213,7 @@ pub fn exec(cmd: &str) -> ExitCode {
 
     let res = match args[0] {
         ""                     => ExitCode::CommandSuccessful,
-        "a" | "alias"          => ExitCode::CommandUnknown,
+        "a"                    => ExitCode::CommandUnknown,
         "b"                    => ExitCode::CommandUnknown,
         "c" | "copy"           => usr::copy::main(&args),
         "d" | "del" | "delete" => usr::delete::main(&args),
@@ -222,8 +222,8 @@ pub fn exec(cmd: &str) -> ExitCode {
         "g" | "go" | "goto"    => change_dir(&args),
         "h" | "help"           => usr::help::main(&args),
         "i"                    => ExitCode::CommandUnknown,
-        "j" | "jump"           => ExitCode::CommandUnknown,
-        "k" | "kill"           => ExitCode::CommandUnknown,
+        "j"                    => ExitCode::CommandUnknown,
+        "k"                    => ExitCode::CommandUnknown,
         "l" | "list"           => usr::list::main(&args),
         "m" | "move"           => usr::r#move::main(&args),
         "n"                    => ExitCode::CommandUnknown,
