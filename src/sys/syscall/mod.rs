@@ -76,6 +76,9 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
             service::spawn(path);
             0
         }
+        number::STOP => {
+            service::stop(arg1)
+        }
         _ => {
             unimplemented!();
         }

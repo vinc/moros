@@ -31,6 +31,7 @@ pub mod pow;
 pub mod print;
 pub mod r#move;
 pub mod read;
+pub mod reboot;
 pub mod shell;
 pub mod sleep;
 pub mod tcp;
