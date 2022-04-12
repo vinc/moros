@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::api::syscall;
 
 use core::sync::atomic::{AtomicBool, Ordering};
 use lazy_static::lazy_static;
@@ -9,6 +10,8 @@ use x86_64::instructions::port::Port;
 lazy_static! {
     pub static ref KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
 }
+pub static ALT: AtomicBool = AtomicBool::new(false);
+pub static CTRL: AtomicBool = AtomicBool::new(false);
 pub static SHIFT: AtomicBool = AtomicBool::new(false);
 
 pub enum KeyboardLayout {
@@ -78,18 +81,23 @@ fn interrupt_handler() {
         let scancode = read_scancode();
         if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
             match key_event.code {
+                KeyCode::AltLeft | KeyCode::AltRight => ALT.store(key_event.state == KeyState::Down, Ordering::Relaxed),
                 KeyCode::ShiftLeft | KeyCode::ShiftRight => SHIFT.store(key_event.state == KeyState::Down, Ordering::Relaxed),
+                KeyCode::ControlLeft | KeyCode::ControlRight => CTRL.store(key_event.state == KeyState::Down, Ordering::Relaxed),
                 _ => {}
             }
-            let is_shifted = SHIFT.load(Ordering::Relaxed);
+            let is_alt = ALT.load(Ordering::Relaxed);
+            let is_ctrl = CTRL.load(Ordering::Relaxed);
+            let is_shift = SHIFT.load(Ordering::Relaxed);
 
             if let Some(key) = keyboard.process_keyevent(key_event) {
                 match key {
+                    DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => syscall::reboot(), // Ctrl-Alt-Del
                     DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi('A'),
                     DecodedKey::RawKey(KeyCode::ArrowDown)  => send_csi('B'),
                     DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi('C'),
                     DecodedKey::RawKey(KeyCode::ArrowLeft)  => send_csi('D'),
-                    DecodedKey::Unicode('\t') if is_shifted => send_csi('Z'), // Convert Shift+Tab into Backtab
+                    DecodedKey::Unicode('\t') if is_shift   => send_csi('Z'), // Convert Shift-Tab into Backtab
                     DecodedKey::Unicode(c)                  => send_key(c),
                     _ => {},
                 };

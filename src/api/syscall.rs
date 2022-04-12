@@ -96,6 +96,14 @@ pub fn spawn(path: &str) {
     unsafe { syscall!(SPAWN, ptr, len) };
 }
 
+pub fn reboot() {
+    unsafe { syscall!(STOP, 0xcafe) };
+}
+
+pub fn halt() {
+    unsafe { syscall!(STOP, 0xdead) };
+}
+
 #[test_case]
 fn test_file() {
     use crate::sys::fs::{mount_mem, format_mem, dismount, OpenFlag};

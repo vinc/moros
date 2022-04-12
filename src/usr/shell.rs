@@ -8,11 +8,11 @@ use alloc::vec::Vec;
 use alloc::string::String;
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 37] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 38] = [
     "2048", "base64", "calc", "clear", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
     "env", "exit", "geotime", "goto", "halt", "help", "hex", "host", "http", "httpd", "install",
-    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read", "shell", "sleep",
-    "tcp", "user", "vga", "write"
+    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read", "reboot", "shell",
+    "sleep", "tcp", "user", "vga", "write"
 ];
 
 #[repr(u8)]
@@ -248,6 +248,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "date"                 => usr::date::main(&args),
         "env"                  => usr::env::main(&args),
         "halt"                 => usr::halt::main(&args),
+        "reboot"               => usr::reboot::main(&args),
         "hex"                  => usr::hex::main(&args),
         "net"                  => usr::net::main(&args),
         "dhcp"                 => usr::dhcp::main(&args),
