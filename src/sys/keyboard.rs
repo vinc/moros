@@ -92,12 +92,12 @@ fn interrupt_handler() {
 
             if let Some(key) = keyboard.process_keyevent(key_event) {
                 match key {
-                    DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => syscall::reboot(),
+                    DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => syscall::reboot(), // Ctrl-Alt-Del
                     DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi('A'),
                     DecodedKey::RawKey(KeyCode::ArrowDown)  => send_csi('B'),
                     DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi('C'),
                     DecodedKey::RawKey(KeyCode::ArrowLeft)  => send_csi('D'),
-                    DecodedKey::Unicode('\t') if is_shift   => send_csi('Z'), // Convert Shift+Tab into Backtab
+                    DecodedKey::Unicode('\t') if is_shift   => send_csi('Z'), // Convert Shift-Tab into Backtab
                     DecodedKey::Unicode(c)                  => send_key(c),
                     _ => {},
                 };
