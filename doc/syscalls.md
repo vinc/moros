@@ -1,5 +1,7 @@
 # MOROS Syscalls
 
+This list is unstable and subject to change between versions of MOROS.
+
 ## EXIT (0x1)
 
 ```rust
@@ -71,3 +73,11 @@ pub fn realtime() -> f64
 ```rust
 pub fn delete(path: &str) -> isize
 ```
+
+## STOP (0xD)
+
+```rust
+pub fn stop(code: usize)
+```
+
+The system will reboot with `0xcafe` and halt with `0xdead`.

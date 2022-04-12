@@ -3,6 +3,7 @@ use crate::sys::fs::FileInfo;
 use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
 use alloc::vec;
+use core::arch::asm;
 
 pub fn exit(_code: usize) -> usize {
     sys::process::exit();
@@ -101,4 +102,22 @@ pub fn spawn(path: &str) -> isize {
         }
     }
     -1
+}
+
+pub fn stop(code: usize) -> usize {
+    match code {
+        0xcafe => { // Reboot
+            unsafe {
+                asm!(
+                    "xor rax, rax",
+                    "mov cr3, rax"
+                );
+            }
+        }
+        0xdead => { // Halt
+            sys::acpi::shutdown();
+        }
+        _ => {}
+    }
+    0
 }

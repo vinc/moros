@@ -10,3 +10,4 @@ pub const SLEEP:    usize = 0x9;
 pub const UPTIME:   usize = 0xA;
 pub const REALTIME: usize = 0xB;
 pub const DELETE:   usize = 0xC;
+pub const STOP:     usize = 0xD;
