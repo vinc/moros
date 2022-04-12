@@ -17,19 +17,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
-fn help() -> usr::shell::ExitCode {
-    println!("Usage: <command>");
-    println!();
-    println!("Commands:");
-    println!("  list");
-
-    usr::shell::ExitCode::CommandSuccessful
-}
-
-
 fn list(verbose: bool) -> usr::shell::ExitCode {
-    let color1 = Style::color("Cyan");
-    let color2 = Style::color("Yellow");
+    let color1 = Style::color("Blue");
+    let color2 = Style::color("LightBlue");
     let reset = Style::reset();
     if verbose {
         println!("{}+-------------------->{} bus num{}", color1, color2, reset);
@@ -47,5 +37,19 @@ fn list(verbose: bool) -> usr::shell::ExitCode {
             println!();
         }
     }
+    usr::shell::ExitCode::CommandSuccessful
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} pci {}<command> <options>{1}", csi_title, csi_reset, csi_option);
+    println!();
+    println!("{}Commands:{}", csi_title, csi_reset);
+    println!("  {}list{}             List PCI devices", csi_option, csi_reset);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }

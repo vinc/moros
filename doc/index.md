@@ -25,7 +25,7 @@ files or lines:
 
 ![screenshot](find.png)
 
-It also has a [lisp](lisp.md) interpreter:
+It has a [calculator](calculator.md) and also a [lisp](lisp.md) interpreter:
 
 ![screenshot](lisp.png)
 

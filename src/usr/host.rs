@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::console::Style;
 use crate::api::syscall;
 use crate::api::random;
 use alloc::vec;
@@ -6,8 +7,8 @@ use alloc::vec::Vec;
 use bit_field::BitField;
 use core::convert::TryInto;
 use core::str;
-use core::time::Duration;
-use smoltcp::socket::{SocketSet, UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
+use core::str::FromStr;
+use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::{IpAddress, IpEndpoint, Ipv4Address};
 
@@ -121,9 +122,20 @@ impl Message {
     }
 }
 
+fn dns_address() -> Option<IpAddress> {
+    if let Some(servers) = usr::net::get_config("dns") {
+        if let Some((server, _)) = servers.split_once(",") {
+            if let Ok(addr) = IpAddress::from_str(server) {
+                return Some(addr);
+            }
+        }
+    }
+    None
+}
+
 pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
-    let dns_address = IpAddress::v4(8, 8, 8, 8);
     let dns_port = 53;
+    let dns_address = dns_address().unwrap_or(IpAddress::v4(8, 8, 8, 8));
     let server = IpEndpoint::new(dns_address, dns_port);
 
     let local_port = 49152 + random::get_u16() % 16384;
@@ -134,13 +146,11 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let qclass = QueryClass::IN;
     let query = Message::query(qname, qtype, qclass);
 
-    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
-    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 512]);
+    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 1024]);
+    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY], vec![0; 1024]);
     let udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
 
-    let mut sockets = SocketSet::new(vec![]);
-    let udp_handle = sockets.add(udp_socket);
-
+    #[derive(Debug)]
     enum State { Bind, Query, Response }
     let mut state = State::Bind;
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
@@ -154,61 +164,59 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             _ => {}
         }
 
+        let udp_handle = iface.add_socket(udp_socket);
+
         let timeout = 5.0;
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
+                iface.remove_socket(udp_handle);
                 return Err(ResponseCode::NetworkError);
             }
-            let timestamp = Instant::from_millis((syscall::realtime() * 1000.0) as i64);
-            match iface.poll(&mut sockets, timestamp) {
-                Err(smoltcp::Error::Unrecognized) => {}
-                Err(e) => {
-                    println!("Network Error: {}", e);
-                }
-                Ok(_) => {}
+            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            if let Err(e) = iface.poll(timestamp) {
+                error!("Network Error: {}", e);
             }
 
-            {
-                let mut socket = sockets.get::<UdpSocket>(udp_handle);
+            let socket = iface.get_socket::<UdpSocket>(udp_handle);
 
-                state = match state {
-                    State::Bind if !socket.is_open() => {
-                        socket.bind(client).unwrap();
-                        State::Query
-                    }
-                    State::Query if socket.can_send() => {
-                        socket.send_slice(&query.datagram, server).expect("cannot send");
-                        State::Response
-                    }
-                    State::Response if socket.can_recv() => {
-                        let (data, _) = socket.recv().expect("cannot receive");
-                        let message = Message::from(data);
-                        if message.id() == query.id() && message.is_response() {
-                            return match message.rcode() {
-                                ResponseCode::NoError => {
-                                    // TODO: Parse the datagram instead of
-                                    // extracting the last 4 bytes.
-                                    //let rdata = message.answer().rdata();
-                                    let n = message.datagram.len();
-                                    let rdata = &message.datagram[(n - 4)..];
+            state = match state {
+                State::Bind if !socket.is_open() => {
+                    socket.bind(client).unwrap();
+                    State::Query
+                }
+                State::Query if socket.can_send() => {
+                    socket.send_slice(&query.datagram, server).expect("cannot send");
+                    State::Response
+                }
+                State::Response if socket.can_recv() => {
+                    let (data, _) = socket.recv().expect("cannot receive");
+                    let message = Message::from(data);
+                    if message.id() == query.id() && message.is_response() {
+                        iface.remove_socket(udp_handle);
+                        return match message.rcode() {
+                            ResponseCode::NoError => {
+                                // TODO: Parse the datagram instead of
+                                // extracting the last 4 bytes.
+                                //let rdata = message.answer().rdata();
+                                let n = message.datagram.len();
+                                let rdata = &message.datagram[(n - 4)..];
 
-                                    Ok(IpAddress::from(Ipv4Address::from_bytes(rdata)))
-                                }
-                                rcode => {
-                                    Err(rcode)
-                                }
+                                Ok(IpAddress::from(Ipv4Address::from_bytes(rdata)))
+                            }
+                            rcode => {
+                                Err(rcode)
                             }
                         }
-                        state
                     }
-                    _ => state
+                    state
                 }
-            }
+                _ => state
+            };
 
-            if let Some(wait_duration) = iface.poll_delay(&sockets, timestamp) {
-                let wait_duration: Duration = wait_duration.into();
-                syscall::sleep(wait_duration.as_secs_f64());
+            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+                syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+
             }
         }
     } else {
@@ -217,19 +225,28 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 }
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    // TODO: Add `--server <address>` option
     if args.len() != 2 {
-        eprintln!("Usage: host <name>");
+        help();
         return usr::shell::ExitCode::CommandError;
     }
-    let name = args[1];
-    match resolve(name) {
-        Ok(ip_addr) => {
-            println!("{} has address {}", name, ip_addr);
+    let domain = args[1];
+    match resolve(domain) {
+        Ok(addr) => {
+            println!("{} has address {}", domain, addr);
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(e) => {
-            eprintln!("Could not resolve host: {:?}", e);
+            error!("Could not resolve host: {:?}", e);
             usr::shell::ExitCode::CommandError
         }
     }
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} host {}<domain>{1}", csi_title, csi_reset, csi_option);
+    usr::shell::ExitCode::CommandSuccessful
 }

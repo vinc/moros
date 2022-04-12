@@ -2,11 +2,12 @@ use crate::{sys, usr};
 use crate::sys::allocator::PhysBuf;
 use crate::sys::net::Stats;
 use alloc::collections::BTreeMap;
+use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::TryInto;
-use smoltcp::iface::{EthernetInterfaceBuilder, NeighborCache, Routes};
+use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy;
-use smoltcp::phy::{Device, DeviceCapabilities};
+use smoltcp::phy::{Device, DeviceCapabilities, Medium};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
 use smoltcp::Result;
@@ -364,22 +365,23 @@ pub fn init() {
         pci_device.enable_bus_mastering();
 
         let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
-        let mut net_device = RTL8139::new(io_base);
+        let mut device = RTL8139::new(io_base);
 
-        net_device.init();
+        device.init();
 
-        if let Some(eth_addr) = net_device.eth_addr {
+        if let Some(eth_addr) = device.eth_addr {
             log!("NET RTL8139 MAC {}\n", eth_addr);
 
             let neighbor_cache = NeighborCache::new(BTreeMap::new());
             let routes = Routes::new(BTreeMap::new());
             let ip_addrs = [IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)];
-            let iface = EthernetInterfaceBuilder::new(net_device).
-                ethernet_addr(eth_addr).
-                neighbor_cache(neighbor_cache).
-                ip_addrs(ip_addrs).
-                routes(routes).
-                finalize();
+
+            let medium = device.capabilities().medium;
+            let mut builder = InterfaceBuilder::new(device, vec![]).ip_addrs(ip_addrs).routes(routes);
+            if medium == Medium::Ethernet {
+                builder = builder.hardware_addr(eth_addr.into()).neighbor_cache(neighbor_cache);
+            }
+            let iface = builder.finalize();
 
             *sys::net::IFACE.lock() = Some(iface);
         }

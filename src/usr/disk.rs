@@ -22,17 +22,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
-fn help() -> usr::shell::ExitCode {
-    println!("Usage: <command>");
-    println!();
-    println!("Commands:");
-    println!("  format <path>");
-    println!("  erase <path>");
-    println!("  list");
-    println!("  usage");
-    usr::shell::ExitCode::CommandSuccessful
-}
-
 fn parse_disk_path(pathname: &str) -> Result<(u8, u8), String> {
     let path: Vec<_> = pathname.split('/').collect();
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
@@ -53,7 +42,7 @@ fn format(pathname: &str) -> usr::shell::ExitCode {
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(msg) => {
-            eprintln!("{}", msg);
+            error!("{}", msg);
             usr::shell::ExitCode::CommandError
         }
     }
@@ -88,7 +77,7 @@ fn erase(pathname: &str) -> usr::shell::ExitCode {
             usr::shell::ExitCode::CommandSuccessful
         }
         Err(msg) => {
-            eprintln!("{}", msg);
+            error!("{}", msg);
             usr::shell::ExitCode::CommandError
         }
     }
@@ -110,8 +99,22 @@ fn usage() -> usr::shell::ExitCode {
     let width = size.to_string().len();
     let color = Style::color("LightCyan");
     let reset = Style::reset();
-    println!("{}Size:{} {:width$}", color, reset, size, width = width);
-    println!("{}Used:{} {:width$}", color, reset, used, width = width);
-    println!("{}Free:{} {:width$}", color, reset, free, width = width);
+    println!("{}size:{} {:width$} bytes", color, reset, size, width = width);
+    println!("{}used:{} {:width$} bytes", color, reset, used, width = width);
+    println!("{}free:{} {:width$} bytes", color, reset, free, width = width);
+    usr::shell::ExitCode::CommandSuccessful
+}
+
+fn help() -> usr::shell::ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} disk {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Commands:{}", csi_title, csi_reset);
+    println!("  {}list{}             List detected disks", csi_option, csi_reset);
+    println!("  {}usage{}            List disk usage", csi_option, csi_reset);
+    println!("  {}format <path>{}    Format disk", csi_option, csi_reset);
+    println!("  {}erase <path>{}     Erase disk", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }

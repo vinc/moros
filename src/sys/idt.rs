@@ -1,6 +1,7 @@
 use crate::sys;
 use crate::sys::process::Registers;
 
+use core::arch::asm;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;

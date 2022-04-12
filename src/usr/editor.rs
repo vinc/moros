@@ -244,6 +244,9 @@ impl Editor {
                         self.x -= 1;
                     }
                 },
+                'Z' if csi => { // Backtab (Shift + Tab)
+                    // Do nothing
+                },
                 '\x14' => { // Ctrl T -> Go to top of file
                     self.x = 0;
                     self.y = 0;

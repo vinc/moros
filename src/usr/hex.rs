@@ -2,18 +2,17 @@ use crate::usr;
 use crate::api::fs;
 use crate::api::console::Style;
 
+// TODO: add `--skip` and `--length` params
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
         return usr::shell::ExitCode::CommandError;
     }
-
     let pathname = args[1];
-
-    if let Ok(buf) = fs::read(pathname) {
+    if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
         print_hex(&buf);
         usr::shell::ExitCode::CommandSuccessful
     } else {
-        eprintln!("File not found '{}'", pathname);
+        error!("File not found '{}'", pathname);
         usr::shell::ExitCode::CommandError
     }
 }
@@ -22,11 +21,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 pub fn print_hex(buf: &[u8]) {
     let n = buf.len() / 2;
     for i in 0..n {
-        print!("{}", Style::color("Yellow"));
+        print!("{}", Style::color("LightCyan"));
         if i % 8 == 0 {
             print!("{:08X}: ", i * 2);
         }
-        print!("{}", Style::color("LightCyan"));
+        print!("{}", Style::color("Pink"));
         print!("{:02X}{:02X} ", buf[i * 2], buf[i * 2 + 1]);
         print!("{}", Style::reset());
         if i % 8 == 7 || i == n - 1 {

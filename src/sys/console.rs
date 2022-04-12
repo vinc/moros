@@ -91,10 +91,10 @@ pub fn is_raw_enabled() -> bool {
     *RAW.lock()
 }
 
-const ETX_KEY: char = '\x03'; // End of Text
-const EOT_KEY: char = '\x04'; // End of Transmission
-const BS_KEY:  char = '\x08'; // Backspace
-const ESC_KEY: char = '\x1B'; // Escape
+pub const ETX_KEY: char = '\x03'; // End of Text
+pub const EOT_KEY: char = '\x04'; // End of Transmission
+pub const BS_KEY:  char = '\x08'; // Backspace
+pub const ESC_KEY: char = '\x1B'; // Escape
 
 pub fn key_handle(key: char) {
     let mut stdin = STDIN.lock();

@@ -1,6 +1,8 @@
 use crate::sys;
 use crate::sys::cmos::CMOS;
 
+use time::{OffsetDateTime, Duration};
+
 const DAYS_BEFORE_MONTH: [u64; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
 
 // NOTE: This clock is monotonic
@@ -46,6 +48,14 @@ fn is_leap_year(year: u64) -> bool {
     } else {
         true
     }
+}
+
+pub fn init() {
+    let s = realtime();
+    let ns = Duration::nanoseconds(libm::floor(1e9 * (s - libm::floor(s))) as i64);
+    let dt = OffsetDateTime::from_unix_timestamp(s as i64) + ns;
+    let rtc = dt.format("%F %H:%M:%S UTC");
+    log!("RTC {}\n", rtc);
 }
 
 #[test_case]

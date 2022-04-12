@@ -1,20 +1,24 @@
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
+
+use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::arch::asm;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
 use x86_64::structures::idt::InterruptStackFrameValue;
 
-const MAX_FILE_HANDLES: usize = 16; // FIXME Increasing this cause boot crashes
-const MAX_PROCS: usize = 2; // TODO: Update this when EXIT syscall is working
+const MAX_FILE_HANDLES: usize = 64;
+const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
 
 lazy_static! {
     pub static ref PID: AtomicUsize = AtomicUsize::new(0);
     pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(1);
-    pub static ref PROCESS_TABLE: RwLock<[Process; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Process::new(0)));
+    pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new(0))));
 }
 
 #[derive(Clone, Debug)]
@@ -22,7 +26,7 @@ pub struct ProcessData {
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
-    file_handles: [Option<Resource>; MAX_FILE_HANDLES],
+    file_handles: [Option<Box<Resource>>; MAX_FILE_HANDLES],
 }
 
 impl ProcessData {
@@ -31,9 +35,10 @@ impl ProcessData {
         let dir = dir.to_string();
         let user = user.map(String::from);
         let mut file_handles = [(); MAX_FILE_HANDLES].map(|_| None);
-        file_handles[0] = Some(Resource::Device(Device::Console(Console::new())));
-        file_handles[1] = Some(Resource::Device(Device::Console(Console::new())));
-        file_handles[2] = Some(Resource::Device(Device::Console(Console::new())));
+        file_handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
+        file_handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
+        file_handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
+        file_handles[3] = Some(Box::new(Resource::Device(Device::Null)));
         Self { env, dir, user, file_handles }
     }
 }
@@ -91,22 +96,22 @@ pub fn set_user(user: &str) {
 pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-
     let min = 4; // The first 4 file handles are reserved
     let max = MAX_FILE_HANDLES;
     for handle in min..max {
         if proc.data.file_handles[handle].is_none() {
-            proc.data.file_handles[handle] = Some(file);
+            proc.data.file_handles[handle] = Some(Box::new(file));
             return Ok(handle);
         }
     }
+    debug!("Could not create file handle");
     Err(())
 }
 
 pub fn update_file_handle(handle: usize, file: Resource) {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-    proc.data.file_handles[handle] = Some(file);
+    proc.data.file_handles[handle] = Some(Box::new(file));
 }
 
 pub fn delete_file_handle(handle: usize) {
@@ -115,10 +120,16 @@ pub fn delete_file_handle(handle: usize) {
     proc.data.file_handles[handle] = None;
 }
 
-pub fn file_handle(handle: usize) -> Option<Resource> {
+pub fn file_handle(handle: usize) -> Option<Box<Resource>> {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     proc.data.file_handles[handle].clone()
+}
+
+pub fn file_handles() -> Vec<Option<Box<Resource>>> {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.data.file_handles.to_vec()
 }
 
 pub fn code_addr() -> u64 {
@@ -181,7 +192,7 @@ use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
 
-static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20)); // 16 MB
+static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20));
 const PAGE_SIZE: u64 = 4 * 1024;
 
 #[repr(align(8), C)]
@@ -242,8 +253,9 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
-        let code_size = 1024 * PAGE_SIZE;
+        let code_size = 1 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
+
         sys::allocator::alloc_pages(code_addr, code_size);
 
         let mut entry_point = 0;
@@ -281,7 +293,7 @@ impl Process {
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
         let proc = Process { id, code_addr, code_size, entry_point, data, stack_frame, registers };
-        table[id] = proc;
+        table[id] = Box::new(proc);
 
         Ok(id)
     }
