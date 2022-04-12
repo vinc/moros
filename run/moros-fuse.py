@@ -120,11 +120,11 @@ class MorosFuse(LoggingMixIn, Operations):
     def read(self, path, size, offset, fh):
         (kind, next_block_addr, size, time, name) = self.__scan(path)
         res = b""
-        while next_block_addr != 0:
+        while next_block_addr != 0 and size > 0:
             self.image.seek(next_block_addr)
             next_block_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
             if offset < self.block_size - 4:
-                buf = self.image.read(min(self.block_size - 4, size))
+                buf = self.image.read(max(0, min(self.block_size - 4, size)))
                 res = b"".join([res, buf[offset:]])
                 offset = 0
             else:
@@ -146,7 +146,6 @@ class MorosFuse(LoggingMixIn, Operations):
         #print("\x1b[1;31m")
         (path, _, filename) = path.rpartition("/")
         pos = self.image.tell()
-        #print("DEBUG: create('%s/%s', %o) -> pos=0x%x"% (path, filename, mode, pos))
         self.readdir(path + "/", 0)
         pos = self.image.tell()
         #print("DEBUG: create('%s/%s', %o) -> pos=0x%x" % (path, filename, mode, pos))
@@ -168,21 +167,22 @@ class MorosFuse(LoggingMixIn, Operations):
         return 0
 
     def write(self, path, data, offset, fh):
-        print("\x1b[1;31m")
-        print("DEBUG: write('%s', data, %d)" % (path, offset))
-        print("len(data) = %d" % len(data))
         (_, addr, size, _, name) = self.__scan(path)
+
+        n = self.block_size - 4 # Space available for data in blocks
+        j = size % n # Start of space available in last block
 
         # Update file size
         self.image.seek(-(4 + 8 + 1 + len(name)), 1)
         size = max(size, offset + len(data))
         self.image.write(size.to_bytes(4, "big"))
 
-        n = self.block_size - 4
         for i in range(0, offset, n):
-            print("skip {:d}..{:d}".format(i, i + n))
             self.image.seek(addr)
             next_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+            if i + n >= offset:
+                self.image.seek(addr + 4 + j)
+                self.image.write(data[0:(n - j)])
             if next_addr == 0:
                 next_addr = self.__next_free_addr()
                 self.__alloc(next_addr)
@@ -190,15 +190,14 @@ class MorosFuse(LoggingMixIn, Operations):
                 self.image.write((next_addr // self.block_size).to_bytes(4, "big"))
             addr = next_addr
 
-        for i in range(0, len(data), n):
-            print("write {:d}..{:d}".format(i, i + n))
+        for i in range(n - j if j > 0 else 0, len(data), n):
             next_addr = 0
             if i + n < len(data): # TODO: check for off by one error
                 next_addr = self.__next_free_addr()
                 self.__alloc(next_addr)
             self.image.seek(addr)
             self.image.write((next_addr // self.block_size).to_bytes(4, "big"))
-            self.image.write(data[max(i, offset):min(i + n, len(data))])
+            self.image.write(data[i:min(i + n, len(data))])
             addr = next_addr
 
         print("\x1b[0m")
