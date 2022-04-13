@@ -121,6 +121,9 @@ class MorosFuse(LoggingMixIn, Operations):
     def create(self, path, mode):
         (path, _, name) = path.rpartition("/")
         entries = self.readdir(path + "/", 0)
+        entries.remove(".")
+        entries.remove("..")
+        entries.append(name)
         pos = self.image.tell()
 
         # Update parent dir size
