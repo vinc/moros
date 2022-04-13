@@ -127,11 +127,29 @@ class MorosFuse(LoggingMixIn, Operations):
         pos = self.image.tell()
 
         # Update parent dir size
-        (_, _, parent_size, _, parent_name) = self.__scan(path)
-        parent_size = (1 + 4 + 4 + 8 + 1) * len(entries) + len("".join(entries))
+        entry_size = (1 + 4 + 4 + 8 + 1)
+        (_, parent_addr, parent_size, _, parent_name) = self.__scan(path)
+        parent_size = entry_size * len(entries) + len("".join(entries))
         self.image.seek(-(4 + 8 + 1 + len(parent_name)), 1)
         self.image.write(parent_size.to_bytes(4, "big"))
 
+        # Allocate space for the new dir entry if needed
+        blocks = 0
+        addr = parent_addr
+        while addr != 0:
+            blocks += 1
+            self.image.seek(addr)
+            addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+        free_size = blocks * (self.block_size - 4) - parent_size
+        if free_size < 0:
+            pos = self.image.tell() - 4
+            addr = self.__next_free_addr()
+            self.__alloc(addr)
+            self.image.seek(pos)
+            self.image.write((addr // self.block_size).to_bytes(4, "big"))
+            pos = addr + 4
+
+        # Allocate space for the new file
         kind = int((mode & S_IFDIR) != S_IFDIR)
         size = 0
         addr = self.__next_free_addr()
