@@ -34,24 +34,12 @@ class MorosFuse(LoggingMixIn, Operations):
         self.alloc_count = int.from_bytes(superblock[14:18], "big")
 
         bs = 8 * self.block_size # number of bits per bitmap block
-        #print("bs = %d" % bs)
         total = self.block_count
-        #print("total = %d" % total)
         rest = (total - (BITMAP_ADDR // self.block_size)) * bs // (bs + 1)
-        #print("rest = %d" % rest)
         self.data_addr = BITMAP_ADDR + (rest // bs) * self.block_size
-        #print("superblock addr = 0x%06x" % SUPERBLOCK_ADDR)
-        #print("bitmap addr     = 0x%06x" % BITMAP_ADDR)
-        #print("data addr       = 0x%06x" % self.data_addr)
         addr = self.__next_free_addr()
-        #print("next free addr  = 0x%06x" % addr)
-        #print("is_alloc(0x%06x) -> %s" % (self.data_addr, self.__is_alloc(self.data_addr)))
-        #print("is_alloc(0x%06x) -> %s" % (addr - self.block_size, self.__is_alloc(addr - self.block_size)))
-        #print("is_alloc(0x%06x) -> %s" % (addr, self.__is_alloc(addr)))
         self.__alloc(addr)
-        #print("is_alloc(0x%06x) -> %s" % (addr, self.__is_alloc(addr)))
         self.__free(addr)
-        #print("is_alloc(0x%06x) -> %s" % (addr, self.__is_alloc(addr)))
 
     def __next_free_addr(self):
         for bitmap_addr in range(BITMAP_ADDR, self.data_addr):
@@ -59,7 +47,6 @@ class MorosFuse(LoggingMixIn, Operations):
             bitmap = self.image.read(self.block_size)
             for i in range(self.block_size):
                 byte = bitmap[i]
-                #print("byte = {:#010b}".format(byte))
                 for bit in range(0, 8):
                     if (byte >> bit & 1) == 0:
                         block = (bitmap_addr - BITMAP_ADDR) * self.block_size * 8 + i * 8 + bit
@@ -72,37 +59,26 @@ class MorosFuse(LoggingMixIn, Operations):
         self.image.seek(pos)
         byte = int.from_bytes(self.image.read(1), "big")
         bit = block % 8
-        #print("bitmap_addr     = 0x%06x" % bitmap_addr)
-        #print("pos             = 0x%06x" % pos)
-        #print("block = %d" % block)
-        #print("byte = {:#010b}".format(byte))
-        #print("bit = %d" % bit)
         return (byte >> bit & 1) == 1
 
     def __alloc(self, addr):
-        #print("\nalloc")
         block = (addr - self.data_addr) // self.block_size
         bitmap_addr = BITMAP_ADDR + (block // (self.block_size * 8))
         self.image.seek(bitmap_addr + (block // 8))
         byte = int.from_bytes(self.image.read(1), "big")
         self.image.seek(-1, 1)
-        #print("byte = {:#010b}".format(byte))
         bit = block % 8
         byte |= (1 << bit)
-        #print("byte = {:#010b}".format(byte))
         self.image.write(bytes([byte]))
 
     def __free(self, addr):
-        #print("\nfree")
         block = (addr - self.data_addr) // self.block_size
         bitmap_addr = BITMAP_ADDR + (block // (self.block_size * 8))
         self.image.seek(bitmap_addr + (block // 8))
         byte = int.from_bytes(self.image.read(1), "big")
         self.image.seek(-1, 1)
-        #print("byte = {:#010b}".format(byte))
         bit = block % 8
         byte &= ~(1 << bit)
-        #print("byte = {:#010b}".format(byte))
         self.image.write(bytes([byte]))
 
     def destroy(self, path):
@@ -111,7 +87,6 @@ class MorosFuse(LoggingMixIn, Operations):
 
     def getattr(self, path, fh=None):
         (kind, addr, size, time, name) = self.__scan(path)
-        #print("DEBUG: getattr('%s') -> (%s, 0x%s, %d, %d, '%s')" % (path, kind, addr, size, time, name))
         if addr == 0:
             raise FuseOSError(ENOENT)
         mode = S_IFDIR | 0o755 if kind == 0 else S_IFREG | 0o644
@@ -201,11 +176,9 @@ class MorosFuse(LoggingMixIn, Operations):
             self.image.write(data[i:min(i + n, len(data))])
             addr = next_addr
 
-        print("\x1b[0m")
         return len(data)
 
     def __scan(self, path):
-        #print("DEBUG: __scan('%s')" % path)
         next_block_addr = self.data_addr
         res = (0, next_block_addr, 0, 0, "") # Root dir
         for d in path[1:].split("/"):
@@ -220,14 +193,11 @@ class MorosFuse(LoggingMixIn, Operations):
         return res
 
     def __read(self, next_block_addr):
-        #print("DEBUG: __read(0x%x)" % next_block_addr)
         while next_block_addr != 0:
             self.image.seek(next_block_addr)
-            #print("DEBUG: __read begin block -> pos=0x%x" % self.image.tell())
             next_block_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
             offset = 4
             while offset < self.block_size:
-                #print("DEBUG: __read begin entry -> pos=0x%x (%d)" % (self.image.tell(), offset))
                 kind = int.from_bytes(self.image.read(1), "big")
                 addr = int.from_bytes(self.image.read(4), "big") * self.block_size
                 size = int.from_bytes(self.image.read(4), "big")
@@ -237,8 +207,6 @@ class MorosFuse(LoggingMixIn, Operations):
                     self.image.seek(-(1 + 4 + 4 + 8 + 1), 1) # Rewind to end of previous entry
                     break
                 name = self.image.read(n).decode("utf-8")
-                #print("DEBUG: __read end entry   -> pos=0x%x" % self.image.tell())
-                #print("DEBUG:                    `-------------> (%s, 0x%s, %d, %d, '%s')" % (kind, addr, size, time, name))
                 offset += 1 + 4 + 4 + 8 + 1 + n
                 if addr > 0:
                     yield (kind, addr, size, time, name)
