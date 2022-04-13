@@ -21,6 +21,7 @@ class MorosFuse(LoggingMixIn, Operations):
     truncate = None
     unlink = None
     utimens = None
+    getxattr = None
 
     def __init__(self, path):
         self.block_size = BLOCK_SIZE
