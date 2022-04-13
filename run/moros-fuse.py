@@ -169,8 +169,6 @@ class MorosFuse(LoggingMixIn, Operations):
 
     def write(self, path, data, offset, fh):
         (_, addr, size, _, name) = self.__scan(path)
-        pos = self.image.tell()
-        print(" --> pos=%s addr=%s size=%d name='%s'" % (pos, addr, size, name))
 
         n = self.block_size - 4 # Space available for data in blocks
         j = size % n # Start of space available in last block
@@ -179,10 +177,6 @@ class MorosFuse(LoggingMixIn, Operations):
         self.image.seek(-(4 + 8 + 1 + len(name)), 1)
         size = max(size, offset + len(data))
         self.image.write(size.to_bytes(4, "big"))
-
-        (_, addr, size, _, name) = self.__scan(path)
-        pos = self.image.tell()
-        print(" --> pos=%s addr=%s size=%d name='%s'" % (pos, addr, size, name))
 
         for i in range(0, offset, n):
             self.image.seek(addr)
