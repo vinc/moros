@@ -143,15 +143,17 @@ class MorosFuse(LoggingMixIn, Operations):
         self.create(path, S_IFDIR | mode)
 
     def create(self, path, mode):
-        #print("\x1b[1;31m")
-        (path, _, filename) = path.rpartition("/")
+        (path, _, name) = path.rpartition("/")
+        entries = self.readdir(path + "/", 0)
         pos = self.image.tell()
-        self.readdir(path + "/", 0)
-        pos = self.image.tell()
-        #print("DEBUG: create('%s/%s', %o) -> pos=0x%x" % (path, filename, mode, pos))
-        #print("mode=%d S_IFDIR=%s" % (mode, S_IFDIR))
+
+        # Update parent dir size
+        (_, _, parent_size, _, parent_name) = self.__scan(path)
+        parent_size = (1 + 4 + 4 + 8 + 1) * len(entries) + len("".join(entries))
+        self.image.seek(-(4 + 8 + 1 + len(parent_name)), 1)
+        self.image.write(parent_size.to_bytes(4, "big"))
+
         kind = int((mode & S_IFDIR) != S_IFDIR)
-        #print("DEBUG: kind=%s" % kind)
         size = 0
         addr = self.__next_free_addr()
         self.__alloc(addr)
@@ -161,13 +163,14 @@ class MorosFuse(LoggingMixIn, Operations):
         self.image.write((addr // self.block_size).to_bytes(4, "big"))
         self.image.write(size.to_bytes(4, "big"))
         self.image.write(int(time()).to_bytes(8, "big"))
-        self.image.write(len(filename).to_bytes(1, "big"))
-        self.image.write(filename.encode("utf-8"))
-        #print("\x1b[0m")
+        self.image.write(len(name).to_bytes(1, "big"))
+        self.image.write(name.encode("utf-8"))
         return 0
 
     def write(self, path, data, offset, fh):
         (_, addr, size, _, name) = self.__scan(path)
+        pos = self.image.tell()
+        print(" --> pos=%s addr=%s size=%d name='%s'" % (pos, addr, size, name))
 
         n = self.block_size - 4 # Space available for data in blocks
         j = size % n # Start of space available in last block
@@ -176,6 +179,10 @@ class MorosFuse(LoggingMixIn, Operations):
         self.image.seek(-(4 + 8 + 1 + len(name)), 1)
         size = max(size, offset + len(data))
         self.image.write(size.to_bytes(4, "big"))
+
+        (_, addr, size, _, name) = self.__scan(path)
+        pos = self.image.tell()
+        print(" --> pos=%s addr=%s size=%d name='%s'" % (pos, addr, size, name))
 
         for i in range(0, offset, n):
             self.image.seek(addr)
