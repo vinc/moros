@@ -10,6 +10,7 @@ from stat import S_IFDIR, S_IFREG
 BLOCK_SIZE = 512
 SUPERBLOCK_ADDR = 4096 * BLOCK_SIZE
 BITMAP_ADDR = SUPERBLOCK_ADDR + 2 * BLOCK_SIZE
+ENTRY_SIZE = (1 + 4 + 4 + 8 + 1)
 
 class MorosFuse(LoggingMixIn, Operations):
     chmod = None
@@ -19,7 +20,6 @@ class MorosFuse(LoggingMixIn, Operations):
     rmdir = None
     symlink = None
     truncate = None
-    unlink = None
     utimens = None
     getxattr = None
 
@@ -82,6 +82,15 @@ class MorosFuse(LoggingMixIn, Operations):
         byte &= ~(1 << bit)
         self.image.write(bytes([byte]))
 
+    def __update_dir_size(self, path, entries):
+        entries.remove(".")
+        entries.remove("..")
+        (_, parent_addr, parent_size, _, parent_name) = self.__scan(path)
+        parent_size = ENTRY_SIZE * len(entries) + len("".join(entries))
+        self.image.seek(-(4 + 8 + 1 + len(parent_name)), 1)
+        self.image.write(parent_size.to_bytes(4, "big"))
+        return parent_addr
+
     def destroy(self, path):
         self.image.close()
         return
@@ -121,17 +130,10 @@ class MorosFuse(LoggingMixIn, Operations):
     def create(self, path, mode):
         (path, _, name) = path.rpartition("/")
         entries = self.readdir(path + "/", 0)
-        entries.remove(".")
-        entries.remove("..")
         entries.append(name)
         pos = self.image.tell()
 
-        # Update parent dir size
-        base_size = (1 + 4 + 4 + 8 + 1)
-        (_, parent_addr, parent_size, _, parent_name) = self.__scan(path)
-        parent_size = base_size * len(entries) + len("".join(entries))
-        self.image.seek(-(4 + 8 + 1 + len(parent_name)), 1)
-        self.image.write(parent_size.to_bytes(4, "big"))
+        parent_addr = self.__update_dir_size(path, entries)
 
         # Allocate space for the new dir entry if needed
         blocks = 0
@@ -143,7 +145,7 @@ class MorosFuse(LoggingMixIn, Operations):
             self.image.seek(addr)
             next_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
         free_size = (self.block_size - 4) - (pos - addr)
-        if free_size < base_size + len(name):
+        if free_size < ENTRY_SIZE + len(name):
             pos = self.image.tell() - 4
             addr = self.__next_free_addr()
             self.__alloc(addr)
@@ -157,6 +159,7 @@ class MorosFuse(LoggingMixIn, Operations):
         addr = self.__next_free_addr()
         self.__alloc(addr)
 
+        # Add dir entry
         self.image.seek(pos)
         self.image.write(kind.to_bytes(1, "big"))
         self.image.write((addr // self.block_size).to_bytes(4, "big"))
@@ -201,6 +204,21 @@ class MorosFuse(LoggingMixIn, Operations):
             addr = next_addr
 
         return len(data)
+
+    def unlink(self, path):
+        # Unlink and free blocs
+        (_, addr, size, _, name) = self.__scan(path)
+        self.image.seek(-(4 + 4 + 8 + 1 + len(name)), 1)
+        self.image.write((0).to_bytes(4, "big"))
+        while addr != 0:
+            self.__free(addr)
+            self.image.seek(addr)
+            addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+
+        # Update parent dir size
+        (path, _, _) = path.rpartition("/")
+        entries = self.readdir(path + "/", 0)
+        self.__update_dir_size(path, entries)
 
     def __scan(self, path):
         next_block_addr = self.data_addr
