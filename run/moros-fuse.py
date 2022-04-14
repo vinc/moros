@@ -91,6 +91,39 @@ class MorosFuse(LoggingMixIn, Operations):
         self.image.write(parent_size.to_bytes(4, "big"))
         return parent_addr
 
+    def __scan(self, path):
+        next_block_addr = self.data_addr
+        res = (0, next_block_addr, 0, 0, "") # Root dir
+        for d in path[1:].split("/"):
+            if d == "":
+                return res
+            res = (0, 0, 0, 0, "") # Not found
+            for (kind, addr, size, time, name) in self.__read(next_block_addr):
+                if name == d:
+                    res = (kind, addr, size, time, name)
+                    next_block_addr = addr
+                    break
+        return res
+
+    def __read(self, next_block_addr):
+        while next_block_addr != 0:
+            self.image.seek(next_block_addr)
+            next_block_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+            offset = 4
+            while offset < self.block_size:
+                kind = int.from_bytes(self.image.read(1), "big")
+                addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+                size = int.from_bytes(self.image.read(4), "big")
+                time = int.from_bytes(self.image.read(8), "big")
+                n = int.from_bytes(self.image.read(1), "big")
+                if n == 0:
+                    self.image.seek(-(1 + 4 + 4 + 8 + 1), 1) # Rewind to end of previous entry
+                    break
+                name = self.image.read(n).decode("utf-8")
+                offset += 1 + 4 + 4 + 8 + 1 + n
+                if addr > 0:
+                    yield (kind, addr, size, time, name)
+
     def destroy(self, path):
         self.image.close()
         return
@@ -132,7 +165,6 @@ class MorosFuse(LoggingMixIn, Operations):
         entries = self.readdir(path + "/", 0)
         entries.append(name)
         pos = self.image.tell()
-
         parent_addr = self.__update_dir_size(path, entries)
 
         # Allocate space for the new dir entry if needed
@@ -171,7 +203,6 @@ class MorosFuse(LoggingMixIn, Operations):
 
     def write(self, path, data, offset, fh):
         (_, addr, size, _, name) = self.__scan(path)
-
         n = self.block_size - 4 # Space available for data in blocks
         j = size % n # Start of space available in last block
 
@@ -219,39 +250,6 @@ class MorosFuse(LoggingMixIn, Operations):
         (path, _, _) = path.rpartition("/")
         entries = self.readdir(path + "/", 0)
         self.__update_dir_size(path, entries)
-
-    def __scan(self, path):
-        next_block_addr = self.data_addr
-        res = (0, next_block_addr, 0, 0, "") # Root dir
-        for d in path[1:].split("/"):
-            if d == "":
-                return res
-            res = (0, 0, 0, 0, "") # Not found
-            for (kind, addr, size, time, name) in self.__read(next_block_addr):
-                if name == d:
-                    res = (kind, addr, size, time, name)
-                    next_block_addr = addr
-                    break
-        return res
-
-    def __read(self, next_block_addr):
-        while next_block_addr != 0:
-            self.image.seek(next_block_addr)
-            next_block_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
-            offset = 4
-            while offset < self.block_size:
-                kind = int.from_bytes(self.image.read(1), "big")
-                addr = int.from_bytes(self.image.read(4), "big") * self.block_size
-                size = int.from_bytes(self.image.read(4), "big")
-                time = int.from_bytes(self.image.read(8), "big")
-                n = int.from_bytes(self.image.read(1), "big")
-                if n == 0:
-                    self.image.seek(-(1 + 4 + 4 + 8 + 1), 1) # Rewind to end of previous entry
-                    break
-                name = self.image.read(n).decode("utf-8")
-                offset += 1 + 4 + 4 + 8 + 1 + n
-                if addr > 0:
-                    yield (kind, addr, size, time, name)
 
 if __name__ == '__main__':
     import argparse
