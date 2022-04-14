@@ -38,9 +38,6 @@ class MorosFuse(LoggingMixIn, Operations):
         total = self.block_count
         rest = (total - (BITMAP_ADDR // self.block_size)) * bs // (bs + 1)
         self.data_addr = BITMAP_ADDR + (rest // bs) * self.block_size
-        addr = self.__next_free_addr()
-        self.__alloc(addr)
-        self.__free(addr)
 
     def __next_free_addr(self):
         for bitmap_addr in range(BITMAP_ADDR, self.data_addr):
