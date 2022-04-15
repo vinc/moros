@@ -80,6 +80,8 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
             let file_path = format!("{}/{}", path, file.name());
             if file.is_dir() {
                 print_matching_lines(&file_path, pattern, state);
+            } else if file.is_device() {
+                // Skip devices
             } else {
                 print_matching_lines_in_file(&file_path, pattern, state);
             }
