@@ -77,7 +77,11 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
     if let Ok(files) = fs::read_dir(path) {
         state.is_recursive = true;
         for file in files {
-            let file_path = format!("{}/{}", path, file.name());
+            let mut file_path = path.to_string();
+            if !file_path.ends_with('/') {
+                file_path.push('/');
+            }
+            file_path.push_str(&file.name());
             if file.is_dir() {
                 print_matching_lines(&file_path, pattern, state);
             } else if file.is_device() {
