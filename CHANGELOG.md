@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Improve FUSE driver with write and delete (#292)
+- Fix device reading (#329)
 - Add a reboot command (#328)
 - Fix issues with process alloc (#327)
 
