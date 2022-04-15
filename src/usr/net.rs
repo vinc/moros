@@ -143,7 +143,7 @@ pub fn get_config(attribute: &str) -> Option<String> {
         }
         "ip" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-                for ip_cidr in iface.ip_addrs() {
+                if let Some(ip_cidr) = iface.ip_addrs().iter().next() {
                     return Some(format!("{}/{}", ip_cidr.address(), ip_cidr.prefix_len()));
                 }
             } else {
@@ -155,9 +155,8 @@ pub fn get_config(attribute: &str) -> Option<String> {
             let mut res = None;
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 iface.routes_mut().update(|storage| {
-                    for (_, route) in storage.iter() {
+                    if let Some((_, route)) = storage.iter().next() {
                         res = Some(route.via_router.to_string());
-                        break;
                     }
                 });
             } else {
@@ -168,7 +167,7 @@ pub fn get_config(attribute: &str) -> Option<String> {
         "dns" => {
             if let Ok(value) = fs::read_to_string(DNS_FILE) {
                 let servers = value.trim();
-                if servers.split(",").all(|s| Ipv4Address::from_str(s).is_ok()) {
+                if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
                     Some(servers.to_string())
                 } else {
                     error!("Could not parse '{}'", servers);
@@ -230,7 +229,7 @@ pub fn set_config(attribute: &str, value: &str) {
         }
         "dns" => {
             let servers = value.trim();
-            if servers.split(",").all(|s| Ipv4Address::from_str(s).is_ok()) {
+            if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
                 if fs::write(DNS_FILE, format!("{}\n", servers).as_bytes()).is_err() {
                     error!("Could not write to '{}'", DNS_FILE);
                 }

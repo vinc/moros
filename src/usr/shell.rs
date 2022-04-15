@@ -29,7 +29,7 @@ fn shell_completer(line: &str) -> Vec<String> {
 
     let args = split_args(line);
     let i = args.len() - 1;
-    if args.len() == 1 && !args[0].starts_with("/") { // Autocomplete command
+    if args.len() == 1 && !args[0].starts_with('/') { // Autocomplete command
         for &cmd in &AUTOCOMPLETE_COMMANDS {
             if let Some(entry) = cmd.strip_prefix(args[i]) {
                 entries.push(entry.into());
