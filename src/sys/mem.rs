@@ -88,7 +88,6 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
 
         // FIXME: creating an iterator for each allocation is very slow if
         // the heap is larger than a few megabytes.
-        let frame = self.usable_frames().nth(next);
-        frame
+        self.usable_frames().nth(next)
     }
 }
