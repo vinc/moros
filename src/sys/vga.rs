@@ -125,6 +125,14 @@ impl Writer {
         }
     }
 
+    fn disable_echo(&self) {
+        sys::console::disable_echo();
+    }
+
+    fn enable_echo(&self) {
+        sys::console::enable_echo();
+    }
+
     fn write_byte(&mut self, byte: u8) {
         match byte {
             0x0A => { // Newline
@@ -392,6 +400,7 @@ impl Perform for Writer {
             'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
+                        12 => self.enable_echo(),
                         25 => self.enable_cursor(),
                         _ => return,
                     }
@@ -400,6 +409,7 @@ impl Perform for Writer {
             'l' => { // Disable
                 for param in params.iter() {
                     match param[0] {
+                        12 => self.disable_echo(),
                         25 => self.disable_cursor(),
                         _ => return,
                     }
