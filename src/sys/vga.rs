@@ -99,7 +99,7 @@ impl Writer {
         }
     }
 
-    fn hide_cursor(&self) {
+    fn disable_cursor(&self) {
         // http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
         let mut addr = Port::new(CRTC_ADDR_REG);
         let mut data = Port::new(CRTC_DATA_REG);
@@ -109,7 +109,7 @@ impl Writer {
         }
     }
 
-    fn show_cursor(&self) {
+    fn enable_cursor(&self) {
         let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
         let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
         let cursor_start = 13; // Starting row
@@ -392,7 +392,7 @@ impl Perform for Writer {
             'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
-                        25 => self.show_cursor(),
+                        25 => self.enable_cursor(),
                         _ => return,
                     }
                 }
@@ -400,7 +400,7 @@ impl Perform for Writer {
             'l' => { // Disable
                 for param in params.iter() {
                     match param[0] {
-                        25 => self.hide_cursor(),
+                        25 => self.disable_cursor(),
                         _ => return,
                     }
                 }
