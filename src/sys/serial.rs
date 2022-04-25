@@ -27,14 +27,6 @@ impl Serial {
     pub fn write_byte(&mut self, byte: u8) {
         self.port.send(byte);
     }
-
-    fn disable_echo(&self) {
-        sys::console::disable_echo();
-    }
-
-    fn enable_echo(&self) {
-        sys::console::enable_echo();
-    }
 }
 
 impl fmt::Write for Serial {
@@ -55,7 +47,7 @@ impl Perform for Serial {
             'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
-                        12 => self.enable_echo(),
+                        12 => sys::console::enable_echo(),
                         _ => return,
                     }
                 }
@@ -63,7 +55,7 @@ impl Perform for Serial {
             'l' => { // Disable
                 for param in params.iter() {
                     match param[0] {
-                        12 => self.disable_echo(),
+                        12 => sys::console::disable_echo(),
                         _ => return,
                     }
                 }
