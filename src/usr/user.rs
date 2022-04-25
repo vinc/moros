@@ -55,9 +55,9 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
     match hashed_password(username) {
         Some(hash) => {
             print!("Password: ");
-            sys::console::disable_echo();
+            print!("\x1b[12l"); // Disable echo
             let password = io::stdin().read_line().trim_end().to_string();
-            sys::console::enable_echo();
+            print!("\x1b[12h"); // Enable echo
             println!();
             if !check(&password, &hash) {
                 println!();
@@ -92,9 +92,9 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     print!("Password: ");
-    sys::console::disable_echo();
+    print!("\x1b[12l"); // Disable echo
     let password = io::stdin().read_line().trim_end().to_string();
-    sys::console::enable_echo();
+    print!("\x1b[12h"); // Enable echo
     println!();
 
     if password.is_empty() {
@@ -102,9 +102,9 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     print!("Confirm: ");
-    sys::console::disable_echo();
+    print!("\x1b[12l"); // Disable echo
     let confirm = io::stdin().read_line().trim_end().to_string();
-    sys::console::enable_echo();
+    print!("\x1b[12h"); // Enable echo
     println!();
 
     if password != confirm {

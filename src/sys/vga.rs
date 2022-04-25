@@ -1,6 +1,8 @@
 use crate::api::font::Font;
 use crate::api::vga::{Color, Palette};
 use crate::api::vga::color;
+use crate::sys;
+
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
