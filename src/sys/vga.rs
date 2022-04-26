@@ -1,6 +1,8 @@
 use crate::api::font::Font;
 use crate::api::vga::{Color, Palette};
 use crate::api::vga::color;
+use crate::sys;
+
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
@@ -99,7 +101,7 @@ impl Writer {
         }
     }
 
-    fn hide_cursor(&self) {
+    fn disable_cursor(&self) {
         // http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
         let mut addr = Port::new(CRTC_ADDR_REG);
         let mut data = Port::new(CRTC_DATA_REG);
@@ -109,7 +111,7 @@ impl Writer {
         }
     }
 
-    fn show_cursor(&self) {
+    fn enable_cursor(&self) {
         let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
         let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
         let cursor_start = 13; // Starting row
@@ -123,6 +125,14 @@ impl Writer {
             let b = data.read();
             data.write((b & 0xE0) | cursor_end);
         }
+    }
+
+    fn disable_echo(&self) {
+        sys::console::disable_echo();
+    }
+
+    fn enable_echo(&self) {
+        sys::console::enable_echo();
     }
 
     fn write_byte(&mut self, byte: u8) {
@@ -392,7 +402,8 @@ impl Perform for Writer {
             'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
-                        25 => self.show_cursor(),
+                        12 => self.enable_echo(),
+                        25 => self.enable_cursor(),
                         _ => return,
                     }
                 }
@@ -400,7 +411,8 @@ impl Perform for Writer {
             'l' => { // Disable
                 for param in params.iter() {
                     match param[0] {
-                        25 => self.hide_cursor(),
+                        12 => self.disable_echo(),
+                        25 => self.disable_cursor(),
                         _ => return,
                     }
                 }
