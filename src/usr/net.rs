@@ -38,6 +38,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 set_config(args[2], args[3]);
             }
         }
+        /*
         "stat" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 let stats = iface.device().stats.clone();
@@ -85,6 +86,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 error!("Network error");
             }
         }
+        */
         _ => {
             error!("Invalid command");
             return usr::shell::ExitCode::CommandError;
@@ -187,6 +189,7 @@ pub fn get_config(attribute: &str) -> Option<String> {
 
 pub fn set_config(attribute: &str, value: &str) {
     match attribute {
+        /*
         "debug" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 iface.device_mut().debug_mode = match value {
@@ -201,6 +204,7 @@ pub fn set_config(attribute: &str, value: &str) {
                 error!("Network error");
             }
         }
+        */
         "ip" => {
             if let Ok(ip) = IpCidr::from_str(value) {
                 if let Some(ref mut iface) = *sys::net::IFACE.lock() {
