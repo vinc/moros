@@ -153,8 +153,8 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     #[derive(Debug)]
     enum State { Bind, Query, Response }
     let mut state = State::Bind;
-    if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-        match interface.iface.ipv4_addr() {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+        match iface.ipv4_addr() {
             None => {
                 return Err(ResponseCode::NetworkError);
             }
@@ -164,21 +164,21 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             _ => {}
         }
 
-        let udp_handle = interface.iface.add_socket(udp_socket);
+        let udp_handle = iface.add_socket(udp_socket);
 
         let timeout = 5.0;
         let started = syscall::realtime();
         loop {
             if syscall::realtime() - started > timeout {
-                interface.iface.remove_socket(udp_handle);
+                iface.remove_socket(udp_handle);
                 return Err(ResponseCode::NetworkError);
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
-            if let Err(e) = interface.iface.poll(timestamp) {
+            if let Err(e) = iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }
 
-            let socket = interface.iface.get_socket::<UdpSocket>(udp_handle);
+            let socket = iface.get_socket::<UdpSocket>(udp_handle);
 
             state = match state {
                 State::Bind if !socket.is_open() => {
@@ -193,7 +193,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
                     let (data, _) = socket.recv().expect("cannot receive");
                     let message = Message::from(data);
                     if message.id() == query.id() && message.is_response() {
-                        interface.iface.remove_socket(udp_handle);
+                        iface.remove_socket(udp_handle);
                         return match message.rcode() {
                             ResponseCode::NoError => {
                                 // TODO: Parse the datagram instead of
@@ -214,7 +214,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
                 _ => state
             };
 
-            if let Some(wait_duration) = interface.iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = iface.poll_delay(timestamp) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
 
             }

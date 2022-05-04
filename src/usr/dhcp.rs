@@ -18,9 +18,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     }
 
-    if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
+    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let dhcp_socket = Dhcpv4Socket::new();
-        let dhcp_handle = interface.iface.add_socket(dhcp_socket);
+        let dhcp_handle = iface.add_socket(dhcp_socket);
         if verbose {
             debug!("DHCP Discover transmitted");
         }
@@ -29,21 +29,21 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         loop {
             if syscall::realtime() - started > timeout {
                 error!("Timeout reached");
-                interface.iface.remove_socket(dhcp_handle);
+                iface.remove_socket(dhcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
                 eprintln!();
-                interface.iface.remove_socket(dhcp_handle);
+                iface.remove_socket(dhcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
 
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
-            if let Err(e) = interface.iface.poll(timestamp) {
+            if let Err(e) = iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }
 
-            let event = interface.iface.get_socket::<Dhcpv4Socket>(dhcp_handle).poll();
+            let event = iface.get_socket::<Dhcpv4Socket>(dhcp_handle).poll();
             match event {
                 None => {}
                 Some(Dhcpv4Event::Configured(config)) => {
@@ -51,14 +51,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     if verbose {
                         debug!("DHCP Offer received");
                     }
-                    interface.iface.remove_socket(dhcp_handle);
+                    iface.remove_socket(dhcp_handle);
                     break;
                 }
                 Some(Dhcpv4Event::Deconfigured) => {
                 }
             }
 
-            if let Some(wait_duration) = interface.iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = iface.poll_delay(timestamp) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
@@ -72,10 +72,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         usr::net::main(&["net", "config", "ip"]);
 
         if let Some(router) = config.router {
-            //interface.iface.routes_mut().add_default_ipv4_route(router).unwrap();
+            //iface.routes_mut().add_default_ipv4_route(router).unwrap();
             usr::net::main(&["net", "config", "gw", &router.to_string()]);
         } else {
-            //interface.iface.routes_mut().remove_default_ipv4_route();
+            //iface.routes_mut().remove_default_ipv4_route();
             usr::net::main(&["net", "config", "gw", ""]);
         }
         usr::net::main(&["net", "config", "gw"]);

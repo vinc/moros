@@ -16,12 +16,10 @@ use spin::Mutex;
 mod rtl8139;
 mod pcnet;
 
-pub struct Interface {
-    pub iface: smoltcp::iface::Interface<'static, EthernetDevice>,
-}
+pub type Interface = smoltcp::iface::Interface<'static, EthernetDevice>;
 
 lazy_static! {
-    pub static ref INTERFACE: Mutex<Option<Interface>> = Mutex::new(None);
+    pub static ref IFACE: Mutex<Option<Interface>> = Mutex::new(None);
 }
 
 #[derive(Clone)]
@@ -230,9 +228,8 @@ pub fn init() {
                 builder = builder.hardware_addr(mac.into()).neighbor_cache(neighbor_cache);
             }
             let iface = builder.finalize();
-            let interface = Interface { iface };
 
-            *INTERFACE.lock() = Some(interface);
+            *IFACE.lock() = Some(iface);
         }
     };
 

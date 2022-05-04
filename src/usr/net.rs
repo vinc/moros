@@ -40,8 +40,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         /*
         "stat" => {
-            if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                let stats = interface.iface.device().stats.clone();
+            if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                let stats = iface.device().stats.clone();
                 let csi_color = Style::color("LightCyan");
                 let csi_reset = Style::reset();
                 println!("{}rx:{} {} packets ({} bytes)", csi_color, csi_reset, stats.rx_packets_count(), stats.rx_bytes_count());
@@ -51,14 +51,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
         }
         "monitor" => {
-            if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                interface.iface.device_mut().debug_mode = true;
+            if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                iface.device_mut().debug_mode = true;
 
-                let mtu = interface.iface.device().capabilities().max_transmission_unit;
+                let mtu = iface.device().capabilities().max_transmission_unit;
                 let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
                 let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
                 let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-                let tcp_handle = interface.iface.add_socket(tcp_socket);
+                let tcp_handle = iface.add_socket(tcp_socket);
 
                 loop {
                     if sys::console::end_of_text() {
@@ -68,11 +68,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     syscall::sleep(0.1);
 
                     let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
-                    if let Err(e) = interface.iface.poll(timestamp) {
+                    if let Err(e) = iface.poll(timestamp) {
                         error!("Network Error: {}", e);
                     }
 
-                    let socket = interface.iface.get_socket::<TcpSocket>(tcp_handle);
+                    let socket = iface.get_socket::<TcpSocket>(tcp_handle);
                     if socket.may_recv() {
                         socket.recv(|buffer| {
                             let recvd_len = buffer.len();
@@ -136,16 +136,16 @@ const DNS_FILE: &str = "/ini/dns";
 pub fn get_config(attribute: &str) -> Option<String> {
     match attribute {
         "mac" => {
-            if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                return Some(interface.iface.hardware_addr().to_string());
+            if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                return Some(iface.hardware_addr().to_string());
             } else {
                 error!("Network error");
             }
             None
         }
         "ip" => {
-            if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                if let Some(ip_cidr) = interface.iface.ip_addrs().iter().next() {
+            if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                if let Some(ip_cidr) = iface.ip_addrs().iter().next() {
                     return Some(format!("{}/{}", ip_cidr.address(), ip_cidr.prefix_len()));
                 }
             } else {
@@ -155,8 +155,8 @@ pub fn get_config(attribute: &str) -> Option<String> {
         }
         "gw" => {
             let mut res = None;
-            if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                interface.iface.routes_mut().update(|storage| {
+            if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                iface.routes_mut().update(|storage| {
                     if let Some((_, route)) = storage.iter().next() {
                         res = Some(route.via_router.to_string());
                     }
@@ -191,8 +191,8 @@ pub fn set_config(attribute: &str, value: &str) {
     match attribute {
         /*
         "debug" => {
-            if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                interface.iface.device_mut().debug_mode = match value {
+            if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                iface.device_mut().debug_mode = match value {
                     "1" | "true" => true,
                     "0" | "false" => false,
                     _ => {
@@ -207,8 +207,8 @@ pub fn set_config(attribute: &str, value: &str) {
         */
         "ip" => {
             if let Ok(ip) = IpCidr::from_str(value) {
-                if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                    interface.iface.update_ip_addrs(|addrs| {
+                if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                    iface.update_ip_addrs(|addrs| {
                         if let Some(addr) = addrs.iter_mut().next() {
                             *addr = ip;
                         }
@@ -222,8 +222,8 @@ pub fn set_config(attribute: &str, value: &str) {
         }
         "gw" => {
             if let Ok(ip) = Ipv4Address::from_str(value) {
-                if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
-                    interface.iface.routes_mut().add_default_ipv4_route(ip).unwrap();
+                if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                    iface.routes_mut().add_default_ipv4_route(ip).unwrap();
                 } else {
                     error!("Network error");
                 }
