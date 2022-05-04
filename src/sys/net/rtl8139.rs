@@ -295,6 +295,10 @@ impl EthernetDeviceIO for Device {
         self.tx_id.store(tx_id, Ordering::Relaxed);
         &mut self.tx_buffers[tx_id][0..len]
     }
+
+    fn stats(&self) -> Stats {
+        self.stats.clone()
+    }
 }
 
 /*

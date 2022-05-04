@@ -3,6 +3,7 @@ use alloc::format;
 use crate::api::syscall;
 use crate::api::fs;
 use crate::api::console::Style;
+use crate::sys::net::EthernetDeviceIO;
 
 use alloc::borrow::ToOwned;
 use alloc::string::ToString;
@@ -38,10 +39,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 set_config(args[2], args[3]);
             }
         }
-        /*
         "stat" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-                let stats = iface.device().stats.clone();
+                let stats = iface.device().stats();
                 let csi_color = Style::color("LightCyan");
                 let csi_reset = Style::reset();
                 println!("{}rx:{} {} packets ({} bytes)", csi_color, csi_reset, stats.rx_packets_count(), stats.rx_bytes_count());
@@ -50,6 +50,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 error!("Network error");
             }
         }
+        /*
         "monitor" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 iface.device_mut().debug_mode = true;

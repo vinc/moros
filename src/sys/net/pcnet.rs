@@ -373,4 +373,8 @@ impl EthernetDeviceIO for Device {
         let tx_id = self.tx_id.load(Ordering::SeqCst);
         &mut self.tx_buffers[tx_id][0..len]
     }
+
+    fn stats(&self) -> Stats {
+        self.stats.clone()
+    }
 }

@@ -36,6 +36,7 @@ pub trait EthernetDeviceIO {
     fn receive_packet(&mut self) -> Option<Vec<u8>>;
     fn transmit_packet(&mut self, len: usize);
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8];
+    fn stats(&self) -> Stats;
 }
 
 impl EthernetDeviceIO for EthernetDevice {
@@ -73,6 +74,13 @@ impl EthernetDeviceIO for EthernetDevice {
             EthernetDevice::PCNET(dev) => dev.next_tx_buffer(len),
         }
     }
+
+    fn stats(&self) -> Stats {
+        match self {
+            EthernetDevice::RTL8139(dev) => dev.stats(),
+            EthernetDevice::PCNET(dev) => dev.stats(),
+        }
+    }
 }
 
 impl<'a> smoltcp::phy::Device<'a> for EthernetDevice {
@@ -88,6 +96,7 @@ impl<'a> smoltcp::phy::Device<'a> for EthernetDevice {
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         if let Some(buffer) = self.receive_packet() {
+            self.stats().rx_add(buffer.len() as u64);
             let rx = RxToken { buffer };
             let tx = TxToken { device: self.clone() };
             Some((rx, tx))
@@ -130,14 +139,11 @@ impl smoltcp::phy::TxToken for TxToken {
 
         if res.is_ok() {
             self.device.transmit_packet(len);
+            self.device.stats().tx_add(len as u64);
         }
-
         /*
-        self.device.stats.tx_add(len as u64);
         if self.device.debug_mode {
-            //printk!("Size: {} bytes\n", len);
             usr::hex::print_hex(&buf);
-            //printk!("CSR0: {:016b}\n", self.device.ports.read_csr_32(0));
         }
         */
 
