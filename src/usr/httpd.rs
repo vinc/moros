@@ -17,29 +17,29 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
     let csi_reset = Style::reset();
     let port = 80;
 
-    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+    if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
-        let mtu = iface.device().capabilities().max_transmission_unit;
+        let mtu = interface.iface.device().capabilities().max_transmission_unit;
         let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
         let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
         let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-        let tcp_handle = iface.add_socket(tcp_socket);
+        let tcp_handle = interface.iface.add_socket(tcp_socket);
 
         let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
         loop {
             if sys::console::end_of_text() {
-                iface.remove_socket(tcp_handle);
+                interface.iface.remove_socket(tcp_handle);
                 println!();
                 return usr::shell::ExitCode::CommandSuccessful;
             }
 
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
-            if let Err(e) = iface.poll(timestamp) {
+            if let Err(e) = interface.iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }
 
-            let socket = iface.get_socket::<TcpSocket>(tcp_handle);
+            let socket = interface.iface.get_socket::<TcpSocket>(tcp_handle);
 
             if !socket.is_open() {
                 socket.listen(port).unwrap();
@@ -175,7 +175,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 socket.close();
                 send_queue.clear();
             }
-            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = interface.iface.poll_delay(timestamp) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }

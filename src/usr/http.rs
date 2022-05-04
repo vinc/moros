@@ -108,8 +108,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     enum State { Connect, Request, Response }
     let mut state = State::Connect;
 
-    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        let tcp_handle = iface.add_socket(tcp_socket);
+    if let Some(ref mut interface) = *sys::net::INTERFACE.lock() {
+        let tcp_handle = interface.iface.add_socket(tcp_socket);
 
         let mut is_header = true;
         let timeout = 5.0;
@@ -117,20 +117,20 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         loop {
             if syscall::realtime() - started > timeout {
                 error!("Timeout reached");
-                iface.remove_socket(tcp_handle);
+                interface.iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             if sys::console::end_of_text() {
                 eprintln!(); // FIXME
-                iface.remove_socket(tcp_handle);
+                interface.iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
             let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
-            if let Err(e) = iface.poll(timestamp) {
+            if let Err(e) = interface.iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }
 
-            let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
+            let (socket, cx) = interface.iface.get_socket_and_context::<TcpSocket>(tcp_handle);
 
             state = match state {
                 State::Connect if !socket.is_active() => {
@@ -142,7 +142,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                     if socket.connect(cx, (address, url.port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, url.port);
-                        iface.remove_socket(tcp_handle);
+                        interface.iface.remove_socket(tcp_handle);
                         return usr::shell::ExitCode::CommandError;
                     }
                     State::Request
@@ -201,11 +201,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 _ => state
             };
 
-            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = interface.iface.poll_delay(timestamp) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
-        iface.remove_socket(tcp_handle);
+        interface.iface.remove_socket(tcp_handle);
         println!();
         usr::shell::ExitCode::CommandSuccessful
     } else {
