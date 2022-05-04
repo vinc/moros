@@ -3,8 +3,10 @@ use crate::sys::allocator::PhysBuf;
 use crate::sys::net::Stats;
 use crate::sys::net::EthernetDeviceIO;
 
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::convert::TryInto;
+use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::port::Port;
 
@@ -145,7 +147,7 @@ pub struct Device {
     rx_buffer: PhysBuf,
     rx_offset: usize,
     tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
-    tx_id: usize,
+    tx_id: Arc<AtomicUsize>,
 }
 
 impl Device {
@@ -164,7 +166,7 @@ impl Device {
 
             // Before a transmission begin the id is incremented,
             // so the first transimission will start at 0.
-            tx_id: TX_BUFFERS_COUNT - 1,
+            tx_id: Arc::new(AtomicUsize::new(TX_BUFFERS_COUNT - 1)),
         }
     }
 }
@@ -267,7 +269,8 @@ impl EthernetDeviceIO for Device {
     }
 
     fn transmit_packet(&mut self, len: usize) {
-        let mut cmd_port = self.ports.tx_cmds[self.tx_id].clone();
+        let tx_id = self.tx_id.load(Ordering::SeqCst);
+        let mut cmd_port = self.ports.tx_cmds[tx_id].clone();
         unsafe {
             // 3. Fill in Transmit Status: the size of this packet, the
             // early transmit threshold, and clear OWN bit in TSD (this
@@ -288,8 +291,9 @@ impl EthernetDeviceIO for Device {
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
-        self.tx_id = (self.tx_id + 1) % TX_BUFFERS_COUNT;
-        &mut self.tx_buffers[self.tx_id][0..len]
+        let tx_id = (self.tx_id.load(Ordering::SeqCst) + 1) % TX_BUFFERS_COUNT;
+        self.tx_id.store(tx_id, Ordering::Relaxed);
+        &mut self.tx_buffers[tx_id][0..len]
     }
 }
 
