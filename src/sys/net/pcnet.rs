@@ -1,7 +1,6 @@
 use crate::{sys, usr};
 use crate::sys::allocator::PhysBuf;
-use crate::sys::net::Stats;
-use crate::sys::net::EthernetDeviceIO;
+use crate::sys::net::{EthernetDeviceIO, Config, Stats};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -129,10 +128,9 @@ fn is_buffer_owner(des: &PhysBuf, i: usize) -> bool {
 
 #[derive(Clone)]
 pub struct Device {
-    pub debug_mode: bool,
-    pub stats: Stats,
+    config: Arc<Config>,
+    stats: Stats,
     ports: Ports,
-    mac: Option<EthernetAddress>,
 
     rx_buffers: [PhysBuf; RX_BUFFERS_COUNT],
     tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
@@ -145,10 +143,9 @@ pub struct Device {
 impl Device {
     pub fn new(io_base: u16) -> Self {
         Self {
-            debug_mode: false,
+            config: Arc::new(Config::new()),
             stats: Stats::new(),
             ports: Ports::new(io_base),
-            mac: None,
             rx_buffers: [(); RX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
             tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
             rx_des: PhysBuf::new(RX_BUFFERS_COUNT * DE_LEN),
@@ -187,7 +184,7 @@ impl EthernetDeviceIO for Device {
     fn init(&mut self) {
         // Read MAC addr
         let mac = self.ports.mac();
-        self.mac = Some(EthernetAddress::from_bytes(&mac));
+        self.config.update_mac(EthernetAddress::from_bytes(&mac));
 
         // Reset to 16-bit access
         unsafe {
@@ -263,19 +260,19 @@ impl EthernetDeviceIO for Device {
         assert!(self.ports.read_csr_32(0) == 0b110110011); // IDON + INTR + RXON + TXON + STRT + INIT
     }
 
-    fn stats(&self) -> Stats {
-        self.stats.clone()
+    fn config(&self) -> Arc<Config> {
+        self.config.clone()
     }
 
-    fn mac(&self) -> Option<EthernetAddress> {
-        self.mac
+    fn stats(&self) -> Stats {
+        self.stats.clone()
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
         let mut packet = Vec::new();
         let mut rx_id = self.rx_id.load(Ordering::SeqCst);
         while is_buffer_owner(&self.rx_des, rx_id) {
-            if self.debug_mode {
+            if self.config.is_debug_enabled() {
                 printk!("{}\n", "-".repeat(66));
                 log!("NET PCNET Receiving:\n");
                 //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
@@ -293,7 +290,7 @@ impl EthernetDeviceIO for Device {
             let crc_error = rmd1.get_bit(DE_CRC) && !rmd1.get_bit(DE_OFLO) && rmd1.get_bit(DE_ENP);
             let framing_error = rmd1.get_bit(DE_FRAM) && !rmd1.get_bit(DE_OFLO) && rmd1.get_bit(DE_ENP);
 
-            if self.debug_mode {
+            if self.config.is_debug_enabled() {
                 printk!("Flags: ");
                 if start_of_packet {
                     printk!("start_of_packet ");
@@ -336,7 +333,7 @@ impl EthernetDeviceIO for Device {
 
         if !packet.is_empty() {
             self.stats.rx_add(packet.len() as u64);
-            if self.debug_mode {
+            if self.config.is_debug_enabled() {
                 //printk!("Size: {} bytes\n", packet.len());
                 usr::hex::print_hex(&packet);
                 //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
@@ -362,7 +359,7 @@ impl EthernetDeviceIO for Device {
         self.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::Relaxed);
 
         if is_buffer_owner(&self.tx_des, tx_id) {
-            if self.debug_mode {
+            if self.config.is_debug_enabled() {
                 printk!("{}\n", "-".repeat(66));
                 log!("NET PCNET Transmitting:\n");
                 //printk!("TX Buffer: {}\n", tx_id);

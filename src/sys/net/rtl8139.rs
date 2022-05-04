@@ -1,7 +1,6 @@
 use crate::usr;
 use crate::sys::allocator::PhysBuf;
-use crate::sys::net::Stats;
-use crate::sys::net::EthernetDeviceIO;
+use crate::sys::net::{EthernetDeviceIO, Config, Stats};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -139,10 +138,9 @@ impl Ports {
 
 #[derive(Clone)]
 pub struct Device {
-    pub debug_mode: bool,
-    pub stats: Stats,
+    config: Arc<Config>,
+    stats: Stats,
     ports: Ports,
-    mac: Option<EthernetAddress>,
 
     rx_buffer: PhysBuf,
     rx_offset: usize,
@@ -153,10 +151,9 @@ pub struct Device {
 impl Device {
     pub fn new(io_base: u16) -> Self {
         Self {
-            debug_mode: false,
+            config: Arc::new(Config::new()),
             stats: Stats::new(),
             ports: Ports::new(io_base),
-            mac: None,
 
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
             rx_buffer: PhysBuf::new(RX_BUFFER_LEN + MTU),
@@ -186,7 +183,7 @@ impl EthernetDeviceIO for Device {
         unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
 
         // Read MAC addr
-        self.mac = Some(EthernetAddress::from_bytes(&self.ports.mac()));
+        self.config.update_mac(EthernetAddress::from_bytes(&self.ports.mac()));
 
         // Get physical address of rx_buffer
         let rx_addr = self.rx_buffer.addr();
@@ -212,12 +209,12 @@ impl EthernetDeviceIO for Device {
         unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
     }
 
-    fn stats(&self) -> Stats {
-        self.stats.clone()
+    fn config(&self) -> Arc<Config> {
+        self.config.clone()
     }
 
-    fn mac(&self) -> Option<EthernetAddress> {
-        self.mac
+    fn stats(&self) -> Stats {
+        self.stats.clone()
     }
 
     // RxToken buffer, when not empty, will contains:
@@ -238,7 +235,7 @@ impl EthernetDeviceIO for Device {
         let offset = ((capr as usize) + RX_BUFFER_PAD) % (1 << 16);
 
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
-        if self.debug_mode {
+        if self.config.is_debug_enabled() {
             printk!("{}\n", "-".repeat(66));
             log!("NET RTL8139 Receiving:\n");
             //printk!("Command Register: {:#02X}\n", cmd);
@@ -255,7 +252,7 @@ impl EthernetDeviceIO for Device {
         let n = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap()) as usize;
         //let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
         let len = n - 4;
-        if self.debug_mode {
+        if self.config.is_debug_enabled() {
             //printk!("Size: {} bytes\n", len);
             //printk!("CRC: {:#08X}\n", crc);
             //printk!("RX Offset: {}\n", offset);

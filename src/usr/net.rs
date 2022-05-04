@@ -50,10 +50,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 error!("Network error");
             }
         }
-        /*
         "monitor" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-                iface.device_mut().debug_mode = true;
+                iface.device_mut().config().enable_debug();
 
                 let mtu = iface.device().capabilities().max_transmission_unit;
                 let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
@@ -87,7 +86,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 error!("Network error");
             }
         }
-        */
         _ => {
             error!("Invalid command");
             return usr::shell::ExitCode::CommandError;
@@ -190,22 +188,17 @@ pub fn get_config(attribute: &str) -> Option<String> {
 
 pub fn set_config(attribute: &str, value: &str) {
     match attribute {
-        /*
         "debug" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-                iface.device_mut().debug_mode = match value {
-                    "1" | "true" => true,
-                    "0" | "false" => false,
-                    _ => {
-                        error!("Invalid config value");
-                        false
-                    }
+                match value {
+                    "1" | "true" => iface.device_mut().config().enable_debug(),
+                    "0" | "false" => iface.device_mut().config().disable_debug(),
+                    _ => error!("Invalid config value"),
                 }
             } else {
                 error!("Network error");
             }
         }
-        */
         "ip" => {
             if let Ok(ip) = IpCidr::from_str(value) {
                 if let Some(ref mut iface) = *sys::net::IFACE.lock() {

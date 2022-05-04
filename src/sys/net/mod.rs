@@ -4,7 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloc::vec;
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use lazy_static::lazy_static;
 use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy::DeviceCapabilities;
@@ -32,8 +32,8 @@ pub enum EthernetDevice {
 
 pub trait EthernetDeviceIO {
     fn init(&mut self);
+    fn config(&self) -> Arc<Config>;
     fn stats(&self) -> Stats;
-    fn mac(&self) -> Option<EthernetAddress>;
     fn receive_packet(&mut self) -> Option<Vec<u8>>;
     fn transmit_packet(&mut self, len: usize);
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8];
@@ -47,17 +47,17 @@ impl EthernetDeviceIO for EthernetDevice {
         }
     }
 
+    fn config(&self) -> Arc<Config> {
+        match self {
+            EthernetDevice::RTL8139(dev) => dev.config(),
+            EthernetDevice::PCNET(dev) => dev.config(),
+        }
+    }
+
     fn stats(&self) -> Stats {
         match self {
             EthernetDevice::RTL8139(dev) => dev.stats(),
             EthernetDevice::PCNET(dev) => dev.stats(),
-        }
-    }
-
-    fn mac(&self) -> Option<EthernetAddress> {
-        match self {
-            EthernetDevice::RTL8139(dev) => dev.mac(),
-            EthernetDevice::PCNET(dev) => dev.mac(),
         }
     }
 
@@ -118,9 +118,6 @@ pub struct RxToken {
 
 impl smoltcp::phy::RxToken for RxToken {
      fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> smoltcp::Result<R> where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
-        debug!("RxToken#consume");
-        usr::hex::print_hex(&self.buffer);
-
         f(&mut self.buffer)
     }
 }
@@ -133,21 +130,51 @@ impl smoltcp::phy::TxToken for TxToken {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R> where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
         let mut buf = self.device.next_tx_buffer(len);
         let res = f(&mut buf);
-
-        debug!("TxToken#consume");
-        usr::hex::print_hex(&buf.to_vec());
-
         if res.is_ok() {
             self.device.transmit_packet(len);
             self.device.stats().tx_add(len as u64);
         }
         /*
-        if self.device.debug_mode {
+        if self.device.config().is_debug_enabled() {
+            debug!("Packet transmitted");
             usr::hex::print_hex(&buf);
         }
         */
-
         res
+    }
+}
+
+pub struct Config {
+    debug: AtomicBool,
+    mac: Mutex<Option<EthernetAddress>>,
+}
+
+impl Config {
+    fn new() -> Self {
+        Self {
+            debug: AtomicBool::new(false),
+            mac: Mutex::new(None),
+        }
+    }
+
+    fn is_debug_enabled(&self) -> bool {
+        self.debug.load(Ordering::Relaxed)
+    }
+
+    pub fn enable_debug(&self) {
+        self.debug.store(true, Ordering::Relaxed);
+    }
+
+    pub fn disable_debug(&self) {
+        self.debug.store(false, Ordering::Relaxed)
+    }
+
+    fn mac(&self) -> Option<EthernetAddress> {
+        *self.mac.lock()
+    }
+
+    fn update_mac(&self, mac: EthernetAddress) {
+        *self.mac.lock() = Some(mac);
     }
 }
 
@@ -221,7 +248,7 @@ fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {
 pub fn init() {
     let add_interface = |mut device: EthernetDevice, name| {
         device.init();
-        if let Some(mac) = device.mac() {
+        if let Some(mac) = device.config().mac() {
             log!("NET {} MAC {}\n", name, mac);
 
             let neighbor_cache = NeighborCache::new(BTreeMap::new());
