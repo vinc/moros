@@ -1,4 +1,3 @@
-use crate::usr;
 use crate::sys::allocator::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
 
@@ -235,15 +234,6 @@ impl EthernetDeviceIO for Device {
         let offset = ((capr as usize) + RX_BUFFER_PAD) % (1 << 16);
 
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
-        if self.config.is_debug_enabled() {
-            printk!("{}\n", "-".repeat(66));
-            log!("NET RTL8139 Receiving:\n");
-            //printk!("Command Register: {:#02X}\n", cmd);
-            //printk!("Interrupt Status Register: {:#02X}\n", isr);
-            //printk!("CAPR: {}\n", capr);
-            //printk!("CBR: {}\n", cbr);
-            //printk!("Header: {:#04X}\n", header);
-        }
         if header & ROK != ROK {
             unsafe { self.ports.capr.write(cbr) };
             return None;
@@ -251,14 +241,6 @@ impl EthernetDeviceIO for Device {
 
         let n = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap()) as usize;
         //let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
-        let len = n - 4;
-        if self.config.is_debug_enabled() {
-            //printk!("Size: {} bytes\n", len);
-            //printk!("CRC: {:#08X}\n", crc);
-            //printk!("RX Offset: {}\n", offset);
-            usr::hex::print_hex(&self.rx_buffer[(offset + 4)..(offset + n)]);
-        }
-        self.stats.rx_add(len as u64);
 
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;

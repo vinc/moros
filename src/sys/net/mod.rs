@@ -96,6 +96,10 @@ impl<'a> smoltcp::phy::Device<'a> for EthernetDevice {
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         if let Some(buffer) = self.receive_packet() {
+            if self.config().is_debug_enabled() {
+                debug!("NET Packet Received");
+                usr::hex::print_hex(&buffer);
+            }
             self.stats().rx_add(buffer.len() as u64);
             let rx = RxToken { buffer };
             let tx = TxToken { device: self.clone() };
@@ -128,18 +132,17 @@ pub struct TxToken {
 }
 impl smoltcp::phy::TxToken for TxToken {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R> where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
+        let config = self.device.config();
         let mut buf = self.device.next_tx_buffer(len);
         let res = f(&mut buf);
         if res.is_ok() {
+            if config.is_debug_enabled() {
+                debug!("NET Packet Transmitted");
+                usr::hex::print_hex(&buf);
+            }
             self.device.transmit_packet(len);
             self.device.stats().tx_add(len as u64);
         }
-        /*
-        if self.device.config().is_debug_enabled() {
-            debug!("Packet transmitted");
-            usr::hex::print_hex(&buf);
-        }
-        */
         res
     }
 }

@@ -1,4 +1,4 @@
-use crate::{sys, usr};
+use crate::sys;
 use crate::sys::allocator::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
 
@@ -272,13 +272,6 @@ impl EthernetDeviceIO for Device {
         let mut packet = Vec::new();
         let mut rx_id = self.rx_id.load(Ordering::SeqCst);
         while is_buffer_owner(&self.rx_des, rx_id) {
-            if self.config.is_debug_enabled() {
-                printk!("{}\n", "-".repeat(66));
-                log!("NET PCNET Receiving:\n");
-                //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-                //printk!("RX Buffer: {}\n", rx_id);
-            }
-
             let rmd1 = self.rx_des[rx_id * DE_LEN + 7];
             let end_of_packet = rmd1.get_bit(DE_ENP);
 
@@ -332,13 +325,6 @@ impl EthernetDeviceIO for Device {
         }
 
         if !packet.is_empty() {
-            self.stats.rx_add(packet.len() as u64);
-            if self.config.is_debug_enabled() {
-                //printk!("Size: {} bytes\n", packet.len());
-                usr::hex::print_hex(&packet);
-                //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-                //printk!("RDTE: {:016b}\n", self.rx_des[rx_id * DE_LEN + 7]);
-            }
             Some(packet)
         } else {
             None
