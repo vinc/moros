@@ -263,6 +263,10 @@ impl EthernetDeviceIO for Device {
         assert!(self.ports.read_csr_32(0) == 0b110110011); // IDON + INTR + RXON + TXON + STRT + INIT
     }
 
+    fn stats(&self) -> Stats {
+        self.stats.clone()
+    }
+
     fn mac(&self) -> Option<EthernetAddress> {
         self.eth_addr
     }
@@ -372,9 +376,5 @@ impl EthernetDeviceIO for Device {
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
         let tx_id = self.tx_id.load(Ordering::SeqCst);
         &mut self.tx_buffers[tx_id][0..len]
-    }
-
-    fn stats(&self) -> Stats {
-        self.stats.clone()
     }
 }

@@ -32,11 +32,11 @@ pub enum EthernetDevice {
 
 pub trait EthernetDeviceIO {
     fn init(&mut self);
+    fn stats(&self) -> Stats;
     fn mac(&self) -> Option<EthernetAddress>;
     fn receive_packet(&mut self) -> Option<Vec<u8>>;
     fn transmit_packet(&mut self, len: usize);
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8];
-    fn stats(&self) -> Stats;
 }
 
 impl EthernetDeviceIO for EthernetDevice {
@@ -44,6 +44,13 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.init(),
             EthernetDevice::PCNET(dev) => dev.init(),
+        }
+    }
+
+    fn stats(&self) -> Stats {
+        match self {
+            EthernetDevice::RTL8139(dev) => dev.stats(),
+            EthernetDevice::PCNET(dev) => dev.stats(),
         }
     }
 
@@ -72,13 +79,6 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.next_tx_buffer(len),
             EthernetDevice::PCNET(dev) => dev.next_tx_buffer(len),
-        }
-    }
-
-    fn stats(&self) -> Stats {
-        match self {
-            EthernetDevice::RTL8139(dev) => dev.stats(),
-            EthernetDevice::PCNET(dev) => dev.stats(),
         }
     }
 }

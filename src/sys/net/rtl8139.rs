@@ -212,6 +212,10 @@ impl EthernetDeviceIO for Device {
         unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
     }
 
+    fn stats(&self) -> Stats {
+        self.stats.clone()
+    }
+
     fn mac(&self) -> Option<EthernetAddress> {
         self.eth_addr
     }
@@ -294,10 +298,6 @@ impl EthernetDeviceIO for Device {
         let tx_id = (self.tx_id.load(Ordering::SeqCst) + 1) % TX_BUFFERS_COUNT;
         self.tx_id.store(tx_id, Ordering::Relaxed);
         &mut self.tx_buffers[tx_id][0..len]
-    }
-
-    fn stats(&self) -> Stats {
-        self.stats.clone()
     }
 }
 
