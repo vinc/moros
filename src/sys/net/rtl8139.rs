@@ -142,7 +142,7 @@ pub struct Device {
     pub debug_mode: bool,
     pub stats: Stats,
     ports: Ports,
-    eth_addr: Option<EthernetAddress>,
+    mac: Option<EthernetAddress>,
 
     rx_buffer: PhysBuf,
     rx_offset: usize,
@@ -156,7 +156,7 @@ impl Device {
             debug_mode: false,
             stats: Stats::new(),
             ports: Ports::new(io_base),
-            eth_addr: None,
+            mac: None,
 
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
             rx_buffer: PhysBuf::new(RX_BUFFER_LEN + MTU),
@@ -186,7 +186,7 @@ impl EthernetDeviceIO for Device {
         unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
 
         // Read MAC addr
-        self.eth_addr = Some(EthernetAddress::from_bytes(&self.ports.mac()));
+        self.mac = Some(EthernetAddress::from_bytes(&self.ports.mac()));
 
         // Get physical address of rx_buffer
         let rx_addr = self.rx_buffer.addr();
@@ -217,7 +217,7 @@ impl EthernetDeviceIO for Device {
     }
 
     fn mac(&self) -> Option<EthernetAddress> {
-        self.eth_addr
+        self.mac
     }
 
     // RxToken buffer, when not empty, will contains:

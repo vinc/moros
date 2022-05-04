@@ -132,7 +132,7 @@ pub struct Device {
     pub debug_mode: bool,
     pub stats: Stats,
     ports: Ports,
-    eth_addr: Option<EthernetAddress>,
+    mac: Option<EthernetAddress>,
 
     rx_buffers: [PhysBuf; RX_BUFFERS_COUNT],
     tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
@@ -148,7 +148,7 @@ impl Device {
             debug_mode: false,
             stats: Stats::new(),
             ports: Ports::new(io_base),
-            eth_addr: None,
+            mac: None,
             rx_buffers: [(); RX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
             tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
             rx_des: PhysBuf::new(RX_BUFFERS_COUNT * DE_LEN),
@@ -187,7 +187,7 @@ impl EthernetDeviceIO for Device {
     fn init(&mut self) {
         // Read MAC addr
         let mac = self.ports.mac();
-        self.eth_addr = Some(EthernetAddress::from_bytes(&mac));
+        self.mac = Some(EthernetAddress::from_bytes(&mac));
 
         // Reset to 16-bit access
         unsafe {
@@ -268,7 +268,7 @@ impl EthernetDeviceIO for Device {
     }
 
     fn mac(&self) -> Option<EthernetAddress> {
-        self.eth_addr
+        self.mac
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
