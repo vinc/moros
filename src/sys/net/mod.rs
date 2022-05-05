@@ -32,7 +32,7 @@ pub enum EthernetDevice {
 
 pub trait EthernetDeviceIO {
     fn config(&self) -> Arc<Config>;
-    fn stats(&self) -> Stats;
+    fn stats(&self) -> Arc<Stats>;
     fn receive_packet(&mut self) -> Option<Vec<u8>>;
     fn transmit_packet(&mut self, len: usize);
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8];
@@ -46,7 +46,7 @@ impl EthernetDeviceIO for EthernetDevice {
         }
     }
 
-    fn stats(&self) -> Stats {
+    fn stats(&self) -> Arc<Stats> {
         match self {
             EthernetDevice::RTL8139(dev) => dev.stats(),
             EthernetDevice::PCNET(dev) => dev.stats(),
@@ -173,15 +173,14 @@ impl Config {
     }
 }
 
-// TODO: Rename to Stats and use Arc<Stats> in Device
-struct InnerStats {
+pub struct Stats {
     rx_bytes_count: AtomicU64,
     tx_bytes_count: AtomicU64,
     rx_packets_count: AtomicU64,
     tx_packets_count: AtomicU64,
 }
 
-impl InnerStats {
+impl Stats {
     fn new() -> Self {
         Self {
             rx_bytes_count: AtomicU64::new(0),
@@ -190,44 +189,31 @@ impl InnerStats {
             tx_packets_count: AtomicU64::new(0),
         }
     }
-}
-
-#[derive(Clone)]
-pub struct Stats {
-    stats: Arc<InnerStats>
-}
-
-impl Stats {
-    fn new() -> Self {
-        Self {
-            stats: Arc::new(InnerStats::new())
-        }
-    }
 
     pub fn rx_bytes_count(&self) -> u64 {
-        self.stats.rx_bytes_count.load(Ordering::Relaxed)
+        self.rx_bytes_count.load(Ordering::Relaxed)
     }
 
     pub fn tx_bytes_count(&self) -> u64 {
-        self.stats.tx_bytes_count.load(Ordering::Relaxed)
+        self.tx_bytes_count.load(Ordering::Relaxed)
     }
 
     pub fn rx_packets_count(&self) -> u64 {
-        self.stats.rx_packets_count.load(Ordering::Relaxed)
+        self.rx_packets_count.load(Ordering::Relaxed)
     }
 
     pub fn tx_packets_count(&self) -> u64 {
-        self.stats.tx_packets_count.load(Ordering::Relaxed)
+        self.tx_packets_count.load(Ordering::Relaxed)
     }
 
     pub fn rx_add(&self, bytes_count: u64) {
-        self.stats.rx_packets_count.fetch_add(1, Ordering::SeqCst);
-        self.stats.rx_bytes_count.fetch_add(bytes_count, Ordering::SeqCst);
+        self.rx_packets_count.fetch_add(1, Ordering::SeqCst);
+        self.rx_bytes_count.fetch_add(bytes_count, Ordering::SeqCst);
     }
 
     pub fn tx_add(&self, bytes_count: u64) {
-        self.stats.tx_packets_count.fetch_add(1, Ordering::SeqCst);
-        self.stats.tx_bytes_count.fetch_add(bytes_count, Ordering::SeqCst);
+        self.tx_packets_count.fetch_add(1, Ordering::SeqCst);
+        self.tx_bytes_count.fetch_add(bytes_count, Ordering::SeqCst);
     }
 }
 

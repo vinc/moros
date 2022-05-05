@@ -138,7 +138,7 @@ impl Ports {
 #[derive(Clone)]
 pub struct Device {
     config: Arc<Config>,
-    stats: Stats,
+    stats: Arc<Stats>,
     ports: Ports,
 
     rx_buffer: PhysBuf,
@@ -151,7 +151,7 @@ impl Device {
     pub fn new(io_base: u16) -> Self {
         let mut device = Self {
             config: Arc::new(Config::new()),
-            stats: Stats::new(),
+            stats: Arc::new(Stats::new()),
             ports: Ports::new(io_base),
 
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
@@ -214,7 +214,7 @@ impl EthernetDeviceIO for Device {
         self.config.clone()
     }
 
-    fn stats(&self) -> Stats {
+    fn stats(&self) -> Arc<Stats> {
         self.stats.clone()
     }
 
@@ -257,20 +257,18 @@ impl EthernetDeviceIO for Device {
         let tx_id = self.tx_id.load(Ordering::SeqCst);
         let mut cmd_port = self.ports.tx_cmds[tx_id].clone();
         unsafe {
-            // 3. Fill in Transmit Status: the size of this packet, the
-            // early transmit threshold, and clear OWN bit in TSD (this
-            // starts the PCI operation).
-            // NOTE: The length of the packet use the first 13 bits (but
-            // should not exceed 1792 bytes), and a value of 0x000000
-            // for the early transmit threshold means 8 bytes. So we
-            // just write the size of the packet.
+            // Fill in Transmit Status: the size of this packet, the early
+            // transmit threshold, and clear OWN bit in TSD (this starts the
+            // PCI operation).
+            // NOTE: The length of the packet use the first 13 bits (but should
+            // not exceed 1792 bytes), and a value of 0x000000 for the early
+            // transmit threshold means 8 bytes. So we just write the size of
+            // the packet.
             cmd_port.write(0x1FFF & len as u32);
 
-            // 4. When the whole packet is moved to FIFO, the OWN bit is
-            // set to 1.
+            // When the whole packet is moved to FIFO, the OWN bit is set to 1
             while cmd_port.read() & OWN != OWN {}
-            // 5. When the whole packet is moved to line, the TOK bit is
-            // set to 1.
+            // When the whole packet is moved to line, the TOK bit is set to 1
             while cmd_port.read() & TOK != TOK {}
         }
     }

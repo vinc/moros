@@ -129,7 +129,7 @@ fn is_buffer_owner(des: &PhysBuf, i: usize) -> bool {
 #[derive(Clone)]
 pub struct Device {
     config: Arc<Config>,
-    stats: Stats,
+    stats: Arc<Stats>,
     ports: Ports,
 
     rx_buffers: [PhysBuf; RX_BUFFERS_COUNT],
@@ -144,7 +144,7 @@ impl Device {
     pub fn new(io_base: u16) -> Self {
         let mut device = Self {
             config: Arc::new(Config::new()),
-            stats: Stats::new(),
+            stats: Arc::new(Stats::new()),
             ports: Ports::new(io_base),
             rx_buffers: [(); RX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
             tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
@@ -266,7 +266,7 @@ impl EthernetDeviceIO for Device {
         self.config.clone()
     }
 
-    fn stats(&self) -> Stats {
+    fn stats(&self) -> Arc<Stats> {
         self.stats.clone()
     }
 
@@ -346,14 +346,7 @@ impl EthernetDeviceIO for Device {
         self.tx_des[tx_id * DE_LEN + 7].set_bit(DE_OWN, true);
         self.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::Relaxed);
 
-        if is_buffer_owner(&self.tx_des, tx_id) {
-            if self.config.is_debug_enabled() {
-                printk!("{}\n", "-".repeat(66));
-                log!("NET PCNET Transmitting:\n");
-                //printk!("TX Buffer: {}\n", tx_id);
-                //printk!("CSR0: {:016b}\n", self.ports.read_csr_32(0));
-            }
-        } else {
+        if !is_buffer_owner(&self.tx_des, tx_id) {
             self.ports.write_csr_32(0, 1 << CSR0_TDMD); // Send all buffers
         }
     }
