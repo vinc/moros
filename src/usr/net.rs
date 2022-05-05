@@ -3,6 +3,7 @@ use alloc::format;
 use crate::api::syscall;
 use crate::api::fs;
 use crate::api::console::Style;
+use crate::sys::net::EthernetDeviceIO;
 
 use alloc::borrow::ToOwned;
 use alloc::string::ToString;
@@ -40,7 +41,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         "stat" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-                let stats = iface.device().stats.clone();
+                let stats = iface.device().stats();
                 let csi_color = Style::color("LightCyan");
                 let csi_reset = Style::reset();
                 println!("{}rx:{} {} packets ({} bytes)", csi_color, csi_reset, stats.rx_packets_count(), stats.rx_bytes_count());
@@ -51,7 +52,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         "monitor" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-                iface.device_mut().debug_mode = true;
+                iface.device_mut().config().enable_debug();
 
                 let mtu = iface.device().capabilities().max_transmission_unit;
                 let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
@@ -189,13 +190,10 @@ pub fn set_config(attribute: &str, value: &str) {
     match attribute {
         "debug" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-                iface.device_mut().debug_mode = match value {
-                    "1" | "true" => true,
-                    "0" | "false" => false,
-                    _ => {
-                        error!("Invalid config value");
-                        false
-                    }
+                match value {
+                    "1" | "true" => iface.device_mut().config().enable_debug(),
+                    "0" | "false" => iface.device_mut().config().disable_debug(),
+                    _ => error!("Invalid config value"),
                 }
             } else {
                 error!("Network error");
