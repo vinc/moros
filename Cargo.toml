@@ -10,11 +10,9 @@ readme = "README.md"
 default-run = "moros"
 
 [features]
-default = ["video", "rtl8139"]
+default = ["video"]
 video = []
 serial = []
-rtl8139 = []
-pcnet = []
 
 [dependencies]
 acpi = "4.1.0"
