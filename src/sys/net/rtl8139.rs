@@ -149,7 +149,7 @@ pub struct Device {
 
 impl Device {
     pub fn new(io_base: u16) -> Self {
-        Self {
+        let mut device = Self {
             config: Arc::new(Config::new()),
             stats: Stats::new(),
             ports: Ports::new(io_base),
@@ -163,11 +163,11 @@ impl Device {
             // Before a transmission begin the id is incremented,
             // so the first transimission will start at 0.
             tx_id: Arc::new(AtomicUsize::new(TX_BUFFERS_COUNT - 1)),
-        }
+        };
+        device.init();
+        device
     }
-}
 
-impl EthernetDeviceIO for Device {
     fn init(&mut self) {
         // Power on
         unsafe { self.ports.config1.write(0) }
@@ -207,7 +207,9 @@ impl EthernetDeviceIO for Device {
         // Configure transmit buffer (TCR)
         unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
     }
+}
 
+impl EthernetDeviceIO for Device {
     fn config(&self) -> Arc<Config> {
         self.config.clone()
     }

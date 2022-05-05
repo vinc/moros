@@ -31,7 +31,6 @@ pub enum EthernetDevice {
 }
 
 pub trait EthernetDeviceIO {
-    fn init(&mut self);
     fn config(&self) -> Arc<Config>;
     fn stats(&self) -> Stats;
     fn receive_packet(&mut self) -> Option<Vec<u8>>;
@@ -40,13 +39,6 @@ pub trait EthernetDeviceIO {
 }
 
 impl EthernetDeviceIO for EthernetDevice {
-    fn init(&mut self) {
-        match self {
-            EthernetDevice::RTL8139(dev) => dev.init(),
-            EthernetDevice::PCNET(dev) => dev.init(),
-        }
-    }
-
     fn config(&self) -> Arc<Config> {
         match self {
             EthernetDevice::RTL8139(dev) => dev.config(),
@@ -181,6 +173,7 @@ impl Config {
     }
 }
 
+// TODO: Rename to Stats and use Arc<Stats> in Device
 struct InnerStats {
     rx_bytes_count: AtomicU64,
     tx_bytes_count: AtomicU64,
@@ -249,31 +242,25 @@ fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {
 }
 
 pub fn init() {
-    let add_interface = |mut device: EthernetDevice, name| {
-        device.init();
+    let add_interface = |device: EthernetDevice, name| {
         if let Some(mac) = device.config().mac() {
             log!("NET {} MAC {}\n", name, mac);
-
             let neighbor_cache = NeighborCache::new(BTreeMap::new());
             let routes = Routes::new(BTreeMap::new());
             let ip_addrs = [IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)];
-
             let medium = device.capabilities().medium;
             let mut builder = InterfaceBuilder::new(device, vec![]).ip_addrs(ip_addrs).routes(routes);
             if medium == Medium::Ethernet {
                 builder = builder.hardware_addr(mac.into()).neighbor_cache(neighbor_cache);
             }
             let iface = builder.finalize();
-
             *IFACE.lock() = Some(iface);
         }
     };
-
     if let Some(io_base) = find_pci_io_base(0x10EC, 0x8139) {
         add_interface(EthernetDevice::RTL8139(rtl8139::Device::new(io_base)), "RTL8139");
     }
     if let Some(io_base) = find_pci_io_base(0x1022, 0x2000) {
         add_interface(EthernetDevice::PCNET(pcnet::Device::new(io_base)), "PCNET");
     }
-
 }

@@ -142,7 +142,7 @@ pub struct Device {
 
 impl Device {
     pub fn new(io_base: u16) -> Self {
-        Self {
+        let mut device = Self {
             config: Arc::new(Config::new()),
             stats: Stats::new(),
             ports: Ports::new(io_base),
@@ -152,35 +152,11 @@ impl Device {
             tx_des: PhysBuf::new(TX_BUFFERS_COUNT * DE_LEN),
             rx_id: Arc::new(AtomicUsize::new(0)),
             tx_id: Arc::new(AtomicUsize::new(0)),
-        }
-    }
-
-    fn init_descriptor_entry(&mut self, i: usize, is_rx: bool) {
-        let des = if is_rx { &mut self.rx_des } else { &mut self.tx_des };
-
-        // Set buffer address
-        let addr = if is_rx {
-            self.rx_buffers[i].addr().to_le_bytes()
-        } else {
-            self.tx_buffers[i].addr().to_le_bytes()
         };
-        des[DE_LEN * i + 0] = addr[0];
-        des[DE_LEN * i + 1] = addr[1];
-        des[DE_LEN * i + 2] = addr[2];
-        des[DE_LEN * i + 3] = addr[3];
-
-        // Set buffer byte count (0..12 BCNT + 12..16 ONES)
-        let bcnt = (0xF000 | (0x0FFF & (1 + !(MTU as u16)))).to_le_bytes();
-        des[DE_LEN * i + 4] = bcnt[0];
-        des[DE_LEN * i + 5] = bcnt[1];
-
-        if is_rx {
-            des[DE_LEN * i + 7].set_bit(DE_OWN, true); // Set ownership to card
-        }
+        device.init();
+        device
     }
-}
 
-impl EthernetDeviceIO for Device {
     fn init(&mut self) {
         // Read MAC addr
         let mac = self.ports.mac();
@@ -260,6 +236,32 @@ impl EthernetDeviceIO for Device {
         assert!(self.ports.read_csr_32(0) == 0b110110011); // IDON + INTR + RXON + TXON + STRT + INIT
     }
 
+    fn init_descriptor_entry(&mut self, i: usize, is_rx: bool) {
+        let des = if is_rx { &mut self.rx_des } else { &mut self.tx_des };
+
+        // Set buffer address
+        let addr = if is_rx {
+            self.rx_buffers[i].addr().to_le_bytes()
+        } else {
+            self.tx_buffers[i].addr().to_le_bytes()
+        };
+        des[DE_LEN * i + 0] = addr[0];
+        des[DE_LEN * i + 1] = addr[1];
+        des[DE_LEN * i + 2] = addr[2];
+        des[DE_LEN * i + 3] = addr[3];
+
+        // Set buffer byte count (0..12 BCNT + 12..16 ONES)
+        let bcnt = (0xF000 | (0x0FFF & (1 + !(MTU as u16)))).to_le_bytes();
+        des[DE_LEN * i + 4] = bcnt[0];
+        des[DE_LEN * i + 5] = bcnt[1];
+
+        if is_rx {
+            des[DE_LEN * i + 7].set_bit(DE_OWN, true); // Set ownership to card
+        }
+    }
+}
+
+impl EthernetDeviceIO for Device {
     fn config(&self) -> Arc<Config> {
         self.config.clone()
     }
