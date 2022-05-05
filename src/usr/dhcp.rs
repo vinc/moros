@@ -68,20 +68,21 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     if let Some(config) = dhcp_config {
+        //debug!("{:#?}", config);
         usr::net::main(&["net", "config", "ip", &config.address.to_string()]);
         usr::net::main(&["net", "config", "ip"]);
 
         if let Some(router) = config.router {
-            //iface.routes_mut().add_default_ipv4_route(router).unwrap();
             usr::net::main(&["net", "config", "gw", &router.to_string()]);
         } else {
-            //iface.routes_mut().remove_default_ipv4_route();
-            usr::net::main(&["net", "config", "gw", ""]);
+            usr::net::main(&["net", "config", "gw", "0.0.0.0"]);
         }
         usr::net::main(&["net", "config", "gw"]);
 
         let dns: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
-        usr::net::main(&["net", "config", "dns", &dns.join(",")]);
+        if !dns.is_empty() {
+            usr::net::main(&["net", "config", "dns", &dns.join(",")]);
+        }
         usr::net::main(&["net", "config", "dns"]);
 
         return usr::shell::ExitCode::CommandSuccessful;
