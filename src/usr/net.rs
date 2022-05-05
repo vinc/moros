@@ -215,14 +215,16 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "gw" => {
-            if let Ok(ip) = Ipv4Address::from_str(value) {
-                if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+            if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+                if value == "0.0.0.0" {
+                    iface.routes_mut().remove_default_ipv4_route();
+                } else if let Ok(ip) = Ipv4Address::from_str(value) {
                     iface.routes_mut().add_default_ipv4_route(ip).unwrap();
                 } else {
-                    error!("Network error");
+                    error!("Could not parse address");
                 }
             } else {
-                error!("Could not parse address");
+                error!("Network error");
             }
         }
         "dns" => {
