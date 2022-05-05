@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Improve dhcp command (#335)
+- Rewrite network interface (#334)
+- Add CSI sequence for enabling or disabling echo to userspace (#333)
+- Refactor code (#330)
 - Improve FUSE driver with write and delete (#292)
 - Fix device reading (#329)
 - Add a reboot command (#328)
