@@ -14,17 +14,25 @@ lazy_static! {
 }
 
 pub struct Serial {
-    pub port: SerialPort,
+    port: SerialPort
 }
 
 impl Serial {
     fn new(addr: u16) -> Self {
-        let mut port = unsafe { SerialPort::new(addr) };
-        port.init();
-        Self { port }
+        Self {
+            port: unsafe { SerialPort::new(addr) }
+        }
     }
 
-    pub fn write_byte(&mut self, byte: u8) {
+    fn init(&mut self) {
+        self.port.init();
+    }
+
+    fn read_byte(&mut self) -> u8 {
+        self.port.receive()
+    }
+
+    fn write_byte(&mut self, byte: u8) {
         self.port.send(byte);
     }
 }
@@ -73,11 +81,12 @@ pub fn print_fmt(args: fmt::Arguments) {
 }
 
 pub fn init() {
+    SERIAL.lock().init();
     sys::idt::set_irq_handler(4, interrupt_handler);
 }
 
 fn interrupt_handler() {
-    let b = SERIAL.lock().port.receive();
+    let b = SERIAL.lock().read_byte();
     let c = match b as char {
         '\r' => '\n',
         '\x7F' => '\x08', // Delete => Backspace
