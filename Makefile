@@ -9,7 +9,7 @@ setup:
 
 output = video, # video, serial
 keyboard = qwerty # qwerty, azerty, dvorak
-nic = rtl8139 # rtl8139, pcnet
+nic = rtl8139 # rtl8139, pcnet, e1000
 
 export MOROS_KEYBOARD = $(keyboard)
 

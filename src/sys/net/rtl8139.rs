@@ -1,5 +1,6 @@
 use crate::sys::allocator::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
+use crate::sys::pci::DeviceConfig;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -148,11 +149,12 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(io_base: u16) -> Self {
+    pub fn new(pci: DeviceConfig) -> Self {
+        pci.enable_bus_mastering();
         let mut device = Self {
             config: Arc::new(Config::new()),
             stats: Arc::new(Stats::new()),
-            ports: Ports::new(io_base),
+            ports: Ports::new(pci.io_base()),
 
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
             rx_buffer: PhysBuf::new(RX_BUFFER_LEN + MTU),

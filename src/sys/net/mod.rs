@@ -15,6 +15,7 @@ use spin::Mutex;
 
 mod rtl8139;
 mod pcnet;
+mod e1000;
 
 pub type Interface = smoltcp::iface::Interface<'static, EthernetDevice>;
 
@@ -26,7 +27,7 @@ lazy_static! {
 pub enum EthernetDevice {
     RTL8139(rtl8139::Device),
     PCNET(pcnet::Device),
-    //E2000,
+    E1000(e1000::Device),
     //VirtIO,
 }
 
@@ -43,6 +44,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.config(),
             EthernetDevice::PCNET(dev) => dev.config(),
+            EthernetDevice::E1000(dev) => dev.config(),
         }
     }
 
@@ -50,6 +52,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.stats(),
             EthernetDevice::PCNET(dev) => dev.stats(),
+            EthernetDevice::E1000(dev) => dev.stats(),
         }
     }
 
@@ -57,6 +60,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.receive_packet(),
             EthernetDevice::PCNET(dev) => dev.receive_packet(),
+            EthernetDevice::E1000(dev) => dev.receive_packet(),
         }
     }
 
@@ -64,6 +68,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.transmit_packet(len),
             EthernetDevice::PCNET(dev) => dev.transmit_packet(len),
+            EthernetDevice::E1000(dev) => dev.transmit_packet(len),
         }
     }
 
@@ -71,6 +76,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.next_tx_buffer(len),
             EthernetDevice::PCNET(dev) => dev.next_tx_buffer(len),
+            EthernetDevice::E1000(dev) => dev.next_tx_buffer(len),
         }
     }
 }
@@ -217,16 +223,6 @@ impl Stats {
     }
 }
 
-fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {
-    if let Some(mut pci_device) = sys::pci::find_device(vendor_id, device_id) {
-        pci_device.enable_bus_mastering();
-        let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
-        Some(io_base)
-    } else {
-        None
-    }
-}
-
 pub fn init() {
     let add_interface = |device: EthernetDevice, name| {
         if let Some(mac) = device.config().mac() {
@@ -243,10 +239,16 @@ pub fn init() {
             *IFACE.lock() = Some(iface);
         }
     };
-    if let Some(io_base) = find_pci_io_base(0x10EC, 0x8139) {
-        add_interface(EthernetDevice::RTL8139(rtl8139::Device::new(io_base)), "RTL8139");
+    if let Some(pci) = sys::pci::find_device(0x10EC, 0x8139) {
+        add_interface(EthernetDevice::RTL8139(rtl8139::Device::new(pci)), "RTL8139");
     }
-    if let Some(io_base) = find_pci_io_base(0x1022, 0x2000) {
-        add_interface(EthernetDevice::PCNET(pcnet::Device::new(io_base)), "PCNET");
+    if let Some(pci) = sys::pci::find_device(0x1022, 0x2000) {
+        add_interface(EthernetDevice::PCNET(pcnet::Device::new(pci)), "PCNET");
+    }
+    if let Some(pci) = sys::pci::find_device(0x8086, 0x100E) {
+        add_interface(EthernetDevice::E1000(e1000::Device::new(pci)), "E1000");
+    }
+    if let Some(pci) = sys::pci::find_device(0x8086, 0x10D3) {
+        add_interface(EthernetDevice::E1000(e1000::Device::new(pci)), "E1000E");
     }
 }

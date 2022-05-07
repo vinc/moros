@@ -71,11 +71,19 @@ impl DeviceConfig {
         }
     }
 
-    pub fn enable_bus_mastering(&mut self) {
+    pub fn enable_bus_mastering(&self) {
         let mut register = ConfigRegister::new(self.bus, self.device, self.function, 0x04);
         let mut data = register.read();
         data.set_bit(2, true);
         register.write(data);
+    }
+
+    pub fn bar_type(&self) -> u16 {
+        self.base_addresses[0].get_bits(1..3) as u16
+    }
+
+    pub fn io_base(&self) -> u16 {
+        (self.base_addresses[0] as u16) & 0xFFF0
     }
 }
 
