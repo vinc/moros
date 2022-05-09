@@ -61,16 +61,27 @@ impl Device {
 
     fn read_mac(&self) -> EthernetAddress {
         let mut mac = [0; 6];
-    	let mut tmp;
-        tmp = self.read_eeprom(0);
-        mac[0] = (tmp &0xff) as u8;
-        mac[1] = (tmp >> 8) as u8;
-        tmp = self.read_eeprom(1);
-        mac[2] = (tmp &0xff) as u8;
-        mac[3] = (tmp >> 8) as u8;
-        tmp = self.read_eeprom(2);
-        mac[4] = (tmp &0xff) as u8;
-        mac[5] = (tmp >> 8) as u8;
+        if self.has_eeprom {
+            let mut tmp;
+            tmp = self.read_eeprom(0);
+            mac[0] = (tmp &0xff) as u8;
+            mac[1] = (tmp >> 8) as u8;
+            tmp = self.read_eeprom(1);
+            mac[2] = (tmp &0xff) as u8;
+            mac[3] = (tmp >> 8) as u8;
+            tmp = self.read_eeprom(2);
+            mac[4] = (tmp &0xff) as u8;
+            mac[5] = (tmp >> 8) as u8;
+        } else {
+            unsafe {
+                let addr = sys::mem::phys_to_virt(self.mem_base + 0x5400 as u64).as_u64();
+                let mac_32 = core::ptr::read_volatile(addr as *const u32);
+                if mac_32 != 0 {
+                    let mac_8 = alloc::slice::from_raw_parts(addr as *const u8, 6);
+                    mac[..].clone_from_slice(mac_8);
+                }
+            }
+        }
         EthernetAddress::from_bytes(&mac[..])
     }
 
@@ -89,7 +100,7 @@ impl Device {
     fn read(&self, addr: u16) -> u32 {
         unsafe {
             if self.bar_type == 0 {
-                let addr = sys::mem::phys_to_virt(self.mem_base + addr as u64).as_u64() as *mut u32;
+                let addr = sys::mem::phys_to_virt(self.mem_base + addr as u64).as_u64() as *const u32;
                 core::ptr::read_volatile(addr)
             } else {
                 Port::new(self.io_base + IO_ADDR).write(addr);
