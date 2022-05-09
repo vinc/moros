@@ -5,47 +5,48 @@ use crate::sys::pci::DeviceConfig;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use bit_field::BitField;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::port::Port;
+use x86_64::PhysAddr;
 
-const CTRL:   u16 = 0x0000;
-const EEPROM: u16 = 0x0014;
-//const EECD:   u16 = 0x00010;
-
-//const CTRL_RST: u32 = 0x4000000;
-//const EECD_SK: u32 = 0x01;
-//const EECD_CS: u32 = 0x02;
-//const EECD_DI: u32 = 0x03;
-//const EECD_REQ: u32 = 0x40;
-//const EECD_GNT: u32 = 0x80;
+const REG_EEPROM: u16 = 0x0014;
 
 const IO_ADDR: u16 = 0x00;
 const IO_DATA: u16 = 0x04;
 
+const MTU: usize = 1500;
+const RX_BUFFERS_COUNT: usize = 32;
+const TX_BUFFERS_COUNT: usize = 8;
+
 #[derive(Clone)]
 pub struct Device {
+    mem_base: PhysAddr,
     io_base: u16,
     bar_type: u16,
     has_eeprom: bool,
     config: Arc<Config>,
     stats: Arc<Stats>,
-    rx_buffer: PhysBuf,
-    tx_buffer: PhysBuf,
+    rx_buffers: [PhysBuf; RX_BUFFERS_COUNT],
+    tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
+    rx_id: Arc<AtomicUsize>,
+    tx_id: Arc<AtomicUsize>,
 }
 
 impl Device {
     pub fn new(pci: DeviceConfig) -> Self {
         pci.enable_bus_mastering();
         let mut device = Self {
-            io_base: pci.io_base(),
             bar_type: pci.bar_type(),
+            io_base: pci.io_base(),
+            mem_base: pci.mem_base(),
             has_eeprom: false,
             config: Arc::new(Config::new()),
             stats: Arc::new(Stats::new()),
-            rx_buffer: PhysBuf::new(1500),
-            tx_buffer: PhysBuf::new(1500),
+            rx_buffers: [(); RX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
+            tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(MTU)),
+            rx_id: Arc::new(AtomicUsize::new(0)),
+            tx_id: Arc::new(AtomicUsize::new(0)),
         };
         device.init();
         device
@@ -55,9 +56,6 @@ impl Device {
         //self.write_long(CTRL, CTRL_RST);
         //self.config.update_mac(EthernetAddress::from_bytes(&[0, 0, 0, 0, 0, 0]));
         self.detect_eeprom();
-        debug!("EEPROM: {}", self.has_eeprom);
-        debug!("BAR type: {}", self.bar_type);
-        debug!("IO base: {}", self.io_base);
         self.config.update_mac(self.read_mac());
     }
 
@@ -76,46 +74,48 @@ impl Device {
         EthernetAddress::from_bytes(&mac[..])
     }
 
-    fn write_byte(&self, addr: u16, data: u8) {
+    fn write(&self, addr: u16, data: u32) {
         unsafe {
-            Port::new(self.io_base + IO_ADDR).write(addr);
-            Port::new(self.io_base + IO_DATA).write(data);
+            if self.bar_type == 0 {
+                let addr = sys::mem::phys_to_virt(self.mem_base + addr as u64).as_u64() as *mut u32;
+                core::ptr::write_volatile(addr, data);
+            } else {
+                Port::new(self.io_base + IO_ADDR).write(addr);
+                Port::new(self.io_base + IO_DATA).write(data);
+            }
         }
     }
 
-    fn write_long(&self, addr: u16, data: u32) {
+    fn read(&self, addr: u16) -> u32 {
         unsafe {
-            Port::new(self.io_base + IO_ADDR).write(addr);
-            Port::new(self.io_base + IO_DATA).write(data);
-        }
-    }
-
-    fn read_long(&self, addr: u16) -> u32 {
-        unsafe {
-            Port::new(self.io_base + IO_ADDR).write(addr);
-            Port::new(self.io_base + IO_DATA).read()
+            if self.bar_type == 0 {
+                let addr = sys::mem::phys_to_virt(self.mem_base + addr as u64).as_u64() as *mut u32;
+                core::ptr::read_volatile(addr)
+            } else {
+                Port::new(self.io_base + IO_ADDR).write(addr);
+                Port::new(self.io_base + IO_DATA).read()
+            }
         }
     }
 
     fn detect_eeprom(&mut self) {
-        self.write_long(EEPROM, 1);
+        self.write(REG_EEPROM, 1);
         let mut i = 0;
         while !self.has_eeprom && i < 1000 {
-            self.has_eeprom = self.read_long(EEPROM) & 0x10 > 0;
+            self.has_eeprom = self.read(REG_EEPROM) & 0x10 > 0;
             i += 1;
         }
     }
 
     fn read_eeprom(&self, addr: u16) -> u32 {
         let e = if self.has_eeprom { 4 } else { 0 };
-        self.write_long(EEPROM, 1 | ((addr as u32) << 2 * e));
+        self.write(REG_EEPROM, 1 | ((addr as u32) << 2 * e));
 
         let mut res = 0;
         while res & (1 << 1 * e) == 0 {
-            res = self.read_long(EEPROM);
-            debug!("EEPROM: {:#x} ({:#x})", res, res & (1 << 1 * e));
+            res = self.read(REG_EEPROM);
         }
-        res
+        (res >> 16) & 0xFFFF
     }
 }
 
@@ -136,6 +136,7 @@ impl EthernetDeviceIO for Device {
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
-        &mut self.tx_buffer[0..len]
+        let tx_id = self.tx_id.load(Ordering::SeqCst);
+        &mut self.tx_buffers[tx_id][0..len]
     }
 }
