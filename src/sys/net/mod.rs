@@ -245,10 +245,9 @@ pub fn init() {
     if let Some(pci) = sys::pci::find_device(0x1022, 0x2000) {
         add_interface(EthernetDevice::PCNET(pcnet::Device::new(pci)), "PCNET");
     }
-    if let Some(pci) = sys::pci::find_device(0x8086, 0x100E) {
-        add_interface(EthernetDevice::E1000(e1000::Device::new(pci)), "E1000");
-    }
-    if let Some(pci) = sys::pci::find_device(0x8086, 0x10D3) {
-        add_interface(EthernetDevice::E1000(e1000::Device::new(pci)), "E1000E");
+    for id in [0x100E, 0x10D3, 0x10F5] {
+        if let Some(pci) = sys::pci::find_device(0x8086, id) {
+            add_interface(EthernetDevice::E1000(e1000::Device::new(pci)), "E1000");
+        }
     }
 }
