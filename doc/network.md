@@ -101,13 +101,13 @@ like the `netcat` command on Unix.
 
 For example the request made with `tcp` above is equivalent to this:
 
-    > socket time.nist.gov 13
+    > socket time.nist.gov 13 --read-only
 
     59710 22-05-11 21:44:52 50 0 0 359.3 UTC(NIST) *
 
 And the request made with `http` is equivalent to that:
 
-    > socket moros.cc 80 --interactive
+    > socket moros.cc 80 --prompt
     MOROS Socket v0.1.0
 
     > GET /test.html HTTP/1.0
@@ -136,7 +136,7 @@ And the request made with `http` is equivalent to that:
 
 Here's a connexion to a SMTP server to send a mail:
 
-    > socket 10.0.2.2 2500 --interactive
+    > socket 10.0.2.2 2500 --prompt
     MOROS Socket v0.1.0
 
     220 EventMachine SMTP Server
