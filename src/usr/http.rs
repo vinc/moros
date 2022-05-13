@@ -220,6 +220,6 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Usage:{} http {}<options> <url>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }

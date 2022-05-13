@@ -86,6 +86,7 @@ impl FileIO for Device {
             Device::Null => Err(()),
         }
     }
+
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match self {
             Device::File(io) => io.write(buf),

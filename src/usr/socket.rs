@@ -3,7 +3,9 @@ use crate::api::console::Style;
 use crate::api::io;
 use crate::api::syscall;
 use crate::api::random;
-use alloc::string::{String, ToString};
+
+use alloc::format;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::{self, FromStr};
@@ -12,16 +14,21 @@ use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let mut prompt = false;
     let mut verbose = false;
-    let mut interactive = false;
+    let mut read_only = false;
     let mut args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
-            "-v" | "--verbose" => {
-                verbose = true;
+            "-p" | "--prompt" => {
+                prompt = true;
                 None
             }
-            "-i" | "--interactive" => {
-                interactive = true;
+            "-r" | "--read-only" => {
+                read_only = true;
+                None
+            }
+            "-v" | "--verbose" => {
+                verbose = true;
                 None
             }
             _ => {
@@ -29,8 +36,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
         }
     }).collect();
-    if interactive {
-        println!("MOROS Socket v0.1.0");
+    if prompt {
+        println!("MOROS Socket v0.1.0\n");
     }
 
     // Split <host> and <port>
@@ -119,19 +126,23 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     State::Receiving
                 }
                 State::Sending if socket.can_send() && socket.may_recv() => {
-                    if interactive {
+                    if !read_only {
                         if verbose {
                             debug!("Sending ...");
                         }
 
-                        // Print prompt
-                        print!("{}>{} ", Style::color("Cyan"), Style::reset());
+                        if prompt {
+                            // Print prompt
+                            print!("{}>{} ", Style::color("Cyan"), Style::reset());
+                        }
 
-                        let data = io::stdin().read_line().trim_end().to_string();
-                        socket.send_slice(data.as_ref()).expect("cannot send");
-                        socket.send_slice(b"\r\n").expect("cannot send");
-                        if verbose {
-                            debug!("Sent '{}\\r\\n'", data);
+                        let line = io::stdin().read_line();
+                        if line.is_empty() {
+                            debug!("EOF");
+                            read_only = true;
+                        } else {
+                            let line = format!("{}\r\n", line.trim_end());
+                            socket.send_slice(line.as_ref()).expect("cannot send");
                         }
                     }
                     State::Receiving
@@ -173,8 +184,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 _ => state
             };
 
-            if interactive {
-                syscall::sleep(0.1);
+            if !read_only {
+                syscall::sleep(0.2);
             }
             if let Some(wait_duration) = iface.poll_delay(timestamp) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
@@ -192,6 +203,10 @@ fn help() -> usr::shell::ExitCode {
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Usage:{} socket {}<host> <port>{1}", csi_title, csi_reset, csi_option);
-    // TODO: Add `-i` and `-v` options
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
+    println!("  {0}-p{1}, {0}--prompt{1}     Display prompt", csi_option, csi_reset);
+    println!("  {0}-r{1}, {0}--read-only{1}  One way connexion to a server", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }
