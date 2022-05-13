@@ -130,18 +130,15 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         if verbose {
                             debug!("Sending ...");
                         }
-
                         if prompt {
                             // Print prompt
                             print!("{}>{} ", Style::color("Cyan"), Style::reset());
                         }
-
                         let line = io::stdin().read_line();
                         if line.is_empty() {
-                            debug!("EOF");
-                            read_only = true;
+                            socket.close();
                         } else {
-                            let line = format!("{}\r\n", line.trim_end());
+                            let line = line.replace("\n", "\r\n");
                             socket.send_slice(line.as_ref()).expect("cannot send");
                         }
                     }
