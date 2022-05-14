@@ -163,9 +163,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                     socket.recv(|data| {
                         let contents = String::from_utf8_lossy(data);
-                        for line in contents.lines() {
-                            println!("{}", line);
-                        }
+                        print!("{}", contents.replace("\r\n", "\n"));
                         (data.len(), ())
                     }).unwrap();
                     State::Receiving
