@@ -14,6 +14,7 @@ use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+    let mut listen = false;
     let mut prompt = false;
     let mut verbose = false;
     let mut read_only = false;
@@ -21,6 +22,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut next_arg_is_interval = false;
     let mut args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
+            "-l" | "--listen" => {
+                listen = true;
+                None
+            }
             "-p" | "--prompt" => {
                 prompt = true;
                 None
@@ -63,7 +68,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     }
 
-    if args.len() != 3 {
+    if (listen && args.len() != 2) || (args.len() != 3) {
         help();
         return usr::shell::ExitCode::CommandError;
     }
@@ -122,13 +127,22 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
             state = match state {
                 State::Connecting if !socket.is_active() => {
-                    let local_port = 49152 + random::get_u16() % 16384;
-                    if verbose {
-                        debug!("Connecting to {}:{}", address, port);
-                    }
-                    if socket.connect(cx, (address, port), local_port).is_err() {
-                        error!("Could not connect to {}:{}", address, port);
-                        return usr::shell::ExitCode::CommandError;
+                    if listen { // Listen to a local port
+                        if !socket.is_open() {
+                            if verbose {
+                                debug!("Listening to {}", port);
+                            }
+                            socket.listen(port).unwrap();
+                        }
+                    } else { // Connect to a remote port
+                        let local_port = 49152 + random::get_u16() % 16384;
+                        if verbose {
+                            debug!("Connecting to {}:{}", address, port);
+                        }
+                        if socket.connect(cx, (address, port), local_port).is_err() {
+                            error!("Could not connect to {}:{}", address, port);
+                            return usr::shell::ExitCode::CommandError;
+                        }
                     }
                     State::Receiving
                 }
@@ -171,7 +185,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 _ if socket.state() == TcpState::SynSent || socket.state() == TcpState::SynReceived => {
                     state
                 }
-                State::Receiving if !socket.may_recv() => {
+                State::Receiving if !socket.may_recv() && !listen => {
                     if verbose {
                         debug!("Break from response");
                     }
@@ -183,7 +197,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                     State::Sending
                 }
-                _ if !socket.is_active() => {
+                _ if !socket.is_active() && !listen => {
                     if verbose {
                         debug!("Break from inactive");
                     }
@@ -210,11 +224,13 @@ fn help() -> usr::shell::ExitCode {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} socket {}<host> <port>{1}", csi_title, csi_reset, csi_option);
+    println!("{}Usage:{} socket {}[<host>] <port>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
-    println!("  {0}-p{1}, {0}--prompt{1}     Display prompt", csi_option, csi_reset);
-    println!("  {0}-r{1}, {0}--read-only{1}  One way connexion to a server", csi_option, csi_reset);
+    println!("  {0}-l{1}, {0}--listen{1}             Listen mode", csi_option, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}            Increase verbosity", csi_option, csi_reset);
+    println!("  {0}-p{1}, {0}--prompt{1}             Display prompt", csi_option, csi_reset);
+    println!("  {0}-r{1}, {0}--read-only{1}          One way connexion to a server", csi_option, csi_reset);
+    println!("  {0}-i{1}, {0}--interval <time>{1}    Wait <time> between packets", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }
