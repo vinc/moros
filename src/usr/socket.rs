@@ -17,6 +17,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let mut prompt = false;
     let mut verbose = false;
     let mut read_only = false;
+    let mut interval = 0.0;
+    let mut next_arg_is_interval = false;
     let mut args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
             "-p" | "--prompt" => {
@@ -29,6 +31,17 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             "-v" | "--verbose" => {
                 verbose = true;
+                None
+            }
+            "-i" | "--interval" => {
+                next_arg_is_interval = true;
+                None
+            }
+            _ if next_arg_is_interval => {
+                next_arg_is_interval = false;
+                if let Ok(i) = arg.parse() {
+                    interval = i;
+                }
                 None
             }
             _ => {
@@ -181,8 +194,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 _ => state
             };
 
-            if !read_only {
-                syscall::sleep(0.2);
+            if interval > 0.0 {
+                syscall::sleep(interval);
             }
             if let Some(wait_duration) = iface.poll_delay(timestamp) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
