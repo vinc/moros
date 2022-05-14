@@ -75,7 +75,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
-            if sys::console::end_of_text() {
+            if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;

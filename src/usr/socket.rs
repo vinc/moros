@@ -97,7 +97,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         let tcp_handle = iface.add_socket(tcp_socket);
 
         loop {
-            if sys::console::end_of_text() {
+            if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
