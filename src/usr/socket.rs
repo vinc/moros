@@ -69,7 +69,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     }
 
-    debug!("{:?} (req = {})", args, required_args_count);
     if args.len() != required_args_count {
         help();
         return usr::shell::ExitCode::CommandError;
