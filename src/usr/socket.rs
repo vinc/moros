@@ -58,9 +58,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         println!("MOROS Socket v0.1.0\n");
     }
 
-    // Split <host> and <port>
-    if args.len() == 2 {
-        if let Some(i) = args[1].find(':') {
+    let required_args_count = if listen { 2 } else { 3 };
+
+    if args.len() == required_args_count - 1 {
+        if let Some(i) = args[1].find(':') { // Split <host> and <port>
             let arg = args[1].clone();
             let (host, path) = arg.split_at(i);
             args[1] = host;
@@ -68,13 +69,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     }
 
-    if (listen && args.len() != 2) || (args.len() != 3) {
+    debug!("{:?} (req = {})", args, required_args_count);
+    if args.len() != required_args_count {
         help();
         return usr::shell::ExitCode::CommandError;
     }
 
-    let host = &args[1];
-    let port: u16 = args[2].parse().expect("Could not parse port");
+    let host = if listen { "0.0.0.0" } else { &args[1] };
+    let port: u16 = args[required_args_count - 1].parse().expect("Could not parse port");
 
     let address = if host.ends_with(char::is_numeric) {
         IpAddress::from_str(host).expect("invalid address format")
@@ -227,10 +229,10 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Usage:{} socket {}[<host>] <port>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-l{1}, {0}--listen{1}             Listen mode", csi_option, csi_reset);
+    println!("  {0}-l{1}, {0}--listen{1}             Listen to a local port", csi_option, csi_reset);
     println!("  {0}-v{1}, {0}--verbose{1}            Increase verbosity", csi_option, csi_reset);
     println!("  {0}-p{1}, {0}--prompt{1}             Display prompt", csi_option, csi_reset);
-    println!("  {0}-r{1}, {0}--read-only{1}          One way connexion to a server", csi_option, csi_reset);
+    println!("  {0}-r{1}, {0}--read-only{1}          Read only connexion", csi_option, csi_reset);
     println!("  {0}-i{1}, {0}--interval <time>{1}    Wait <time> between packets", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }
