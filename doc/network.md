@@ -49,7 +49,7 @@ Listen for packets transmitted on the network:
 
 The `dhcp` command configures the network automatically:
 
-    > dhcp -v
+    > dhcp --verbose
     DEBUG: DHCP Discover transmitted
     DEBUG: DHCP Offer received
     ip:  10.0.2.15/24
@@ -68,15 +68,14 @@ The `host` command performs DNS lookups:
 
 The `tcp` command connects to TCP sockets:
 
-    > tcp time.nist.gov 13
-    Connecting to 129.6.15.30:13
+    > tcp time.nist.gov 13 --verbose
+    DEBUG: Connecting to 129.6.15.30:13
 
     58884 20-02-05 19:19:42 00 0 0  49.2 UTC(NIST) *
 
 This could also be done with the `read` command:
 
     > read /net/tcp/time.nist.gov:13
-    Connecting to 129.6.15.30:13
 
     58884 20-02-05 19:19:55 00 0 0  49.2 UTC(NIST) *
 
@@ -85,12 +84,79 @@ This could also be done with the `read` command:
 
 Requesting a resource on a host:
 
-    > http example.com /articles/index.html
+    > http moros.cc /test.html
 
 Is equivalent to:
 
-    > read /net/http/example.com/articles
+    > read /net/http/moros.cc/test.html
 
 And:
 
-    > read /net/http/example.com:80/articles/index.html
+    > read /net/http/moros.cc:80/test.html
+
+## SOCKET
+
+The `socket` command is used to read and write to network connexions
+like the `netcat` command on Unix.
+
+For example the request made with `tcp` above is equivalent to this:
+
+    > socket time.nist.gov 13 --read-only
+
+    59710 22-05-11 21:44:52 50 0 0 359.3 UTC(NIST) *
+
+And the request made with `http` is equivalent to that:
+
+    > socket moros.cc 80 --prompt
+    MOROS Socket v0.1.0
+
+    > GET /test.html HTTP/1.0
+    > Host: moros.cc
+    > 
+    HTTP/1.1 200 OK
+    Server: nginx
+    Date: Wed, 11 May 2022 21:46:34 GMT
+    Content-Type: text/html
+    Content-Length: 866
+    Connection: close
+    Last-Modified: Fri, 29 Oct 2021 17:50:58 GMT
+    ETag: "617c3482-362"
+    Accept-Ranges: bytes
+
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>MOROS: Obscure Rust Operating System</title>
+      </head>
+      <body>
+        <h1>MOROS</h1>
+      </body>
+    </html>
+
+Here's a connexion to a SMTP server to send a mail:
+
+    > socket 10.0.2.2 2500 --prompt
+    MOROS Socket v0.1.0
+
+    220 EventMachine SMTP Server
+    > EHLO moros.cc
+    250-Ok EventMachine SMTP Server
+    250-NO-SOLICITING
+    250 SIZE 20000000
+    > MAIL FROM:<v@moros.cc>
+    > RCPT TO:<alice@example.com>
+    250 Ok
+    250 Ok
+    > DATA
+    354 Send it
+    > Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec
+    > diam vitae ex blandit malesuada nec a turpis.
+    > .
+    > QUIT
+    250 Message accepted
+    221 Ok
+
+Sending a file to a server:
+
+    > socket 10.0.2.2 1234 <= /tmp/alice.txt

@@ -120,8 +120,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
-            if sys::console::end_of_text() {
-                eprintln!(); // FIXME
+            if sys::console::end_of_text() || sys::console::end_of_transmission() {
+                eprintln!();
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
@@ -220,6 +220,6 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Usage:{} http {}<options> <url>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }

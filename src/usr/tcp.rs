@@ -1,9 +1,8 @@
-use crate::{sys, usr};
+use crate::{sys, usr, debug};
 use crate::api::console::Style;
 use crate::api::syscall;
 use crate::api::random;
-use alloc::borrow::ToOwned;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::{self, FromStr};
@@ -12,15 +11,26 @@ use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    let mut args: Vec<String> = args.iter().map(ToOwned::to_owned).map(ToOwned::to_owned).collect();
+    let mut verbose = false;
+    let mut args: Vec<&str> = args.iter().filter_map(|arg| {
+        match *arg {
+            "-v" | "--verbose" => {
+                verbose = true;
+                None
+            }
+            _ => {
+                Some(*arg)
+            }
+        }
+    }).collect();
 
     // Split <host> and <port>
     if args.len() == 2 {
         if let Some(i) = args[1].find(':') {
             let arg = args[1].clone();
             let (host, path) = arg.split_at(i);
-            args[1] = host.to_string();
-            args.push(path[1..].to_string());
+            args[1] = host;
+            args.push(&path[1..]);
         }
     }
 
@@ -65,7 +75,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
-            if sys::console::end_of_text() {
+            if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
@@ -80,7 +90,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             state = match state {
                 State::Connect if !socket.is_active() => {
                     let local_port = 49152 + random::get_u16() % 16384;
-                    println!("Connecting to {}:{}", address, port);
+                    if verbose {
+                        debug!("Connecting to {}:{}", address, port);
+                    }
                     if socket.connect(cx, (address, port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, port);
                         return usr::shell::ExitCode::CommandError;
