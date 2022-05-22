@@ -3,15 +3,17 @@ use crate::sys::fs::FileIO;
 use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
+use core::sync::atomic::{AtomicBool, Ordering};
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref STDIN: Mutex<String> = Mutex::new(String::new());
-    pub static ref ECHO: Mutex<bool> = Mutex::new(true);
-    pub static ref RAW: Mutex<bool> = Mutex::new(false);
 }
+
+pub static ECHO: AtomicBool = AtomicBool::new(true);
+pub static RAW: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone)]
 pub struct Console;
@@ -64,31 +66,27 @@ pub fn has_cursor() -> bool {
 }
 
 pub fn disable_echo() {
-    let mut echo = ECHO.lock();
-    *echo = false;
+    ECHO.store(false, Ordering::SeqCst);
 }
 
 pub fn enable_echo() {
-    let mut echo = ECHO.lock();
-    *echo = true;
+    ECHO.store(true, Ordering::SeqCst);
 }
 
 pub fn is_echo_enabled() -> bool {
-    *ECHO.lock()
+    ECHO.load(Ordering::SeqCst)
 }
 
 pub fn disable_raw() {
-    let mut raw = RAW.lock();
-    *raw = false;
+    RAW.store(false, Ordering::SeqCst);
 }
 
 pub fn enable_raw() {
-    let mut raw = RAW.lock();
-    *raw = true;
+    RAW.store(true, Ordering::SeqCst);
 }
 
 pub fn is_raw_enabled() -> bool {
-    *RAW.lock()
+    RAW.load(Ordering::SeqCst)
 }
 
 pub const ETX_KEY: char = '\x03'; // End of Text

@@ -1,10 +1,8 @@
 use crate::sys;
 use crate::sys::fs::FileIO;
 
-#[cfg(not(debug_assertions))]
-use rand_chacha::ChaChaRng;
-#[cfg(not(debug_assertions))]
-use rand_core::{RngCore, SeedableRng};
+use rand::{RngCore, SeedableRng};
+use rand_hc::Hc128Rng;
 use x86_64::instructions::random::RdRand;
 
 #[derive(Debug, Clone)]
@@ -29,9 +27,6 @@ impl FileIO for Random {
     }
 }
 
-// FIXME: Compiling this with debug_assertions generate the following error:
-// LLVM ERROR: Do not know how to split the result of this operator!
-#[cfg(not(debug_assertions))]
 pub fn get_u64() -> u64 {
     let mut seed = [0u8; 32];
     if let Some(rdrand) = RdRand::new() {
@@ -48,18 +43,8 @@ pub fn get_u64() -> u64 {
         seed[0..8].clone_from_slice(&sys::clock::realtime().to_be_bytes());
         seed[8..16].clone_from_slice(&sys::clock::uptime().to_be_bytes());
     }
-    let mut chacha = ChaChaRng::from_seed(seed);
-    chacha.next_u64()
-}
-
-#[cfg(debug_assertions)]
-pub fn get_u64() -> u64 {
-    if let Some(rdrand) = RdRand::new() {
-        if let Some(rand) = rdrand.get_u64() {
-            return rand;
-        }
-    }
-    0
+    let mut rng = Hc128Rng::from_seed(seed);
+    rng.next_u64()
 }
 
 pub fn get_u32() -> u32 {

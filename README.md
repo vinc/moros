@@ -67,7 +67,7 @@ Install the required tools with `make setup` or the following commands:
 
 Build the image to `disk.img`:
 
-    $ make image output=video keyboard=qwerty nic=rtl8139
+    $ make image output=video keyboard=qwerty
 
 Run MOROS in QEMU:
 

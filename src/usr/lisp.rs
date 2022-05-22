@@ -461,7 +461,7 @@ fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 fn eval_progn_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let mut res = Ok(Exp::List(vec![]));
     for arg in args {
-        res = Ok(eval(&arg, env)?);
+        res = Ok(eval(arg, env)?);
     }
     res
 }

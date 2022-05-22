@@ -95,8 +95,8 @@ pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
 }
 
 pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {
-    if let Some(info) = syscall::info(&path) {
-        let res = if info.is_device() { open_device(&path) } else { open_file(&path) };
+    if let Some(info) = syscall::info(path) {
+        let res = if info.is_device() { open_device(path) } else { open_file(path) };
         if let Some(handle) = res {
             if let Some(bytes) = syscall::read(handle, buf) {
                 syscall::close(handle);
@@ -113,13 +113,13 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
 }
 
 pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
-    if let Some(info) = syscall::info(&path) {
+    if let Some(info) = syscall::info(path) {
         let f = if info.is_device() {
-            open_device(&path)
+            open_device(path)
         } else if info.is_dir() {
-            open_dir(&path)
+            open_dir(path)
         } else {
-            open_file(&path)
+            open_file(path)
         };
         if let Some(handle) = f {
             let n = info.size() as usize;
@@ -135,7 +135,7 @@ pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
 }
 
 pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    if let Some(handle) = create_file(&path) {
+    if let Some(handle) = create_file(path) {
         if let Some(bytes) = syscall::write(handle, buf) {
             syscall::close(handle);
             return Ok(bytes);
@@ -145,14 +145,14 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
 }
 
 pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
-    let res = if let Some(info) = syscall::info(&path) {
+    let res = if let Some(info) = syscall::info(path) {
         if info.is_device() {
-            open_device(&path)
+            open_device(path)
         } else {
-            open_file(&path)
+            open_file(path)
         }
     } else {
-        create_file(&path)
+        create_file(path)
     };
     if let Some(old_handle) = res {
         syscall::dup(old_handle, handle);
@@ -163,7 +163,7 @@ pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
 }
 
 pub fn read_dir(path: &str) -> Result<Vec<FileInfo>, ()> {
-    if let Some(info) = syscall::info(&path) {
+    if let Some(info) = syscall::info(path) {
         if info.is_dir() {
             if let Ok(buf) = read_to_bytes(path) {
                 let mut res = Vec::new();

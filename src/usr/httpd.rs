@@ -28,7 +28,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 
         let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
         loop {
-            if sys::console::end_of_text() {
+            if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 iface.remove_socket(tcp_handle);
                 println!();
                 return usr::shell::ExitCode::CommandSuccessful;

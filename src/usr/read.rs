@@ -86,7 +86,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 } else if info.is_device() {
                     let is_console = info.size() == 4; // TODO: Improve device detection
                     loop {
-                        if sys::console::end_of_text() {
+                        if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
                             return usr::shell::ExitCode::CommandSuccessful;
                         }

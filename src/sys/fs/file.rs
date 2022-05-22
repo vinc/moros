@@ -36,6 +36,16 @@ impl From<DirEntry> for File {
 }
 
 impl File {
+    pub fn new() -> Self {
+        Self {
+            parent: None,
+            name: String::new(),
+            addr: 0,
+            size: 0,
+            offset:0,
+        }
+    }
+
     pub fn create(pathname: &str) -> Option<Self> {
         let pathname = realpath(pathname);
         let dirname = dirname(&pathname);

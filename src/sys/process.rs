@@ -163,7 +163,7 @@ pub fn set_registers(regs: Registers) {
 pub fn stack_frame() -> InterruptStackFrameValue {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.stack_frame.clone()
+    proc.stack_frame
 }
 
 pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
@@ -289,7 +289,7 @@ impl Process {
 
         let data = parent.data.clone();
         let registers = parent.registers;
-        let stack_frame = parent.stack_frame.clone();
+        let stack_frame = parent.stack_frame;
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
         let proc = Process { id, code_addr, code_size, entry_point, data, stack_frame, registers };

@@ -60,7 +60,7 @@ fn erase(pathname: &str) -> usr::shell::ExitCode {
                     let buf = vec![0; drive.block_size() as usize];
                     print!("\x1b[?25l"); // Disable cursor
                     for i in 0..n {
-                        if sys::console::end_of_text() {
+                        if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
                             print!("\x1b[?25h"); // Enable cursor
                             return usr::shell::ExitCode::CommandError;

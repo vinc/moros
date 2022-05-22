@@ -34,6 +34,7 @@ pub mod read;
 pub mod reboot;
 pub mod shell;
 pub mod sleep;
+pub mod socket;
 pub mod tcp;
 pub mod uptime;
 pub mod user;

@@ -38,6 +38,7 @@ pub enum Device {
 impl From<u8> for Device {
     fn from(i: u8) -> Self {
         match i {
+            i if i == DeviceType::File as u8 => Device::File(File::new()),
             i if i == DeviceType::Console as u8 => Device::Console(Console::new()),
             i if i == DeviceType::Random as u8 => Device::Random(Random::new()),
             i if i == DeviceType::Null as u8 => Device::Null,
@@ -85,6 +86,7 @@ impl FileIO for Device {
             Device::Null => Err(()),
         }
     }
+
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match self {
             Device::File(io) => io.write(buf),
