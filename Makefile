@@ -2,16 +2,14 @@
 .EXPORT_ALL_VARIABLES:
 
 setup:
-	curl https://sh.rustup.rs -sSf | sh
+	curl https://sh.rustup.rs -sSf | sh -s -- -y
 	rustup install nightly
 	rustup default nightly
-	rustup component add rust-src
-	rustup component add llvm-tools-preview
 	cargo install bootimage
 
-output = video
-keyboard = qwerty
-nic = rtl8139
+output = video, # video, serial
+keyboard = qwerty # qwerty, azerty, dvorak
+nic = rtl8139 # rtl8139, pcnet
 
 export MOROS_KEYBOARD = $(keyboard)
 
@@ -40,7 +38,7 @@ $(img):
 image: $(img)
 	touch src/lib.rs
 	env | grep MOROS
-	cargo bootimage --no-default-features --features $(output),$(nic) --release
+	cargo bootimage --no-default-features --features $(output) --release --bin moros
 	dd conv=notrunc if=$(bin) of=$(img)
 
 opts = -m 32 -cpu max -nic model=$(nic) -hda $(img) -soundhw pcspk
@@ -52,7 +50,7 @@ qemu:
 	qemu-system-x86_64 $(opts)
 
 test:
-	cargo test --release --lib --no-default-features --features serial,$(nic) -- \
+	cargo test --release --lib --no-default-features --features serial -- \
 		-m 32 -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
 
 clean:

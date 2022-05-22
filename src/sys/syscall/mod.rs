@@ -2,7 +2,9 @@ pub mod number;
 pub mod service;
 
 use crate::sys;
-use crate::sys::fs::FileStat;
+use crate::sys::fs::FileInfo;
+
+use core::arch::asm;
 
 /*
  * Dispatching system calls
@@ -23,12 +25,18 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
         number::REALTIME => {
             service::realtime().to_bits() as usize
         }
-        number::STAT => {
+        number::DELETE => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
             let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
-            let stat = unsafe { &mut *(arg3 as *mut FileStat) };
-            service::stat(path, stat) as usize
+            service::delete(path) as usize
+        }
+        number::INFO => {
+            let ptr = sys::process::ptr_from_addr(arg1 as u64);
+            let len = arg2;
+            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
+            let info = unsafe { &mut *(arg3 as *mut FileInfo) };
+            service::info(path, info) as usize
         }
         number::OPEN => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
@@ -67,6 +75,9 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
             let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
             service::spawn(path);
             0
+        }
+        number::STOP => {
+            service::stop(arg1)
         }
         _ => {
             unimplemented!();

@@ -1,6 +1,6 @@
 use crate::usr;
 use crate::api::console::Style;
-use crate::api::{io, random};
+use crate::api::{io, random, console};
 use core::fmt;
 use alloc::format;
 use alloc::string::ToString;
@@ -34,7 +34,7 @@ impl Game {
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
-                'q' | '\x03' | '\x04' => { // ^C and ^D
+                'q' | console::ETX_KEY | console::EOT_KEY => {
                     return;
                 },
                 c => {

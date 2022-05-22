@@ -1,7 +1,9 @@
 use crate::{api, sys, usr};
+use crate::api::console;
 use crate::api::fs;
 use crate::api::syscall;
 use crate::sys::cmos::CMOS;
+
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 
@@ -10,9 +12,16 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    let pathname = args[1];
+    let mut path = args[1];
 
-    match pathname {
+    // The commands `read /usr/alice/` and `read /usr/alice` are equivalent,
+    // but `read /` should not be modified.
+    if path.len() > 1 {
+        path = path.trim_end_matches('/');
+    }
+
+    // TODO: Create device drivers for `/dev` and `/net` hardcoded commands
+    match path {
         "/dev/rtc" => {
             let rtc = CMOS::new().rtc();
             println!(
@@ -31,13 +40,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             usr::shell::ExitCode::CommandSuccessful
         },
         _ => {
-            if pathname.starts_with("/net/") {
+            if path.starts_with("/net/") {
                 // Examples:
                 // > read /net/http/example.com/articles
                 // > read /net/http/example.com:8080/articles/index.html
                 // > read /net/daytime/time.nist.gov
                 // > read /net/tcp/time.nist.gov:13
-                let parts: Vec<_> = pathname.split('/').collect();
+                let parts: Vec<_> = path.split('/').collect();
                 if parts.len() < 4 {
                     eprintln!("Usage: read /net/http/<host>/<path>");
                     usr::shell::ExitCode::CommandError
@@ -58,38 +67,57 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             usr::http::main(&["http", host, &path])
                         }
                         _ => {
-                            eprintln!("Error: unknown protocol '{}'", parts[2]);
+                            error!("Unknown protocol '{}'", parts[2]);
                             usr::shell::ExitCode::CommandError
                         }
                     }
                 }
-            } else if let Some(stat) = syscall::stat(pathname) {
-                if stat.is_file() {
-                    if let Ok(contents) = api::fs::read_to_string(pathname) {
+            } else if let Some(info) = syscall::info(path) {
+                if info.is_file() {
+                    if let Ok(contents) = api::fs::read_to_string(path) {
                         print!("{}", contents);
                         usr::shell::ExitCode::CommandSuccessful
                     } else {
-                        eprintln!("Could not read '{}'", pathname);
+                        error!("Could not read '{}'", path);
                         usr::shell::ExitCode::CommandError
                     }
-                } else if stat.is_dir() {
+                } else if info.is_dir() {
                     usr::list::main(args)
-                } else if stat.is_device() {
+                } else if info.is_device() {
+                    let is_console = info.size() == 4; // TODO: Improve device detection
                     loop {
-                        if let Ok(bytes) = fs::read_to_bytes(pathname) {
-                            print!("{}", bytes[0] as char);
-                        }
-                        if sys::console::end_of_text() {
+                        if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
                             return usr::shell::ExitCode::CommandSuccessful;
                         }
+                        if let Ok(bytes) = fs::read_to_bytes(path) {
+                            if is_console && bytes.len() == 1 {
+                                match bytes[0] as char {
+                                    console::ETX_KEY => {
+                                        println!("^C");
+                                        return usr::shell::ExitCode::CommandSuccessful;
+                                    }
+                                    console::EOT_KEY => {
+                                        println!("^D");
+                                        return usr::shell::ExitCode::CommandSuccessful;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            for b in bytes {
+                                print!("{}", b as char);
+                            }
+                        } else {
+                            error!("Could not read '{}'", path);
+                            return usr::shell::ExitCode::CommandError;
+                        }
                     }
                 } else {
-                    eprintln!("Could not read type of '{}'", pathname);
+                    error!("Could not read type of '{}'", path);
                     usr::shell::ExitCode::CommandError
                 }
             } else {
-                eprintln!("File not found '{}'", pathname);
+                error!("File not found '{}'", path);
                 usr::shell::ExitCode::CommandError
             }
         }

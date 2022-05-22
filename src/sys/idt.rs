@@ -1,6 +1,7 @@
 use crate::sys;
 use crate::sys::process::Registers;
 
+use core::arch::asm;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
@@ -168,7 +169,7 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
     let arg3 = regs.rdx;
 
     if n == sys::syscall::number::SPAWN { // Backup CPU context
-        sys::process::set_stack_frame(stack_frame.clone());
+        sys::process::set_stack_frame(**stack_frame);
         sys::process::set_registers(*regs);
     }
 

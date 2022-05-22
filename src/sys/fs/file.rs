@@ -3,6 +3,7 @@ use super::dir::Dir;
 use super::block::LinkedBlock;
 use super::dir_entry::DirEntry;
 
+use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use core::convert::From;
@@ -15,31 +16,41 @@ pub enum SeekFrom {
 
 #[derive(Debug, Clone)]
 pub struct File {
+    parent: Option<Box<Dir>>,
     name: String,
     addr: u32,
     size: u32,
-    dir: Dir, // TODO: Replace with `parent: Some(Dir)` and also add it to `Dir`
     offset: u32,
 }
 
 impl From<DirEntry> for File {
     fn from(entry: DirEntry) -> Self {
         Self {
+            parent: Some(Box::new(entry.dir())),
             name: entry.name(),
             addr: entry.addr(),
             size: entry.size(),
-            dir: entry.dir(),
             offset: 0,
         }
     }
 }
 
 impl File {
+    pub fn new() -> Self {
+        Self {
+            parent: None,
+            name: String::new(),
+            addr: 0,
+            size: 0,
+            offset:0,
+        }
+    }
+
     pub fn create(pathname: &str) -> Option<Self> {
         let pathname = realpath(pathname);
         let dirname = dirname(&pathname);
         let filename = filename(&pathname);
-        if let Some(dir) = Dir::open(dirname) {
+        if let Some(mut dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_file(filename) {
                 return Some(dir_entry.into());
             }
@@ -183,7 +194,9 @@ impl FileIO for File {
             block.write();
         }
         self.size = self.offset;
-        self.dir.update_entry(&self.name, self.size);
+        if let Some(dir) = self.parent.clone() {
+            dir.update_entry(&self.name, self.size);
+        }
         Ok(bytes)
     }
 }

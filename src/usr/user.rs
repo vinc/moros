@@ -42,7 +42,7 @@ fn usage() -> usr::shell::ExitCode {
 // TODO: Add max number of attempts
 pub fn login(username: &str) -> usr::shell::ExitCode {
     if !fs::exists(PASSWORDS) {
-        eprintln!("Could not read '{}'", PASSWORDS);
+        error!("Could not read '{}'", PASSWORDS);
         return usr::shell::ExitCode::CommandError;
     }
 
@@ -55,9 +55,9 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
     match hashed_password(username) {
         Some(hash) => {
             print!("Password: ");
-            sys::console::disable_echo();
+            print!("\x1b[12l"); // Disable echo
             let password = io::stdin().read_line().trim_end().to_string();
-            sys::console::enable_echo();
+            print!("\x1b[12h"); // Enable echo
             println!();
             if !check(&password, &hash) {
                 println!();
@@ -87,14 +87,14 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     if hashed_password(username).is_some() {
-        eprintln!("Username exists");
+        error!("Username exists");
         return usr::shell::ExitCode::CommandError;
     }
 
     print!("Password: ");
-    sys::console::disable_echo();
+    print!("\x1b[12l"); // Disable echo
     let password = io::stdin().read_line().trim_end().to_string();
-    sys::console::enable_echo();
+    print!("\x1b[12h"); // Enable echo
     println!();
 
     if password.is_empty() {
@@ -102,23 +102,28 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     }
 
     print!("Confirm: ");
-    sys::console::disable_echo();
+    print!("\x1b[12l"); // Disable echo
     let confirm = io::stdin().read_line().trim_end().to_string();
-    sys::console::enable_echo();
+    print!("\x1b[12h"); // Enable echo
     println!();
 
     if password != confirm {
-        eprintln!("Password confirmation failed");
+        error!("Password confirmation failed");
         return usr::shell::ExitCode::CommandError;
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
-        eprintln!("Could not save user");
+        error!("Could not save user");
         return usr::shell::ExitCode::CommandError;
     }
 
     // Create home dir
-    sys::fs::Dir::create(&format!("/usr/{}", username)).unwrap();
+    if let Some(handle) = api::fs::create_dir(&format!("/usr/{}", username)) {
+        api::syscall::close(handle);
+    } else {
+        error!("Could not create home dir");
+        return usr::shell::ExitCode::CommandError;
+    }
 
     usr::shell::ExitCode::CommandSuccessful
 }

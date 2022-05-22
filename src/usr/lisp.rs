@@ -461,7 +461,7 @@ fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
 fn eval_progn_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     let mut res = Ok(Exp::List(vec![]));
     for arg in args {
-        res = Ok(eval(&arg, env)?);
+        res = Ok(eval(arg, env)?);
     }
     res
 }
@@ -679,7 +679,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 }
                 usr::shell::ExitCode::CommandSuccessful
             } else {
-                eprintln!("File not found '{}'", pathname);
+                error!("File not found '{}'", pathname);
                 usr::shell::ExitCode::CommandError
             }
         },

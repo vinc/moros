@@ -8,7 +8,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         return usr::shell::ExitCode::CommandError;
     }
 
-    let color = Style::color("LightBlue");
+    let color = Style::color("Yellow");
     let reset = Style::reset();
 
     let pathname = args[1];

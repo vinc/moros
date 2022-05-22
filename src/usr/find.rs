@@ -24,7 +24,7 @@ impl PrintingState {
 
 // > find /tmp -name *.txt -line hello
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    let mut path: &str = &sys::process::dir();
+    let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut name = None;
     let mut line = None;
     let mut i = 1;
@@ -39,7 +39,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     name = Some(args[i + 1]);
                     i += 1;
                 } else {
-                    eprintln!("Missing name");
+                    error!("Missing name");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
@@ -48,13 +48,17 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     line = Some(args[i + 1]);
                     i += 1;
                 } else {
-                    eprintln!("Missing line");
+                    error!("Missing line");
                     return usr::shell::ExitCode::CommandError;
                 }
             },
             _ => path = args[i],
         }
         i += 1;
+    }
+
+    if path.len() > 1 {
+        path = path.trim_end_matches('/');
     }
 
     if name.is_some() {
@@ -70,12 +74,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
-    if let Some(dir) = sys::fs::Dir::open(path) {
+    if let Ok(files) = fs::read_dir(path) {
         state.is_recursive = true;
-        for file in dir.entries() {
-            let file_path = format!("{}/{}", path, file.name());
+        for file in files {
+            let mut file_path = path.to_string();
+            if !file_path.ends_with('/') {
+                file_path.push('/');
+            }
+            file_path.push_str(&file.name());
             if file.is_dir() {
                 print_matching_lines(&file_path, pattern, state);
+            } else if file.is_device() {
+                // Skip devices
             } else {
                 print_matching_lines_in_file(&file_path, pattern, state);
             }
@@ -86,8 +96,8 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
 }
 
 fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingState) {
-    let name_color = Style::color("LightBlue");
-    let line_color = Style::color("Yellow");
+    let name_color = Style::color("Yellow");
+    let line_color = Style::color("LightCyan");
     let match_color = Style::color("LightRed");
     let reset = Style::reset();
 

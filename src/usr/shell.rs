@@ -11,8 +11,8 @@ use alloc::string::String;
 const AUTOCOMPLETE_COMMANDS: [&str; 39] = [
     "2048", "base64", "calc", "clear", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
     "env", "exit", "geotime", "goto", "halt", "help", "hex", "host", "http", "httpd", "install",
-    "ip", "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read", "route",
-    "shell", "sleep", "tcp", "user", "vga", "write"
+    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read", "reboot", "shell",
+    "sleep", "socket", "tcp", "user", "vga", "write"
 ];
 
 #[repr(u8)]
@@ -29,7 +29,7 @@ fn shell_completer(line: &str) -> Vec<String> {
 
     let args = split_args(line);
     let i = args.len() - 1;
-    if args.len() == 1 { // Autocomplete command
+    if args.len() == 1 && !args[0].starts_with('/') { // Autocomplete command
         for &cmd in &AUTOCOMPLETE_COMMANDS {
             if let Some(entry) = cmd.strip_prefix(args[i]) {
                 entries.push(entry.into());
@@ -40,11 +40,11 @@ fn shell_completer(line: &str) -> Vec<String> {
         let dirname = fs::dirname(&pathname);
         let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
-        if let Some(dir) = sys::fs::Dir::open(dirname) {
-            for entry in dir.entries() {
-                let name = entry.name();
+        if let Ok(files) = fs::read_dir(dirname) {
+            for file in files {
+                let name = file.name();
                 if name.starts_with(filename) {
-                    let end = if entry.is_dir() { "/" } else { "" };
+                    let end = if file.is_dir() { "/" } else { "" };
                     let path = format!("{}{}{}{}", dirname, sep, name, end);
                     entries.push(path[pathname.len()..].into());
                 }
@@ -99,6 +99,36 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
     args
 }
 
+fn proc(args: &[&str]) -> ExitCode {
+    match args.len() {
+        1 => {
+            ExitCode::CommandSuccessful
+        },
+        2 => {
+            match args[1] {
+                "id" => {
+                    println!("{}", sys::process::id());
+                    ExitCode::CommandSuccessful
+                }
+                "files" => {
+                    for (i, handle) in sys::process::file_handles().iter().enumerate() {
+                        if let Some(resource) = handle {
+                            println!("{}: {:?}", i, resource);
+                        }
+                    }
+                    ExitCode::CommandSuccessful
+                }
+                _ => {
+                    ExitCode::CommandError
+                }
+            }
+        },
+        _ => {
+            ExitCode::CommandError
+        }
+    }
+}
+
 fn change_dir(args: &[&str]) -> ExitCode {
     match args.len() {
         1 => {
@@ -110,11 +140,11 @@ fn change_dir(args: &[&str]) -> ExitCode {
             if pathname.len() > 1 {
                 pathname = pathname.trim_end_matches('/').into();
             }
-            if sys::fs::Dir::open(&pathname).is_some() {
+            if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
                 ExitCode::CommandSuccessful
             } else {
-                println!("File not found '{}'", pathname);
+                error!("File not found '{}'", pathname);
                 ExitCode::CommandError
             }
         },
@@ -183,7 +213,7 @@ pub fn exec(cmd: &str) -> ExitCode {
 
     let res = match args[0] {
         ""                     => ExitCode::CommandSuccessful,
-        "a" | "alias"          => ExitCode::CommandUnknown,
+        "a"                    => ExitCode::CommandUnknown,
         "b"                    => ExitCode::CommandUnknown,
         "c" | "copy"           => usr::copy::main(&args),
         "d" | "del" | "delete" => usr::delete::main(&args),
@@ -192,8 +222,8 @@ pub fn exec(cmd: &str) -> ExitCode {
         "g" | "go" | "goto"    => change_dir(&args),
         "h" | "help"           => usr::help::main(&args),
         "i"                    => ExitCode::CommandUnknown,
-        "j" | "jump"           => ExitCode::CommandUnknown,
-        "k" | "kill"           => ExitCode::CommandUnknown,
+        "j"                    => ExitCode::CommandUnknown,
+        "k"                    => ExitCode::CommandUnknown,
         "l" | "list"           => usr::list::main(&args),
         "m" | "move"           => usr::r#move::main(&args),
         "n"                    => ExitCode::CommandUnknown,
@@ -218,16 +248,16 @@ pub fn exec(cmd: &str) -> ExitCode {
         "date"                 => usr::date::main(&args),
         "env"                  => usr::env::main(&args),
         "halt"                 => usr::halt::main(&args),
+        "reboot"               => usr::reboot::main(&args),
         "hex"                  => usr::hex::main(&args),
         "net"                  => usr::net::main(&args),
-        "route"                => usr::route::main(&args),
         "dhcp"                 => usr::dhcp::main(&args),
         "http"                 => usr::http::main(&args),
         "httpd"                => usr::httpd::main(&args),
+        "socket"               => usr::socket::main(&args),
         "tcp"                  => usr::tcp::main(&args),
         "host"                 => usr::host::main(&args),
         "install"              => usr::install::main(&args),
-        "ip"                   => usr::ip::main(&args),
         "geotime"              => usr::geotime::main(&args),
         "geodate"              => usr::geodate::main(&args),
         "colors"               => usr::colors::main(&args),
@@ -241,6 +271,7 @@ pub fn exec(cmd: &str) -> ExitCode {
         "elf"                  => usr::elf::main(&args),
         "pci"                  => usr::pci::main(&args),
         "2048"                 => usr::pow::main(&args),
+        "proc"                 => proc(&args),
         cmd                    => {
             if api::process::spawn(cmd).is_ok() {
                 ExitCode::CommandSuccessful
@@ -338,7 +369,7 @@ fn test_shell() {
 
     // Redirect standard error explicitely
     exec("hex /nope 2=> /test");
-    assert_eq!(api::fs::read_to_string("/test"), Ok("File not found '/nope'\n".to_string()));
+    assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
 
     sys::fs::dismount();
 }
