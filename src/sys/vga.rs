@@ -313,36 +313,33 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[1] -= n;
-                self.cursor[1] -= n;
+                self.writer[1] = cmp::max(self.writer[1] - n, 0);
+                self.cursor[1] = cmp::max(self.cursor[1] - n, 0);
             },
             'B' => { // Cursor Down
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[1] += n;
-                self.cursor[1] += n;
+                self.writer[1] = cmp::min(self.writer[1] + n, BUFFER_HEIGHT - 1);
+                self.cursor[1] = cmp::min(self.cursor[1] + n, BUFFER_HEIGHT - 1);
             },
             'C' => { // Cursor Forward
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[0] += n;
-                self.cursor[0] += n;
+                self.writer[0] = cmp::min(self.writer[0] + n, BUFFER_WIDTH - 1);
+                self.cursor[0] = cmp::min(self.cursor[0] + n, BUFFER_WIDTH - 1);
             },
             'D' => { // Cursor Backward
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[0] -= n;
-                self.cursor[0] -= n;
+                self.writer[0] = cmp::max(self.writer[0] - n, 0);
+                self.cursor[0] = cmp::max(self.cursor[0] - n, 0);
+            },
             'E' => { // Cursor Next Line
                 let mut n = 1;
                 for param in params.iter() {
