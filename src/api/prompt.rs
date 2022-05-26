@@ -5,6 +5,8 @@ use alloc::vec::Vec;
 use core::cmp;
 use vte::{Params, Parser, Perform};
 
+const MAX_WIDTH: usize = 80;
+
 pub struct Prompt {
     pub completion: Completion,
     pub history: History,
@@ -20,7 +22,7 @@ impl Prompt {
             history: History::new(),
             offset: 0,
             cursor: 0,
-            line: Vec::with_capacity(80),
+            line: Vec::with_capacity(MAX_WIDTH),
         }
     }
 
@@ -28,7 +30,7 @@ impl Prompt {
         print!("{}", prompt);
         self.offset = offset_from_prompt(prompt);
         self.cursor = self.offset;
-        self.line = Vec::with_capacity(80);
+        self.line = Vec::with_capacity(MAX_WIDTH);
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
@@ -181,7 +183,11 @@ impl Prompt {
         self.update_completion();
         self.update_history();
         if self.cursor < self.offset + self.line.len() {
-            print!("\x1b[1C");
+            if self.cursor % MAX_WIDTH == MAX_WIDTH - 1 { // Move cursor to begining of next line
+                print!("\x1b[1E");
+            } else {
+                print!("\x1b[1C");
+            }
             self.cursor += 1;
         }
     }
@@ -190,7 +196,12 @@ impl Prompt {
         self.update_completion();
         self.update_history();
         if self.cursor > self.offset {
-            print!("\x1b[1D");
+            if self.cursor % MAX_WIDTH == 0 { // Move cursor to end of previous line
+                print!("\x1b[1F");
+                print!("\x1b[{}G", MAX_WIDTH);
+            } else {
+                print!("\x1b[1D");
+            }
             self.cursor -= 1;
         }
     }

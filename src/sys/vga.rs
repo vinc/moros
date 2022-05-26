@@ -4,6 +4,7 @@ use crate::api::vga::color;
 use crate::sys;
 
 use bit_field::BitField;
+use core::cmp;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
@@ -342,6 +343,25 @@ impl Perform for Writer {
                 // TODO: Don't go past edge
                 self.writer[0] -= n;
                 self.cursor[0] -= n;
+            'E' => { // Cursor Next Line
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[0] = 0; // TODO: What should we do at the last line?
+                self.cursor[0] = 0;
+                self.writer[1] = cmp::min(self.writer[1] + n, BUFFER_HEIGHT - 1);
+                self.cursor[1] = cmp::min(self.cursor[1] + n, BUFFER_HEIGHT - 1);
+            },
+            'F' => { // Cursor Previous Line
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[0] = 0;
+                self.cursor[0] = 0;
+                self.writer[1] = cmp::max(self.writer[1] - n, 0);
+                self.cursor[1] = cmp::max(self.cursor[1] - n, 0);
             },
             'G' => { // Cursor Horizontal Absolute
                 let (_, y) = self.cursor_position();
