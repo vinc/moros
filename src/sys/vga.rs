@@ -337,7 +337,7 @@ impl Perform for Writer {
                 self.cursor[1] = cmp::max(self.cursor[1] - n, 0);
             },
             'G' => { // Cursor Horizontal Absolute
-                let x = n;
+                let x = n; // 1-indexed value
                 let y = self.cursor_position().1;
                 if x > BUFFER_WIDTH {
                     return;
