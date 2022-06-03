@@ -1,7 +1,12 @@
-(label fib
-  (lambda (n)
-    (cond
-      ((< n 2) n)
-      (true (+ (fib (- n 1)) (fib (- n 2)))))))
+(load "/ini/lisp/core.lsp")
 
-(print (fib 6))
+(defn fib (n)
+  (cond
+    ((< n 2) n)
+    (true (+ (fib (- n 1)) (fib (- n 2))))))
+
+(println
+  (fib
+    (cond
+      ((null? args) 10)
+      (true (parse (car args))))))
