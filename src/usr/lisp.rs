@@ -101,6 +101,44 @@ struct Env<'a> {
     outer: Option<&'a Env<'a>>,
 }
 
+const COMPLETER_FORMS: [&str; 21] = [
+    "atom",
+    "bytes",
+    "car",
+    "cdr",
+    "cond",
+    "cons",
+    "defun",
+    "eq",
+    "label",
+    "lambda",
+    "lines",
+    "load",
+    "mapcar",
+    "parse",
+    "print",
+    "progn",
+    "quote",
+    "read",
+    "read-bytes",
+    "str",
+    "type",
+];
+
+fn lisp_completer(line: &str) -> Vec<String> {
+    let mut entries = Vec::new();
+    if let Some(last_word) = line.split_whitespace().next_back() {
+        if let Some(f) = last_word.strip_prefix('(') {
+            for form in COMPLETER_FORMS {
+                if let Some(entry) = form.strip_prefix(f) {
+                    entries.push(entry.into());
+                }
+            }
+        }
+    }
+    entries
+}
+
 // Parser
 
 fn is_symbol_letter(c: char) -> bool {
@@ -580,26 +618,6 @@ fn parse_eval(exp: &str, env: &mut Env) -> Result<Exp, Err> {
 
 fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
-}
-
-
-const COMPLETER_FORMS: [&str; 11] = [
-    "quote", "atom?", "eq?", "first", "rest", "cons", "cond", "def", "fn",
-    "defn", "print",
-];
-
-fn lisp_completer(line: &str) -> Vec<String> {
-    let mut entries = Vec::new();
-    if let Some(last_word) = line.split_whitespace().next_back() {
-        if let Some(f) = last_word.strip_prefix('(') {
-            for form in COMPLETER_FORMS {
-                if let Some(entry) = form.strip_prefix(f) {
-                    entries.push(entry.into());
-                }
-            }
-        }
-    }
-    entries
 }
 
 fn repl(env: &mut Env) -> usr::shell::ExitCode {
