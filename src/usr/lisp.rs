@@ -241,11 +241,11 @@ fn default_env<'a>() -> Env<'a> {
         ensure_length_eq!(args, 1);
         match args[0].clone() {
             Exp::Str(s) => {
-                println!("{}", s);
+                print!("{}", s);
                 Ok(Exp::Str(s))
             }
             exp => {
-                println!("{}", exp);
+                print!("{}", exp);
                 Ok(exp)
             }
         }
