@@ -42,7 +42,10 @@ pub fn copy_files(verbose: bool) {
     copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"), verbose);
 
     copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"), verbose);
-    copy_file("/tmp/fibonacci.lsp", include_bytes!("../../dsk/tmp/fibonacci.lsp"), verbose);
+
+    create_dir("/tmp/lisp", verbose);
+    copy_file("/tmp/lisp/factorial.lsp", include_bytes!("../../dsk/tmp/lisp/factorial.lsp"), verbose);
+    copy_file("/tmp/lisp/fibonacci.lsp", include_bytes!("../../dsk/tmp/lisp/fibonacci.lsp"), verbose);
 
     create_dir("/tmp/beep", verbose);
     copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"), verbose);
