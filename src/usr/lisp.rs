@@ -149,10 +149,9 @@ fn parse_exp(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse(input: &str)-> Result<(String, Exp), Err> {
-    if let Ok((input, exp)) = parse_exp(input) {
-        Ok((input.to_string(), exp))
-    } else {
-        Err(Err::Reason("Could not parse input".to_string()))
+    match parse_exp(input) {
+        Ok((input, exp)) => Ok((input.to_string(), exp)),
+        Err(_) => Err(Err::Reason("Could not parse input".to_string())),
     }
 }
 
