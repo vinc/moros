@@ -661,48 +661,56 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let reset = Style::reset();
 
     let env = &mut default_env();
-    match args.len() {
-        1 => {
-            repl(env)
-        },
-        2 => {
-            let pathname = args[1];
-            if let Ok(code) = api::fs::read_to_string(pathname) {
-                let mut block = String::new();
-                let mut opened = 0;
-                let mut closed = 0;
-                for (i, line) in code.split('\n').enumerate() {
-                    let line = strip_comments(line);
-                    if !line.is_empty() {
-                        opened += line.matches('(').count();
-                        closed += line.matches(')').count();
-                        block.push_str(&line);
-                        if closed >= opened {
-                            if let Err(e) = parse_eval(&block, env) {
-                                match e {
-                                    Err::Reason(msg) => {
-                                        eprintln!("{}Error:{} {}", error_color, reset, msg);
-                                        eprintln!();
-                                        eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                        return usr::shell::ExitCode::CommandError;
-                                    }
+
+    // Store args in env
+    let key = Exp::Sym("args".to_string());
+    let list = Exp::List(if args.len() < 2 {
+        vec![]
+    } else {
+        args[2..].iter().map(|arg| Exp::Str(arg.to_string())).collect()
+    });
+    let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
+    if eval_label_args(&[key, quote], env).is_err() {
+        error!("Could not parse args");
+        return usr::shell::ExitCode::CommandError;
+    }
+
+    if args.len() < 2 {
+        repl(env)
+    } else {
+        let pathname = args[1];
+        if let Ok(code) = api::fs::read_to_string(pathname) {
+            let mut block = String::new();
+            let mut opened = 0;
+            let mut closed = 0;
+            for (i, line) in code.split('\n').enumerate() {
+                let line = strip_comments(line);
+                if !line.is_empty() {
+                    opened += line.matches('(').count();
+                    closed += line.matches(')').count();
+                    block.push_str(&line);
+                    if closed >= opened {
+                        if let Err(e) = parse_eval(&block, env) {
+                            match e {
+                                Err::Reason(msg) => {
+                                    eprintln!("{}Error:{} {}", error_color, reset, msg);
+                                    eprintln!();
+                                    eprintln!("  {}{}:{} {}", line_color, i, reset, line);
+                                    return usr::shell::ExitCode::CommandError;
                                 }
                             }
-                            block.clear();
-                            opened = 0;
-                            closed = 0;
                         }
+                        block.clear();
+                        opened = 0;
+                        closed = 0;
                     }
                 }
-                usr::shell::ExitCode::CommandSuccessful
-            } else {
-                error!("File not found '{}'", pathname);
-                usr::shell::ExitCode::CommandError
             }
-        },
-        _ => {
+            usr::shell::ExitCode::CommandSuccessful
+        } else {
+            error!("File not found '{}'", pathname);
             usr::shell::ExitCode::CommandError
-        },
+        }
     }
 }
 
