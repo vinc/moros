@@ -274,6 +274,20 @@ fn default_env<'a>() -> Env<'a> {
         let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
         Ok(Exp::Num(res))
     }));
+    data.insert("or".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (args[0].clone(), args[1].clone()) {
+            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a || b)),
+            _ => Err(Err::Reason("Expected booleans".to_string())),
+        }
+    }));
+    data.insert("and".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (args[0].clone(), args[1].clone()) {
+            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a && b)),
+            _ => Err(Err::Reason("Expected booleans".to_string())),
+        }
+    }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match args[0].clone() {
@@ -819,6 +833,18 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
+
+    // and
+    assert_eq!(eval!("(and true true)"), "true");
+    assert_eq!(eval!("(and true false)"), "false");
+    assert_eq!(eval!("(and false true)"), "false");
+    assert_eq!(eval!("(and false false)"), "false");
+
+    // or
+    assert_eq!(eval!("(or true true)"), "true");
+    assert_eq!(eval!("(or true false)"), "true");
+    assert_eq!(eval!("(or false true)"), "true");
+    assert_eq!(eval!("(or false false)"), "false");
 
     // string
     assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
