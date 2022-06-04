@@ -333,6 +333,9 @@ fn default_env<'a>() -> Env<'a> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
+    data.insert("cat".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Str(list_of_strings(args)?.join("")))
+    }));
     data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
@@ -377,6 +380,10 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
 
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
     args.iter().map(float).collect()
+}
+
+fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
+    args.iter().map(string).collect()
 }
 
 fn float(exp: &Exp) -> Result<f64, Err> {
@@ -856,6 +863,9 @@ fn test_lisp() {
     assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
     assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
     assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
+
+    // cat
+    assert_eq!(eval!("(cat \"a\" \"b\" \"c\")"), "\"abc\"");
 
     eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
     assert_eq!(eval!("(apply2 + 1 2)"), "3");
