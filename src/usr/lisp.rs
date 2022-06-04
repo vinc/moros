@@ -336,6 +336,13 @@ fn default_env<'a>() -> Env<'a> {
     data.insert("cat".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::Str(list_of_strings(args)?.join("")))
     }));
+    data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) {
+            (Exp::List(list), Exp::Str(s)) => Ok(Exp::Str(list_of_strings(&list)?.join(&s))),
+            _ => Err(Err::Reason("Expected args to be a list and a string".to_string()))
+        }
+    }));
     data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
@@ -866,6 +873,9 @@ fn test_lisp() {
 
     // cat
     assert_eq!(eval!("(cat \"a\" \"b\" \"c\")"), "\"abc\"");
+
+    // join
+    assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
 
     eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
     assert_eq!(eval!("(apply2 + 1 2)"), "3");
