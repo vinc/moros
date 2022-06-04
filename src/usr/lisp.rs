@@ -2,6 +2,7 @@ use crate::{api, usr};
 use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
+
 use alloc::string::ToString;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -9,6 +10,8 @@ use alloc::format;
 use alloc::vec;
 use alloc::collections::BTreeMap;
 use alloc::rc::Rc;
+use core::borrow::Borrow;
+use core::cell::RefCell;
 use core::fmt;
 use float_cmp::approx_eq;
 
@@ -96,9 +99,9 @@ enum Err {
 }
 
 #[derive(Clone)]
-struct Env<'a> {
+struct Env {
     data: BTreeMap<String, Exp>,
-    outer: Option<&'a Env<'a>>,
+    outer: Option<Rc<RefCell<Env>>>,
 }
 
 const COMPLETER_FORMS: [&str; 21] = [
@@ -231,7 +234,7 @@ macro_rules! ensure_length_gt {
     };
 }
 
-fn default_env<'a>() -> Env<'a> {
+fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
     data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
@@ -374,7 +377,7 @@ fn default_env<'a>() -> Env<'a> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
-    Env { data, outer: None }
+    Rc::new(RefCell::new(Env { data, outer: None }))
 }
 
 fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
@@ -420,7 +423,7 @@ fn eval_quote_args(args: &[Exp]) -> Result<Exp, Err> {
     Ok(args[0].clone())
 }
 
-fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_atom_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(_) => Ok(Exp::Bool(false)),
@@ -428,14 +431,14 @@ fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_eq_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_eq_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let a = eval(&args[0], env)?;
     let b = eval(&args[1], env)?;
     Ok(Exp::Bool(a == b))
 }
 
-fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_car_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(list) => {
@@ -446,7 +449,7 @@ fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cdr_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_cdr_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(list) => {
@@ -457,7 +460,7 @@ fn eval_cdr_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cons_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_cons_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match eval(&args[1], env)? {
         Exp::List(mut list) => {
@@ -468,7 +471,7 @@ fn eval_cons_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     for arg in args {
         match arg {
@@ -487,12 +490,12 @@ fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     Ok(Exp::List(Vec::new()))
 }
 
-fn eval_label_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
         Exp::Sym(key) => {
             let exp = eval(&args[1], env)?;
-            env.data.insert(key.clone(), exp);
+            env.borrow_mut().data.insert(key.clone(), exp);
             Ok(Exp::Sym(key.clone()))
         }
         _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
@@ -507,7 +510,7 @@ fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
     }))
 }
 
-fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 3);
     let name = args[0].clone();
     let params = args[1].clone();
@@ -517,7 +520,7 @@ fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     eval_label_args(&label_args, env)
 }
 
-fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_mapcar_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match eval(&args[1], env) {
         Ok(Exp::List(list)) => {
@@ -529,7 +532,7 @@ fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_progn_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_progn_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut res = Ok(Exp::List(vec![]));
     for arg in args {
         res = Ok(eval(arg, env)?);
@@ -537,7 +540,7 @@ fn eval_progn_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     res
 }
 
-fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&args[0])?;
     let mut code = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
@@ -552,7 +555,7 @@ fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     Ok(Exp::Bool(true))
 }
 
-fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {
+fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Option<Result<Exp, Err>> {
     match exp {
         Exp::Sym(s) => {
             match s.as_ref() {
@@ -580,19 +583,20 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
     }
 }
 
-fn env_get(key: &str, env: &Env) -> Result<Exp, Err> {
+fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    let env = env.borrow_mut();
     match env.data.get(key) {
         Some(exp) => Ok(exp.clone()),
         None => {
             match &env.outer {
-                Some(outer_env) => env_get(key, outer_env),
+                Some(outer_env) => env_get(key, outer_env.borrow()),
                 None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
             }
         }
     }
 }
 
-fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer: &'a mut Env) -> Result<Env<'a>, Err> {
+fn env_for_lambda(params: Rc<Exp>, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
     let ks = list_of_symbols(&params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
@@ -603,14 +607,14 @@ fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer: &'a mut Env) -> Resu
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
     }
-    Ok(Env { data, outer: Some(outer) })
+    Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
 }
 
-fn eval_args(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
+fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> {
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
+fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     match exp {
         Exp::Sym(key) => env_get(key, env),
         Exp::Bool(_) => Ok(exp.clone()),
@@ -644,7 +648,7 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
 
 // REPL
 
-fn parse_eval(exp: &str, env: &mut Env) -> Result<Exp, Err> {
+fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let (_, exp) = parse(exp)?;
     let exp = eval(&exp, env)?;
     Ok(exp)
@@ -654,7 +658,7 @@ fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
 }
 
-fn repl(env: &mut Env) -> usr::shell::ExitCode {
+fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
