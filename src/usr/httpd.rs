@@ -1,7 +1,8 @@
 use crate::{sys, usr};
-use crate::api::syscall;
-use crate::api::fs;
+use crate::api::clock;
 use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::syscall;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -34,7 +35,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
                 return usr::shell::ExitCode::CommandSuccessful;
             }
 
-            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }
@@ -186,6 +187,6 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
 }
 
 fn strftime(format: &str) -> String {
-    let timestamp = syscall::realtime();
+    let timestamp = clock::realtime();
     OffsetDateTime::from_unix_timestamp(timestamp as i64).format(format)
 }

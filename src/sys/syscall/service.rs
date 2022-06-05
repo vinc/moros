@@ -14,14 +14,6 @@ pub fn sleep(seconds: f64) {
     sys::time::sleep(seconds);
 }
 
-pub fn uptime() -> f64 {
-    sys::clock::uptime()
-}
-
-pub fn realtime() -> f64 {
-    sys::clock::realtime()
-}
-
 pub fn delete(path: &str) -> isize {
     if sys::fs::delete(path).is_ok() {
         0
