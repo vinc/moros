@@ -37,6 +37,7 @@ pub mod sleep;
 pub mod socket;
 pub mod tcp;
 pub mod uptime;
+pub mod time;
 pub mod user;
 pub mod vga;
 pub mod write;
