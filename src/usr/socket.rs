@@ -1,5 +1,6 @@
 use crate::{sys, usr, debug};
 use crate::api::console::Style;
+use crate::api::clock;
 use crate::api::io;
 use crate::api::syscall;
 use crate::api::random;
@@ -108,7 +109,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
-            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }

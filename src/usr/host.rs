@@ -1,4 +1,5 @@
 use crate::{sys, usr};
+use crate::api::clock;
 use crate::api::console::Style;
 use crate::api::syscall;
 use crate::api::random;
@@ -167,13 +168,13 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
         let udp_handle = iface.add_socket(udp_socket);
 
         let timeout = 5.0;
-        let started = syscall::realtime();
+        let started = clock::realtime();
         loop {
-            if syscall::realtime() - started > timeout {
+            if clock::realtime() - started > timeout {
                 iface.remove_socket(udp_handle);
                 return Err(ResponseCode::NetworkError);
             }
-            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }

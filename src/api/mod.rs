@@ -45,6 +45,7 @@ macro_rules! error {
     });
 }
 
+pub mod clock;
 pub mod console;
 pub mod font;
 pub mod fs;

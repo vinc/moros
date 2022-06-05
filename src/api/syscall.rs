@@ -10,16 +10,6 @@ pub fn sleep(seconds: f64) {
     unsafe { syscall!(SLEEP, seconds.to_bits()) };
 }
 
-pub fn uptime() -> f64 {
-    let res = unsafe { syscall!(UPTIME) };
-    f64::from_bits(res as u64)
-}
-
-pub fn realtime() -> f64 {
-    let res = unsafe { syscall!(REALTIME) };
-    f64::from_bits(res as u64)
-}
-
 pub fn delete(path: &str) -> Result<(), ()> {
     let path_ptr = path.as_ptr() as usize;
     let path_len = path.len() as usize;

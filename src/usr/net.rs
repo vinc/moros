@@ -1,8 +1,9 @@
 use crate::{sys, usr, debug};
 use alloc::format;
-use crate::api::syscall;
-use crate::api::fs;
+use crate::api::clock;
 use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::syscall;
 use crate::sys::net::EthernetDeviceIO;
 
 use alloc::borrow::ToOwned;
@@ -68,7 +69,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                     syscall::sleep(0.1);
 
-                    let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+                    let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
                     if let Err(e) = iface.poll(timestamp) {
                         error!("Network Error: {}", e);
                     }
