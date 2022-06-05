@@ -3,13 +3,14 @@ use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
 
-use alloc::string::ToString;
-use alloc::string::String;
-use alloc::vec::Vec;
-use alloc::format;
-use alloc::vec;
+use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::rc::Rc;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::fmt;
@@ -615,34 +616,40 @@ fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> 
 }
 
 fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    match exp {
-        Exp::Sym(key) => env_get(key, env),
-        Exp::Bool(_) => Ok(exp.clone()),
-        Exp::Num(_) => Ok(exp.clone()),
-        Exp::Str(_) => Ok(exp.clone()),
-        Exp::List(list) => {
-            ensure_length_gt!(list, 0);
-            let first_form = &list[0];
-            let args = &list[1..];
-            match eval_built_in_form(first_form, args, env) {
-                Some(res) => res,
-                None => {
-                    let first_eval = eval(first_form, env)?;
-                    match first_eval {
-                        Exp::Func(func) => {
-                            func(&eval_args(args, env)?)
-                        },
-                        Exp::Lambda(lambda) => {
-                            let env = &mut env_for_lambda(lambda.params, args, env)?;
-                            eval(&lambda.body, env)
-                        },
-                        _ => Err(Err::Reason("First form must be a function".to_string())),
+    let mut exp = Box::new(exp.clone());
+    let mut env = env.clone();
+    loop {
+        return match *exp {
+            Exp::Sym(key) => env_get(&key, &mut env),
+            Exp::Bool(_) => Ok(*exp.clone()),
+            Exp::Num(_) => Ok(*exp.clone()),
+            Exp::Str(_) => Ok(*exp.clone()),
+            Exp::List(list) => {
+                ensure_length_gt!(list, 0);
+                let first_form = &list[0];
+                let args = &list[1..];
+                match eval_built_in_form(first_form, args, &mut env) {
+                    Some(res) => res,
+                    None => {
+                        let first_eval = eval(first_form, &mut env)?;
+                        match first_eval {
+                            Exp::Func(func) => {
+                                func(&eval_args(args, &mut env)?)
+                            },
+                            Exp::Lambda(lambda) => {
+                                let new_env = env_for_lambda(lambda.params, args, &mut env)?;
+                                env = Rc::new(RefCell::new(new_env.borrow_mut().clone()));
+                                exp = Box::new(lambda.body.as_ref().clone());
+                                continue;
+                            },
+                            _ => Err(Err::Reason("First form must be a function".to_string())),
+                        }
                     }
                 }
-            }
-        },
-        Exp::Func(_) => Err(Err::Reason("Unexpected form".to_string())),
-        Exp::Lambda(_) => Err(Err::Reason("Unexpected form".to_string())),
+            },
+            Exp::Func(_) => Err(Err::Reason("Unexpected form".to_string())),
+            Exp::Lambda(_) => Err(Err::Reason("Unexpected form".to_string())),
+        }
     }
 }
 
