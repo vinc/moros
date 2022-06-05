@@ -36,7 +36,11 @@ pub mod shell;
 pub mod sleep;
 pub mod socket;
 pub mod tcp;
+<<<<<<< Updated upstream
 pub mod uptime;
+=======
+pub mod time;
+>>>>>>> Stashed changes
 pub mod user;
 pub mod vga;
 pub mod write;
