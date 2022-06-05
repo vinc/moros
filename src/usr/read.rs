@@ -100,7 +100,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             }
                             if is_float_device {
                                 if bytes.len() == 8 {
-                                    print!("{:.6}", f64::from_be_bytes(bytes[0..8].try_into().unwrap()));
+                                    println!("{:.6}", f64::from_be_bytes(bytes[0..8].try_into().unwrap()));
                                     return usr::shell::ExitCode::CommandSuccessful;
                                 }
                             }
