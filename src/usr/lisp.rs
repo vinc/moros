@@ -3,7 +3,6 @@ use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
 
-use alloc::boxed::Box;
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::rc::Rc;
@@ -616,14 +615,14 @@ fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> 
 }
 
 fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    let mut exp = Box::new(exp.clone());
+    let mut exp = exp.clone();
     let mut env = env.clone();
     loop {
-        return match *exp {
+        return match exp {
             Exp::Sym(key) => env_get(&key, &mut env),
-            Exp::Bool(_) => Ok(*exp.clone()),
-            Exp::Num(_) => Ok(*exp.clone()),
-            Exp::Str(_) => Ok(*exp.clone()),
+            Exp::Bool(_) => Ok(exp.clone()),
+            Exp::Num(_) => Ok(exp.clone()),
+            Exp::Str(_) => Ok(exp.clone()),
             Exp::List(list) => {
                 ensure_length_gt!(list, 0);
                 let first_form = &list[0];
@@ -639,7 +638,7 @@ fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             Exp::Lambda(lambda) => {
                                 let new_env = env_for_lambda(lambda.params, args, &mut env)?;
                                 env = Rc::new(RefCell::new(new_env.borrow_mut().clone()));
-                                exp = Box::new(lambda.body.as_ref().clone());
+                                exp = lambda.body.as_ref().clone();
                                 continue;
                             },
                             _ => Err(Err::Reason("First form must be a function".to_string())),
