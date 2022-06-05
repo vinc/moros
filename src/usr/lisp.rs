@@ -288,6 +288,12 @@ fn default_env<'a>() -> Env<'a> {
             _ => Err(Err::Reason("Expected booleans".to_string())),
         }
     }));
+    data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let cmd = string(&args[0])?;
+        let res = usr::shell::exec(&cmd);
+        Ok(Exp::Num(res as u8 as f64))
+    }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match args[0].clone() {
