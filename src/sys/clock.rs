@@ -1,13 +1,64 @@
 use crate::sys;
 use crate::sys::cmos::CMOS;
+use crate::sys::fs::FileIO;
 
 use time::{OffsetDateTime, Duration};
 
 const DAYS_BEFORE_MONTH: [u64; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
 
+#[derive(Debug, Clone)]
+pub struct Uptime;
+
+impl Uptime {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl FileIO for Uptime {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let time = uptime().to_be_bytes();
+        let n = time.len();
+        if buf.len() >= n {
+            buf[0..n].clone_from_slice(&time);
+            Ok(n)
+        } else {
+            Err(())
+        }
+    }
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        unimplemented!();
+    }
+}
+
 // NOTE: This clock is monotonic
 pub fn uptime() -> f64 {
     sys::time::time_between_ticks() * sys::time::ticks() as f64
+}
+
+#[derive(Debug, Clone)]
+pub struct Realtime;
+
+impl Realtime {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl FileIO for Realtime {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let time = realtime().to_be_bytes();
+        let n = time.len();
+        if buf.len() >= n {
+            buf[0..n].clone_from_slice(&time);
+            Ok(n)
+        } else {
+            Err(())
+        }
+    }
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        unimplemented!();
+    }
 }
 
 // NOTE: This clock is not monotonic

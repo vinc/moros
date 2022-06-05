@@ -19,12 +19,6 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
             service::sleep(f64::from_bits(arg1 as u64));
             0
         }
-        number::UPTIME => {
-            service::uptime().to_bits() as usize
-        }
-        number::REALTIME => {
-            service::realtime().to_bits() as usize
-        }
         number::DELETE => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;

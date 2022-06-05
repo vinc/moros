@@ -1,4 +1,5 @@
 use crate::{sys, usr, debug};
+use crate::api::clock;
 use crate::api::syscall;
 use alloc::string::ToString;
 use alloc::vec::Vec;
@@ -25,9 +26,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             debug!("DHCP Discover transmitted");
         }
         let timeout = 30.0;
-        let started = syscall::realtime();
+        let started = clock::realtime();
         loop {
-            if syscall::realtime() - started > timeout {
+            if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(dhcp_handle);
                 return usr::shell::ExitCode::CommandError;
@@ -38,7 +39,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 return usr::shell::ExitCode::CommandError;
             }
 
-            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }

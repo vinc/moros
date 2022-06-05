@@ -7,41 +7,55 @@ use alloc::vec;
 use alloc::vec::Vec;
 use crate::sys::console::Console;
 use crate::sys::random::Random;
+use crate::sys::clock::{Uptime, Realtime};
 
 #[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum DeviceType {
-    File = 0,
-    Console = 1,
-    Random = 2,
-    Null = 3,
+    Null     = 0,
+    File     = 1,
+    Console  = 2,
+    Random   = 3,
+    Uptime   = 4,
+    Realtime = 5,
 }
 
+// Used when creating a device
 impl DeviceType {
     pub fn buf(self) -> Vec<u8> {
-        if self == DeviceType::Console {
-            vec![self as u8, 0, 0, 0] // 4 bytes
-        } else {
-            vec![self as u8] // 1 byte
+        match self {
+            DeviceType::Uptime | DeviceType::Realtime => {
+                vec![self as u8, 0, 0, 0, 0, 0, 0, 0] // 8 bytes (f64)
+            }
+            DeviceType::Console => {
+                vec![self as u8, 0, 0, 0] // 4 bytes (char)
+            }
+            _ => {
+                vec![self as u8] // 1 byte
+            }
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Device {
+    Null,
     File(File),
     Console(Console),
     Random(Random),
-    Null,
+    Uptime(Uptime),
+    Realtime(Realtime),
 }
 
 impl From<u8> for Device {
     fn from(i: u8) -> Self {
         match i {
+            i if i == DeviceType::Null as u8 => Device::Null,
             i if i == DeviceType::File as u8 => Device::File(File::new()),
             i if i == DeviceType::Console as u8 => Device::Console(Console::new()),
             i if i == DeviceType::Random as u8 => Device::Random(Random::new()),
-            i if i == DeviceType::Null as u8 => Device::Null,
+            i if i == DeviceType::Uptime as u8 => Device::Uptime(Uptime::new()),
+            i if i == DeviceType::Realtime as u8 => Device::Realtime(Realtime::new()),
             _ => unimplemented!(),
         }
     }
@@ -80,19 +94,23 @@ impl Device {
 impl FileIO for Device {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match self {
+            Device::Null => Err(()),
             Device::File(io) => io.read(buf),
             Device::Console(io) => io.read(buf),
             Device::Random(io) => io.read(buf),
-            Device::Null => Err(()),
+            Device::Uptime(io) => io.read(buf),
+            Device::Realtime(io) => io.read(buf),
         }
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match self {
+            Device::Null => Ok(0),
             Device::File(io) => io.write(buf),
             Device::Console(io) => io.write(buf),
             Device::Random(io) => io.write(buf),
-            Device::Null => Ok(0),
+            Device::Uptime(io) => io.write(buf),
+            Device::Realtime(io) => io.write(buf),
         }
     }
 }

@@ -44,7 +44,7 @@ fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
 }
 
 fn system_time() -> u128 {
-    (api::syscall::realtime() * 1000.0) as u128
+    (api::clock::realtime() * 1000.0) as u128
 }
 
 struct Chess {

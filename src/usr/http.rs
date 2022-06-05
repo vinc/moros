@@ -1,5 +1,6 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
+use crate::api::clock;
 use crate::api::random;
 use crate::api::syscall;
 use alloc::string::{String, ToString};
@@ -113,9 +114,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
         let mut is_header = true;
         let timeout = 5.0;
-        let started = syscall::realtime();
+        let started = clock::realtime();
         loop {
-            if syscall::realtime() - started > timeout {
+            if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
@@ -125,7 +126,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 iface.remove_socket(tcp_handle);
                 return usr::shell::ExitCode::CommandError;
             }
-            let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
                 error!("Network Error: {}", e);
             }

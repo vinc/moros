@@ -6,6 +6,7 @@ use crate::sys::cmos::CMOS;
 
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
+use core::convert::TryInto;
 
 pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     if args.len() != 2 {
@@ -29,14 +30,6 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 rtc.year, rtc.month, rtc.day,
                 rtc.hour, rtc.minute, rtc.second
             );
-            usr::shell::ExitCode::CommandSuccessful
-        },
-        "/dev/clk/realtime" => {
-            println!("{:.6}", syscall::realtime());
-            usr::shell::ExitCode::CommandSuccessful
-        },
-        "/dev/clk/uptime" => {
-            println!("{:.6}", syscall::uptime());
             usr::shell::ExitCode::CommandSuccessful
         },
         _ => {
@@ -84,14 +77,15 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 } else if info.is_dir() {
                     usr::list::main(args)
                 } else if info.is_device() {
-                    let is_console = info.size() == 4; // TODO: Improve device detection
+                    let is_char_device = info.size() == 4; // TODO: Improve device detection
+                    let is_float_device = info.size() == 8; // TODO: Improve device detection
                     loop {
                         if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
                             return usr::shell::ExitCode::CommandSuccessful;
                         }
                         if let Ok(bytes) = fs::read_to_bytes(path) {
-                            if is_console && bytes.len() == 1 {
+                            if is_char_device && bytes.len() == 1 {
                                 match bytes[0] as char {
                                     console::ETX_KEY => {
                                         println!("^C");
@@ -102,6 +96,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                                         return usr::shell::ExitCode::CommandSuccessful;
                                     }
                                     _ => {}
+                                }
+                            }
+                            if is_float_device {
+                                if bytes.len() == 8 {
+                                    println!("{:.6}", f64::from_be_bytes(bytes[0..8].try_into().unwrap()));
+                                    return usr::shell::ExitCode::CommandSuccessful;
                                 }
                             }
                             for b in bytes {
