@@ -348,7 +348,7 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         match (&args[0], &args[1]) {
-            (Exp::List(list), Exp::Str(s)) => Ok(Exp::Str(list_of_strings(&list)?.join(&s))),
+            (Exp::List(list), Exp::Str(s)) => Ok(Exp::Str(list_of_strings(list)?.join(s))),
             _ => Err(Err::Reason("Expected args to be a list and a string".to_string()))
         }
     }));
@@ -619,7 +619,7 @@ fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut env = env.clone();
     loop {
         return match exp {
-            Exp::Sym(key) => env_get(&key, &mut env),
+            Exp::Sym(key) => env_get(&key, &env),
             Exp::Bool(_) => Ok(exp.clone()),
             Exp::Num(_) => Ok(exp.clone()),
             Exp::Str(_) => Ok(exp.clone()),
