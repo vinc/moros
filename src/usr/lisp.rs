@@ -615,39 +615,34 @@ fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> 
 }
 
 fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    let mut exp = exp.clone();
-    loop {
-        return match exp {
-            Exp::Sym(key) => env_get(&key, &env),
-            Exp::Bool(_) => Ok(exp.clone()),
-            Exp::Num(_) => Ok(exp.clone()),
-            Exp::Str(_) => Ok(exp.clone()),
-            Exp::List(list) => {
-                ensure_length_gt!(list, 0);
-                let first_form = &list[0];
-                let args = &list[1..];
-                match eval_built_in_form(first_form, args, env) {
-                    Some(res) => res,
-                    None => {
-                        let first_eval = eval(first_form, env)?;
-                        match first_eval {
-                            Exp::Func(func) => {
-                                func(&eval_args(args, env)?)
-                            },
-                            Exp::Lambda(lambda) => {
-                                let new_env = env_for_lambda(lambda.params, args, env)?;
-                                *env = Rc::new(RefCell::new(new_env));
-                                exp = lambda.body.as_ref().clone();
-                                continue;
-                            },
-                            _ => Err(Err::Reason("First form must be a function".to_string())),
-                        }
+    match exp {
+        Exp::Sym(key) => env_get(&key, &env),
+        Exp::Bool(_) => Ok(exp.clone()),
+        Exp::Num(_) => Ok(exp.clone()),
+        Exp::Str(_) => Ok(exp.clone()),
+        Exp::List(list) => {
+            ensure_length_gt!(list, 0);
+            let first_form = &list[0];
+            let args = &list[1..];
+            match eval_built_in_form(first_form, args, env) {
+                Some(res) => res,
+                None => {
+                    let first_eval = eval(first_form, env)?;
+                    match first_eval {
+                        Exp::Func(func) => {
+                            func(&eval_args(args, env)?)
+                        },
+                        Exp::Lambda(lambda) => {
+                            let mut env = Rc::new(RefCell::new(env_for_lambda(lambda.params, args, env)?));
+                            eval(&lambda.body, &mut env)
+                        },
+                        _ => Err(Err::Reason("First form must be a function".to_string())),
                     }
                 }
-            },
-            Exp::Func(_) => Err(Err::Reason("Unexpected form".to_string())),
-            Exp::Lambda(_) => Err(Err::Reason("Unexpected form".to_string())),
-        }
+            }
+        },
+        Exp::Func(_) => Err(Err::Reason("Unexpected form".to_string())),
+        Exp::Lambda(_) => Err(Err::Reason("Unexpected form".to_string())),
     }
 }
 
