@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Improve Lisp (#344)
+- Add lazy allocation (#275)
+- Replace clock syscalls with device files (#345)
+- Add time command (#346)
+- Bump smoltcp from 0.8.0 to 0.8.1 (#342)
+- Add socket command (#341)
+- Bump object from 0.28.3 to 0.28.4 (#339)
+- Replace ChaCha RNG by HC-128 (#338)
+- Build only moros image (#340)
+- Refactor serial (#336)
 - Improve dhcp command (#335)
 - Rewrite network interface (#334)
 - Add CSI sequence for enabling or disabling echo to userspace (#333)
