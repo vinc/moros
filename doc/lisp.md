@@ -3,12 +3,12 @@
 A minimalist Lisp interpreter is available in MOROS to extend the capabilities
 of the Shell.
 
+MOROS Lisp is a Lisp-1 dialect inspired by Scheme and Clojure.
+
 It started from [Risp](https://github.com/stopachka/risp) and was extended to
 include the seven primitive operators and the two special forms of John
 McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
 Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.
-
-MOROS Lisp dialect is also inspired by Scheme and Clojure.
 
 In version 0.2.0 the whole implementation was refactored and the parser was
 rewritten to use [Nom](https://github.com/Geal/nom). This allowed the addition
@@ -53,18 +53,17 @@ And it can execute a file. For example a file located in `/tmp/fibonacci.lsp`
 with the following content:
 
 ```lisp
-(label fib
-  (lambda (n)
-    (cond
-      ((< n 2) n)
-      (true (+ (fib (- n 1)) (fib (- n 2)))))))
+(defn fib (n)
+  (cond
+    ((< n 2) n)
+    (true (+ (fib (- n 1)) (fib (- n 2))))))
 
-(print (fib 6))
+(println (fib 10))
 ```
 
 Would produce the following output:
 
 ```
 > lisp /tmp/fibonacci.lsp
-8
+55
 ```

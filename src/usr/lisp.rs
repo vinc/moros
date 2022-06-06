@@ -2,13 +2,16 @@ use crate::{api, usr};
 use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::prompt::Prompt;
-use alloc::string::ToString;
-use alloc::string::String;
-use alloc::vec::Vec;
-use alloc::format;
-use alloc::vec;
+
 use alloc::collections::BTreeMap;
+use alloc::format;
 use alloc::rc::Rc;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use alloc::vec;
+use core::borrow::Borrow;
+use core::cell::RefCell;
 use core::fmt;
 use float_cmp::approx_eq;
 
@@ -96,9 +99,47 @@ enum Err {
 }
 
 #[derive(Clone)]
-struct Env<'a> {
+struct Env {
     data: BTreeMap<String, Exp>,
-    outer: Option<&'a Env<'a>>,
+    outer: Option<Rc<RefCell<Env>>>,
+}
+
+const COMPLETER_FORMS: [&str; 21] = [
+    "atom",
+    "bytes",
+    "car",
+    "cdr",
+    "cond",
+    "cons",
+    "defun",
+    "eq",
+    "label",
+    "lambda",
+    "lines",
+    "load",
+    "mapcar",
+    "parse",
+    "print",
+    "progn",
+    "quote",
+    "read",
+    "read-bytes",
+    "str",
+    "type",
+];
+
+fn lisp_completer(line: &str) -> Vec<String> {
+    let mut entries = Vec::new();
+    if let Some(last_word) = line.split_whitespace().next_back() {
+        if let Some(f) = last_word.strip_prefix('(') {
+            for form in COMPLETER_FORMS {
+                if let Some(entry) = form.strip_prefix(f) {
+                    entries.push(entry.into());
+                }
+            }
+        }
+    }
+    entries
 }
 
 // Parser
@@ -149,10 +190,9 @@ fn parse_exp(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse(input: &str)-> Result<(String, Exp), Err> {
-    if let Ok((input, exp)) = parse_exp(input) {
-        Ok((input.to_string(), exp))
-    } else {
-        Err(Err::Reason("Could not parse input".to_string()))
+    match parse_exp(input) {
+        Ok((input, exp)) => Ok((input.to_string(), exp)),
+        Err(_) => Err(Err::Reason("Could not parse input".to_string())),
     }
 }
 
@@ -194,7 +234,7 @@ macro_rules! ensure_length_gt {
     };
 }
 
-fn default_env<'a>() -> Env<'a> {
+fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
     data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
@@ -237,15 +277,35 @@ fn default_env<'a>() -> Env<'a> {
         let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
         Ok(Exp::Num(res))
     }));
+    data.insert("or".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (args[0].clone(), args[1].clone()) {
+            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a || b)),
+            _ => Err(Err::Reason("Expected booleans".to_string())),
+        }
+    }));
+    data.insert("and".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (args[0].clone(), args[1].clone()) {
+            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a && b)),
+            _ => Err(Err::Reason("Expected booleans".to_string())),
+        }
+    }));
+    data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let cmd = string(&args[0])?;
+        let res = usr::shell::exec(&cmd);
+        Ok(Exp::Num(res as u8 as f64))
+    }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match args[0].clone() {
             Exp::Str(s) => {
-                println!("{}", s);
+                print!("{}", s);
                 Ok(Exp::Str(s))
             }
             exp => {
-                println!("{}", exp);
+                print!("{}", exp);
                 Ok(exp)
             }
         }
@@ -282,6 +342,16 @@ fn default_env<'a>() -> Env<'a> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
+    data.insert("cat".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Str(list_of_strings(args)?.join("")))
+    }));
+    data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) {
+            (Exp::List(list), Exp::Str(s)) => Ok(Exp::Str(list_of_strings(list)?.join(s))),
+            _ => Err(Err::Reason("Expected args to be a list and a string".to_string()))
+        }
+    }));
     data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
@@ -307,7 +377,7 @@ fn default_env<'a>() -> Env<'a> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
-    Env { data, outer: None }
+    Rc::new(RefCell::new(Env { data, outer: None }))
 }
 
 fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
@@ -326,6 +396,10 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
 
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
     args.iter().map(float).collect()
+}
+
+fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
+    args.iter().map(string).collect()
 }
 
 fn float(exp: &Exp) -> Result<f64, Err> {
@@ -349,7 +423,7 @@ fn eval_quote_args(args: &[Exp]) -> Result<Exp, Err> {
     Ok(args[0].clone())
 }
 
-fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_atom_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(_) => Ok(Exp::Bool(false)),
@@ -357,14 +431,14 @@ fn eval_atom_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_eq_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_eq_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let a = eval(&args[0], env)?;
     let b = eval(&args[1], env)?;
     Ok(Exp::Bool(a == b))
 }
 
-fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_car_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(list) => {
@@ -375,7 +449,7 @@ fn eval_car_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cdr_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_cdr_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(list) => {
@@ -386,7 +460,7 @@ fn eval_cdr_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cons_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_cons_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match eval(&args[1], env)? {
         Exp::List(mut list) => {
@@ -397,7 +471,7 @@ fn eval_cons_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     for arg in args {
         match arg {
@@ -416,12 +490,12 @@ fn eval_cond_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     Ok(Exp::List(Vec::new()))
 }
 
-fn eval_label_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
         Exp::Sym(key) => {
             let exp = eval(&args[1], env)?;
-            env.data.insert(key.clone(), exp);
+            env.borrow_mut().data.insert(key.clone(), exp);
             Ok(Exp::Sym(key.clone()))
         }
         _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
@@ -436,7 +510,7 @@ fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
     }))
 }
 
-fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 3);
     let name = args[0].clone();
     let params = args[1].clone();
@@ -446,7 +520,7 @@ fn eval_defun_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     eval_label_args(&label_args, env)
 }
 
-fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_mapcar_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match eval(&args[1], env) {
         Ok(Exp::List(list)) => {
@@ -458,7 +532,7 @@ fn eval_mapcar_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     }
 }
 
-fn eval_progn_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_progn_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut res = Ok(Exp::List(vec![]));
     for arg in args {
         res = Ok(eval(arg, env)?);
@@ -466,7 +540,7 @@ fn eval_progn_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     res
 }
 
-fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
+fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&args[0])?;
     let mut code = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
@@ -481,7 +555,7 @@ fn eval_load_args(args: &[Exp], env: &mut Env) -> Result<Exp, Err> {
     Ok(Exp::Bool(true))
 }
 
-fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<Exp, Err>> {
+fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Option<Result<Exp, Err>> {
     match exp {
         Exp::Sym(s) => {
             match s.as_ref() {
@@ -509,19 +583,20 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Env) -> Option<Result<E
     }
 }
 
-fn env_get(key: &str, env: &Env) -> Result<Exp, Err> {
+fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    let env = env.borrow_mut();
     match env.data.get(key) {
         Some(exp) => Ok(exp.clone()),
         None => {
             match &env.outer {
-                Some(outer_env) => env_get(key, outer_env),
+                Some(outer_env) => env_get(key, outer_env.borrow()),
                 None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
             }
         }
     }
 }
 
-fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer: &'a mut Env) -> Result<Env<'a>, Err> {
+fn env_for_lambda(params: Rc<Exp>, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
     let ks = list_of_symbols(&params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
@@ -532,16 +607,16 @@ fn env_for_lambda<'a>(params: Rc<Exp>, args: &[Exp], outer: &'a mut Env) -> Resu
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
     }
-    Ok(Env { data, outer: Some(outer) })
+    Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
 }
 
-fn eval_args(args: &[Exp], env: &mut Env) -> Result<Vec<Exp>, Err> {
+fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> {
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
+fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     match exp {
-        Exp::Sym(key) => env_get(key, env),
+        Exp::Sym(key) => env_get(&key, &env),
         Exp::Bool(_) => Ok(exp.clone()),
         Exp::Num(_) => Ok(exp.clone()),
         Exp::Str(_) => Ok(exp.clone()),
@@ -558,8 +633,8 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
                             func(&eval_args(args, env)?)
                         },
                         Exp::Lambda(lambda) => {
-                            let env = &mut env_for_lambda(lambda.params, args, env)?;
-                            eval(&lambda.body, env)
+                            let mut env = env_for_lambda(lambda.params, args, env)?;
+                            eval(&lambda.body, &mut env)
                         },
                         _ => Err(Err::Reason("First form must be a function".to_string())),
                     }
@@ -573,7 +648,7 @@ fn eval(exp: &Exp, env: &mut Env) -> Result<Exp, Err> {
 
 // REPL
 
-fn parse_eval(exp: &str, env: &mut Env) -> Result<Exp, Err> {
+fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let (_, exp) = parse(exp)?;
     let exp = eval(&exp, env)?;
     Ok(exp)
@@ -583,27 +658,7 @@ fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
 }
 
-
-const COMPLETER_FORMS: [&str; 11] = [
-    "quote", "atom?", "eq?", "first", "rest", "cons", "cond", "def", "fn",
-    "defn", "print",
-];
-
-fn lisp_completer(line: &str) -> Vec<String> {
-    let mut entries = Vec::new();
-    if let Some(last_word) = line.split_whitespace().next_back() {
-        if let Some(f) = last_word.strip_prefix('(') {
-            for form in COMPLETER_FORMS {
-                if let Some(entry) = form.strip_prefix(f) {
-                    entries.push(entry.into());
-                }
-            }
-        }
-    }
-    entries
-}
-
-fn repl(env: &mut Env) -> usr::shell::ExitCode {
+fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
@@ -644,48 +699,56 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let reset = Style::reset();
 
     let env = &mut default_env();
-    match args.len() {
-        1 => {
-            repl(env)
-        },
-        2 => {
-            let pathname = args[1];
-            if let Ok(code) = api::fs::read_to_string(pathname) {
-                let mut block = String::new();
-                let mut opened = 0;
-                let mut closed = 0;
-                for (i, line) in code.split('\n').enumerate() {
-                    let line = strip_comments(line);
-                    if !line.is_empty() {
-                        opened += line.matches('(').count();
-                        closed += line.matches(')').count();
-                        block.push_str(&line);
-                        if closed >= opened {
-                            if let Err(e) = parse_eval(&block, env) {
-                                match e {
-                                    Err::Reason(msg) => {
-                                        eprintln!("{}Error:{} {}", error_color, reset, msg);
-                                        eprintln!();
-                                        eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                        return usr::shell::ExitCode::CommandError;
-                                    }
+
+    // Store args in env
+    let key = Exp::Sym("args".to_string());
+    let list = Exp::List(if args.len() < 2 {
+        vec![]
+    } else {
+        args[2..].iter().map(|arg| Exp::Str(arg.to_string())).collect()
+    });
+    let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
+    if eval_label_args(&[key, quote], env).is_err() {
+        error!("Could not parse args");
+        return usr::shell::ExitCode::CommandError;
+    }
+
+    if args.len() < 2 {
+        repl(env)
+    } else {
+        let pathname = args[1];
+        if let Ok(code) = api::fs::read_to_string(pathname) {
+            let mut block = String::new();
+            let mut opened = 0;
+            let mut closed = 0;
+            for (i, line) in code.split('\n').enumerate() {
+                let line = strip_comments(line);
+                if !line.is_empty() {
+                    opened += line.matches('(').count();
+                    closed += line.matches(')').count();
+                    block.push_str(&line);
+                    if closed >= opened {
+                        if let Err(e) = parse_eval(&block, env) {
+                            match e {
+                                Err::Reason(msg) => {
+                                    eprintln!("{}Error:{} {}", error_color, reset, msg);
+                                    eprintln!();
+                                    eprintln!("  {}{}:{} {}", line_color, i, reset, line);
+                                    return usr::shell::ExitCode::CommandError;
                                 }
                             }
-                            block.clear();
-                            opened = 0;
-                            closed = 0;
                         }
+                        block.clear();
+                        opened = 0;
+                        closed = 0;
                     }
                 }
-                usr::shell::ExitCode::CommandSuccessful
-            } else {
-                error!("File not found '{}'", pathname);
-                usr::shell::ExitCode::CommandError
             }
-        },
-        _ => {
+            usr::shell::ExitCode::CommandSuccessful
+        } else {
+            error!("File not found '{}'", pathname);
             usr::shell::ExitCode::CommandError
-        },
+        }
     }
 }
 
@@ -795,6 +858,18 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
 
+    // and
+    assert_eq!(eval!("(and true true)"), "true");
+    assert_eq!(eval!("(and true false)"), "false");
+    assert_eq!(eval!("(and false true)"), "false");
+    assert_eq!(eval!("(and false false)"), "false");
+
+    // or
+    assert_eq!(eval!("(or true true)"), "true");
+    assert_eq!(eval!("(or true false)"), "true");
+    assert_eq!(eval!("(or false true)"), "true");
+    assert_eq!(eval!("(or false false)"), "false");
+
     // string
     assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
     assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
@@ -805,6 +880,12 @@ fn test_lisp() {
     assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
     assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
     assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
+
+    // cat
+    assert_eq!(eval!("(cat \"a\" \"b\" \"c\")"), "\"abc\"");
+
+    // join
+    assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
 
     eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
     assert_eq!(eval!("(apply2 + 1 2)"), "3");

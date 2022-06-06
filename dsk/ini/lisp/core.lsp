@@ -41,3 +41,6 @@
 
 (defn third (lst)
   (second (rest lst)))
+
+(defn println (exp)
+  (do (print exp) (print "\n")))
