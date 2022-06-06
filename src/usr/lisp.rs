@@ -596,7 +596,7 @@ fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
-fn env_for_lambda(params: Rc<Exp>, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Env, Err> {
+fn env_for_lambda(params: Rc<Exp>, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
     let ks = list_of_symbols(&params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
@@ -607,7 +607,7 @@ fn env_for_lambda(params: Rc<Exp>, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
     }
-    Ok(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })
+    Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
 }
 
 fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> {
@@ -633,7 +633,7 @@ fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             func(&eval_args(args, env)?)
                         },
                         Exp::Lambda(lambda) => {
-                            let mut env = Rc::new(RefCell::new(env_for_lambda(lambda.params, args, env)?));
+                            let mut env = env_for_lambda(lambda.params, args, env)?;
                             eval(&lambda.body, &mut env)
                         },
                         _ => Err(Err::Reason("First form must be a function".to_string())),
