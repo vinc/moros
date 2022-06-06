@@ -6,6 +6,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
+use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue, PageFaultErrorCode};
 
 const PIC1: u16 = 0x21;
@@ -93,39 +94,42 @@ irq_handler!(irq14_handler, 14);
 irq_handler!(irq15_handler, 15);
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
-    printk!("EXCEPTION: BREAKPOINT\n{:#?}\n", stack_frame);
-}
-
-extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
-    debug!("double fault");
+    debug!("EXCEPTION: BREAKPOINT");
+    debug!("Stack Frame: {:#?}", stack_frame);
     panic!();
 }
 
-use x86_64::registers::control::Cr2;
+extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) -> ! {
+    debug!("EXCEPTION: DOUBLE FAULT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
+}
 
-extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
-    debug!("page fault");
-    debug!("error={:?}", error_code);
+extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, _error_code: PageFaultErrorCode) {
     let addr = Cr2::read().as_u64();
-    debug!("CR2={:#x}", addr);
     sys::allocator::alloc_pages(addr, 1);
 }
 
 extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
-    debug!("general protection fault");
-    debug!("error={:?}", error_code);
-    let addr = Cr2::read().as_u64();
-    debug!("CR2={:#x}", addr);
-    sys::allocator::alloc_pages(addr, 1);
-    //panic!();
+    debug!("EXCEPTION: GENERAL PROTECTION FAULT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
 }
 
-extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
-    panic!("EXCEPTION: STACK SEGMENT FAULT\n{:#?}", stack_frame);
+extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+    debug!("EXCEPTION: STACK SEGMENT FAULT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
 }
 
-extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
-    panic!("EXCEPTION: SEGMENT NOT PRESENT\n{:#?}", stack_frame);
+extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+    debug!("EXCEPTION: SEGMENT NOT PRESENT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
 }
 
 // Naked function wrapper saving all scratch registers to the stack
