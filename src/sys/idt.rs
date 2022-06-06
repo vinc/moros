@@ -6,6 +6,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
+use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue, PageFaultErrorCode};
 
 const PIC1: u16 = 0x21;
@@ -28,6 +29,8 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
+        idt.stack_segment_fault.set_handler_fn(stack_segment_fault_handler);
+        idt.segment_not_present.set_handler_fn(segment_not_present_handler);
         unsafe {
             idt.double_fault.
                 set_handler_fn(double_fault_handler).
@@ -40,7 +43,7 @@ lazy_static! {
                 set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST_INDEX);
             idt[0x80].
                 set_handler_fn(core::mem::transmute(wrapped_syscall_handler as *mut fn())).
-                set_stack_index(sys::gdt::DOUBLE_FAULT_IST_INDEX).
+                //set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST_INDEX).
                 set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
         idt[interrupt_index(0) as usize].set_handler_fn(irq0_handler);
@@ -59,8 +62,6 @@ lazy_static! {
         idt[interrupt_index(13) as usize].set_handler_fn(irq13_handler);
         idt[interrupt_index(14) as usize].set_handler_fn(irq14_handler);
         idt[interrupt_index(15) as usize].set_handler_fn(irq15_handler);
-        idt.stack_segment_fault.set_handler_fn(stack_segment_fault_handler);
-        idt.segment_not_present.set_handler_fn(segment_not_present_handler);
         idt
     };
 }
@@ -93,30 +94,42 @@ irq_handler!(irq14_handler, 14);
 irq_handler!(irq15_handler, 15);
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
-    printk!("EXCEPTION: BREAKPOINT\n{:#?}\n", stack_frame);
+    debug!("EXCEPTION: BREAKPOINT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    panic!();
 }
 
-extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
-    panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
+extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) -> ! {
+    debug!("EXCEPTION: DOUBLE FAULT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
 }
 
-extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
-    let ip = stack_frame.instruction_pointer.as_ptr();
-    let inst: [u8; 8] = unsafe { core::ptr::read(ip) };
-    println!("Code: {:?}", inst);
-    panic!("EXCEPTION: PAGE FAULT\n{:#?}\n{:#?}", stack_frame, error_code);
+extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, _error_code: PageFaultErrorCode) {
+    let addr = Cr2::read().as_u64();
+    sys::allocator::alloc_pages(addr, 1);
 }
 
-extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
-    panic!("EXCEPTION: GENERAL PROTECTION FAULT\n{:#?}", stack_frame);
+extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+    debug!("EXCEPTION: GENERAL PROTECTION FAULT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
 }
 
-extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
-    panic!("EXCEPTION: STACK SEGMENT FAULT\n{:#?}", stack_frame);
+extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+    debug!("EXCEPTION: STACK SEGMENT FAULT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
 }
 
-extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
-    panic!("EXCEPTION: SEGMENT NOT PRESENT\n{:#?}", stack_frame);
+extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+    debug!("EXCEPTION: SEGMENT NOT PRESENT");
+    debug!("Stack Frame: {:#?}", stack_frame);
+    debug!("Error: {:?}", error_code);
+    panic!();
 }
 
 // Naked function wrapper saving all scratch registers to the stack

@@ -53,13 +53,16 @@ pub fn alloc_pages(addr: u64, size: u64) {
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
-        let frame = frame_allocator.allocate_frame().unwrap();
-        unsafe {
-            if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
-                mapping.flush();
-            } else {
-                debug!("Could not map {:?}", page);
+        if let Some(frame) = frame_allocator.allocate_frame() {
+            unsafe {
+                if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
+                    mapping.flush();
+                } else {
+                    //debug!("Could not map {:?}", page);
+                }
             }
+        } else {
+            //debug!("Could not allocate frame for {:?}", page);
         }
     }
 }
