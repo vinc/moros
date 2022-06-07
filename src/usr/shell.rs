@@ -391,7 +391,7 @@ fn test_shell() {
     sys::fs::format_mem();
     usr::install::copy_files(false);
 
-    let env = default_env();
+    let mut env = default_env();
 
     // Redirect standard output
     exec("print test1 => /test", &mut env);
@@ -408,6 +408,10 @@ fn test_shell() {
     // Redirect standard error explicitely
     exec("hex /nope 2=> /test", &mut env);
     assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
+
+    exec("b = 42", &mut env);
+    exec("print a $b $c d => /test", &mut env);
+    assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();
 }
