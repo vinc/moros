@@ -266,5 +266,5 @@ fn test_regex() {
     assert_eq!(Regex::new("b.*?c").find("aaabbbcccddd"), Some((3, 7)));
     assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
     assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
-    assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 9)));
+    assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 10)));
 }

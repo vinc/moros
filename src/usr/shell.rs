@@ -63,6 +63,17 @@ pub fn prompt_string(success: bool) -> String {
     format!("{}>{} ", if success { csi_color } else { csi_error }, csi_reset)
 }
 
+pub fn default_env() -> BTreeMap<String, String> {
+    let mut env = BTreeMap::new();
+
+    // Copy the process environment to the shell environment
+    for (key, val) in sys::process::envs() {
+        env.insert(format!("${}", key), val);
+    }
+
+    env
+}
+
 pub fn split_args(cmd: &str) -> Vec<&str> {
     let mut args: Vec<&str> = Vec::new();
     let mut i = 0;
@@ -156,8 +167,18 @@ fn change_dir(args: &[&str]) -> ExitCode {
     }
 }
 
-pub fn exec(cmd: &str) -> ExitCode {
-    let mut args = split_args(cmd);
+pub fn exec(cmd: &str, env: &BTreeMap<String, String>) -> ExitCode {
+    let mut cmd = cmd.to_string();
+
+    // Replace `$key` with its value in the environment or an empty string
+    let re = Regex::new("\\$\\w+");
+    while let Some((a, b)) = re.find(&cmd) {
+        let key: String = cmd.chars().skip(a).take(b - a).collect();
+        let val: &str = env.get(&key).map_or("", String::as_str);
+        cmd = cmd.replace(&key, val);
+    }
+
+    let mut args = split_args(&cmd);
 
     // Redirections like `print hello => /tmp/hello`
     // Pipes like `print hello -> write /tmp/hello` or `p hello > w /tmp/hello`
@@ -293,7 +314,7 @@ pub fn exec(cmd: &str) -> ExitCode {
     res
 }
 
-pub fn run() -> usr::shell::ExitCode {
+pub fn run(env: &BTreeMap<String, String>) -> usr::shell::ExitCode {
     println!();
 
     let mut prompt = Prompt::new();
@@ -303,7 +324,7 @@ pub fn run() -> usr::shell::ExitCode {
 
     let mut success = true;
     while let Some(cmd) = prompt.input(&prompt_string(success)) {
-        match exec(&cmd) {
+        match exec(&cmd, &env) {
             ExitCode::CommandSuccessful => {
                 success = true;
             },
@@ -324,34 +345,22 @@ pub fn run() -> usr::shell::ExitCode {
 }
 
 pub fn main(args: &[&str]) -> ExitCode {
+    let mut env = default_env();
+
     if args.len() < 2 {
-        run()
+        run(&env)
     } else {
         let pathname = args[1];
-        if let Ok(mut contents) = api::fs::read_to_string(pathname) {
-            let mut env: BTreeMap<String, String> = BTreeMap::new();
 
-            // Copy the process environment to the shell environment
-            for (key, val) in sys::process::envs() {
-                env.insert(format!("${}", key), val);
-            }
+        // Add script arguments to the environment as `$1`, `$2`, `$3`, ...
+        for (i, arg) in args[2..].iter().enumerate() {
+            env.insert(format!("${}", i + 1), arg.to_string());
+        }
 
-            // Add script arguments to the environment as `$1`, `$2`, `$3`, ...
-            for (i, arg) in args[2..].iter().enumerate() {
-                env.insert(format!("${}", i + 1), arg.to_string());
-            }
-
-            // Replace `$key` with its value in the environment or an empty string
-            let re = Regex::new("\\$\\w+");
-            while let Some((a, b)) = re.find(&contents) {
-                let key: String = contents.chars().skip(a).take(b - a).collect();
-                let val: &str = env.get(&key).map_or("", String::as_str);
-                contents = contents.replace(&key, val);
-            }
-
+        if let Ok(contents) = api::fs::read_to_string(pathname) {
             for line in contents.split('\n') {
                 if !line.is_empty() {
-                    exec(line);
+                    exec(line, &env);
                 }
             }
             ExitCode::CommandSuccessful
@@ -370,21 +379,22 @@ fn test_shell() {
     sys::fs::format_mem();
     usr::install::copy_files(false);
 
+    let env = default_env();
 
     // Redirect standard output
-    exec("print test1 => /test");
+    exec("print test1 => /test", &env);
     assert_eq!(api::fs::read_to_string("/test"), Ok("test1\n".to_string()));
 
     // Overwrite content of existing file
-    exec("print test2 => /test");
+    exec("print test2 => /test", &env);
     assert_eq!(api::fs::read_to_string("/test"), Ok("test2\n".to_string()));
 
     // Redirect standard output explicitely
-    exec("print test3 1=> /test");
+    exec("print test3 1=> /test", &env);
     assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
 
     // Redirect standard error explicitely
-    exec("hex /nope 2=> /test");
+    exec("hex /nope 2=> /test", &env);
     assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
 
     sys::fs::dismount();
