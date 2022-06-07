@@ -294,8 +294,8 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
-        let env = usr::shell::default_env();
-        let res = usr::shell::exec(&cmd, &env);
+        let mut env = usr::shell::default_env();
+        let res = usr::shell::exec(&cmd, &mut env);
         Ok(Exp::Num(res as u8 as f64))
     }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
