@@ -314,7 +314,7 @@ pub fn exec(cmd: &str, env: &BTreeMap<String, String>) -> ExitCode {
     res
 }
 
-pub fn run(env: &BTreeMap<String, String>) -> usr::shell::ExitCode {
+fn repl(env: &BTreeMap<String, String>) -> usr::shell::ExitCode {
     println!();
 
     let mut prompt = Prompt::new();
@@ -348,7 +348,7 @@ pub fn main(args: &[&str]) -> ExitCode {
     let mut env = default_env();
 
     if args.len() < 2 {
-        run(&env)
+        repl(&env)
     } else {
         let pathname = args[1];
 
