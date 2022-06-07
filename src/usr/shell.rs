@@ -348,15 +348,18 @@ pub fn main(args: &[&str]) -> ExitCode {
     let mut env = default_env();
 
     if args.len() < 2 {
+        env.insert("$0".to_string(), args[0].to_string());
+
         repl(&env)
     } else {
-        let pathname = args[1];
+        env.insert("$0".to_string(), args[1].to_string());
 
         // Add script arguments to the environment as `$1`, `$2`, `$3`, ...
         for (i, arg) in args[2..].iter().enumerate() {
             env.insert(format!("${}", i + 1), arg.to_string());
         }
 
+        let pathname = args[1];
         if let Ok(contents) = api::fs::read_to_string(pathname) {
             for line in contents.split('\n') {
                 if !line.is_empty() {
