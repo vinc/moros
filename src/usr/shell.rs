@@ -3,9 +3,11 @@ use crate::api::fs;
 use crate::api::regex::Regex;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
+
+use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::vec::Vec;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
 const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
@@ -322,27 +324,41 @@ pub fn run() -> usr::shell::ExitCode {
 }
 
 pub fn main(args: &[&str]) -> ExitCode {
-    match args.len() {
-        1 => {
-            run()
-        },
-        2 => {
-            let pathname = args[1];
-            if let Ok(contents) = api::fs::read_to_string(pathname) {
-                for line in contents.split('\n') {
-                    if !line.is_empty() {
-                        exec(line);
-                    }
-                }
-                ExitCode::CommandSuccessful
-            } else {
-                println!("File not found '{}'", pathname);
-                ExitCode::CommandError
+    if args.len() < 2 {
+        run()
+    } else {
+        let pathname = args[1];
+        if let Ok(mut contents) = api::fs::read_to_string(pathname) {
+            let mut env: BTreeMap<String, String> = BTreeMap::new();
+
+            // Copy the process environment to the shell environment
+            for (key, val) in sys::process::envs() {
+                env.insert(format!("${}", key), val);
             }
-        },
-        _ => {
+
+            // Add script arguments to the environment as `$1`, `$2`, `$3`, ...
+            for (i, arg) in args[2..].iter().enumerate() {
+                env.insert(format!("${}", i + 1), arg.to_string());
+            }
+
+            // Replace `$key` with its value in the environment or an empty string
+            let re = Regex::new("\\$\\w+");
+            while let Some((a, b)) = re.find(&contents) {
+                let key: String = contents.chars().skip(a).take(b - a).collect();
+                let val: &str = env.get(&key).map_or("", String::as_str);
+                contents = contents.replace(&key, val);
+            }
+
+            for line in contents.split('\n') {
+                if !line.is_empty() {
+                    exec(line);
+                }
+            }
+            ExitCode::CommandSuccessful
+        } else {
+            println!("File not found '{}'", pathname);
             ExitCode::CommandError
-        },
+        }
     }
 }
 
