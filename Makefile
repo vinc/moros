@@ -18,7 +18,7 @@ user-nasm:
 	basename -s .s dsk/src/bin/*.s | xargs -I {} \
     nasm dsk/src/bin/{}.s -o dsk/bin/{}.tmp
 	basename -s .s dsk/src/bin/*.s | xargs -I {} \
-		sh -c "printf '\x74BIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
+		sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
 	rm dsk/bin/*.tmp
 user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
