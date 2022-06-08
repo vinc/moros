@@ -64,9 +64,11 @@ impl Regex {
     pub fn new(re: &str) -> Self {
         Self(re.to_string())
     }
+
     pub fn is_match(&self, text: &str) -> bool {
         self.find(text).is_some()
     }
+
     pub fn find(&self, text: &str) -> Option<(usize, usize)> {
         let text: Vec<char> = text.chars().collect(); // UTF-32
         let re: Vec<char> = self.0.chars().collect(); // UTF-32
@@ -264,4 +266,5 @@ fn test_regex() {
     assert_eq!(Regex::new("b.*?c").find("aaabbbcccddd"), Some((3, 7)));
     assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
     assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
+    assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 10)));
 }

@@ -62,10 +62,10 @@ pub fn delete(path: &str) -> isize
 pub fn stop(code: usize)
 ```
 
+The system will reboot with `0xcafe` and halt with `0xdead`.
+
 ## SLEEP (0xB)
 
 ```rust
 pub fn sleep(seconds: f64)
 ```
-
-The system will reboot with `0xcafe` and halt with `0xdead`.
