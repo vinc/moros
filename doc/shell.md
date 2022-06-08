@@ -121,3 +121,25 @@ Which is more efficient than doing:
 
     > print hello -> write /tmp/hello
 
+## Variables
+
+- Name of the shell or the script: `$0`
+- Script arguments: `$1`, `$2`, `$3`, `$4`, ...
+- Process environment variable: `$HOME`, ...
+- Shell environment variable: `$foo`, ...
+
+Setting a variable in the shell environment is done with the following command:
+
+    > foo = "world"
+
+And accessing that variable is done with the `$` operator:
+
+    > print $foo
+    world
+
+    > print "hello $foo"
+    hello world
+
+The process environment is copied to the shell environment when a session is
+started. By convention a process env var should be in uppercase and a shell
+env var should be lowercase.
