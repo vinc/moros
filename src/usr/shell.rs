@@ -313,6 +313,10 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
             }
 
             if let Some(info) = syscall::info(&path) {
+                if info.is_dir() {
+                    sys::process::set_dir(&path);
+                    return ExitCode::CommandSuccessful;
+                }
                 if info.is_file() {
                     if api::process::spawn(&path).is_ok() {
                         return ExitCode::CommandSuccessful;
