@@ -67,8 +67,7 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
             let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
-            service::spawn(path);
-            0
+            service::spawn(path) as usize
         }
         number::STOP => {
             service::stop(arg1)

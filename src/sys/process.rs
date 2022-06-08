@@ -243,13 +243,16 @@ impl Process {
         }
     }
 
-    pub fn spawn(bin: &[u8]) {
+    pub fn spawn(bin: &[u8]) -> Result<(), ()> {
         if let Ok(pid) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
                 table[pid].clone()
             };
             proc.exec();
+            Ok(())
+        } else {
+            Err(())
         }
     }
 
