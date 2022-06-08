@@ -210,6 +210,7 @@ pub struct Registers {
 }
 
 const ELF_MAGIC: [u8; 4] = [0x74, b'E', b'L', b'F'];
+const BIN_MAGIC: [u8; 4] = [0x74, b'B', b'I', b'N'];
 
 #[derive(Clone, Debug)]
 pub struct Process {
@@ -275,13 +276,15 @@ impl Process {
                     }
                 }
             }
-        } else { // Raw binary
-            for (i, op) in bin.iter().enumerate() {
+        } else if bin[0..4] == BIN_MAGIC { // Flat binary
+            for (i, op) in bin.iter().skip(4).enumerate() {
                 unsafe {
                     let ptr = code_ptr.add(i);
                     core::ptr::write(ptr, *op);
                 }
             }
+        } else {
+            return Err(());
         }
 
         let mut table = PROCESS_TABLE.write();
