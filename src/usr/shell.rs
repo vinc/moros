@@ -4,6 +4,7 @@ use crate::api::fs;
 use crate::api::prompt::Prompt;
 use crate::api::regex::Regex;
 use crate::api::syscall;
+use crate::sys::fs::FileType;
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -307,24 +308,27 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "proc"                 => proc(&args),
         _                      => {
             let mut path = fs::realpath(args[0]);
-
             if path.len() > 1 {
                 path = path.trim_end_matches('/').into();
             }
-
-            if let Some(info) = syscall::info(&path) {
-                if info.is_dir() {
+            match syscall::info(&path).map(|info| info.kind()) {
+                Some(FileType::Dir) => {
                     sys::process::set_dir(&path);
-                    return ExitCode::CommandSuccessful;
+                    ExitCode::CommandSuccessful
                 }
-                if info.is_file() {
+                Some(FileType::File) => {
                     if api::process::spawn(&path).is_ok() {
-                        return ExitCode::CommandSuccessful;
+                        ExitCode::CommandSuccessful
+                    } else {
+                        error!("'{}' is not executable", path);
+                        ExitCode::CommandError
                     }
                 }
+                _ => {
+                    error!("Could not execute '{}'", cmd);
+                    ExitCode::CommandUnknown
+                }
             }
-            error!("Could not execute '{}'", cmd);
-            ExitCode::CommandUnknown
         }
     };
 
