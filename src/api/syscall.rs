@@ -80,10 +80,15 @@ pub fn close(handle: usize) {
     unsafe { syscall!(CLOSE, handle as usize) };
 }
 
-pub fn spawn(path: &str) {
+pub fn spawn(path: &str) -> Result<(), ()> {
     let ptr = path.as_ptr() as usize;
     let len = path.len() as usize;
-    unsafe { syscall!(SPAWN, ptr, len) };
+    let res = unsafe { syscall!(SPAWN, ptr, len) } as isize;
+    if res.is_negative() {
+        Err(())
+    } else {
+        Ok(())
+    }
 }
 
 pub fn reboot() {

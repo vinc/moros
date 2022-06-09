@@ -89,8 +89,9 @@ pub fn spawn(path: &str) -> isize {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            Process::spawn(&buf);
-            return 0;
+            if Process::spawn(&buf).is_ok() {
+                return 0;
+            }
         }
     }
     -1

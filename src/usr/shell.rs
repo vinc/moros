@@ -1,8 +1,10 @@
 use crate::{api, sys, usr};
-use crate::api::fs;
-use crate::api::regex::Regex;
-use crate::api::prompt::Prompt;
 use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::prompt::Prompt;
+use crate::api::regex::Regex;
+use crate::api::syscall;
+use crate::sys::fs::FileType;
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -304,11 +306,28 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "2048"                 => usr::pow::main(&args),
         "time"                 => usr::time::main(&args),
         "proc"                 => proc(&args),
-        cmd                    => {
-            if api::process::spawn(cmd).is_ok() {
-                ExitCode::CommandSuccessful
-            } else {
-                ExitCode::CommandUnknown
+        _                      => {
+            let mut path = fs::realpath(args[0]);
+            if path.len() > 1 {
+                path = path.trim_end_matches('/').into();
+            }
+            match syscall::info(&path).map(|info| info.kind()) {
+                Some(FileType::Dir) => {
+                    sys::process::set_dir(&path);
+                    ExitCode::CommandSuccessful
+                }
+                Some(FileType::File) => {
+                    if api::process::spawn(&path).is_ok() {
+                        ExitCode::CommandSuccessful
+                    } else {
+                        error!("'{}' is not executable", path);
+                        ExitCode::CommandError
+                    }
+                }
+                _ => {
+                    error!("Could not execute '{}'", cmd);
+                    ExitCode::CommandUnknown
+                }
             }
         }
     };

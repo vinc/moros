@@ -209,7 +209,8 @@ pub struct Registers {
     pub rax: usize,
 }
 
-const ELF_MAGIC: [u8; 4] = [0x74, b'E', b'L', b'F'];
+const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
+const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 
 #[derive(Clone, Debug)]
 pub struct Process {
@@ -242,13 +243,16 @@ impl Process {
         }
     }
 
-    pub fn spawn(bin: &[u8]) {
+    pub fn spawn(bin: &[u8]) -> Result<(), ()> {
         if let Ok(pid) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
                 table[pid].clone()
             };
             proc.exec();
+            Ok(())
+        } else {
+            Err(())
         }
     }
 
@@ -256,12 +260,12 @@ impl Process {
         // Allocate some memory for the code and the stack of the program
         let code_size = 1 * PAGE_SIZE;
         let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
-        sys::allocator::alloc_pages(code_addr, code_size);
 
         let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;
         if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
+                sys::allocator::alloc_pages(code_addr, code_size);
                 entry_point = obj.entry();
                 for segment in obj.segments() {
                     let addr = segment.address() as usize;
@@ -275,13 +279,16 @@ impl Process {
                     }
                 }
             }
-        } else { // Raw binary
-            for (i, op) in bin.iter().enumerate() {
+        } else if bin[0..4] == BIN_MAGIC { // Flat binary
+            sys::allocator::alloc_pages(code_addr, code_size);
+            for (i, op) in bin.iter().skip(4).enumerate() {
                 unsafe {
                     let ptr = code_ptr.add(i);
                     core::ptr::write(ptr, *op);
                 }
             }
+        } else {
+            return Err(());
         }
 
         let mut table = PROCESS_TABLE.write();

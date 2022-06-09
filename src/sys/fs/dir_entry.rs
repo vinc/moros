@@ -117,6 +117,10 @@ impl FileInfo {
         self.name.clone()
     }
 
+    pub fn kind(&self) -> FileType {
+        self.kind
+    }
+
     // TODO: Duplicated from dir entry
     pub fn is_dir(&self) -> bool {
         self.kind == FileType::Dir
