@@ -276,13 +276,10 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "vga"                  => usr::vga::main(&args),
         "sh" | "shell"         => usr::shell::main(&args),
         "sleep"                => usr::sleep::main(&args),
-        "clear"                => usr::clear::main(&args),
         "calc"                 => usr::calc::main(&args),
         "base64"               => usr::base64::main(&args),
         "date"                 => usr::date::main(&args),
         "env"                  => usr::env::main(&args),
-        "halt"                 => usr::halt::main(&args),
-        "reboot"               => usr::reboot::main(&args),
         "hex"                  => usr::hex::main(&args),
         "net"                  => usr::net::main(&args),
         "dhcp"                 => usr::dhcp::main(&args),
@@ -318,6 +315,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                 }
                 Some(FileType::File) => {
                     if api::process::spawn(&path).is_ok() {
+                        // TODO: get exit code
                         ExitCode::CommandSuccessful
                     } else {
                         error!("'{}' is not executable", path);

@@ -17,8 +17,10 @@ pub fn copy_files(verbose: bool) {
     create_dir("/usr", verbose); // User directories
     create_dir("/var", verbose); // Variables
 
+    copy_file("/bin/clear", include_bytes!("../../dsk/bin/clear"), verbose);
+    copy_file("/bin/halt", include_bytes!("../../dsk/bin/halt"), verbose);
     copy_file("/bin/hello", include_bytes!("../../dsk/bin/hello"), verbose);
-    copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
+    copy_file("/bin/reboot", include_bytes!("../../dsk/bin/reboot"), verbose);
 
     create_dir("/dev/clk", verbose); // Clocks
     create_dev("/dev/clk/uptime", DeviceType::Uptime, verbose);
