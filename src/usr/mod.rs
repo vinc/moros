@@ -26,7 +26,6 @@ pub mod memory;
 pub mod net;
 pub mod pci;
 pub mod pow;
-pub mod print;
 pub mod r#move;
 pub mod read;
 pub mod shell;
