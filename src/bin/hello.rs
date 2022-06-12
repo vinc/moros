@@ -12,7 +12,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[no_mangle]
 pub unsafe extern "sysv64" fn _start(args_ptr: u64, args_len: usize) {
-    let args = core::slice::from_raw_parts(args_ptr as *const &str, args_len);
+    let args = core::slice::from_raw_parts(args_ptr as *const _, args_len);
     let code = main(args);
     syscall::exit(code);
 }

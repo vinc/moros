@@ -146,7 +146,12 @@ pub fn set_code_addr(addr: u64) {
 }
 
 pub fn ptr_from_addr(addr: u64) -> *mut u8 {
-    (code_addr() + addr) as *mut u8
+    let base = code_addr();
+    if addr < base {
+        (base + addr) as *mut u8
+    } else {
+        addr as *mut u8
+    }
 }
 
 pub fn registers() -> Registers {
@@ -302,8 +307,6 @@ impl Process {
     // Switch to user mode and execute the program
     fn exec(&self, args_ptr: usize, args_len: usize) {
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
-        debug!("args_len:   {}", args_len);
-        debug!("args_ptr:   {:#x} (src)", args_ptr);
         let args: &[&str] = unsafe { core::slice::from_raw_parts(args_ptr as *const &str, args_len) };
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
         let mut ptr = heap_addr;
@@ -311,15 +314,15 @@ impl Process {
             let src_len = arg.len();
             let src_ptr = arg.as_ptr();
             let dst_ptr = ptr as *mut u8;
-            let dst_ptr_translated = ((dst_ptr as u64) - self.code_addr) as *const u8; // Userspace address
+            //let dst_ptr_translated = ((dst_ptr as u64) - self.code_addr) as *const u8; // Userspace address
             ptr = ((dst_ptr as usize) + src_len) as u64;
             unsafe {
                 core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, src_len);
-                core::str::from_utf8_unchecked(core::slice::from_raw_parts(dst_ptr_translated, src_len))
+                //core::str::from_utf8_unchecked(core::slice::from_raw_parts(dst_ptr_translated, src_len))
+                core::str::from_utf8_unchecked(core::slice::from_raw_parts(dst_ptr, src_len))
             }
         }).collect();
         let args = vec.as_slice();
-        debug!("args_ptr:   {:#x} (tmp)", args.as_ptr() as usize);
         let src_len = args.len();
         let src_ptr = args.as_ptr();
         let dst_ptr = ptr as *mut &str;
@@ -327,28 +330,19 @@ impl Process {
             core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, src_len);
             core::slice::from_raw_parts(dst_ptr, src_len)
         };
-        debug!("args_ptr:   {:#x} (dst)", args.as_ptr() as usize);
 
-        debug!("code addr:  {:#x}", self.code_addr);
-        debug!("heap addr:  {:#x}", heap_addr);
-        debug!("stack addr: {:#x}", self.stack_addr);
-
-        let args_ptr = (args.as_ptr() as u64) - self.code_addr; // userspace address
-        debug!("args:       {:#x} (len={})", args_ptr, args_len);
-        let n = args.len();
-        for i in 0..n {
-            debug!("args[{}]:    {:#x} (len={})", i, args[i].as_ptr() as usize, args[i].len());
-        }
+        //let args_ptr = (args.as_ptr() as u64) - self.code_addr; // userspace address
+        let args_ptr = args.as_ptr() as u64;
 
         set_id(self.id); // Change PID
         unsafe {
             asm!(
                 "cli",        // Disable interrupts
-                "push {:r}",   // Stack segment (SS)
-                "push {:r}",   // Stack pointer (RSP)
+                "push {:r}",  // Stack segment (SS)
+                "push {:r}",  // Stack pointer (RSP)
                 "push 0x200", // RFLAGS with interrupts enabled
-                "push {:r}",   // Code segment (CS)
-                "push {:r}",   // Instruction pointer (RIP)
+                "push {:r}",  // Code segment (CS)
+                "push {:r}",  // Instruction pointer (RIP)
                 "iretq",
                 in(reg) GDT.1.user_data.0,
                 in(reg) self.stack_addr,

@@ -50,10 +50,6 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
-            if arg2 == 0 {
-                debug!("SYSCALL WRITE (handle={}, ptr={:#x} ({:#x}), len={})", arg1, arg2, ptr as usize, arg3);
-                return 0;
-            }
             let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) }; // TODO: Remove mut
             service::write(handle, buf) as usize
         }
