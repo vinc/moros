@@ -336,8 +336,12 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                     }
                 }
                 _ => {
-                    // TODO: add aliases
-                    if api::process::spawn(&format!("/bin/{}", args[0]), &args[1..]).is_ok() {
+                    // TODO: add aliases command instead of hardcoding them
+                    let name = match args[0] {
+                        "p" => "print",
+                        arg => arg,
+                    };
+                    if api::process::spawn(&format!("/bin/{}", name), &args[1..]).is_ok() {
                         ExitCode::CommandSuccessful
                     } else {
                         error!("Could not execute '{}'", cmd);
