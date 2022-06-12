@@ -12,11 +12,11 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
-    "2048", "base64", "calc", "clear", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
-    "env", "exit", "geotime", "goto", "halt", "help", "hex", "host", "http", "httpd", "install",
-    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read", "reboot", "shell",
-    "sleep", "socket", "tcp", "time", "user", "vga", "write"
+const AUTOCOMPLETE_COMMANDS: [&str; 37] = [
+    "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
+    "env", "exit", "geotime", "goto", "help", "hex", "host", "http", "httpd", "install",
+    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read",
+    "shell", "sleep", "socket", "tcp", "time", "user", "vga", "write"
 ];
 
 #[repr(u8)]
@@ -28,13 +28,27 @@ pub enum ExitCode {
     ShellExit         = 255,
 }
 
+fn autocomplete_commands() -> Vec<String> {
+    let mut res = Vec::new();
+    for cmd in AUTOCOMPLETE_COMMANDS {
+        res.push(cmd.to_string());
+    }
+    if let Ok(files) = fs::read_dir("/bin") {
+        for file in files {
+            res.push(file.name());
+        }
+    }
+    res.sort();
+    res
+}
+
 fn shell_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
 
     let args = split_args(line);
     let i = args.len() - 1;
     if args.len() == 1 && !args[0].starts_with('/') { // Autocomplete command
-        for &cmd in &AUTOCOMPLETE_COMMANDS {
+        for cmd in autocomplete_commands() {
             if let Some(entry) = cmd.strip_prefix(args[i]) {
                 entries.push(entry.into());
             }
@@ -276,13 +290,10 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "vga"                  => usr::vga::main(&args),
         "sh" | "shell"         => usr::shell::main(&args),
         "sleep"                => usr::sleep::main(&args),
-        "clear"                => usr::clear::main(&args),
         "calc"                 => usr::calc::main(&args),
         "base64"               => usr::base64::main(&args),
         "date"                 => usr::date::main(&args),
         "env"                  => usr::env::main(&args),
-        "halt"                 => usr::halt::main(&args),
-        "reboot"               => usr::reboot::main(&args),
         "hex"                  => usr::hex::main(&args),
         "net"                  => usr::net::main(&args),
         "dhcp"                 => usr::dhcp::main(&args),
@@ -318,6 +329,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                 }
                 Some(FileType::File) => {
                     if api::process::spawn(&path).is_ok() {
+                        // TODO: get exit code
                         ExitCode::CommandSuccessful
                     } else {
                         error!("'{}' is not executable", path);
@@ -325,8 +337,13 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                     }
                 }
                 _ => {
-                    error!("Could not execute '{}'", cmd);
-                    ExitCode::CommandUnknown
+                    // TODO: add aliases
+                    if api::process::spawn(&format!("/bin/{}", args[0])).is_ok() {
+                        ExitCode::CommandSuccessful
+                    } else {
+                        error!("Could not execute '{}'", cmd);
+                        ExitCode::CommandUnknown
+                    }
                 }
             }
         }

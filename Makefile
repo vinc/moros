@@ -25,8 +25,6 @@ user-rust:
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cargo rustc --release --bin {} -- \
-			-C linker-flavor=ld \
-			-C link-args="-Ttext=200 -Trodata=2000" \
 			-C relocation-model=static
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
