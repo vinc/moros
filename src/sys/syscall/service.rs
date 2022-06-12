@@ -110,7 +110,9 @@ pub fn stop(code: usize) -> usize {
         0xdead => { // Halt
             sys::acpi::shutdown();
         }
-        _ => {}
+        _ => {
+            debug!("STOP SYSCALL: Invalid code '{:#x}' received", code);
+        }
     }
     0
 }

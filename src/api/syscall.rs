@@ -93,12 +93,16 @@ pub fn spawn(path: &str, args: &[&str]) -> Result<(), ()> {
     }
 }
 
+pub fn stop(code: usize) {
+    unsafe { syscall!(STOP, code) };
+}
+
 pub fn reboot() {
-    unsafe { syscall!(STOP, 0xcafe) };
+    stop(0xcafe);
 }
 
 pub fn halt() {
-    unsafe { syscall!(STOP, 0xdead) };
+    stop(0xdead);
 }
 
 #[test_case]
