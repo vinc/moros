@@ -328,7 +328,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                     ExitCode::CommandSuccessful
                 }
                 Some(FileType::File) => {
-                    if api::process::spawn(&path).is_ok() {
+                    if api::process::spawn(&path, &args[1..]).is_ok() {
                         // TODO: get exit code
                         ExitCode::CommandSuccessful
                     } else {
@@ -338,7 +338,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                 }
                 _ => {
                     // TODO: add aliases
-                    if api::process::spawn(&format!("/bin/{}", args[0])).is_ok() {
+                    if api::process::spawn(&format!("/bin/{}", args[0]), &args[1..]).is_ok() {
                         ExitCode::CommandSuccessful
                     } else {
                         error!("Could not execute '{}'", cmd);
