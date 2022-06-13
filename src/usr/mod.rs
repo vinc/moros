@@ -29,7 +29,6 @@ pub mod pow;
 pub mod r#move;
 pub mod read;
 pub mod shell;
-pub mod sleep;
 pub mod socket;
 pub mod tcp;
 pub mod time;

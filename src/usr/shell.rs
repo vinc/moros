@@ -12,11 +12,11 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
     "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
     "env", "exit", "geotime", "goto", "help", "hex", "host", "http", "httpd", "install",
     "keyboard", "lisp", "list", "memory", "move", "net", "pci", "read",
-    "shell", "sleep", "socket", "tcp", "time", "user", "vga", "write"
+    "shell", "socket", "tcp", "time", "user", "vga", "write"
 ];
 
 #[repr(u8)]
@@ -288,7 +288,6 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "z"                    => ExitCode::CommandUnknown,
         "vga"                  => usr::vga::main(&args),
         "sh" | "shell"         => usr::shell::main(&args),
-        "sleep"                => usr::sleep::main(&args),
         "calc"                 => usr::calc::main(&args),
         "base64"               => usr::base64::main(&args),
         "date"                 => usr::date::main(&args),
