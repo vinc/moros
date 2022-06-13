@@ -19,7 +19,7 @@ pub unsafe extern "sysv64" fn _start(args_ptr: u64, args_len: usize) {
 
 fn main(args: &[&str]) -> usize {
     let n = args.len();
-    for i in 0..n {
+    for i in 1..n {
         syscall::write(1, args[i].as_bytes());
         if i < n - 1 {
             syscall::write(1, b" ");

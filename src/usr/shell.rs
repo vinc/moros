@@ -341,7 +341,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                         "p" => "print",
                         arg => arg,
                     };
-                    if api::process::spawn(&format!("/bin/{}", name), &args[1..]).is_ok() {
+                    if api::process::spawn(&format!("/bin/{}", name), &args).is_ok() {
                         ExitCode::CommandSuccessful
                     } else {
                         error!("Could not execute '{}'", cmd);
