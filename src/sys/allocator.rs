@@ -44,16 +44,18 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     Ok(())
 }
 
-pub fn alloc_pages(addr: u64, size: u64) {
+pub fn alloc_pages(addr: u64, size: usize) {
+    //debug!("Alloc pages (addr={:#x}, size={})", addr, size);
     let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
     let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
+        let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
+        //debug!("Alloc page {:?}", page);
         if let Some(frame) = frame_allocator.allocate_frame() {
             unsafe {
                 if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
@@ -71,11 +73,11 @@ pub fn alloc_pages(addr: u64, size: u64) {
 use x86_64::structures::paging::page::PageRangeInclusive;
 
 // TODO: Replace `free` by `dealloc`
-pub fn free_pages(addr: u64, size: u64) {
+pub fn free_pages(addr: u64, size: usize) {
     let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
+        let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {

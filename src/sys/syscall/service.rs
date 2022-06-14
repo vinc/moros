@@ -80,7 +80,7 @@ pub fn close(handle: usize) {
     sys::process::delete_file_handle(handle);
 }
 
-pub fn spawn(path: &str) -> isize {
+pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return -1,
@@ -89,7 +89,7 @@ pub fn spawn(path: &str) -> isize {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if Process::spawn(&buf).is_ok() {
+            if Process::spawn(&buf, args_ptr, args_len).is_ok() {
                 return 0;
             }
         }
@@ -110,7 +110,9 @@ pub fn stop(code: usize) -> usize {
         0xdead => { // Halt
             sys::acpi::shutdown();
         }
-        _ => {}
+        _ => {
+            debug!("STOP SYSCALL: Invalid code '{:#x}' received", code);
+        }
     }
     0
 }

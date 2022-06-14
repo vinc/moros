@@ -28,6 +28,7 @@ user-rust:
 			-C relocation-model=static
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
+	strip dsk/bin/*
 
 bin = target/x86_64-moros/release/bootimage-moros.bin
 img = disk.img

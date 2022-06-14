@@ -180,13 +180,14 @@ extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: 
     let arg1 = regs.rdi;
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
+    let arg4 = regs.r8;
 
     if n == sys::syscall::number::SPAWN { // Backup CPU context
         sys::process::set_stack_frame(**stack_frame);
         sys::process::set_registers(*regs);
     }
 
-    let res = sys::syscall::dispatcher(n, arg1, arg2, arg3);
+    let res = sys::syscall::dispatcher(n, arg1, arg2, arg3, arg4);
 
     if n == sys::syscall::number::EXIT { // Restore CPU context
         let sf = sys::process::stack_frame();

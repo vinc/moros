@@ -12,11 +12,11 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 37] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
     "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
     "env", "exit", "geotime", "goto", "help", "hex", "host", "http", "httpd", "install",
-    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "print", "read",
-    "shell", "sleep", "socket", "tcp", "time", "user", "vga", "write"
+    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "read",
+    "shell", "socket", "tcp", "time", "user", "vga", "write"
 ];
 
 #[repr(u8)]
@@ -276,7 +276,6 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "m" | "move"           => usr::r#move::main(&args),
         "n"                    => ExitCode::CommandUnknown,
         "o"                    => ExitCode::CommandUnknown,
-        "p" | "print"          => usr::print::main(&args),
         "q" | "quit" | "exit"  => ExitCode::ShellExit,
         "r" | "read"           => usr::read::main(&args),
         "s"                    => ExitCode::CommandUnknown,
@@ -289,7 +288,6 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "z"                    => ExitCode::CommandUnknown,
         "vga"                  => usr::vga::main(&args),
         "sh" | "shell"         => usr::shell::main(&args),
-        "sleep"                => usr::sleep::main(&args),
         "calc"                 => usr::calc::main(&args),
         "base64"               => usr::base64::main(&args),
         "date"                 => usr::date::main(&args),
@@ -328,7 +326,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                     ExitCode::CommandSuccessful
                 }
                 Some(FileType::File) => {
-                    if api::process::spawn(&path).is_ok() {
+                    if api::process::spawn(&path, &args[1..]).is_ok() {
                         // TODO: get exit code
                         ExitCode::CommandSuccessful
                     } else {
@@ -337,8 +335,12 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                     }
                 }
                 _ => {
-                    // TODO: add aliases
-                    if api::process::spawn(&format!("/bin/{}", args[0])).is_ok() {
+                    // TODO: add aliases command instead of hardcoding them
+                    let name = match args[0] {
+                        "p" => "print",
+                        arg => arg,
+                    };
+                    if api::process::spawn(&format!("/bin/{}", name), &args).is_ok() {
                         ExitCode::CommandSuccessful
                     } else {
                         error!("Could not execute '{}'", cmd);
