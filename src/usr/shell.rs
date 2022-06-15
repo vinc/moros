@@ -203,7 +203,29 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         return ExitCode::CommandSuccessful
     }
 
-    let mut args = split_args(&cmd);
+    let mut matched_args = Vec::new();
+    for (i, arg) in split_args(&cmd).iter().enumerate() {
+        if i > 0 && arg.contains("*") {
+            // TODO: split arg by / to get the dir
+            let (dir, pattern) = if arg.contains("/") {
+                (fs::dirname(&arg).to_string(), fs::filename(&arg).to_string())
+            } else {
+                (sys::process::dir().clone(), arg.to_string())
+            };
+            let re = Regex::new(&pattern.replace('*', ".*"));
+            if let Ok(files) = fs::read_dir(&dir) {
+                for file in files {
+                    let name = file.name();
+                    if re.is_match(&name) {
+                        matched_args.push(format!("{}/{}", dir, name));
+                    }
+                }
+            }
+        } else {
+            matched_args.push(arg.to_string());
+        }
+    }
+    let mut args: Vec<&str> = matched_args.iter().map(String::as_str).collect();
 
     // Redirections like `print hello => /tmp/hello`
     // Pipes like `print hello -> write /tmp/hello` or `p hello > w /tmp/hello`
