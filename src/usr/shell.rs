@@ -49,12 +49,12 @@ fn shell_completer(line: &str) -> Vec<String> {
     let i = args.len() - 1;
     if args.len() == 1 && !args[0].starts_with('/') { // Autocomplete command
         for cmd in autocomplete_commands() {
-            if let Some(entry) = cmd.strip_prefix(args[i]) {
+            if let Some(entry) = cmd.strip_prefix(&args[i]) {
                 entries.push(entry.into());
             }
         }
     } else { // Autocomplete path
-        let pathname = fs::realpath(args[i]);
+        let pathname = fs::realpath(&args[i]);
         let dirname = fs::dirname(&pathname);
         let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
@@ -90,8 +90,62 @@ pub fn default_env() -> BTreeMap<String, String> {
     env
 }
 
-pub fn split_args(cmd: &str) -> Vec<&str> {
-    let mut args: Vec<&str> = Vec::new();
+fn is_globbing(arg: &str) -> bool {
+    let arg: Vec<char> = arg.chars().collect();
+    let n = arg.len();
+    if n == 0 {
+        return false;
+    }
+    if arg[0] == '"' && arg[n - 1] == '"' {
+        return false;
+    }
+    if arg[0] == '\'' && arg[n - 1] == '\'' {
+        return false;
+    }
+    for i in 0..n {
+        if arg[i] == '*' || arg[i] == '?' {
+            return true;
+        }
+    }
+    false
+}
+
+fn glob_to_regex(pattern: &str) -> String {
+    format!("^{}$", pattern
+        .replace('\\', "\\\\") // `\` string literal
+        .replace('.', "\\.") // `.` string literal
+        .replace('*', ".*")  // `*` match zero or more chars except `/`
+        .replace('?', ".")   // `?` match any char except `/`
+    )
+}
+
+fn glob(path: &str) -> Vec<String> {
+    let mut matches = Vec::new();
+    if is_globbing(path) {
+        let (dir, pattern) = if path.contains("/") {
+            (fs::dirname(&path).to_string(), fs::filename(&path).to_string())
+        } else {
+            (sys::process::dir().clone(), path.to_string())
+        };
+
+        let re = Regex::new(&glob_to_regex(&pattern));
+
+        if let Ok(files) = fs::read_dir(&dir) {
+            for file in files {
+                let name = file.name();
+                if re.is_match(&name) {
+                    matches.push(format!("{}/{}", dir, name));
+                }
+            }
+        }
+    } else {
+        matches.push(path.to_string());
+    }
+    matches
+}
+
+pub fn split_args(cmd: &str) -> Vec<String> {
+    let mut args = Vec::new();
     let mut i = 0;
     let mut n = cmd.len();
     let mut is_quote = false;
@@ -102,13 +156,17 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
             break;
         } else if c == ' ' && !is_quote {
             if i != j {
-                args.push(&cmd[i..j]);
+                if args.is_empty() {
+                    args.push(cmd[i..j].to_string())
+                } else {
+                    args.extend(glob(&cmd[i..j]))
+                }
             }
             i = j + 1;
         } else if c == '"' {
             is_quote = !is_quote;
             if !is_quote {
-                args.push(&cmd[i..j]);
+                args.push(cmd[i..j].to_string());
             }
             i = j + 1;
         }
@@ -117,12 +175,16 @@ pub fn split_args(cmd: &str) -> Vec<&str> {
     if i < n {
         if is_quote {
             n -= 1;
+            args.push(cmd[i..n].to_string());
+        } else if args.is_empty() {
+            args.push(cmd[i..n].to_string());
+        } else {
+            args.extend(glob(&cmd[i..n]))
         }
-        args.push(&cmd[i..n]);
     }
 
     if n == 0 || cmd.ends_with(' ') {
-        args.push("");
+        args.push("".to_string());
     }
 
     args
@@ -203,29 +265,8 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         return ExitCode::CommandSuccessful
     }
 
-    let mut matched_args = Vec::new();
-    for (i, arg) in split_args(&cmd).iter().enumerate() {
-        if i > 0 && arg.contains("*") {
-            // TODO: split arg by / to get the dir
-            let (dir, pattern) = if arg.contains("/") {
-                (fs::dirname(&arg).to_string(), fs::filename(&arg).to_string())
-            } else {
-                (sys::process::dir().clone(), arg.to_string())
-            };
-            let re = Regex::new(&pattern.replace('*', ".*"));
-            if let Ok(files) = fs::read_dir(&dir) {
-                for file in files {
-                    let name = file.name();
-                    if re.is_match(&name) {
-                        matched_args.push(format!("{}/{}", dir, name));
-                    }
-                }
-            }
-        } else {
-            matched_args.push(arg.to_string());
-        }
-    }
-    let mut args: Vec<&str> = matched_args.iter().map(String::as_str).collect();
+    let args = split_args(&cmd);
+    let mut args: Vec<&str> = args.iter().map(String::as_str).collect();
 
     // Redirections like `print hello => /tmp/hello`
     // Pipes like `print hello -> write /tmp/hello` or `p hello > w /tmp/hello`
@@ -474,4 +515,13 @@ fn test_shell() {
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();
+}
+
+#[test_case]
+fn test_glob_to_regex() {
+    assert_eq!(glob_to_regex("hello.txt"), "^hello\\.txt$");
+    assert_eq!(glob_to_regex("h?llo.txt"), "^h.llo\\.txt$");
+    assert_eq!(glob_to_regex("h*.txt"), "^h.*\\.txt$");
+    assert_eq!(glob_to_regex("*.txt"), "^.*\\.txt$");
+    assert_eq!(glob_to_regex("\\w*.txt"), "^\\\\w.*\\.txt$");
 }
