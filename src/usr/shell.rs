@@ -119,13 +119,13 @@ fn glob_to_regex(pattern: &str) -> String {
     )
 }
 
-fn glob(path: &str) -> Vec<String> {
+fn glob(arg: &str) -> Vec<String> {
     let mut matches = Vec::new();
-    if is_globbing(path) {
-        let (dir, pattern) = if path.contains("/") {
-            (fs::dirname(&path).to_string(), fs::filename(&path).to_string())
+    if is_globbing(arg) {
+        let (dir, pattern) = if arg.contains("/") {
+            (fs::dirname(&arg).to_string(), fs::filename(&arg).to_string())
         } else {
-            (sys::process::dir().clone(), path.to_string())
+            (sys::process::dir().clone(), arg.to_string())
         };
 
         let re = Regex::new(&glob_to_regex(&pattern));
@@ -139,7 +139,7 @@ fn glob(path: &str) -> Vec<String> {
             }
         }
     } else {
-        matches.push(path.to_string());
+        matches.push(arg.to_string());
     }
     matches
 }
