@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Read command line args from userspace programs (#351)
+- Add binaries (#350)
+- Executable loading (#349)
+- Add shell variables (#348)
 - Improve Lisp (#344)
 - Add lazy allocation (#275)
 - Replace clock syscalls with device files (#345)
