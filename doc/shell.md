@@ -143,3 +143,15 @@ And accessing that variable is done with the `$` operator:
 The process environment is copied to the shell environment when a session is
 started. By convention a process env var should be in uppercase and a shell
 env var should be lowercase.
+
+## Globbing
+
+MOROS Shell support filename expansion or globbing for `*` and `?` wildcard
+characters, where a pattern given in an argument of a command will be replaced
+by files matching the pattern.
+
+- `*` means zero or more chars except `/`
+- `?` means any char except `/`
+
+For example `/tmp/*.txt` will match any files with the `txt` extension inside
+`/tmp`, and `a?c.txt` will match a file named `abc.txt`.

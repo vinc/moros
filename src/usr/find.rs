@@ -61,8 +61,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         path = path.trim_end_matches('/');
     }
 
-    if name.is_some() {
-        todo!();
+    if name.is_some() { // TODO
+        error!("`--name` is not implemented");
+        return usr::shell::ExitCode::CommandError;
     }
 
     let mut state = PrintingState::new();
@@ -153,7 +154,7 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Usage:{} find {}<options> <path>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-n{1},{0} --name <pattern>{1}    Find file name matching {0}<pattern>{1}", csi_option, csi_reset);
-    println!("  {0}-l{1},{0} --line <pattern>{1}    Find lines matching {0}<pattern>{1}", csi_option, csi_reset);
+    println!("  {0}-n{1},{0} --name \"<pattern>\"{1}    Find file name matching {0}<pattern>{1}", csi_option, csi_reset);
+    println!("  {0}-l{1},{0} --line \"<pattern>\"{1}    Find lines matching {0}<pattern>{1}", csi_option, csi_reset);
     usr::shell::ExitCode::CommandSuccessful
 }
