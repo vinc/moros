@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add userspace entry_point macro (#354)
+- Add shell globbing (#352)
 - Read command line args from userspace programs (#351)
 - Add binaries (#350)
 - Executable loading (#349)
