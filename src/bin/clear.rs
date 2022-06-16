@@ -2,16 +2,11 @@
 #![no_main]
 
 use moros::api::syscall;
-use core::panic::PanicInfo;
+use moros::entry_point;
 
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    syscall::write(1, b"An exception occured!\n");
-    loop {}
-}
+entry_point!(main);
 
-#[no_mangle]
-pub unsafe extern "sysv64" fn _start() {
+fn main(_args: &[&str]) -> usize {
     syscall::write(1, b"\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
-    syscall::exit(0);
+    0
 }

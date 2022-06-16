@@ -2,17 +2,11 @@
 #![no_main]
 
 use moros::api::syscall;
+use moros::entry_point;
 
-use core::panic::PanicInfo;
+entry_point!(main);
 
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    syscall::write(1, b"An exception occured!\n");
-    loop {}
-}
-
-#[no_mangle]
-pub unsafe extern "sysv64" fn _start() {
+fn main(_args: &[&str]) -> usize {
     syscall::write(1, b"\x1b[93m"); // Yellow
     syscall::write(1, b"MOROS has reached its fate, the system is now halting.\n");
     syscall::write(1, b"\x1b[0m"); // Reset
