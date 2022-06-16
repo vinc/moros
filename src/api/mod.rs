@@ -1,3 +1,4 @@
+#[cfg(not(test))]
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
