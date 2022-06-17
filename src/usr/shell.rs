@@ -285,13 +285,13 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         let mut is_thin_arrow = false;
         let mut left_handle;
 
-        if Regex::new("<=+").is_match(args[i]) { // Redirect input stream
+        if Regex::new("^<=+$").is_match(args[i]) { // Redirect input stream
             is_fat_arrow = true;
             left_handle = 0;
-        } else if Regex::new("\\d*=+>").is_match(args[i]) { // Redirect output stream(s)
+        } else if Regex::new("^\\d*=+>$").is_match(args[i]) { // Redirect output stream(s)
             is_fat_arrow = true;
             left_handle = 1;
-        } else if Regex::new("\\d*-*>\\d*").is_match(args[i]) { // Pipe output stream(s)
+        } else if Regex::new("^\\d*-*>\\d*$").is_match(args[i]) { // Pipe output stream(s)
             is_thin_arrow = true;
             left_handle = 1;
             // TODO: right_handle?
