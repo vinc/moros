@@ -87,6 +87,8 @@ pub fn default_env() -> BTreeMap<String, String> {
         env.insert(key, val);
     }
 
+    env.insert("DIR".to_string(), sys::process::dir());
+
     env
 }
 
@@ -220,7 +222,7 @@ fn proc(args: &[&str]) -> ExitCode {
     }
 }
 
-fn change_dir(args: &[&str]) -> ExitCode {
+fn change_dir(args: &[&str], env: &mut BTreeMap<String, String>) -> ExitCode {
     match args.len() {
         1 => {
             println!("{}", sys::process::dir());
@@ -233,6 +235,7 @@ fn change_dir(args: &[&str]) -> ExitCode {
             }
             if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
+                env.insert("DIR".to_string(), sys::process::dir());
                 ExitCode::CommandSuccessful
             } else {
                 error!("File not found '{}'", pathname);
@@ -330,7 +333,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
         "d" | "del" | "delete" => usr::delete::main(&args),
         "e" | "edit"           => usr::editor::main(&args),
         "f" | "find"           => usr::find::main(&args),
-        "g" | "go" | "goto"    => change_dir(&args),
+        "g" | "go" | "goto"    => change_dir(&args, env),
         "h" | "help"           => usr::help::main(&args),
         "i"                    => ExitCode::CommandUnknown,
         "j"                    => ExitCode::CommandUnknown,
@@ -386,6 +389,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
             match syscall::info(&path).map(|info| info.kind()) {
                 Some(FileType::Dir) => {
                     sys::process::set_dir(&path);
+                    env.insert("DIR".to_string(), sys::process::dir());
                     ExitCode::CommandSuccessful
                 }
                 Some(FileType::File) => {
