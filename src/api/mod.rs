@@ -2,6 +2,11 @@
 #[macro_export]
 macro_rules! entry_point {
     ($path:path) => {
+        use linked_list_allocator::LockedHeap;
+
+        #[cfg_attr(feature = "userspace", global_allocator)]
+        pub static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
         #[panic_handler]
         fn panic(_info: &core::panic::PanicInfo) -> ! {
             $crate::api::syscall::write(1, b"An exception occured!\n");
@@ -65,7 +70,6 @@ macro_rules! error {
     });
 }
 
-pub mod allocator;
 pub mod clock;
 pub mod console;
 pub mod font;

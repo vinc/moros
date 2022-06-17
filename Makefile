@@ -24,7 +24,7 @@ user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
-		cargo rustc --release --bin {} -- \
+		cargo rustc --no-default-features --features userspace --release --bin {} -- \
 			-C relocation-model=static
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}

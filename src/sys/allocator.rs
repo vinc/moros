@@ -1,5 +1,4 @@
 use crate::sys;
-use crate::api::allocator::ALLOCATOR;
 
 use alloc::slice::SliceIndex;
 use alloc::sync::Arc;
@@ -7,10 +6,14 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp;
 use core::ops::{Index, IndexMut};
+use linked_list_allocator::LockedHeap;
 use spin::Mutex;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
+
+#[cfg_attr(not(feature = "userspace"), global_allocator)]
+pub static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub const HEAP_START: usize = 0x4444_4444_0000;
 
