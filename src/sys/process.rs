@@ -309,7 +309,7 @@ impl Process {
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
         let args: &[&str] = unsafe { core::slice::from_raw_parts(args_ptr as *const &str, args_len) };
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        sys::allocator::alloc_pages(heap_addr + 1024, 2048);
+        sys::allocator::alloc_pages(heap_addr + (1 << 16), 3 << 16);
 
         let mut ptr = heap_addr;
         let vec: Vec<&str> = args.iter().map(|arg| {
