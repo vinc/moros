@@ -28,6 +28,48 @@ pub enum ExitCode {
     ShellExit         = 255,
 }
 
+struct Config {
+    env: BTreeMap<String, String>,
+    aliases: BTreeMap<String, String>,
+}
+
+impl Config {
+    fn new() -> Config {
+        let mut env = BTreeMap::new();
+        for (key, val) in sys::process::envs() {
+            env.insert(key, val); // Copy the process environment to the shell environment
+        }
+        env.insert("DIR".to_string(), sys::process::dir());
+        let mut aliases = BTreeMap::new();
+        aliases.insert("p".to_string(),    "print".to_string());
+        aliases.insert("c".to_string(),    "copy".to_string());
+        aliases.insert("d".to_string(),    "delete".to_string());
+        aliases.insert("del".to_string(),  "delete".to_string());
+        aliases.insert("e".to_string(),    "edit".to_string());
+        aliases.insert("f".to_string(),    "find".to_string());
+        aliases.insert("g".to_string(),    "goto".to_string());
+        aliases.insert("go".to_string(),   "goto".to_string());
+        aliases.insert("h".to_string(),    "help".to_string());
+        aliases.insert("l".to_string(),    "list".to_string());
+        aliases.insert("m".to_string(),    "move".to_string());
+        aliases.insert("q".to_string(),    "quit".to_string());
+        aliases.insert("exit".to_string(), "quit".to_string());
+        aliases.insert("r".to_string(),    "read".to_string());
+        aliases.insert("w".to_string(),    "write".to_string());
+        aliases.insert("sh".to_string(),   "shell".to_string());
+        aliases.insert("dsk".to_string(),  "disk".to_string());
+        aliases.insert("mem".to_string(),  "memory".to_string());
+        aliases.insert("kbd".to_string(),  "keyboard".to_string());
+        //aliases.insert("cd".to_string(),   "goto".to_string());
+        //aliases.insert("rm".to_string(),   "delete".to_string());
+        //aliases.insert("ls".to_string(),   "list".to_string());
+        //aliases.insert("cp".to_string(),   "copy".to_string());
+        //aliases.insert("mv".to_string(),   "move".to_string());
+
+        Config { env, aliases }
+    }
+}
+
 fn autocomplete_commands() -> Vec<String> {
     let mut res = Vec::new();
     for cmd in AUTOCOMPLETE_COMMANDS {
@@ -77,19 +119,6 @@ pub fn prompt_string(success: bool) -> String {
     let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
     format!("{}>{} ", if success { csi_color } else { csi_error }, csi_reset)
-}
-
-pub fn default_env() -> BTreeMap<String, String> {
-    let mut env = BTreeMap::new();
-
-    // Copy the process environment to the shell environment
-    for (key, val) in sys::process::envs() {
-        env.insert(key, val);
-    }
-
-    env.insert("DIR".to_string(), sys::process::dir());
-
-    env
 }
 
 fn is_globbing(arg: &str) -> bool {
@@ -192,7 +221,7 @@ pub fn split_args(cmd: &str) -> Vec<String> {
     args
 }
 
-fn proc(args: &[&str]) -> ExitCode {
+fn cmd_proc(args: &[&str]) -> ExitCode {
     match args.len() {
         1 => {
             ExitCode::CommandSuccessful
@@ -222,7 +251,7 @@ fn proc(args: &[&str]) -> ExitCode {
     }
 }
 
-fn change_dir(args: &[&str], env: &mut BTreeMap<String, String>) -> ExitCode {
+fn cmd_change_dir(args: &[&str], config: &mut Config) -> ExitCode {
     match args.len() {
         1 => {
             println!("{}", sys::process::dir());
@@ -235,7 +264,7 @@ fn change_dir(args: &[&str], env: &mut BTreeMap<String, String>) -> ExitCode {
             }
             if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
-                env.insert("DIR".to_string(), sys::process::dir());
+                config.env.insert("DIR".to_string(), sys::process::dir());
                 ExitCode::CommandSuccessful
             } else {
                 error!("File not found '{}'", pathname);
@@ -248,27 +277,97 @@ fn change_dir(args: &[&str], env: &mut BTreeMap<String, String>) -> ExitCode {
     }
 }
 
-pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
+fn cmd_alias(args: &[&str], config: &mut Config) -> ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    if args.len() == 1 {
+        println!("{}Usage:{} alias {}<key>=<val>{1}", csi_title, csi_reset, csi_option);
+        return usr::shell::ExitCode::CommandError;
+    } else {
+        for arg in args[1..].iter() {
+            if let Some(i) = arg.find('=') {
+                let (key, mut val) = arg.split_at(i);
+                val = &val[1..];
+                config.aliases.insert(key.to_string(), val.to_string());
+            } else {
+                error!("Error: could not parse '{}'", arg);
+                return usr::shell::ExitCode::CommandError;
+            }
+        }
+    }
+    ExitCode::CommandSuccessful
+}
+
+fn cmd_set(args: &[&str], config: &mut Config) -> ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    if args.len() == 1 {
+        println!("{}Usage:{} set {}<key>=<val>{1}", csi_title, csi_reset, csi_option);
+        return usr::shell::ExitCode::CommandError;
+    } else {
+        for arg in args[1..].iter() {
+            if let Some(i) = arg.find('=') {
+                let (key, mut val) = arg.split_at(i);
+                val = &val[1..];
+                config.env.insert(key.to_string(), val.to_string());
+            } else {
+                error!("Error: could not parse '{}'", arg);
+                return usr::shell::ExitCode::CommandError;
+            }
+        }
+    }
+    ExitCode::CommandSuccessful
+}
+
+fn cmd_unset(args: &[&str], config: &mut Config) -> ExitCode {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    if args.len() == 1 {
+        println!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
+        return usr::shell::ExitCode::CommandError;
+    } else {
+        for arg in args[1..].iter() {
+            if config.env.remove(&arg.to_string()).is_none() {
+                error!("Error: could not unset '{}'", arg);
+                return usr::shell::ExitCode::CommandError;
+            }
+        }
+    }
+    ExitCode::CommandSuccessful
+}
+
+fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
     let mut cmd = cmd.to_string();
 
     // Replace `$key` with its value in the environment or an empty string
     let re = Regex::new("\\$\\w+");
     while let Some((a, b)) = re.find(&cmd) {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
-        let val = env.get(&key).map_or("", String::as_str);
+        let val = config.env.get(&key).map_or("", String::as_str);
         cmd = cmd.replace(&format!("${}", key), &val);
     }
 
     // Set env var like `foo=42` or `bar = "Hello, World!"
-    if Regex::new("^\\w+ *= *\\S*$").is_match(&cmd) {
-        let mut iter = cmd.splitn(2, '=');
-        let key = iter.next().unwrap_or("").trim().to_string();
-        let val = iter.next().unwrap_or("").trim().to_string();
-        env.insert(key, val);
-        return ExitCode::CommandSuccessful
+    if Regex::new("^\\w+ *= *\\S").is_match(&cmd) {
+        let i = cmd.find('=').unwrap();
+        let (key, mut val) = cmd.split_at(i);
+        val = &val[1..];
+        cmd = format!("set \"{}={}\"", key.trim(), val.trim().trim_matches('"'));
     }
 
-    let args = split_args(&cmd);
+    let mut args = split_args(&cmd);
+
+    // Replace command alias
+    if let Some(alias) = config.aliases.get(&args[0]) {
+        args.remove(0);
+        for arg in alias.split(' ').rev() {
+            args.insert(0, arg.to_string())
+        }
+    }
+
     let mut args: Vec<&str> = args.iter().map(String::as_str).collect();
 
     // Redirections like `print hello => /tmp/hello`
@@ -326,62 +425,51 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
     }
 
     let res = match args[0] {
-        ""                     => ExitCode::CommandSuccessful,
-        "a"                    => ExitCode::CommandUnknown,
-        "b"                    => ExitCode::CommandUnknown,
-        "c" | "copy"           => usr::copy::main(&args),
-        "d" | "del" | "delete" => usr::delete::main(&args),
-        "e" | "edit"           => usr::editor::main(&args),
-        "f" | "find"           => usr::find::main(&args),
-        "g" | "go" | "goto"    => change_dir(&args, env),
-        "h" | "help"           => usr::help::main(&args),
-        "i"                    => ExitCode::CommandUnknown,
-        "j"                    => ExitCode::CommandUnknown,
-        "k"                    => ExitCode::CommandUnknown,
-        "l" | "list"           => usr::list::main(&args),
-        "m" | "move"           => usr::r#move::main(&args),
-        "n"                    => ExitCode::CommandUnknown,
-        "o"                    => ExitCode::CommandUnknown,
-        "q" | "quit" | "exit"  => ExitCode::ShellExit,
-        "r" | "read"           => usr::read::main(&args),
-        "s"                    => ExitCode::CommandUnknown,
-        "t"                    => ExitCode::CommandUnknown,
-        "u"                    => ExitCode::CommandUnknown,
-        "v"                    => ExitCode::CommandUnknown,
-        "w" | "write"          => usr::write::main(&args),
-        "x"                    => ExitCode::CommandUnknown,
-        "y"                    => ExitCode::CommandUnknown,
-        "z"                    => ExitCode::CommandUnknown,
-        "vga"                  => usr::vga::main(&args),
-        "sh" | "shell"         => usr::shell::main(&args),
-        "calc"                 => usr::calc::main(&args),
-        "base64"               => usr::base64::main(&args),
-        "date"                 => usr::date::main(&args),
-        "env"                  => usr::env::main(&args),
-        "hex"                  => usr::hex::main(&args),
-        "net"                  => usr::net::main(&args),
-        "dhcp"                 => usr::dhcp::main(&args),
-        "http"                 => usr::http::main(&args),
-        "httpd"                => usr::httpd::main(&args),
-        "socket"               => usr::socket::main(&args),
-        "tcp"                  => usr::tcp::main(&args),
-        "host"                 => usr::host::main(&args),
-        "install"              => usr::install::main(&args),
-        "geotime"              => usr::geotime::main(&args),
-        "colors"               => usr::colors::main(&args),
-        "dsk" | "disk"         => usr::disk::main(&args),
-        "user"                 => usr::user::main(&args),
-        "mem" | "memory"       => usr::memory::main(&args),
-        "kb" | "keyboard"      => usr::keyboard::main(&args),
-        "lisp"                 => usr::lisp::main(&args),
-        "chess"                => usr::chess::main(&args),
-        "beep"                 => usr::beep::main(&args),
-        "elf"                  => usr::elf::main(&args),
-        "pci"                  => usr::pci::main(&args),
-        "2048"                 => usr::pow::main(&args),
-        "time"                 => usr::time::main(&args),
-        "proc"                 => proc(&args),
-        _                      => {
+        ""         => ExitCode::CommandSuccessful,
+        "2048"     => usr::pow::main(&args),
+        "alias"    => cmd_alias(&args, config),
+        "base64"   => usr::base64::main(&args),
+        "beep"     => usr::beep::main(&args),
+        "calc"     => usr::calc::main(&args),
+        "chess"    => usr::chess::main(&args),
+        "colors"   => usr::colors::main(&args),
+        "copy"     => usr::copy::main(&args),
+        "date"     => usr::date::main(&args),
+        "delete"   => usr::delete::main(&args),
+        "dhcp"     => usr::dhcp::main(&args),
+        "disk"     => usr::disk::main(&args),
+        "edit"     => usr::editor::main(&args),
+        "elf"      => usr::elf::main(&args),
+        "env"      => usr::env::main(&args),
+        "find"     => usr::find::main(&args),
+        "geotime"  => usr::geotime::main(&args),
+        "goto"     => cmd_change_dir(&args, config),
+        "help"     => usr::help::main(&args),
+        "hex"      => usr::hex::main(&args),
+        "host"     => usr::host::main(&args),
+        "http"     => usr::http::main(&args),
+        "httpd"    => usr::httpd::main(&args),
+        "install"  => usr::install::main(&args),
+        "keyboard" => usr::keyboard::main(&args),
+        "lisp"     => usr::lisp::main(&args),
+        "list"     => usr::list::main(&args),
+        "memory"   => usr::memory::main(&args),
+        "move"     => usr::r#move::main(&args),
+        "net"      => usr::net::main(&args),
+        "pci"      => usr::pci::main(&args),
+        "proc"     => cmd_proc(&args),
+        "quit"     => ExitCode::ShellExit,
+        "read"     => usr::read::main(&args),
+        "set"      => cmd_set(&args, config),
+        "shell"    => usr::shell::main(&args),
+        "socket"   => usr::socket::main(&args),
+        "tcp"      => usr::tcp::main(&args),
+        "time"     => usr::time::main(&args),
+        "unset"    => cmd_unset(&args, config),
+        "user"     => usr::user::main(&args),
+        "vga"      => usr::vga::main(&args),
+        "write"    => usr::write::main(&args),
+        _          => {
             let mut path = fs::realpath(args[0]);
             if path.len() > 1 {
                 path = path.trim_end_matches('/').into();
@@ -389,7 +477,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
             match syscall::info(&path).map(|info| info.kind()) {
                 Some(FileType::Dir) => {
                     sys::process::set_dir(&path);
-                    env.insert("DIR".to_string(), sys::process::dir());
+                    config.env.insert("DIR".to_string(), sys::process::dir());
                     ExitCode::CommandSuccessful
                 }
                 Some(FileType::File) => {
@@ -402,12 +490,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
                     }
                 }
                 _ => {
-                    // TODO: add aliases command instead of hardcoding them
-                    let name = match args[0] {
-                        "p" => "print",
-                        arg => arg,
-                    };
-                    if api::process::spawn(&format!("/bin/{}", name), &args).is_ok() {
+                    if api::process::spawn(&format!("/bin/{}", args[0]), &args).is_ok() {
                         ExitCode::CommandSuccessful
                     } else {
                         error!("Could not execute '{}'", cmd);
@@ -428,7 +511,7 @@ pub fn exec(cmd: &str, env: &mut BTreeMap<String, String>) -> ExitCode {
     res
 }
 
-fn repl(env: &mut BTreeMap<String, String>) -> usr::shell::ExitCode {
+fn repl(config: &mut Config) -> usr::shell::ExitCode {
     println!();
 
     let mut prompt = Prompt::new();
@@ -438,7 +521,7 @@ fn repl(env: &mut BTreeMap<String, String>) -> usr::shell::ExitCode {
 
     let mut success = true;
     while let Some(cmd) = prompt.input(&prompt_string(success)) {
-        match exec(&cmd, env) {
+        match exec_with_config(&cmd, config) {
             ExitCode::CommandSuccessful => {
                 success = true;
             },
@@ -458,26 +541,37 @@ fn repl(env: &mut BTreeMap<String, String>) -> usr::shell::ExitCode {
     ExitCode::CommandSuccessful
 }
 
+pub fn exec(cmd: &str) -> ExitCode {
+    let mut config = Config::new();
+    exec_with_config(cmd, &mut config)
+}
+
 pub fn main(args: &[&str]) -> ExitCode {
-    let mut env = default_env();
+    let mut config = Config::new();
+
+    if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
+        for cmd in rc.split("\n") {
+            exec_with_config(&cmd, &mut config);
+        }
+    }
 
     if args.len() < 2 {
-        env.insert(0.to_string(), args[0].to_string());
+        config.env.insert(0.to_string(), args[0].to_string());
 
-        repl(&mut env)
+        repl(&mut config)
     } else {
-        env.insert(0.to_string(), args[1].to_string());
+        config.env.insert(0.to_string(), args[1].to_string());
 
         // Add script arguments to the environment as `$1`, `$2`, `$3`, ...
         for (i, arg) in args[2..].iter().enumerate() {
-            env.insert((i + 1).to_string(), arg.to_string());
+            config.env.insert((i + 1).to_string(), arg.to_string());
         }
 
         let pathname = args[1];
         if let Ok(contents) = api::fs::read_to_string(pathname) {
             for line in contents.split('\n') {
                 if !line.is_empty() {
-                    exec(line, &mut env);
+                    exec_with_config(line, &mut config);
                 }
             }
             ExitCode::CommandSuccessful
@@ -496,26 +590,25 @@ fn test_shell() {
     sys::fs::format_mem();
     usr::install::copy_files(false);
 
-    let mut env = default_env();
-
     // Redirect standard output
-    exec("print test1 => /test", &mut env);
+    exec("print test1 => /test");
     assert_eq!(api::fs::read_to_string("/test"), Ok("test1\n".to_string()));
 
     // Overwrite content of existing file
-    exec("print test2 => /test", &mut env);
+    exec("print test2 => /test");
     assert_eq!(api::fs::read_to_string("/test"), Ok("test2\n".to_string()));
 
     // Redirect standard output explicitely
-    exec("print test3 1=> /test", &mut env);
+    exec("print test3 1=> /test");
     assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
 
     // Redirect standard error explicitely
-    exec("hex /nope 2=> /test", &mut env);
+    exec("hex /nope 2=> /test");
     assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
 
-    exec("b = 42", &mut env);
-    exec("print a $b $c d => /test", &mut env);
+    let mut config = Config::new();
+    exec_with_config("b = 42", &mut config);
+    exec_with_config("print a $b $c d => /test", &mut config);
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();

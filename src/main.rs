@@ -14,10 +14,9 @@ fn main(boot_info: &'static BootInfo) -> ! {
     print!("\x1b[?25h"); // Enable cursor
     loop {
         if let Some(cmd) = option_env!("MOROS_CMD") {
-            let mut env = usr::shell::default_env();
             let prompt = usr::shell::prompt_string(true);
             println!("{}{}", prompt, cmd);
-            usr::shell::exec(cmd, &mut env);
+            usr::shell::exec(cmd);
             sys::acpi::shutdown();
         } else {
             user_boot();
