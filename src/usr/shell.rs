@@ -572,7 +572,7 @@ fn test_shell() {
     assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
 
     let mut config = Config::new();
-    exec_with_config("b = 42", &mut config);
+    exec_with_config("set b 42", &mut config);
     exec_with_config("print a $b $c d => /test", &mut config);
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
