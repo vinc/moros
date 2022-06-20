@@ -13,7 +13,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 sys::process::set_env(key, val);
                 println!("{}={}", key, val);
             } else {
-                error!("Error: could not parse '{}'", arg);
+                error!("Could not parse '{}'", arg);
                 return usr::shell::ExitCode::CommandError;
             }
         }
