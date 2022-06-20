@@ -41,34 +41,6 @@ impl Config {
             env.insert(key, val); // Copy the process environment to the shell environment
         }
         env.insert("DIR".to_string(), sys::process::dir());
-        /*
-        let mut aliases = BTreeMap::new();
-        aliases.insert("p".to_string(),    "print".to_string());
-        aliases.insert("c".to_string(),    "copy".to_string());
-        aliases.insert("d".to_string(),    "delete".to_string());
-        aliases.insert("del".to_string(),  "delete".to_string());
-        aliases.insert("e".to_string(),    "edit".to_string());
-        aliases.insert("f".to_string(),    "find".to_string());
-        aliases.insert("g".to_string(),    "goto".to_string());
-        aliases.insert("go".to_string(),   "goto".to_string());
-        aliases.insert("h".to_string(),    "help".to_string());
-        aliases.insert("l".to_string(),    "list".to_string());
-        aliases.insert("m".to_string(),    "move".to_string());
-        aliases.insert("q".to_string(),    "quit".to_string());
-        aliases.insert("exit".to_string(), "quit".to_string());
-        aliases.insert("r".to_string(),    "read".to_string());
-        aliases.insert("w".to_string(),    "write".to_string());
-        aliases.insert("sh".to_string(),   "shell".to_string());
-        aliases.insert("dsk".to_string(),  "disk".to_string());
-        aliases.insert("mem".to_string(),  "memory".to_string());
-        aliases.insert("kbd".to_string(),  "keyboard".to_string());
-        //aliases.insert("cd".to_string(),   "goto".to_string());
-        //aliases.insert("rm".to_string(),   "delete".to_string());
-        //aliases.insert("ls".to_string(),   "list".to_string());
-        //aliases.insert("cp".to_string(),   "copy".to_string());
-        //aliases.insert("mv".to_string(),   "move".to_string());
-        */
-
         Config { env, aliases }
     }
 }
@@ -281,64 +253,61 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> ExitCode {
 }
 
 fn cmd_alias(args: &[&str], config: &mut Config) -> ExitCode {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
-    let csi_reset = Style::reset();
-    if args.len() == 1 {
-        println!("{}Usage:{} alias {}<key>=<val>{1}", csi_title, csi_reset, csi_option);
+    if args.len() != 3 {
+        let csi_option = Style::color("LightCyan");
+        let csi_title = Style::color("Yellow");
+        let csi_reset = Style::reset();
+        println!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
         return usr::shell::ExitCode::CommandError;
-    } else {
-        for arg in args[1..].iter() {
-            if let Some(i) = arg.find('=') {
-                let (key, mut val) = arg.split_at(i);
-                val = &val[1..];
-                config.aliases.insert(key.to_string(), val.to_string());
-            } else {
-                error!("Error: could not parse '{}'", arg);
-                return usr::shell::ExitCode::CommandError;
-            }
-        }
     }
+    config.aliases.insert(args[1].to_string(), args[2].to_string());
+    ExitCode::CommandSuccessful
+}
+
+fn cmd_unalias(args: &[&str], config: &mut Config) -> ExitCode {
+    if args.len() != 2 {
+        let csi_option = Style::color("LightCyan");
+        let csi_title = Style::color("Yellow");
+        let csi_reset = Style::reset();
+        println!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
+        return usr::shell::ExitCode::CommandError;
+    }
+
+    if config.aliases.remove(&args[1].to_string()).is_none() {
+        error!("Error: could not unalias '{}'", args[1]);
+        return usr::shell::ExitCode::CommandError;
+    }
+
     ExitCode::CommandSuccessful
 }
 
 fn cmd_set(args: &[&str], config: &mut Config) -> ExitCode {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
-    let csi_reset = Style::reset();
-    if args.len() == 1 {
-        println!("{}Usage:{} set {}<key>=<val>{1}", csi_title, csi_reset, csi_option);
+    if args.len() != 3 {
+        let csi_option = Style::color("LightCyan");
+        let csi_title = Style::color("Yellow");
+        let csi_reset = Style::reset();
+        println!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
         return usr::shell::ExitCode::CommandError;
-    } else {
-        for arg in args[1..].iter() {
-            if let Some(i) = arg.find('=') {
-                let (key, mut val) = arg.split_at(i);
-                val = &val[1..];
-                config.env.insert(key.to_string(), val.to_string());
-            } else {
-                error!("Error: could not parse '{}'", arg);
-                return usr::shell::ExitCode::CommandError;
-            }
-        }
     }
+
+    config.env.insert(args[1].to_string(), args[2].to_string());
     ExitCode::CommandSuccessful
 }
 
 fn cmd_unset(args: &[&str], config: &mut Config) -> ExitCode {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
-    let csi_reset = Style::reset();
-    if args.len() == 1 {
+    if args.len() != 2 {
+        let csi_option = Style::color("LightCyan");
+        let csi_title = Style::color("Yellow");
+        let csi_reset = Style::reset();
         println!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
         return usr::shell::ExitCode::CommandError;
-    } else {
-        for arg in args[1..].iter() {
-            if config.env.remove(&arg.to_string()).is_none() {
-                error!("Error: could not unset '{}'", arg);
-                return usr::shell::ExitCode::CommandError;
-            }
-        }
     }
+
+    if config.env.remove(&args[1].to_string()).is_none() {
+        error!("Error: could not unset '{}'", args[1]);
+        return usr::shell::ExitCode::CommandError;
+    }
+
     ExitCode::CommandSuccessful
 }
 
@@ -351,14 +320,6 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
         let val = config.env.get(&key).map_or("", String::as_str);
         cmd = cmd.replace(&format!("${}", key), &val);
-    }
-
-    // Set env var like `foo=42` or `bar = "Hello, World!"
-    if Regex::new("^\\w+ *= *\\S").is_match(&cmd) {
-        let i = cmd.find('=').unwrap();
-        let (key, mut val) = cmd.split_at(i);
-        val = &val[1..];
-        cmd = format!("set \"{}={}\"", key.trim(), val.trim().trim_matches('"'));
     }
 
     let mut args = split_args(&cmd);
@@ -468,6 +429,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
         "socket"   => usr::socket::main(&args),
         "tcp"      => usr::tcp::main(&args),
         "time"     => usr::time::main(&args),
+        "unalias"  => cmd_unalias(&args, config),
         "unset"    => cmd_unset(&args, config),
         "user"     => usr::user::main(&args),
         "vga"      => usr::vga::main(&args),

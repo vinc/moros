@@ -1,15 +1,20 @@
 # MOROS Shell
 
+## Config
+
+The shell will read `/ini/shell.sh` during initialization to setup its
+configuration.
+
 ## Commands
 
 The main commands have a long name, a one-letter alias, and may have
 additional common aliases.
 
-<!--
 **Alias** command:
 
     > alias d delete
 
+<!--
 **Append** to file:
 
     > a a.txt
@@ -130,19 +135,25 @@ Which is more efficient than doing:
 
 Setting a variable in the shell environment is done with the following command:
 
-    > foo = "world"
+    > set foo 42
 
-And accessing that variable is done with the `$` operator:
+    > set bar "Alice and Bob"
+
+And accessing a variable is done with the `$` operator:
 
     > print $foo
-    world
+    42
 
-    > print "hello $foo"
-    hello world
+    > print "Hello $bar"
+    Hello Alice and Bob
 
 The process environment is copied to the shell environment when a session is
 started. By convention a process env var should be in uppercase and a shell
 env var should be lowercase.
+
+Unsetting a variable is done like this:
+
+    > unset foo
 
 ## Globbing
 
