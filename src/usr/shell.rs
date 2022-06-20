@@ -80,7 +80,6 @@ fn autocomplete_commands() -> Vec<String> {
             res.push(file.name());
         }
     }
-    res.sort();
     res
 }
 
@@ -111,6 +110,7 @@ fn shell_completer(line: &str) -> Vec<String> {
             }
         }
     }
+    entries.sort();
     entries
 }
 
