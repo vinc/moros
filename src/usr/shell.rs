@@ -35,11 +35,13 @@ struct Config {
 
 impl Config {
     fn new() -> Config {
+        let aliases = BTreeMap::new();
         let mut env = BTreeMap::new();
         for (key, val) in sys::process::envs() {
             env.insert(key, val); // Copy the process environment to the shell environment
         }
         env.insert("DIR".to_string(), sys::process::dir());
+        /*
         let mut aliases = BTreeMap::new();
         aliases.insert("p".to_string(),    "print".to_string());
         aliases.insert("c".to_string(),    "copy".to_string());
@@ -65,6 +67,7 @@ impl Config {
         //aliases.insert("ls".to_string(),   "list".to_string());
         //aliases.insert("cp".to_string(),   "copy".to_string());
         //aliases.insert("mv".to_string(),   "move".to_string());
+        */
 
         Config { env, aliases }
     }
