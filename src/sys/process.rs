@@ -306,32 +306,30 @@ impl Process {
 
     // Switch to user mode and execute the program
     fn exec(&self, args_ptr: usize, args_len: usize) {
+        let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
+        sys::allocator::alloc_pages(heap_addr, 1);
+
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
         let args: &[&str] = unsafe { core::slice::from_raw_parts(args_ptr as *const &str, args_len) };
-        let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        let mut ptr = heap_addr;
+        let mut addr = heap_addr;
         let vec: Vec<&str> = args.iter().map(|arg| {
-            let src_len = arg.len();
-            let src_ptr = arg.as_ptr();
-            let dst_ptr = ptr as *mut u8;
-            //let dst_ptr_translated = ((dst_ptr as u64) - self.code_addr) as *const u8; // Userspace address
-            ptr = ((dst_ptr as usize) + src_len) as u64;
+            let ptr = addr as *mut u8;
+            addr += arg.len() as u64;
             unsafe {
-                core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, src_len);
-                //core::str::from_utf8_unchecked(core::slice::from_raw_parts(dst_ptr_translated, src_len))
-                core::str::from_utf8_unchecked(core::slice::from_raw_parts(dst_ptr, src_len))
+                let s = core::slice::from_raw_parts_mut(ptr, arg.len());
+                s.copy_from_slice(arg.as_bytes());
+                core::str::from_utf8_unchecked(s)
             }
         }).collect();
+        let align = core::mem::align_of::<&str>() as u64;
+        addr += align - (addr % align);
         let args = vec.as_slice();
-        let src_len = args.len();
-        let src_ptr = args.as_ptr();
-        let dst_ptr = ptr as *mut &str;
+        let ptr = addr as *mut &str;
         let args: &[&str] = unsafe {
-            core::ptr::copy_nonoverlapping(src_ptr, dst_ptr, src_len);
-            core::slice::from_raw_parts(dst_ptr, src_len)
+            let s = core::slice::from_raw_parts_mut(ptr, args.len());
+            s.copy_from_slice(args);
+            s
         };
-
-        //let args_ptr = (args.as_ptr() as u64) - self.code_addr; // userspace address
         let args_ptr = args.as_ptr() as u64;
 
         set_id(self.id); // Change PID
