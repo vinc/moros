@@ -446,7 +446,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
                     ExitCode::CommandSuccessful
                 }
                 Some(FileType::File) => {
-                    if api::process::spawn(&path.clone(), &args.clone()).is_ok() {
+                    if api::process::spawn(&path, &args[1..]).is_ok() {
                         // TODO: get exit code
                         ExitCode::CommandSuccessful
                     } else {
@@ -455,8 +455,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
                     }
                 }
                 _ => {
-                    path = format!("/bin/{}", args[0]);
-                    if api::process::spawn(&path.clone(), &args.clone()).is_ok() {
+                    if api::process::spawn(&format!("/bin/{}", args[0]), &args).is_ok() {
                         ExitCode::CommandSuccessful
                     } else {
                         error!("Could not execute '{}'", cmd);
