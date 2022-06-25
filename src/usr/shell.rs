@@ -20,7 +20,7 @@ const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
 ];
 
 #[repr(u8)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum ExitCode {
     CommandSuccessful = 0,
     CommandUnknown    = 1,
@@ -128,10 +128,10 @@ fn glob_to_regex(pattern: &str) -> String {
 fn glob(arg: &str) -> Vec<String> {
     let mut matches = Vec::new();
     if is_globbing(arg) {
-        let (dir, pattern) = if arg.contains("/") {
-            (fs::dirname(&arg).to_string(), fs::filename(&arg).to_string())
+        let (dir, pattern) = if arg.contains('/') {
+            (fs::dirname(arg).to_string(), fs::filename(arg).to_string())
         } else {
-            (sys::process::dir().clone(), arg.to_string())
+            (sys::process::dir(), arg.to_string())
         };
 
         let re = Regex::new(&glob_to_regex(&pattern));
@@ -319,7 +319,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
     while let Some((a, b)) = re.find(&cmd) {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
         let val = config.env.get(&key).map_or("", String::as_str);
-        cmd = cmd.replace(&format!("${}", key), &val);
+        cmd = cmd.replace(&format!("${}", key), val);
     }
 
     let mut args = split_args(&cmd);
@@ -516,8 +516,8 @@ pub fn main(args: &[&str]) -> ExitCode {
     let mut config = Config::new();
 
     if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
-        for cmd in rc.split("\n") {
-            exec_with_config(&cmd, &mut config);
+        for cmd in rc.split('\n') {
+            exec_with_config(cmd, &mut config);
         }
     }
 
