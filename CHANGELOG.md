@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add shell aliases (#357)
+- Bump object from 0.28.4 to 0.29.0 (#358)
+- Fix args ptr alignment (#359)
+- Improve regex for redirections (#356)
+- Store current direction in DIR shell variable (#355)
 - Add userspace entry_point macro (#354)
 - Add shell globbing (#352)
 - Read command line args from userspace programs (#351)
