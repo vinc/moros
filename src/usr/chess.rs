@@ -86,7 +86,7 @@ impl Chess {
         while let Some(cmd) = prompt.input(&prompt_string) {
             let args: Vec<&str> = cmd.trim().split(' ').collect();
             match args[0] {
-                "q" | "quit" | "exit" => break,
+                "q" | "quit" => break,
                 "h" | "help" => self.cmd_help(args),
                 "i" | "init" => self.cmd_init(args),
                 "t" | "time" => self.cmd_time(args),

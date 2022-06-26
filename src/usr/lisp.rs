@@ -672,7 +672,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
     prompt.completion.set(&lisp_completer);
 
     while let Some(line) = prompt.input(&prompt_string) {
-        if line == "(exit)" || line == "(quit)" {
+        if line == "(quit)" {
             break;
         }
         if line.is_empty() {

@@ -11,7 +11,6 @@ alias h    help
 alias l    list
 alias m    move
 alias q    quit
-alias exit quit
 alias r    read
 alias w    write
 alias sh   shell
@@ -23,6 +22,7 @@ alias kbd  keyboard
 # alias cd   goto
 # alias cp   copy
 # alias echo print
+# alias exit quit
 # alias ls   list
 # alias mv   move
 # alias rm   delete
