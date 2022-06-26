@@ -294,8 +294,7 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
-        let mut env = usr::shell::default_env();
-        let res = usr::shell::exec(&cmd, &mut env);
+        let res = usr::shell::exec(&cmd);
         Ok(Exp::Num(res as u8 as f64))
     }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
@@ -673,7 +672,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
     prompt.completion.set(&lisp_completer);
 
     while let Some(line) = prompt.input(&prompt_string) {
-        if line == "(exit)" || line == "(quit)" {
+        if line == "(quit)" {
             break;
         }
         if line.is_empty() {

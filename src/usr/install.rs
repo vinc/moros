@@ -32,10 +32,11 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/random", DeviceType::Random, verbose);
     create_dev("/dev/console", DeviceType::Console, verbose);
 
-    copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
-    copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
+    copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
     copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"), verbose);
+    copy_file("/ini/shell.sh", include_bytes!("../../dsk/ini/shell.sh"), verbose);
+    copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
 
     create_dir("/ini/lisp", verbose);
     copy_file("/ini/lisp/core.lsp", include_bytes!("../../dsk/ini/lisp/core.lsp"), verbose);

@@ -118,7 +118,7 @@ fn repl() -> usr::shell::ExitCode {
     prompt.history.load(history_file);
 
     while let Some(line) = prompt.input(&prompt_string) {
-        if line == "exit" || line == "quit" {
+        if line == "quit" {
             break;
         }
         if line.is_empty() {

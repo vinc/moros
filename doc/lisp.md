@@ -46,7 +46,7 @@ MOROS Lisp v0.1.0
 > (+ 1 2)
 3
 
-> (exit)
+> (quit)
 ```
 
 And it can execute a file. For example a file located in `/tmp/fibonacci.lsp`
