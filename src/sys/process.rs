@@ -248,14 +248,13 @@ impl Process {
         }
     }
 
-    pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<(), ()> {
+    pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<isize, ()> {
         if let Ok(pid) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
                 table[pid].clone()
             };
-            proc.exec(args_ptr, args_len);
-            Ok(())
+            Ok(proc.exec(args_ptr, args_len))
         } else {
             Err(())
         }
@@ -305,7 +304,7 @@ impl Process {
     }
 
     // Switch to user mode and execute the program
-    fn exec(&self, args_ptr: usize, args_len: usize) {
+    fn exec(&self, args_ptr: usize, args_len: usize) -> isize {
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
         sys::allocator::alloc_pages(heap_addr, 1);
 
@@ -350,5 +349,6 @@ impl Process {
                 in("rsi") args_len,
             );
         }
+        unreachable!();
     }
 }

@@ -1,8 +1,9 @@
 use crate::api::syscall;
 
-pub fn spawn(path: &str, args: &[&str]) -> Result<(), ()> {
+pub fn spawn(path: &str, args: &[&str]) -> Result<usize, usize> {
     if syscall::info(path).is_some() {
-        return syscall::spawn(path, args);
+        syscall::spawn(path, args)
+    } else {
+        Err(1)
     }
-    Err(())
 }

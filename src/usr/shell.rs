@@ -388,6 +388,8 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
         }
     }
 
+    // TODO: Replace `ExitCode` with `Result<usize, usize>` and store code in
+    // `status` variable (+res for success and -res for error).
     let res = match args[0] {
         ""         => ExitCode::CommandSuccessful,
         "2048"     => usr::pow::main(&args),
@@ -446,21 +448,11 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
                     ExitCode::CommandSuccessful
                 }
                 Some(FileType::File) => {
-                    if api::process::spawn(&path, &args[1..]).is_ok() {
-                        // TODO: get exit code
-                        ExitCode::CommandSuccessful
-                    } else {
-                        error!("'{}' is not executable", path);
-                        ExitCode::CommandError
-                    }
+                    spawn(&path, &args)
                 }
                 _ => {
-                    if api::process::spawn(&format!("/bin/{}", args[0]), &args).is_ok() {
-                        ExitCode::CommandSuccessful
-                    } else {
-                        error!("Could not execute '{}'", cmd);
-                        ExitCode::CommandUnknown
-                    }
+                    let path = format!("/bin/{}", args[0]);
+                    spawn(&path, &args)
                 }
             }
         }
@@ -474,6 +466,23 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
     }
 
     res
+}
+
+fn spawn(path: &str, args: &[&str]) -> ExitCode {
+    match api::process::spawn(&path, &args) {
+        Ok(0) => {
+            debug!("status: {}", 0);
+            ExitCode::CommandSuccessful
+        }
+        Ok(i) => {
+            debug!("status: {}", i);
+            ExitCode::CommandError
+        }
+        Err(_) => {
+            error!("Could not execute '{}'", args[0]);
+            ExitCode::CommandError
+        }
+    }
 }
 
 fn repl(config: &mut Config) -> usr::shell::ExitCode {

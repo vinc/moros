@@ -5,9 +5,9 @@ use crate::sys::process::Process;
 use alloc::vec;
 use core::arch::asm;
 
-pub fn exit(_code: usize) -> usize {
+pub fn exit(code: usize) -> usize {
     sys::process::exit();
-    0
+    code
 }
 
 pub fn sleep(seconds: f64) {
@@ -89,8 +89,8 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> isize {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if Process::spawn(&buf, args_ptr, args_len).is_ok() {
-                return 0;
+            if let Ok(res) = Process::spawn(&buf, args_ptr, args_len) {
+                return res;
             }
         }
     }
