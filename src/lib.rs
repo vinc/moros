@@ -13,7 +13,9 @@ extern crate alloc;
 #[macro_use]
 pub mod api;
 
+#[macro_use]
 pub mod sys;
+
 pub mod usr;
 
 use bootloader::BootInfo;
