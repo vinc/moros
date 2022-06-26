@@ -379,8 +379,6 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
         }
     }
 
-    // TODO: Replace `ExitCode` with `Result<usize, usize>` and store code in
-    // `status` variable (+res for success and -res for error).
     let res = match args[0] {
         ""         => Ok(0),
         "2048"     => usr::pow::main(&args),
@@ -449,6 +447,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
         }
     };
 
+
     // TODO: Remove this when redirections are done in spawned process
     if is_redirected {
         for i in 0..3 {
@@ -484,17 +483,13 @@ fn repl(config: &mut Config) -> Result<usize, usize> {
 
     let mut success = true;
     while let Some(cmd) = prompt.input(&prompt_string(success)) {
-        match exec_with_config(&cmd, config) {
-            Ok(0) => {
-                success = true;
-            },
-            Err(255) => {
-                break;
-            },
-            _ => {
-                success = false;
-            },
-        }
+        let code = match exec_with_config(&cmd, config) {
+            Err(255) => break,
+            Ok(i) => i as isize,
+            Err(i) => -(i as isize),
+        };
+        success = code.is_positive();
+        config.env.insert("status".to_string(), format!("{}", code));
         prompt.history.add(&cmd);
         prompt.history.save(history_file);
         sys::console::drain();
