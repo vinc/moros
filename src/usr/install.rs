@@ -4,6 +4,8 @@ use crate::api::fs;
 use crate::api::fs::DeviceType;
 use crate::api::io;
 use crate::api::syscall;
+
+use alloc::format;
 use alloc::string::String;
 
 pub fn copy_files(verbose: bool) {
@@ -70,16 +72,13 @@ pub fn main(_args: &[&str]) -> Result<usize, usize> {
 
         if !sys::fs::is_mounted() {
             println!("{}Listing disks ...{}", csi_color, csi_reset);
-            usr::disk::main(&["disk", "list"]);
+            usr::shell::exec("disk list").ok();
             println!();
 
             println!("{}Formatting disk ...{}", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
             let pathname = io::stdin().read_line();
-            let res = usr::disk::main(&["disk", "format", pathname.trim_end()]);
-            if res == Err(1) {
-                return res;
-            }
+            usr::shell::exec(&format!("disk format {}", pathname.trim_end()))?;
             println!();
         }
 

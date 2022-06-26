@@ -1,6 +1,8 @@
 use crate::{sys, usr, debug};
 use crate::api::clock;
 use crate::api::syscall;
+
+use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
@@ -70,21 +72,21 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
 
     if let Some(config) = dhcp_config {
         //debug!("{:#?}", config);
-        usr::net::main(&["net", "config", "ip", &config.address.to_string()]);
-        usr::net::main(&["net", "config", "ip"]);
+        usr::shell::exec(&format!("net config ip {}", config.address)).ok();
+        usr::shell::exec("net config ip").ok();
 
         if let Some(router) = config.router {
-            usr::net::main(&["net", "config", "gw", &router.to_string()]);
+            usr::shell::exec(&format!("net config gw {}", router)).ok();
         } else {
-            usr::net::main(&["net", "config", "gw", "0.0.0.0"]);
+            usr::shell::exec("net config gw 0.0.0.0").ok();
         }
-        usr::net::main(&["net", "config", "gw"]);
+        usr::shell::exec("net config gw").ok();
 
         let dns: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
         if !dns.is_empty() {
-            usr::net::main(&["net", "config", "dns", &dns.join(",")]);
+            usr::shell::exec(&format!("net config dns {}", dns.join(","))).ok();
         }
-        usr::net::main(&["net", "config", "dns"]);
+        usr::shell::exec("net config dns").ok();
 
         return Ok(0);
     }

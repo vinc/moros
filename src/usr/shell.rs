@@ -518,7 +518,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
 
     if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
         for cmd in rc.split('\n') {
-            exec_with_config(cmd, &mut config);
+            exec_with_config(cmd, &mut config).ok();
         }
     }
 
@@ -538,7 +538,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
         if let Ok(contents) = api::fs::read_to_string(pathname) {
             for line in contents.split('\n') {
                 if !line.is_empty() {
-                    exec_with_config(line, &mut config);
+                    exec_with_config(line, &mut config).ok();
                 }
             }
             Ok(0)
@@ -558,24 +558,24 @@ fn test_shell() {
     usr::install::copy_files(false);
 
     // Redirect standard output
-    exec("print test1 => /test");
+    exec("print test1 => /test").ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("test1\n".to_string()));
 
     // Overwrite content of existing file
-    exec("print test2 => /test");
+    exec("print test2 => /test").ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("test2\n".to_string()));
 
     // Redirect standard output explicitely
-    exec("print test3 1=> /test");
+    exec("print test3 1=> /test").ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
 
     // Redirect standard error explicitely
-    exec("hex /nope 2=> /test");
+    exec("hex /nope 2=> /test").ok();
     assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
 
     let mut config = Config::new();
-    exec_with_config("set b 42", &mut config);
-    exec_with_config("print a $b $c d => /test", &mut config);
+    exec_with_config("set b 42", &mut config).ok();
+    exec_with_config("print a $b $c d => /test", &mut config).ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();

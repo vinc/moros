@@ -169,7 +169,7 @@ impl Editor {
                     break;
                 },
                 '\x17' => { // Ctrl W
-                    self.save();
+                    self.save().ok();
                     print!("\x1b[?25h"); // Enable cursor
                     continue;
                 },
