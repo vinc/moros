@@ -7,8 +7,8 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     let csi_reset = Style::reset();
     let cmd = args[1..].join(" ");
     let start = clock::realtime();
-    usr::shell::exec(&cmd);
+    let res = usr::shell::exec(&cmd);
     let duration = clock::realtime() - start;
     println!("{}Executed '{}' in {:.6}s{}", csi_color, cmd, duration, csi_reset);
-    Ok(0)
+    res
 }

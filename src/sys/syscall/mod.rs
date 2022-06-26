@@ -13,7 +13,7 @@ use core::arch::asm;
 pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) -> usize {
     match n {
         number::EXIT => {
-            service::exit(arg1)
+            service::exit(arg1 as isize) as usize
         }
         number::SLEEP => {
             service::sleep(f64::from_bits(arg1 as u64));

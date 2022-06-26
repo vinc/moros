@@ -6,7 +6,7 @@ use moros::api::syscall;
 
 entry_point!(main);
 
-fn main(args: &[&str]) -> usize {
+fn main(args: &[&str]) -> isize {
     let n = args.len();
     for i in 1..n {
         syscall::write(1, args[i].as_bytes());

@@ -1,11 +1,11 @@
-use crate::sys;
+use crate::{api, sys};
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
 use alloc::vec;
 use core::arch::asm;
 
-pub fn exit(code: usize) -> usize {
+pub fn exit(code: isize) -> isize {
     sys::process::exit();
     code
 }
@@ -83,18 +83,23 @@ pub fn close(handle: usize) {
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
-        Err(_) => return -1,
+        Err(_) => return -(api::process::OPEN_ERROR as isize),
     };
     if let Some(mut file) = sys::fs::File::open(&path) {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
             if let Ok(res) = Process::spawn(&buf, args_ptr, args_len) {
-                return res;
+                res
+            } else {
+                -(api::process::EXEC_ERROR as isize)
             }
+        } else {
+            -(api::process::READ_ERROR as isize)
         }
+    } else {
+        -(api::process::OPEN_ERROR as isize)
     }
-    -1
 }
 
 pub fn stop(code: usize) -> usize {

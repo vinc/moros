@@ -32,6 +32,7 @@ impl Config {
             env.insert(key, val); // Copy the process environment to the shell environment
         }
         env.insert("DIR".to_string(), sys::process::dir());
+        env.insert("status".to_string(), "0".to_string());
         Config { env, aliases }
     }
 }
@@ -460,15 +461,23 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
 
 fn spawn(path: &str, args: &[&str]) -> Result<usize, usize> {
     match api::process::spawn(&path, &args) {
-        Ok(0) => {
-            Ok(0)
-        }
-        Ok(i) => {
-            Err(1)
-        }
-        Err(_) => {
+        Err(api::process::EXEC_ERROR) => {
             error!("Could not execute '{}'", args[0]);
-            Err(1)
+            Err(api::process::EXEC_ERROR)
+        }
+        Err(api::process::READ_ERROR) => {
+            error!("Could not read '{}'", args[0]);
+            Err(api::process::READ_ERROR)
+        }
+        Err(api::process::OPEN_ERROR) => {
+            error!("Could not open '{}'", args[0]);
+            Err(api::process::OPEN_ERROR)
+        }
+        Err(code) => {
+            Err(code)
+        }
+        Ok(code) => {
+            Ok(code)
         }
     }
 }
@@ -488,7 +497,7 @@ fn repl(config: &mut Config) -> Result<usize, usize> {
             Ok(i) => i as isize,
             Err(i) => -(i as isize),
         };
-        success = code.is_positive();
+        success = code >= 0;
         config.env.insert("status".to_string(), format!("{}", code));
         prompt.history.add(&cmd);
         prompt.history.save(history_file);

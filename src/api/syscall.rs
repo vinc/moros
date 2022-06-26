@@ -2,8 +2,8 @@ use crate::syscall;
 use crate::sys::syscall::number::*;
 use crate::sys::fs::FileInfo;
 
-pub fn exit(code: usize) -> usize {
-    unsafe { syscall!(EXIT, code as u64) }
+pub fn exit(code: isize) {
+    unsafe { syscall!(EXIT, code as usize) };
 }
 
 pub fn sleep(seconds: f64) {
