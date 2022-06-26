@@ -1,7 +1,7 @@
-use crate::{sys, usr};
+use crate::sys;
 use crate::api::console::Style;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() == 1 {
         return list(false);
     }
@@ -17,7 +17,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
-fn list(verbose: bool) -> usr::shell::ExitCode {
+fn list(verbose: bool) -> Result<usize, usize> {
     let color1 = Style::color("Blue");
     let color2 = Style::color("LightBlue");
     let reset = Style::reset();
@@ -37,10 +37,10 @@ fn list(verbose: bool) -> usr::shell::ExitCode {
             println!();
         }
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() -> Result<usize, usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -51,5 +51,5 @@ fn help() -> usr::shell::ExitCode {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }

@@ -15,7 +15,7 @@ use sha2::Sha256;
 const PASSWORDS: &str = "/ini/passwords.csv";
 const COMMANDS: [&str; 2] = ["create", "login"];
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
         return usage();
     }
@@ -34,16 +34,16 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
-fn usage() -> usr::shell::ExitCode {
+fn usage() -> Result<usize, usize> {
     eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    usr::shell::ExitCode::CommandError
+    Err(1)
 }
 
 // TODO: Add max number of attempts
-pub fn login(username: &str) -> usr::shell::ExitCode {
+pub fn login(username: &str) -> Result<usize, usize> {
     if !fs::exists(PASSWORDS) {
         error!("Could not read '{}'", PASSWORDS);
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     if username.is_empty() {
@@ -78,17 +78,17 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
     sys::process::set_dir(&home);
 
     // TODO: load shell
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-pub fn create(username: &str) -> usr::shell::ExitCode {
+pub fn create(username: &str) -> Result<usize, usize> {
     if username.is_empty() {
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     if hashed_password(username).is_some() {
         error!("Username exists");
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     print!("Password: ");
@@ -98,7 +98,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     println!();
 
     if password.is_empty() {
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     print!("Confirm: ");
@@ -109,12 +109,12 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
 
     if password != confirm {
         error!("Password confirmation failed");
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
         error!("Could not save user");
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     // Create home dir
@@ -122,10 +122,10 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
         api::syscall::close(handle);
     } else {
         error!("Could not create home dir");
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
 pub fn check(password: &str, hashed_password: &str) -> bool {

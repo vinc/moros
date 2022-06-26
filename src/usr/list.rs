@@ -1,4 +1,4 @@
-use crate::{sys, usr};
+use crate::sys;
 use crate::api::console::Style;
 use crate::api::time;
 use crate::api::fs;
@@ -8,7 +8,7 @@ use crate::api::fs::FileInfo;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut sort = "name";
     let mut hide_dot_files = true;
@@ -44,7 +44,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     "time" => files.sort_by_key(|f| f.time()),
                     _ => {
                         error!("Invalid sort key '{}'", sort);
-                        return usr::shell::ExitCode::CommandError;
+                        return Err(1);
                     }
                 }
 
@@ -58,18 +58,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 for file in files {
                     print_file(file, width);
                 }
-                usr::shell::ExitCode::CommandSuccessful
+                Ok(0)
             } else {
                 error!("Could not read directory '{}'", path);
-                usr::shell::ExitCode::CommandError
+                Err(1)
             }
         } else {
             print_file(&info, info.size().to_string().len());
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(0)
         }
     } else {
         error!("Could not find file or directory '{}'", path);
-        usr::shell::ExitCode::CommandError
+        Err(1)
     }
 }
 
@@ -89,7 +89,7 @@ fn print_file(file: &FileInfo, width: usize) {
     println!("{:width$} {} {}{}{}", file.size(), date.format("%F %H:%M:%S"), color, file.name(), csi_reset, width = width);
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() -> Result<usize, usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -100,5 +100,5 @@ fn help() -> usr::shell::ExitCode {
     println!("  {0}-n{1},{0} --name{1}    Sort by name", csi_option, csi_reset);
     println!("  {0}-s{1},{0} --size{1}    Sort by size", csi_option, csi_reset);
     println!("  {0}-t{1},{0} --time{1}    Sort by time", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }

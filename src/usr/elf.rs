@@ -3,9 +3,9 @@ use crate::api::fs;
 use crate::usr;
 use object::{Object, ObjectSection};
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() != 2 {
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     let color = Style::color("Yellow");
@@ -31,13 +31,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                 }
             }
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(0)
         } else {
             println!("Could not parse ELF");
-            usr::shell::ExitCode::CommandError
+            Err(1)
         }
     } else {
         println!("File not found '{}'", pathname);
-        usr::shell::ExitCode::CommandError
+        Err(1)
     }
 }

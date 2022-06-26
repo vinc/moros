@@ -1,15 +1,14 @@
-use crate::usr;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() != 2 {
-        usr::shell::ExitCode::CommandError
+        Err(1)
     } else {
         let buf = encode(args[1].as_bytes());
         let encoded = String::from_utf8(buf).unwrap();
         println!("{}", encoded);
-        usr::shell::ExitCode::CommandSuccessful
+        Ok(0)
     }
 }
 

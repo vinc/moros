@@ -1,10 +1,9 @@
-use crate::usr;
 use crate::api::syscall;
 use crate::api::fs;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() < 2 {
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     for arg in &args[1..] {
@@ -18,20 +17,20 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
         if !fs::exists(pathname) {
             error!("File not found '{}'", pathname);
-            return usr::shell::ExitCode::CommandError;
+            return Err(1);
         }
 
         if let Some(info) = syscall::info(pathname) {
             if info.is_dir() && info.size() > 0 {
                 error!("Directory '{}' not empty", pathname);
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
         }
 
         if fs::delete(pathname).is_err() {
             error!("Could not delete file '{}'", pathname);
-            return usr::shell::ExitCode::CommandError;
+            return Err(1);
         }
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }

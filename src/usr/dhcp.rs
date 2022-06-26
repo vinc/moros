@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     let mut verbose = false;
     let dhcp_config;
 
@@ -31,12 +31,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(dhcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(dhcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
 
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
@@ -65,7 +65,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     } else {
         error!("Network Error");
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     if let Some(config) = dhcp_config {
@@ -86,8 +86,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         usr::net::main(&["net", "config", "dns"]);
 
-        return usr::shell::ExitCode::CommandSuccessful;
+        return Ok(0);
     }
 
-    usr::shell::ExitCode::CommandError
+    Err(1)
 }

@@ -1,4 +1,4 @@
-use crate::{sys, usr, debug};
+use crate::sys;
 use alloc::format;
 use crate::api::clock;
 use crate::api::console::Style;
@@ -16,15 +16,16 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() == 1 {
         help();
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     match args[1] {
         "-h" | "--help" => {
-            return help();
+            help();
+            return Ok(0);
         }
         "config" => {
             if args.len() < 3 {
@@ -33,7 +34,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 print_config("gw");
                 print_config("dns");
             } else if args[2] == "-h" || args[2] == "--help" {
-                return help_config();
+                help_config();
+                return Ok(0);
             } else if args.len() < 4 {
                 print_config(args[2]);
             } else {
@@ -65,7 +67,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     if sys::console::end_of_text() || sys::console::end_of_transmission() {
                         println!();
                         iface.remove_socket(tcp_handle);
-                        return usr::shell::ExitCode::CommandSuccessful;
+                        return Ok(0);
                     }
                     syscall::sleep(0.1);
 
@@ -90,13 +92,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         _ => {
             error!("Invalid command");
-            return usr::shell::ExitCode::CommandError;
+            return Err(1);
         }
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -106,10 +108,9 @@ fn help() -> usr::shell::ExitCode {
     println!("  {}config{}   Configure network", csi_option, csi_reset);
     println!("  {}monitor{}  Monitor network", csi_option, csi_reset);
     println!("  {}stat{}     Display network status", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
 }
 
-fn help_config() -> usr::shell::ExitCode {
+fn help_config() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -120,7 +121,6 @@ fn help_config() -> usr::shell::ExitCode {
     println!("  {}ip{}   IP Address", csi_option, csi_reset);
     println!("  {}gw{}   Gateway Address", csi_option, csi_reset);
     println!("  {}dns{}  Domain Name Servers", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
 }
 
 fn print_config(attribute: &str) {

@@ -225,29 +225,28 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     }
 }
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     // TODO: Add `--server <address>` option
     if args.len() != 2 {
         help();
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
     let domain = args[1];
     match resolve(domain) {
         Ok(addr) => {
             println!("{} has address {}", domain, addr);
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(0)
         }
         Err(e) => {
             error!("Could not resolve host: {:?}", e);
-            usr::shell::ExitCode::CommandError
+            Err(1)
         }
     }
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Usage:{} host {}<domain>{1}", csi_title, csi_reset, csi_option);
-    usr::shell::ExitCode::CommandSuccessful
 }

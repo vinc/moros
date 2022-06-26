@@ -58,7 +58,7 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"), verbose);
 }
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(_args: &[&str]) -> Result<usize, usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Welcome to MOROS v{} installation program!{}", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
@@ -77,7 +77,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             print!("Enter path of disk to format: ");
             let pathname = io::stdin().read_line();
             let res = usr::disk::main(&["disk", "format", pathname.trim_end()]);
-            if res == usr::shell::ExitCode::CommandError {
+            if res == Err(1) {
                 return res;
             }
             println!();
@@ -91,7 +91,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             println!();
             println!("{}Creating user...{}", csi_color, csi_reset);
             let res = usr::user::main(&["user", "create"]);
-            if res == usr::shell::ExitCode::CommandError {
+            if res == Err(1) {
                 return res;
             }
         }
@@ -102,7 +102,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         println!("Exit console or reboot to apply changes");
     }
 
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
 fn create_dir(pathname: &str, verbose: bool) {

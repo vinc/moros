@@ -19,15 +19,6 @@ const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
     "shell", "socket", "tcp", "time", "user", "vga", "write"
 ];
 
-#[repr(u8)]
-#[derive(PartialEq, Eq)]
-pub enum ExitCode {
-    CommandSuccessful = 0,
-    CommandUnknown    = 1,
-    CommandError      = 2,
-    ShellExit         = 255,
-}
-
 struct Config {
     env: BTreeMap<String, String>,
     aliases: BTreeMap<String, String>,
@@ -196,16 +187,16 @@ pub fn split_args(cmd: &str) -> Vec<String> {
     args
 }
 
-fn cmd_proc(args: &[&str]) -> ExitCode {
+fn cmd_proc(args: &[&str]) -> Result<usize, usize> {
     match args.len() {
         1 => {
-            ExitCode::CommandSuccessful
+            Ok(0)
         },
         2 => {
             match args[1] {
                 "id" => {
                     println!("{}", sys::process::id());
-                    ExitCode::CommandSuccessful
+                    Ok(0)
                 }
                 "files" => {
                     for (i, handle) in sys::process::file_handles().iter().enumerate() {
@@ -213,24 +204,24 @@ fn cmd_proc(args: &[&str]) -> ExitCode {
                             println!("{}: {:?}", i, resource);
                         }
                     }
-                    ExitCode::CommandSuccessful
+                    Ok(0)
                 }
                 _ => {
-                    ExitCode::CommandError
+                    Err(1)
                 }
             }
         },
         _ => {
-            ExitCode::CommandError
+            Err(1)
         }
     }
 }
 
-fn cmd_change_dir(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<usize, usize> {
     match args.len() {
         1 => {
             println!("{}", sys::process::dir());
-            ExitCode::CommandSuccessful
+            Ok(0)
         },
         2 => {
             let mut pathname = fs::realpath(args[1]);
@@ -240,78 +231,78 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> ExitCode {
             if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
                 config.env.insert("DIR".to_string(), sys::process::dir());
-                ExitCode::CommandSuccessful
+                Ok(0)
             } else {
                 error!("File not found '{}'", pathname);
-                ExitCode::CommandError
+                Err(1)
             }
         },
         _ => {
-            ExitCode::CommandError
+            Err(1)
         }
     }
 }
 
-fn cmd_alias(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_alias(args: &[&str], config: &mut Config) -> Result<usize, usize> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
     config.aliases.insert(args[1].to_string(), args[2].to_string());
-    ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn cmd_unalias(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<usize, usize> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     if config.aliases.remove(&args[1].to_string()).is_none() {
         error!("Error: could not unalias '{}'", args[1]);
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
-    ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn cmd_set(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_set(args: &[&str], config: &mut Config) -> Result<usize, usize> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     config.env.insert(args[1].to_string(), args[2].to_string());
-    ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn cmd_unset(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_unset(args: &[&str], config: &mut Config) -> Result<usize, usize> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     if config.env.remove(&args[1].to_string()).is_none() {
         error!("Error: could not unset '{}'", args[1]);
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
-    ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
+fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
     let mut cmd = cmd.to_string();
 
     // Replace `$key` with its value in the environment or an empty string
@@ -372,26 +363,26 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
             is_redirected = true;
             if i == n - 1 {
                 println!("Could not parse path for redirection");
-                return ExitCode::CommandError;
+                return Err(1);
             }
             let path = args[i + 1];
             if api::fs::reopen(path, left_handle).is_err() {
                 println!("Could not open path for redirection");
-                return ExitCode::CommandError;
+                return Err(1);
             }
             args.remove(i); // Remove redirection from args
             args.remove(i); // Remove path from args
             n -= 2;
         } else if is_thin_arrow { // TODO: Implement pipes
             println!("Could not parse arrow");
-            return ExitCode::CommandError;
+            return Err(1);
         }
     }
 
     // TODO: Replace `ExitCode` with `Result<usize, usize>` and store code in
     // `status` variable (+res for success and -res for error).
     let res = match args[0] {
-        ""         => ExitCode::CommandSuccessful,
+        ""         => Ok(0),
         "2048"     => usr::pow::main(&args),
         "alias"    => cmd_alias(&args, config),
         "base64"   => usr::base64::main(&args),
@@ -424,7 +415,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
         "net"      => usr::net::main(&args),
         "pci"      => usr::pci::main(&args),
         "proc"     => cmd_proc(&args),
-        "quit"     => ExitCode::ShellExit,
+        "quit"     => Err(255),
         "read"     => usr::read::main(&args),
         "set"      => cmd_set(&args, config),
         "shell"    => usr::shell::main(&args),
@@ -445,7 +436,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
                 Some(FileType::Dir) => {
                     sys::process::set_dir(&path);
                     config.env.insert("DIR".to_string(), sys::process::dir());
-                    ExitCode::CommandSuccessful
+                    Ok(0)
                 }
                 Some(FileType::File) => {
                     spawn(&path, &args)
@@ -468,24 +459,22 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
     res
 }
 
-fn spawn(path: &str, args: &[&str]) -> ExitCode {
+fn spawn(path: &str, args: &[&str]) -> Result<usize, usize> {
     match api::process::spawn(&path, &args) {
         Ok(0) => {
-            debug!("status: {}", 0);
-            ExitCode::CommandSuccessful
+            Ok(0)
         }
         Ok(i) => {
-            debug!("status: {}", i);
-            ExitCode::CommandError
+            Err(1)
         }
         Err(_) => {
             error!("Could not execute '{}'", args[0]);
-            ExitCode::CommandError
+            Err(1)
         }
     }
 }
 
-fn repl(config: &mut Config) -> usr::shell::ExitCode {
+fn repl(config: &mut Config) -> Result<usize, usize> {
     println!();
 
     let mut prompt = Prompt::new();
@@ -496,10 +485,10 @@ fn repl(config: &mut Config) -> usr::shell::ExitCode {
     let mut success = true;
     while let Some(cmd) = prompt.input(&prompt_string(success)) {
         match exec_with_config(&cmd, config) {
-            ExitCode::CommandSuccessful => {
+            Ok(0) => {
                 success = true;
             },
-            ExitCode::ShellExit => {
+            Err(255) => {
                 break;
             },
             _ => {
@@ -512,15 +501,15 @@ fn repl(config: &mut Config) -> usr::shell::ExitCode {
         println!();
     }
     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
-    ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-pub fn exec(cmd: &str) -> ExitCode {
+pub fn exec(cmd: &str) -> Result<usize, usize> {
     let mut config = Config::new();
     exec_with_config(cmd, &mut config)
 }
 
-pub fn main(args: &[&str]) -> ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     let mut config = Config::new();
 
     if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
@@ -548,10 +537,10 @@ pub fn main(args: &[&str]) -> ExitCode {
                     exec_with_config(line, &mut config);
                 }
             }
-            ExitCode::CommandSuccessful
+            Ok(0)
         } else {
             println!("File not found '{}'", pathname);
-            ExitCode::CommandError
+            Err(1)
         }
     }
 }

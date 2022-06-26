@@ -294,8 +294,10 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
-        let res = usr::shell::exec(&cmd);
-        Ok(Exp::Num(res as u8 as f64))
+        match usr::shell::exec(&cmd) {
+            Ok(res) => Ok(Exp::Num(res as f64)),
+            Err(res) => Ok(Exp::Num(-(res as isize) as f64)),
+        }
     }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -658,7 +660,7 @@ fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
 }
 
-fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
+fn repl(env: &mut Rc<RefCell<Env>>) -> Result<usize, usize> {
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
@@ -690,10 +692,10 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
         prompt.history.add(&line);
         prompt.history.save(history_file);
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     let line_color = Style::color("Yellow");
     let error_color = Style::color("LightRed");
     let reset = Style::reset();
@@ -710,7 +712,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
     if eval_label_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     if args.len() < 2 {
@@ -734,7 +736,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                                     eprintln!("{}Error:{} {}", error_color, reset, msg);
                                     eprintln!();
                                     eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                    return usr::shell::ExitCode::CommandError;
+                                    return Err(1);
                                 }
                             }
                         }
@@ -744,10 +746,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                 }
             }
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(0)
         } else {
             error!("File not found '{}'", pathname);
-            usr::shell::ExitCode::CommandError
+            Err(1)
         }
     }
 }

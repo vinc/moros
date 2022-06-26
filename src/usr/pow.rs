@@ -1,4 +1,3 @@
-use crate::usr;
 use crate::api::console::Style;
 use crate::api::{io, random, console};
 use core::fmt;
@@ -12,11 +11,11 @@ struct Game {
     board: [usize; 16],
 }
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(_args: &[&str]) -> Result<usize, usize> {
     print!("\x1b[?25l"); // Disable cursor
     Game::new().run();
     print!("\x1b[?25h"); // Enable cursor
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
 impl Game {

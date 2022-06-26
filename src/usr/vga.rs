@@ -1,31 +1,32 @@
-use crate::{api, sys, usr};
+use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::vga::palette;
 use crate::api::fs;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() == 1 {
         help();
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     match args[1] {
         "-h" | "--help" => {
-            help()
+            help();
+            Ok(0)
         }
         "set" => {
             if args.len() == 4 && args[2] == "font" {
                 if let Ok(buf) = fs::read_to_bytes(args[3]) {
                     if let Ok(font) = api::font::from_bytes(&buf) {
                         sys::vga::set_font(&font);
-                        usr::shell::ExitCode::CommandSuccessful
+                        Ok(0)
                     } else {
                         error!("Could not parse font file");
-                        usr::shell::ExitCode::CommandError
+                        Err(1)
                     }
                 } else {
                     error!("Could not read font file");
-                    usr::shell::ExitCode::CommandError
+                    Err(1)
                 }
             } else if args.len() == 4 && args[2] == "palette" {
                 if let Ok(csv) = fs::read_to_string(args[3]) {
@@ -37,28 +38,28 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         //         print!("\x1b]P{:x}{:x}{:x}{:x}", i, r, g, b);
                         //     }
                         // And "ESC]R" to reset a palette.
-                        usr::shell::ExitCode::CommandSuccessful
+                        Ok(0)
                     } else {
                         error!("Could not parse palette file");
-                        usr::shell::ExitCode::CommandError
+                        Err(1)
                     }
                 } else {
                     error!("Could not read palette file");
-                    usr::shell::ExitCode::CommandError
+                    Err(1)
                 }
             } else {
                 error!("Invalid command");
-                usr::shell::ExitCode::CommandError
+                Err(1)
             }
         }
         _ => {
             error!("Invalid command");
-            usr::shell::ExitCode::CommandError
+            Err(1)
         }
     }
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -67,5 +68,4 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Commands:{}", csi_title, csi_reset);
     println!("  {}set font <file>{}       Set VGA font", csi_option, csi_reset);
     println!("  {}set palette <file>{}    Set VGA color palette", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
 }

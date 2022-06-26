@@ -1,8 +1,8 @@
-use crate::{api, usr};
+use crate::api;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() != 2 {
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     let pathname = args[1];
@@ -19,9 +19,9 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     if let Some(handle) = res {
         api::syscall::close(handle);
-        usr::shell::ExitCode::CommandSuccessful
+        Ok(0)
     } else {
         error!("Could not write to '{}'", pathname);
-        usr::shell::ExitCode::CommandError
+        Err(1)
     }
 }

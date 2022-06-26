@@ -1,7 +1,6 @@
-use crate::usr;
 use crate::api::console::Style;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() > 1 {
         help_command(args[1])
     } else {
@@ -9,7 +8,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
-fn help_command(cmd: &str) -> usr::shell::ExitCode {
+fn help_command(cmd: &str) -> Result<usize, usize> {
     match cmd {
         "date" => help_date(),
         "edit" => help_edit(),
@@ -17,12 +16,12 @@ fn help_command(cmd: &str) -> usr::shell::ExitCode {
     }
 }
 
-fn help_unknown(cmd: &str) -> usr::shell::ExitCode {
+fn help_unknown(cmd: &str) -> Result<usize, usize> {
     error!("Help not found for command '{}'", cmd);
-    usr::shell::ExitCode::CommandError
+    Err(1)
 }
 
-fn help_summary() -> usr::shell::ExitCode {
+fn help_summary() -> Result<usize, usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Commands:{}", csi_color, csi_reset);
@@ -47,10 +46,10 @@ fn help_summary() -> usr::shell::ExitCode {
     println!();
     println!("{}Credits:{}", csi_color, csi_reset);
     println!("  Made with <3 in 2019-2022 by Vincent Ollivier <v@vinc.cc>");
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn help_edit() -> usr::shell::ExitCode {
+fn help_edit() -> Result<usize, usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range");
@@ -71,10 +70,10 @@ fn help_edit() -> usr::shell::ExitCode {
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, shortcut, csi_reset, usage);
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-fn help_date() -> usr::shell::ExitCode {
+fn help_date() -> Result<usize, usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("The date command's formatting behavior is based on strftime in C");
@@ -119,5 +118,5 @@ fn help_date() -> usr::shell::ExitCode {
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }

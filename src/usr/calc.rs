@@ -1,4 +1,3 @@
-use crate::usr;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
 
@@ -106,7 +105,7 @@ fn parse_eval(line: &str) -> Result<f64, String> {
     }
 }
 
-fn repl() -> usr::shell::ExitCode {
+fn repl() -> Result<usize, usize> {
     println!("MOROS Calc v0.1.0\n");
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
@@ -139,21 +138,21 @@ fn repl() -> usr::shell::ExitCode {
         prompt.history.add(&line);
         prompt.history.save(history_file);
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() == 1 {
         repl()
     } else {
         match parse_eval(&args[1..].join(" ")) {
             Ok(res) => {
                 println!("{}", res);
-                usr::shell::ExitCode::CommandSuccessful
+                Ok(0)
             }
             Err(msg) => {
                 error!("{}", msg);
-                usr::shell::ExitCode::CommandError
+                Err(1)
             }
         }
     }

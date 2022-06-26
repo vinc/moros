@@ -1,4 +1,4 @@
-use crate::{sys, usr};
+use crate::sys;
 use crate::api::{console, fs, io};
 use crate::api::console::Style;
 use alloc::format;
@@ -6,9 +6,9 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() != 2 {
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     let pathname = args[1];
@@ -56,7 +56,7 @@ impl Editor {
         Self { pathname, lines, cursor, offset, config }
     }
 
-    pub fn save(&mut self) -> usr::shell::ExitCode {
+    pub fn save(&mut self) -> Result<usize, usize> {
         let mut contents = String::new();
         let n = self.lines.len();
         for i in 0..n {
@@ -69,11 +69,11 @@ impl Editor {
         if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(0)
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
             self.print_status(&status, "LightRed");
-            usr::shell::ExitCode::CommandError
+            Err(1)
         }
     }
 
@@ -139,7 +139,7 @@ impl Editor {
         }
     }
 
-    pub fn run(&mut self) -> usr::shell::ExitCode {
+    pub fn run(&mut self) -> Result<usize, usize> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         self.print_editing_status();
@@ -356,7 +356,7 @@ impl Editor {
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
             print!("\x1b[?25h"); // Enable cursor
         }
-        usr::shell::ExitCode::CommandSuccessful
+        Ok(0)
     }
 
     // Move cursor past end of line to end of line or left of the screen

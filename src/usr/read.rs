@@ -8,9 +8,9 @@ use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     if args.len() != 2 {
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     }
 
     let mut path = args[1];
@@ -30,7 +30,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 rtc.year, rtc.month, rtc.day,
                 rtc.hour, rtc.minute, rtc.second
             );
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(0)
         },
         _ => {
             if path.starts_with("/net/") {
@@ -42,7 +42,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let parts: Vec<_> = path.split('/').collect();
                 if parts.len() < 4 {
                     eprintln!("Usage: read /net/http/<host>/<path>");
-                    usr::shell::ExitCode::CommandError
+                    Err(1)
                 } else {
                     match parts[2] {
                         "tcp" => {
@@ -61,7 +61,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         }
                         _ => {
                             error!("Unknown protocol '{}'", parts[2]);
-                            usr::shell::ExitCode::CommandError
+                            Err(1)
                         }
                     }
                 }
@@ -69,10 +69,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 if info.is_file() {
                     if let Ok(contents) = api::fs::read_to_string(path) {
                         print!("{}", contents);
-                        usr::shell::ExitCode::CommandSuccessful
+                        Ok(0)
                     } else {
                         error!("Could not read '{}'", path);
-                        usr::shell::ExitCode::CommandError
+                        Err(1)
                     }
                 } else if info.is_dir() {
                     usr::list::main(args)
@@ -82,18 +82,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     loop {
                         if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
-                            return usr::shell::ExitCode::CommandSuccessful;
+                            return Ok(0);
                         }
                         if let Ok(bytes) = fs::read_to_bytes(path) {
                             if is_char_device && bytes.len() == 1 {
                                 match bytes[0] as char {
                                     console::ETX_KEY => {
                                         println!("^C");
-                                        return usr::shell::ExitCode::CommandSuccessful;
+                                        return Ok(0);
                                     }
                                     console::EOT_KEY => {
                                         println!("^D");
-                                        return usr::shell::ExitCode::CommandSuccessful;
+                                        return Ok(0);
                                     }
                                     _ => {}
                                 }
@@ -101,7 +101,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             if is_float_device {
                                 if bytes.len() == 8 {
                                     println!("{:.6}", f64::from_be_bytes(bytes[0..8].try_into().unwrap()));
-                                    return usr::shell::ExitCode::CommandSuccessful;
+                                    return Ok(0);
                                 }
                             }
                             for b in bytes {
@@ -109,16 +109,16 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                             }
                         } else {
                             error!("Could not read '{}'", path);
-                            return usr::shell::ExitCode::CommandError;
+                            return Err(1);
                         }
                     }
                 } else {
                     error!("Could not read type of '{}'", path);
-                    usr::shell::ExitCode::CommandError
+                    Err(1)
                 }
             } else {
                 error!("File not found '{}'", path);
-                usr::shell::ExitCode::CommandError
+                Err(1)
             }
         }
     }

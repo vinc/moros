@@ -40,7 +40,7 @@ impl URL {
     }
 }
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<usize, usize> {
     let csi_verbose = Style::color("LightBlue");
     let csi_reset = Style::reset();
 
@@ -59,7 +59,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             _ if args[i].starts_with("--") => {
                 error!("Invalid option '{}'", args[i]);
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
             _ if host.is_empty() => {
                 host = args[i]
@@ -69,14 +69,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             _ => {
                 error!("Too many arguments");
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
         }
     }
 
     if host.is_empty() && path.is_empty() {
         error!("Missing URL");
-        return usr::shell::ExitCode::CommandError;
+        return Err(1);
     } else if path.is_empty() {
         if let Some(i) = args[1].find('/') {
             (host, path) = host.split_at(i);
@@ -97,7 +97,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
         }
     };
@@ -119,12 +119,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(1);
             }
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
@@ -144,7 +144,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     if socket.connect(cx, (address, url.port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, url.port);
                         iface.remove_socket(tcp_handle);
-                        return usr::shell::ExitCode::CommandError;
+                        return Err(1);
                     }
                     State::Request
                 }
@@ -208,13 +208,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         iface.remove_socket(tcp_handle);
         println!();
-        usr::shell::ExitCode::CommandSuccessful
+        Ok(0)
     } else {
-        usr::shell::ExitCode::CommandError
+        Err(1)
     }
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() -> Result<usize, usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -222,5 +222,5 @@ fn help() -> usr::shell::ExitCode {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(0)
 }
