@@ -117,7 +117,7 @@ fn repl() -> Result<usize, usize> {
     prompt.history.load(history_file);
 
     while let Some(line) = prompt.input(&prompt_string) {
-        if line == "quit" {
+        if line == "q" || line == "quit" {
             break;
         }
         if line.is_empty() {

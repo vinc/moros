@@ -304,8 +304,8 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<usize, usize> {
 }
 
 fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
-    #[cfg(test)]
-    sys::console::print_fmt(format_args!("")); // FIXME: tests with `print foo => /bar` are failing without that
+    #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
+    sys::console::print_fmt(format_args!(""));
 
     let mut cmd = cmd.to_string();
 
