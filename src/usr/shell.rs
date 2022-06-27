@@ -304,6 +304,9 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<usize, usize> {
 }
 
 fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
+    #[cfg(test)]
+    sys::console::print_fmt(format_args!("")); // FIXME: tests with `print foo => /bar` are failing without that
+
     let mut cmd = cmd.to_string();
 
     // Replace `$key` with its value in the environment or an empty string
