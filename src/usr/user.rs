@@ -2,6 +2,7 @@ use crate::{api, sys, usr};
 use crate::api::fs;
 use crate::api::io;
 use crate::api::random;
+use crate::api::process;
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -36,14 +37,14 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
 
 fn usage() -> Result<(), usize> {
     eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    Err(1)
+    Err(process::EXIT_FAILURE)
 }
 
 // TODO: Add max number of attempts
 pub fn login(username: &str) -> Result<(), usize> {
     if !fs::exists(PASSWORDS) {
         error!("Could not read '{}'", PASSWORDS);
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     if username.is_empty() {
@@ -83,12 +84,12 @@ pub fn login(username: &str) -> Result<(), usize> {
 
 pub fn create(username: &str) -> Result<(), usize> {
     if username.is_empty() {
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     if hashed_password(username).is_some() {
         error!("Username exists");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     print!("Password: ");
@@ -98,7 +99,7 @@ pub fn create(username: &str) -> Result<(), usize> {
     println!();
 
     if password.is_empty() {
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     print!("Confirm: ");
@@ -109,12 +110,12 @@ pub fn create(username: &str) -> Result<(), usize> {
 
     if password != confirm {
         error!("Password confirmation failed");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
         error!("Could not save user");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     // Create home dir
@@ -122,7 +123,7 @@ pub fn create(username: &str) -> Result<(), usize> {
         api::syscall::close(handle);
     } else {
         error!("Could not create home dir");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     Ok(())

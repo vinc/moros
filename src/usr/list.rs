@@ -2,6 +2,7 @@ use crate::sys;
 use crate::api::console::Style;
 use crate::api::time;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::syscall;
 use crate::api::fs::FileInfo;
 
@@ -44,7 +45,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     "time" => files.sort_by_key(|f| f.time()),
                     _ => {
                         error!("Invalid sort key '{}'", sort);
-                        return Err(1);
+                        return Err(process::EXIT_FAILURE);
                     }
                 }
 
@@ -61,7 +62,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                 Ok(())
             } else {
                 error!("Could not read directory '{}'", path);
-                Err(1)
+                Err(process::EXIT_FAILURE)
             }
         } else {
             print_file(&info, info.size().to_string().len());
@@ -69,7 +70,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
     } else {
         error!("Could not find file or directory '{}'", path);
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }
 

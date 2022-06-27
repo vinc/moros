@@ -1,6 +1,7 @@
 use crate::{api, sys, usr};
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::prompt::Prompt;
 use crate::api::regex::Regex;
 use crate::api::syscall;
@@ -208,12 +209,12 @@ fn cmd_proc(args: &[&str]) -> Result<(), usize> {
                     Ok(())
                 }
                 _ => {
-                    Err(1)
+                    Err(process::EXIT_FAILURE)
                 }
             }
         },
         _ => {
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }
@@ -235,11 +236,11 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), usize> {
                 Ok(())
             } else {
                 error!("File not found '{}'", pathname);
-                Err(1)
+                Err(process::EXIT_FAILURE)
             }
         },
         _ => {
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }
@@ -250,7 +251,7 @@ fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), usize> {
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
     config.aliases.insert(args[1].to_string(), args[2].to_string());
     Ok(())
@@ -262,12 +263,12 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), usize> {
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     if config.aliases.remove(&args[1].to_string()).is_none() {
         error!("Error: could not unalias '{}'", args[1]);
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     Ok(())
@@ -279,7 +280,7 @@ fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), usize> {
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     config.env.insert(args[1].to_string(), args[2].to_string());
@@ -292,12 +293,12 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), usize> {
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     if config.env.remove(&args[1].to_string()).is_none() {
         error!("Error: could not unset '{}'", args[1]);
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     Ok(())
@@ -367,19 +368,19 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), usize> {
             is_redirected = true;
             if i == n - 1 {
                 println!("Could not parse path for redirection");
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             let path = args[i + 1];
             if api::fs::reopen(path, left_handle).is_err() {
                 println!("Could not open path for redirection");
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             args.remove(i); // Remove redirection from args
             args.remove(i); // Remove path from args
             n -= 2;
         } else if is_thin_arrow { // TODO: Implement pipes
             println!("Could not parse arrow");
-            return Err(1);
+            return Err(process::EXIT_FAILURE);
         }
     }
 
@@ -463,18 +464,18 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), usize> {
 }
 
 fn spawn(path: &str, args: &[&str]) -> Result<(), usize> {
-    match api::process::spawn(&path, &args) {
-        Err(api::process::EXEC_ERROR) => {
+    match process::spawn(&path, &args) {
+        Err(process::EXIT_EXEC_ERROR) => {
             error!("Could not execute '{}'", args[0]);
-            Err(api::process::EXEC_ERROR)
+            Err(process::EXIT_EXEC_ERROR)
         }
-        Err(api::process::READ_ERROR) => {
+        Err(process::EXIT_READ_ERROR) => {
             error!("Could not read '{}'", args[0]);
-            Err(api::process::READ_ERROR)
+            Err(process::EXIT_READ_ERROR)
         }
-        Err(api::process::OPEN_ERROR) => {
+        Err(process::EXIT_OPEN_ERROR) => {
             error!("Could not open '{}'", args[0]);
-            Err(api::process::OPEN_ERROR)
+            Err(process::EXIT_OPEN_ERROR)
         }
         Err(code) => {
             Err(code)
@@ -547,7 +548,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             Ok(())
         } else {
             println!("File not found '{}'", pathname);
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }

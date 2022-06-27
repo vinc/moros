@@ -1,5 +1,5 @@
-use crate::sys;
 use crate::api::console::Style;
+use crate::sys;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 {

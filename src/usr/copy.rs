@@ -1,9 +1,10 @@
 use crate::api::fs;
+use crate::api::process;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 3 {
         eprintln!("Usage: copy <source> <dest>");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     let source = args[1];
@@ -14,10 +15,10 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             Ok(())
         } else {
             error!("Could not write to '{}'", dest);
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     } else {
         error!("File not found '{}'", source);
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }

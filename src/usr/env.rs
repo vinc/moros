@@ -1,3 +1,4 @@
+use crate::api::process;
 use crate::sys;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
@@ -15,7 +16,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                 Ok(())
             } else {
                 error!("Could not get '{}'", key);
-                Err(1)
+                Err(process::EXIT_FAILURE)
             }
         }
         3 => {
@@ -24,7 +25,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         _ => {
             error!("Invalid number of arguments");
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }

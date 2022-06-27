@@ -1,6 +1,7 @@
-use crate::sys;
 use crate::api::console::Style;
 use crate::api::io;
+use crate::api::process;
+use crate::sys;
 use crate::sys::ata::Drive;
 
 use alloc::format;
@@ -43,7 +44,7 @@ fn format(pathname: &str) -> Result<(), usize> {
         }
         Err(msg) => {
             error!("{}", msg);
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }
@@ -63,7 +64,7 @@ fn erase(pathname: &str) -> Result<(), usize> {
                         if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
                             print!("\x1b[?25h"); // Enable cursor
-                            return Err(1);
+                            return Err(process::EXIT_FAILURE);
                         }
                         print!("\x1b[2K\x1b[1G");
                         print!("Erasing block {}/{}", i, n);
@@ -78,7 +79,7 @@ fn erase(pathname: &str) -> Result<(), usize> {
         }
         Err(msg) => {
             error!("{}", msg);
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }

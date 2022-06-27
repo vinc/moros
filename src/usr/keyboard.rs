@@ -1,23 +1,24 @@
 use crate::sys;
 use crate::api::console::Style;
+use crate::api::process;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 {
         help();
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
     match args[1] {
         "set" => {
             if args.len() == 2 {
                 error!("Keyboard layout missing");
-                Err(1)
+                Err(process::EXIT_FAILURE)
             } else {
                 let layout = args[2];
                 if sys::keyboard::set_keyboard(layout) {
                     Ok(())
                 } else {
                     error!("Unknown keyboard layout");
-                    Err(1)
+                    Err(process::EXIT_FAILURE)
                 }
             }
         }
@@ -27,7 +28,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         _ => {
             error!("Invalid command");
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }

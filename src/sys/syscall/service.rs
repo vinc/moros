@@ -83,7 +83,7 @@ pub fn close(handle: usize) {
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> usize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
-        Err(_) => return api::process::OPEN_ERROR,
+        Err(_) => return api::process::EXIT_OPEN_ERROR,
     };
     if let Some(mut file) = sys::fs::File::open(&path) {
         let mut buf = vec![0; file.size()];
@@ -95,10 +95,10 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> usize {
                 0
             }
         } else {
-            api::process::READ_ERROR
+            api::process::EXIT_READ_ERROR
         }
     } else {
-        api::process::OPEN_ERROR
+        api::process::EXIT_OPEN_ERROR
     }
 }
 

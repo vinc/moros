@@ -3,6 +3,7 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::fs::DeviceType;
 use crate::api::io;
+use crate::api::process;
 use crate::api::syscall;
 
 use alloc::format;
@@ -90,7 +91,7 @@ pub fn main(_args: &[&str]) -> Result<(), usize> {
             println!();
             println!("{}Creating user...{}", csi_color, csi_reset);
             let res = usr::user::main(&["user", "create"]);
-            if res == Err(1) {
+            if res == Err(process::EXIT_FAILURE) {
                 return res;
             }
         }

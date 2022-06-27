@@ -2,6 +2,7 @@ use crate::{api, sys, usr};
 use crate::api::console;
 use crate::api::fs;
 use crate::api::syscall;
+use crate::api::process;
 use crate::sys::cmos::CMOS;
 
 use alloc::borrow::ToOwned;
@@ -10,7 +11,7 @@ use core::convert::TryInto;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     let mut path = args[1];
@@ -42,7 +43,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                 let parts: Vec<_> = path.split('/').collect();
                 if parts.len() < 4 {
                     eprintln!("Usage: read /net/http/<host>/<path>");
-                    Err(1)
+                    Err(process::EXIT_FAILURE)
                 } else {
                     match parts[2] {
                         "tcp" => {
@@ -61,7 +62,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         }
                         _ => {
                             error!("Unknown protocol '{}'", parts[2]);
-                            Err(1)
+                            Err(process::EXIT_FAILURE)
                         }
                     }
                 }
@@ -72,7 +73,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         Ok(())
                     } else {
                         error!("Could not read '{}'", path);
-                        Err(1)
+                        Err(process::EXIT_FAILURE)
                     }
                 } else if info.is_dir() {
                     usr::list::main(args)
@@ -109,16 +110,16 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                             }
                         } else {
                             error!("Could not read '{}'", path);
-                            return Err(1);
+                            return Err(process::EXIT_FAILURE);
                         }
                     }
                 } else {
                     error!("Could not read type of '{}'", path);
-                    Err(1)
+                    Err(process::EXIT_FAILURE)
                 }
             } else {
                 error!("File not found '{}'", path);
-                Err(1)
+                Err(process::EXIT_FAILURE)
             }
         }
     }

@@ -1,6 +1,7 @@
 use crate::{api, usr};
 use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::process;
 use crate::api::prompt::Prompt;
 
 use alloc::collections::BTreeMap;
@@ -712,7 +713,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
     if eval_label_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     if args.len() < 2 {
@@ -736,7 +737,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                                     eprintln!("{}Error:{} {}", error_color, reset, msg);
                                     eprintln!();
                                     eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                    return Err(1);
+                                    return Err(process::EXIT_FAILURE);
                                 }
                             }
                         }
@@ -749,7 +750,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             Ok(())
         } else {
             error!("File not found '{}'", pathname);
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }

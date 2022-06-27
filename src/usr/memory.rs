@@ -1,5 +1,7 @@
 use crate::sys;
 use crate::api::console::Style;
+use crate::api::process;
+
 use alloc::string::ToString;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
@@ -14,7 +16,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         Ok(())
     } else {
         help();
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }
 

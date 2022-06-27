@@ -1,6 +1,8 @@
 use crate::sys;
 use crate::api::{console, fs, io};
 use crate::api::console::Style;
+use crate::api::process;
+
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -8,7 +10,7 @@ use core::cmp;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     let pathname = args[1];
@@ -73,7 +75,7 @@ impl Editor {
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
             self.print_status(&status, "LightRed");
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 

@@ -1,4 +1,5 @@
 use crate::{api, sys};
+use crate::api::process;
 use crate::api::console::Style;
 
 use x86_64::instructions::port::Port;
@@ -47,12 +48,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         freq = value;
                     } else {
                         error!("Could not parse freq");
-                        return Err(1);
+                        return Err(process::EXIT_FAILURE);
                     }
                     i += 1;
                 } else {
                     error!("Missing freq");
-                    return Err(1);
+                    return Err(process::EXIT_FAILURE);
                 }
             },
             "-l" | "--len" => {
@@ -61,12 +62,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         len = value;
                     } else {
                         error!("Could not parse len");
-                        return Err(1);
+                        return Err(process::EXIT_FAILURE);
                     }
                     i += 1;
                 } else {
                     error!("Missing len");
-                    return Err(1);
+                    return Err(process::EXIT_FAILURE);
                 }
             },
             _ => {},

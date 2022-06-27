@@ -1,5 +1,6 @@
 use crate::api::console::Style;
 use crate::api::{io, random, console};
+
 use core::fmt;
 use alloc::format;
 use alloc::string::ToString;

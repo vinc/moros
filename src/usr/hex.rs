@@ -1,10 +1,11 @@
 use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::process;
 
 // TODO: add `--skip` and `--length` params
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
     let pathname = args[1];
     if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
@@ -12,7 +13,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         Ok(())
     } else {
         error!("File not found '{}'", pathname);
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }
 

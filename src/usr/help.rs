@@ -1,4 +1,5 @@
 use crate::api::console::Style;
+use crate::api::process;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() > 1 {
@@ -18,7 +19,7 @@ fn help_command(cmd: &str) -> Result<(), usize> {
 
 fn help_unknown(cmd: &str) -> Result<(), usize> {
     error!("Help not found for command '{}'", cmd);
-    Err(1)
+    Err(process::EXIT_FAILURE)
 }
 
 fn help_summary() -> Result<(), usize> {

@@ -1,4 +1,5 @@
 use crate::api;
+use crate::api::process;
 use time::validate_format_string;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
@@ -10,7 +11,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         Err(e) => {
             error!("{}", e);
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }

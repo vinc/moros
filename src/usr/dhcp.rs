@@ -1,5 +1,6 @@
 use crate::{sys, usr, debug};
 use crate::api::clock;
+use crate::api::process;
 use crate::api::syscall;
 
 use alloc::format;
@@ -33,12 +34,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(dhcp_handle);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(dhcp_handle);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
 
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
@@ -67,7 +68,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
     } else {
         error!("Network Error");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     if let Some(config) = dhcp_config {
@@ -91,5 +92,5 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         return Ok(());
     }
 
-    Err(1)
+    Err(process::EXIT_FAILURE)
 }

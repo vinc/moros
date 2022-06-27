@@ -1,5 +1,6 @@
 use crate::sys;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::regex::Regex;
 use crate::api::console::Style;
 
@@ -40,7 +41,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     i += 1;
                 } else {
                     error!("Missing name");
-                    return Err(1);
+                    return Err(process::EXIT_FAILURE);
                 }
             },
             "-l" | "--line" => {
@@ -49,7 +50,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     i += 1;
                 } else {
                     error!("Missing line");
-                    return Err(1);
+                    return Err(process::EXIT_FAILURE);
                 }
             },
             _ => path = args[i],
@@ -63,7 +64,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
 
     if name.is_some() { // TODO
         error!("`--name` is not implemented");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     let mut state = PrintingState::new();

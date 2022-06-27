@@ -1,8 +1,10 @@
-use crate::api;
+use crate::api::fs;
+use crate::api::process;
+use crate::api::syscall;
 
 pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     let pathname = args[1];
@@ -12,16 +14,16 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     // create a file.
     let res = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
-        api::fs::create_dir(pathname)
+        fs::create_dir(pathname)
     } else {
-        api::fs::create_file(pathname)
+        fs::create_file(pathname)
     };
 
     if let Some(handle) = res {
-        api::syscall::close(handle);
+        syscall::close(handle);
         Ok(())
     } else {
         error!("Could not write to '{}'", pathname);
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }

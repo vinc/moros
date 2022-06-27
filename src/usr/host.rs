@@ -1,8 +1,9 @@
 use crate::{sys, usr};
 use crate::api::clock;
 use crate::api::console::Style;
-use crate::api::syscall;
+use crate::api::process;
 use crate::api::random;
+use crate::api::syscall;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -229,7 +230,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     // TODO: Add `--server <address>` option
     if args.len() != 2 {
         help();
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
     let domain = args[1];
     match resolve(domain) {
@@ -239,7 +240,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         Err(e) => {
             error!("Could not resolve host: {:?}", e);
-            Err(1)
+            Err(process::EXIT_FAILURE)
         }
     }
 }

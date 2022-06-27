@@ -258,7 +258,7 @@ impl Process {
             proc.exec(args_ptr, args_len);
             Ok(())
         } else {
-            Err(api::process::EXEC_ERROR)
+            Err(api::process::EXIT_EXEC_ERROR)
         }
     }
 

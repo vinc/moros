@@ -2,6 +2,7 @@ use crate::sys;
 use crate::api::clock;
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::syscall;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
@@ -182,7 +183,7 @@ pub fn main(_args: &[&str]) -> Result<(), usize> {
         }
     } else {
         error!("Could not find network interface");
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }
 

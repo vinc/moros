@@ -1,6 +1,7 @@
 use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::clock;
+use crate::api::process;
 use crate::api::random;
 use crate::api::syscall;
 use alloc::string::{String, ToString};
@@ -59,7 +60,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             }
             _ if args[i].starts_with("--") => {
                 error!("Invalid option '{}'", args[i]);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             _ if host.is_empty() => {
                 host = args[i]
@@ -69,14 +70,14 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             }
             _ => {
                 error!("Too many arguments");
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
         }
     }
 
     if host.is_empty() && path.is_empty() {
         error!("Missing URL");
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     } else if path.is_empty() {
         if let Some(i) = args[1].find('/') {
             (host, path) = host.split_at(i);
@@ -97,7 +98,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             }
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
         }
     };
@@ -119,12 +120,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
@@ -144,7 +145,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     if socket.connect(cx, (address, url.port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, url.port);
                         iface.remove_socket(tcp_handle);
-                        return Err(1);
+                        return Err(process::EXIT_FAILURE);
                     }
                     State::Request
                 }
@@ -210,7 +211,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         println!();
         Ok(())
     } else {
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }
 

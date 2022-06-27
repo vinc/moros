@@ -1,8 +1,9 @@
 use crate::{sys, usr, debug};
 use crate::api::console::Style;
 use crate::api::clock;
-use crate::api::syscall;
+use crate::api::process;
 use crate::api::random;
+use crate::api::syscall;
 
 use alloc::string::String;
 use alloc::vec;
@@ -38,7 +39,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
 
     if args.len() != 3 {
         help();
-        return Err(1);
+        return Err(process::EXIT_FAILURE);
     }
 
     let host = &args[1];
@@ -54,7 +55,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             }
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
         }
     };
@@ -75,12 +76,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
-                return Err(1);
+                return Err(process::EXIT_FAILURE);
             }
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
@@ -97,7 +98,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     }
                     if socket.connect(cx, (address, port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, port);
-                        return Err(1);
+                        return Err(process::EXIT_FAILURE);
                     }
                     State::Request
                 }
@@ -130,7 +131,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         iface.remove_socket(tcp_handle);
         Ok(())
     } else {
-        Err(1)
+        Err(process::EXIT_FAILURE)
     }
 }
 

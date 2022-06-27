@@ -8,14 +8,12 @@ macro_rules! entry_point {
             loop {}
         }
 
-        // TODO: Add `exit` function and change main return type to void
-
         #[export_name = "_start"]
         pub unsafe extern "sysv64" fn __impl_start(args_ptr: u64, args_len: usize) {
             let args = core::slice::from_raw_parts(args_ptr as *const _, args_len);
-            let f: fn(&[&str]) -> usize = $path;
-            let code = f(args);
-            $crate::api::syscall::exit(code);
+            let f: fn(&[&str]) = $path;
+            f(args);
+            $crate::api::syscall::exit(0);
         }
     };
 }

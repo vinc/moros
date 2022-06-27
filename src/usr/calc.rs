@@ -1,3 +1,4 @@
+use crate::api::process;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
 
@@ -152,7 +153,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             }
             Err(msg) => {
                 error!("{}", msg);
-                Err(1)
+                Err(process::EXIT_FAILURE)
             }
         }
     }
