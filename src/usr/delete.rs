@@ -1,7 +1,7 @@
 use crate::api::syscall;
 use crate::api::fs;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() < 2 {
         return Err(1);
     }
@@ -32,5 +32,5 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
             return Err(1);
         }
     }
-    Ok(0)
+    Ok(())
 }

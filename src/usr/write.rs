@@ -1,6 +1,6 @@
 use crate::api;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
         return Err(1);
     }
@@ -19,7 +19,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
 
     if let Some(handle) = res {
         api::syscall::close(handle);
-        Ok(0)
+        Ok(())
     } else {
         error!("Could not write to '{}'", pathname);
         Err(1)

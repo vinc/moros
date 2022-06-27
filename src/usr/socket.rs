@@ -14,7 +14,7 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer, TcpState};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let mut listen = false;
     let mut prompt = false;
     let mut verbose = false;
@@ -216,7 +216,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
             }
         }
         iface.remove_socket(tcp_handle);
-        Ok(0)
+        Ok(())
     } else {
         Err(1)
     }

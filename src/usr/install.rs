@@ -60,7 +60,7 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"), verbose);
 }
 
-pub fn main(_args: &[&str]) -> Result<usize, usize> {
+pub fn main(_args: &[&str]) -> Result<(), usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Welcome to MOROS v{} installation program!{}", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
@@ -101,7 +101,7 @@ pub fn main(_args: &[&str]) -> Result<usize, usize> {
         println!("Exit console or reboot to apply changes");
     }
 
-    Ok(0)
+    Ok(())
 }
 
 fn create_dir(pathname: &str, verbose: bool) {

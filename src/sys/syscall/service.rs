@@ -5,7 +5,7 @@ use crate::sys::process::Process;
 use alloc::vec;
 use core::arch::asm;
 
-pub fn exit(code: isize) -> isize {
+pub fn exit(code: usize) -> usize {
     sys::process::exit();
     code
 }
@@ -80,25 +80,25 @@ pub fn close(handle: usize) {
     sys::process::delete_file_handle(handle);
 }
 
-pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> isize {
+pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> usize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
-        Err(_) => return -(api::process::OPEN_ERROR as isize),
+        Err(_) => return api::process::OPEN_ERROR,
     };
     if let Some(mut file) = sys::fs::File::open(&path) {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if let Ok(res) = Process::spawn(&buf, args_ptr, args_len) {
-                res
+            if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
+                code
             } else {
-                -(api::process::EXEC_ERROR as isize)
+                0
             }
         } else {
-            -(api::process::READ_ERROR as isize)
+            api::process::READ_ERROR
         }
     } else {
-        -(api::process::OPEN_ERROR as isize)
+        api::process::OPEN_ERROR
     }
 }
 

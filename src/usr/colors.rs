@@ -1,6 +1,6 @@
 use alloc::format;
 
-pub fn main(_args: &[&str]) -> Result<usize, usize> {
+pub fn main(_args: &[&str]) -> Result<(), usize> {
     let csi_reset = "\x1b[0m";
 
     for i in 30..38 {
@@ -24,5 +24,5 @@ pub fn main(_args: &[&str]) -> Result<usize, usize> {
     }
     println!();
 
-    Ok(0)
+    Ok(())
 }

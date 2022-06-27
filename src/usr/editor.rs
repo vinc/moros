@@ -6,7 +6,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
         return Err(1);
     }
@@ -56,7 +56,7 @@ impl Editor {
         Self { pathname, lines, cursor, offset, config }
     }
 
-    pub fn save(&mut self) -> Result<usize, usize> {
+    pub fn save(&mut self) -> Result<(), usize> {
         let mut contents = String::new();
         let n = self.lines.len();
         for i in 0..n {
@@ -69,7 +69,7 @@ impl Editor {
         if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "Yellow");
-            Ok(0)
+            Ok(())
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
             self.print_status(&status, "LightRed");
@@ -139,7 +139,7 @@ impl Editor {
         }
     }
 
-    pub fn run(&mut self) -> Result<usize, usize> {
+    pub fn run(&mut self) -> Result<(), usize> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         self.print_editing_status();
@@ -356,7 +356,7 @@ impl Editor {
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
             print!("\x1b[?25h"); // Enable cursor
         }
-        Ok(0)
+        Ok(())
     }
 
     // Move cursor past end of line to end of line or left of the screen

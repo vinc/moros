@@ -12,7 +12,7 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let mut verbose = false;
     let mut args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
@@ -128,7 +128,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
             }
         }
         iface.remove_socket(tcp_handle);
-        Ok(0)
+        Ok(())
     } else {
         Err(1)
     }

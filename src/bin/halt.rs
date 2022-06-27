@@ -6,7 +6,7 @@ use moros::entry_point;
 
 entry_point!(main);
 
-fn main(_args: &[&str]) -> isize {
+fn main(_args: &[&str]) -> usize {
     syscall::write(1, b"\x1b[93m"); // Yellow
     syscall::write(1, b"MOROS has reached its fate, the system is now halting.\n");
     syscall::write(1, b"\x1b[0m"); // Reset

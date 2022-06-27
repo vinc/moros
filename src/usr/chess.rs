@@ -286,8 +286,8 @@ fn is_move(m: &str) -> bool {
     false
 }
 
-pub fn main(_args: &[&str]) -> Result<usize, usize> {
+pub fn main(_args: &[&str]) -> Result<(), usize> {
     let mut chess = Chess::new();
     chess.play();
-    Ok(0)
+    Ok(())
 }

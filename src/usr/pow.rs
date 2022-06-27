@@ -11,11 +11,11 @@ struct Game {
     board: [usize; 16],
 }
 
-pub fn main(_args: &[&str]) -> Result<usize, usize> {
+pub fn main(_args: &[&str]) -> Result<(), usize> {
     print!("\x1b[?25l"); // Disable cursor
     Game::new().run();
     print!("\x1b[?25h"); // Enable cursor
-    Ok(0)
+    Ok(())
 }
 
 impl Game {

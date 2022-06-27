@@ -105,7 +105,7 @@ fn parse_eval(line: &str) -> Result<f64, String> {
     }
 }
 
-fn repl() -> Result<usize, usize> {
+fn repl() -> Result<(), usize> {
     println!("MOROS Calc v0.1.0\n");
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
@@ -138,17 +138,17 @@ fn repl() -> Result<usize, usize> {
         prompt.history.add(&line);
         prompt.history.save(history_file);
     }
-    Ok(0)
+    Ok(())
 }
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 {
         repl()
     } else {
         match parse_eval(&args[1..].join(" ")) {
             Ok(res) => {
                 println!("{}", res);
-                Ok(0)
+                Ok(())
             }
             Err(msg) => {
                 error!("{}", msg);

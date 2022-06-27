@@ -2,14 +2,14 @@ use crate::api::fs;
 use crate::api::console::Style;
 
 // TODO: add `--skip` and `--length` params
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
         return Err(1);
     }
     let pathname = args[1];
     if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
         print_hex(&buf);
-        Ok(0)
+        Ok(())
     } else {
         error!("File not found '{}'", pathname);
         Err(1)

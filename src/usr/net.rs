@@ -16,7 +16,7 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 {
         help();
         return Err(1);
@@ -25,7 +25,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     match args[1] {
         "-h" | "--help" => {
             help();
-            return Ok(0);
+            return Ok(());
         }
         "config" => {
             if args.len() < 3 {
@@ -35,7 +35,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                 print_config("dns");
             } else if args[2] == "-h" || args[2] == "--help" {
                 help_config();
-                return Ok(0);
+                return Ok(());
             } else if args.len() < 4 {
                 print_config(args[2]);
             } else {
@@ -67,7 +67,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                     if sys::console::end_of_text() || sys::console::end_of_transmission() {
                         println!();
                         iface.remove_socket(tcp_handle);
-                        return Ok(0);
+                        return Ok(());
                     }
                     syscall::sleep(0.1);
 
@@ -95,7 +95,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
             return Err(1);
         }
     }
-    Ok(0)
+    Ok(())
 }
 
 fn help() {

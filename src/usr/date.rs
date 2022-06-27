@@ -1,12 +1,12 @@
 use crate::api;
 use time::validate_format_string;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let format = if args.len() > 1 { args[1] } else { "%F %H:%M:%S" };
     match validate_format_string(format) {
         Ok(()) => {
             println!("{}", api::time::now().format(format));
-            Ok(0)
+            Ok(())
         }
         Err(e) => {
             error!("{}", e);

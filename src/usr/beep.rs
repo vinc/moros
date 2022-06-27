@@ -31,7 +31,7 @@ fn beep(freq: f64, len: f64) {
     stop_sound();
 }
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let mut freq = 440.0;
     let mut len = 200.0;
     let mut i = 1;
@@ -75,10 +75,10 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     }
 
     beep(freq, len / 1000.0);
-    Ok(0)
+    Ok(())
 }
 
-fn help() -> Result<usize, usize> {
+fn help() -> Result<(), usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -87,5 +87,5 @@ fn help() -> Result<usize, usize> {
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-f{1},{0} --freq <hertz>{1}          Tone frequency", csi_option, csi_reset);
     println!("  {0}-l{1},{0} --len <milliseconds>{1}    Tone length", csi_option, csi_reset);
-    Ok(0)
+    Ok(())
 }

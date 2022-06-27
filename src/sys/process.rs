@@ -1,3 +1,4 @@
+use crate::api;
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
 
@@ -248,15 +249,16 @@ impl Process {
         }
     }
 
-    pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<isize, ()> {
+    pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<(), usize> {
         if let Ok(pid) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
                 table[pid].clone()
             };
-            Ok(proc.exec(args_ptr, args_len))
+            proc.exec(args_ptr, args_len);
+            Ok(())
         } else {
-            Err(())
+            Err(api::process::EXEC_ERROR)
         }
     }
 
@@ -304,7 +306,7 @@ impl Process {
     }
 
     // Switch to user mode and execute the program
-    fn exec(&self, args_ptr: usize, args_len: usize) -> isize {
+    fn exec(&self, args_ptr: usize, args_len: usize) {
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
         sys::allocator::alloc_pages(heap_addr, 1);
 
@@ -349,6 +351,5 @@ impl Process {
                 in("rsi") args_len,
             );
         }
-        unreachable!();
     }
 }

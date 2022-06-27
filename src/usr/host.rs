@@ -225,7 +225,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     }
 }
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     // TODO: Add `--server <address>` option
     if args.len() != 2 {
         help();
@@ -235,7 +235,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     match resolve(domain) {
         Ok(addr) => {
             println!("{} has address {}", domain, addr);
-            Ok(0)
+            Ok(())
         }
         Err(e) => {
             error!("Could not resolve host: {:?}", e);

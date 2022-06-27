@@ -15,7 +15,7 @@ use sha2::Sha256;
 const PASSWORDS: &str = "/ini/passwords.csv";
 const COMMANDS: [&str; 2] = ["create", "login"];
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
         return usage();
     }
@@ -34,13 +34,13 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     }
 }
 
-fn usage() -> Result<usize, usize> {
+fn usage() -> Result<(), usize> {
     eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
     Err(1)
 }
 
 // TODO: Add max number of attempts
-pub fn login(username: &str) -> Result<usize, usize> {
+pub fn login(username: &str) -> Result<(), usize> {
     if !fs::exists(PASSWORDS) {
         error!("Could not read '{}'", PASSWORDS);
         return Err(1);
@@ -78,10 +78,10 @@ pub fn login(username: &str) -> Result<usize, usize> {
     sys::process::set_dir(&home);
 
     // TODO: load shell
-    Ok(0)
+    Ok(())
 }
 
-pub fn create(username: &str) -> Result<usize, usize> {
+pub fn create(username: &str) -> Result<(), usize> {
     if username.is_empty() {
         return Err(1);
     }
@@ -125,7 +125,7 @@ pub fn create(username: &str) -> Result<usize, usize> {
         return Err(1);
     }
 
-    Ok(0)
+    Ok(())
 }
 
 pub fn check(password: &str, hashed_password: &str) -> bool {

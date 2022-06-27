@@ -1,7 +1,7 @@
 use crate::sys;
 use crate::api::console::Style;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 {
         return list(false);
     }
@@ -17,7 +17,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     }
 }
 
-fn list(verbose: bool) -> Result<usize, usize> {
+fn list(verbose: bool) -> Result<(), usize> {
     let color1 = Style::color("Blue");
     let color2 = Style::color("LightBlue");
     let reset = Style::reset();
@@ -37,10 +37,10 @@ fn list(verbose: bool) -> Result<usize, usize> {
             println!();
         }
     }
-    Ok(0)
+    Ok(())
 }
 
-fn help() -> Result<usize, usize> {
+fn help() -> Result<(), usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -51,5 +51,5 @@ fn help() -> Result<usize, usize> {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
-    Ok(0)
+    Ok(())
 }

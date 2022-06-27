@@ -13,7 +13,7 @@ use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
-pub fn main(_args: &[&str]) -> Result<usize, usize> {
+pub fn main(_args: &[&str]) -> Result<(), usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     let port = 80;
@@ -32,7 +32,7 @@ pub fn main(_args: &[&str]) -> Result<usize, usize> {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 iface.remove_socket(tcp_handle);
                 println!();
-                return Ok(0);
+                return Ok(());
             }
 
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);

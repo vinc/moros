@@ -40,7 +40,7 @@ impl URL {
     }
 }
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let csi_verbose = Style::color("LightBlue");
     let csi_reset = Style::reset();
 
@@ -208,13 +208,13 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
         }
         iface.remove_socket(tcp_handle);
         println!();
-        Ok(0)
+        Ok(())
     } else {
         Err(1)
     }
 }
 
-fn help() -> Result<usize, usize> {
+fn help() -> Result<(), usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -222,5 +222,5 @@ fn help() -> Result<usize, usize> {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
-    Ok(0)
+    Ok(())
 }

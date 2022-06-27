@@ -295,8 +295,8 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
         match usr::shell::exec(&cmd) {
-            Ok(res) => Ok(Exp::Num(res as f64)),
-            Err(res) => Ok(Exp::Num(-(res as isize) as f64)),
+            Ok(()) => Ok(Exp::Num(0.0)),
+            Err(code) => Ok(Exp::Num(code as f64)),
         }
     }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
@@ -660,7 +660,7 @@ fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
 }
 
-fn repl(env: &mut Rc<RefCell<Env>>) -> Result<usize, usize> {
+fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), usize> {
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
@@ -692,10 +692,10 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<usize, usize> {
         prompt.history.add(&line);
         prompt.history.save(history_file);
     }
-    Ok(0)
+    Ok(())
 }
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let line_color = Style::color("Yellow");
     let error_color = Style::color("LightRed");
     let reset = Style::reset();
@@ -746,7 +746,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                     }
                 }
             }
-            Ok(0)
+            Ok(())
         } else {
             error!("File not found '{}'", pathname);
             Err(1)

@@ -3,7 +3,7 @@ use crate::api::fs;
 use crate::usr;
 use object::{Object, ObjectSection};
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
         return Err(1);
     }
@@ -31,7 +31,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                     }
                 }
             }
-            Ok(0)
+            Ok(())
         } else {
             println!("Could not parse ELF");
             Err(1)

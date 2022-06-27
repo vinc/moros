@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let mut verbose = false;
     let dhcp_config;
 
@@ -88,7 +88,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
         }
         usr::shell::exec("net config dns").ok();
 
-        return Ok(0);
+        return Ok(());
     }
 
     Err(1)

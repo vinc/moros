@@ -1,6 +1,6 @@
 use crate::api::console::Style;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() > 1 {
         help_command(args[1])
     } else {
@@ -8,7 +8,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     }
 }
 
-fn help_command(cmd: &str) -> Result<usize, usize> {
+fn help_command(cmd: &str) -> Result<(), usize> {
     match cmd {
         "date" => help_date(),
         "edit" => help_edit(),
@@ -16,12 +16,12 @@ fn help_command(cmd: &str) -> Result<usize, usize> {
     }
 }
 
-fn help_unknown(cmd: &str) -> Result<usize, usize> {
+fn help_unknown(cmd: &str) -> Result<(), usize> {
     error!("Help not found for command '{}'", cmd);
     Err(1)
 }
 
-fn help_summary() -> Result<usize, usize> {
+fn help_summary() -> Result<(), usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Commands:{}", csi_color, csi_reset);
@@ -46,10 +46,10 @@ fn help_summary() -> Result<usize, usize> {
     println!();
     println!("{}Credits:{}", csi_color, csi_reset);
     println!("  Made with <3 in 2019-2022 by Vincent Ollivier <v@vinc.cc>");
-    Ok(0)
+    Ok(())
 }
 
-fn help_edit() -> Result<usize, usize> {
+fn help_edit() -> Result<(), usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range");
@@ -70,10 +70,10 @@ fn help_edit() -> Result<usize, usize> {
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, shortcut, csi_reset, usage);
     }
-    Ok(0)
+    Ok(())
 }
 
-fn help_date() -> Result<usize, usize> {
+fn help_date() -> Result<(), usize> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("The date command's formatting behavior is based on strftime in C");
@@ -118,5 +118,5 @@ fn help_date() -> Result<usize, usize> {
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }
-    Ok(0)
+    Ok(())
 }

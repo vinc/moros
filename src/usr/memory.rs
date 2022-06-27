@@ -2,16 +2,16 @@ use crate::sys;
 use crate::api::console::Style;
 use alloc::string::ToString;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 || args[1] == "usage" {
         usage();
-        Ok(0)
+        Ok(())
     } else if args[1] == "format" {
         sys::fs::mount_mem();
         sys::fs::format_mem();
         println!("Memory successfully formatted");
         println!("MFS is now mounted to '/'");
-        Ok(0)
+        Ok(())
     } else {
         help();
         Err(1)

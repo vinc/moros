@@ -188,16 +188,16 @@ pub fn split_args(cmd: &str) -> Vec<String> {
     args
 }
 
-fn cmd_proc(args: &[&str]) -> Result<usize, usize> {
+fn cmd_proc(args: &[&str]) -> Result<(), usize> {
     match args.len() {
         1 => {
-            Ok(0)
+            Ok(())
         },
         2 => {
             match args[1] {
                 "id" => {
                     println!("{}", sys::process::id());
-                    Ok(0)
+                    Ok(())
                 }
                 "files" => {
                     for (i, handle) in sys::process::file_handles().iter().enumerate() {
@@ -205,7 +205,7 @@ fn cmd_proc(args: &[&str]) -> Result<usize, usize> {
                             println!("{}: {:?}", i, resource);
                         }
                     }
-                    Ok(0)
+                    Ok(())
                 }
                 _ => {
                     Err(1)
@@ -218,11 +218,11 @@ fn cmd_proc(args: &[&str]) -> Result<usize, usize> {
     }
 }
 
-fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<usize, usize> {
+fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), usize> {
     match args.len() {
         1 => {
             println!("{}", sys::process::dir());
-            Ok(0)
+            Ok(())
         },
         2 => {
             let mut pathname = fs::realpath(args[1]);
@@ -232,7 +232,7 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<usize, usize> {
             if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
                 config.env.insert("DIR".to_string(), sys::process::dir());
-                Ok(0)
+                Ok(())
             } else {
                 error!("File not found '{}'", pathname);
                 Err(1)
@@ -244,7 +244,7 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<usize, usize> {
     }
 }
 
-fn cmd_alias(args: &[&str], config: &mut Config) -> Result<usize, usize> {
+fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), usize> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
@@ -253,10 +253,10 @@ fn cmd_alias(args: &[&str], config: &mut Config) -> Result<usize, usize> {
         return Err(1);
     }
     config.aliases.insert(args[1].to_string(), args[2].to_string());
-    Ok(0)
+    Ok(())
 }
 
-fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<usize, usize> {
+fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), usize> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
@@ -270,10 +270,10 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<usize, usize> {
         return Err(1);
     }
 
-    Ok(0)
+    Ok(())
 }
 
-fn cmd_set(args: &[&str], config: &mut Config) -> Result<usize, usize> {
+fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), usize> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
@@ -283,10 +283,10 @@ fn cmd_set(args: &[&str], config: &mut Config) -> Result<usize, usize> {
     }
 
     config.env.insert(args[1].to_string(), args[2].to_string());
-    Ok(0)
+    Ok(())
 }
 
-fn cmd_unset(args: &[&str], config: &mut Config) -> Result<usize, usize> {
+fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), usize> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
@@ -300,10 +300,10 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<usize, usize> {
         return Err(1);
     }
 
-    Ok(0)
+    Ok(())
 }
 
-fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
+fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), usize> {
     #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
     sys::console::print_fmt(format_args!(""));
 
@@ -384,7 +384,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
     }
 
     let res = match args[0] {
-        ""         => Ok(0),
+        ""         => Ok(()),
         "2048"     => usr::pow::main(&args),
         "alias"    => cmd_alias(&args, config),
         "base64"   => usr::base64::main(&args),
@@ -438,7 +438,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
                 Some(FileType::Dir) => {
                     sys::process::set_dir(&path);
                     config.env.insert("DIR".to_string(), sys::process::dir());
-                    Ok(0)
+                    Ok(())
                 }
                 Some(FileType::File) => {
                     spawn(&path, &args)
@@ -462,7 +462,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<usize, usize> {
     res
 }
 
-fn spawn(path: &str, args: &[&str]) -> Result<usize, usize> {
+fn spawn(path: &str, args: &[&str]) -> Result<(), usize> {
     match api::process::spawn(&path, &args) {
         Err(api::process::EXEC_ERROR) => {
             error!("Could not execute '{}'", args[0]);
@@ -485,7 +485,7 @@ fn spawn(path: &str, args: &[&str]) -> Result<usize, usize> {
     }
 }
 
-fn repl(config: &mut Config) -> Result<usize, usize> {
+fn repl(config: &mut Config) -> Result<(), usize> {
     println!();
 
     let mut prompt = Prompt::new();
@@ -496,11 +496,11 @@ fn repl(config: &mut Config) -> Result<usize, usize> {
     let mut success = true;
     while let Some(cmd) = prompt.input(&prompt_string(success)) {
         let code = match exec_with_config(&cmd, config) {
+            Ok(()) => 0,
             Err(255) => break,
-            Ok(i) => i as isize,
-            Err(i) => -(i as isize),
+            Err(code) => code
         };
-        success = code >= 0;
+        success = code == 0;
         config.env.insert("?".to_string(), format!("{}", code));
         prompt.history.add(&cmd);
         prompt.history.save(history_file);
@@ -508,15 +508,15 @@ fn repl(config: &mut Config) -> Result<usize, usize> {
         println!();
     }
     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
-    Ok(0)
+    Ok(())
 }
 
-pub fn exec(cmd: &str) -> Result<usize, usize> {
+pub fn exec(cmd: &str) -> Result<(), usize> {
     let mut config = Config::new();
     exec_with_config(cmd, &mut config)
 }
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let mut config = Config::new();
 
     if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
@@ -544,7 +544,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                     exec_with_config(line, &mut config).ok();
                 }
             }
-            Ok(0)
+            Ok(())
         } else {
             println!("File not found '{}'", pathname);
             Err(1)

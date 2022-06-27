@@ -8,7 +8,7 @@ use crate::api::fs::FileInfo;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut sort = "name";
     let mut hide_dot_files = true;
@@ -58,14 +58,14 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                 for file in files {
                     print_file(file, width);
                 }
-                Ok(0)
+                Ok(())
             } else {
                 error!("Could not read directory '{}'", path);
                 Err(1)
             }
         } else {
             print_file(&info, info.size().to_string().len());
-            Ok(0)
+            Ok(())
         }
     } else {
         error!("Could not find file or directory '{}'", path);
@@ -89,7 +89,7 @@ fn print_file(file: &FileInfo, width: usize) {
     println!("{:width$} {} {}{}{}", file.size(), date.format("%F %H:%M:%S"), color, file.name(), csi_reset, width = width);
 }
 
-fn help() -> Result<usize, usize> {
+fn help() -> Result<(), usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -100,5 +100,5 @@ fn help() -> Result<usize, usize> {
     println!("  {0}-n{1},{0} --name{1}    Sort by name", csi_option, csi_reset);
     println!("  {0}-s{1},{0} --size{1}    Sort by size", csi_option, csi_reset);
     println!("  {0}-t{1},{0} --time{1}    Sort by time", csi_option, csi_reset);
-    Ok(0)
+    Ok(())
 }

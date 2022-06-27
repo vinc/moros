@@ -3,7 +3,7 @@ use crate::api::console::Style;
 use crate::api::vga::palette;
 use crate::api::fs;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 {
         help();
         return Err(1);
@@ -12,14 +12,14 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     match args[1] {
         "-h" | "--help" => {
             help();
-            Ok(0)
+            Ok(())
         }
         "set" => {
             if args.len() == 4 && args[2] == "font" {
                 if let Ok(buf) = fs::read_to_bytes(args[3]) {
                     if let Ok(font) = api::font::from_bytes(&buf) {
                         sys::vga::set_font(&font);
-                        Ok(0)
+                        Ok(())
                     } else {
                         error!("Could not parse font file");
                         Err(1)
@@ -38,7 +38,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                         //         print!("\x1b]P{:x}{:x}{:x}{:x}", i, r, g, b);
                         //     }
                         // And "ESC]R" to reset a palette.
-                        Ok(0)
+                        Ok(())
                     } else {
                         error!("Could not parse palette file");
                         Err(1)

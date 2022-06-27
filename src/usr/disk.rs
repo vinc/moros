@@ -9,7 +9,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() == 1 {
         return usage();
     }
@@ -32,14 +32,14 @@ fn parse_disk_path(pathname: &str) -> Result<(u8, u8), String> {
     Ok((bus, dsk))
 }
 
-fn format(pathname: &str) -> Result<usize, usize> {
+fn format(pathname: &str) -> Result<(), usize> {
     match parse_disk_path(pathname) {
         Ok((bus, dsk)) => {
             sys::fs::mount_ata(bus, dsk);
             sys::fs::format_ata();
             println!("Disk successfully formatted");
             println!("MFS is now mounted to '/'");
-            Ok(0)
+            Ok(())
         }
         Err(msg) => {
             error!("{}", msg);
@@ -48,7 +48,7 @@ fn format(pathname: &str) -> Result<usize, usize> {
     }
 }
 
-fn erase(pathname: &str) -> Result<usize, usize> {
+fn erase(pathname: &str) -> Result<(), usize> {
     match parse_disk_path(pathname) {
         Ok((bus, dsk)) => {
             if let Some(drive) = Drive::open(bus, dsk) {
@@ -74,7 +74,7 @@ fn erase(pathname: &str) -> Result<usize, usize> {
                     print!("\x1b[?25h"); // Enable cursor
                 }
             }
-            Ok(0)
+            Ok(())
         }
         Err(msg) => {
             error!("{}", msg);
@@ -83,15 +83,15 @@ fn erase(pathname: &str) -> Result<usize, usize> {
     }
 }
 
-fn list() -> Result<usize, usize> {
+fn list() -> Result<(), usize> {
     println!("Path            Name (Size)");
     for drive in sys::ata::list() {
         println!("/dev/ata/{}/{}    {}", drive.bus, drive.dsk, drive);
     }
-    Ok(0)
+    Ok(())
 }
 
-fn usage() -> Result<usize, usize> {
+fn usage() -> Result<(), usize> {
     let size = sys::fs::disk_size();
     let used = sys::fs::disk_used();
     let free = size - used;
@@ -102,10 +102,10 @@ fn usage() -> Result<usize, usize> {
     println!("{}size:{} {:width$} bytes", color, reset, size, width = width);
     println!("{}used:{} {:width$} bytes", color, reset, used, width = width);
     println!("{}free:{} {:width$} bytes", color, reset, free, width = width);
-    Ok(0)
+    Ok(())
 }
 
-fn help() -> Result<usize, usize> {
+fn help() -> Result<(), usize> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -116,5 +116,5 @@ fn help() -> Result<usize, usize> {
     println!("  {}usage{}            List disk usage", csi_option, csi_reset);
     println!("  {}format <path>{}    Format disk", csi_option, csi_reset);
     println!("  {}erase <path>{}     Erase disk", csi_option, csi_reset);
-    Ok(0)
+    Ok(())
 }

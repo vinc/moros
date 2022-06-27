@@ -3,7 +3,7 @@ use crate::api::clock;
 use alloc::format;
 use core::f64::consts::PI;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() < 2 {
         eprintln!("Usage: <longitude> [<timestamp>]");
         return Err(1);
@@ -21,7 +21,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
     let t = libm::floor(100.0 * t) / 100.0; // Avoid rounding up 99.996 to 100.00
     println!("{}", format!("{:05.2}", t).replace(".", ":"));
 
-    Ok(0)
+    Ok(())
 }
 
 pub fn geotime(longitude: f64, timestamp: f64) -> f64 {

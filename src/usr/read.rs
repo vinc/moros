@@ -8,7 +8,7 @@ use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 
-pub fn main(args: &[&str]) -> Result<usize, usize> {
+pub fn main(args: &[&str]) -> Result<(), usize> {
     if args.len() != 2 {
         return Err(1);
     }
@@ -30,7 +30,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                 rtc.year, rtc.month, rtc.day,
                 rtc.hour, rtc.minute, rtc.second
             );
-            Ok(0)
+            Ok(())
         },
         _ => {
             if path.starts_with("/net/") {
@@ -69,7 +69,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                 if info.is_file() {
                     if let Ok(contents) = api::fs::read_to_string(path) {
                         print!("{}", contents);
-                        Ok(0)
+                        Ok(())
                     } else {
                         error!("Could not read '{}'", path);
                         Err(1)
@@ -82,18 +82,18 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                     loop {
                         if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
-                            return Ok(0);
+                            return Ok(());
                         }
                         if let Ok(bytes) = fs::read_to_bytes(path) {
                             if is_char_device && bytes.len() == 1 {
                                 match bytes[0] as char {
                                     console::ETX_KEY => {
                                         println!("^C");
-                                        return Ok(0);
+                                        return Ok(());
                                     }
                                     console::EOT_KEY => {
                                         println!("^D");
-                                        return Ok(0);
+                                        return Ok(());
                                     }
                                     _ => {}
                                 }
@@ -101,7 +101,7 @@ pub fn main(args: &[&str]) -> Result<usize, usize> {
                             if is_float_device {
                                 if bytes.len() == 8 {
                                     println!("{:.6}", f64::from_be_bytes(bytes[0..8].try_into().unwrap()));
-                                    return Ok(0);
+                                    return Ok(());
                                 }
                             }
                             for b in bytes {
