@@ -1,7 +1,7 @@
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::sys;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
             for (key, val) in sys::process::envs() {
@@ -16,7 +16,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                 Ok(())
             } else {
                 error!("Could not get '{}'", key);
-                Err(process::EXIT_FAILURE)
+                Err(ExitCode::Failure)
             }
         }
         3 => {
@@ -25,7 +25,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         _ => {
             error!("Invalid number of arguments");
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 }

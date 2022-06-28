@@ -1,6 +1,6 @@
 use crate::sys;
 use crate::api::fs;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::regex::Regex;
 use crate::api::console::Style;
 
@@ -24,7 +24,7 @@ impl PrintingState {
 }
 
 // > find /tmp -name *.txt -line hello
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut name = None;
     let mut line = None;
@@ -41,7 +41,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     i += 1;
                 } else {
                     error!("Missing name");
-                    return Err(process::EXIT_FAILURE);
+                    return Err(ExitCode::Failure);
                 }
             },
             "-l" | "--line" => {
@@ -50,7 +50,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     i += 1;
                 } else {
                     error!("Missing line");
-                    return Err(process::EXIT_FAILURE);
+                    return Err(ExitCode::Failure);
                 }
             },
             _ => path = args[i],
@@ -64,7 +64,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
 
     if name.is_some() { // TODO
         error!("`--name` is not implemented");
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     let mut state = PrintingState::new();
@@ -148,7 +148,7 @@ fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingS
     }
 }
 
-fn help() -> Result<(), usize> {
+fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();

@@ -1,4 +1,4 @@
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
 
@@ -106,7 +106,7 @@ fn parse_eval(line: &str) -> Result<f64, String> {
     }
 }
 
-fn repl() -> Result<(), usize> {
+fn repl() -> Result<(), ExitCode> {
     println!("MOROS Calc v0.1.0\n");
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
@@ -142,7 +142,7 @@ fn repl() -> Result<(), usize> {
     Ok(())
 }
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         repl()
     } else {
@@ -153,7 +153,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             }
             Err(msg) => {
                 error!("{}", msg);
-                Err(process::EXIT_FAILURE)
+                Err(ExitCode::Failure)
             }
         }
     }

@@ -1,5 +1,5 @@
 use crate::{api, sys};
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::console::Style;
 
 use x86_64::instructions::port::Port;
@@ -32,7 +32,7 @@ fn beep(freq: f64, len: f64) {
     stop_sound();
 }
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut freq = 440.0;
     let mut len = 200.0;
     let mut i = 1;
@@ -48,12 +48,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         freq = value;
                     } else {
                         error!("Could not parse freq");
-                        return Err(process::EXIT_FAILURE);
+                        return Err(ExitCode::Failure);
                     }
                     i += 1;
                 } else {
                     error!("Missing freq");
-                    return Err(process::EXIT_FAILURE);
+                    return Err(ExitCode::Failure);
                 }
             },
             "-l" | "--len" => {
@@ -62,12 +62,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         len = value;
                     } else {
                         error!("Could not parse len");
-                        return Err(process::EXIT_FAILURE);
+                        return Err(ExitCode::Failure);
                     }
                     i += 1;
                 } else {
                     error!("Missing len");
-                    return Err(process::EXIT_FAILURE);
+                    return Err(ExitCode::Failure);
                 }
             },
             _ => {},
@@ -79,7 +79,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     Ok(())
 }
 
-fn help() -> Result<(), usize> {
+fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();

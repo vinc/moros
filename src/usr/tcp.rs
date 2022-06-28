@@ -1,7 +1,7 @@
 use crate::{sys, usr, debug};
 use crate::api::console::Style;
 use crate::api::clock;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::random;
 use crate::api::syscall;
 
@@ -13,7 +13,7 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut verbose = false;
     let mut args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
@@ -39,7 +39,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
 
     if args.len() != 3 {
         help();
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     let host = &args[1];
@@ -55,7 +55,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             }
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
-                return Err(process::EXIT_FAILURE);
+                return Err(ExitCode::Failure);
             }
         }
     };
@@ -76,12 +76,12 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
-                return Err(process::EXIT_FAILURE);
+                return Err(ExitCode::Failure);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
-                return Err(process::EXIT_FAILURE);
+                return Err(ExitCode::Failure);
             }
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
@@ -98,7 +98,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     }
                     if socket.connect(cx, (address, port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, port);
-                        return Err(process::EXIT_FAILURE);
+                        return Err(ExitCode::Failure);
                     }
                     State::Request
                 }
@@ -131,7 +131,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         iface.remove_socket(tcp_handle);
         Ok(())
     } else {
-        Err(process::EXIT_FAILURE)
+        Err(ExitCode::Failure)
     }
 }
 

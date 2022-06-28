@@ -1,7 +1,8 @@
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
 use crate::sys;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         return list(false);
     }
@@ -17,7 +18,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     }
 }
 
-fn list(verbose: bool) -> Result<(), usize> {
+fn list(verbose: bool) -> Result<(), ExitCode> {
     let color1 = Style::color("Blue");
     let color2 = Style::color("LightBlue");
     let reset = Style::reset();
@@ -40,7 +41,7 @@ fn list(verbose: bool) -> Result<(), usize> {
     Ok(())
 }
 
-fn help() -> Result<(), usize> {
+fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();

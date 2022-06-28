@@ -1,14 +1,14 @@
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::usr;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 3 {
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     // TODO: Avoid doing copy+delete
     match usr::copy::main(args) {
         Ok(()) => usr::delete::main(&args[0..2]),
-        _ => Err(process::EXIT_FAILURE),
+        _ => Err(ExitCode::Failure),
     }
 }

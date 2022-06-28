@@ -1,7 +1,7 @@
 use crate::{sys, usr};
 use crate::api::clock;
 use crate::api::console::Style;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::random;
 use crate::api::syscall;
 use alloc::vec;
@@ -226,11 +226,11 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     }
 }
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     // TODO: Add `--server <address>` option
     if args.len() != 2 {
         help();
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
     let domain = args[1];
     match resolve(domain) {
@@ -240,7 +240,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         Err(e) => {
             error!("Could not resolve host: {:?}", e);
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 }

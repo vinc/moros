@@ -1,4 +1,4 @@
-use crate::api;
+use crate::api::process::ExitCode;
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
 
@@ -249,7 +249,7 @@ impl Process {
         }
     }
 
-    pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<(), usize> {
+    pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<(), ExitCode> {
         if let Ok(pid) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
@@ -258,7 +258,7 @@ impl Process {
             proc.exec(args_ptr, args_len);
             Ok(())
         } else {
-            Err(api::process::EXIT_EXEC_ERROR)
+            Err(ExitCode::ExecError)
         }
     }
 

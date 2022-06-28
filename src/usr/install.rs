@@ -3,7 +3,7 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::fs::DeviceType;
 use crate::api::io;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 
 use alloc::format;
@@ -61,7 +61,7 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"), verbose);
 }
 
-pub fn main(_args: &[&str]) -> Result<(), usize> {
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Welcome to MOROS v{} installation program!{}", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
@@ -91,7 +91,7 @@ pub fn main(_args: &[&str]) -> Result<(), usize> {
             println!();
             println!("{}Creating user...{}", csi_color, csi_reset);
             let res = usr::user::main(&["user", "create"]);
-            if res == Err(process::EXIT_FAILURE) {
+            if res == Err(ExitCode::Failure) {
                 return res;
             }
         }

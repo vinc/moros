@@ -2,7 +2,7 @@ use crate::sys;
 use crate::api::clock;
 use crate::api::console::Style;
 use crate::api::fs;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
@@ -14,7 +14,7 @@ use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
-pub fn main(_args: &[&str]) -> Result<(), usize> {
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     let port = 80;
@@ -183,7 +183,7 @@ pub fn main(_args: &[&str]) -> Result<(), usize> {
         }
     } else {
         error!("Could not find network interface");
-        Err(process::EXIT_FAILURE)
+        Err(ExitCode::Failure)
     }
 }
 

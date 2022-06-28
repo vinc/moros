@@ -1,10 +1,10 @@
 use crate::api::fs;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     let pathname = args[1];
@@ -24,6 +24,6 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         Ok(())
     } else {
         error!("Could not write to '{}'", pathname);
-        Err(process::EXIT_FAILURE)
+        Err(ExitCode::Failure)
     }
 }

@@ -2,7 +2,7 @@ use crate::{api, sys, usr};
 use crate::api::fs;
 use crate::api::io;
 use crate::api::random;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -16,7 +16,7 @@ use sha2::Sha256;
 const PASSWORDS: &str = "/ini/passwords.csv";
 const COMMANDS: [&str; 2] = ["create", "login"];
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
         return usage();
     }
@@ -35,16 +35,16 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     }
 }
 
-fn usage() -> Result<(), usize> {
+fn usage() -> Result<(), ExitCode> {
     eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    Err(process::EXIT_FAILURE)
+    Err(ExitCode::Failure)
 }
 
 // TODO: Add max number of attempts
-pub fn login(username: &str) -> Result<(), usize> {
+pub fn login(username: &str) -> Result<(), ExitCode> {
     if !fs::exists(PASSWORDS) {
         error!("Could not read '{}'", PASSWORDS);
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     if username.is_empty() {
@@ -82,14 +82,14 @@ pub fn login(username: &str) -> Result<(), usize> {
     Ok(())
 }
 
-pub fn create(username: &str) -> Result<(), usize> {
+pub fn create(username: &str) -> Result<(), ExitCode> {
     if username.is_empty() {
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     if hashed_password(username).is_some() {
         error!("Username exists");
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     print!("Password: ");
@@ -99,7 +99,7 @@ pub fn create(username: &str) -> Result<(), usize> {
     println!();
 
     if password.is_empty() {
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     print!("Confirm: ");
@@ -110,12 +110,12 @@ pub fn create(username: &str) -> Result<(), usize> {
 
     if password != confirm {
         error!("Password confirmation failed");
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
         error!("Could not save user");
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     // Create home dir
@@ -123,7 +123,7 @@ pub fn create(username: &str) -> Result<(), usize> {
         api::syscall::close(handle);
     } else {
         error!("Could not create home dir");
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     Ok(())

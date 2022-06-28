@@ -4,7 +4,7 @@ use crate::api::clock;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::syscall;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::sys::net::EthernetDeviceIO;
 
 use alloc::borrow::ToOwned;
@@ -17,10 +17,10 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     match args[1] {
@@ -93,7 +93,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         _ => {
             error!("Invalid command");
-            return Err(process::EXIT_FAILURE);
+            return Err(ExitCode::Failure);
         }
     }
     Ok(())

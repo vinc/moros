@@ -1,7 +1,7 @@
 use crate::api::console::Style;
-use crate::api::process;
+use crate::api::process::ExitCode;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() > 1 {
         help_command(args[1])
     } else {
@@ -9,7 +9,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     }
 }
 
-fn help_command(cmd: &str) -> Result<(), usize> {
+fn help_command(cmd: &str) -> Result<(), ExitCode> {
     match cmd {
         "date" => help_date(),
         "edit" => help_edit(),
@@ -17,12 +17,12 @@ fn help_command(cmd: &str) -> Result<(), usize> {
     }
 }
 
-fn help_unknown(cmd: &str) -> Result<(), usize> {
+fn help_unknown(cmd: &str) -> Result<(), ExitCode> {
     error!("Help not found for command '{}'", cmd);
-    Err(process::EXIT_FAILURE)
+    Err(ExitCode::Failure)
 }
 
-fn help_summary() -> Result<(), usize> {
+fn help_summary() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Commands:{}", csi_color, csi_reset);
@@ -50,7 +50,7 @@ fn help_summary() -> Result<(), usize> {
     Ok(())
 }
 
-fn help_edit() -> Result<(), usize> {
+fn help_edit() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range");
@@ -74,7 +74,7 @@ fn help_edit() -> Result<(), usize> {
     Ok(())
 }
 
-fn help_date() -> Result<(), usize> {
+fn help_date() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("The date command's formatting behavior is based on strftime in C");

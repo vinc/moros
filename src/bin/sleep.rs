@@ -2,7 +2,7 @@
 #![no_main]
 
 use moros::api::syscall;
-use moros::api::process;
+use moros::api::process::ExitCode;
 use moros::entry_point;
 
 entry_point!(main);
@@ -13,9 +13,9 @@ fn main(args: &[&str]) {
             syscall::sleep(duration);
             return;
         } else {
-            syscall::exit(process::EXIT_DATA_ERROR);
+            syscall::exit(ExitCode::DataError);
         }
     } else {
-        syscall::exit(process::EXIT_USAGE_ERROR);
+        syscall::exit(ExitCode::UsageError);
     }
 }

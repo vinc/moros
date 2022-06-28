@@ -1,5 +1,6 @@
 use crate::{api, sys};
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
 use alloc::format;
@@ -286,7 +287,7 @@ fn is_move(m: &str) -> bool {
     false
 }
 
-pub fn main(_args: &[&str]) -> Result<(), usize> {
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let mut chess = Chess::new();
     chess.play();
     Ok(())

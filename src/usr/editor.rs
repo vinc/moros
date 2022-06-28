@@ -1,16 +1,16 @@
 use crate::sys;
 use crate::api::{console, fs, io};
 use crate::api::console::Style;
-use crate::api::process;
+use crate::api::process::ExitCode;
 
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     let pathname = args[1];
@@ -58,7 +58,7 @@ impl Editor {
         Self { pathname, lines, cursor, offset, config }
     }
 
-    pub fn save(&mut self) -> Result<(), usize> {
+    pub fn save(&mut self) -> Result<(), ExitCode> {
         let mut contents = String::new();
         let n = self.lines.len();
         for i in 0..n {
@@ -75,7 +75,7 @@ impl Editor {
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
             self.print_status(&status, "LightRed");
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 
@@ -141,7 +141,7 @@ impl Editor {
         }
     }
 
-    pub fn run(&mut self) -> Result<(), usize> {
+    pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         self.print_editing_status();

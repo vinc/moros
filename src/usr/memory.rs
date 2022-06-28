@@ -1,10 +1,10 @@
 use crate::sys;
 use crate::api::console::Style;
-use crate::api::process;
+use crate::api::process::ExitCode;
 
 use alloc::string::ToString;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 || args[1] == "usage" {
         usage();
         Ok(())
@@ -16,7 +16,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         Ok(())
     } else {
         help();
-        Err(process::EXIT_FAILURE)
+        Err(ExitCode::Failure)
     }
 }
 

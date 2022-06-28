@@ -1,17 +1,39 @@
 use crate::api::syscall;
 
-pub const EXIT_SUCCESS: usize = 0;
-pub const EXIT_FAILURE: usize = 1;
-pub const EXIT_USAGE_ERROR: usize = 64;
-pub const EXIT_DATA_ERROR: usize = 65;
-pub const EXIT_OPEN_ERROR: usize = 128;
-pub const EXIT_READ_ERROR: usize = 129;
-pub const EXIT_EXEC_ERROR: usize = 130;
+use core::convert::From;
 
-pub fn spawn(path: &str, args: &[&str]) -> Result<(), usize> {
+#[derive(Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
+pub enum ExitCode {
+    Success    = 0,
+    Failure    = 1,
+    UsageError = 64,
+    DataError  = 65,
+    OpenError  = 128,
+    ReadError  = 129,
+    ExecError  = 130,
+    ShellExit  = 255,
+}
+
+impl From<usize> for ExitCode {
+    fn from(code: usize) -> Self {
+        match code {
+            0 => ExitCode::Success,
+            64 => ExitCode::UsageError,
+            65 => ExitCode::DataError,
+            128 => ExitCode::OpenError,
+            129 => ExitCode::ReadError,
+            130 => ExitCode::ExecError,
+            255 => ExitCode::ShellExit,
+            _ => ExitCode::Failure,
+        }
+    }
+}
+
+pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     if syscall::info(path).is_some() {
         syscall::spawn(path, args)
     } else {
-        Err(EXIT_OPEN_ERROR)
+        Err(ExitCode::OpenError)
     }
 }

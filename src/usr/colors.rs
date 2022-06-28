@@ -1,6 +1,8 @@
+use crate::api::process::ExitCode;
+
 use alloc::format;
 
-pub fn main(_args: &[&str]) -> Result<(), usize> {
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let csi_reset = "\x1b[0m";
 
     for i in 30..38 {

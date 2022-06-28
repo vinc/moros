@@ -1,6 +1,6 @@
 use crate::api::console::Style;
 use crate::api::io;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::sys;
 use crate::sys::ata::Drive;
 
@@ -10,7 +10,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         return usage();
     }
@@ -33,7 +33,7 @@ fn parse_disk_path(pathname: &str) -> Result<(u8, u8), String> {
     Ok((bus, dsk))
 }
 
-fn format(pathname: &str) -> Result<(), usize> {
+fn format(pathname: &str) -> Result<(), ExitCode> {
     match parse_disk_path(pathname) {
         Ok((bus, dsk)) => {
             sys::fs::mount_ata(bus, dsk);
@@ -44,12 +44,12 @@ fn format(pathname: &str) -> Result<(), usize> {
         }
         Err(msg) => {
             error!("{}", msg);
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 }
 
-fn erase(pathname: &str) -> Result<(), usize> {
+fn erase(pathname: &str) -> Result<(), ExitCode> {
     match parse_disk_path(pathname) {
         Ok((bus, dsk)) => {
             if let Some(drive) = Drive::open(bus, dsk) {
@@ -64,7 +64,7 @@ fn erase(pathname: &str) -> Result<(), usize> {
                         if sys::console::end_of_text() || sys::console::end_of_transmission() {
                             println!();
                             print!("\x1b[?25h"); // Enable cursor
-                            return Err(process::EXIT_FAILURE);
+                            return Err(ExitCode::Failure);
                         }
                         print!("\x1b[2K\x1b[1G");
                         print!("Erasing block {}/{}", i, n);
@@ -79,12 +79,12 @@ fn erase(pathname: &str) -> Result<(), usize> {
         }
         Err(msg) => {
             error!("{}", msg);
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 }
 
-fn list() -> Result<(), usize> {
+fn list() -> Result<(), ExitCode> {
     println!("Path            Name (Size)");
     for drive in sys::ata::list() {
         println!("/dev/ata/{}/{}    {}", drive.bus, drive.dsk, drive);
@@ -92,7 +92,7 @@ fn list() -> Result<(), usize> {
     Ok(())
 }
 
-fn usage() -> Result<(), usize> {
+fn usage() -> Result<(), ExitCode> {
     let size = sys::fs::disk_size();
     let used = sys::fs::disk_used();
     let free = size - used;
@@ -106,7 +106,7 @@ fn usage() -> Result<(), usize> {
     Ok(())
 }
 
-fn help() -> Result<(), usize> {
+fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();

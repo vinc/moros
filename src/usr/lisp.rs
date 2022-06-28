@@ -1,7 +1,7 @@
 use crate::{api, usr};
 use crate::api::fs;
 use crate::api::console::Style;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
 use alloc::collections::BTreeMap;
@@ -297,7 +297,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         let cmd = string(&args[0])?;
         match usr::shell::exec(&cmd) {
             Ok(()) => Ok(Exp::Num(0.0)),
-            Err(code) => Ok(Exp::Num(code as f64)),
+            Err(code) => Ok(Exp::Num(code as u8 as f64)),
         }
     }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
@@ -661,7 +661,7 @@ fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
 }
 
-fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), usize> {
+fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
@@ -696,7 +696,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), usize> {
     Ok(())
 }
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let line_color = Style::color("Yellow");
     let error_color = Style::color("LightRed");
     let reset = Style::reset();
@@ -713,7 +713,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
     if eval_label_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     if args.len() < 2 {
@@ -737,7 +737,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                                     eprintln!("{}Error:{} {}", error_color, reset, msg);
                                     eprintln!();
                                     eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                    return Err(process::EXIT_FAILURE);
+                                    return Err(ExitCode::Failure);
                                 }
                             }
                         }
@@ -750,7 +750,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
             Ok(())
         } else {
             error!("File not found '{}'", pathname);
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 }

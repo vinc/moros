@@ -1,13 +1,13 @@
 use crate::api::clock;
-use crate::api::process;
+use crate::api::process::ExitCode;
 
 use alloc::format;
 use core::f64::consts::PI;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() < 2 {
         eprintln!("Usage: <longitude> [<timestamp>]");
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     let longitude = args[1].parse().expect("Could not parse longitude");

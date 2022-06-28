@@ -1,11 +1,13 @@
-use crate::{api, sys};
+use crate::sys;
+use crate::api::process::ExitCode;
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
+
 use alloc::vec;
 use core::arch::asm;
 
-pub fn exit(code: usize) -> usize {
+pub fn exit(code: ExitCode) -> ExitCode {
     sys::process::exit();
     code
 }
@@ -80,10 +82,10 @@ pub fn close(handle: usize) {
     sys::process::delete_file_handle(handle);
 }
 
-pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> usize {
+pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
-        Err(_) => return api::process::EXIT_OPEN_ERROR,
+        Err(_) => return ExitCode::OpenError,
     };
     if let Some(mut file) = sys::fs::File::open(&path) {
         let mut buf = vec![0; file.size()];
@@ -92,13 +94,13 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> usize {
             if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
                 code
             } else {
-                0
+                ExitCode::Success
             }
         } else {
-            api::process::EXIT_READ_ERROR
+            ExitCode::ReadError
         }
     } else {
-        api::process::EXIT_OPEN_ERROR
+        ExitCode::OpenError
     }
 }
 

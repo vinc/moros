@@ -2,16 +2,16 @@ use crate::{api, sys, usr};
 use crate::api::console;
 use crate::api::fs;
 use crate::api::syscall;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::sys::cmos::CMOS;
 
 use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     let mut path = args[1];
@@ -43,7 +43,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                 let parts: Vec<_> = path.split('/').collect();
                 if parts.len() < 4 {
                     eprintln!("Usage: read /net/http/<host>/<path>");
-                    Err(process::EXIT_FAILURE)
+                    Err(ExitCode::Failure)
                 } else {
                     match parts[2] {
                         "tcp" => {
@@ -62,7 +62,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         }
                         _ => {
                             error!("Unknown protocol '{}'", parts[2]);
-                            Err(process::EXIT_FAILURE)
+                            Err(ExitCode::Failure)
                         }
                     }
                 }
@@ -73,7 +73,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         Ok(())
                     } else {
                         error!("Could not read '{}'", path);
-                        Err(process::EXIT_FAILURE)
+                        Err(ExitCode::Failure)
                     }
                 } else if info.is_dir() {
                     usr::list::main(args)
@@ -110,16 +110,16 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                             }
                         } else {
                             error!("Could not read '{}'", path);
-                            return Err(process::EXIT_FAILURE);
+                            return Err(ExitCode::Failure);
                         }
                     }
                 } else {
                     error!("Could not read type of '{}'", path);
-                    Err(process::EXIT_FAILURE)
+                    Err(ExitCode::Failure)
                 }
             } else {
                 error!("File not found '{}'", path);
-                Err(process::EXIT_FAILURE)
+                Err(ExitCode::Failure)
             }
         }
     }

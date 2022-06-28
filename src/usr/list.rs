@@ -2,14 +2,14 @@ use crate::sys;
 use crate::api::console::Style;
 use crate::api::time;
 use crate::api::fs;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::api::fs::FileInfo;
 
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut sort = "name";
     let mut hide_dot_files = true;
@@ -45,7 +45,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                     "time" => files.sort_by_key(|f| f.time()),
                     _ => {
                         error!("Invalid sort key '{}'", sort);
-                        return Err(process::EXIT_FAILURE);
+                        return Err(ExitCode::Failure);
                     }
                 }
 
@@ -62,7 +62,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                 Ok(())
             } else {
                 error!("Could not read directory '{}'", path);
-                Err(process::EXIT_FAILURE)
+                Err(ExitCode::Failure)
             }
         } else {
             print_file(&info, info.size().to_string().len());
@@ -70,7 +70,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
     } else {
         error!("Could not find file or directory '{}'", path);
-        Err(process::EXIT_FAILURE)
+        Err(ExitCode::Failure)
     }
 }
 
@@ -90,7 +90,7 @@ fn print_file(file: &FileInfo, width: usize) {
     println!("{:width$} {} {}{}{}", file.size(), date.format("%F %H:%M:%S"), color, file.name(), csi_reset, width = width);
 }
 
-fn help() -> Result<(), usize> {
+fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();

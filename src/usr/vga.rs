@@ -2,12 +2,12 @@ use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::vga::palette;
-use crate::api::process;
+use crate::api::process::ExitCode;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
-        return Err(process::EXIT_FAILURE);
+        return Err(ExitCode::Failure);
     }
 
     match args[1] {
@@ -23,11 +23,11 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         Ok(())
                     } else {
                         error!("Could not parse font file");
-                        Err(process::EXIT_FAILURE)
+                        Err(ExitCode::Failure)
                     }
                 } else {
                     error!("Could not read font file");
-                    Err(process::EXIT_FAILURE)
+                    Err(ExitCode::Failure)
                 }
             } else if args.len() == 4 && args[2] == "palette" {
                 if let Ok(csv) = fs::read_to_string(args[3]) {
@@ -42,20 +42,20 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
                         Ok(())
                     } else {
                         error!("Could not parse palette file");
-                        Err(process::EXIT_FAILURE)
+                        Err(ExitCode::Failure)
                     }
                 } else {
                     error!("Could not read palette file");
-                    Err(process::EXIT_FAILURE)
+                    Err(ExitCode::Failure)
                 }
             } else {
                 error!("Invalid command");
-                Err(process::EXIT_FAILURE)
+                Err(ExitCode::Failure)
             }
         }
         _ => {
             error!("Invalid command");
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 }

@@ -1,9 +1,10 @@
+use crate::api::process::ExitCode;
 use crate::syscall;
 use crate::sys::syscall::number::*;
 use crate::sys::fs::FileInfo;
 
-pub fn exit(code: usize) {
-    unsafe { syscall!(EXIT, code) };
+pub fn exit(code: ExitCode) {
+    unsafe { syscall!(EXIT, code as usize) };
 }
 
 pub fn sleep(seconds: f64) {
@@ -80,7 +81,7 @@ pub fn close(handle: usize) {
     unsafe { syscall!(CLOSE, handle as usize) };
 }
 
-pub fn spawn(path: &str, args: &[&str]) -> Result<(), usize> {
+pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     let path_ptr = path.as_ptr() as usize;
     let path_len = path.len() as usize;
     let args_ptr = args.as_ptr() as usize;
@@ -89,7 +90,7 @@ pub fn spawn(path: &str, args: &[&str]) -> Result<(), usize> {
     if res == 0 {
         Ok(())
     } else {
-        Err(res)
+        Err(ExitCode::from(res))
     }
 }
 

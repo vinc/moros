@@ -1,8 +1,8 @@
 use crate::api;
-use crate::api::process;
+use crate::api::process::ExitCode;
 use time::validate_format_string;
 
-pub fn main(args: &[&str]) -> Result<(), usize> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let format = if args.len() > 1 { args[1] } else { "%F %H:%M:%S" };
     match validate_format_string(format) {
         Ok(()) => {
@@ -11,7 +11,7 @@ pub fn main(args: &[&str]) -> Result<(), usize> {
         }
         Err(e) => {
             error!("{}", e);
-            Err(process::EXIT_FAILURE)
+            Err(ExitCode::Failure)
         }
     }
 }
