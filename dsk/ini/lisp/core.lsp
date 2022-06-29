@@ -52,5 +52,10 @@
         ((null? a) a)
         (true (append (reverse (rest a)) (cons (first a) '())))))
 
+(defn read-line (s)
+    (do
+      (print s)
+      (str (reverse (rest (reverse (read-bytes "/dev/console" 256)))))))
+
 (defn println (exp)
   (do (print exp) (print "\n")))
