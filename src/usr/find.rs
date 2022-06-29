@@ -33,7 +33,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     while i < n {
         match args[i] {
             "-h" | "--help" => {
-                return help();
+                usage();
+                return Ok(());
             }
             "-n" | "--name" => {
                 if i + 1 < n {
@@ -60,6 +61,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     if path.len() > 1 {
         path = path.trim_end_matches('/');
+    }
+
+    if name.is_none() && line.is_none() {
+        usage();
+        return Err(ExitCode::UsageError);
     }
 
     if name.is_some() { // TODO
@@ -148,7 +154,7 @@ fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingS
     }
 }
 
-fn help() -> Result<(), ExitCode> {
+fn usage() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -157,5 +163,4 @@ fn help() -> Result<(), ExitCode> {
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-n{1},{0} --name \"<pattern>\"{1}    Find file name matching {0}<pattern>{1}", csi_option, csi_reset);
     println!("  {0}-l{1},{0} --line \"<pattern>\"{1}    Find lines matching {0}<pattern>{1}", csi_option, csi_reset);
-    Ok(())
 }
