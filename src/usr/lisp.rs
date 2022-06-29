@@ -17,18 +17,20 @@ use core::fmt;
 use float_cmp::approx_eq;
 
 use nom::IResult;
-use nom::combinator::value;
-use nom::bytes::complete::escaped_transform;
 use nom::branch::alt;
-use nom::character::complete::char;
-use nom::character::complete::multispace0;
+use nom::bytes::complete::escaped_transform;
+use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
-use nom::bytes::complete::is_not;
-use nom::sequence::preceded;
+use nom::character::complete::char;
+use nom::character::complete::multispace0;
+use nom::combinator::map;
+use nom::combinator::opt;
+use nom::combinator::value;
 use nom::multi::many0;
 use nom::number::complete::double;
 use nom::sequence::delimited;
+use nom::sequence::preceded;
 
 // Eval & Env adapted from Risp
 // Copyright 2019 Stepan Parunashvili
@@ -151,11 +153,11 @@ fn is_symbol_letter(c: char) -> bool {
 }
 
 fn parse_str(input: &str) -> IResult<&str, Exp> {
-    let escaped = escaped_transform(is_not("\\\""), '\\', alt((
+    let escaped = map(opt(escaped_transform(is_not("\\\""), '\\', alt((
         value("\\", tag("\\")),
         value("\"", tag("\"")),
         value("\n", tag("n")),
-    )));
+    )))), |inner| inner.unwrap_or("".to_string()));
     let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
     Ok((input, Exp::Str(s)))
 }
@@ -886,6 +888,7 @@ fn test_lisp() {
 
     // cat
     assert_eq!(eval!("(cat \"a\" \"b\" \"c\")"), "\"abc\"");
+    assert_eq!(eval!("(cat \"a\" \"\")"), "\"a\"");
 
     // join
     assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
