@@ -53,7 +53,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     i += 1;
                 } else {
                     error!("Missing freq");
-                    return Err(ExitCode::Failure);
+                    return Err(ExitCode::UsageError);
                 }
             },
             "-l" | "--len" => {
@@ -67,7 +67,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     i += 1;
                 } else {
                     error!("Missing len");
-                    return Err(ExitCode::Failure);
+                    return Err(ExitCode::UsageError);
                 }
             },
             _ => {},

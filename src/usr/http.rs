@@ -60,7 +60,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             _ if args[i].starts_with("--") => {
                 error!("Invalid option '{}'", args[i]);
-                return Err(ExitCode::Failure);
+                return Err(ExitCode::UsageError);
             }
             _ if host.is_empty() => {
                 host = args[i]
@@ -70,14 +70,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             _ => {
                 error!("Too many arguments");
-                return Err(ExitCode::Failure);
+                return Err(ExitCode::UsageError);
             }
         }
     }
 
     if host.is_empty() && path.is_empty() {
         error!("Missing URL");
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     } else if path.is_empty() {
         if let Some(i) = args[1].find('/') {
             (host, path) = host.split_at(i);

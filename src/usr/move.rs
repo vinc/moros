@@ -3,7 +3,7 @@ use crate::usr;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 3 {
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
 
     // TODO: Avoid doing copy+delete

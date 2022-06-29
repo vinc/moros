@@ -73,7 +73,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     if args.len() != required_args_count {
         help();
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
 
     let host = if listen { "0.0.0.0" } else { &args[1] };

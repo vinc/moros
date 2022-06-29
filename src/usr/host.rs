@@ -230,7 +230,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     // TODO: Add `--server <address>` option
     if args.len() != 2 {
         help();
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
     let domain = args[1];
     match resolve(domain) {

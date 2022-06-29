@@ -41,7 +41,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     i += 1;
                 } else {
                     error!("Missing name");
-                    return Err(ExitCode::Failure);
+                    return Err(ExitCode::UsageError);
                 }
             },
             "-l" | "--line" => {
@@ -50,7 +50,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     i += 1;
                 } else {
                     error!("Missing line");
-                    return Err(ExitCode::Failure);
+                    return Err(ExitCode::UsageError);
                 }
             },
             _ => path = args[i],

@@ -4,7 +4,7 @@ use crate::api::fs;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() < 2 {
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
 
     for arg in &args[1..] {

@@ -7,7 +7,7 @@ use core::f64::consts::PI;
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() < 2 {
         eprintln!("Usage: <longitude> [<timestamp>]");
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
 
     let longitude = args[1].parse().expect("Could not parse longitude");

@@ -4,7 +4,7 @@ use crate::api::syscall;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
 
     let pathname = args[1];

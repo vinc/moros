@@ -37,7 +37,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 fn usage() -> Result<(), ExitCode> {
     eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    Err(ExitCode::Failure)
+    Err(ExitCode::UsageError)
 }
 
 // TODO: Add max number of attempts

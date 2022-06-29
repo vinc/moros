@@ -5,7 +5,7 @@ use crate::api::process::ExitCode;
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
     match args[1] {
         "set" => {

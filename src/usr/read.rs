@@ -11,7 +11,7 @@ use core::convert::TryInto;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
 
     let mut path = args[1];

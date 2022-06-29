@@ -25,7 +25,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
         _ => {
             error!("Invalid number of arguments");
-            Err(ExitCode::Failure)
+            Err(ExitCode::UsageError)
         }
     }
 }

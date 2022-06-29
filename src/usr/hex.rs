@@ -5,7 +5,7 @@ use crate::api::process::ExitCode;
 // TODO: add `--skip` and `--length` params
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return Err(ExitCode::Failure);
+        return Err(ExitCode::UsageError);
     }
     let pathname = args[1];
     if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
