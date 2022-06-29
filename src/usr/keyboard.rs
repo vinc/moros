@@ -1,37 +1,39 @@
-use crate::{sys, usr};
+use crate::sys;
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::UsageError);
     }
     match args[1] {
         "set" => {
             if args.len() == 2 {
                 error!("Keyboard layout missing");
-                usr::shell::ExitCode::CommandError
+                Err(ExitCode::Failure)
             } else {
                 let layout = args[2];
                 if sys::keyboard::set_keyboard(layout) {
-                    usr::shell::ExitCode::CommandSuccessful
+                    Ok(())
                 } else {
                     error!("Unknown keyboard layout");
-                    usr::shell::ExitCode::CommandError
+                    Err(ExitCode::Failure)
                 }
             }
         }
         "-h" | "--help" | "help" => {
-            help()
+            help();
+            Ok(())
         }
         _ => {
             error!("Invalid command");
-            usr::shell::ExitCode::CommandError
+            Err(ExitCode::Failure)
         }
     }
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -39,5 +41,4 @@ fn help() -> usr::shell::ExitCode {
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
     println!("  {0}set <layout>{1}    Set keyboard layout", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
 }

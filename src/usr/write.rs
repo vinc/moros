@@ -1,8 +1,10 @@
-use crate::{api, usr};
+use crate::api::fs;
+use crate::api::process::ExitCode;
+use crate::api::syscall;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::UsageError);
     }
 
     let pathname = args[1];
@@ -12,16 +14,16 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     // create a file.
     let res = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
-        api::fs::create_dir(pathname)
+        fs::create_dir(pathname)
     } else {
-        api::fs::create_file(pathname)
+        fs::create_file(pathname)
     };
 
     if let Some(handle) = res {
-        api::syscall::close(handle);
-        usr::shell::ExitCode::CommandSuccessful
+        syscall::close(handle);
+        Ok(())
     } else {
         error!("Could not write to '{}'", pathname);
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
 }

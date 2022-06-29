@@ -1,5 +1,6 @@
-use crate::{api, usr, sys};
+use crate::{api, sys};
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
 use alloc::format;
@@ -286,8 +287,8 @@ fn is_move(m: &str) -> bool {
     false
 }
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let mut chess = Chess::new();
     chess.play();
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }

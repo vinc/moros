@@ -2,8 +2,9 @@ use crate::{sys, usr, debug};
 use crate::api::console::Style;
 use crate::api::clock;
 use crate::api::io;
-use crate::api::syscall;
+use crate::api::process::ExitCode;
 use crate::api::random;
+use crate::api::syscall;
 
 use alloc::format;
 use alloc::string::String;
@@ -14,7 +15,7 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer, TcpState};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut listen = false;
     let mut prompt = false;
     let mut verbose = false;
@@ -72,7 +73,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     if args.len() != required_args_count {
         help();
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::UsageError);
     }
 
     let host = if listen { "0.0.0.0" } else { &args[1] };
@@ -87,7 +88,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
-                return usr::shell::ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
         }
     };
@@ -107,7 +108,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
@@ -143,7 +144,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         }
                         if socket.connect(cx, (address, port), local_port).is_err() {
                             error!("Could not connect to {}:{}", address, port);
-                            return usr::shell::ExitCode::CommandError;
+                            return Err(ExitCode::Failure);
                         }
                     }
                     State::Receiving
@@ -216,13 +217,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
         }
         iface.remove_socket(tcp_handle);
-        usr::shell::ExitCode::CommandSuccessful
+        Ok(())
     } else {
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -234,5 +235,4 @@ fn help() -> usr::shell::ExitCode {
     println!("  {0}-p{1}, {0}--prompt{1}             Display prompt", csi_option, csi_reset);
     println!("  {0}-r{1}, {0}--read-only{1}          Read only connexion", csi_option, csi_reset);
     println!("  {0}-i{1}, {0}--interval <time>{1}    Wait <time> between packets", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
 }

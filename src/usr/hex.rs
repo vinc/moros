@@ -1,19 +1,19 @@
-use crate::usr;
 use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
 
 // TODO: add `--skip` and `--length` params
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::UsageError);
     }
     let pathname = args[1];
     if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
         print_hex(&buf);
-        usr::shell::ExitCode::CommandSuccessful
+        Ok(())
     } else {
         error!("File not found '{}'", pathname);
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
 }
 

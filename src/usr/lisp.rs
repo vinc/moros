@@ -1,6 +1,7 @@
 use crate::{api, usr};
 use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
 use alloc::collections::BTreeMap;
@@ -294,8 +295,10 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
-        let res = usr::shell::exec(&cmd);
-        Ok(Exp::Num(res as u8 as f64))
+        match usr::shell::exec(&cmd) {
+            Ok(()) => Ok(Exp::Num(0.0)),
+            Err(code) => Ok(Exp::Num(code as u8 as f64)),
+        }
     }));
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -658,7 +661,7 @@ fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
 }
 
-fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
+fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_color = Style::color("Cyan");
     let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
@@ -690,10 +693,10 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> usr::shell::ExitCode {
         prompt.history.add(&line);
         prompt.history.save(history_file);
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let line_color = Style::color("Yellow");
     let error_color = Style::color("LightRed");
     let reset = Style::reset();
@@ -710,7 +713,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
     if eval_label_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if args.len() < 2 {
@@ -734,7 +737,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                                     eprintln!("{}Error:{} {}", error_color, reset, msg);
                                     eprintln!();
                                     eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                    return usr::shell::ExitCode::CommandError;
+                                    return Err(ExitCode::Failure);
                                 }
                             }
                         }
@@ -744,10 +747,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                 }
             }
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(())
         } else {
             error!("File not found '{}'", pathname);
-            usr::shell::ExitCode::CommandError
+            Err(ExitCode::Failure)
         }
     }
 }

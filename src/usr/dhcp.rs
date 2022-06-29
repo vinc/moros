@@ -1,12 +1,15 @@
 use crate::{sys, usr, debug};
 use crate::api::clock;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
+
+use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
 use smoltcp::time::Instant;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut verbose = false;
     let dhcp_config;
 
@@ -31,12 +34,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(dhcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(dhcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
 
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
@@ -65,29 +68,29 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
     } else {
         error!("Network Error");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if let Some(config) = dhcp_config {
         //debug!("{:#?}", config);
-        usr::net::main(&["net", "config", "ip", &config.address.to_string()]);
-        usr::net::main(&["net", "config", "ip"]);
+        usr::shell::exec(&format!("net config ip {}", config.address)).ok();
+        usr::shell::exec("net config ip").ok();
 
         if let Some(router) = config.router {
-            usr::net::main(&["net", "config", "gw", &router.to_string()]);
+            usr::shell::exec(&format!("net config gw {}", router)).ok();
         } else {
-            usr::net::main(&["net", "config", "gw", "0.0.0.0"]);
+            usr::shell::exec("net config gw 0.0.0.0").ok();
         }
-        usr::net::main(&["net", "config", "gw"]);
+        usr::shell::exec("net config gw").ok();
 
         let dns: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
         if !dns.is_empty() {
-            usr::net::main(&["net", "config", "dns", &dns.join(",")]);
+            usr::shell::exec(&format!("net config dns {}", dns.join(","))).ok();
         }
-        usr::net::main(&["net", "config", "dns"]);
+        usr::shell::exec("net config dns").ok();
 
-        return usr::shell::ExitCode::CommandSuccessful;
+        return Ok(());
     }
 
-    usr::shell::ExitCode::CommandError
+    Err(ExitCode::Failure)
 }

@@ -1,7 +1,8 @@
-use crate::{sys, usr};
+use crate::sys;
 use crate::api::clock;
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
@@ -13,7 +14,7 @@ use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     let port = 80;
@@ -32,7 +33,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 iface.remove_socket(tcp_handle);
                 println!();
-                return usr::shell::ExitCode::CommandSuccessful;
+                return Ok(());
             }
 
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
@@ -182,7 +183,7 @@ pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
         }
     } else {
         error!("Could not find network interface");
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
 }
 

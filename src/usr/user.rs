@@ -2,6 +2,7 @@ use crate::{api, sys, usr};
 use crate::api::fs;
 use crate::api::io;
 use crate::api::random;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -15,7 +16,7 @@ use sha2::Sha256;
 const PASSWORDS: &str = "/ini/passwords.csv";
 const COMMANDS: [&str; 2] = ["create", "login"];
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
         return usage();
     }
@@ -34,16 +35,16 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 }
 
-fn usage() -> usr::shell::ExitCode {
+fn usage() -> Result<(), ExitCode> {
     eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    usr::shell::ExitCode::CommandError
+    Err(ExitCode::UsageError)
 }
 
 // TODO: Add max number of attempts
-pub fn login(username: &str) -> usr::shell::ExitCode {
+pub fn login(username: &str) -> Result<(), ExitCode> {
     if !fs::exists(PASSWORDS) {
         error!("Could not read '{}'", PASSWORDS);
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if username.is_empty() {
@@ -78,17 +79,17 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
     sys::process::set_dir(&home);
 
     // TODO: load shell
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
-pub fn create(username: &str) -> usr::shell::ExitCode {
+pub fn create(username: &str) -> Result<(), ExitCode> {
     if username.is_empty() {
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if hashed_password(username).is_some() {
         error!("Username exists");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     print!("Password: ");
@@ -98,7 +99,7 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     println!();
 
     if password.is_empty() {
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     print!("Confirm: ");
@@ -109,12 +110,12 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
 
     if password != confirm {
         error!("Password confirmation failed");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
         error!("Could not save user");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     // Create home dir
@@ -122,10 +123,10 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
         api::syscall::close(handle);
     } else {
         error!("Could not create home dir");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
 pub fn check(password: &str, hashed_password: &str) -> bool {

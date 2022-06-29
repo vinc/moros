@@ -1,8 +1,9 @@
 use crate::{sys, usr, debug};
 use crate::api::console::Style;
 use crate::api::clock;
-use crate::api::syscall;
+use crate::api::process::ExitCode;
 use crate::api::random;
+use crate::api::syscall;
 
 use alloc::string::String;
 use alloc::vec;
@@ -12,7 +13,7 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut verbose = false;
     let mut args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
@@ -38,7 +39,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     if args.len() != 3 {
         help();
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::UsageError);
     }
 
     let host = &args[1];
@@ -54,7 +55,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
-                return usr::shell::ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
         }
     };
@@ -75,12 +76,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
                 iface.remove_socket(tcp_handle);
-                return usr::shell::ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             if let Err(e) = iface.poll(timestamp) {
@@ -97,7 +98,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     }
                     if socket.connect(cx, (address, port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, port);
-                        return usr::shell::ExitCode::CommandError;
+                        return Err(ExitCode::Failure);
                     }
                     State::Request
                 }
@@ -128,16 +129,15 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
             }
         }
         iface.remove_socket(tcp_handle);
-        usr::shell::ExitCode::CommandSuccessful
+        Ok(())
     } else {
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Usage:{} tcp {}<host> <port>{1}", csi_title, csi_reset, csi_option);
-    usr::shell::ExitCode::CommandSuccessful
 }

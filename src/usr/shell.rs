@@ -1,6 +1,7 @@
 use crate::{api, sys, usr};
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::regex::Regex;
 use crate::api::syscall;
@@ -19,15 +20,6 @@ const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
     "shell", "socket", "tcp", "time", "user", "vga", "write"
 ];
 
-#[repr(u8)]
-#[derive(PartialEq, Eq)]
-pub enum ExitCode {
-    CommandSuccessful = 0,
-    CommandUnknown    = 1,
-    CommandError      = 2,
-    ShellExit         = 255,
-}
-
 struct Config {
     env: BTreeMap<String, String>,
     aliases: BTreeMap<String, String>,
@@ -41,6 +33,7 @@ impl Config {
             env.insert(key, val); // Copy the process environment to the shell environment
         }
         env.insert("DIR".to_string(), sys::process::dir());
+        env.insert("?".to_string(), "0".to_string());
         Config { env, aliases }
     }
 }
@@ -196,16 +189,16 @@ pub fn split_args(cmd: &str) -> Vec<String> {
     args
 }
 
-fn cmd_proc(args: &[&str]) -> ExitCode {
+fn cmd_proc(args: &[&str]) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
-            ExitCode::CommandSuccessful
+            Ok(())
         },
         2 => {
             match args[1] {
                 "id" => {
                     println!("{}", sys::process::id());
-                    ExitCode::CommandSuccessful
+                    Ok(())
                 }
                 "files" => {
                     for (i, handle) in sys::process::file_handles().iter().enumerate() {
@@ -213,24 +206,24 @@ fn cmd_proc(args: &[&str]) -> ExitCode {
                             println!("{}: {:?}", i, resource);
                         }
                     }
-                    ExitCode::CommandSuccessful
+                    Ok(())
                 }
                 _ => {
-                    ExitCode::CommandError
+                    Err(ExitCode::Failure)
                 }
             }
         },
         _ => {
-            ExitCode::CommandError
+            Err(ExitCode::Failure)
         }
     }
 }
 
-fn cmd_change_dir(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
             println!("{}", sys::process::dir());
-            ExitCode::CommandSuccessful
+            Ok(())
         },
         2 => {
             let mut pathname = fs::realpath(args[1]);
@@ -240,82 +233,85 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> ExitCode {
             if api::fs::is_dir(&pathname) {
                 sys::process::set_dir(&pathname);
                 config.env.insert("DIR".to_string(), sys::process::dir());
-                ExitCode::CommandSuccessful
+                Ok(())
             } else {
                 error!("File not found '{}'", pathname);
-                ExitCode::CommandError
+                Err(ExitCode::Failure)
             }
         },
         _ => {
-            ExitCode::CommandError
+            Err(ExitCode::Failure)
         }
     }
 }
 
-fn cmd_alias(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
     config.aliases.insert(args[1].to_string(), args[2].to_string());
-    ExitCode::CommandSuccessful
+    Ok(())
 }
 
-fn cmd_unalias(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if config.aliases.remove(&args[1].to_string()).is_none() {
         error!("Error: could not unalias '{}'", args[1]);
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
-    ExitCode::CommandSuccessful
+    Ok(())
 }
 
-fn cmd_set(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     config.env.insert(args[1].to_string(), args[2].to_string());
-    ExitCode::CommandSuccessful
+    Ok(())
 }
 
-fn cmd_unset(args: &[&str], config: &mut Config) -> ExitCode {
+fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
         println!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if config.env.remove(&args[1].to_string()).is_none() {
         error!("Error: could not unset '{}'", args[1]);
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
-    ExitCode::CommandSuccessful
+    Ok(())
 }
 
-fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
+fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
+    #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
+    sys::console::print_fmt(format_args!(""));
+
     let mut cmd = cmd.to_string();
 
     // Replace `$key` with its value in the environment or an empty string
-    let re = Regex::new("\\$\\w+");
+    let re = Regex::new("\\$\\S+");
     while let Some((a, b)) = re.find(&cmd) {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
         let val = config.env.get(&key).map_or("", String::as_str);
@@ -372,24 +368,24 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
             is_redirected = true;
             if i == n - 1 {
                 println!("Could not parse path for redirection");
-                return ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
             let path = args[i + 1];
             if api::fs::reopen(path, left_handle).is_err() {
                 println!("Could not open path for redirection");
-                return ExitCode::CommandError;
+                return Err(ExitCode::Failure);
             }
             args.remove(i); // Remove redirection from args
             args.remove(i); // Remove path from args
             n -= 2;
         } else if is_thin_arrow { // TODO: Implement pipes
             println!("Could not parse arrow");
-            return ExitCode::CommandError;
+            return Err(ExitCode::Failure);
         }
     }
 
     let res = match args[0] {
-        ""         => ExitCode::CommandSuccessful,
+        ""         => Ok(()),
         "2048"     => usr::pow::main(&args),
         "alias"    => cmd_alias(&args, config),
         "base64"   => usr::base64::main(&args),
@@ -422,7 +418,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
         "net"      => usr::net::main(&args),
         "pci"      => usr::pci::main(&args),
         "proc"     => cmd_proc(&args),
-        "quit"     => ExitCode::ShellExit,
+        "quit"     => Err(ExitCode::ShellExit),
         "read"     => usr::read::main(&args),
         "set"      => cmd_set(&args, config),
         "shell"    => usr::shell::main(&args),
@@ -443,28 +439,19 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
                 Some(FileType::Dir) => {
                     sys::process::set_dir(&path);
                     config.env.insert("DIR".to_string(), sys::process::dir());
-                    ExitCode::CommandSuccessful
+                    Ok(())
                 }
                 Some(FileType::File) => {
-                    if api::process::spawn(&path, &args[1..]).is_ok() {
-                        // TODO: get exit code
-                        ExitCode::CommandSuccessful
-                    } else {
-                        error!("'{}' is not executable", path);
-                        ExitCode::CommandError
-                    }
+                    spawn(&path, &args)
                 }
                 _ => {
-                    if api::process::spawn(&format!("/bin/{}", args[0]), &args).is_ok() {
-                        ExitCode::CommandSuccessful
-                    } else {
-                        error!("Could not execute '{}'", cmd);
-                        ExitCode::CommandUnknown
-                    }
+                    let path = format!("/bin/{}", args[0]);
+                    spawn(&path, &args)
                 }
             }
         }
     };
+
 
     // TODO: Remove this when redirections are done in spawned process
     if is_redirected {
@@ -476,7 +463,25 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> ExitCode {
     res
 }
 
-fn repl(config: &mut Config) -> usr::shell::ExitCode {
+fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
+    match api::process::spawn(&path, &args) {
+        Err(ExitCode::ExecError) => {
+            error!("Could not execute '{}'", args[0]);
+            Err(ExitCode::ExecError)
+        }
+        Err(ExitCode::ReadError) => {
+            error!("Could not read '{}'", args[0]);
+            Err(ExitCode::ReadError)
+        }
+        Err(ExitCode::OpenError) => {
+            error!("Could not open '{}'", args[0]);
+            Err(ExitCode::OpenError)
+        }
+        res => res,
+    }
+}
+
+fn repl(config: &mut Config) -> Result<(), ExitCode> {
     println!();
 
     let mut prompt = Prompt::new();
@@ -484,39 +489,34 @@ fn repl(config: &mut Config) -> usr::shell::ExitCode {
     prompt.history.load(history_file);
     prompt.completion.set(&shell_completer);
 
-    let mut success = true;
-    while let Some(cmd) = prompt.input(&prompt_string(success)) {
-        match exec_with_config(&cmd, config) {
-            ExitCode::CommandSuccessful => {
-                success = true;
-            },
-            ExitCode::ShellExit => {
-                break;
-            },
-            _ => {
-                success = false;
-            },
-        }
+    let mut code = ExitCode::Success;
+    while let Some(cmd) = prompt.input(&prompt_string(code == ExitCode::Success)) {
+        code = match exec_with_config(&cmd, config) {
+            Err(ExitCode::ShellExit) => break,
+            Err(e) => e,
+            Ok(()) => ExitCode::Success,
+        };
+        config.env.insert("?".to_string(), format!("{}", code as u8));
         prompt.history.add(&cmd);
         prompt.history.save(history_file);
         sys::console::drain();
         println!();
     }
     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
-    ExitCode::CommandSuccessful
+    Ok(())
 }
 
-pub fn exec(cmd: &str) -> ExitCode {
+pub fn exec(cmd: &str) -> Result<(), ExitCode> {
     let mut config = Config::new();
     exec_with_config(cmd, &mut config)
 }
 
-pub fn main(args: &[&str]) -> ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut config = Config::new();
 
     if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
         for cmd in rc.split('\n') {
-            exec_with_config(cmd, &mut config);
+            exec_with_config(cmd, &mut config).ok();
         }
     }
 
@@ -536,13 +536,13 @@ pub fn main(args: &[&str]) -> ExitCode {
         if let Ok(contents) = api::fs::read_to_string(pathname) {
             for line in contents.split('\n') {
                 if !line.is_empty() {
-                    exec_with_config(line, &mut config);
+                    exec_with_config(line, &mut config).ok();
                 }
             }
-            ExitCode::CommandSuccessful
+            Ok(())
         } else {
             println!("File not found '{}'", pathname);
-            ExitCode::CommandError
+            Err(ExitCode::Failure)
         }
     }
 }
@@ -556,24 +556,24 @@ fn test_shell() {
     usr::install::copy_files(false);
 
     // Redirect standard output
-    exec("print test1 => /test");
+    exec("print test1 => /test").ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("test1\n".to_string()));
 
     // Overwrite content of existing file
-    exec("print test2 => /test");
+    exec("print test2 => /test").ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("test2\n".to_string()));
 
     // Redirect standard output explicitely
-    exec("print test3 1=> /test");
+    exec("print test3 1=> /test").ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
 
     // Redirect standard error explicitely
-    exec("hex /nope 2=> /test");
+    exec("hex /nope 2=> /test").ok();
     assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
 
     let mut config = Config::new();
-    exec_with_config("set b 42", &mut config);
-    exec_with_config("print a $b $c d => /test", &mut config);
+    exec_with_config("set b 42", &mut config).ok();
+    exec_with_config("print a $b $c d => /test", &mut config).ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();

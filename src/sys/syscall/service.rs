@@ -1,13 +1,15 @@
 use crate::sys;
+use crate::api::process::ExitCode;
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
+
 use alloc::vec;
 use core::arch::asm;
 
-pub fn exit(_code: usize) -> usize {
+pub fn exit(code: ExitCode) -> ExitCode {
     sys::process::exit();
-    0
+    code
 }
 
 pub fn sleep(seconds: f64) {
@@ -80,21 +82,26 @@ pub fn close(handle: usize) {
     sys::process::delete_file_handle(handle);
 }
 
-pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> isize {
+pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
-        Err(_) => return -1,
+        Err(_) => return ExitCode::OpenError,
     };
     if let Some(mut file) = sys::fs::File::open(&path) {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if Process::spawn(&buf, args_ptr, args_len).is_ok() {
-                return 0;
+            if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
+                code
+            } else {
+                ExitCode::Success
             }
+        } else {
+            ExitCode::ReadError
         }
+    } else {
+        ExitCode::OpenError
     }
-    -1
 }
 
 pub fn stop(code: usize) -> usize {

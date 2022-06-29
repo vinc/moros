@@ -1,10 +1,10 @@
-use crate::usr;
 use crate::api::fs;
+use crate::api::process::ExitCode;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 3 {
         eprintln!("Usage: copy <source> <dest>");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::UsageError);
     }
 
     let source = args[1];
@@ -12,13 +12,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     if let Ok(contents) = fs::read_to_bytes(source) {
         if fs::write(dest, &contents).is_ok() {
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(())
         } else {
             error!("Could not write to '{}'", dest);
-            usr::shell::ExitCode::CommandError
+            Err(ExitCode::Failure)
         }
     } else {
         error!("File not found '{}'", source);
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
 }
