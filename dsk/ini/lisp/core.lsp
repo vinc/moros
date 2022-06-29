@@ -47,5 +47,10 @@
     ((null? a) b)
     (true (cons (first a) (append (rest a) b)))))
 
+(defn reverse (a)
+    (cond
+        ((null? a) a)
+        (true (append (reverse (rest a)) (cons (first a) '())))))
+
 (defn println (exp)
   (do (print exp) (print "\n")))
