@@ -305,15 +305,10 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match args[0].clone() {
-            Exp::Str(s) => {
-                print!("{}", s);
-                Ok(Exp::Str(s))
-            }
-            exp => {
-                print!("{}", exp);
-                Ok(exp)
-            }
+            Exp::Str(s) => print!("{}", s),
+            exp => print!("{}", exp),
         }
+        Ok(Exp::List(Vec::new()))
     }));
     data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
