@@ -5,7 +5,6 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloc::vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use lazy_static::lazy_static;
 use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy::DeviceCapabilities;
 use smoltcp::phy::{Device, Medium};
@@ -18,9 +17,7 @@ mod pcnet;
 
 pub type Interface = smoltcp::iface::Interface<'static, EthernetDevice>;
 
-lazy_static! {
-    pub static ref IFACE: Mutex<Option<Interface>> = Mutex::new(None);
-}
+pub static IFACE: Mutex<Option<Interface>> = Mutex::new(None);
 
 #[derive(Clone)]
 pub enum EthernetDevice {

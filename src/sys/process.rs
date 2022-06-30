@@ -17,9 +17,10 @@ const MAX_FILE_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
 const MAX_PROC_SIZE: usize = 1 << 20; // 1 MB
 
+pub static PID: AtomicUsize = AtomicUsize::new(0);
+pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
+
 lazy_static! {
-    pub static ref PID: AtomicUsize = AtomicUsize::new(0);
-    pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(1);
     pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new(0))));
 }
 

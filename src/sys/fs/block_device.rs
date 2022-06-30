@@ -6,12 +6,9 @@ use crate::sys;
 
 use alloc::vec;
 use alloc::vec::Vec;
-use lazy_static::lazy_static;
 use spin::Mutex;
 
-lazy_static! {
-    pub static ref BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
-}
+pub static BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
 
 pub enum BlockDevice {
     Mem(MemBlockDevice),

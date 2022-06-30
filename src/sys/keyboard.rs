@@ -2,14 +2,12 @@ use crate::sys;
 use crate::api::syscall;
 
 use core::sync::atomic::{AtomicBool, Ordering};
-use lazy_static::lazy_static;
 use pc_keyboard::{layouts, DecodedKey, Error, HandleControl, KeyState, KeyCode, KeyEvent, Keyboard, ScancodeSet1};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
-lazy_static! {
-    pub static ref KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
-}
+pub static KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
+
 pub static ALT: AtomicBool = AtomicBool::new(false);
 pub static CTRL: AtomicBool = AtomicBool::new(false);
 pub static SHIFT: AtomicBool = AtomicBool::new(false);
