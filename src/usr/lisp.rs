@@ -13,6 +13,7 @@ use alloc::vec::Vec;
 use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
+use core::f64::consts::PI;
 use core::fmt;
 use float_cmp::approx_eq;
 
@@ -239,6 +240,7 @@ macro_rules! ensure_length_gt {
 
 fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
+    data.insert("pi".to_string(), Exp::Num(PI));
     data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
     data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
     data.insert(">=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
@@ -253,32 +255,70 @@ fn default_env() -> Rc<RefCell<Env>> {
         Ok(Exp::Num(res))
     }));
     data.insert("-".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let cdr = args[1..].iter().fold(0.0, |acc, a| acc + a);
         Ok(Exp::Num(car - cdr))
     }));
     data.insert("/".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| acc / a);
         Ok(Exp::Num(res))
     }));
     data.insert("%".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::fmod(acc, *a));
         Ok(Exp::Num(res))
     }));
     data.insert("^".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
         Ok(Exp::Num(res))
+    }));
+    data.insert("cos".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::cos(args[0])))
+    }));
+    data.insert("acos".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        if -1.0 <= args[0] && args[0] <= 1.0 {
+            Ok(Exp::Num(libm::acos(args[0])))
+        } else {
+            Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
+        }
+    }));
+    data.insert("asin".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        if -1.0 <= args[0] && args[0] <= 1.0 {
+            Ok(Exp::Num(libm::asin(args[0])))
+        } else {
+            Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
+        }
+    }));
+    data.insert("atan".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::atan(args[0])))
+    }));
+    data.insert("sin".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::sin(args[0])))
+    }));
+    data.insert("tan".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::tan(args[0])))
     }));
     data.insert("or".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
@@ -887,6 +927,15 @@ fn test_lisp() {
 
     // join
     assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
+
+    // trigo
+    assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
+    assert_eq!(eval!("(acos 0)"), (PI / 2.0).to_string());
+    assert_eq!(eval!("(asin 1)"), (PI / 2.0).to_string());
+    assert_eq!(eval!("(atan 0)"), "0");
+    assert_eq!(eval!("(cos pi)"), "-1");
+    assert_eq!(eval!("(sin (/ pi 2))"), "1");
+    assert_eq!(eval!("(tan 0)"), "0");
 
     eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
     assert_eq!(eval!("(apply2 + 1 2)"), "3");
