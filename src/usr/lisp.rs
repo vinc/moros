@@ -13,22 +13,27 @@ use alloc::vec::Vec;
 use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
+use core::f64::consts::PI;
 use core::fmt;
 use float_cmp::approx_eq;
+use lazy_static::lazy_static;
+use spin::Mutex;
 
 use nom::IResult;
-use nom::combinator::value;
-use nom::bytes::complete::escaped_transform;
 use nom::branch::alt;
-use nom::character::complete::char;
-use nom::character::complete::multispace0;
+use nom::bytes::complete::escaped_transform;
+use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
-use nom::bytes::complete::is_not;
-use nom::sequence::preceded;
+use nom::character::complete::char;
+use nom::character::complete::multispace0;
+use nom::combinator::map;
+use nom::combinator::opt;
+use nom::combinator::value;
 use nom::multi::many0;
 use nom::number::complete::double;
 use nom::sequence::delimited;
+use nom::sequence::preceded;
 
 // Eval & Env adapted from Risp
 // Copyright 2019 Stepan Parunashvili
@@ -105,35 +110,15 @@ struct Env {
     outer: Option<Rc<RefCell<Env>>>,
 }
 
-const COMPLETER_FORMS: [&str; 21] = [
-    "atom",
-    "bytes",
-    "car",
-    "cdr",
-    "cond",
-    "cons",
-    "defun",
-    "eq",
-    "label",
-    "lambda",
-    "lines",
-    "load",
-    "mapcar",
-    "parse",
-    "print",
-    "progn",
-    "quote",
-    "read",
-    "read-bytes",
-    "str",
-    "type",
-];
+lazy_static! {
+    pub static ref FORMS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+}
 
 fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
         if let Some(f) = last_word.strip_prefix('(') {
-            for form in COMPLETER_FORMS {
+            for form in &*FORMS.lock() {
                 if let Some(entry) = form.strip_prefix(f) {
                     entries.push(entry.into());
                 }
@@ -151,11 +136,11 @@ fn is_symbol_letter(c: char) -> bool {
 }
 
 fn parse_str(input: &str) -> IResult<&str, Exp> {
-    let escaped = escaped_transform(is_not("\\\""), '\\', alt((
+    let escaped = map(opt(escaped_transform(is_not("\\\""), '\\', alt((
         value("\\", tag("\\")),
         value("\"", tag("\"")),
         value("\n", tag("n")),
-    )));
+    )))), |inner| inner.unwrap_or("".to_string()));
     let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
     Ok((input, Exp::Str(s)))
 }
@@ -237,6 +222,7 @@ macro_rules! ensure_length_gt {
 
 fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
+    data.insert("pi".to_string(), Exp::Num(PI));
     data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
     data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
     data.insert(">=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
@@ -251,32 +237,70 @@ fn default_env() -> Rc<RefCell<Env>> {
         Ok(Exp::Num(res))
     }));
     data.insert("-".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let cdr = args[1..].iter().fold(0.0, |acc, a| acc + a);
         Ok(Exp::Num(car - cdr))
     }));
     data.insert("/".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| acc / a);
         Ok(Exp::Num(res))
     }));
     data.insert("%".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::fmod(acc, *a));
         Ok(Exp::Num(res))
     }));
     data.insert("^".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        let args = list_of_floats(args)?;
         ensure_length_gt!(args, 0);
+        let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
         Ok(Exp::Num(res))
+    }));
+    data.insert("cos".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::cos(args[0])))
+    }));
+    data.insert("acos".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        if -1.0 <= args[0] && args[0] <= 1.0 {
+            Ok(Exp::Num(libm::acos(args[0])))
+        } else {
+            Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
+        }
+    }));
+    data.insert("asin".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        if -1.0 <= args[0] && args[0] <= 1.0 {
+            Ok(Exp::Num(libm::asin(args[0])))
+        } else {
+            Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
+        }
+    }));
+    data.insert("atan".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::atan(args[0])))
+    }));
+    data.insert("sin".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::sin(args[0])))
+    }));
+    data.insert("tan".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let args = list_of_floats(args)?;
+        Ok(Exp::Num(libm::tan(args[0])))
     }));
     data.insert("or".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
@@ -303,15 +327,10 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match args[0].clone() {
-            Exp::Str(s) => {
-                print!("{}", s);
-                Ok(Exp::Str(s))
-            }
-            exp => {
-                print!("{}", exp);
-                Ok(exp)
-            }
+            Exp::Str(s) => print!("{}", s),
+            exp => print!("{}", exp),
         }
+        Ok(Exp::List(Vec::new()))
     }));
     data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -380,6 +399,18 @@ fn default_env() -> Rc<RefCell<Env>> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
+
+    // Setup autocompletion
+    let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
+    let builtins = vec![
+        "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "def", "lambda", "fn",
+        "defun", "defn", "mapcar", "map", "progn", "do", "load", "quit"
+    ];
+    for builtin in builtins {
+        forms.push(builtin.to_string());
+    }
+    *FORMS.lock() = forms;
+
     Rc::new(RefCell::new(Env { data, outer: None }))
 }
 
@@ -886,9 +917,19 @@ fn test_lisp() {
 
     // cat
     assert_eq!(eval!("(cat \"a\" \"b\" \"c\")"), "\"abc\"");
+    assert_eq!(eval!("(cat \"a\" \"\")"), "\"a\"");
 
     // join
     assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
+
+    // trigo
+    assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
+    assert_eq!(eval!("(acos 0)"), (PI / 2.0).to_string());
+    assert_eq!(eval!("(asin 1)"), (PI / 2.0).to_string());
+    assert_eq!(eval!("(atan 0)"), "0");
+    assert_eq!(eval!("(cos pi)"), "-1");
+    assert_eq!(eval!("(sin (/ pi 2))"), "1");
+    assert_eq!(eval!("(tan 0)"), "0");
 
     eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
     assert_eq!(eval!("(apply2 + 1 2)"), "3");

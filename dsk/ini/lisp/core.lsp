@@ -30,17 +30,30 @@
 (defn null? (x)
   (eq? x null))
 
-(defn first (lst)
-  (car lst))
+(defn rest (a)
+  (cdr a))
 
-(defn rest (lst)
-  (cdr lst))
+(defn first (a)
+  (car a))
 
-(defn second (lst)
-  (first (rest lst)))
+(defn second (a)
+  (first (rest a)))
 
-(defn third (lst)
-  (second (rest lst)))
+(defn third (a)
+  (second (rest a)))
+
+(defn append (a b)
+  (cond
+    ((null? a) b)
+    (true (cons (first a) (append (rest a) b)))))
+
+(defn reverse (a)
+  (cond
+    ((null? a) a)
+    (true (append (reverse (rest a)) (cons (first a) '())))))
+
+(defn read-line ()
+  (str (reverse (rest (reverse (read-bytes "/dev/console" 256))))))
 
 (defn println (exp)
   (do (print exp) (print "\n")))
