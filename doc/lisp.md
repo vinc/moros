@@ -31,9 +31,21 @@ of strings to the language and reading from the filesystem.
 - `defun` (aliased to `defn`)
 - `mapcar` (aliased to `map`)
 - `print`
-- `read-file`
+- `read`
+- `read-bytes`
+- `bytes`
+- `str`
+- `cat`
+- `join`
 - `lines`
 - `parse`
+- `type`
+- `system`
+
+- Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`
+- Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
+- Comparisons: `>`, `<`, `>=`, `<=`, `=`
+- Boolean operations: `and`, `or`
 
 ## Usage
 
