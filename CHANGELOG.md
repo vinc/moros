@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Remove superfluous use of lazy_static (#364)
+- Use exit code to set status var (#360)
 - Add shell aliases (#357)
 - Bump object from 0.28.4 to 0.29.0 (#358)
 - Fix args ptr alignment (#359)
