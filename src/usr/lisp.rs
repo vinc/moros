@@ -16,6 +16,8 @@ use core::cell::RefCell;
 use core::f64::consts::PI;
 use core::fmt;
 use float_cmp::approx_eq;
+use lazy_static::lazy_static;
+use spin::Mutex;
 
 use nom::IResult;
 use nom::branch::alt;
@@ -108,35 +110,15 @@ struct Env {
     outer: Option<Rc<RefCell<Env>>>,
 }
 
-const COMPLETER_FORMS: [&str; 21] = [
-    "atom",
-    "bytes",
-    "car",
-    "cdr",
-    "cond",
-    "cons",
-    "defun",
-    "eq",
-    "label",
-    "lambda",
-    "lines",
-    "load",
-    "mapcar",
-    "parse",
-    "print",
-    "progn",
-    "quote",
-    "read",
-    "read-bytes",
-    "str",
-    "type",
-];
+lazy_static! {
+    pub static ref FORMS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+}
 
 fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
         if let Some(f) = last_word.strip_prefix('(') {
-            for form in COMPLETER_FORMS {
+            for form in &*FORMS.lock() {
                 if let Some(entry) = form.strip_prefix(f) {
                     entries.push(entry.into());
                 }
@@ -417,6 +399,18 @@ fn default_env() -> Rc<RefCell<Env>> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
+
+    // Setup autocompletion
+    let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
+    let builtins = vec![
+        "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "def", "lambda", "fn",
+        "defun", "defn", "mapcar", "map", "progn", "do", "load", "quit"
+    ];
+    for builtin in builtins {
+        forms.push(builtin.to_string());
+    }
+    *FORMS.lock() = forms;
+
     Rc::new(RefCell::new(Env { data, outer: None }))
 }
 
