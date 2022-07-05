@@ -6,6 +6,7 @@ use crate::api::random;
 use crate::api::syscall;
 use alloc::string::{String, ToString};
 use alloc::vec;
+use alloc::collections::btree_map::BTreeMap;
 use core::str::{self, FromStr};
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
@@ -38,6 +39,23 @@ impl URL {
             port: port.parse().unwrap_or(80),
             path: path.into(),
         })
+    }
+}
+
+const TEXT_CONTENT_TYPES: [&str; 2] = [
+    "text/", "application/json"
+];
+
+fn is_binary_response(header: &BTreeMap<String, String>) -> bool {
+    if let Some(value) = header.get("content-type") {
+        for content_type in TEXT_CONTENT_TYPES {
+            if value.starts_with(content_type) {
+                return false;
+            }
+        }
+        true
+    } else {
+        false
     }
 }
 
@@ -112,8 +130,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let tcp_handle = iface.add_socket(tcp_socket);
-
+        let mut header = BTreeMap::new();
         let mut is_header = true;
+        let mut is_binary = false;
         let timeout = 5.0;
         let started = clock::realtime();
         loop {
@@ -172,27 +191,43 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
                 State::Response if socket.can_recv() => {
                     socket.recv(|data| {
-                        let contents = String::from_utf8_lossy(data);
-                        let mut header = vec![];
-                        let mut body = vec![];
-                        for line in contents.lines() {
-                            if is_header {
-                                if line.is_empty() {
-                                    is_header = false;
-                                }
-                                header.push(line);
-                            } else {
-                                body.push(line);
-                            }
-                        }
-                        if is_verbose {
+                        let n = data.len();
+                        let mut i = 0;
+                        if is_verbose && is_header {
                             print!("{}", csi_verbose);
-                            for line in header {
-                                println!("< {}", line);
-                            }
-                            print!("{}", csi_reset);
                         }
-                        print!("{}", body.join("\n"));
+                        while i < n {
+                            if is_header {
+                                let mut j = i;
+                                while j < n {
+                                    if data[j] == b'\n' {
+                                        break;
+                                    }
+                                    j += 1;
+                                }
+                                let line = String::from_utf8_lossy(&data[i..j]); // TODO: check i == j
+                                if is_verbose {
+                                    println!("< {}", line);
+                                }
+                                if line.trim().is_empty() {
+                                    if is_verbose {
+                                        print!("{}", csi_reset);
+                                    }
+                                    is_header = false;
+                                    is_binary = is_binary_response(&header);
+                                } if let Some((k, v)) = line.split_once(':') {
+                                    header.insert(k.trim().to_lowercase(), v.trim().to_lowercase());
+                                }
+                                i = j + 1;
+                            } else {
+                                if is_binary {
+                                    print!("{}", unsafe { String::from_utf8_unchecked(data[i..n].to_vec()) });
+                                } else {
+                                    print!("{}", String::from_utf8_lossy(&data[i..n]));
+                                };
+                                break;
+                            }
+                        }
                         (data.len(), ())
                     }).unwrap();
                     State::Response
@@ -208,7 +243,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
         iface.remove_socket(tcp_handle);
-        println!();
         Ok(())
     } else {
         Err(ExitCode::Failure)
