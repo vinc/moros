@@ -79,7 +79,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         error!("Missing URL");
         return Err(ExitCode::UsageError);
     } else if path.is_empty() {
-        if let Some(i) = args[1].find('/') {
+        if let Some(i) = host.find('/') {
             (host, path) = host.split_at(i);
         } else {
             path = "/"
