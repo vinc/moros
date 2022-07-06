@@ -42,23 +42,6 @@ impl URL {
     }
 }
 
-const TEXT_CONTENT_TYPES: [&str; 2] = [
-    "text/", "application/json"
-];
-
-fn is_binary_response(header: &BTreeMap<String, String>) -> bool {
-    if let Some(value) = header.get("content-type") {
-        for content_type in TEXT_CONTENT_TYPES {
-            if value.starts_with(content_type) {
-                return false;
-            }
-        }
-        true
-    } else {
-        false
-    }
-}
-
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let csi_verbose = Style::color("LightBlue");
     let csi_reset = Style::reset();
@@ -132,7 +115,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let tcp_handle = iface.add_socket(tcp_socket);
         let mut header = BTreeMap::new();
         let mut is_header = true;
-        let mut is_binary = false;
         let timeout = 5.0;
         let started = clock::realtime();
         loop {
@@ -214,17 +196,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         print!("{}", csi_reset);
                                     }
                                     is_header = false;
-                                    is_binary = is_binary_response(&header);
                                 } if let Some((k, v)) = line.split_once(':') {
                                     header.insert(k.trim().to_lowercase(), v.trim().to_lowercase());
                                 }
                                 i = j + 1;
                             } else {
-                                if is_binary {
-                                    print!("{}", unsafe { String::from_utf8_unchecked(data[i..n].to_vec()) });
-                                } else {
-                                    print!("{}", String::from_utf8_lossy(&data[i..n]));
-                                };
+                                syscall::write(1, &data[i..n]);
                                 break;
                             }
                         }
