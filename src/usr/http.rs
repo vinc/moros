@@ -6,7 +6,6 @@ use crate::api::random;
 use crate::api::syscall;
 use alloc::string::{String, ToString};
 use alloc::vec;
-use alloc::collections::btree_map::BTreeMap;
 use core::str::{self, FromStr};
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
@@ -113,7 +112,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let tcp_handle = iface.add_socket(tcp_socket);
-        let mut header = BTreeMap::new();
         let mut is_header = true;
         let timeout = 5.0;
         let started = clock::realtime();
@@ -196,8 +194,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         print!("{}", csi_reset);
                                     }
                                     is_header = false;
-                                } if let Some((k, v)) = line.split_once(':') {
-                                    header.insert(k.trim().to_lowercase(), v.trim().to_lowercase());
                                 }
                                 i = j + 1;
                             } else {
