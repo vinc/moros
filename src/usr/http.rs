@@ -18,6 +18,9 @@ struct URL {
     pub path: String,
 }
 
+enum SessionState { Connect, Request, Response }
+enum ResponseState { Headers, Body }
+
 impl URL {
     pub fn parse(url: &str) -> Option<Self> {
         if !url.starts_with("http://") {
@@ -107,14 +110,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
     let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
 
-    enum State { Connect, Request, Response }
-    let mut state = State::Connect;
+    let mut session_state = SessionState::Connect;
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let tcp_handle = iface.add_socket(tcp_socket);
-        let mut is_header = true;
         let timeout = 5.0;
         let started = clock::realtime();
+        let mut response_state = ResponseState::Headers;
         loop {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
@@ -133,8 +135,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
             let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
 
-            state = match state {
-                State::Connect if !socket.is_active() => {
+            session_state = match session_state {
+                SessionState::Connect if !socket.is_active() => {
                     let local_port = 49152 + random::get_u16() % 16384;
                     if is_verbose {
                         print!("{}", csi_verbose);
@@ -146,9 +148,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         iface.remove_socket(tcp_handle);
                         return Err(ExitCode::Failure);
                     }
-                    State::Request
+                    SessionState::Request
                 }
-                State::Request if socket.may_send() => {
+                SessionState::Request if socket.may_send() => {
                     let http_get = "GET ".to_string() + &url.path + " HTTP/1.1\r\n";
                     let http_host = "Host: ".to_string() + &url.host + "\r\n";
                     let http_ua = "User-Agent: MOROS/".to_string() + env!("CARGO_PKG_VERSION") + "\r\n";
@@ -167,48 +169,51 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     socket.send_slice(http_ua.as_ref()).expect("cannot send");
                     socket.send_slice(http_connection.as_ref()).expect("cannot send");
                     socket.send_slice(b"\r\n").expect("cannot send");
-                    State::Response
+                    SessionState::Response
                 }
-                State::Response if socket.can_recv() => {
+                SessionState::Response if socket.can_recv() => {
                     socket.recv(|data| {
                         let n = data.len();
                         let mut i = 0;
-                        if is_verbose && is_header {
-                            print!("{}", csi_verbose);
-                        }
                         while i < n {
-                            if is_header {
-                                let mut j = i;
-                                while j < n {
-                                    if data[j] == b'\n' {
-                                        break;
+                            match response_state {
+                                ResponseState::Headers => {
+                                    let mut j = i;
+                                    while j < n {
+                                        if data[j] == b'\n' {
+                                            break;
+                                        }
+                                        j += 1;
                                     }
-                                    j += 1;
-                                }
-                                let line = String::from_utf8_lossy(&data[i..j]); // TODO: check i == j
-                                if is_verbose {
-                                    println!("< {}", line);
-                                }
-                                if line.trim().is_empty() {
+                                    let line = String::from_utf8_lossy(&data[i..j]); // TODO: check i == j
                                     if is_verbose {
-                                        print!("{}", csi_reset);
+                                        if i == 0 {
+                                            print!("{}", csi_verbose);
+                                        }
+                                        println!("< {}", line);
                                     }
-                                    is_header = false;
+                                    if line.trim().is_empty() {
+                                        if is_verbose {
+                                            print!("{}", csi_reset);
+                                        }
+                                        response_state = ResponseState::Body;
+                                    }
+                                    i = j + 1;
                                 }
-                                i = j + 1;
-                            } else {
-                                syscall::write(1, &data[i..n]);
-                                break;
+                                ResponseState::Body => {
+                                    syscall::write(1, &data[i..n]);
+                                    break;
+                                }
                             }
                         }
                         (data.len(), ())
                     }).unwrap();
-                    State::Response
+                    SessionState::Response
                 }
-                State::Response if !socket.may_recv() => {
+                SessionState::Response if !socket.may_recv() => {
                     break;
                 }
-                _ => state
+                _ => session_state
             };
 
             if let Some(wait_duration) = iface.poll_delay(timestamp) {
