@@ -61,19 +61,18 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "--verbose" => {
                 is_verbose = true;
             }
-            _ if args[i].starts_with("--") => {
-                error!("Invalid option '{}'", args[i]);
-                return Err(ExitCode::UsageError);
-            }
-            _ if host.is_empty() => {
-                host = args[i]
-            }
-            _ if path.is_empty() => {
-                path = args[i]
-            }
             _ => {
-                error!("Too many arguments");
-                return Err(ExitCode::UsageError);
+                if args[i].starts_with("-") {
+                    error!("Invalid option '{}'", args[i]);
+                    return Err(ExitCode::UsageError);
+                } else if host.is_empty() {
+                    host = args[i];
+                } else if path.is_empty() {
+                    path = args[i];
+                } else {
+                    error!("Too many arguments");
+                    return Err(ExitCode::UsageError);
+                }
             }
         }
     }
