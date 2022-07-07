@@ -129,11 +129,12 @@ fn glob(arg: &str) -> Vec<String> {
 
         let re = Regex::new(&glob_to_regex(&pattern));
 
+        let sep = if dir == "/" { "" } else { "/" };
         if let Ok(files) = fs::read_dir(&dir) {
             for file in files {
                 let name = file.name();
                 if re.is_match(&name) {
-                    matches.push(format!("{}/{}", dir, name));
+                    matches.push(format!("{}{}{}", dir, sep, name));
                 }
             }
         }
