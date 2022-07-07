@@ -58,7 +58,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-h" | "--help" => {
                 return help();
             }
-            "--verbose" => {
+            "-v" | "--verbose" => {
                 is_verbose = true;
             }
             _ => {
