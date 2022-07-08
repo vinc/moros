@@ -20,9 +20,9 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
     // Use half of the memory for the heap, caped to 16 MB because the allocator is too slow
     let heap_size = cmp::min(sys::mem::memory_size() / 2, 16 << 20);
+    let heap_start = VirtAddr::new(HEAP_START as u64);
 
     let pages = {
-        let heap_start = VirtAddr::new(HEAP_START as u64);
         let heap_end = heap_start + heap_size - 1u64;
         let heap_start_page = Page::containing_address(heap_start);
         let heap_end_page = Page::containing_address(heap_end);
@@ -38,7 +38,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     }
 
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START, heap_size as usize);
+        ALLOCATOR.lock().init(heap_start.as_mut_ptr(), heap_size as usize);
     }
 
     Ok(())
