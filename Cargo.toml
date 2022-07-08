@@ -24,7 +24,7 @@ float-cmp = "0.9.0"
 hmac = { version = "0.12.1", default-features = false }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.2"
-linked_list_allocator = "0.10.0"
+linked_list_allocator = "0.10.1"
 littlewing = { version = "0.7.0", default-features = false }
 nom = { version = "7.1.1", default-features = false, features = ["alloc"] }
 object = { version = "0.29.0", default-features = false, features = ["read"] }
