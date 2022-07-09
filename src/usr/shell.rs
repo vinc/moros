@@ -329,6 +329,17 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         }
     }
 
+    // Replace `~` with the value of `$HOME` when it's at the begining of an arg
+    let home = config.env.get("HOME").map_or("~", String::as_str);
+    let n = args.len();
+    for i in 0..n {
+        if args[i] == "~" {
+            args[i] = home.to_string();
+        } else if args[i].starts_with("~/") {
+            args[i] = args[i].replacen("~", home, 1);
+        }
+    }
+
     let mut args: Vec<&str> = args.iter().map(String::as_str).collect();
 
     // Redirections like `print hello => /tmp/hello`
