@@ -63,7 +63,7 @@ fn shell_completer(line: &str) -> Vec<String> {
             }
         }
     } else { // Autocomplete path
-        let pathname = fs::realpath(&tilde_expansion(&args[i]));
+        let pathname = fs::realpath(&args[i]);
         let dirname = fs::dirname(&pathname);
         let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
@@ -187,7 +187,7 @@ pub fn split_args(cmd: &str) -> Vec<String> {
         args.push("".to_string());
     }
 
-    args
+    args.iter().map(|s| tilde_expansion(&s)).collect()
 }
 
 // Replace `~` with the value of `$HOME` when it's at the begining of an arg
@@ -337,11 +337,6 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         for arg in alias.split(' ').rev() {
             args.insert(0, arg.to_string())
         }
-    }
-
-    let n = args.len();
-    for i in 0..n {
-        args[i] = tilde_expansion(&args[i]);
     }
 
     let mut args: Vec<&str> = args.iter().map(String::as_str).collect();
