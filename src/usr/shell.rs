@@ -56,14 +56,14 @@ fn shell_completer(line: &str) -> Vec<String> {
 
     let args = split_args(line);
     let i = args.len() - 1;
-    if args.len() == 1 && !args[0].starts_with('/') { // Autocomplete command
+    if args.len() == 1 && !args[0].starts_with('/') && !args[0].starts_with('~') { // Autocomplete command
         for cmd in autocomplete_commands() {
             if let Some(entry) = cmd.strip_prefix(&args[i]) {
                 entries.push(entry.into());
             }
         }
     } else { // Autocomplete path
-        let pathname = fs::realpath(&args[i]);
+        let pathname = fs::realpath(&tilde_expansion(&args[i]));
         let dirname = fs::dirname(&pathname);
         let filename = fs::filename(&pathname);
         let sep = if dirname.ends_with('/') { "" } else { "/" };
@@ -188,6 +188,16 @@ pub fn split_args(cmd: &str) -> Vec<String> {
     }
 
     args
+}
+
+// Replace `~` with the value of `$HOME` when it's at the begining of an arg
+fn tilde_expansion(arg: &str) -> String {
+    if let Some(home) = sys::process::env("HOME") {
+        if arg == "~" || arg.starts_with("~/") {
+            return arg.replacen("~", &home, 1);
+        }
+    }
+    arg.to_string()
 }
 
 fn cmd_proc(args: &[&str]) -> Result<(), ExitCode> {
@@ -329,15 +339,9 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         }
     }
 
-    // Replace `~` with the value of `$HOME` when it's at the begining of an arg
-    let home = config.env.get("HOME").map_or("~", String::as_str);
     let n = args.len();
     for i in 0..n {
-        if args[i] == "~" {
-            args[i] = home.to_string();
-        } else if args[i].starts_with("~/") {
-            args[i] = args[i].replacen("~", home, 1);
-        }
+        args[i] = tilde_expansion(&args[i]);
     }
 
     let mut args: Vec<&str> = args.iter().map(String::as_str).collect();
