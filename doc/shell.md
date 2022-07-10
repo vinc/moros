@@ -167,3 +167,8 @@ by files matching the pattern.
 
 For example `/tmp/*.txt` will match any files with the `txt` extension inside
 `/tmp`, and `a?c.txt` will match a file named `abc.txt`.
+
+## Tilde Expansion
+
+The tilde character `~` is a shortcut to `$HOME` so `~/test` will be expanded
+to `$HOME/test` by the shell.

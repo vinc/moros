@@ -56,7 +56,7 @@ fn shell_completer(line: &str) -> Vec<String> {
 
     let args = split_args(line);
     let i = args.len() - 1;
-    if args.len() == 1 && !args[0].starts_with('/') { // Autocomplete command
+    if args.len() == 1 && !args[0].starts_with('/') && !args[0].starts_with('~') { // Autocomplete command
         for cmd in autocomplete_commands() {
             if let Some(entry) = cmd.strip_prefix(&args[i]) {
                 entries.push(entry.into());
@@ -187,7 +187,17 @@ pub fn split_args(cmd: &str) -> Vec<String> {
         args.push("".to_string());
     }
 
-    args
+    args.iter().map(|s| tilde_expansion(&s)).collect()
+}
+
+// Replace `~` with the value of `$HOME` when it's at the begining of an arg
+fn tilde_expansion(arg: &str) -> String {
+    if let Some(home) = sys::process::env("HOME") {
+        if arg == "~" || arg.starts_with("~/") {
+            return arg.replacen("~", &home, 1);
+        }
+    }
+    arg.to_string()
 }
 
 fn cmd_proc(args: &[&str]) -> Result<(), ExitCode> {
