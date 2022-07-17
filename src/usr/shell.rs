@@ -203,19 +203,15 @@ fn tilde_expansion(arg: &str) -> String {
 fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     let mut cmd = cmd.to_string();
 
-    // Special case for `?` which is not alphanum
+    // Special case for `?` which is not alphanum (\w)
     cmd = cmd.replace("$?", "$status");
 
-    // Replace `$key` with its value in the environment or an empty string
+    // Replace alphanum `$key` with its value in the environment or an empty string
     let re = Regex::new("\\$\\w+");
     while let Some((a, b)) = re.find(&cmd) {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
         let val = config.env.get(&key).map_or("", String::as_str);
-        debug!("cmd = '{}'", cmd);
-        debug!("key = '{}'", key);
-        debug!("val = '{}'", val);
         cmd = cmd.replace(&format!("${}", key), val);
-        debug!("res = '{}'", cmd);
     }
 
     cmd
