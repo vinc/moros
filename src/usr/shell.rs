@@ -607,3 +607,12 @@ fn test_glob_to_regex() {
     assert_eq!(glob_to_regex("*.txt"), "^.*\\.txt$");
     assert_eq!(glob_to_regex("\\w*.txt"), "^\\\\w.*\\.txt$");
 }
+
+#[test_case]
+fn test_variables_expansion() {
+    let mut config = Config::new();
+    exec_with_config("set foo 42", &mut config).ok();
+    exec_with_config("set bar \"Alice and Bob\"", &mut config).ok();
+    assert_eq!(variables_expansion("print $foo", &mut config), "print 42");
+    assert_eq!(variables_expansion("print \"Hello $bar\"", &mut config), "print \"Hello Alice and Bob\"");
+}
