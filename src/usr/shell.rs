@@ -33,7 +33,7 @@ impl Config {
             env.insert(key, val); // Copy the process environment to the shell environment
         }
         env.insert("DIR".to_string(), sys::process::dir());
-        env.insert("?".to_string(), "0".to_string());
+        env.insert("status".to_string(), "0".to_string());
         Config { env, aliases }
     }
 }
@@ -200,6 +200,23 @@ fn tilde_expansion(arg: &str) -> String {
     arg.to_string()
 }
 
+fn variables_expansion(cmd: &str, config: &mut Config) -> String {
+    let mut cmd = cmd.to_string();
+
+    // Special case for `?` which is not alphanum (\w)
+    cmd = cmd.replace("$?", "$status");
+
+    // Replace alphanum `$key` with its value in the environment or an empty string
+    let re = Regex::new("\\$\\w+");
+    while let Some((a, b)) = re.find(&cmd) {
+        let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
+        let val = config.env.get(&key).map_or("", String::as_str);
+        cmd = cmd.replace(&format!("${}", key), val);
+    }
+
+    cmd
+}
+
 fn cmd_proc(args: &[&str]) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
@@ -319,15 +336,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
     sys::console::print_fmt(format_args!(""));
 
-    let mut cmd = cmd.to_string();
-
-    // Replace `$key` with its value in the environment or an empty string
-    let re = Regex::new("\\$\\S+");
-    while let Some((a, b)) = re.find(&cmd) {
-        let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
-        let val = config.env.get(&key).map_or("", String::as_str);
-        cmd = cmd.replace(&format!("${}", key), val);
-    }
+    let cmd = variables_expansion(cmd, config);
 
     let mut args = split_args(&cmd);
 
@@ -507,7 +516,7 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
             Err(e) => e,
             Ok(()) => ExitCode::Success,
         };
-        config.env.insert("?".to_string(), format!("{}", code as u8));
+        config.env.insert("status".to_string(), format!("{}", code as u8));
         prompt.history.add(&cmd);
         prompt.history.save(history_file);
         sys::console::drain();
@@ -597,4 +606,13 @@ fn test_glob_to_regex() {
     assert_eq!(glob_to_regex("h*.txt"), "^h.*\\.txt$");
     assert_eq!(glob_to_regex("*.txt"), "^.*\\.txt$");
     assert_eq!(glob_to_regex("\\w*.txt"), "^\\\\w.*\\.txt$");
+}
+
+#[test_case]
+fn test_variables_expansion() {
+    let mut config = Config::new();
+    exec_with_config("set foo 42", &mut config).ok();
+    exec_with_config("set bar \"Alice and Bob\"", &mut config).ok();
+    assert_eq!(variables_expansion("print $foo", &mut config), "print 42");
+    assert_eq!(variables_expansion("print \"Hello $bar\"", &mut config), "print \"Hello Alice and Bob\"");
 }
