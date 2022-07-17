@@ -33,7 +33,7 @@ impl Config {
             env.insert(key, val); // Copy the process environment to the shell environment
         }
         env.insert("DIR".to_string(), sys::process::dir());
-        env.insert("?".to_string(), "0".to_string());
+        env.insert("status".to_string(), "0".to_string());
         Config { env, aliases }
     }
 }
@@ -507,7 +507,7 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
             Err(e) => e,
             Ok(()) => ExitCode::Success,
         };
-        config.env.insert("?".to_string(), format!("{}", code as u8));
+        config.env.insert("status".to_string(), format!("{}", code as u8));
         prompt.history.add(&cmd);
         prompt.history.save(history_file);
         sys::console::drain();
