@@ -37,7 +37,7 @@ raw-cpuid = "10.3.0"
 sha2 = { version = "0.10.2", default-features = false, features = ["force-soft"] }
 smoltcp = { version = "0.8.1", default-features = false, features = ["alloc", "medium-ethernet", "socket-tcp", "socket-udp", "socket-dhcpv4", "proto-ipv4", "proto-dhcpv4"] }
 spin = "0.9.4"
-time = { version = "0.2.27", default-features = false }
+time = { version = "0.3.5", default-features = false }
 uart_16550 = "0.2.18"
 vte = "0.11.0"
 x86_64 = "0.14.10"
