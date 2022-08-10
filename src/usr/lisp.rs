@@ -13,6 +13,7 @@ use alloc::vec::Vec;
 use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
+use core::convert::TryInto;
 use core::f64::consts::PI;
 use core::fmt;
 use float_cmp::approx_eq;
@@ -353,11 +354,27 @@ fn default_env() -> Rc<RefCell<Env>> {
         let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
+    data.insert("decode-float".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        match &args[0] {
+            Exp::List(list) => {
+                let bytes = list_of_bytes(list)?;
+                ensure_length_eq!(bytes, 8);
+                Ok(Exp::Num(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))
+            }
+            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
+    }));
+    data.insert("encode-float".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let f = float(&args[0])?;
+        Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
+    }));
     data.insert("str".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
-                let buf = list_of_floats(list)?.iter().map(|b| *b as u8).collect();
+                let buf = list_of_bytes(list)?;
                 let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
                 Ok(Exp::Str(s))
             }
@@ -428,12 +445,23 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
     }
 }
 
+fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
+    args.iter().map(string).collect()
+}
+
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
     args.iter().map(float).collect()
 }
 
-fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
-    args.iter().map(string).collect()
+fn list_of_bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
+    args.iter().map(byte).collect()
+}
+
+fn string(exp: &Exp) -> Result<String, Err> {
+    match exp {
+        Exp::Str(s) => Ok(s.to_string()),
+        _ => Err(Err::Reason("Expected a string".to_string())),
+    }
 }
 
 fn float(exp: &Exp) -> Result<f64, Err> {
@@ -443,10 +471,12 @@ fn float(exp: &Exp) -> Result<f64, Err> {
     }
 }
 
-fn string(exp: &Exp) -> Result<String, Err> {
-    match exp {
-        Exp::Str(s) => Ok(s.to_string()),
-        _ => Err(Err::Reason("Expected a string".to_string())),
+fn byte(exp: &Exp) -> Result<u8, Err> {
+    let num = float(exp)?;
+    if num >= 0.0 && num < u8::MAX.into() && (num - libm::trunc(num) == 0.0) {
+        Ok(num as u8)
+    } else {
+        Err(Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX)))
     }
 }
 
@@ -903,6 +933,9 @@ fn test_lisp() {
     assert_eq!(eval!("(or true false)"), "true");
     assert_eq!(eval!("(or false true)"), "true");
     assert_eq!(eval!("(or false false)"), "false");
+
+    // float
+    assert_eq!(eval!("(decode-float (encode-float 42))"), "42");
 
     // string
     assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
