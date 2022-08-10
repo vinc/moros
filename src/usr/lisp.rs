@@ -348,6 +348,18 @@ fn default_env() -> Rc<RefCell<Env>> {
         buf.resize(bytes, 0);
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
+    data.insert("write-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let path = string(&args[0])?;
+        match &args[1] {
+            Exp::List(list) => {
+                let buf = list_of_bytes(list)?;
+                let bytes = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+                Ok(Exp::Num(bytes as f64))
+            }
+            _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
+        }
+    }));
     data.insert("bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
