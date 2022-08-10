@@ -43,7 +43,13 @@ image: $(img)
 	cargo bootimage --no-default-features --features $(output) --release --bin moros
 	dd conv=notrunc if=$(bin) of=$(img)
 
-opts = -m 32 -cpu max -nic model=$(nic) -hda $(img) -soundhw pcspk
+opts = -m 32 -nic model=$(nic) -hda $(img) -soundhw pcspk
+ifeq ($(kvm),true)
+	opts += -cpu host -accel kvm
+else
+	opts += -cpu max
+endif
+
 ifeq ($(output),serial)
 	opts += -display none -serial stdio
 endif
