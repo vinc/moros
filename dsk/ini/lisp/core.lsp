@@ -57,3 +57,6 @@
 
 (defn println (exp)
   (do (print exp) (print "\n")))
+
+(defn uptime ()
+  (decode-float (read-bytes "/dev/clk/uptime" 8)))
