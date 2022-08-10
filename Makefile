@@ -51,7 +51,7 @@ else
 endif
 
 ifeq ($(output),serial)
-	opts += -display none -serial stdio
+	opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
 endif
 
 qemu:
