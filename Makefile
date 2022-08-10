@@ -44,7 +44,7 @@ image: $(img)
 	dd conv=notrunc if=$(bin) of=$(img)
 
 opts = -m 32 -nic model=$(nic) -drive file=$(img),format=raw \
-			 -soundhw pcspk
+			 -audiodev driver=sdl,id=a0 -machine pcspk-audiodev=a0
 ifeq ($(kvm),true)
 	opts += -cpu host -accel kvm
 else
