@@ -428,6 +428,9 @@ fn default_env() -> Rc<RefCell<Env>> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
+    data.insert("list".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::List(args.to_vec()))
+    }));
 
     // Setup autocompletion
     let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
@@ -978,4 +981,10 @@ fn test_lisp() {
 
     eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
     assert_eq!(eval!("(apply2 + 1 2)"), "3");
+
+    // list
+    assert_eq!(eval!("(list)"), "()");
+    assert_eq!(eval!("(list 1)"), "(1)");
+    assert_eq!(eval!("(list 1 2)"), "(1 2)");
+    assert_eq!(eval!("(list 1 2 (+ 1 2))"), "(1 2 3)");
 }
