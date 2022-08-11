@@ -43,9 +43,16 @@ image: $(img)
 	cargo bootimage --no-default-features --features $(output) --release --bin moros
 	dd conv=notrunc if=$(bin) of=$(img)
 
-opts = -m 32 -cpu max -nic model=$(nic) -hda $(img) -soundhw pcspk
+opts = -m 32 -nic model=$(nic) -drive file=$(img),format=raw \
+			 -audiodev driver=sdl,id=a0 -machine pcspk-audiodev=a0
+ifeq ($(kvm),true)
+	opts += -cpu host -accel kvm
+else
+	opts += -cpu max
+endif
+
 ifeq ($(output),serial)
-	opts += -display none -serial stdio
+	opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
 endif
 
 qemu:
