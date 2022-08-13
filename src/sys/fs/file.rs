@@ -84,7 +84,7 @@ impl File {
         let offset = match pos {
             SeekFrom::Start(i)   => i as i32,
             SeekFrom::Current(i) => i + self.offset as i32,
-            SeekFrom::End(i)     => i + self.size as i32 - 1,
+            SeekFrom::End(i)     => i + self.size as i32,
         };
         if offset < 0 || offset > self.size as i32 { // TODO: offset > size?
             return Err(())

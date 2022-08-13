@@ -29,11 +29,13 @@ pub const VERSION: u8 = 1;
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum OpenFlag {
-    Read   = 1,
-    Write  = 2,
-    Create = 4,
-    Dir    = 8,
-    Device = 16,
+    Read     = 1,
+    Write    = 2,
+    Append   = 4,
+    Create   = 8,
+    Truncate = 16,
+    Dir      = 32,
+    Device   = 64,
 }
 
 impl OpenFlag {
@@ -58,10 +60,15 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
             res
         }.map(Resource::Device)
     } else {
-        let res = File::open(path);
+        let mut res = File::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             File::create(path)
         } else {
+            if OpenFlag::Append.is_set(flags) {
+                if let Some(ref mut file) = res {
+                    file.seek(SeekFrom::End(0)).ok();
+                }
+            }
             res
         }.map(Resource::File)
     }
