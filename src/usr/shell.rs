@@ -369,7 +369,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             left_handle = 0;
         } else if Regex::new("^\\d*=+>$").is_match(args[i]) { // Redirect output stream(s)
             is_fat_arrow = true;
-            left_handle = 1; // TODO: parse file handle
+            left_handle = 1;
         } else if Regex::new("^\\d*-*>\\d*$").is_match(args[i]) { // Pipe output stream(s)
             is_thin_arrow = true;
             left_handle = 1;
@@ -379,6 +379,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             continue;
         }
 
+        // Parse file handle
         let s = args[i].chars().take_while(|c| c.is_numeric()).collect::<String>();
         if let Ok(h) = s.parse() {
             left_handle = h;
@@ -576,20 +577,16 @@ fn test_shell() {
     usr::install::copy_files(false);
 
     // Redirect standard output
-    exec("print test1 => /test").ok();
-    assert_eq!(api::fs::read_to_string("/test"), Ok("test1\n".to_string()));
-
-    // Overwrite content of existing file
-    exec("print test2 => /test").ok();
-    assert_eq!(api::fs::read_to_string("/test"), Ok("test2\n".to_string()));
+    exec("print test1 => /tmp/test1").ok();
+    assert_eq!(api::fs::read_to_string("/tmp/test1"), Ok("test1\n".to_string()));
 
     // Redirect standard output explicitely
-    exec("print test3 1=> /test").ok();
-    assert_eq!(api::fs::read_to_string("/test"), Ok("test3\n".to_string()));
+    exec("print test2 1=> /tmp/test2").ok();
+    assert_eq!(api::fs::read_to_string("/tmp/test2"), Ok("test2\n".to_string()));
 
     // Redirect standard error explicitely
-    exec("hex /nope 2=> /test").ok();
-    assert!(api::fs::read_to_string("/test").unwrap().contains("File not found '/nope'"));
+    exec("hex /nope 2=> /tmp/test3").ok();
+    assert!(api::fs::read_to_string("/tmp/test3").unwrap().contains("File not found '/nope'"));
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();
