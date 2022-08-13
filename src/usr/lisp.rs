@@ -79,12 +79,12 @@ impl PartialEq for Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let str = match self {
-            Exp::Lambda(_)  => "Lambda {}".to_string(),
-            Exp::Func(_)    => "Function {}".to_string(),
+            Exp::Lambda(_)  => "<lambda>".to_string(),
+            Exp::Func(_)    => "<function>".to_string(),
             Exp::Bool(a)    => a.to_string(),
             Exp::Num(n)     => n.to_string(),
             Exp::Sym(s)     => s.clone(),
-            Exp::Str(s)     => format!("\"{}\"", s.replace('"', "\\\"")),
+            Exp::Str(s)     => format!("{:?}", s),
             Exp::List(list) => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
@@ -325,14 +325,6 @@ fn default_env() -> Rc<RefCell<Env>> {
             Err(code) => Ok(Exp::Num(code as u8 as f64)),
         }
     }));
-    data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match args[0].clone() {
-            Exp::Str(s) => print!("{}", s),
-            exp => print!("{}", exp),
-        }
-        Ok(Exp::List(Vec::new()))
-    }));
     data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let path = string(&args[0])?;
@@ -360,11 +352,41 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
     }));
-    data.insert("bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("append-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let path = string(&args[0])?;
+        match &args[1] {
+            Exp::List(list) => {
+                let buf = list_of_bytes(list)?;
+                let bytes = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+                Ok(Exp::Num(bytes as f64))
+            }
+            _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
+        }
+    }));
+    data.insert("string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        Ok(Exp::Str(match &args[0] {
+            Exp::Str(s) => format!("{}", s),
+            exp => format!("{}", exp),
+        }))
+    }));
+    data.insert("encode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
+    }));
+    data.insert("decode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        match &args[0] {
+            Exp::List(list) => {
+                let buf = list_of_bytes(list)?;
+                let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
+                Ok(Exp::Str(s))
+            }
+            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
     }));
     data.insert("decode-float".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -381,17 +403,6 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
-    }));
-    data.insert("str".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match &args[0] {
-            Exp::List(list) => {
-                let buf = list_of_bytes(list)?;
-                let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
-                Ok(Exp::Str(s))
-            }
-            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
-        }
     }));
     data.insert("cat".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::Str(list_of_strings(args)?.join("")))

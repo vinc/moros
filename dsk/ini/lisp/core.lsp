@@ -53,7 +53,10 @@
     (true (append (reverse (rest a)) (cons (first a) '())))))
 
 (defn read-line ()
-  (str (reverse (rest (reverse (read-bytes "/dev/console" 256))))))
+  (decode-string (reverse (rest (reverse (read-bytes "/dev/console" 256))))))
+
+(defn print (exp)
+  (do (append-bytes "/dev/console" (encode-string (string exp))) '()))
 
 (defn println (exp)
   (do (print exp) (print "\n")))
