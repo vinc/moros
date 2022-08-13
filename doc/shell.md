@@ -126,6 +126,10 @@ Which is more efficient than doing:
 
     > print hello -> write /tmp/hello
 
+NOTE: A redirection will append to a file without truncating it first as Unix
+does, so it is more equivalent to `>>` than `>` for now. This may change in
+the future with the addition of a `=>>` symbol.
+
 ## Variables
 
 - Name of the shell or the script: `$0`
