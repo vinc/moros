@@ -173,7 +173,7 @@ pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
         if info.is_device() {
             open_device(path)
         } else {
-            open_file(path)
+            append_file(path)
         }
     } else {
         create_file(path)
