@@ -65,6 +65,11 @@ pub fn open_file(path: &str) -> Option<usize> {
     syscall::open(path, flags)
 }
 
+pub fn append_file(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Append as usize;
+    syscall::open(path, flags)
+}
+
 pub fn create_file(path: &str) -> Option<usize> {
     let flags = OpenFlag::Create as usize;
     syscall::open(path, flags)
@@ -144,12 +149,31 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
     Err(())
 }
 
+pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
+    let res = if let Some(info) = syscall::info(path) {
+        if info.is_device() {
+            open_device(path)
+        } else {
+            append_file(path)
+        }
+    } else {
+        create_file(path)
+    };
+    if let Some(handle) = res {
+        if let Some(bytes) = syscall::write(handle, buf) {
+            syscall::close(handle);
+            return Ok(bytes);
+        }
+    }
+    Err(())
+}
+
 pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
     let res = if let Some(info) = syscall::info(path) {
         if info.is_device() {
             open_device(path)
         } else {
-            open_file(path)
+            append_file(path)
         }
     } else {
         create_file(path)
