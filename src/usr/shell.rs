@@ -369,7 +369,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             left_handle = 0;
         } else if Regex::new("^\\d*=+>$").is_match(args[i]) { // Redirect output stream(s)
             is_fat_arrow = true;
-            left_handle = 1;
+            left_handle = 1; // TODO: parse file handle
         } else if Regex::new("^\\d*-*>\\d*$").is_match(args[i]) { // Pipe output stream(s)
             is_thin_arrow = true;
             left_handle = 1;
