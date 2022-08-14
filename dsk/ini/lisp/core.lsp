@@ -53,13 +53,16 @@
     (true (append (reverse (rest a)) (cons (first a) '())))))
 
 (defn read-line ()
-  (decode-string (reverse (rest (reverse (read-bytes "/dev/console" 256))))))
+  (decode-string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
+
+(defn read-char ()
+  (decode-string (read-file-bytes "/dev/console" 4)))
 
 (defn print (exp)
-  (do (append-bytes "/dev/console" (encode-string (string exp))) '()))
+  (do (append-file-bytes "/dev/console" (encode-string (string exp))) '()))
 
 (defn println (exp)
   (do (print exp) (print "\n")))
 
 (defn uptime ()
-  (decode-float (read-bytes "/dev/clk/uptime" 8)))
+  (decode-float (read-file-bytes "/dev/clk/uptime" 8)))

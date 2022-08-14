@@ -325,13 +325,13 @@ fn default_env() -> Rc<RefCell<Env>> {
             Err(code) => Ok(Exp::Num(code as u8 as f64)),
         }
     }));
-    data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let path = string(&args[0])?;
         let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
         Ok(Exp::Str(contents))
     }));
-    data.insert("read-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("read-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
         let len = float(&args[1])?;
@@ -340,7 +340,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         buf.resize(bytes, 0);
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("write-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("write-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
         match &args[1] {
@@ -352,7 +352,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
     }));
-    data.insert("append-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("append-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
         match &args[1] {
