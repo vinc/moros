@@ -42,7 +42,7 @@ of strings to the language and reading from the filesystem.
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Boolean operations: `and`, `or`
-- String operations: `lines`, `join`, `cat`
+- String operations: `lines`, `join`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
 ## Standard Library

@@ -365,11 +365,11 @@ fn default_env() -> Rc<RefCell<Env>> {
         }
     }));
     data.insert("string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        Ok(Exp::Str(match &args[0] {
+        let args: Vec<String> = args.iter().map(|arg| match arg {
             Exp::Str(s) => format!("{}", s),
             exp => format!("{}", exp),
-        }))
+        }).collect();
+        Ok(Exp::Str(args.join("")))
     }));
     data.insert("encode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -403,9 +403,6 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
-    }));
-    data.insert("cat".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::Str(list_of_strings(args)?.join("")))
     }));
     data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
@@ -964,19 +961,19 @@ fn test_lisp() {
     assert_eq!(eval!("(decode-float (encode-float 42))"), "42");
 
     // string
-    assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
-    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
+    assert_eq!(eval!("(string \"a\" \"b\" \"c\")"), "\"abc\"");
+    assert_eq!(eval!("(string \"a\" \"\")"), "\"a\"");
+    assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
+    assert_eq!(eval!("(eq \"foo\" \"foo\")"), "true");
+    assert_eq!(eval!("(eq \"foo\" \"bar\")"), "false");
+    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
 
     // map
     eval!("(defun inc (a) (+ a 1))");
     assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
     assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
     assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
-
-    // cat
-    assert_eq!(eval!("(cat \"a\" \"b\" \"c\")"), "\"abc\"");
-    assert_eq!(eval!("(cat \"a\" \"\")"), "\"a\"");
 
     // join
     assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
