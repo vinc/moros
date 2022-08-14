@@ -30,22 +30,23 @@ of strings to the language and reading from the filesystem.
 ## Additional Builtins
 - `defun` (aliased to `defn`)
 - `mapcar` (aliased to `map`)
-- `print`
-- `read`
-- `read-bytes`
-- `bytes`
-- `str`
-- `cat`
-- `join`
-- `lines`
-- `parse`
 - `type`
+- `string`
+- `encode-string` and `decode-string`
+- `encode-float` and `decode-float`
+- `parse`
 - `system`
+- `load`
 
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Boolean operations: `and`, `or`
+- String operations: `lines`, `join`, `cat`
+- File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
+
+## Standard Library
+- `/ini/lisp/core.lsp`
 
 ## Usage
 
@@ -61,21 +62,26 @@ MOROS Lisp v0.1.0
 > (quit)
 ```
 
-And it can execute a file. For example a file located in `/tmp/fibonacci.lsp`
+And it can execute a file. For example a file located in `/tmp/lisp/fibonacci.lsp`
 with the following content:
 
 ```lisp
+(load "/ini/lisp/core.lsp")
+
 (defn fib (n)
   (cond
     ((< n 2) n)
     (true (+ (fib (- n 1)) (fib (- n 2))))))
 
-(println (fib 10))
+(println
+  (cond
+    ((null? args) "Usage: fibonacci <num>")
+    (true (fib(parse (car args))))))
 ```
 
 Would produce the following output:
 
 ```
-> lisp /tmp/fibonacci.lsp
-55
+> lisp /tmp/lisp/fibonacci.lsp 20
+6755
 ```

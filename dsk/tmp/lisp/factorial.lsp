@@ -9,7 +9,6 @@
   (fact-acc n 1))
 
 (println
-  (fact
-    (cond
-      ((null? args) 10)
-      (true (parse (car args))))))
+  (cond
+    ((null? args) "Usage: factorial <num>")
+    (true (fact (parse (car args))))))
