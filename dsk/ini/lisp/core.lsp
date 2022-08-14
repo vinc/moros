@@ -65,4 +65,4 @@
   (do (print exp) (print "\n")))
 
 (defn uptime ()
-  (decode-float (read-file-bytes "/dev/clk/uptime" 8)))
+  (decode-number (read-file-bytes "/dev/clk/uptime" 8)))

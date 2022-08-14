@@ -388,7 +388,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("decode-float".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("decode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -399,7 +399,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("encode-float".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("encode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
@@ -957,8 +957,8 @@ fn test_lisp() {
     assert_eq!(eval!("(or false true)"), "true");
     assert_eq!(eval!("(or false false)"), "false");
 
-    // float
-    assert_eq!(eval!("(decode-float (encode-float 42))"), "42");
+    // number
+    assert_eq!(eval!("(decode-number (encode-number 42))"), "42");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");

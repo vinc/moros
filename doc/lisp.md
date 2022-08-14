@@ -33,7 +33,7 @@ of strings to the language and reading from the filesystem.
 - `type`
 - `string`
 - `encode-string` and `decode-string`
-- `encode-float` and `decode-float`
+- `encode-number` and `decode-number`
 - `parse`
 - `system`
 - `load`
