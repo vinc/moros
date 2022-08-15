@@ -66,3 +66,9 @@
 
 (defn uptime ()
   (decode-number (read-file-bytes "/dev/clk/uptime" 8)))
+
+(defn write-file (path str)
+  (write-file-bytes path (encode-string str)))
+
+(defn append-file (path str)
+  (append-file-bytes path (encode-string str)))
