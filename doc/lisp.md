@@ -45,8 +45,15 @@ of strings to the language and reading from the filesystem.
 - String operations: `lines`, `join`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
-## Standard Library
-- `/ini/lisp/core.lsp`
+## Core Library
+- `null`, `null?`, `eq?`
+- `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `lambda?`
+- `first`, `second`, `third`, `rest`
+- `append`, `reverse`
+- `read-line`, `read-char`
+- `print`, `println`
+- `write-file`, `append-file`
+- `uptime`
 
 ## Usage
 
