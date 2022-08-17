@@ -15,6 +15,7 @@ use sha2::Sha256;
 
 const USERS: &str = "/ini/users.csv";
 const COMMANDS: [&str; 2] = ["create", "login"];
+const DISABLE_EMPTY_PASSWORD: bool = false;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
@@ -98,7 +99,7 @@ pub fn create(username: &str) -> Result<(), ExitCode> {
     print!("\x1b[12h"); // Enable echo
     println!();
 
-    if password.is_empty() {
+    if password.is_empty() && DISABLE_EMPTY_PASSWORD {
         return Err(ExitCode::Failure);
     }
 
