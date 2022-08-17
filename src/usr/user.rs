@@ -13,8 +13,9 @@ use core::str;
 use hmac::Hmac;
 use sha2::Sha256;
 
-const PASSWORDS: &str = "/ini/passwords.csv";
+const USERS: &str = "/ini/users.csv";
 const COMMANDS: [&str; 2] = ["create", "login"];
+const DISABLE_EMPTY_PASSWORD: bool = false;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 || !COMMANDS.contains(&args[1]) {
@@ -42,8 +43,8 @@ fn usage() -> Result<(), ExitCode> {
 
 // TODO: Add max number of attempts
 pub fn login(username: &str) -> Result<(), ExitCode> {
-    if !fs::exists(PASSWORDS) {
-        error!("Could not read '{}'", PASSWORDS);
+    if !fs::exists(USERS) {
+        error!("Could not read '{}'", USERS);
         return Err(ExitCode::Failure);
     }
 
@@ -98,7 +99,7 @@ pub fn create(username: &str) -> Result<(), ExitCode> {
     print!("\x1b[12h"); // Enable echo
     println!();
 
-    if password.is_empty() {
+    if password.is_empty() && DISABLE_EMPTY_PASSWORD {
         return Err(ExitCode::Failure);
     }
 
@@ -184,8 +185,8 @@ pub fn hash(password: &str) -> String {
 
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
-    if let Ok(contents) = api::fs::read_to_string(PASSWORDS) {
-        for line in contents.split('\n') {
+    if let Ok(csv) = api::fs::read_to_string(USERS) {
+        for line in csv.split('\n') {
             let mut rows = line.split(',');
             if let Some(username) = rows.next() {
                 if let Some(hash) = rows.next() {
@@ -211,5 +212,5 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
         csv.push_str(&format!("{},{}\n", u, h));
     }
 
-    fs::write(PASSWORDS, csv.as_bytes())
+    fs::write(USERS, csv.as_bytes())
 }
