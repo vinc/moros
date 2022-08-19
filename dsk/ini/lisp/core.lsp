@@ -30,6 +30,9 @@
 (defn null? (x)
   (eq? x null))
 
+(defn not (x)
+  (eq? x false))
+
 (defn rest (a)
   (cdr a))
 
