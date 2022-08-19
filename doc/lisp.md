@@ -34,6 +34,7 @@ of strings to the language and reading from the filesystem.
 - `string`
 - `encode-string` and `decode-string`
 - `encode-number` and `decode-number`
+- `regex-find`
 - `parse`
 - `system`
 - `load`
@@ -41,7 +42,7 @@ of strings to the language and reading from the filesystem.
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Boolean operations: `and`, `or`
+- Boolean operations: `not`, `and`, `or`
 - String operations: `lines`, `join`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
@@ -54,6 +55,7 @@ of strings to the language and reading from the filesystem.
 - `print`, `println`
 - `write-file`, `append-file`
 - `uptime`
+- `regex-match?`
 
 ## Usage
 
