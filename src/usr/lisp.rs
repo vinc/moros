@@ -3,6 +3,7 @@ use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
+use crate::api::regex::Regex;
 
 use alloc::collections::BTreeMap;
 use alloc::format;
@@ -403,6 +404,18 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
+    }));
+    data.insert("regex-find".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) {
+            (Exp::Str(regex), Exp::Str(s)) => {
+                let res = Regex::new(regex).find(s).map(|(a, b)| {
+                    vec![Exp::Num(a as f64), Exp::Num(b as f64)]
+                }).unwrap_or(vec![]);
+                Ok(Exp::List(res))
+            }
+            _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
+        }
     }));
     data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
