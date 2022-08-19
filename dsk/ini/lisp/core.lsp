@@ -75,3 +75,6 @@
 
 (defn append-file (path str)
   (append-file-bytes path (encode-string str)))
+
+(defn regex-match? (pattern str)
+  (not (null? (regex-find pattern str))))
