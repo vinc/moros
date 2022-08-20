@@ -70,6 +70,9 @@
 (defn uptime ()
   (decode-number (read-file-bytes "/dev/clk/uptime" 8)))
 
+(defn realtime ()
+  (decode-number (read-file-bytes "realtime" 8)))
+
 (defn write-file (path str)
   (write-file-bytes path (encode-string str)))
 
