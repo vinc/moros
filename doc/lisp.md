@@ -54,7 +54,7 @@ of strings to the language and reading from the filesystem.
 - `read-line`, `read-char`
 - `print`, `println`
 - `write-file`, `append-file`
-- `uptime`
+- `uptime`, `realtime`
 - `regex-match?`
 
 ## Usage
