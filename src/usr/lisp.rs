@@ -764,7 +764,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
-    println!("MOROS Lisp v0.2.0\n");
+    println!("MOROS Lisp v0.3.0\n");
 
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
