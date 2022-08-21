@@ -50,7 +50,7 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
             let addr = socket.remote_endpoint().addr;
             if socket.may_recv() {
                 let res = socket.recv(|buffer| {
-                    let mut res = String::new();
+                    let mut res = Vec::new();
                     let req = String::from_utf8_lossy(buffer);
                     if !req.is_empty() {
                         let mut verb = "";
@@ -77,39 +77,45 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                             format!("{}/{}", root, path)
                         }.replace("//", "/");
 
+                        let mut body = Vec::new();
                         let date = strftime("%d/%b/%Y:%H:%M:%S %z");
                         let code;
                         let mime;
-                        let mut body;
                         match verb {
                             "GET" => {
                                 if path.len() > 1 && path.ends_with('/') {
                                     code = 301;
-                                    res.push_str("HTTP/1.0 301 Moved Permanently\r\n");
-                                    res.push_str(&format!("Location: {}\r\n", path.strip_suffix('/').unwrap()));
-                                    body = "<h1>Moved Permanently</h1>\r\n".to_string();
-                                    mime = "text/html";
+                                    mime = "text/html".to_string();
+                                    res.extend_from_slice(b"HTTP/1.0 301 Moved Permanently\r\n");
+                                    res.extend_from_slice(&format!("Location: {}\r\n", path.strip_suffix('/').unwrap()).as_bytes());
+                                    body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
                                 } else if let Ok(mut files) = fs::read_dir(&real_path) {
                                     code = 200;
-                                    res.push_str("HTTP/1.0 200 OK\r\n");
-                                    body = format!("<h1>Index of {}</h1>\r\n", path);
+                                    mime = "text/html".to_string();
+                                    res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
+                                    body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
                                     files.sort_by_key(|f| f.name());
                                     for file in files {
                                         let sep = if path == "/" { "" } else { "/" };
                                         let path = format!("{}{}{}", path, sep, file.name());
-                                        body.push_str(&format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name()));
+                                        body.extend_from_slice(&format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name()).as_bytes());
                                     }
-                                    mime = "text/html";
-                                } else if let Ok(contents) = fs::read_to_string(&real_path) {
+                                } else if let Ok(buf) = fs::read_to_bytes(&real_path) {
                                     code = 200;
-                                    res.push_str("HTTP/1.0 200 OK\r\n");
-                                    body = contents.replace("\n", "\r\n");
-                                    mime = "text/plain";
+                                    mime = content_type(&real_path);
+                                    res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
+                                    let tmp;
+                                    body.extend_from_slice(if mime.starts_with("text/") {
+                                        tmp = String::from_utf8_lossy(&buf).to_string().replace("\n", "\r\n");
+                                        tmp.as_bytes()
+                                    } else {
+                                        &buf
+                                    });
                                 } else {
                                     code = 404;
-                                    res.push_str("HTTP/1.0 404 Not Found\r\n");
-                                    body = "<h1>Not Found</h1>\r\n".to_string();
-                                    mime = "text/plain";
+                                    mime = "text/html".to_string();
+                                    res.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
+                                    body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
                                 }
                             },
                             "PUT" => {
@@ -117,63 +123,65 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                     let real_path = real_path.trim_end_matches('/');
                                     if fs::exists(&real_path) {
                                         code = 403;
-                                        res.push_str("HTTP/1.0 403 Forbidden\r\n");
+                                        res.extend_from_slice(b"HTTP/1.0 403 Forbidden\r\n");
                                     } else if let Some(handle) = fs::create_dir(&real_path) {
                                         syscall::close(handle);
                                         code = 200;
-                                        res.push_str("HTTP/1.0 200 OK\r\n");
+                                        res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
                                         code = 500;
-                                        res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
+                                        res.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 } else { // Write file
                                     if fs::write(&real_path, contents.as_bytes()).is_ok() {
                                         code = 200;
-                                        res.push_str("HTTP/1.0 200 OK\r\n");
+                                        res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
                                         code = 500;
-                                        res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
+                                        res.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 }
-                                body = "".to_string();
-                                mime = "text/plain";
+                                mime = "text/plain".to_string();
                             },
                             "DELETE" => {
                                 if fs::exists(&real_path) {
                                     if fs::delete(&real_path).is_ok() {
                                         code = 200;
-                                        res.push_str("HTTP/1.0 200 OK\r\n");
+                                        res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
                                         code = 500;
-                                        res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
+                                        res.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 } else {
                                     code = 404;
-                                    res.push_str("HTTP/1.0 404 Not Found\r\n");
+                                    res.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
                                 }
-                                body = "".to_string();
-                                mime = "text/plain";
+                                mime = "text/plain".to_string();
                             },
                             _ => {
-                                res.push_str("HTTP/1.0 400 Bad Request\r\n");
                                 code = 400;
-                                body = "<h1>Bad Request</h1>\r\n".to_string();
-                                mime = "text/plain";
+                                mime = "text/html".to_string();
+                                res.extend_from_slice(b"HTTP/1.0 400 Bad Request\r\n");
+                                body.extend_from_slice(b"<h1>Bad Request</h1>\r\n");
                             },
                         }
                         let size = body.len();
-                        res.push_str(&format!("Server: MOROS/{}\r\n", env!("CARGO_PKG_VERSION")));
-                        res.push_str(&format!("Date: {}\r\n", strftime("%a, %d %b %Y %H:%M:%S GMT")));
-                        res.push_str(&format!("Content-Type: {}; charset=utf-8\r\n", mime));
-                        res.push_str(&format!("Content-Length: {}\r\n", size));
-                        res.push_str("Connection: close\r\n");
-                        res.push_str("\r\n");
-                        res.push_str(&body);
+                        res.extend_from_slice(&format!("Server: MOROS/{}\r\n", env!("CARGO_PKG_VERSION")).as_bytes());
+                        res.extend_from_slice(&format!("Date: {}\r\n", strftime("%a, %d %b %Y %H:%M:%S GMT")).as_bytes());
+                        if mime.starts_with("text/") {
+                            res.extend_from_slice(&format!("Content-Type: {}; charset=utf-8\r\n", mime).as_bytes());
+                        } else {
+                            res.extend_from_slice(&format!("Content-Type: {}\r\n", mime).as_bytes());
+                        }
+                        res.extend_from_slice(&format!("Content-Length: {}\r\n", size).as_bytes());
+                        res.extend_from_slice(b"Connection: close\r\n");
+                        res.extend_from_slice(b"\r\n");
+                        res.extend_from_slice(&body);
                         println!("{} - - [{}] \"{} {}\" {} {}", addr, date, verb, path, code, size);
                     }
                     (buffer.len(), res)
                 }).unwrap();
-                for chunk in res.as_bytes().chunks(mtu) {
+                for chunk in res.chunks(mtu) {
                     send_queue.push_back(chunk.to_vec());
                 }
                 if socket.can_send() {
@@ -198,4 +206,15 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
 fn strftime(format: &str) -> String {
     let timestamp = clock::realtime();
     OffsetDateTime::from_unix_timestamp(timestamp as i64).format(format)
+}
+
+fn content_type(path: &str) -> String {
+    let ext = path.rsplit_once('.').unwrap_or(("", "")).1;
+    match ext {
+        "html" | "htm" => "text/html",
+        "txt"          => "text/plain",
+        "png"          => "image/png",
+        "jpeg" | "jpg" => "image/jpeg",
+        _              => "application/octet-stream",
+    }.to_string()
 }
