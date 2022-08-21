@@ -4,6 +4,8 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
+
+use alloc::collections::btree_map::BTreeMap;
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -15,22 +17,60 @@ use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
 struct Response {
-    code: u16,
+    buf: Vec<u8>,
+    code: usize,
+    size: usize,
     mime: String,
     date: String,
     body: Vec<u8>,
-    raw: Vec<u8>,
+    headers: BTreeMap<String, String>,
 }
 
 impl Response {
     pub fn new() -> Self {
+        let mut headers = BTreeMap::new();
+        headers.insert("Server".to_string(), format!("MOROS/{}", env!("CARGO_PKG_VERSION")));
+        headers.insert("Date".to_string(), strftime("%a, %d %b %Y %H:%M:%S GMT"));
         Self {
+            buf: Vec::new(),
             code: 0,
+            size: 0,
             mime: String::new(),
             date: strftime("%d/%b/%Y:%H:%M:%S %z"),
             body: Vec::new(),
-            raw: Vec::new(),
+            headers,
         }
+    }
+
+    pub fn write(&mut self) {
+        let status = match self.code {
+            200 => "OK",
+            301 => "Moved Permanently",
+            400 => "Bad Request",
+            403 => "Forbidden",
+            404 => "Not Found",
+            500 => "Internal Server Error",
+            _   => "Unknown Error",
+        }.to_string();
+
+        self.headers.insert("Content-Type".to_string(), if self.mime.starts_with("text/") {
+            format!("{}; charset=utf-8", self.mime)
+        } else {
+            format!("{}", self.mime)
+        });
+
+        self.size = self.body.len();
+        self.headers.insert("Content-Length".to_string(), self.size.to_string());
+        self.headers.insert("Connection".to_string(), "close".to_string());
+
+        self.buf.clear();
+        self.buf.extend_from_slice(&format!("HTTP/1.0 {} {}\r\n", self.code, status).as_bytes());
+        for (key, val) in &self.headers {
+            self.buf.extend_from_slice(&format!("{}: {}\r\n", key, val).as_bytes());
+        }
+
+        self.buf.extend_from_slice(b"\r\n");
+        self.buf.extend_from_slice(&self.body);
     }
 }
 
@@ -102,13 +142,11 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 if path.len() > 1 && path.ends_with('/') {
                                     res.code = 301;
                                     res.mime = "text/html".to_string();
-                                    res.raw.extend_from_slice(b"HTTP/1.0 301 Moved Permanently\r\n");
-                                    res.raw.extend_from_slice(&format!("Location: {}\r\n", path.strip_suffix('/').unwrap()).as_bytes());
+                                    res.headers.insert("Location".to_string(), path.strip_suffix('/').unwrap().to_string());
                                     res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
                                 } else if let Ok(mut files) = fs::read_dir(&real_path) {
                                     res.code = 200;
                                     res.mime = "text/html".to_string();
-                                    res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
                                     files.sort_by_key(|f| f.name());
                                     for file in files {
@@ -119,7 +157,6 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 } else if let Ok(buf) = fs::read_to_bytes(&real_path) {
                                     res.code = 200;
                                     res.mime = content_type(&real_path);
-                                    res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     let tmp;
                                     res.body.extend_from_slice(if res.mime.starts_with("text/") {
                                         tmp = String::from_utf8_lossy(&buf).to_string().replace("\n", "\r\n");
@@ -130,7 +167,6 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 } else {
                                     res.code = 404;
                                     res.mime = "text/html".to_string();
-                                    res.raw.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
                                     res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
                                 }
                             },
@@ -139,22 +175,17 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                     let real_path = real_path.trim_end_matches('/');
                                     if fs::exists(&real_path) {
                                         res.code = 403;
-                                        res.raw.extend_from_slice(b"HTTP/1.0 403 Forbidden\r\n");
                                     } else if let Some(handle) = fs::create_dir(&real_path) {
                                         syscall::close(handle);
                                         res.code = 200;
-                                        res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
                                         res.code = 500;
-                                        res.raw.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 } else { // Write file
                                     if fs::write(&real_path, contents.as_bytes()).is_ok() {
                                         res.code = 200;
-                                        res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
                                         res.code = 500;
-                                        res.raw.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 }
                                 res.mime = "text/plain".to_string();
@@ -163,41 +194,26 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 if fs::exists(&real_path) {
                                     if fs::delete(&real_path).is_ok() {
                                         res.code = 200;
-                                        res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
                                         res.code = 500;
-                                        res.raw.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 } else {
                                     res.code = 404;
-                                    res.raw.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
                                 }
                                 res.mime = "text/plain".to_string();
                             },
                             _ => {
                                 res.code = 400;
                                 res.mime = "text/html".to_string();
-                                res.raw.extend_from_slice(b"HTTP/1.0 400 Bad Request\r\n");
                                 res.body.extend_from_slice(b"<h1>Bad Request</h1>\r\n");
                             },
                         }
-                        let size = res.body.len();
-                        res.raw.extend_from_slice(&format!("Server: MOROS/{}\r\n", env!("CARGO_PKG_VERSION")).as_bytes());
-                        res.raw.extend_from_slice(&format!("Date: {}\r\n", strftime("%a, %d %b %Y %H:%M:%S GMT")).as_bytes());
-                        if res.mime.starts_with("text/") {
-                            res.raw.extend_from_slice(&format!("Content-Type: {}; charset=utf-8\r\n", res.mime).as_bytes());
-                        } else {
-                            res.raw.extend_from_slice(&format!("Content-Type: {}\r\n", res.mime).as_bytes());
-                        }
-                        res.raw.extend_from_slice(&format!("Content-Length: {}\r\n", size).as_bytes());
-                        res.raw.extend_from_slice(b"Connection: close\r\n");
-                        res.raw.extend_from_slice(b"\r\n");
-                        res.raw.extend_from_slice(&res.body);
-                        println!("{} - - [{}] \"{} {}\" {} {}", addr, res.date, verb, path, res.code, size);
+                        res.write();
+                        println!("{} - - [{}] \"{} {}\" {} {}", addr, res.date, verb, path, res.code, res.size);
                     }
                     (buffer.len(), res)
                 }).unwrap();
-                for chunk in res.raw.chunks(mtu) {
+                for chunk in res.buf.chunks(mtu) {
                     send_queue.push_back(chunk.to_vec());
                 }
                 if socket.can_send() {
