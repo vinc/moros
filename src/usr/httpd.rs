@@ -14,6 +14,26 @@ use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use time::OffsetDateTime;
 
+struct Response {
+    code: u16,
+    mime: String,
+    date: String,
+    body: Vec<u8>,
+    raw: Vec<u8>,
+}
+
+impl Response {
+    pub fn new() -> Self {
+        Self {
+            code: 0,
+            mime: String::new(),
+            date: strftime("%d/%b/%Y:%H:%M:%S %z"),
+            body: Vec::new(),
+            raw: Vec::new(),
+        }
+    }
+}
+
 pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -50,7 +70,7 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
             let addr = socket.remote_endpoint().addr;
             if socket.may_recv() {
                 let res = socket.recv(|buffer| {
-                    let mut res = Vec::new();
+                    let mut res = Response::new();
                     let req = String::from_utf8_lossy(buffer);
                     if !req.is_empty() {
                         let mut verb = "";
@@ -77,111 +97,107 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                             format!("{}/{}", root, path)
                         }.replace("//", "/");
 
-                        let mut body = Vec::new();
-                        let date = strftime("%d/%b/%Y:%H:%M:%S %z");
-                        let code;
-                        let mime;
                         match verb {
                             "GET" => {
                                 if path.len() > 1 && path.ends_with('/') {
-                                    code = 301;
-                                    mime = "text/html".to_string();
-                                    res.extend_from_slice(b"HTTP/1.0 301 Moved Permanently\r\n");
-                                    res.extend_from_slice(&format!("Location: {}\r\n", path.strip_suffix('/').unwrap()).as_bytes());
-                                    body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
+                                    res.code = 301;
+                                    res.mime = "text/html".to_string();
+                                    res.raw.extend_from_slice(b"HTTP/1.0 301 Moved Permanently\r\n");
+                                    res.raw.extend_from_slice(&format!("Location: {}\r\n", path.strip_suffix('/').unwrap()).as_bytes());
+                                    res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
                                 } else if let Ok(mut files) = fs::read_dir(&real_path) {
-                                    code = 200;
-                                    mime = "text/html".to_string();
-                                    res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
-                                    body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
+                                    res.code = 200;
+                                    res.mime = "text/html".to_string();
+                                    res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
+                                    res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
                                     files.sort_by_key(|f| f.name());
                                     for file in files {
                                         let sep = if path == "/" { "" } else { "/" };
                                         let path = format!("{}{}{}", path, sep, file.name());
-                                        body.extend_from_slice(&format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name()).as_bytes());
+                                        res.body.extend_from_slice(&format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name()).as_bytes());
                                     }
                                 } else if let Ok(buf) = fs::read_to_bytes(&real_path) {
-                                    code = 200;
-                                    mime = content_type(&real_path);
-                                    res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
+                                    res.code = 200;
+                                    res.mime = content_type(&real_path);
+                                    res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     let tmp;
-                                    body.extend_from_slice(if mime.starts_with("text/") {
+                                    res.body.extend_from_slice(if res.mime.starts_with("text/") {
                                         tmp = String::from_utf8_lossy(&buf).to_string().replace("\n", "\r\n");
                                         tmp.as_bytes()
                                     } else {
                                         &buf
                                     });
                                 } else {
-                                    code = 404;
-                                    mime = "text/html".to_string();
-                                    res.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
-                                    body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
+                                    res.code = 404;
+                                    res.mime = "text/html".to_string();
+                                    res.raw.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
+                                    res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
                                 }
                             },
                             "PUT" => {
                                 if real_path.ends_with('/') { // Write directory
                                     let real_path = real_path.trim_end_matches('/');
                                     if fs::exists(&real_path) {
-                                        code = 403;
-                                        res.extend_from_slice(b"HTTP/1.0 403 Forbidden\r\n");
+                                        res.code = 403;
+                                        res.raw.extend_from_slice(b"HTTP/1.0 403 Forbidden\r\n");
                                     } else if let Some(handle) = fs::create_dir(&real_path) {
                                         syscall::close(handle);
-                                        code = 200;
-                                        res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
+                                        res.code = 200;
+                                        res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
-                                        code = 500;
-                                        res.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
+                                        res.code = 500;
+                                        res.raw.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 } else { // Write file
                                     if fs::write(&real_path, contents.as_bytes()).is_ok() {
-                                        code = 200;
-                                        res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
+                                        res.code = 200;
+                                        res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
-                                        code = 500;
-                                        res.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
+                                        res.code = 500;
+                                        res.raw.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 }
-                                mime = "text/plain".to_string();
+                                res.mime = "text/plain".to_string();
                             },
                             "DELETE" => {
                                 if fs::exists(&real_path) {
                                     if fs::delete(&real_path).is_ok() {
-                                        code = 200;
-                                        res.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
+                                        res.code = 200;
+                                        res.raw.extend_from_slice(b"HTTP/1.0 200 OK\r\n");
                                     } else {
-                                        code = 500;
-                                        res.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
+                                        res.code = 500;
+                                        res.raw.extend_from_slice(b"HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 } else {
-                                    code = 404;
-                                    res.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
+                                    res.code = 404;
+                                    res.raw.extend_from_slice(b"HTTP/1.0 404 Not Found\r\n");
                                 }
-                                mime = "text/plain".to_string();
+                                res.mime = "text/plain".to_string();
                             },
                             _ => {
-                                code = 400;
-                                mime = "text/html".to_string();
-                                res.extend_from_slice(b"HTTP/1.0 400 Bad Request\r\n");
-                                body.extend_from_slice(b"<h1>Bad Request</h1>\r\n");
+                                res.code = 400;
+                                res.mime = "text/html".to_string();
+                                res.raw.extend_from_slice(b"HTTP/1.0 400 Bad Request\r\n");
+                                res.body.extend_from_slice(b"<h1>Bad Request</h1>\r\n");
                             },
                         }
-                        let size = body.len();
-                        res.extend_from_slice(&format!("Server: MOROS/{}\r\n", env!("CARGO_PKG_VERSION")).as_bytes());
-                        res.extend_from_slice(&format!("Date: {}\r\n", strftime("%a, %d %b %Y %H:%M:%S GMT")).as_bytes());
-                        if mime.starts_with("text/") {
-                            res.extend_from_slice(&format!("Content-Type: {}; charset=utf-8\r\n", mime).as_bytes());
+                        let size = res.body.len();
+                        res.raw.extend_from_slice(&format!("Server: MOROS/{}\r\n", env!("CARGO_PKG_VERSION")).as_bytes());
+                        res.raw.extend_from_slice(&format!("Date: {}\r\n", strftime("%a, %d %b %Y %H:%M:%S GMT")).as_bytes());
+                        if res.mime.starts_with("text/") {
+                            res.raw.extend_from_slice(&format!("Content-Type: {}; charset=utf-8\r\n", res.mime).as_bytes());
                         } else {
-                            res.extend_from_slice(&format!("Content-Type: {}\r\n", mime).as_bytes());
+                            res.raw.extend_from_slice(&format!("Content-Type: {}\r\n", res.mime).as_bytes());
                         }
-                        res.extend_from_slice(&format!("Content-Length: {}\r\n", size).as_bytes());
-                        res.extend_from_slice(b"Connection: close\r\n");
-                        res.extend_from_slice(b"\r\n");
-                        res.extend_from_slice(&body);
-                        println!("{} - - [{}] \"{} {}\" {} {}", addr, date, verb, path, code, size);
+                        res.raw.extend_from_slice(&format!("Content-Length: {}\r\n", size).as_bytes());
+                        res.raw.extend_from_slice(b"Connection: close\r\n");
+                        res.raw.extend_from_slice(b"\r\n");
+                        res.raw.extend_from_slice(&res.body);
+                        println!("{} - - [{}] \"{} {}\" {} {}", addr, res.date, verb, path, res.code, size);
                     }
                     (buffer.len(), res)
                 }).unwrap();
-                for chunk in res.chunks(mtu) {
+                for chunk in res.raw.chunks(mtu) {
                     send_queue.push_back(chunk.to_vec());
                 }
                 if socket.can_send() {
