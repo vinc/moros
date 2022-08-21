@@ -60,6 +60,10 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"), verbose);
     copy_file("/tmp/beep/starwars.sh", include_bytes!("../../dsk/tmp/beep/starwars.sh"), verbose);
     copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"), verbose);
+
+    create_dir("/var/www", verbose);
+    copy_file("/var/www/index.html", include_bytes!("../../www/index.html"), verbose);
+    copy_file("/var/www/moros.png", include_bytes!("../../www/moros.png"), verbose);
 }
 
 pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
