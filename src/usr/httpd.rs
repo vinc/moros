@@ -18,6 +18,7 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     let port = 80;
+    let root = sys::process::dir();
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
@@ -69,6 +70,13 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 contents.push_str(&format!("{}\n", line));
                             }
                         }
+
+                        let real_path = if path == "/" {
+                            root.clone()
+                        } else {
+                            format!("{}/{}", root, path)
+                        }.replace("//", "/");
+
                         let date = strftime("%d/%b/%Y:%H:%M:%S %z");
                         let code;
                         let mime;
@@ -78,15 +86,10 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 if path.len() > 1 && path.ends_with('/') {
                                     code = 301;
                                     res.push_str("HTTP/1.0 301 Moved Permanently\r\n");
-                                    res.push_str(&format!("Location: {}\r\n", path.trim_end_matches('/')));
+                                    res.push_str(&format!("Location: {}\r\n", path.strip_suffix('/').unwrap()));
                                     body = "<h1>Moved Permanently</h1>\r\n".to_string();
                                     mime = "text/html";
-                                } else if let Ok(contents) = fs::read_to_string(path) {
-                                    code = 200;
-                                    res.push_str("HTTP/1.0 200 OK\r\n");
-                                    body = contents.replace("\n", "\r\n");
-                                    mime = "text/plain";
-                                } else if let Ok(mut files) = fs::read_dir(path) {
+                                } else if let Ok(mut files) = fs::read_dir(&real_path) {
                                     code = 200;
                                     res.push_str("HTTP/1.0 200 OK\r\n");
                                     body = format!("<h1>Index of {}</h1>\r\n", path);
@@ -97,6 +100,11 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                         body.push_str(&format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name()));
                                     }
                                     mime = "text/html";
+                                } else if let Ok(contents) = fs::read_to_string(&real_path) {
+                                    code = 200;
+                                    res.push_str("HTTP/1.0 200 OK\r\n");
+                                    body = contents.replace("\n", "\r\n");
+                                    mime = "text/plain";
                                 } else {
                                     code = 404;
                                     res.push_str("HTTP/1.0 404 Not Found\r\n");
@@ -105,12 +113,12 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 }
                             },
                             "PUT" => {
-                                if path.ends_with('/') { // Write directory
-                                    let path = path.trim_end_matches('/');
-                                    if fs::exists(path) {
+                                if real_path.ends_with('/') { // Write directory
+                                    let real_path = real_path.trim_end_matches('/');
+                                    if fs::exists(&real_path) {
                                         code = 403;
                                         res.push_str("HTTP/1.0 403 Forbidden\r\n");
-                                    } else if let Some(handle) = fs::create_dir(path) {
+                                    } else if let Some(handle) = fs::create_dir(&real_path) {
                                         syscall::close(handle);
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
@@ -119,7 +127,7 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                         res.push_str("HTTP/1.0 500 Internal Server Error\r\n");
                                     }
                                 } else { // Write file
-                                    if fs::write(path, contents.as_bytes()).is_ok() {
+                                    if fs::write(&real_path, contents.as_bytes()).is_ok() {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                     } else {
@@ -131,8 +139,8 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                 mime = "text/plain";
                             },
                             "DELETE" => {
-                                if fs::exists(path) {
-                                    if fs::delete(path).is_ok() {
+                                if fs::exists(&real_path) {
+                                    if fs::delete(&real_path).is_ok() {
                                         code = 200;
                                         res.push_str("HTTP/1.0 200 OK\r\n");
                                     } else {
