@@ -11,17 +11,22 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
+use core::fmt;
 use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::phy::Device;
+use smoltcp::wire::IpAddress;
 use time::OffsetDateTime;
 
 struct Response {
     buf: Vec<u8>,
-    code: usize,
-    size: usize,
+    addr: IpAddress,
+    verb: String,
+    path: String,
     mime: String,
     date: String,
+    code: usize,
+    size: usize,
     body: Vec<u8>,
     headers: BTreeMap<String, String>,
 }
@@ -34,10 +39,13 @@ impl Response {
         headers.insert("Server".to_string(), format!("MOROS/{}", env!("CARGO_PKG_VERSION")));
         Self {
             buf: Vec::new(),
-            code: 0,
-            size: 0,
+            addr: IpAddress::default(),
+            verb: String::new(),
+            path: String::new(),
             mime: String::new(),
             date: odt.format("%d/%b/%Y:%H:%M:%S %z"),
+            code: 0,
+            size: 0,
             body: Vec::new(),
             headers,
         }
@@ -72,6 +80,12 @@ impl Response {
 
         self.buf.extend_from_slice(b"\r\n");
         self.buf.extend_from_slice(&self.body);
+    }
+}
+
+impl fmt::Display for Response {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} - - [{}] \"{} {}\" {} {}", self.addr, self.date, self.verb, self.path, self.code, self.size)
     }
 }
 
@@ -146,18 +160,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             if socket.may_recv() {
                 let res = socket.recv(|buffer| {
                     let mut res = Response::new();
+                    res.addr = addr;
                     let req = String::from_utf8_lossy(buffer);
                     if !req.is_empty() {
-                        let mut verb = "";
-                        let mut path = "";
                         let mut header = true;
                         let mut contents = String::new();
                         for (i, line) in req.lines().enumerate() {
                             if i == 0 {
                                 let fields: Vec<_> = line.split(' ').collect();
                                 if fields.len() >= 2 {
-                                    verb = fields[0];
-                                    path = fields[1];
+                                    res.verb = fields[0].to_string();
+                                    res.path = fields[1].to_string();
                                 }
                             } else if header && line.is_empty() {
                                 header = false;
@@ -166,15 +179,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             }
                         }
 
-                        let sep = if path == "/" { "" } else { "/" };
-                        let real_path = format!("{}{}{}", dir, sep, path.strip_suffix('/').unwrap_or(path)).replace("//", "/");
+                        let sep = if res.path == "/" { "" } else { "/" };
+                        let real_path = format!("{}{}{}", dir, sep, res.path.strip_suffix('/').unwrap_or(&res.path)).replace("//", "/");
 
-                        match verb {
+                        match res.verb.as_str() {
                             "GET" => {
-                                if fs::is_dir(&real_path) && !path.ends_with('/') {
+                                if fs::is_dir(&real_path) && !res.path.ends_with('/') {
                                     res.code = 301;
                                     res.mime = "text/html".to_string();
-                                    res.headers.insert("Location".to_string(), format!("{}/", path));
+                                    res.headers.insert("Location".to_string(), format!("{}/", res.path));
                                     res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
                                 } else {
                                     let mut not_found = true;
@@ -201,10 +214,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         if let Ok(mut files) = fs::read_dir(&real_path) {
                                             res.code = 200;
                                             res.mime = "text/html".to_string();
-                                            res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
+                                            res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", res.path).as_bytes());
                                             files.sort_by_key(|f| f.name());
                                             for file in files {
-                                                let path = format!("{}{}", path, file.name());
+                                                let path = format!("{}{}", res.path, file.name());
                                                 let link = format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name());
                                                 res.body.extend_from_slice(&link.as_bytes());
                                             }
@@ -255,7 +268,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             },
                         }
                         res.write();
-                        println!("{} - - [{}] \"{} {}\" {} {}", addr, res.date, verb, path, res.code, res.size);
+                        println!("{}", res);
                     }
                     (buffer.len(), res)
                 }).unwrap();
