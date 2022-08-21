@@ -74,11 +74,41 @@ impl Response {
     }
 }
 
-pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    let port = 80;
-    let root = sys::process::dir();
+    let mut port = 80;
+    let mut root = sys::process::dir();
+    let mut i = 1;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                usage();
+                return Ok(());
+            }
+            "-p" | "--port" => {
+                if i + 1 < n {
+                    port = args[i + 1].parse().unwrap_or(port);
+                    i += 1;
+                } else {
+                    error!("Missing port number");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+            "-r" | "--root" => {
+                if i + 1 < n {
+                    root = args[i + 1].to_string();
+                    i += 1;
+                } else {
+                    error!("Missing root path");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
@@ -260,4 +290,15 @@ fn content_type(path: &str) -> String {
         "jpeg" | "jpg" => "image/jpeg",
         _              => "application/octet-stream",
     }.to_string()
+}
+
+fn usage() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} httpd {}<options>{1}", csi_title, csi_reset, csi_option);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-p{1},{0} --port <number>{1}    Listen to port {0}<number>{1}", csi_option, csi_reset);
+    println!("  {0}-r{1},{0} --root <path>{1}      Set root directory to {0}<path>{1}", csi_option, csi_reset);
 }
