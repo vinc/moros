@@ -78,8 +78,9 @@ impl Response {
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
+    let mut read_only = false;
     let mut port = 80;
-    let mut root = sys::process::dir();
+    let mut dir = sys::process::dir();
     let mut i = 1;
     let n = args.len();
     while i < n {
@@ -87,6 +88,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-h" | "--help" => {
                 usage();
                 return Ok(());
+            }
+            "-r" | "--read-only" => {
+                read_only = true;
             }
             "-p" | "--port" => {
                 if i + 1 < n {
@@ -97,12 +101,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     return Err(ExitCode::UsageError);
                 }
             }
-            "-r" | "--root" => {
+            "-d" | "--dir" => {
                 if i + 1 < n {
-                    root = args[i + 1].to_string();
+                    dir = args[i + 1].to_string();
                     i += 1;
                 } else {
-                    error!("Missing root path");
+                    error!("Missing directory");
                     return Err(ExitCode::UsageError);
                 }
             }
@@ -163,7 +167,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         }
 
                         let sep = if path == "/" { "" } else { "/" };
-                        let real_path = format!("{}{}{}", root, sep, path.strip_suffix('/').unwrap_or(path)).replace("//", "/");
+                        let real_path = format!("{}{}{}", dir, sep, path.strip_suffix('/').unwrap_or(path)).replace("//", "/");
 
                         match verb {
                             "GET" => {
@@ -212,7 +216,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                     }
                                 }
                             },
-                            "PUT" => {
+                            "PUT" if !read_only => {
                                 if real_path.ends_with('/') { // Write directory
                                     let real_path = real_path.trim_end_matches('/');
                                     if fs::exists(&real_path) {
@@ -232,7 +236,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 }
                                 res.mime = "text/plain".to_string();
                             },
-                            "DELETE" => {
+                            "DELETE" if !read_only => {
                                 if fs::exists(&real_path) {
                                     if fs::delete(&real_path).is_ok() {
                                         res.code = 200;
@@ -295,6 +299,7 @@ fn usage() {
     println!("{}Usage:{} httpd {}<options>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-d{1},{0} --dir <path>{1}       Set directory to {0}<path>{1}", csi_option, csi_reset);
     println!("  {0}-p{1},{0} --port <number>{1}    Listen to port {0}<number>{1}", csi_option, csi_reset);
-    println!("  {0}-r{1},{0} --root <path>{1}      Set root directory to {0}<path>{1}", csi_option, csi_reset);
+    println!("  {0}-r{1},{0} --read-only{1}        Set read-only mode", csi_option, csi_reset);
 }
