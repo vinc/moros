@@ -131,18 +131,15 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                             }
                         }
 
-                        let real_path = if path == "/" {
-                            root.clone()
-                        } else {
-                            format!("{}/{}", root, path)
-                        }.replace("//", "/");
+                        let sep = if path == "/" { "" } else { "/" };
+                        let real_path = format!("{}{}{}", root, sep, path.strip_suffix('/').unwrap_or(path)).replace("//", "/");
 
                         match verb {
                             "GET" => {
-                                if path.len() > 1 && path.ends_with('/') {
+                                if fs::is_dir(&real_path) && !path.ends_with('/') {
                                     res.code = 301;
                                     res.mime = "text/html".to_string();
-                                    res.headers.insert("Location".to_string(), path.strip_suffix('/').unwrap().to_string());
+                                    res.headers.insert("Location".to_string(), format!("{}/", path));
                                     res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
                                 } else {
                                     let mut not_found = true;
@@ -172,8 +169,7 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                             res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
                                             files.sort_by_key(|f| f.name());
                                             for file in files {
-                                                let sep = if path == "/" { "" } else { "/" };
-                                                let path = format!("{}{}{}", path, sep, file.name());
+                                                let path = format!("{}{}", path, file.name());
                                                 let link = format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name());
                                                 res.body.extend_from_slice(&link.as_bytes());
                                             }
