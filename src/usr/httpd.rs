@@ -144,30 +144,45 @@ pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
                                     res.mime = "text/html".to_string();
                                     res.headers.insert("Location".to_string(), path.strip_suffix('/').unwrap().to_string());
                                     res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
-                                } else if let Ok(mut files) = fs::read_dir(&real_path) {
-                                    res.code = 200;
-                                    res.mime = "text/html".to_string();
-                                    res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
-                                    files.sort_by_key(|f| f.name());
-                                    for file in files {
-                                        let sep = if path == "/" { "" } else { "/" };
-                                        let path = format!("{}{}{}", path, sep, file.name());
-                                        res.body.extend_from_slice(&format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name()).as_bytes());
-                                    }
-                                } else if let Ok(buf) = fs::read_to_bytes(&real_path) {
-                                    res.code = 200;
-                                    res.mime = content_type(&real_path);
-                                    let tmp;
-                                    res.body.extend_from_slice(if res.mime.starts_with("text/") {
-                                        tmp = String::from_utf8_lossy(&buf).to_string().replace("\n", "\r\n");
-                                        tmp.as_bytes()
-                                    } else {
-                                        &buf
-                                    });
                                 } else {
-                                    res.code = 404;
-                                    res.mime = "text/html".to_string();
-                                    res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
+                                    let mut not_found = true;
+                                    for autocomplete in vec!["", "/index.html", "/index.htm", "/index.txt"] {
+                                        let real_path = format!("{}{}", real_path, autocomplete);
+                                        if fs::is_dir(&real_path) {
+                                            continue;
+                                        }
+                                        if let Ok(buf) = fs::read_to_bytes(&real_path) {
+                                            res.code = 200;
+                                            res.mime = content_type(&real_path);
+                                            let tmp;
+                                            res.body.extend_from_slice(if res.mime.starts_with("text/") {
+                                                tmp = String::from_utf8_lossy(&buf).to_string().replace("\n", "\r\n");
+                                                tmp.as_bytes()
+                                            } else {
+                                                &buf
+                                            });
+                                            not_found = false;
+                                            break;
+                                        }
+                                    }
+                                    if not_found {
+                                        if let Ok(mut files) = fs::read_dir(&real_path) {
+                                            res.code = 200;
+                                            res.mime = "text/html".to_string();
+                                            res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", path).as_bytes());
+                                            files.sort_by_key(|f| f.name());
+                                            for file in files {
+                                                let sep = if path == "/" { "" } else { "/" };
+                                                let path = format!("{}{}{}", path, sep, file.name());
+                                                let link = format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name());
+                                                res.body.extend_from_slice(&link.as_bytes());
+                                            }
+                                        } else {
+                                            res.code = 404;
+                                            res.mime = "text/html".to_string();
+                                            res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
+                                        }
+                                    }
                                 }
                             },
                             "PUT" => {
