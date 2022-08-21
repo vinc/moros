@@ -29,14 +29,15 @@ struct Response {
 impl Response {
     pub fn new() -> Self {
         let mut headers = BTreeMap::new();
+        let odt = OffsetDateTime::from_unix_timestamp(clock::realtime() as i64);
+        headers.insert("Date".to_string(), odt.format("%a, %d %b %Y %H:%M:%S GMT"));
         headers.insert("Server".to_string(), format!("MOROS/{}", env!("CARGO_PKG_VERSION")));
-        headers.insert("Date".to_string(), strftime("%a, %d %b %Y %H:%M:%S GMT"));
         Self {
             buf: Vec::new(),
             code: 0,
             size: 0,
             mime: String::new(),
-            date: strftime("%d/%b/%Y:%H:%M:%S %z"),
+            date: odt.format("%d/%b/%Y:%H:%M:%S %z"),
             body: Vec::new(),
             headers,
         }
@@ -274,11 +275,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         error!("Could not find network interface");
         Err(ExitCode::Failure)
     }
-}
-
-fn strftime(format: &str) -> String {
-    let timestamp = clock::realtime();
-    OffsetDateTime::from_unix_timestamp(timestamp as i64).format(format)
 }
 
 fn content_type(path: &str) -> String {
