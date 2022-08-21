@@ -85,7 +85,17 @@ impl Response {
 
 impl fmt::Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} - - [{}] \"{} {}\" {} {}", self.addr, self.date, self.verb, self.path, self.code, self.size)
+        let csi_blue = Style::color("LightBlue");
+        let csi_cyan = Style::color("LightCyan");
+        let csi_pink = Style::color("Pink");
+        let csi_reset = Style::reset();
+        write!(
+            f, "{}{} - -{} [{}] {}\"{} {}\"{} {} {}",
+            csi_cyan, self.addr,
+            csi_pink, self.date,
+            csi_blue, self.verb, self.path,
+            csi_reset, self.code, self.size
+        )
     }
 }
 
