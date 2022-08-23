@@ -1,6 +1,9 @@
 use crate::api::fs;
-
 use core::convert::TryInto;
+
+pub const DATE_TIME_ZONE: &str = "%Y-%m-%d %H:%M:%S %z";
+pub const DATE_TIME: &str = "%Y-%m-%d %H:%M:%S";
+pub const DATE: &str = "%Y-%m-%d";
 
 fn read_float(path: &str) -> f64 {
     if let Ok(bytes) = fs::read_to_bytes(path) {

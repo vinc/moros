@@ -1,9 +1,11 @@
 use crate::sys;
 use crate::api::clock;
+use crate::api::clock::DATE_TIME_ZONE;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
+use crate::api::time;
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::collections::vec_deque::VecDeque;
@@ -16,7 +18,6 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use smoltcp::wire::IpAddress;
-use time::OffsetDateTime;
 
 #[derive(Clone)]
 struct Request {
@@ -67,7 +68,7 @@ struct Response {
     req: Request,
     buf: Vec<u8>,
     mime: String,
-    date: String,
+    time: String,
     code: usize,
     size: usize,
     body: Vec<u8>,
@@ -77,14 +78,13 @@ struct Response {
 impl Response {
     pub fn new() -> Self {
         let mut headers = BTreeMap::new();
-        let odt = OffsetDateTime::from_unix_timestamp(clock::realtime() as i64);
-        headers.insert("Date".to_string(), odt.format("%a, %d %b %Y %H:%M:%S GMT"));
+        headers.insert("Date".to_string(), time::now().format("%a, %d %b %Y %H:%M:%S"));
         headers.insert("Server".to_string(), format!("MOROS/{}", env!("CARGO_PKG_VERSION")));
         Self {
             req: Request::new(),
             buf: Vec::new(),
             mime: String::new(),
-            date: odt.format("%d/%b/%Y:%H:%M:%S %z"),
+            time: time::now().format(DATE_TIME_ZONE),
             code: 0,
             size: 0,
             body: Vec::new(),
@@ -137,7 +137,7 @@ impl fmt::Display for Response {
         write!(
             f, "{}{} - -{} [{}] {}\"{} {}\"{} {} {}",
             csi_cyan, self.req.addr,
-            csi_pink, self.date,
+            csi_pink, self.time,
             csi_blue, self.req.verb, self.req.path,
             csi_reset, self.code, self.size
         )
