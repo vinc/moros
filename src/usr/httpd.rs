@@ -18,11 +18,54 @@ use smoltcp::phy::Device;
 use smoltcp::wire::IpAddress;
 use time::OffsetDateTime;
 
-struct Response {
-    buf: Vec<u8>,
+#[derive(Clone)]
+struct Request {
     addr: IpAddress,
     verb: String,
     path: String,
+    body: Vec<u8>,
+}
+
+impl Request {
+    pub fn new() -> Self {
+        Self {
+            addr: IpAddress::default(),
+            verb: String::new(),
+            path: String::new(),
+            body: Vec::new(),
+        }
+    }
+
+    pub fn from(addr: IpAddress, buf: &[u8]) -> Option<Self> {
+        let mut req = Request::new();
+        let msg = String::from_utf8_lossy(buf);
+        if !msg.is_empty() {
+            req.addr = addr;
+            let mut is_body = false;
+            for (i, line) in msg.lines().enumerate() {
+                if i == 0 {
+                    let fields: Vec<_> = line.split(' ').collect();
+                    if fields.len() >= 2 {
+                        req.verb = fields[0].to_string();
+                        req.path = fields[1].to_string();
+                    }
+                } else if !is_body && line.is_empty() {
+                    is_body = true;
+                } else if is_body {
+                    req.body.extend_from_slice(&format!("{}\n", line).as_bytes());
+                }
+            }
+            Some(req)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone)]
+struct Response {
+    req: Request,
+    buf: Vec<u8>,
     mime: String,
     date: String,
     code: usize,
@@ -38,10 +81,8 @@ impl Response {
         headers.insert("Date".to_string(), odt.format("%a, %d %b %Y %H:%M:%S GMT"));
         headers.insert("Server".to_string(), format!("MOROS/{}", env!("CARGO_PKG_VERSION")));
         Self {
+            req: Request::new(),
             buf: Vec::new(),
-            addr: IpAddress::default(),
-            verb: String::new(),
-            path: String::new(),
             mime: String::new(),
             date: odt.format("%d/%b/%Y:%H:%M:%S %z"),
             code: 0,
@@ -51,8 +92,30 @@ impl Response {
         }
     }
 
-    pub fn write(&mut self) {
-        let status = match self.code {
+    pub fn end(&mut self) {
+        self.size = self.body.len();
+        self.headers.insert("Content-Length".to_string(), self.size.to_string());
+        self.headers.insert("Connection".to_string(), "close".to_string());
+        self.headers.insert("Content-Type".to_string(), if self.mime.starts_with("text/") {
+            format!("{}; charset=utf-8", self.mime)
+        } else {
+            format!("{}", self.mime)
+        });
+        self.write();
+    }
+
+    fn write(&mut self) {
+        self.buf.clear();
+        self.buf.extend_from_slice(&format!("{}\r\n", self.status()).as_bytes());
+        for (key, val) in &self.headers {
+            self.buf.extend_from_slice(&format!("{}: {}\r\n", key, val).as_bytes());
+        }
+        self.buf.extend_from_slice(b"\r\n");
+        self.buf.extend_from_slice(&self.body);
+    }
+
+    fn status(&self) -> String {
+        let msg = match self.code {
             200 => "OK",
             301 => "Moved Permanently",
             400 => "Bad Request",
@@ -60,26 +123,8 @@ impl Response {
             404 => "Not Found",
             500 => "Internal Server Error",
             _   => "Unknown Error",
-        }.to_string();
-
-        self.headers.insert("Content-Type".to_string(), if self.mime.starts_with("text/") {
-            format!("{}; charset=utf-8", self.mime)
-        } else {
-            format!("{}", self.mime)
-        });
-
-        self.size = self.body.len();
-        self.headers.insert("Content-Length".to_string(), self.size.to_string());
-        self.headers.insert("Connection".to_string(), "close".to_string());
-
-        self.buf.clear();
-        self.buf.extend_from_slice(&format!("HTTP/1.0 {} {}\r\n", self.code, status).as_bytes());
-        for (key, val) in &self.headers {
-            self.buf.extend_from_slice(&format!("{}: {}\r\n", key, val).as_bytes());
-        }
-
-        self.buf.extend_from_slice(b"\r\n");
-        self.buf.extend_from_slice(&self.body);
+        };
+        format!("HTTP/1.0 {} {}", self.code, msg)
     }
 }
 
@@ -91,9 +136,9 @@ impl fmt::Display for Response {
         let csi_reset = Style::reset();
         write!(
             f, "{}{} - -{} [{}] {}\"{} {}\"{} {} {}",
-            csi_cyan, self.addr,
+            csi_cyan, self.req.addr,
             csi_pink, self.date,
-            csi_blue, self.verb, self.path,
+            csi_blue, self.req.verb, self.req.path,
             csi_reset, self.code, self.size
         )
     }
@@ -170,34 +215,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             if socket.may_recv() {
                 let res = socket.recv(|buffer| {
                     let mut res = Response::new();
-                    res.addr = addr;
-                    let req = String::from_utf8_lossy(buffer);
-                    if !req.is_empty() {
-                        let mut header = true;
-                        let mut contents = String::new();
-                        for (i, line) in req.lines().enumerate() {
-                            if i == 0 {
-                                let fields: Vec<_> = line.split(' ').collect();
-                                if fields.len() >= 2 {
-                                    res.verb = fields[0].to_string();
-                                    res.path = fields[1].to_string();
-                                }
-                            } else if header && line.is_empty() {
-                                header = false;
-                            } else if !header {
-                                contents.push_str(&format!("{}\n", line));
-                            }
-                        }
+                    if let Some(req) = Request::from(addr, buffer) {
+                        res.req = req.clone();
+                        let sep = if req.path == "/" { "" } else { "/" };
+                        let real_path = format!("{}{}{}", dir, sep, req.path.strip_suffix('/').unwrap_or(&req.path)).replace("//", "/");
 
-                        let sep = if res.path == "/" { "" } else { "/" };
-                        let real_path = format!("{}{}{}", dir, sep, res.path.strip_suffix('/').unwrap_or(&res.path)).replace("//", "/");
-
-                        match res.verb.as_str() {
+                        match req.verb.as_str() {
                             "GET" => {
-                                if fs::is_dir(&real_path) && !res.path.ends_with('/') {
+                                if fs::is_dir(&real_path) && !req.path.ends_with('/') {
                                     res.code = 301;
                                     res.mime = "text/html".to_string();
-                                    res.headers.insert("Location".to_string(), format!("{}/", res.path));
+                                    res.headers.insert("Location".to_string(), format!("{}/", req.path));
                                     res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
                                 } else {
                                     let mut not_found = true;
@@ -224,10 +252,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         if let Ok(mut files) = fs::read_dir(&real_path) {
                                             res.code = 200;
                                             res.mime = "text/html".to_string();
-                                            res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", res.path).as_bytes());
+                                            res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes());
                                             files.sort_by_key(|f| f.name());
                                             for file in files {
-                                                let path = format!("{}{}", res.path, file.name());
+                                                let path = format!("{}{}", req.path, file.name());
                                                 let link = format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name());
                                                 res.body.extend_from_slice(&link.as_bytes());
                                             }
@@ -251,7 +279,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         res.code = 500;
                                     }
                                 } else { // Write file
-                                    if fs::write(&real_path, contents.as_bytes()).is_ok() {
+                                    if fs::write(&real_path, &req.body).is_ok() {
                                         res.code = 200;
                                     } else {
                                         res.code = 500;
@@ -277,7 +305,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 res.body.extend_from_slice(b"<h1>Bad Request</h1>\r\n");
                             },
                         }
-                        res.write();
+                        res.end();
                         println!("{}", res);
                     }
                     (buffer.len(), res)
