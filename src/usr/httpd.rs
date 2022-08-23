@@ -78,7 +78,7 @@ struct Response {
 impl Response {
     pub fn new() -> Self {
         let mut headers = BTreeMap::new();
-        headers.insert("Date".to_string(), time::now().format("%a, %d %b %Y %H:%M:%S"));
+        headers.insert("Date".to_string(), time::now_utc().format("%a, %d %b %Y %H:%M:%S GMT"));
         headers.insert("Server".to_string(), format!("MOROS/{}", env!("CARGO_PKG_VERSION")));
         Self {
             req: Request::new(),
