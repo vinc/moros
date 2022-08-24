@@ -19,6 +19,8 @@ use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use smoltcp::wire::IpAddress;
 
+const MAX_CONNEXIONS: usize = 32;
+
 #[derive(Clone)]
 struct Request {
     addr: IpAddress,
@@ -188,15 +190,21 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
         let mtu = iface.device().capabilities().max_transmission_unit;
-        let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
-        let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
-        let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-        let tcp_handle = iface.add_socket(tcp_socket);
+        let mut connexions = Vec::new();
+        for _ in 0..MAX_CONNEXIONS {
+            let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+            let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+            let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
+            let tcp_handle = iface.add_socket(tcp_socket);
+            let send_queue: VecDeque<Vec<u8>> = VecDeque::new();
+            connexions.push((tcp_handle, send_queue));
+        }
 
-        let mut send_queue: VecDeque<Vec<u8>> = VecDeque::new();
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
-                iface.remove_socket(tcp_handle);
+                for (tcp_handle, _) in &connexions {
+                    iface.remove_socket(*tcp_handle);
+                }
                 println!();
                 return Ok(());
             }
@@ -206,121 +214,123 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 error!("Network Error: {}", e);
             }
 
-            let socket = iface.get_socket::<TcpSocket>(tcp_handle);
+            for (tcp_handle, send_queue) in &mut connexions {
+                let socket = iface.get_socket::<TcpSocket>(*tcp_handle);
 
-            if !socket.is_open() {
-                socket.listen(port).unwrap();
-            }
-            let addr = socket.remote_endpoint().addr;
-            if socket.may_recv() {
-                let res = socket.recv(|buffer| {
-                    let mut res = Response::new();
-                    if let Some(req) = Request::from(addr, buffer) {
-                        res.req = req.clone();
-                        let sep = if req.path == "/" { "" } else { "/" };
-                        let real_path = format!("{}{}{}", dir, sep, req.path.strip_suffix('/').unwrap_or(&req.path)).replace("//", "/");
+                if !socket.is_open() {
+                    socket.listen(port).unwrap();
+                }
+                let addr = socket.remote_endpoint().addr;
+                if socket.may_recv() {
+                    let res = socket.recv(|buffer| {
+                        let mut res = Response::new();
+                        if let Some(req) = Request::from(addr, buffer) {
+                            res.req = req.clone();
+                            let sep = if req.path == "/" { "" } else { "/" };
+                            let real_path = format!("{}{}{}", dir, sep, req.path.strip_suffix('/').unwrap_or(&req.path)).replace("//", "/");
 
-                        match req.verb.as_str() {
-                            "GET" => {
-                                if fs::is_dir(&real_path) && !req.path.ends_with('/') {
-                                    res.code = 301;
-                                    res.mime = "text/html".to_string();
-                                    res.headers.insert("Location".to_string(), format!("{}/", req.path));
-                                    res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
-                                } else {
-                                    let mut not_found = true;
-                                    for autocomplete in vec!["", "/index.html", "/index.htm", "/index.txt"] {
-                                        let real_path = format!("{}{}", real_path, autocomplete);
-                                        if fs::is_dir(&real_path) {
-                                            continue;
-                                        }
-                                        if let Ok(buf) = fs::read_to_bytes(&real_path) {
-                                            res.code = 200;
-                                            res.mime = content_type(&real_path);
-                                            let tmp;
-                                            res.body.extend_from_slice(if res.mime.starts_with("text/") {
-                                                tmp = String::from_utf8_lossy(&buf).to_string().replace("\n", "\r\n");
-                                                tmp.as_bytes()
-                                            } else {
-                                                &buf
-                                            });
-                                            not_found = false;
-                                            break;
-                                        }
-                                    }
-                                    if not_found {
-                                        if let Ok(mut files) = fs::read_dir(&real_path) {
-                                            res.code = 200;
-                                            res.mime = "text/html".to_string();
-                                            res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes());
-                                            files.sort_by_key(|f| f.name());
-                                            for file in files {
-                                                let path = format!("{}{}", req.path, file.name());
-                                                let link = format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name());
-                                                res.body.extend_from_slice(&link.as_bytes());
+                            match req.verb.as_str() {
+                                "GET" => {
+                                    if fs::is_dir(&real_path) && !req.path.ends_with('/') {
+                                        res.code = 301;
+                                        res.mime = "text/html".to_string();
+                                        res.headers.insert("Location".to_string(), format!("{}/", req.path));
+                                        res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
+                                    } else {
+                                        let mut not_found = true;
+                                        for autocomplete in vec!["", "/index.html", "/index.htm", "/index.txt"] {
+                                            let real_path = format!("{}{}", real_path, autocomplete);
+                                            if fs::is_dir(&real_path) {
+                                                continue;
                                             }
-                                        } else {
-                                            res.code = 404;
-                                            res.mime = "text/html".to_string();
-                                            res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
+                                            if let Ok(buf) = fs::read_to_bytes(&real_path) {
+                                                res.code = 200;
+                                                res.mime = content_type(&real_path);
+                                                let tmp;
+                                                res.body.extend_from_slice(if res.mime.starts_with("text/") {
+                                                    tmp = String::from_utf8_lossy(&buf).to_string().replace("\n", "\r\n");
+                                                    tmp.as_bytes()
+                                                } else {
+                                                    &buf
+                                                });
+                                                not_found = false;
+                                                break;
+                                            }
+                                        }
+                                        if not_found {
+                                            if let Ok(mut files) = fs::read_dir(&real_path) {
+                                                res.code = 200;
+                                                res.mime = "text/html".to_string();
+                                                res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes());
+                                                files.sort_by_key(|f| f.name());
+                                                for file in files {
+                                                    let path = format!("{}{}", req.path, file.name());
+                                                    let link = format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name());
+                                                    res.body.extend_from_slice(&link.as_bytes());
+                                                }
+                                            } else {
+                                                res.code = 404;
+                                                res.mime = "text/html".to_string();
+                                                res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
+                                            }
                                         }
                                     }
-                                }
-                            },
-                            "PUT" if !read_only => {
-                                if real_path.ends_with('/') { // Write directory
-                                    let real_path = real_path.trim_end_matches('/');
+                                },
+                                "PUT" if !read_only => {
+                                    if real_path.ends_with('/') { // Write directory
+                                        let real_path = real_path.trim_end_matches('/');
+                                        if fs::exists(&real_path) {
+                                            res.code = 403;
+                                        } else if let Some(handle) = fs::create_dir(&real_path) {
+                                            syscall::close(handle);
+                                            res.code = 200;
+                                        } else {
+                                            res.code = 500;
+                                        }
+                                    } else { // Write file
+                                        if fs::write(&real_path, &req.body).is_ok() {
+                                            res.code = 200;
+                                        } else {
+                                            res.code = 500;
+                                        }
+                                    }
+                                    res.mime = "text/plain".to_string();
+                                },
+                                "DELETE" if !read_only => {
                                     if fs::exists(&real_path) {
-                                        res.code = 403;
-                                    } else if let Some(handle) = fs::create_dir(&real_path) {
-                                        syscall::close(handle);
-                                        res.code = 200;
+                                        if fs::delete(&real_path).is_ok() {
+                                            res.code = 200;
+                                        } else {
+                                            res.code = 500;
+                                        }
                                     } else {
-                                        res.code = 500;
+                                        res.code = 404;
                                     }
-                                } else { // Write file
-                                    if fs::write(&real_path, &req.body).is_ok() {
-                                        res.code = 200;
-                                    } else {
-                                        res.code = 500;
-                                    }
-                                }
-                                res.mime = "text/plain".to_string();
-                            },
-                            "DELETE" if !read_only => {
-                                if fs::exists(&real_path) {
-                                    if fs::delete(&real_path).is_ok() {
-                                        res.code = 200;
-                                    } else {
-                                        res.code = 500;
-                                    }
-                                } else {
-                                    res.code = 404;
-                                }
-                                res.mime = "text/plain".to_string();
-                            },
-                            _ => {
-                                res.code = 400;
-                                res.mime = "text/html".to_string();
-                                res.body.extend_from_slice(b"<h1>Bad Request</h1>\r\n");
-                            },
+                                    res.mime = "text/plain".to_string();
+                                },
+                                _ => {
+                                    res.code = 400;
+                                    res.mime = "text/html".to_string();
+                                    res.body.extend_from_slice(b"<h1>Bad Request</h1>\r\n");
+                                },
+                            }
+                            res.end();
+                            println!("{}", res);
                         }
-                        res.end();
-                        println!("{}", res);
+                        (buffer.len(), res)
+                    }).unwrap();
+                    for chunk in res.buf.chunks(mtu) {
+                        send_queue.push_back(chunk.to_vec());
                     }
-                    (buffer.len(), res)
-                }).unwrap();
-                for chunk in res.buf.chunks(mtu) {
-                    send_queue.push_back(chunk.to_vec());
-                }
-                if socket.can_send() {
-                    if let Some(chunk) = send_queue.pop_front() {
-                        socket.send_slice(&chunk).unwrap();
+                    if socket.can_send() {
+                        if let Some(chunk) = send_queue.pop_front() {
+                            socket.send_slice(&chunk).unwrap();
+                        }
                     }
+                } else if socket.may_send() {
+                    socket.close();
+                    send_queue.clear();
                 }
-            } else if socket.may_send() {
-                socket.close();
-                send_queue.clear();
             }
             if let Some(wait_duration) = iface.poll_delay(timestamp) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
