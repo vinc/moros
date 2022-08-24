@@ -20,6 +20,7 @@ use smoltcp::phy::Device;
 use smoltcp::wire::IpAddress;
 
 const MAX_CONNEXIONS: usize = 32;
+const POLL_DELAY_DIV: usize = 128;
 
 #[derive(Clone)]
 struct Request {
@@ -333,7 +334,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
             }
             if let Some(wait_duration) = iface.poll_delay(timestamp) {
-                syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                let t = wait_duration.total_micros() / POLL_DELAY_DIV as u64;
+                if t > 0 {
+                    syscall::sleep((t as f64) / 1000000.0);
+                }
             }
         }
     } else {
