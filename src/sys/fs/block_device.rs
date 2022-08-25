@@ -161,21 +161,15 @@ impl BlockDeviceIO for AtaBlockDevice {
             return Ok(());
         }
 
-        if sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf).is_ok() {
-            self.set_cached_block(block_addr, buf);
-            Ok(())
-        } else {
-            Err(())
-        }
+        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf)?;
+        self.set_cached_block(block_addr, buf);
+        Ok(())
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
-        if sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf).is_ok() {
-            self.unset_cached_block(block_addr);
-            Ok(())
-        } else {
-            Err(())
-        }
+        sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)?;
+        self.unset_cached_block(block_addr);
+        Ok(())
     }
 
     fn block_size(&self) -> usize {
