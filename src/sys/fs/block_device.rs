@@ -127,13 +127,13 @@ impl AtaBlockDevice {
     }
     */
 
-    fn cache_index(&self, block_addr: u32) -> usize {
+    fn hash(&self, block_addr: u32) -> usize {
         (block_addr as usize) % self.cache.len()
     }
 
     fn cached_block(&self, block_addr: u32) -> Option<&[u8]> {
-        let i = self.cache_index(block_addr);
-        if let Some((cached_addr, cached_buf)) = &self.cache[i] {
+        let h = self.hash(block_addr);
+        if let Some((cached_addr, cached_buf)) = &self.cache[h] {
             if block_addr == *cached_addr {
                 return Some(cached_buf);
             }
@@ -142,13 +142,13 @@ impl AtaBlockDevice {
     }
 
     fn set_cached_block(&mut self, block_addr: u32, buf: &[u8]) {
-        let i = self.cache_index(block_addr);
-        self.cache[i] = Some((block_addr, buf.to_vec()));
+        let h = self.hash(block_addr);
+        self.cache[h] = Some((block_addr, buf.to_vec()));
     }
 
     fn unset_cached_block(&mut self, block_addr: u32) {
-        let i = self.cache_index(block_addr);
-        self.cache[i] = None;
+        let h = self.hash(block_addr);
+        self.cache[h] = None;
     }
 }
 
