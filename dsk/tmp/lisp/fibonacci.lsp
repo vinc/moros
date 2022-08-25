@@ -6,7 +6,6 @@
     (true (+ (fib (- n 1)) (fib (- n 2))))))
 
 (println
-  (fib
-    (cond
-      ((null? args) 10)
-      (true (parse (car args))))))
+  (cond
+    ((null? args) "Usage: fibonacci <num>")
+    (true (fib (parse (car args))))))

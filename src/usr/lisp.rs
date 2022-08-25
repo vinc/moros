@@ -3,6 +3,7 @@ use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
+use crate::api::regex::Regex;
 
 use alloc::collections::BTreeMap;
 use alloc::format;
@@ -13,6 +14,7 @@ use alloc::vec::Vec;
 use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
+use core::convert::TryInto;
 use core::f64::consts::PI;
 use core::fmt;
 use float_cmp::approx_eq;
@@ -78,12 +80,12 @@ impl PartialEq for Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
-            Exp::Lambda(_)  => "Lambda {}".to_string(),
-            Exp::Func(_)    => "Function {}".to_string(),
+            Exp::Lambda(_)  => "<lambda>".to_string(),
+            Exp::Func(_)    => "<function>".to_string(),
             Exp::Bool(a)    => a.to_string(),
             Exp::Num(n)     => n.to_string(),
             Exp::Sym(s)     => s.clone(),
-            Exp::Str(s)     => format!("\"{}\"", s.replace('"', "\\\"")),
+            Exp::Str(s)     => format!("{:?}", s),
             Exp::List(list) => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
@@ -324,21 +326,13 @@ fn default_env() -> Rc<RefCell<Env>> {
             Err(code) => Ok(Exp::Num(code as u8 as f64)),
         }
     }));
-    data.insert("print".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match args[0].clone() {
-            Exp::Str(s) => print!("{}", s),
-            exp => print!("{}", exp),
-        }
-        Ok(Exp::List(Vec::new()))
-    }));
-    data.insert("read".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let path = string(&args[0])?;
         let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
         Ok(Exp::Str(contents))
     }));
-    data.insert("read-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("read-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
         let len = float(&args[1])?;
@@ -347,25 +341,81 @@ fn default_env() -> Rc<RefCell<Env>> {
         buf.resize(bytes, 0);
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("write-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let path = string(&args[0])?;
+        match &args[1] {
+            Exp::List(list) => {
+                let buf = list_of_bytes(list)?;
+                let bytes = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+                Ok(Exp::Num(bytes as f64))
+            }
+            _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
+        }
+    }));
+    data.insert("append-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let path = string(&args[0])?;
+        match &args[1] {
+            Exp::List(list) => {
+                let buf = list_of_bytes(list)?;
+                let bytes = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+                Ok(Exp::Num(bytes as f64))
+            }
+            _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
+        }
+    }));
+    data.insert("string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        let args: Vec<String> = args.iter().map(|arg| match arg {
+            Exp::Str(s) => format!("{}", s),
+            exp => format!("{}", exp),
+        }).collect();
+        Ok(Exp::Str(args.join("")))
+    }));
+    data.insert("encode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("str".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("decode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
-                let buf = list_of_floats(list)?.iter().map(|b| *b as u8).collect();
+                let buf = list_of_bytes(list)?;
                 let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
                 Ok(Exp::Str(s))
             }
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("cat".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::Str(list_of_strings(args)?.join("")))
+    data.insert("decode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        match &args[0] {
+            Exp::List(list) => {
+                let bytes = list_of_bytes(list)?;
+                ensure_length_eq!(bytes, 8);
+                Ok(Exp::Num(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))
+            }
+            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
+    }));
+    data.insert("encode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let f = float(&args[0])?;
+        Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
+    }));
+    data.insert("regex-find".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) {
+            (Exp::Str(regex), Exp::Str(s)) => {
+                let res = Regex::new(regex).find(s).map(|(a, b)| {
+                    vec![Exp::Num(a as f64), Exp::Num(b as f64)]
+                }).unwrap_or(vec![]);
+                Ok(Exp::List(res))
+            }
+            _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
+        }
     }));
     data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
@@ -399,6 +449,9 @@ fn default_env() -> Rc<RefCell<Env>> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
+    data.insert("list".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::List(args.to_vec()))
+    }));
 
     // Setup autocompletion
     let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
@@ -428,12 +481,23 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
     }
 }
 
+fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
+    args.iter().map(string).collect()
+}
+
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
     args.iter().map(float).collect()
 }
 
-fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
-    args.iter().map(string).collect()
+fn list_of_bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
+    args.iter().map(byte).collect()
+}
+
+fn string(exp: &Exp) -> Result<String, Err> {
+    match exp {
+        Exp::Str(s) => Ok(s.to_string()),
+        _ => Err(Err::Reason("Expected a string".to_string())),
+    }
 }
 
 fn float(exp: &Exp) -> Result<f64, Err> {
@@ -443,10 +507,12 @@ fn float(exp: &Exp) -> Result<f64, Err> {
     }
 }
 
-fn string(exp: &Exp) -> Result<String, Err> {
-    match exp {
-        Exp::Str(s) => Ok(s.to_string()),
-        _ => Err(Err::Reason("Expected a string".to_string())),
+fn byte(exp: &Exp) -> Result<u8, Err> {
+    let num = float(exp)?;
+    if num >= 0.0 && num < u8::MAX.into() && (num - libm::trunc(num) == 0.0) {
+        Ok(num as u8)
+    } else {
+        Err(Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX)))
     }
 }
 
@@ -698,7 +764,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
-    println!("MOROS Lisp v0.2.0\n");
+    println!("MOROS Lisp v0.3.0\n");
 
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
@@ -904,20 +970,23 @@ fn test_lisp() {
     assert_eq!(eval!("(or false true)"), "true");
     assert_eq!(eval!("(or false false)"), "false");
 
+    // number
+    assert_eq!(eval!("(decode-number (encode-number 42))"), "42");
+
     // string
-    assert_eq!(eval!("(eq \"Hello, World!\" \"foo\")"), "false");
-    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
+    assert_eq!(eval!("(string \"a\" \"b\" \"c\")"), "\"abc\"");
+    assert_eq!(eval!("(string \"a\" \"\")"), "\"a\"");
+    assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
+    assert_eq!(eval!("(eq \"foo\" \"foo\")"), "true");
+    assert_eq!(eval!("(eq \"foo\" \"bar\")"), "false");
+    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
 
     // map
     eval!("(defun inc (a) (+ a 1))");
     assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
     assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
     assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
-
-    // cat
-    assert_eq!(eval!("(cat \"a\" \"b\" \"c\")"), "\"abc\"");
-    assert_eq!(eval!("(cat \"a\" \"\")"), "\"a\"");
 
     // join
     assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
@@ -933,4 +1002,10 @@ fn test_lisp() {
 
     eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
     assert_eq!(eval!("(apply2 + 1 2)"), "3");
+
+    // list
+    assert_eq!(eval!("(list)"), "()");
+    assert_eq!(eval!("(list 1)"), "(1)");
+    assert_eq!(eval!("(list 1 2)"), "(1 2)");
+    assert_eq!(eval!("(list 1 2 (+ 1 2))"), "(1 2 3)");
 }
