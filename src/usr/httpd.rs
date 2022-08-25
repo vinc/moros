@@ -19,7 +19,7 @@ use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use smoltcp::wire::IpAddress;
 
-const MAX_CONNEXIONS: usize = 32;
+const MAX_CONNECTIONS: usize = 32;
 const POLL_DELAY_DIV: usize = 128;
 
 #[derive(Clone)]
@@ -191,19 +191,19 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
         let mtu = iface.device().capabilities().max_transmission_unit;
-        let mut connexions = Vec::new();
-        for _ in 0..MAX_CONNEXIONS {
+        let mut connections = Vec::new();
+        for _ in 0..MAX_CONNECTIONS {
             let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
             let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
             let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
             let tcp_handle = iface.add_socket(tcp_socket);
             let send_queue: VecDeque<Vec<u8>> = VecDeque::new();
-            connexions.push((tcp_handle, send_queue));
+            connections.push((tcp_handle, send_queue));
         }
 
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
-                for (tcp_handle, _) in &connexions {
+                for (tcp_handle, _) in &connections {
                     iface.remove_socket(*tcp_handle);
                 }
                 println!();
@@ -215,7 +215,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 error!("Network Error: {}", e);
             }
 
-            for (tcp_handle, send_queue) in &mut connexions {
+            for (tcp_handle, send_queue) in &mut connections {
                 let socket = iface.get_socket::<TcpSocket>(*tcp_handle);
 
                 if !socket.is_open() {
