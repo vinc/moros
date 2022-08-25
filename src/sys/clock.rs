@@ -1,3 +1,4 @@
+use crate::api::clock::DATE_TIME_ZONE;
 use crate::sys;
 use crate::sys::cmos::CMOS;
 use crate::sys::fs::FileIO;
@@ -105,7 +106,7 @@ pub fn init() {
     let s = realtime();
     let ns = Duration::nanoseconds(libm::floor(1e9 * (s - libm::floor(s))) as i64);
     let dt = OffsetDateTime::from_unix_timestamp(s as i64) + ns;
-    let rtc = dt.format("%F %H:%M:%S UTC");
+    let rtc = dt.format(DATE_TIME_ZONE);
     log!("RTC {}\n", rtc);
 }
 

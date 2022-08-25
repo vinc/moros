@@ -79,7 +79,7 @@ impl PartialEq for Exp {
 
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let str = match self {
+        let out = match self {
             Exp::Lambda(_)  => "<lambda>".to_string(),
             Exp::Func(_)    => "<function>".to_string(),
             Exp::Bool(a)    => a.to_string(),
@@ -91,7 +91,7 @@ impl fmt::Display for Exp {
                 format!("({})", xs.join(" "))
             },
         };
-        write!(f, "{}", str)
+        write!(f, "{}", out)
     }
 }
 

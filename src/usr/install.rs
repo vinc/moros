@@ -60,18 +60,32 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/beep/tetris.sh", include_bytes!("../../dsk/tmp/beep/tetris.sh"), verbose);
     copy_file("/tmp/beep/starwars.sh", include_bytes!("../../dsk/tmp/beep/starwars.sh"), verbose);
     copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"), verbose);
+
+    create_dir("/var/www", verbose);
+    copy_file("/var/www/index.html", include_bytes!("../../www/index.html"), verbose);
+    copy_file("/var/www/moros.png", include_bytes!("../../www/moros.png"), verbose);
 }
 
-pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Welcome to MOROS v{} installation program!{}", csi_color, env!("CARGO_PKG_VERSION"), csi_reset);
     println!();
 
-    print!("Proceed? [y/N] ");
-    if io::stdin().read_line().trim() == "y" {
+    let mut has_confirmed = false;
+    for &arg in args {
+        match arg {
+            "-y" | "--yes" => has_confirmed = true,
+            _ => continue
+        }
+    }
+    if !has_confirmed {
+        print!("Proceed? [y/N] ");
+        has_confirmed = io::stdin().read_line().trim() == "y";
         println!();
+    }
 
+    if has_confirmed {
         if !sys::fs::is_mounted() {
             println!("{}Listing disks ...{}", csi_color, csi_reset);
             usr::shell::exec("disk list").ok();
