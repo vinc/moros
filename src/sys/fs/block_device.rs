@@ -16,14 +16,14 @@ pub enum BlockDevice {
 }
 
 pub trait BlockDeviceIO {
-    fn read(&self, addr: u32, buf: &mut [u8]) -> Result<(), ()>;
+    fn read(&mut self, addr: u32, buf: &mut [u8]) -> Result<(), ()>;
     fn write(&mut self, addr: u32, buf: &[u8]) -> Result<(), ()>;
     fn block_size(&self) -> usize;
     fn block_count(&self) -> usize;
 }
 
 impl BlockDeviceIO for BlockDevice {
-    fn read(&self, addr: u32, buf: &mut [u8]) -> Result<(), ()> {
+    fn read(&mut self, addr: u32, buf: &mut [u8]) -> Result<(), ()> {
         match self {
             BlockDevice::Mem(dev) => dev.read(addr, buf),
             BlockDevice::Ata(dev) => dev.read(addr, buf),
@@ -70,7 +70,7 @@ impl MemBlockDevice {
 }
 
 impl BlockDeviceIO for MemBlockDevice {
-    fn read(&self, block_index: u32, buf: &mut [u8]) -> Result<(), ()> {
+    fn read(&mut self, block_index: u32, buf: &mut [u8]) -> Result<(), ()> {
         // TODO: check for overflow
         buf[..].clone_from_slice(&self.dev[block_index as usize][..]);
         Ok(())
@@ -109,13 +109,15 @@ pub fn format_mem() {
 
 #[derive(Clone)]
 pub struct AtaBlockDevice {
+    cache: [Option<(u32, Vec<u8>)>; 1024],
     dev: sys::ata::Drive
 }
 
 impl AtaBlockDevice {
     pub fn new(bus: u8, dsk: u8) -> Option<Self> {
         sys::ata::Drive::open(bus, dsk).map(|dev| {
-            Self { dev }
+            let cache = [(); 1024].map(|_| None);
+            Self { dev, cache }
         })
     }
 
@@ -127,11 +129,26 @@ impl AtaBlockDevice {
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
-    fn read(&self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
-        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf)
+    fn read(&mut self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
+        let key = (block_addr as usize) % self.cache.len();
+        if let Some((cached_addr, cached_buf)) = &self.cache[key] {
+            if block_addr == *cached_addr {
+                buf.copy_from_slice(cached_buf);
+                return Ok(());
+            }
+        }
+
+        if sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf).is_ok() {
+            self.cache[key] = Some((block_addr, buf.to_vec()));
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
+        let key = (block_addr as usize) % self.cache.len();
+        self.cache[key] = None;
         sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)
     }
 
