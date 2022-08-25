@@ -44,7 +44,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     error!("Missing name");
                     return Err(ExitCode::UsageError);
                 }
-            },
+            }
             "-l" | "--line" => {
                 if i + 1 < n {
                     line = Some(args[i + 1]);
@@ -53,7 +53,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     error!("Missing line");
                     return Err(ExitCode::UsageError);
                 }
-            },
+            }
             _ => path = args[i],
         }
         i += 1;

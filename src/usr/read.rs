@@ -27,7 +27,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         "/dev/rtc" => {
             let rtc = CMOS::new().rtc();
             println!(
-                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
+                "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
                 rtc.year, rtc.month, rtc.day,
                 rtc.hour, rtc.minute, rtc.second
             );
