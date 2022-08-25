@@ -126,20 +126,41 @@ impl AtaBlockDevice {
         self.block_size() * self.block_count()
     }
     */
+
+    fn cache_index(&self, block_addr: u32) -> usize {
+        (block_addr as usize) % self.cache.len()
+    }
+
+    fn cached_block(&self, block_addr: u32) -> Option<&[u8]> {
+        let i = self.cache_index(block_addr);
+        if let Some((cached_addr, cached_buf)) = &self.cache[i] {
+            if block_addr == *cached_addr {
+                return Some(cached_buf);
+            }
+        }
+        None
+    }
+
+    fn set_cached_block(&mut self, block_addr: u32, buf: &[u8]) {
+        let i = self.cache_index(block_addr);
+        self.cache[i] = Some((block_addr, buf.to_vec()));
+    }
+
+    fn unset_cached_block(&mut self, block_addr: u32) {
+        let i = self.cache_index(block_addr);
+        self.cache[i] = None;
+    }
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
     fn read(&mut self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
-        let key = (block_addr as usize) % self.cache.len();
-        if let Some((cached_addr, cached_buf)) = &self.cache[key] {
-            if block_addr == *cached_addr {
-                buf.copy_from_slice(cached_buf);
-                return Ok(());
-            }
+        if let Some(cached) = self.cached_block(block_addr) {
+            buf.copy_from_slice(cached);
+            return Ok(());
         }
 
         if sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf).is_ok() {
-            self.cache[key] = Some((block_addr, buf.to_vec()));
+            self.set_cached_block(block_addr, buf);
             Ok(())
         } else {
             Err(())
@@ -147,9 +168,12 @@ impl BlockDeviceIO for AtaBlockDevice {
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
-        let key = (block_addr as usize) % self.cache.len();
-        self.cache[key] = None;
-        sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)
+        if sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf).is_ok() {
+            self.unset_cached_block(block_addr);
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 
     fn block_size(&self) -> usize {
