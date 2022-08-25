@@ -127,7 +127,7 @@ impl Response {
             500 => "Internal Server Error",
             _   => "Unknown Error",
         };
-        format!("HTTP/1.0 {} {}", self.code, msg)
+        format!("HTTP/1.1 {} {}", self.code, msg)
     }
 }
 
