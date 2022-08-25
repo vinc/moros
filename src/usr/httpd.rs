@@ -349,10 +349,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 fn content_type(path: &str) -> String {
     let ext = path.rsplit_once('.').unwrap_or(("", "")).1;
     match ext {
-        "html" | "htm" => "text/html",
-        "txt"          => "text/plain",
+        "css"          => "text/css",
+        "csv"          => "text/csv",
+        "gif"          => "text/gif",
+        "htm" | "html" => "text/html",
+        "jpg" | "jpeg" => "image/jpeg",
+        "js"           => "text/javascript",
+        "json"         => "application/json",
+        "lsp" | "lisp" => "text/plain",
         "png"          => "image/png",
-        "jpeg" | "jpg" => "image/jpeg",
+        "sh"           => "application/x-sh",
+        "txt"          => "text/plain",
         _              => "application/octet-stream",
     }.to_string()
 }
