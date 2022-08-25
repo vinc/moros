@@ -7,9 +7,14 @@ setup:
 	rustup default nightly
 	cargo install bootimage
 
+# Compilation options
 output = video, # video, serial
 keyboard = qwerty # qwerty, azerty, dvorak
+
+# Emulation options
 nic = rtl8139 # rtl8139, pcnet
+audio = sdl # sdl, coreaudio
+kvm = false
 
 export MOROS_KEYBOARD = $(keyboard)
 
@@ -44,7 +49,7 @@ image: $(img)
 	dd conv=notrunc if=$(bin) of=$(img)
 
 opts = -m 32 -drive file=$(img),format=raw \
-			 -audiodev driver=sdl,id=a0 -machine pcspk-audiodev=a0 \
+			 -audiodev driver=$(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
 ifeq ($(kvm),true)
 	opts += -cpu host -accel kvm
