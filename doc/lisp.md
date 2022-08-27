@@ -75,7 +75,7 @@ And it can execute a file. For example a file located in `/tmp/lisp/fibonacci.ls
 with the following content:
 
 ```lisp
-(load "/ini/lisp/core.lsp")
+(load "/lib/lisp/core.lsp")
 
 (defn fib (n)
   (cond

@@ -41,13 +41,13 @@ pub fn copy_files(verbose: bool) {
     copy_file("/ini/shell.sh", include_bytes!("../../dsk/ini/shell.sh"), verbose);
     copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
 
-    create_dir("/ini/lisp", verbose);
-    copy_file("/ini/lisp/core.lsp", include_bytes!("../../dsk/ini/lisp/core.lsp"), verbose);
-
     create_dir("/ini/fonts", verbose);
     copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
     copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"), verbose);
     copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"), verbose);
+
+    create_dir("/lib/lisp", verbose);
+    copy_file("/lib/lisp/core.lsp", include_bytes!("../../dsk/lib/lisp/core.lsp"), verbose);
 
     copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"), verbose);
     copy_file("/tmp/machines.txt", include_bytes!("../../dsk/tmp/machines.txt"), verbose);
