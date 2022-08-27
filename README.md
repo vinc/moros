@@ -14,6 +14,7 @@ This project started from the [seventh post][1] of the second edition of
 [![Travis](https://img.shields.io/travis/vinc/moros/master.svg)](https://travis-ci.org/vinc/moros/branches)
 [![Crates.io](https://img.shields.io/crates/v/moros.svg)](https://crates.io/crates/moros)
 
+
 ## Features
 
 - [x] External bootloader (using [bootloader](https://github.com/rust-osdev/bootloader))
@@ -96,7 +97,7 @@ Run the test suite in QEMU:
     $ make test
 
 
-## LICENSE
+## License
 
 MOROS is released under MIT.
 
