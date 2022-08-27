@@ -132,10 +132,8 @@ NOTE: The following file handles are available when a process is created:
 - `stderr(2)`
 - `stdnull(3)`
 
-<!--
-NOTE: A redirection with a fat arrow will append to a file without truncating
-it first. This could change in the future with with the addition of `=>>`.
--->
+A redirection with a single arrow head will truncate its destination while
+multiple heads like `=>>` will append to it.
 
 NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
 
@@ -154,6 +152,9 @@ NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
     > write bar.txt <= foo.txt
     > write bar.txt < foo.txt
 
+    > read foo.txt ==>> bar.txt
+    > read foo.txt =>> bar.txt
+    > read foo.txt >> bar.txt
 
 ## Variables
 

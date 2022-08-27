@@ -361,6 +361,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
 
         let mut is_fat_arrow = false;
         let mut is_thin_arrow = false;
+        let mut head_count = 0;
         let mut left_handle;
         if Regex::new("^[?\\d*]?-+>$").is_match(args[i]) { // Pipes
             // read foo.txt --> write bar.txt
@@ -368,7 +369,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             // read foo.txt [2]-> write /dev/null
             is_thin_arrow = true;
             left_handle = 1;
-        } else if Regex::new("^[?\\d*]?=*>[?\\d*]?$").is_match(args[i]) { // Redirections to
+        } else if Regex::new("^[?\\d*]?=*>+[?\\d*]?$").is_match(args[i]) { // Redirections to
             // read foo.txt ==> bar.txt
             // read foo.txt => bar.txt
             // read foo.txt > bar.txt
@@ -376,7 +377,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             // read foo.txt [1]=>[3]
             is_fat_arrow = true;
             left_handle = 1;
-        } else if Regex::new("^<=*$").is_match(args[i]) { // Redirections from
+        } else if Regex::new("^+<=*$").is_match(args[i]) { // Redirections from
             // write bar.txt <== foo.txt
             // write bar.txt <= foo.txt
             // write bar.txt < foo.txt
@@ -391,10 +392,11 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         let mut num = String::new();
         for c in args[i].chars() {
             match c {
-                '[' | ']' => {
+                '[' | ']' | '-' | '=' => {
                     continue;
                 }
-                '-' | '=' | '>' => {
+                '<' | '>' => {
+                    head_count += 1;
                     if let Ok(handle) = num.parse() {
                         left_handle = handle;
                     }
@@ -418,7 +420,8 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
                     return Err(ExitCode::Failure);
                 }
                 let path = args[i + 1];
-                if api::fs::reopen(path, left_handle).is_err() {
+                let append_mode = head_count > 1;
+                if api::fs::reopen(path, left_handle, append_mode).is_err() {
                     println!("Could not open path for redirection");
                     return Err(ExitCode::Failure);
                 }
@@ -505,7 +508,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     // TODO: Remove this when redirections are done in spawned process
     if restore_file_handles {
         for i in 0..3 {
-            api::fs::reopen("/dev/console", i).ok();
+            api::fs::reopen("/dev/console", i, false).ok();
         }
     }
 

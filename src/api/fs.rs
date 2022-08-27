@@ -168,12 +168,14 @@ pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
     Err(())
 }
 
-pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
+pub fn reopen(path: &str, handle: usize, append_mode: bool) -> Result<usize, ()> {
     let res = if let Some(info) = syscall::info(path) {
         if info.is_device() {
             open_device(path)
-        } else {
+        } else if append_mode {
             append_file(path)
+        } else {
+            open_file(path)
         }
     } else {
         create_file(path)
