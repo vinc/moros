@@ -57,6 +57,10 @@ else
 	opts += -cpu max
 endif
 
+ifeq ($(pcap),true)
+	opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
+endif
+
 ifeq ($(output),serial)
 	opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
 endif

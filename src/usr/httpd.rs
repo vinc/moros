@@ -98,7 +98,7 @@ impl Response {
     pub fn end(&mut self) {
         self.size = self.body.len();
         self.headers.insert("Content-Length".to_string(), self.size.to_string());
-        self.headers.insert("Connection".to_string(), "close".to_string());
+        self.headers.insert("Connection".to_string(), "keep-alive".to_string());
         self.headers.insert("Content-Type".to_string(), if self.mime.starts_with("text/") {
             format!("{}; charset=utf-8", self.mime)
         } else {
@@ -127,7 +127,7 @@ impl Response {
             500 => "Internal Server Error",
             _   => "Unknown Error",
         };
-        format!("HTTP/1.0 {} {}", self.code, msg)
+        format!("HTTP/1.1 {} {}", self.code, msg)
     }
 }
 
