@@ -1,4 +1,4 @@
-(load "/ini/lisp/core.lsp")
+(load "/lib/lisp/core.lsp")
 
 (defn fib (n)
   (cond
