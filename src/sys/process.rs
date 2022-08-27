@@ -38,10 +38,10 @@ impl ProcessData {
         let dir = dir.to_string();
         let user = user.map(String::from);
         let mut file_handles = [(); MAX_FILE_HANDLES].map(|_| None);
-        file_handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
-        file_handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
-        file_handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
-        file_handles[3] = Some(Box::new(Resource::Device(Device::Null)));
+        file_handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdin
+        file_handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdout
+        file_handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stderr
+        file_handles[3] = Some(Box::new(Resource::Device(Device::Null))); // stdnull
         Self { env, dir, user, file_handles }
     }
 }
