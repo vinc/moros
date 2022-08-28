@@ -145,8 +145,14 @@ impl CMOS {
 
         let b = self.read_register(Register::B);
 
-        if (b & 0x02 == 0) { // 12 hour format
-            // TODO
+        if b & 0x02 == 0 { // 12 hour format
+            if hour == 0 {
+                hour = 24;
+            }
+            if hour > 12 {
+                hour -= 12;
+                hour.set_bit(8, true);
+            }
         }
 
         if b & 0x04 == 0 { // BCD Mode
