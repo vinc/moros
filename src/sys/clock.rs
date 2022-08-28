@@ -14,6 +14,10 @@ impl Uptime {
     pub fn new() -> Self {
         Self {}
     }
+
+    pub fn size() -> usize {
+        core::mem::size_of::<f64>()
+    }
 }
 
 impl FileIO for Uptime {
@@ -43,6 +47,10 @@ pub struct Realtime;
 impl Realtime {
     pub fn new() -> Self {
         Self {}
+    }
+
+    pub fn size() -> usize {
+        core::mem::size_of::<f64>()
     }
 }
 

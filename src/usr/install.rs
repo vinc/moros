@@ -30,7 +30,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/clk", verbose); // Clocks
     create_dev("/dev/clk/uptime", DeviceType::Uptime, verbose);
     create_dev("/dev/clk/realtime", DeviceType::Realtime, verbose);
-    create_dev("/dev/rtc", DeviceType::File, verbose); // TODO
+    create_dev("/dev/rtc", DeviceType::RTC, verbose);
     create_dev("/dev/null", DeviceType::Null, verbose);
     create_dev("/dev/random", DeviceType::Random, verbose);
     create_dev("/dev/console", DeviceType::Console, verbose);

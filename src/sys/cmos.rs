@@ -1,8 +1,14 @@
-use core::hint::spin_loop;
+use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
+use crate::sys::fs::FileIO;
 
+use alloc::string::String;
 use bit_field::BitField;
+use core::hint::spin_loop;
+use time::{Date, PrimitiveDateTime};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
+
+const RTC_CENTURY: u16 = 2000; // NOTE: Change this at the end of 2099
 
 #[repr(u8)]
 enum Register {
@@ -24,7 +30,7 @@ enum Interrupt {
     Update = 1 << 4,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RTC {
     pub year: u16,
     pub month: u8,
@@ -32,6 +38,51 @@ pub struct RTC {
     pub hour: u8,
     pub minute: u8,
     pub second: u8,
+}
+
+impl RTC {
+    pub fn new() -> Self {
+        CMOS::new().rtc()
+    }
+
+    pub fn size() -> usize {
+        DATE_TIME_LEN
+    }
+
+    pub fn sync(&mut self) {
+        *self = RTC::new();
+    }
+}
+
+impl FileIO for RTC {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        self.sync();
+        let date = Date::try_from_ymd(self.year.into(), self.month, self.day).map_err(|_| ())?;
+        let date_time = date.try_with_hms(self.hour, self.minute, self.second).map_err(|_| ())?;
+        let out = date_time.format(DATE_TIME);
+        buf.copy_from_slice(&out.as_bytes());
+        Ok(out.len())
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        let s = String::from_utf8_lossy(buf);
+        let s = s.trim_end();
+        if s.len() != RTC::size() {
+            return Err(());
+        }
+        let date_time = PrimitiveDateTime::parse(s, DATE_TIME).map_err(|_| ())?;
+        self.year = date_time.year() as u16;
+        self.month = date_time.month();
+        self.day = date_time.day();
+        self.hour = date_time.hour();
+        self.minute = date_time.minute();
+        self.second = date_time.second();
+        if self.year < RTC_CENTURY || self.year > RTC_CENTURY + 99 {
+            return Err(());
+        }
+        CMOS::new().update_rtc(self);
+        Ok(buf.len())
+    }
 }
 
 pub struct CMOS {
@@ -86,9 +137,49 @@ impl CMOS {
             rtc.hour = ((rtc.hour & 0x7F) + 12) % 24;
         }
 
-        rtc.year += 2000; // TODO: Don't forget to change this next century
+        rtc.year += RTC_CENTURY;
 
         rtc
+    }
+
+    pub fn update_rtc(&mut self, rtc: &RTC) {
+        self.wait_end_of_update();
+        let mut second = rtc.second;
+        let mut minute = rtc.minute;
+        let mut hour = rtc.hour;
+        let mut day = rtc.day;
+        let mut month = rtc.month;
+        let mut year = rtc.year;
+
+        year -= RTC_CENTURY;
+
+        let b = self.read_register(Register::B);
+
+        if b & 0x02 == 0 { // 12 hour format
+            if hour == 0 {
+                hour = 24;
+            }
+            if hour > 12 {
+                hour -= 12;
+                hour.set_bit(8, true);
+            }
+        }
+
+        if b & 0x04 == 0 { // BCD Mode
+            second = 16 * (second / 10) + (second % 10);
+            minute = 16 * (minute / 10) + (minute % 10);
+            hour = 16 * (hour / 10) + (hour % 10);
+            day = 16 * (day / 10) + (day % 10);
+            month = 16 * (month / 10) + (month % 10);
+            year = 16 * (year / 10) + (year % 10);
+        }
+
+        self.write_register(Register::Second, second);
+        self.write_register(Register::Minute, minute);
+        self.write_register(Register::Hour, hour);
+        self.write_register(Register::Day, day);
+        self.write_register(Register::Month, month);
+        self.write_register(Register::Year, year as u8);
     }
 
     pub fn enable_periodic_interrupt(&mut self) {
@@ -157,6 +248,13 @@ impl CMOS {
         unsafe {
             self.addr.write(reg as u8);
             self.data.read()
+        }
+    }
+
+    fn write_register(&mut self, reg: Register, value: u8) {
+        unsafe {
+            self.addr.write(reg as u8);
+            self.data.write(value);
         }
     }
 
