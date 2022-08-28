@@ -1,6 +1,8 @@
-use core::hint::spin_loop;
+use crate::sys::fs::FileIO;
 
+use alloc::format;
 use bit_field::BitField;
+use core::hint::spin_loop;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
@@ -24,7 +26,7 @@ enum Interrupt {
     Update = 1 << 4,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RTC {
     pub year: u16,
     pub month: u8,
@@ -32,6 +34,33 @@ pub struct RTC {
     pub hour: u8,
     pub minute: u8,
     pub second: u8,
+}
+
+impl RTC {
+    pub fn new() -> Self {
+        CMOS::new().rtc()
+    }
+
+    pub fn size() -> usize {
+        "YYYY-MM-DD HH:MM:SS".len()
+    }
+}
+
+impl FileIO for RTC {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        *self = RTC::new();
+        let out = format!(
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
+            self.year, self.month, self.day,
+            self.hour, self.minute, self.second
+        );
+        buf.copy_from_slice(&out.as_bytes());
+        Ok(out.len())
+    }
+
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        unimplemented!();
+    }
 }
 
 pub struct CMOS {
@@ -86,7 +115,7 @@ impl CMOS {
             rtc.hour = ((rtc.hour & 0x7F) + 12) % 24;
         }
 
-        rtc.year += 2000; // TODO: Don't forget to change this next century
+        rtc.year += 2000; // TODO: Change this at the end of 2099
 
         rtc
     }
