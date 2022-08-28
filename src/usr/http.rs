@@ -52,14 +52,25 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut is_verbose = false;
     let mut host = "";
     let mut path = "";
+    let mut timeout = 5.0;
+    let mut i = 1;
     let n = args.len();
-    for i in 1..n {
+    while i < n {
         match args[i] {
             "-h" | "--help" => {
                 return help();
             }
             "-v" | "--verbose" => {
                 is_verbose = true;
+            }
+            "-t" | "--timeout" => {
+                if i + 1 < n {
+                    timeout = args[i + 1].parse().unwrap_or(timeout);
+                    i += 1;
+                } else {
+                    error!("Missing timeout seconds");
+                    return Err(ExitCode::UsageError);
+                }
             }
             _ => {
                 if args[i].starts_with("-") {
@@ -75,6 +86,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
             }
         }
+        i += 1;
     }
 
     if host.is_empty() && path.is_empty() {
@@ -113,11 +125,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         let tcp_handle = iface.add_socket(tcp_socket);
-        let timeout = 5.0;
-        let started = clock::realtime();
+        let mut last_received_at = clock::realtime();
         let mut response_state = ResponseState::Headers;
         loop {
-            if clock::realtime() - started > timeout {
+            if clock::realtime() - last_received_at > timeout {
                 error!("Timeout reached");
                 iface.remove_socket(tcp_handle);
                 return Err(ExitCode::Failure);
@@ -172,6 +183,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
                 SessionState::Response if socket.can_recv() => {
                     socket.recv(|data| {
+                        last_received_at = clock::realtime();
                         let n = data.len();
                         let mut i = 0;
                         while i < n {
@@ -233,6 +245,7 @@ fn help() -> Result<(), ExitCode> {
     println!("{}Usage:{} http {}<options> <url>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-v{1}, {0}--verbose{1}    Increase verbosity", csi_option, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}              Increase verbosity", csi_option, csi_reset);
+    println!("  {0}-t{1}, {0}--timeout <seconds>{1}    Request timeout", csi_option, csi_reset);
     Ok(())
 }
