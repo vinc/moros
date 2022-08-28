@@ -1,6 +1,7 @@
 use crate::sys::fs::FileIO;
 
 use alloc::format;
+use alloc::string::String;
 use bit_field::BitField;
 use core::hint::spin_loop;
 use x86_64::instructions::interrupts;
@@ -58,8 +59,19 @@ impl FileIO for RTC {
         Ok(out.len())
     }
 
-    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
-        unimplemented!();
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        let buf = String::from_utf8_lossy(buf);
+        if buf.len() != RTC::size() {
+            return Err(());
+        }
+        self.year = buf[0..4].parse().map_err(|_| ())?;
+        self.month = buf[5..7].parse().map_err(|_| ())?;
+        self.day = buf[8..10].parse().map_err(|_| ())?;
+        self.hour = buf[11..13].parse().map_err(|_| ())?;
+        self.minute = buf[14..16].parse().map_err(|_| ())?;
+        self.second = buf[17..19].parse().map_err(|_| ())?;
+        CMOS::new().update_rtc(self);
+        Ok(buf.len())
     }
 }
 
@@ -118,6 +130,40 @@ impl CMOS {
         rtc.year += 2000; // TODO: Change this at the end of 2099
 
         rtc
+    }
+
+    pub fn update_rtc(&mut self, rtc: &RTC) {
+        self.wait_end_of_update();
+        let mut second = rtc.second;
+        let mut minute = rtc.minute;
+        let mut hour = rtc.hour;
+        let mut day = rtc.day;
+        let mut month = rtc.month;
+        let mut year = rtc.year;
+
+        year -= 2000; // TODO: Change this at the end of 2099
+
+        let b = self.read_register(Register::B);
+
+        if (b & 0x02 == 0) { // 12 hour format
+            // TODO
+        }
+
+        if b & 0x04 == 0 { // BCD Mode
+            second = 16 * (second / 10) + (second % 10);
+            minute = 16 * (minute / 10) + (minute % 10);
+            hour = 16 * (hour / 10) + (hour % 10);
+            day = 16 * (day / 10) + (day % 10);
+            month = 16 * (month / 10) + (month % 10);
+            year = 16 * (year / 10) + (year % 10);
+        }
+
+        self.write_register(Register::Second, second);
+        self.write_register(Register::Minute, minute);
+        self.write_register(Register::Hour, hour);
+        self.write_register(Register::Day, day);
+        self.write_register(Register::Month, month);
+        self.write_register(Register::Year, year as u8);
     }
 
     pub fn enable_periodic_interrupt(&mut self) {
@@ -186,6 +232,13 @@ impl CMOS {
         unsafe {
             self.addr.write(reg as u8);
             self.data.read()
+        }
+    }
+
+    fn write_register(&mut self, reg: Register, value: u8) {
+        unsafe {
+            self.addr.write(reg as u8);
+            self.data.write(value);
         }
     }
 

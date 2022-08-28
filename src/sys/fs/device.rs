@@ -94,6 +94,8 @@ impl Device {
         }
         None
     }
+
+    // TODO: Add size()
 }
 
 impl FileIO for Device {
