@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Add RTC device file (#400)
+- Update shell redirections (#399)
+- Improve http timeout (#397)
+- Move /ini/lisp to /lib/lisp (#398)
+- Switch HTTP server to HTTP 1.1 (#395)
+- Add cache to AtaBlockDevice (#396)
+- Fix makefile variables (#394)
+- Add makefile arg for qemu audio (#393)
+- Add new forms to lisp (#385)
+- Improve HTTP server (#391)
+- Update users file (#389)
+- ATA: Sata LBA2 wrong address (#388)
+- Add file append (#387)
+- Improve QEMU options (#384)
+- Bump raw-cpuid from 10.4.0 to 10.5.0 (#390)
+- Bump libm from 0.2.3 to 0.2.5 (#386)
+
 ## 0.8.0 (2022-08-05)
 - Add Brautigan poem ([#373](https://github.com/vinc/moros/pull/373))
 - Add CSI sequence for enabling or disabling echo to userspace ([#333](https://github.com/vinc/moros/pull/333))
