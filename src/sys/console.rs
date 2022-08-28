@@ -18,6 +18,10 @@ impl Console {
     pub fn new() -> Self {
         Self {}
     }
+
+    pub fn size() -> usize {
+        core::mem::size_of::<char>()
+    }
 }
 
 impl FileIO for Console {

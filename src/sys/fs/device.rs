@@ -10,7 +10,6 @@ use crate::sys::clock::{Uptime, Realtime};
 
 use alloc::vec;
 use alloc::vec::Vec;
-use core::mem::size_of;
 
 #[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
@@ -29,10 +28,10 @@ impl DeviceType {
     pub fn buf(self) -> Vec<u8> {
         let len = match self {
             DeviceType::RTC      => RTC::size(),
-            DeviceType::Uptime   => size_of::<f64>(),
-            DeviceType::Realtime => size_of::<f64>(),
-            DeviceType::Console  => size_of::<char>(),
-            _                    => size_of::<u8>(),
+            DeviceType::Uptime   => Uptime::size(),
+            DeviceType::Realtime => Realtime::size(),
+            DeviceType::Console  => Console::size(),
+            _                    => 1,
         };
         let mut res = vec![0; len];
         res[0] = self as u8;
