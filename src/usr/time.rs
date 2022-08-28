@@ -10,6 +10,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let start = clock::realtime();
     let res = usr::shell::exec(&cmd);
     let duration = clock::realtime() - start;
-    println!("{}Executed '{}' in {:.6}s{}", csi_color, cmd, duration, csi_reset);
+    eprintln!("{}Executed '{}' in {:.6}s{}", csi_color, cmd, duration, csi_reset);
     res
 }

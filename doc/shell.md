@@ -1,9 +1,11 @@
 # MOROS Shell
 
-## Config
+
+## Configuration
 
 The shell will read `/ini/shell.sh` during initialization to setup its
 configuration.
+
 
 ## Commands
 
@@ -69,66 +71,90 @@ current directory.
 
 When executed without arguments, this command will print the current directory.
 
-## Combiners (TODO)
 
-The `&` and `|` symbols are used only for combiners so there's no needs to
-double them.
+## Combiners (TODO)
 
 **And combiner:**
 
-    > r a.txt & r b.txt
+    > read foo.txt and read bar.txt
 
 **Or combiners:**
 
-    > r a.txt | r b.txt
+    > read foo.txt or read bar.txt
 
-## Pipes (TODO)
 
-The pipe symbol `|` from UNIX is replaced by a thin arrow `->`, shortened to
-`>`, and the redirection symbol `>` from UNIX is replaced by a fat arrow `=>`
-(see below).
+## Pipes and redirections (WIP)
 
-Piping the standard output of a program to the `write` command to emulate a
-redirection for example would be `-> write` or `> w` in short.
+A thin arrow `->` can be used for piping the output from one command to the
+input of another command (TODO):
 
-An additional standard stream stdnull(3) is added to simplify writing to `/dev/null`.
+    > read foo.txt -> write bar.txt
 
-Examples:
+A fat arrow `=>` can be used for redirecting directly to a file:
 
-Read file A and redirect stdout(1) to stdin(0) of write file B:
+    > read foo.txt => bar.txt
 
-    > r a.txt > w b.txt
-    > r a.txt 1>0 w b.txt # with explicit streams
-    > r a.txt -> w b.txt # with thin arrow
+In the following example the standard output is redirected to the null device
+file while the standard error is kept:
 
-Read file A and redirect stderr(2) to stdin(0) of write file B:
+    > time read foo.txt => /dev/null
 
-    > r a.txt 2> w b.txt
-    > r a.txt 2>0 w b.txt
+The standard output is implied as the source of a redirection, but it is
+possible to explicitly redirect a file handle to another (TODO):
 
-Suppress errors by redirecting stderr(2) to stdnull(3):
+    > time read foo.txt [1]=>[3]
 
-    > r a.txt 2>3 w b.txt
+Or to redirect a file handle to a file:
 
-Redirect stdout(1) to stdin(0) and stderr(2) to stdnull(3):
+    > time read foo.txt [1]=> bar.txt
 
-    > r a.txt > 2>3 w b.txt
-    > r a.txt 1>0 2>3 w b.txt
+Or to pipe a file handle to another command:
 
-## Redirections
+    > time read foo.txt [1]-> write bar.txt
 
-Redirecting standard IO streams can be done with a fat arrow, for example the
-output of the print command can be written to a file like so:
+It is possible to chain multiple redirections:
 
-    > print hello => /tmp/hello
+    > time read foo.txt [1]=> bar.txt [2]=> time.txt
 
-Which is more efficient than doing:
+When the arrow point to the other direction the source and destination are
+swapped and the standard input is implied (TODO):
 
-    > print hello -> write /tmp/hello
+    > write <= req.txt => /net/http/moros.cc
 
-NOTE: A redirection will append to a file without truncating it first as Unix
-does, so it is more equivalent to `>>` than `>` for now. This may change in
-the future with the addition of a `=>>` symbol.
+Redirections should be declared before piping (TODO):
+
+    > write <= req.txt => /net/http/moros.cc -> find --line href -> sort
+
+NOTE: The following file handles are available when a process is created:
+
+- `stdin(0)`
+- `stdout(1)`
+- `stderr(2)`
+- `stdnull(3)`
+
+A redirection with a single arrow head will truncate its destination while
+multiple heads like `=>>` will append to it.
+
+NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
+
+    > read foo.txt --> write bar.txt
+    > read foo.txt -> write bar.txt
+
+<!--
+    > read foo.txt | write bar.txt
+-->
+
+    > read foo.txt ==> bar.txt
+    > read foo.txt => bar.txt
+    > read foo.txt > bar.txt
+
+    > write bar.txt <== foo.txt
+    > write bar.txt <= foo.txt
+    > write bar.txt < foo.txt
+
+    > read foo.txt ==>> bar.txt
+    > read foo.txt =>> bar.txt
+    > read foo.txt >> bar.txt
 
 ## Variables
 
@@ -171,6 +197,7 @@ by files matching the pattern.
 
 For example `/tmp/*.txt` will match any files with the `txt` extension inside
 `/tmp`, and `a?c.txt` will match a file named `abc.txt`.
+
 
 ## Tilde Expansion
 
