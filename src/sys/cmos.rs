@@ -1,11 +1,14 @@
+use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
 use crate::sys::fs::FileIO;
 
-use alloc::format;
 use alloc::string::String;
 use bit_field::BitField;
 use core::hint::spin_loop;
+use time::{Date, PrimitiveDateTime};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
+
+const RTC_CENTURY: u16 = 2000; // NOTE: Change this at the end of 2099
 
 #[repr(u8)]
 enum Register {
@@ -43,33 +46,40 @@ impl RTC {
     }
 
     pub fn size() -> usize {
-        "YYYY-MM-DD HH:MM:SS".len()
+        DATE_TIME_LEN
+    }
+
+    pub fn sync(&mut self) {
+        *self = RTC::new();
     }
 }
 
 impl FileIO for RTC {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        *self = RTC::new();
-        let out = format!(
-            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-            self.year, self.month, self.day,
-            self.hour, self.minute, self.second
-        );
+        self.sync();
+        let date = Date::try_from_ymd(self.year.into(), self.month, self.day).map_err(|_| ())?;
+        let date_time = date.try_with_hms(self.hour, self.minute, self.second).map_err(|_| ())?;
+        let out = date_time.format(DATE_TIME);
         buf.copy_from_slice(&out.as_bytes());
         Ok(out.len())
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        let buf = String::from_utf8_lossy(buf);
-        if buf.len() != RTC::size() {
+        let s = String::from_utf8_lossy(buf);
+        let s = s.trim_end();
+        if s.len() != RTC::size() {
             return Err(());
         }
-        self.year = buf[0..4].parse().map_err(|_| ())?;
-        self.month = buf[5..7].parse().map_err(|_| ())?;
-        self.day = buf[8..10].parse().map_err(|_| ())?;
-        self.hour = buf[11..13].parse().map_err(|_| ())?;
-        self.minute = buf[14..16].parse().map_err(|_| ())?;
-        self.second = buf[17..19].parse().map_err(|_| ())?;
+        let date_time = PrimitiveDateTime::parse(s, DATE_TIME).map_err(|_| ())?;
+        self.year = date_time.year() as u16;
+        self.month = date_time.month();
+        self.day = date_time.day();
+        self.hour = date_time.hour();
+        self.minute = date_time.minute();
+        self.second = date_time.second();
+        if self.year < RTC_CENTURY || self.year > RTC_CENTURY + 99 {
+            return Err(());
+        }
         CMOS::new().update_rtc(self);
         Ok(buf.len())
     }
@@ -127,7 +137,7 @@ impl CMOS {
             rtc.hour = ((rtc.hour & 0x7F) + 12) % 24;
         }
 
-        rtc.year += 2000; // TODO: Change this at the end of 2099
+        rtc.year += RTC_CENTURY;
 
         rtc
     }
@@ -141,7 +151,7 @@ impl CMOS {
         let mut month = rtc.month;
         let mut year = rtc.year;
 
-        year -= 2000; // TODO: Change this at the end of 2099
+        year -= RTC_CENTURY;
 
         let b = self.read_register(Register::B);
 
