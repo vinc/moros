@@ -304,20 +304,6 @@ fn default_env() -> Rc<RefCell<Env>> {
         let args = list_of_floats(args)?;
         Ok(Exp::Num(libm::tan(args[0])))
     }));
-    data.insert("or".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (args[0].clone(), args[1].clone()) {
-            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a || b)),
-            _ => Err(Err::Reason("Expected booleans".to_string())),
-        }
-    }));
-    data.insert("and".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (args[0].clone(), args[1].clone()) {
-            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a && b)),
-            _ => Err(Err::Reason("Expected booleans".to_string())),
-        }
-    }));
     data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
@@ -957,18 +943,6 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
-
-    // and
-    assert_eq!(eval!("(and true true)"), "true");
-    assert_eq!(eval!("(and true false)"), "false");
-    assert_eq!(eval!("(and false true)"), "false");
-    assert_eq!(eval!("(and false false)"), "false");
-
-    // or
-    assert_eq!(eval!("(or true true)"), "true");
-    assert_eq!(eval!("(or true false)"), "true");
-    assert_eq!(eval!("(or false true)"), "true");
-    assert_eq!(eval!("(or false false)"), "false");
 
     // number
     assert_eq!(eval!("(decode-number (encode-number 42))"), "42");

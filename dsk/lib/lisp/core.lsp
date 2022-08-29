@@ -30,8 +30,16 @@
 (defn null? (x)
   (eq? x null))
 
+(defn and (x y)
+  (cond
+    (x (cond (y true) (true false)))
+    (true false)))
+
 (defn not (x)
   (cond (x false) (true true)))
+
+(defn or (x y)
+  (cond (x true) (y true) (true false)))
 
 (defn rest (x)
   (cdr x))
