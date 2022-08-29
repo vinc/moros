@@ -1,5 +1,5 @@
-(defn eq? (a b)
-  (eq a b))
+(defn eq? (x y)
+  (eq x y))
 
 (defn atom? (x)
   (atom x))
@@ -33,27 +33,27 @@
 (defn not (x)
   (eq? x false))
 
-(defn rest (a)
-  (cdr a))
+(defn rest (x)
+  (cdr x))
 
-(defn first (a)
-  (car a))
+(defn first (x)
+  (car x))
 
-(defn second (a)
-  (first (rest a)))
+(defn second (x)
+  (first (rest x)))
 
-(defn third (a)
-  (second (rest a)))
+(defn third (x)
+  (second (rest x)))
 
-(defn append (a b)
+(defn append (x y)
   (cond
-    ((null? a) b)
-    (true (cons (first a) (append (rest a) b)))))
+    ((null? x) y)
+    (true (cons (first x) (append (rest x) y)))))
 
-(defn reverse (a)
+(defn reverse (x)
   (cond
-    ((null? a) a)
-    (true (append (reverse (rest a)) (cons (first a) '())))))
+    ((null? x) x)
+    (true (append (reverse (rest x)) (cons (first x) '())))))
 
 (defn read-line ()
   (decode-string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
