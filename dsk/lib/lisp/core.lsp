@@ -31,7 +31,7 @@
   (eq? x null))
 
 (defn not (x)
-  (eq? x false))
+  (cond (x false) (true true)))
 
 (defn rest (x)
   (cdr x))
