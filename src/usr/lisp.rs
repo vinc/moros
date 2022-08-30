@@ -242,15 +242,23 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
-        let cdr = args[1..].iter().fold(0.0, |acc, a| acc + a);
-        Ok(Exp::Num(car - cdr))
+        if args.len() == 1 {
+            Ok(Exp::Num(-car))
+        } else {
+            let res = args[1..].iter().fold(0.0, |acc, a| acc + a);
+            Ok(Exp::Num(car - res))
+        }
     }));
     data.insert("/".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
-        let res = args[1..].iter().fold(car, |acc, a| acc / a);
-        Ok(Exp::Num(res))
+        if args.len() == 1 {
+            Ok(Exp::Num(1.0 / car))
+        } else {
+            let res = args[1..].iter().fold(car, |acc, a| acc / a);
+            Ok(Exp::Num(res))
+        }
     }));
     data.insert("%".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
@@ -910,22 +918,28 @@ fn test_lisp() {
     assert_eq!(eval!("(add 1 2)"), "3");
 
     // addition
+    assert_eq!(eval!("(+)"), "0");
+    assert_eq!(eval!("(+ 2)"), "2");
     assert_eq!(eval!("(+ 2 2)"), "4");
     assert_eq!(eval!("(+ 2 3 4)"), "9");
     assert_eq!(eval!("(+ 2 (+ 3 4))"), "9");
 
     // subtraction
-    assert_eq!(eval!("(- 8 4 2)"), "2");
+    assert_eq!(eval!("(- 2)"), "-2");
     assert_eq!(eval!("(- 2 1)"), "1");
     assert_eq!(eval!("(- 1 2)"), "-1");
     assert_eq!(eval!("(- 2 -1)"), "3");
+    assert_eq!(eval!("(- 8 4 2)"), "2");
 
     // multiplication
+    assert_eq!(eval!("(*)"), "1");
+    assert_eq!(eval!("(* 2)"), "2");
     assert_eq!(eval!("(* 2 2)"), "4");
     assert_eq!(eval!("(* 2 3 4)"), "24");
     assert_eq!(eval!("(* 2 (* 3 4))"), "24");
 
     // division
+    assert_eq!(eval!("(/ 4)"), "0.25");
     assert_eq!(eval!("(/ 4 2)"), "2");
     assert_eq!(eval!("(/ 1 2)"), "0.5");
     assert_eq!(eval!("(/ 8 4 2)"), "1");
