@@ -80,6 +80,9 @@
 (defn println (exp)
   (do (print exp) (print "\n")))
 
+(def pr print)
+(def prn println)
+
 (defn uptime ()
   (decode-number (read-file-bytes "/dev/clk/uptime" 8)))
 
