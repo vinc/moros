@@ -63,6 +63,11 @@
     ((null? x) x)
     (true (append (reverse (rest x)) (cons (first x) '())))))
 
+(defn range (i n)
+  (cond
+    ((= i n) null)
+    (true (append (list i) (range (+ i 1) n)))))
+
 (defn read-line ()
   (decode-string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
 
