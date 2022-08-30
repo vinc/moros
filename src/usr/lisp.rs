@@ -895,6 +895,8 @@ fn test_lisp() {
     assert_eq!(eval!("(cons (quote 1) (cons (quote 2) (cons (quote 3) (quote ()))))"), "(1 2 3)");
 
     // cond
+    assert_eq!(eval!("(cond ((< 2 4) 1))"), "1");
+    assert_eq!(eval!("(cond ((> 2 4) 1))"), "()");
     assert_eq!(eval!("(cond ((< 2 4) 1) (true 2))"), "1");
     assert_eq!(eval!("(cond ((> 2 4) 1) (true 2))"), "2");
 
