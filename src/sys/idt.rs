@@ -109,13 +109,17 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame,
 }
 
 extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
-    //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
+    debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
     let addr = Cr2::read().as_u64();
     if sys::allocator::alloc_pages(addr, 1).is_err() {
-        let csi_color = api::console::Style::color("LightRed");
-        let csi_reset = api::console::Style::reset();
-        printk!("{}PAGE FAULT EXCEPTION:{} Could not allocate address {:#x}\n", csi_color, csi_reset, addr);
-        api::syscall::exit(ExitCode::PageFaultError);
+        if error_code.contains(PageFaultErrorCode::USER_MODE) {
+            let csi_color = api::console::Style::color("LightRed");
+            let csi_reset = api::console::Style::reset();
+            printk!("{}PAGE FAULT EXCEPTION:{} Could not allocate address {:#x}\n", csi_color, csi_reset, addr);
+            api::syscall::exit(ExitCode::PageFaultError);
+        } else {
+            panic!();
+        }
     }
 }
 
