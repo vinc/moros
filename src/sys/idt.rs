@@ -109,7 +109,7 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame,
 }
 
 extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
-    debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
+    //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
     let addr = Cr2::read().as_u64();
     if sys::allocator::alloc_pages(addr, 1).is_err() {
         if error_code.contains(PageFaultErrorCode::USER_MODE) {
