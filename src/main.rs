@@ -40,6 +40,6 @@ fn user_boot() {
 }
 
 #[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
+fn panic(_info: &PanicInfo) -> ! {
     hlt_loop();
 }
