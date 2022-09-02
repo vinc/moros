@@ -115,7 +115,7 @@ extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, 
         if error_code.contains(PageFaultErrorCode::USER_MODE) {
             let csi_color = api::console::Style::color("LightRed");
             let csi_reset = api::console::Style::reset();
-            printk!("{}PAGE FAULT EXCEPTION:{} Could not allocate address {:#x}\n", csi_color, csi_reset, addr);
+            printk!("{}Error:{} Could not allocate address {:#x}\n", csi_color, csi_reset, addr);
             api::syscall::exit(ExitCode::PageFaultError);
         } else {
             panic!();
