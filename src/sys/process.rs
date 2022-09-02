@@ -309,7 +309,7 @@ impl Process {
     // Switch to user mode and execute the program
     fn exec(&self, args_ptr: usize, args_len: usize) {
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        sys::allocator::alloc_pages(heap_addr, 1);
+        sys::allocator::alloc_pages(heap_addr, 1).expect("Could not allocate");
 
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
         let args: &[&str] = unsafe { core::slice::from_raw_parts(args_ptr as *const &str, args_len) };
