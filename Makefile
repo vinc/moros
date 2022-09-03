@@ -32,7 +32,7 @@ user-rust:
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cargo rustc --release --bin {} -- \
-			-C relocation-model=static -C debuginfo=2
+			-C relocation-model=static
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	#strip dsk/bin/*
