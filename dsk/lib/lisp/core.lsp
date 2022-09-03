@@ -1,5 +1,5 @@
-(defn eq? (a b)
-  (eq a b))
+(defn eq? (x y)
+  (eq x y))
 
 (defn atom? (x)
   (atom x))
@@ -30,30 +30,43 @@
 (defn null? (x)
   (eq? x null))
 
+(defn and (x y)
+  (cond
+    (x (cond (y true) (true false)))
+    (true false)))
+
 (defn not (x)
-  (eq? x false))
+  (cond (x false) (true true)))
 
-(defn rest (a)
-  (cdr a))
+(defn or (x y)
+  (cond (x true) (y true) (true false)))
 
-(defn first (a)
-  (car a))
+(defn rest (x)
+  (cdr x))
 
-(defn second (a)
-  (first (rest a)))
+(defn first (x)
+  (car x))
 
-(defn third (a)
-  (second (rest a)))
+(defn second (x)
+  (first (rest x)))
 
-(defn append (a b)
+(defn third (x)
+  (second (rest x)))
+
+(defn append (x y)
   (cond
-    ((null? a) b)
-    (true (cons (first a) (append (rest a) b)))))
+    ((null? x) y)
+    (true (cons (first x) (append (rest x) y)))))
 
-(defn reverse (a)
+(defn reverse (x)
   (cond
-    ((null? a) a)
-    (true (append (reverse (rest a)) (cons (first a) '())))))
+    ((null? x) x)
+    (true (append (reverse (rest x)) (cons (first x) '())))))
+
+(defn range (i n)
+  (cond
+    ((= i n) null)
+    (true (append (list i) (range (+ i 1) n)))))
 
 (defn read-line ()
   (decode-string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
@@ -66,6 +79,9 @@
 
 (defn println (exp)
   (do (print exp) (print "\n")))
+
+(def pr print)
+(def prn println)
 
 (defn uptime ()
   (decode-number (read-file-bytes "/dev/clk/uptime" 8)))

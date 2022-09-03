@@ -242,15 +242,23 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
-        let cdr = args[1..].iter().fold(0.0, |acc, a| acc + a);
-        Ok(Exp::Num(car - cdr))
+        if args.len() == 1 {
+            Ok(Exp::Num(-car))
+        } else {
+            let res = args[1..].iter().fold(0.0, |acc, a| acc + a);
+            Ok(Exp::Num(car - res))
+        }
     }));
     data.insert("/".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
-        let res = args[1..].iter().fold(car, |acc, a| acc / a);
-        Ok(Exp::Num(res))
+        if args.len() == 1 {
+            Ok(Exp::Num(1.0 / car))
+        } else {
+            let res = args[1..].iter().fold(car, |acc, a| acc / a);
+            Ok(Exp::Num(res))
+        }
     }));
     data.insert("%".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
@@ -303,20 +311,6 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         Ok(Exp::Num(libm::tan(args[0])))
-    }));
-    data.insert("or".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (args[0].clone(), args[1].clone()) {
-            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a || b)),
-            _ => Err(Err::Reason("Expected booleans".to_string())),
-        }
-    }));
-    data.insert("and".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (args[0].clone(), args[1].clone()) {
-            (Exp::Bool(a), Exp::Bool(b)) => Ok(Exp::Bool(a && b)),
-            _ => Err(Err::Reason("Expected booleans".to_string())),
-        }
     }));
     data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -901,6 +895,8 @@ fn test_lisp() {
     assert_eq!(eval!("(cons (quote 1) (cons (quote 2) (cons (quote 3) (quote ()))))"), "(1 2 3)");
 
     // cond
+    assert_eq!(eval!("(cond ((< 2 4) 1))"), "1");
+    assert_eq!(eval!("(cond ((> 2 4) 1))"), "()");
     assert_eq!(eval!("(cond ((< 2 4) 1) (true 2))"), "1");
     assert_eq!(eval!("(cond ((> 2 4) 1) (true 2))"), "2");
 
@@ -924,22 +920,28 @@ fn test_lisp() {
     assert_eq!(eval!("(add 1 2)"), "3");
 
     // addition
+    assert_eq!(eval!("(+)"), "0");
+    assert_eq!(eval!("(+ 2)"), "2");
     assert_eq!(eval!("(+ 2 2)"), "4");
     assert_eq!(eval!("(+ 2 3 4)"), "9");
     assert_eq!(eval!("(+ 2 (+ 3 4))"), "9");
 
     // subtraction
-    assert_eq!(eval!("(- 8 4 2)"), "2");
+    assert_eq!(eval!("(- 2)"), "-2");
     assert_eq!(eval!("(- 2 1)"), "1");
     assert_eq!(eval!("(- 1 2)"), "-1");
     assert_eq!(eval!("(- 2 -1)"), "3");
+    assert_eq!(eval!("(- 8 4 2)"), "2");
 
     // multiplication
+    assert_eq!(eval!("(*)"), "1");
+    assert_eq!(eval!("(* 2)"), "2");
     assert_eq!(eval!("(* 2 2)"), "4");
     assert_eq!(eval!("(* 2 3 4)"), "24");
     assert_eq!(eval!("(* 2 (* 3 4))"), "24");
 
     // division
+    assert_eq!(eval!("(/ 4)"), "0.25");
     assert_eq!(eval!("(/ 4 2)"), "2");
     assert_eq!(eval!("(/ 1 2)"), "0.5");
     assert_eq!(eval!("(/ 8 4 2)"), "1");
@@ -957,18 +959,6 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
-
-    // and
-    assert_eq!(eval!("(and true true)"), "true");
-    assert_eq!(eval!("(and true false)"), "false");
-    assert_eq!(eval!("(and false true)"), "false");
-    assert_eq!(eval!("(and false false)"), "false");
-
-    // or
-    assert_eq!(eval!("(or true true)"), "true");
-    assert_eq!(eval!("(or true false)"), "true");
-    assert_eq!(eval!("(or false true)"), "true");
-    assert_eq!(eval!("(or false false)"), "false");
 
     // number
     assert_eq!(eval!("(decode-number (encode-number 42))"), "42");
