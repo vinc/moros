@@ -77,8 +77,8 @@ ifeq ($(mode),debug)
 	qemu-opts += -s -S
 endif
 
-# In debug mode, open another terminal with the following command and type
-# `continue` to start the boot process:
+# In debug mode, open another terminal with the following command
+# and type `continue` to start the boot process:
 # > gdb target/x86_64-moros/debug/moros -ex "target remote :1234"
 
 qemu:
