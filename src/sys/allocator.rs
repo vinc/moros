@@ -44,7 +44,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     Ok(())
 }
 
-pub fn alloc_pages(addr: u64, size: usize) {
+pub fn alloc_pages(addr: u64, size: usize) -> Result<(), ()> {
     //debug!("Alloc pages (addr={:#x}, size={})", addr, size);
     let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
     let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
@@ -57,17 +57,21 @@ pub fn alloc_pages(addr: u64, size: usize) {
     for page in pages {
         //debug!("Alloc page {:?}", page);
         if let Some(frame) = frame_allocator.allocate_frame() {
+            //debug!("Alloc frame {:?}", frame);
             unsafe {
                 if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
                     mapping.flush();
                 } else {
                     //debug!("Could not map {:?}", page);
+                    return Err(());
                 }
             }
         } else {
             //debug!("Could not allocate frame for {:?}", page);
+            return Err(());
         }
     }
+    Ok(())
 }
 
 use x86_64::structures::paging::page::PageRangeInclusive;

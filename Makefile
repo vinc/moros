@@ -10,11 +10,13 @@ setup:
 # Compilation options
 output = video# video, serial
 keyboard = qwerty# qwerty, azerty, dvorak
+mode = release
 
 # Emulation options
 nic = rtl8139# rtl8139, pcnet
 audio = sdl# sdl, coreaudio
 kvm = false
+pcap = false
 
 export MOROS_KEYBOARD = $(keyboard)
 
@@ -29,44 +31,58 @@ user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
-		cargo rustc --release --bin {} -- \
-			-C relocation-model=static
+		cargo rustc --release --bin {}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	#strip dsk/bin/*
 
-bin = target/x86_64-moros/release/bootimage-moros.bin
+bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
 img = disk.img
 
 $(img):
 	qemu-img create $(img) 32M
 
+
+cargo-opts = --no-default-features --features $(output) --bin moros
+ifeq ($(mode),release)
+	cargo-opts += --release
+endif
+
 # Rebuild MOROS if the features list changed
 image: $(img)
 	touch src/lib.rs
 	env | grep MOROS
-	cargo bootimage --no-default-features --features $(output) --release --bin moros
+	cargo bootimage $(cargo-opts)
 	dd conv=notrunc if=$(bin) of=$(img)
 
-opts = -m 32 -drive file=$(img),format=raw \
+
+qemu-opts = -m 32 -drive file=$(img),format=raw \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
 ifeq ($(kvm),true)
-	opts += -cpu host -accel kvm
+	qemu-opts += -cpu host -accel kvm
 else
-	opts += -cpu max
+	qemu-opts += -cpu max
 endif
 
 ifeq ($(pcap),true)
-	opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
+	qemu-opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
 endif
 
 ifeq ($(output),serial)
-	opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
+	qemu-opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
 endif
 
+ifeq ($(mode),debug)
+	qemu-opts += -s -S
+endif
+
+# In debug mode, open another terminal with the following command
+# and type `continue` to start the boot process:
+# > gdb target/x86_64-moros/debug/moros -ex "target remote :1234"
+
 qemu:
-	qemu-system-x86_64 $(opts)
+	qemu-system-x86_64 $(qemu-opts)
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
