@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use alloc::format;
-
 use moros::api::syscall;
 use moros::entry_point;
 
