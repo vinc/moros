@@ -104,7 +104,11 @@ impl Response {
     pub fn end(&mut self) {
         self.size = self.body.len();
         self.headers.insert("Content-Length".to_string(), self.size.to_string());
-        self.headers.insert("Connection".to_string(), "keep-alive".to_string());
+        self.headers.insert("Connection".to_string(), if self.is_persistent() {
+            "keep-alive".to_string()
+        } else {
+            "close".to_string()
+        });
         self.headers.insert("Content-Type".to_string(), if self.mime.starts_with("text/") {
             format!("{}; charset=utf-8", self.mime)
         } else {
@@ -342,6 +346,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         if let Some(chunk) = send_queue.pop_front() {
                             socket.send_slice(&chunk).unwrap();
                         }
+                    }
+                    if send_queue.is_empty() && !res.is_persistent() {
+                        socket.close();
                     }
                 } else if socket.may_send() {
                     socket.close();
