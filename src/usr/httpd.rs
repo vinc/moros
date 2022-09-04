@@ -28,6 +28,7 @@ struct Request {
     verb: String,
     path: String,
     body: Vec<u8>,
+    headers: BTreeMap<String, String>,
 }
 
 impl Request {
@@ -37,6 +38,7 @@ impl Request {
             verb: String::new(),
             path: String::new(),
             body: Vec::new(),
+            headers: BTreeMap::new(),
         }
     }
 
@@ -45,17 +47,21 @@ impl Request {
         let msg = String::from_utf8_lossy(buf);
         if !msg.is_empty() {
             req.addr = addr;
-            let mut is_body = false;
+            let mut is_header = true;
             for (i, line) in msg.lines().enumerate() {
-                if i == 0 {
+                if i == 0 { // Request line
                     let fields: Vec<_> = line.split(' ').collect();
                     if fields.len() >= 2 {
                         req.verb = fields[0].to_string();
                         req.path = fields[1].to_string();
                     }
-                } else if !is_body && line.is_empty() {
-                    is_body = true;
-                } else if is_body {
+                } else if is_header { // Message header
+                    if let Some((key, val)) = line.split_once(':') {
+                        req.headers.insert(key.trim().to_string(), val.trim().to_string());
+                    } else if line.is_empty() {
+                        is_header = false;
+                    }
+                } else if !is_header { // Message body
                     req.body.extend_from_slice(&format!("{}\n", line).as_bytes());
                 }
             }
@@ -98,7 +104,11 @@ impl Response {
     pub fn end(&mut self) {
         self.size = self.body.len();
         self.headers.insert("Content-Length".to_string(), self.size.to_string());
-        self.headers.insert("Connection".to_string(), "keep-alive".to_string());
+        self.headers.insert("Connection".to_string(), if self.is_persistent() {
+            "keep-alive".to_string()
+        } else {
+            "close".to_string()
+        });
         self.headers.insert("Content-Type".to_string(), if self.mime.starts_with("text/") {
             format!("{}; charset=utf-8", self.mime)
         } else {
@@ -128,6 +138,15 @@ impl Response {
             _   => "Unknown Error",
         };
         format!("HTTP/1.1 {} {}", self.code, msg)
+    }
+
+    fn is_persistent(&self) -> bool {
+        if let Some(value) = self.req.headers.get("Connection") {
+            if value == "close" {
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -327,6 +346,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         if let Some(chunk) = send_queue.pop_front() {
                             socket.send_slice(&chunk).unwrap();
                         }
+                    }
+                    if send_queue.is_empty() && !res.is_persistent() {
+                        socket.close();
                     }
                 } else if socket.may_send() {
                     socket.close();
