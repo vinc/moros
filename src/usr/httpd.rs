@@ -28,6 +28,7 @@ struct Request {
     verb: String,
     path: String,
     body: Vec<u8>,
+    headers: BTreeMap<String, String>,
 }
 
 impl Request {
@@ -37,6 +38,7 @@ impl Request {
             verb: String::new(),
             path: String::new(),
             body: Vec::new(),
+            headers: BTreeMap::new(),
         }
     }
 
@@ -45,17 +47,21 @@ impl Request {
         let msg = String::from_utf8_lossy(buf);
         if !msg.is_empty() {
             req.addr = addr;
-            let mut is_body = false;
+            let mut is_header = true;
             for (i, line) in msg.lines().enumerate() {
-                if i == 0 {
+                if i == 0 { // Request line
                     let fields: Vec<_> = line.split(' ').collect();
                     if fields.len() >= 2 {
                         req.verb = fields[0].to_string();
                         req.path = fields[1].to_string();
                     }
-                } else if !is_body && line.is_empty() {
-                    is_body = true;
-                } else if is_body {
+                } else if is_header { // Message header
+                    if let Some((key, val)) = line.split_once(':') {
+                        req.headers.insert(key.trim().to_string(), val.trim().to_string());
+                    } else if line.is_empty() {
+                        is_header = false;
+                    }
+                } else if !is_header { // Message body
                     req.body.extend_from_slice(&format!("{}\n", line).as_bytes());
                 }
             }
