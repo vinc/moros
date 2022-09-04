@@ -203,8 +203,9 @@ fn tilde_expansion(arg: &str) -> String {
 fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     let mut cmd = cmd.to_string();
 
-    // Special case for `?` which is not alphanum (\w)
+    // Special cases for none alphanum (\w) variables
     cmd = cmd.replace("$?", "$status");
+    cmd = cmd.replace("$*", "$1 $2 $3 $4 $5 $6 $7 $8 $9");
 
     // Replace alphanum `$key` with its value in the environment or an empty string
     let re = Regex::new("\\$\\w+");
