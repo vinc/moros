@@ -135,6 +135,15 @@ impl Response {
         };
         format!("HTTP/1.1 {} {}", self.code, msg)
     }
+
+    fn is_persistent(&self) -> bool {
+        if let Some(value) = self.req.headers.get("Connection") {
+            if value == "close" {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 impl fmt::Display for Response {
