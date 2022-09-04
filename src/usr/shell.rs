@@ -483,6 +483,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "user"     => usr::user::main(&args),
         "vga"      => usr::vga::main(&args),
         "write"    => usr::write::main(&args),
+        "panic"    => panic!("{}", args[1..].join(" ")),
         _          => {
             let mut path = fs::realpath(args[0]);
             if path.len() > 1 {
