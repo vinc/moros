@@ -16,6 +16,7 @@ struct Game {
     rows: i64,
     grid: BTreeSet<(i64, i64)>,
     step: usize,
+    speed: f64,
     seed_interval: usize,
     seed_population: usize,
 }
@@ -29,6 +30,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-h" | "--help" => {
                 usage();
                 return Ok(());
+            }
+            "-f" | "--file" => {
+                if i + 1 < n {
+                    game.load_file(args[i + 1]);
+                    game.seed_population = 0;
+                    game.seed_interval = 0;
+                    i += 1;
+                } else {
+                    error!("Missing --file <path>");
+                    return Err(ExitCode::UsageError);
+                }
             }
             "-p" | "--population" => {
                 if i + 1 < n {
@@ -48,14 +60,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     return Err(ExitCode::UsageError);
                 }
             }
-            "-f" | "--file" => {
+            "-s" | "--speed" => {
                 if i + 1 < n {
-                    game.load_file(args[i + 1]);
-                    game.seed_population = 0;
-                    game.seed_interval = 0;
+                    game.speed = args[i + 1].parse().unwrap_or(game.speed);
                     i += 1;
                 } else {
-                    error!("Missing --file <path>");
+                    error!("Missing --speed <num>");
                     return Err(ExitCode::UsageError);
                 }
             }
@@ -76,6 +86,7 @@ impl Game {
             rows,
             grid: BTreeSet::new(),
             step: 0,
+            speed: 2.0,
             seed_interval: 1,
             seed_population: 30,
         }
@@ -103,7 +114,7 @@ impl Game {
                 self.seed();
             }
             print!("{}", self);
-            sys::time::sleep(0.5);
+            sys::time::sleep(1.0 / self.speed);
             if self.grid.is_empty() || sys::console::end_of_text() {
                 let csi_title = Style::color("Yellow");
                 let csi_reset = Style::reset();
@@ -183,7 +194,8 @@ fn usage() {
     println!("{}Usage:{} life {}<options>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-f{1},{0} --file <path>{1}        Load the seed from {0}<path>{1}", csi_option, csi_reset);
     println!("  {0}-p{1},{0} --population <num>{1}   Set the seed population to {0}<num>{1}", csi_option, csi_reset);
     println!("  {0}-i{1},{0} --interval <num>{1}     Set the seed interval to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-f{1},{0} --file <path>{1}        Load the seed from {0}<path>{1}", csi_option, csi_reset);
+    println!("  {0}-s{1},{0} --speed <num>{1}        Set the simulation speed to {0}<num>{1}", csi_option, csi_reset);
 }
