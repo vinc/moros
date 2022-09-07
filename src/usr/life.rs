@@ -16,6 +16,7 @@ struct Game {
     grid: BTreeSet<(i64, i64)>
     step: usize,
     seed_popcount: usize,
+    seed_interval: usize,
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -37,6 +38,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     return Err(ExitCode::UsageError);
                 }
             }
+            "-i" | "--interval" => {
+                if i + 1 < n {
+                    game.seed_interval = args[i + 1].parse().unwrap_or(game.seed_interval);
+                    i += 1;
+                } else {
+                    error!("Missing interval value");
+                    return Err(ExitCode::UsageError);
+                }
+            }
             _ => {}
         }
         i += 1;
@@ -55,13 +65,16 @@ impl Game {
             grid: BTreeSet::new(),
             step: 0,
             seed_popcount: 25,
+            seed_interval: 1,
         }
     }
 
     pub fn run(&mut self) {
         print!("\x1b[2J"); // Clear screen
         loop {
-            self.seed();
+            if self.seed_interval > 0 && self.step % self.seed_interval == 0 {
+                self.seed();
+            }
             print!("{}", self);
             sys::time::sleep(0.5);
             if self.grid.is_empty() || sys::console::end_of_text() {
@@ -144,4 +157,5 @@ fn usage() {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-s{1},{0} --seed <num>{1}       Set the seedling population count to {0}<num>{1}", csi_option, csi_reset);
+    println!("  {0}-i{1},{0} --interval <num>{1}   Set the seedling interval to {0}<num>{1}", csi_option, csi_reset);
 }
