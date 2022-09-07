@@ -1,4 +1,5 @@
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::random;
 use crate::sys;
@@ -13,10 +14,10 @@ use core::fmt;
 struct Game {
     cols: i64,
     rows: i64,
-    grid: BTreeSet<(i64, i64)>
+    grid: BTreeSet<(i64, i64)>,
     step: usize,
-    seed_popcount: usize,
     seed_interval: usize,
+    seed_population: usize,
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -29,12 +30,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 usage();
                 return Ok(());
             }
-            "-s" | "--seed" => {
+            "-p" | "--population" => {
                 if i + 1 < n {
-                    game.seed_popcount = args[i + 1].parse().unwrap_or(game.seed_popcount);
+                    game.seed_population = args[i + 1].parse().unwrap_or(game.seed_population);
                     i += 1;
                 } else {
-                    error!("Missing seed value");
+                    error!("Missing --population <num>");
                     return Err(ExitCode::UsageError);
                 }
             }
@@ -43,7 +44,18 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     game.seed_interval = args[i + 1].parse().unwrap_or(game.seed_interval);
                     i += 1;
                 } else {
-                    error!("Missing interval value");
+                    error!("Missing --interval <num>");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+            "-f" | "--file" => {
+                if i + 1 < n {
+                    game.load_file(args[i + 1]);
+                    game.seed_population = 0;
+                    game.seed_interval = 0;
+                    i += 1;
+                } else {
+                    error!("Missing --file <path>");
                     return Err(ExitCode::UsageError);
                 }
             }
@@ -64,8 +76,23 @@ impl Game {
             rows,
             grid: BTreeSet::new(),
             step: 0,
-            seed_popcount: 25,
             seed_interval: 1,
+            seed_population: 30,
+        }
+    }
+
+    pub fn load_file(&mut self, path: &str) {
+        if let Ok(lines) = fs::read_to_string(path) {
+            for (y, line) in lines.split('\n').enumerate() {
+                for (x, c) in line.chars().enumerate() {
+                    let x = x as i64;
+                    let y = y as i64;
+                    match c {
+                        ' ' | '.' | '0' => self.grid.remove(&(x, y)),
+                        _               => self.grid.insert((x, y)),
+                    };
+                }
+            }
         }
     }
 
@@ -112,7 +139,7 @@ impl Game {
     }
 
     fn seed(&mut self) {
-        let n = self.seed_popcount;
+        let n = self.seed_population;
         for _ in 0..n {
             let x = (random::get_u64() % (self.cols as u64)) as i64;
             let y = (random::get_u64() % (self.rows as u64)) as i64;
@@ -156,6 +183,7 @@ fn usage() {
     println!("{}Usage:{} life {}<options>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-s{1},{0} --seed <num>{1}       Set the seedling population count to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-i{1},{0} --interval <num>{1}   Set the seedling interval to {0}<num>{1}", csi_option, csi_reset);
+    println!("  {0}-p{1},{0} --population <num>{1}   Set the seed population to {0}<num>{1}", csi_option, csi_reset);
+    println!("  {0}-i{1},{0} --interval <num>{1}     Set the seed interval to {0}<num>{1}", csi_option, csi_reset);
+    println!("  {0}-f{1},{0} --file <path>{1}        Load the seed from {0}<path>{1}", csi_option, csi_reset);
 }
