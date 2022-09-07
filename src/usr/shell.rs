@@ -463,6 +463,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "httpd"    => usr::httpd::main(&args),
         "install"  => usr::install::main(&args),
         "keyboard" => usr::keyboard::main(&args),
+        "life"     => usr::life::main(&args),
         "lisp"     => usr::lisp::main(&args),
         "list"     => usr::list::main(&args),
         "memory"   => usr::memory::main(&args),

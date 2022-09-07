@@ -20,6 +20,7 @@ pub mod http;
 pub mod httpd;
 pub mod install;
 pub mod keyboard;
+pub mod life;
 pub mod lisp;
 pub mod list;
 pub mod memory;
