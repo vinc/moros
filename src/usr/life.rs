@@ -169,17 +169,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 usage();
                 return Ok(());
             }
-            "-f" | "--file" => {
-                if i + 1 < n {
-                    game.load_file(args[i + 1]);
-                    game.seed_population = 0;
-                    game.seed_interval = 0;
-                    i += 1;
-                } else {
-                    error!("Missing --file <path>");
-                    return Err(ExitCode::UsageError);
-                }
-            }
             "-p" | "--population" => {
                 if i + 1 < n {
                     game.seed_population = args[i + 1].parse().unwrap_or(game.seed_population);
@@ -211,7 +200,22 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 game.quiet = true;
                 game.rows += 1;
             }
-            _ => {}
+            arg => {
+                if arg.starts_with('-') {
+                    error!("Unknown option '{}'", arg);
+                    return Err(ExitCode::UsageError);
+                }
+                if i > 0 {
+                    let path = arg;
+                    if !fs::exists(path) {
+                        error!("File not found '{}'", path);
+                        return Err(ExitCode::UsageError);
+                    }
+                    game.load_file(path);
+                    game.seed_population = 0;
+                    game.seed_interval = 0;
+                }
+            }
         }
         i += 1;
     }
@@ -228,10 +232,9 @@ fn usage() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} life {}<options>{1}", csi_title, csi_reset, csi_option);
+    println!("{}Usage:{} life {}<options> [<path>]{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-f{1},{0} --file <path>{1}        Load the seed from {0}<path>{1}", csi_option, csi_reset);
     println!("  {0}-p{1},{0} --population <num>{1}   Set the seed population to {0}<num>{1}", csi_option, csi_reset);
     println!("  {0}-i{1},{0} --interval <num>{1}     Set the seed interval to {0}<num>{1}", csi_option, csi_reset);
     println!("  {0}-s{1},{0} --speed <num>{1}        Set the simulation speed to {0}<num>{1}", csi_option, csi_reset);
