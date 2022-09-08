@@ -155,11 +155,11 @@ pub fn split_args(cmd: &str) -> Vec<String> {
             n = j; // Discard comments
             break;
         } else if c == ' ' && !is_quote {
-            if i != j {
+            if i != j && !cmd[i..j].trim().is_empty() {
                 if args.is_empty() {
-                    args.push(cmd[i..j].to_string())
+                    args.push(cmd[i..j].to_string()) // program name
                 } else {
-                    args.extend(glob(&cmd[i..j]))
+                    args.extend(glob(&cmd[i..j])) // program args
                 }
             }
             i = j + 1;
@@ -178,12 +178,12 @@ pub fn split_args(cmd: &str) -> Vec<String> {
             args.push(cmd[i..n].to_string());
         } else if args.is_empty() {
             args.push(cmd[i..n].to_string());
-        } else {
+        } else if !cmd[i..n].trim().is_empty() {
             args.extend(glob(&cmd[i..n]))
         }
     }
 
-    if n == 0 || cmd.ends_with(' ') {
+    if n == 0 {
         args.push("".to_string());
     }
 
@@ -203,8 +203,9 @@ fn tilde_expansion(arg: &str) -> String {
 fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     let mut cmd = cmd.to_string();
 
-    // Special case for `?` which is not alphanum (\w)
+    // Special cases for none alphanum (\w) variables
     cmd = cmd.replace("$?", "$status");
+    cmd = cmd.replace("$*", "$1 $2 $3 $4 $5 $6 $7 $8 $9");
 
     // Replace alphanum `$key` with its value in the environment or an empty string
     let re = Regex::new("\\$\\w+");
@@ -482,6 +483,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "user"     => usr::user::main(&args),
         "vga"      => usr::vga::main(&args),
         "write"    => usr::write::main(&args),
+        "panic"    => panic!("{}", args[1..].join(" ")),
         _          => {
             let mut path = fs::realpath(args[0]);
             if path.len() > 1 {
@@ -625,6 +627,27 @@ fn test_shell() {
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();
+}
+
+#[test_case]
+fn test_split_args() {
+    use alloc::vec;
+    assert_eq!(split_args(""), vec![""]);
+    assert_eq!(split_args("print"), vec!["print"]);
+    assert_eq!(split_args("print "), vec!["print"]);
+    assert_eq!(split_args("print  "), vec!["print"]);
+    assert_eq!(split_args("print # comment"), vec!["print"]);
+    assert_eq!(split_args("print foo"), vec!["print", "foo"]);
+    assert_eq!(split_args("print foo "), vec!["print", "foo"]);
+    assert_eq!(split_args("print foo  "), vec!["print", "foo"]);
+    assert_eq!(split_args("print foo # comment"), vec!["print", "foo"]);
+    assert_eq!(split_args("print foo bar"), vec!["print", "foo", "bar"]);
+    assert_eq!(split_args("print foo   bar"), vec!["print", "foo", "bar"]);
+    assert_eq!(split_args("print   foo   bar"), vec!["print", "foo", "bar"]);
+    assert_eq!(split_args("print foo \"bar\""), vec!["print", "foo", "bar"]);
+    assert_eq!(split_args("print foo \"\""), vec!["print", "foo", ""]);
+    assert_eq!(split_args("print foo \"bar\" "), vec!["print", "foo", "bar"]);
+    assert_eq!(split_args("print foo \"\" "), vec!["print", "foo", ""]);
 }
 
 #[test_case]
