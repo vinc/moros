@@ -61,8 +61,6 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/life/flower-of-eden.cells", include_bytes!("../../dsk/tmp/life/flower-of-eden.cells"), verbose);
     copy_file("/tmp/life/garden-of-eden.cells", include_bytes!("../../dsk/tmp/life/garden-of-eden.cells"), verbose);
     copy_file("/tmp/life/glider-gun.cells", include_bytes!("../../dsk/tmp/life/glider-gun.cells"), verbose);
-    copy_file("/tmp/life/p28-gun.cells", include_bytes!("../../dsk/tmp/life/p28-gun.cells"), verbose);
-    copy_file("/tmp/life/p46-gun.cells", include_bytes!("../../dsk/tmp/life/p46-gun.cells"), verbose);
     copy_file("/tmp/life/pentadecathlon.cells", include_bytes!("../../dsk/tmp/life/pentadecathlon.cells"), verbose);
     copy_file("/tmp/life/queen-bee-shuttle.cells", include_bytes!("../../dsk/tmp/life/queen-bee-shuttle.cells"), verbose);
     copy_file("/tmp/life/ship-in-a-bottle.cells", include_bytes!("../../dsk/tmp/life/ship-in-a-bottle.cells"), verbose);
