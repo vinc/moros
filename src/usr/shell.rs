@@ -14,10 +14,10 @@ use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
 const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
-    "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
-    "env", "geotime", "goto", "help", "hex", "host", "http", "httpd", "install",
-    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "quit", "read",
-    "shell", "socket", "tcp", "time", "user", "vga", "write"
+    "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit", "env",
+    "geotime", "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life",
+    "lisp", "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
+    "time", "user", "vga", "write"
 ];
 
 struct Config {
