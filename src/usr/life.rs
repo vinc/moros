@@ -67,8 +67,8 @@ impl Game {
             }
 
             // Rules of the game (B3/S23)
-            // 1. Birth if three live neighbors
-            // 2. Survival if two or three live neighbors
+            // - Birth if three live neighbors
+            // - Survival if two or three live neighbors
             self.step += 1;
             let mut cells_to_insert = vec![];
             let mut cells_to_remove = vec![];
@@ -136,11 +136,7 @@ impl fmt::Display for Game {
         let mut out = String::new();
         for y in 0..self.rows {
             for x in 0..self.cols {
-                if self.grid.contains(&(x, y)) {
-                    out.push('#');
-                } else {
-                    out.push(' ');
-                }
+                out.push(if self.grid.contains(&(x, y)) { '#' } else { ' ' });
             }
             if y < self.rows - 1 {
                 out.push('\n');
