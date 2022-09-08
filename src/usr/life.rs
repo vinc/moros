@@ -65,21 +65,20 @@ impl Game {
             if self.is_game_over() {
                 continue; // Display the screen until ^C is received
             }
+
+            // Rules of the game (B3/S23)
+            // 1. Birth if three live neighbors
+            // 2. Survival if two or three live neighbors
+            self.step += 1;
             let mut cells_to_insert = vec![];
             let mut cells_to_remove = vec![];
             for x in 0..self.cols {
                 for y in 0..self.rows {
                     let cell = (x, y);
-                    let mut sum = 0;
-                    for neighboor in neighboors(&cell) {
-                        if self.grid.contains(&neighboor) {
-                            sum += 1;
-                        }
-                    }
-                    if sum == 3 {
-                        cells_to_insert.push(cell);
-                    } else if sum != 2 {
-                        cells_to_remove.push(cell);
+                    match neighboors(&cell).iter().fold(0, |s, c| s + self.grid.contains(c) as u8) {
+                        2 => continue,
+                        3 => cells_to_insert.push(cell),
+                        _ => cells_to_remove.push(cell),
                     }
                 }
             }
@@ -89,7 +88,6 @@ impl Game {
             for cell in cells_to_remove {
                 self.grid.remove(&cell);
             }
-            self.step += 1;
         }
     }
 
