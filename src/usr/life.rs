@@ -39,9 +39,6 @@ impl Game {
     pub fn load_file(&mut self, path: &str) {
         if let Ok(lines) = fs::read_to_string(path) {
             for (y, line) in lines.split('\n').enumerate() {
-                if line.starts_with('!') { // Ignore comments
-                    continue;
-                }
                 for (x, c) in line.chars().enumerate() {
                     let cell = (x as i64, y as i64);
                     match c {
