@@ -40,11 +40,10 @@ impl Game {
         if let Ok(lines) = fs::read_to_string(path) {
             for (y, line) in lines.split('\n').enumerate() {
                 for (x, c) in line.chars().enumerate() {
-                    let x = x as i64;
-                    let y = y as i64;
+                    let cell = (x as i64, y as i64);
                     match c {
-                        ' ' | '.' | '0' => self.grid.remove(&(x, y)),
-                        _               => self.grid.insert((x, y)),
+                        ' ' | '.' | '0' => self.grid.remove(&cell),
+                        _               => self.grid.insert(cell),
                     };
                 }
             }
