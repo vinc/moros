@@ -29,11 +29,11 @@ of strings to the language and reading from the filesystem.
 
 ## Additional Builtins
 - `defun` (aliased to `defn`)
-- `mapcar` (aliased to `map`)
+- `apply`
 - `type`
 - `string`
-- `encode-string` and `decode-string`
-- `encode-number` and `decode-number`
+- `string-encode` and `string-decode`
+- `number-encode` and `number-decode`
 - `regex-find`
 - `parse`
 - `system`
@@ -43,14 +43,15 @@ of strings to the language and reading from the filesystem.
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Boolean operations: `not`, `and`, `or`
-- String operations: `lines`, `join`
+- String operations: `lines`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
 ## Core Library
 - `null`, `null?`, `eq?`
 - `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `lambda?`
 - `first`, `second`, `third`, `rest`
-- `append`, `reverse`
+- `map`, `reduce`, `append`, `reverse`
+- `string-join`
 - `read-line`, `read-char`
 - `print`, `println`
 - `write-file`, `append-file`
