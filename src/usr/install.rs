@@ -55,6 +55,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/tmp/lisp", verbose);
     copy_file("/tmp/lisp/factorial.lsp", include_bytes!("../../dsk/tmp/lisp/factorial.lsp"), verbose);
     copy_file("/tmp/lisp/fibonacci.lsp", include_bytes!("../../dsk/tmp/lisp/fibonacci.lsp"), verbose);
+    copy_file("/tmp/lisp/pi.lsp", include_bytes!("../../dsk/tmp/lisp/pi.lsp"), verbose);
 
     create_dir("/tmp/life", verbose);
     copy_file("/tmp/life/centinal.cells", include_bytes!("../../dsk/tmp/life/centinal.cells"), verbose);
