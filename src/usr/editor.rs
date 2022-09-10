@@ -164,7 +164,7 @@ impl Editor {
                 '\0' => {
                     continue;
                 }
-                '\x11' => { // Ctrl Q
+                '\x11' | '\x03' => { // Ctrl Q or Ctrl C
                     // TODO: Warn if modifications have not been saved
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
                     print!("\x1b[?25h"); // Enable cursor

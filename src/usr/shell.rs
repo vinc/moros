@@ -13,11 +13,11 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
-    "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit",
-    "env", "geotime", "goto", "help", "hex", "host", "http", "httpd", "install",
-    "keyboard", "lisp", "list", "memory", "move", "net", "pci", "quit", "read",
-    "shell", "socket", "tcp", "time", "user", "vga", "write"
+const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
+    "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit", "env",
+    "geotime", "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life",
+    "lisp", "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
+    "time", "user", "vga", "write"
 ];
 
 struct Config {
@@ -464,6 +464,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "httpd"    => usr::httpd::main(&args),
         "install"  => usr::install::main(&args),
         "keyboard" => usr::keyboard::main(&args),
+        "life"     => usr::life::main(&args),
         "lisp"     => usr::lisp::main(&args),
         "list"     => usr::list::main(&args),
         "memory"   => usr::memory::main(&args),
