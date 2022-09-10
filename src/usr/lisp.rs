@@ -366,13 +366,13 @@ fn default_env() -> Rc<RefCell<Env>> {
         }).collect();
         Ok(Exp::Str(args.join("")))
     }));
-    data.insert("encode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("decode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -383,7 +383,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("decode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("number-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -394,7 +394,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("encode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("number-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
@@ -952,7 +952,7 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
 
     // number
-    assert_eq!(eval!("(decode-number (encode-number 42))"), "42");
+    assert_eq!(eval!("(number-decode (number-encode 42))"), "42");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
