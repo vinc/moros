@@ -971,10 +971,10 @@ fn test_lisp() {
     assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
-    assert_eq!(eval!("(apply + '(1 2 3))"), "3");
-    assert_eq!(eval!("(apply + 1 '(2 3))"), "3");
-    assert_eq!(eval!("(apply + 1 2 '(3))"), "3");
-    assert_eq!(eval!("(apply + 1 2 3 '())"), "3");
+    assert_eq!(eval!("(apply + '(1 2 3))"), "6");
+    assert_eq!(eval!("(apply + 1 '(2 3))"), "6");
+    assert_eq!(eval!("(apply + 1 2 '(3))"), "6");
+    assert_eq!(eval!("(apply + 1 2 3 '())"), "6");
 
     // join
     assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
@@ -987,9 +987,6 @@ fn test_lisp() {
     assert_eq!(eval!("(cos pi)"), "-1");
     assert_eq!(eval!("(sin (/ pi 2))"), "1");
     assert_eq!(eval!("(tan 0)"), "0");
-
-    eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
-    assert_eq!(eval!("(apply2 + 1 2)"), "3");
 
     // list
     assert_eq!(eval!("(list)"), "()");
