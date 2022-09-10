@@ -53,6 +53,18 @@
 (defn third (x)
   (second (rest x)))
 
+(defn reduce (f xs)
+  (cond
+    ((null? (rest xs)) (first xs))
+    (true (f (first xs) (reduce f (rest xs))))))
+
+(defn map (f xs)
+  (cond
+    ((null? xs) null)
+    (true (cons
+      (f (first xs))
+      (map f (rest xs))))))
+
 (defn append (x y)
   (cond
     ((null? x) y)
