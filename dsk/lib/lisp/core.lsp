@@ -53,17 +53,20 @@
 (defn third (x)
   (second (rest x)))
 
-(defn reduce (f xs)
+(defn reduce (f ls)
   (cond
-    ((null? (rest xs)) (first xs))
-    (true (f (first xs) (reduce f (rest xs))))))
+    ((null? (rest ls)) (first ls))
+    (true (f (first ls) (reduce f (rest ls))))))
 
-(defn map (f xs)
+(defn string-join (ls s)
+  (reduce (fn (x y) (string x s y)) ls))
+
+(defn map (f ls)
   (cond
-    ((null? xs) null)
+    ((null? ls) null)
     (true (cons
-      (f (first xs))
-      (map f (rest xs))))))
+      (f (first ls))
+      (map f (rest ls))))))
 
 (defn append (x y)
   (cond

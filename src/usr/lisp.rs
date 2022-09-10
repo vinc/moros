@@ -411,13 +411,6 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
         }
     }));
-    data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (&args[0], &args[1]) {
-            (Exp::List(list), Exp::Str(s)) => Ok(Exp::Str(list_of_strings(list)?.join(s))),
-            _ => Err(Err::Reason("Expected args to be a list and a string".to_string()))
-        }
-    }));
     data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
@@ -975,9 +968,6 @@ fn test_lisp() {
     assert_eq!(eval!("(apply + 1 '(2 3))"), "6");
     assert_eq!(eval!("(apply + 1 2 '(3))"), "6");
     assert_eq!(eval!("(apply + 1 2 3 '())"), "6");
-
-    // join
-    assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
 
     // trigo
     assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
