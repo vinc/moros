@@ -451,7 +451,7 @@ fn default_env() -> Rc<RefCell<Env>> {
     let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
     let builtins = vec![
         "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "def", "lambda", "fn",
-        "defun", "defn", "mapcar", "map", "progn", "do", "load", "quit"
+        "defun", "defn", "apply", "progn", "do", "load", "quit"
     ];
     for builtin in builtins {
         forms.push(builtin.to_string());
@@ -614,16 +614,14 @@ fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     eval_label_args(&label_args, env)
 }
 
-fn eval_mapcar_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    match eval(&args[1], env) {
-        Ok(Exp::List(list)) => {
-            Ok(Exp::List(list.iter().map(|exp| {
-                eval(&Exp::List(vec!(args[0].clone(), exp.clone())), env)
-            }).collect::<Result<Vec<Exp>, Err>>()?))
-        }
-        _ => Err(Err::Reason("Expected second argument to be a list".to_string())),
+fn eval_apply_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 1);
+    let mut args = args.to_vec();
+    match eval(&args.pop().unwrap(), env) {
+        Ok(Exp::List(rest)) => args.extend(rest),
+        _ => return Err(Err::Reason("Expected last argument to be a list".to_string())),
     }
+    eval(&Exp::List(args.to_vec()), env)
 }
 
 fn eval_progn_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
@@ -667,7 +665,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
                 "lambda" | "fn"  => Some(eval_lambda_args(args)),
 
                 "defun" | "defn" => Some(eval_defun_args(args, env)),
-                "mapcar" | "map" => Some(eval_mapcar_args(args, env)),
+                "apply"          => Some(eval_apply_args(args, env)),
                 "progn" | "do"   => Some(eval_progn_args(args, env)),
                 "load"           => Some(eval_load_args(args, env)),
                 _                => None,
@@ -972,11 +970,11 @@ fn test_lisp() {
     assert_eq!(eval!("(eq \"foo\" \"bar\")"), "false");
     assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
 
-    // map
-    eval!("(defun inc (a) (+ a 1))");
-    assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
-    assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
-    assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
+    // apply
+    assert_eq!(eval!("(apply + '(1 2 3))"), "3");
+    assert_eq!(eval!("(apply + 1 '(2 3))"), "3");
+    assert_eq!(eval!("(apply + 1 2 '(3))"), "3");
+    assert_eq!(eval!("(apply + 1 2 3 '())"), "3");
 
     // join
     assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
