@@ -1,114 +1,115 @@
-(defn eq? (x y)
+(define (eq? x y)
   (eq x y))
 
-(defn atom? (x)
+(define (atom? x)
   (atom x))
 
-(defn string? (x)
+(define (string? x)
   (eq? (type x) "string"))
 
-(defn boolean? (x)
+(define (boolean? x)
   (eq? (type x) "boolean"))
 
-(defn symbol? (x)
+(define (symbol? x)
   (eq? (type x) "symbol"))
 
-(defn number? (x)
+(define (number? x)
   (eq? (type x) "number"))
 
-(defn list? (x)
+(define (list? x)
   (eq? (type x) "list"))
 
-(defn function? (x)
+(define (function? x)
   (eq? (type x) "function"))
 
-(defn lambda? (x)
+(define (lambda? x)
   (eq? (type x) "lambda"))
 
-(def null '())
+(define null '())
 
-(defn null? (x)
+(define (null? x)
   (eq? x null))
 
-(defn and (x y)
+(define (and x y)
   (cond
     (x (cond (y true) (true false)))
     (true false)))
 
-(defn not (x)
+(define (not x)
   (cond (x false) (true true)))
 
-(defn or (x y)
+(define (or x y)
   (cond (x true) (y true) (true false)))
 
-(defn rest (x)
+(define (rest x)
   (cdr x))
 
-(defn first (x)
+(define (first x)
   (car x))
 
-(defn second (x)
+(define (second x)
   (first (rest x)))
 
-(defn third (x)
+(define (third x)
   (second (rest x)))
 
-(defn reduce (f ls)
+(define (reduce f ls)
   (cond
     ((null? (rest ls)) (first ls))
     (true (f (first ls) (reduce f (rest ls))))))
 
-(defn string-join (ls s)
+(define (string-join ls s)
   (reduce (fn (x y) (string x s y)) ls))
 
-(defn map (f ls)
+(define (map f ls)
   (cond
     ((null? ls) null)
     (true (cons
       (f (first ls))
       (map f (rest ls))))))
 
-(defn append (x y)
+(define (append x y)
   (cond
     ((null? x) y)
     (true (cons (first x) (append (rest x) y)))))
 
-(defn reverse (x)
+(define (reverse x)
   (cond
     ((null? x) x)
     (true (append (reverse (rest x)) (cons (first x) '())))))
 
-(defn range (i n)
+(define (range i n)
   (cond
     ((= i n) null)
     (true (append (list i) (range (+ i 1) n)))))
 
-(defn read-line ()
-  (string-decode (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
+(define (read-line)
+  (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
 
-(defn read-char ()
-  (string-decode (read-file-bytes "/dev/console" 4)))
+(define (read-char)
+  (bytes->string (read-file-bytes "/dev/console" 4)))
 
-(defn print (exp)
-  (do (append-file-bytes "/dev/console" (string-encode (string exp))) '()))
+(define (print exp)
+  (do
+    (append-file-bytes "/dev/console" (string->bytes (string exp)))
+    '()))
 
-(defn println (exp)
-  (do (print exp) (print "\n")))
+(define (println exp)
+  (do
+    (print exp)
+    (print "\n")))
 
-(def pr print)
-(def prn println)
+(define (uptime)
+  (bytes->number (read-file-bytes "/dev/clk/uptime" 8)))
 
-(defn uptime ()
-  (number-decode (read-file-bytes "/dev/clk/uptime" 8)))
+(define (realtime)
+  (bytes->number (read-file-bytes "realtime" 8)))
 
-(defn realtime ()
-  (number-decode (read-file-bytes "realtime" 8)))
+(define (write-file path str)
+  (write-file-bytes path (string->bytes str)))
 
-(defn write-file (path str)
-  (write-file-bytes path (string-encode str)))
+(define (append-file path str)
+  (append-file-bytes path (string->bytes str)))
 
-(defn append-file (path str)
-  (append-file-bytes path (string-encode str)))
-
-(defn regex-match? (pattern str)
+(define (regex-match? pattern str)
   (not (null? (regex-find pattern str))))

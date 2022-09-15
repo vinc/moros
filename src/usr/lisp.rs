@@ -366,13 +366,13 @@ fn default_env() -> Rc<RefCell<Env>> {
         }).collect();
         Ok(Exp::Str(args.join("")))
     }));
-    data.insert("string-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string->bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("string-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("bytes->string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -383,7 +383,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("number-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("bytes->number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -394,7 +394,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("number-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("number->bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
@@ -417,7 +417,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         let lines = s.lines().map(|line| Exp::Str(line.to_string())).collect();
         Ok(Exp::List(lines))
     }));
-    data.insert("parse".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string->number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let n = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
@@ -580,12 +580,22 @@ fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
 fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
-        Exp::Sym(key) => {
+        Exp::Sym(name) => {
             let exp = eval(&args[1], env)?;
-            env.borrow_mut().data.insert(key.clone(), exp);
-            Ok(Exp::Sym(key.clone()))
+            env.borrow_mut().data.insert(name.clone(), exp);
+            Ok(Exp::Sym(name.clone()))
         }
-        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+        Exp::List(params) => {
+            // (label (add x y) (+ x y)) => (label add (lambda (x y) (+ x y)))
+            ensure_length_gt!(params, 0);
+            let name = params[0].clone();
+            let params = Exp::List(params[1..].to_vec());
+            let body = args[1].clone();
+            let lambda_args = vec![Exp::Sym("lambda".to_string()), params, body];
+            let label_args = vec![name, Exp::List(lambda_args)];
+            eval_label_args(&label_args, env)
+        }
+        _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
     }
 }
 
@@ -598,11 +608,12 @@ fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
 }
 
 fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    // (defun add (x y) (+ x y)) => (label add (lambda (x y) (+ x y)))
     ensure_length_eq!(args, 3);
     let name = args[0].clone();
     let params = args[1].clone();
-    let exp = args[2].clone();
-    let lambda_args = vec![Exp::Sym("lambda".to_string()), params, exp];
+    let body = args[2].clone();
+    let lambda_args = vec![Exp::Sym("lambda".to_string()), params, body];
     let label_args = vec![name, Exp::List(lambda_args)];
     eval_label_args(&label_args, env)
 }
@@ -645,23 +656,23 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
         Exp::Sym(s) => {
             match s.as_ref() {
                 // Seven Primitive Operators
-                "quote"          => Some(eval_quote_args(args)),
-                "atom"           => Some(eval_atom_args(args, env)),
-                "eq"             => Some(eval_eq_args(args, env)),
-                "car"            => Some(eval_car_args(args, env)),
-                "cdr"            => Some(eval_cdr_args(args, env)),
-                "cons"           => Some(eval_cons_args(args, env)),
-                "cond"           => Some(eval_cond_args(args, env)),
+                "quote"                      => Some(eval_quote_args(args)),
+                "atom"                       => Some(eval_atom_args(args, env)),
+                "eq"                         => Some(eval_eq_args(args, env)),
+                "car"                        => Some(eval_car_args(args, env)),
+                "cdr"                        => Some(eval_cdr_args(args, env)),
+                "cons"                       => Some(eval_cons_args(args, env)),
+                "cond"                       => Some(eval_cond_args(args, env)),
 
                 // Two Special Forms
-                "label" | "def"  => Some(eval_label_args(args, env)),
-                "lambda" | "fn"  => Some(eval_lambda_args(args)),
+                "label" | "define" | "def"   => Some(eval_label_args(args, env)),
+                "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
 
-                "defun" | "defn" => Some(eval_defun_args(args, env)),
-                "apply"          => Some(eval_apply_args(args, env)),
-                "progn" | "do"   => Some(eval_progn_args(args, env)),
-                "load"           => Some(eval_load_args(args, env)),
-                _                => None,
+                "defun" | "defn"             => Some(eval_defun_args(args, env)),
+                "apply"                      => Some(eval_apply_args(args, env)),
+                "progn" | "begin" | "do"     => Some(eval_progn_args(args, env)),
+                "load"                       => Some(eval_load_args(args, env)),
+                _                            => None,
             }
         },
         _ => None,

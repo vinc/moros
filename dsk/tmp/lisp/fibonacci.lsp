@@ -1,11 +1,11 @@
 (load "/lib/lisp/core.lsp")
 
-(defn fib (n)
+(define (fibonacci n)
   (cond
     ((< n 2) n)
-    (true (+ (fib (- n 1)) (fib (- n 2))))))
+    (true (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))
 
 (println
   (cond
     ((null? args) "Usage: fibonacci <num>")
-    (true (fib (parse (car args))))))
+    (true (fibonacci (string->number (car args))))))
