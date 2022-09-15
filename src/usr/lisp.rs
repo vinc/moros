@@ -366,13 +366,13 @@ fn default_env() -> Rc<RefCell<Env>> {
         }).collect();
         Ok(Exp::Str(args.join("")))
     }));
-    data.insert("encode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("decode-string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -383,7 +383,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("decode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("number-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -394,7 +394,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("encode-number".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("number-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
@@ -409,13 +409,6 @@ fn default_env() -> Rc<RefCell<Env>> {
                 Ok(Exp::List(res))
             }
             _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
-        }
-    }));
-    data.insert("join".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (&args[0], &args[1]) {
-            (Exp::List(list), Exp::Str(s)) => Ok(Exp::Str(list_of_strings(list)?.join(s))),
-            _ => Err(Err::Reason("Expected args to be a list and a string".to_string()))
         }
     }));
     data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
@@ -451,7 +444,7 @@ fn default_env() -> Rc<RefCell<Env>> {
     let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
     let builtins = vec![
         "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "def", "lambda", "fn",
-        "defun", "defn", "mapcar", "map", "progn", "do", "load", "quit"
+        "defun", "defn", "apply", "progn", "do", "load", "quit"
     ];
     for builtin in builtins {
         forms.push(builtin.to_string());
@@ -614,16 +607,14 @@ fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     eval_label_args(&label_args, env)
 }
 
-fn eval_mapcar_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    match eval(&args[1], env) {
-        Ok(Exp::List(list)) => {
-            Ok(Exp::List(list.iter().map(|exp| {
-                eval(&Exp::List(vec!(args[0].clone(), exp.clone())), env)
-            }).collect::<Result<Vec<Exp>, Err>>()?))
-        }
-        _ => Err(Err::Reason("Expected second argument to be a list".to_string())),
+fn eval_apply_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 1);
+    let mut args = args.to_vec();
+    match eval(&args.pop().unwrap(), env) {
+        Ok(Exp::List(rest)) => args.extend(rest),
+        _ => return Err(Err::Reason("Expected last argument to be a list".to_string())),
     }
+    eval(&Exp::List(args.to_vec()), env)
 }
 
 fn eval_progn_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
@@ -667,7 +658,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
                 "lambda" | "fn"  => Some(eval_lambda_args(args)),
 
                 "defun" | "defn" => Some(eval_defun_args(args, env)),
-                "mapcar" | "map" => Some(eval_mapcar_args(args, env)),
+                "apply"          => Some(eval_apply_args(args, env)),
                 "progn" | "do"   => Some(eval_progn_args(args, env)),
                 "load"           => Some(eval_load_args(args, env)),
                 _                => None,
@@ -961,7 +952,7 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
 
     // number
-    assert_eq!(eval!("(decode-number (encode-number 42))"), "42");
+    assert_eq!(eval!("(number-decode (number-encode 42))"), "42");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
@@ -972,14 +963,11 @@ fn test_lisp() {
     assert_eq!(eval!("(eq \"foo\" \"bar\")"), "false");
     assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
 
-    // map
-    eval!("(defun inc (a) (+ a 1))");
-    assert_eq!(eval!("(map inc '(1 2))"), "(2 3)");
-    assert_eq!(eval!("(map parse '(\"1\" \"2\" \"3\"))"), "(1 2 3)");
-    assert_eq!(eval!("(map (fn (n) (* n 2)) '(1 2 3))"), "(2 4 6)");
-
-    // join
-    assert_eq!(eval!("(join '(\"a\" \"b\" \"c\") \" \")"), "\"a b c\"");
+    // apply
+    assert_eq!(eval!("(apply + '(1 2 3))"), "6");
+    assert_eq!(eval!("(apply + 1 '(2 3))"), "6");
+    assert_eq!(eval!("(apply + 1 2 '(3))"), "6");
+    assert_eq!(eval!("(apply + 1 2 3 '())"), "6");
 
     // trigo
     assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
@@ -989,9 +977,6 @@ fn test_lisp() {
     assert_eq!(eval!("(cos pi)"), "-1");
     assert_eq!(eval!("(sin (/ pi 2))"), "1");
     assert_eq!(eval!("(tan 0)"), "0");
-
-    eval!("(defn apply2 (f arg1 arg2) (f arg1 arg2))");
-    assert_eq!(eval!("(apply2 + 1 2)"), "3");
 
     // list
     assert_eq!(eval!("(list)"), "()");

@@ -53,6 +53,21 @@
 (defn third (x)
   (second (rest x)))
 
+(defn reduce (f ls)
+  (cond
+    ((null? (rest ls)) (first ls))
+    (true (f (first ls) (reduce f (rest ls))))))
+
+(defn string-join (ls s)
+  (reduce (fn (x y) (string x s y)) ls))
+
+(defn map (f ls)
+  (cond
+    ((null? ls) null)
+    (true (cons
+      (f (first ls))
+      (map f (rest ls))))))
+
 (defn append (x y)
   (cond
     ((null? x) y)
@@ -69,13 +84,13 @@
     (true (append (list i) (range (+ i 1) n)))))
 
 (defn read-line ()
-  (decode-string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
+  (string-decode (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
 
 (defn read-char ()
-  (decode-string (read-file-bytes "/dev/console" 4)))
+  (string-decode (read-file-bytes "/dev/console" 4)))
 
 (defn print (exp)
-  (do (append-file-bytes "/dev/console" (encode-string (string exp))) '()))
+  (do (append-file-bytes "/dev/console" (string-encode (string exp))) '()))
 
 (defn println (exp)
   (do (print exp) (print "\n")))
@@ -84,16 +99,16 @@
 (def prn println)
 
 (defn uptime ()
-  (decode-number (read-file-bytes "/dev/clk/uptime" 8)))
+  (number-decode (read-file-bytes "/dev/clk/uptime" 8)))
 
 (defn realtime ()
-  (decode-number (read-file-bytes "realtime" 8)))
+  (number-decode (read-file-bytes "realtime" 8)))
 
 (defn write-file (path str)
-  (write-file-bytes path (encode-string str)))
+  (write-file-bytes path (string-encode str)))
 
 (defn append-file (path str)
-  (append-file-bytes path (encode-string str)))
+  (append-file-bytes path (string-encode str)))
 
 (defn regex-match? (pattern str)
   (not (null? (regex-find pattern str))))
