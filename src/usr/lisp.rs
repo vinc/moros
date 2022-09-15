@@ -439,6 +439,12 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("list".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::List(args.to_vec()))
     }));
+    data.insert("parse".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let s = string(&args[0])?;
+        let (_, exp) = parse(&s)?;
+        Ok(exp)
+    }));
 
     // Setup autocompletion
     let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
@@ -628,6 +634,12 @@ fn eval_apply_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     eval(&Exp::List(args.to_vec()), env)
 }
 
+fn eval_eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let exp = eval(&args[0], env)?;
+    eval(&exp, env)
+}
+
 fn eval_progn_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut res = Ok(Exp::List(vec![]));
     for arg in args {
@@ -670,6 +682,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
 
                 "defun" | "defn"             => Some(eval_defun_args(args, env)),
                 "apply"                      => Some(eval_apply_args(args, env)),
+                "eval"                       => Some(eval_eval_args(args, env)),
                 "progn" | "begin" | "do"     => Some(eval_progn_args(args, env)),
                 "load"                       => Some(eval_load_args(args, env)),
                 _                            => None,
