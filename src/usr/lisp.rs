@@ -969,7 +969,7 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
 
     // number
-    assert_eq!(eval!("(number-decode (number-encode 42))"), "42");
+    assert_eq!(eval!("(bytes->number (number->bytes 42))"), "42");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
