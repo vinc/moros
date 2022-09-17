@@ -447,15 +447,7 @@ fn default_env() -> Rc<RefCell<Env>> {
     }));
 
     // Setup autocompletion
-    let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
-    let builtins = vec![
-        "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "def", "lambda", "fn",
-        "defun", "defn", "apply", "progn", "do", "load", "quit"
-    ];
-    for builtin in builtins {
-        forms.push(builtin.to_string());
-    }
-    *FORMS.lock() = forms;
+    *FORMS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
 
     Rc::new(RefCell::new(Env { data, outer: None }))
 }
@@ -658,6 +650,11 @@ fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     }
     Ok(Exp::Bool(true))
 }
+
+const BUILT_INS: [&str; 22] = [
+    "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "lambda", "define", "def",
+    "function", "fun", "fn", "defun", "defn", "apply", "eval", "progn", "begin", "do", "load"
+];
 
 fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Option<Result<Exp, Err>> {
     match exp {
