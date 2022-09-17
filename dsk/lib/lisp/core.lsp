@@ -22,9 +22,6 @@
 (define (function? x)
   (eq? (type x) "function"))
 
-(define (lambda? x)
-  (eq? (type x) "lambda"))
-
 (define null '())
 
 (define (null? x)
