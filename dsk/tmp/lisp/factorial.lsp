@@ -10,5 +10,5 @@
 
 (println
   (cond
-    ((null? args) "Usage: factorial <num>")
+    ((nil? args) "Usage: factorial <num>")
     (true (factorial (string->number (car args))))))

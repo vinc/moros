@@ -47,7 +47,7 @@ of strings to the language and reading from the filesystem.
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
 ## Core Library
-- `null`, `null?`, `eq?`
+- `nil`, `nil?`, `eq?`
 - `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `lambda?`
 - `first`, `second`, `third`, `rest`
 - `map`, `reduce`, `append`, `reverse`
@@ -85,7 +85,7 @@ with the following content:
 
 (println
   (cond
-    ((null? args) "Usage: fibonacci <num>")
+    ((nil? args) "Usage: fibonacci <num>")
     (true (fib(parse (car args))))))
 ```
 

@@ -22,10 +22,10 @@
 (define (function? x)
   (eq? (type x) "function"))
 
-(define null '())
+(define nil '())
 
-(define (null? x)
-  (eq? x null))
+(define (nil? x)
+  (eq? x nil))
 
 (define (and x y)
   (cond
@@ -52,7 +52,7 @@
 
 (define (reduce f ls)
   (cond
-    ((null? (rest ls)) (first ls))
+    ((nil? (rest ls)) (first ls))
     (true (f (first ls) (reduce f (rest ls))))))
 
 (define (string-join ls s)
@@ -60,24 +60,24 @@
 
 (define (map f ls)
   (cond
-    ((null? ls) null)
+    ((nil? ls) nil)
     (true (cons
       (f (first ls))
       (map f (rest ls))))))
 
 (define (append x y)
   (cond
-    ((null? x) y)
+    ((nil? x) y)
     (true (cons (first x) (append (rest x) y)))))
 
 (define (reverse x)
   (cond
-    ((null? x) x)
+    ((nil? x) x)
     (true (append (reverse (rest x)) (cons (first x) '())))))
 
 (define (range i n)
   (cond
-    ((= i n) null)
+    ((= i n) nil)
     (true (append (list i) (range (+ i 1) n)))))
 
 (define (read-line)
@@ -109,4 +109,4 @@
   (append-file-bytes path (string->bytes str)))
 
 (define (regex-match? pattern str)
-  (not (null? (regex-find pattern str))))
+  (not (nil? (regex-find pattern str))))

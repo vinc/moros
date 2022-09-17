@@ -12,5 +12,5 @@
 
 (println
   (cond
-    ((null? args) "Usage: pi <precision>")
+    ((nil? args) "Usage: pi <precision>")
     (true (pi-digits (string->number (car args))))))

@@ -7,5 +7,5 @@
 
 (println
   (cond
-    ((null? args) "Usage: fibonacci <num>")
+    ((nil? args) "Usage: fibonacci <num>")
     (true (fibonacci (string->number (car args))))))
