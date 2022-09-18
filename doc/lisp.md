@@ -24,18 +24,18 @@ of strings to the language and reading from the filesystem.
 - `cond`
 
 ## Two Special Forms
-- `label` (aliased to `def`)
-- `lambda` (aliased to `fn`)
+- `label` (aliased to `define` and `def`)
+- `lambda` (aliased to `function`, `fun`, and `fn`)
 
 ## Additional Builtins
 - `defun` (aliased to `defn`)
 - `apply`
 - `type`
 - `string`
-- `string-encode` and `string-decode`
-- `number-encode` and `number-decode`
+- `string->number`
+- `string->bytes` and `bytes->string`
+- `number->bytes` and `bytes->number`
 - `regex-find`
-- `parse`
 - `system`
 - `load`
 
@@ -64,10 +64,10 @@ The interpreter can be invoked from the shell:
 
 ```
 > lisp
-MOROS Lisp v0.1.0
+MOROS Lisp v0.4.0
 
-> (+ 1 2)
-3
+> (+ 1 2 3)
+6
 
 > (quit)
 ```
@@ -78,15 +78,15 @@ with the following content:
 ```lisp
 (load "/lib/lisp/core.lsp")
 
-(defn fib (n)
+(define (fibonacci n)
   (cond
     ((< n 2) n)
-    (true (+ (fib (- n 1)) (fib (- n 2))))))
+    (true (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))
 
 (println
   (cond
     ((nil? args) "Usage: fibonacci <num>")
-    (true (fib(parse (car args))))))
+    (true (fibonacci (string->number (car args))))))
 ```
 
 Would produce the following output:
