@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Extend and refactor Lisp implementation (#412)
+- Add apply to Lisp (#410)
+- Add Conway's Game of Life (#409)
+- Improve shell (#405)
+- Add support for closing connections in request to HTTP server (#406)
+- Exit from alloc errors after page fault in userspace (#404)
+- Improve Lisp forms (#402)
+- Add more bytes to RNG seed when RDRAND is not available (#401)
 - Add RTC device file (#400)
 - Update shell redirections (#399)
 - Improve http timeout (#397)
@@ -15,6 +23,12 @@
 - Update users file (#389)
 - ATA: Sata LBA2 wrong address (#388)
 - Add file append (#387)
+
+- Bump sha2 from 0.10.5 to 0.10.6 (#413)
+- Bump raw-cpuid from 10.5.0 to 10.6.0 (#411)
+- Bump sha2 from 0.10.3 to 0.10.5 (#407)
+- Bump linked_list_allocator from 0.10.1 to 0.10.3 (#408)
+- Bump sha2 from 0.10.2 to 0.10.3 (#403)
 - Improve QEMU options (#384)
 - Bump raw-cpuid from 10.4.0 to 10.5.0 (#390)
 - Bump libm from 0.2.3 to 0.2.5 (#386)
