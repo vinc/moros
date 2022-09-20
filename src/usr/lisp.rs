@@ -54,8 +54,8 @@ use nom::sequence::preceded;
 
 #[derive(Clone)]
 enum Exp {
+    Primitive(fn(&[Exp]) -> Result<Exp, Err>),
     Lambda(Lambda),
-    Func(fn(&[Exp]) -> Result<Exp, Err>),
     List(Vec<Exp>),
     Bool(bool),
     Num(f64),
@@ -80,13 +80,13 @@ impl PartialEq for Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
-            Exp::Lambda(_)  => "<lambda>".to_string(),
-            Exp::Func(_)    => "<function>".to_string(),
-            Exp::Bool(a)    => a.to_string(),
-            Exp::Num(n)     => n.to_string(),
-            Exp::Sym(s)     => s.clone(),
-            Exp::Str(s)     => format!("{:?}", s),
-            Exp::List(list) => {
+            Exp::Primitive(_) => "<function>".to_string(),
+            Exp::Lambda(_)    => "<function>".to_string(),
+            Exp::Bool(a)      => a.to_string(),
+            Exp::Num(n)       => n.to_string(),
+            Exp::Sym(s)       => s.clone(),
+            Exp::Str(s)       => format!("{:?}", s),
+            Exp::List(list)   => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
             },
@@ -193,13 +193,13 @@ macro_rules! ensure_tonicity {
             ensure_length_gt!(floats, 0);
             let first = &floats[0];
             let rest = &floats[1..];
-            fn func(prev: &f64, xs: &[f64]) -> bool {
+            fn f(prev: &f64, xs: &[f64]) -> bool {
                 match xs.first() {
-                    Some(x) => $check_fn(*prev, *x) && func(x, &xs[1..]),
+                    Some(x) => $check_fn(*prev, *x) && f(x, &xs[1..]),
                     None => true,
                 }
             }
-            Ok(Exp::Bool(func(first, rest)))
+            Ok(Exp::Bool(f(first, rest)))
         }
     };
 }
@@ -225,20 +225,20 @@ macro_rules! ensure_length_gt {
 fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     data.insert("pi".to_string(), Exp::Num(PI));
-    data.insert("=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
-    data.insert(">".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
-    data.insert(">=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
-    data.insert("<".to_string(), Exp::Func(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
-    data.insert("<=".to_string(), Exp::Func(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
-    data.insert("*".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
+    data.insert(">".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
+    data.insert(">=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
+    data.insert("<".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
+    data.insert("<=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
+    data.insert("*".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let res = list_of_floats(args)?.iter().fold(1.0, |acc, a| acc * a);
         Ok(Exp::Num(res))
     }));
-    data.insert("+".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("+".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let res = list_of_floats(args)?.iter().fold(0.0, |acc, a| acc + a);
         Ok(Exp::Num(res))
     }));
-    data.insert("-".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("-".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
@@ -249,7 +249,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             Ok(Exp::Num(car - res))
         }
     }));
-    data.insert("/".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("/".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
@@ -260,26 +260,26 @@ fn default_env() -> Rc<RefCell<Env>> {
             Ok(Exp::Num(res))
         }
     }));
-    data.insert("%".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("%".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::fmod(acc, *a));
         Ok(Exp::Num(res))
     }));
-    data.insert("^".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("^".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
         Ok(Exp::Num(res))
     }));
-    data.insert("cos".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("cos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         Ok(Exp::Num(libm::cos(args[0])))
     }));
-    data.insert("acos".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("acos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         if -1.0 <= args[0] && args[0] <= 1.0 {
@@ -288,7 +288,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
     }));
-    data.insert("asin".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("asin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         if -1.0 <= args[0] && args[0] <= 1.0 {
@@ -297,22 +297,22 @@ fn default_env() -> Rc<RefCell<Env>> {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
     }));
-    data.insert("atan".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("atan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         Ok(Exp::Num(libm::atan(args[0])))
     }));
-    data.insert("sin".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("sin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         Ok(Exp::Num(libm::sin(args[0])))
     }));
-    data.insert("tan".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("tan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         Ok(Exp::Num(libm::tan(args[0])))
     }));
-    data.insert("system".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("system".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
         match usr::shell::exec(&cmd) {
@@ -320,13 +320,13 @@ fn default_env() -> Rc<RefCell<Env>> {
             Err(code) => Ok(Exp::Num(code as u8 as f64)),
         }
     }));
-    data.insert("read-file".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("read-file".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let path = string(&args[0])?;
         let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
         Ok(Exp::Str(contents))
     }));
-    data.insert("read-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("read-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
         let len = float(&args[1])?;
@@ -335,7 +335,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         buf.resize(bytes, 0);
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("write-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("write-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
         match &args[1] {
@@ -347,7 +347,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
     }));
-    data.insert("append-file-bytes".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("append-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
         match &args[1] {
@@ -359,20 +359,20 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
     }));
-    data.insert("string".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let args: Vec<String> = args.iter().map(|arg| match arg {
             Exp::Str(s) => format!("{}", s),
             exp => format!("{}", exp),
         }).collect();
         Ok(Exp::Str(args.join("")))
     }));
-    data.insert("string-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string->bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("string-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("bytes->string".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -383,7 +383,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("number-decode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("bytes->number".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         match &args[0] {
             Exp::List(list) => {
@@ -394,12 +394,12 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
-    data.insert("number-encode".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("number->bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
         Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
     }));
-    data.insert("regex-find".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("regex-find".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         match (&args[0], &args[1]) {
             (Exp::Str(regex), Exp::Str(s)) => {
@@ -411,19 +411,19 @@ fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
         }
     }));
-    data.insert("lines".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("lines".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let lines = s.lines().map(|line| Exp::Str(line.to_string())).collect();
         Ok(Exp::List(lines))
     }));
-    data.insert("parse".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("string->number".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let n = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
         Ok(Exp::Num(n))
     }));
-    data.insert("type".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("type".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let exp = match args[0] {
             Exp::Str(_) => "string",
@@ -431,25 +431,23 @@ fn default_env() -> Rc<RefCell<Env>> {
             Exp::Sym(_) => "symbol",
             Exp::Num(_) => "number",
             Exp::List(_) => "list",
-            Exp::Func(_) => "function",
-            Exp::Lambda(_) => "lambda",
+            Exp::Primitive(_) => "function",
+            Exp::Lambda(_) => "function",
         };
         Ok(Exp::Str(exp.to_string()))
     }));
-    data.insert("list".to_string(), Exp::Func(|args: &[Exp]| -> Result<Exp, Err> {
+    data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::List(args.to_vec()))
+    }));
+    data.insert("parse".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        let s = string(&args[0])?;
+        let (_, exp) = parse(&s)?;
+        Ok(exp)
     }));
 
     // Setup autocompletion
-    let mut forms: Vec<String> = data.keys().map(|k| k.to_string()).collect();
-    let builtins = vec![
-        "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "def", "lambda", "fn",
-        "defun", "defn", "apply", "progn", "do", "load", "quit"
-    ];
-    for builtin in builtins {
-        forms.push(builtin.to_string());
-    }
-    *FORMS.lock() = forms;
+    *FORMS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
 
     Rc::new(RefCell::new(Env { data, outer: None }))
 }
@@ -466,10 +464,6 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
         }
         _ => Err(Err::Reason("Expected args form to be a list".to_string()))
     }
-}
-
-fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
-    args.iter().map(string).collect()
 }
 
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
@@ -580,12 +574,22 @@ fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
 fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
-        Exp::Sym(key) => {
+        Exp::Sym(name) => {
             let exp = eval(&args[1], env)?;
-            env.borrow_mut().data.insert(key.clone(), exp);
-            Ok(Exp::Sym(key.clone()))
+            env.borrow_mut().data.insert(name.clone(), exp);
+            Ok(Exp::Sym(name.clone()))
         }
-        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+        Exp::List(params) => {
+            // (label (add x y) (+ x y)) => (label add (lambda (x y) (+ x y)))
+            ensure_length_gt!(params, 0);
+            let name = params[0].clone();
+            let params = Exp::List(params[1..].to_vec());
+            let body = args[1].clone();
+            let lambda_args = vec![Exp::Sym("lambda".to_string()), params, body];
+            let label_args = vec![name, Exp::List(lambda_args)];
+            eval_label_args(&label_args, env)
+        }
+        _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
     }
 }
 
@@ -598,11 +602,12 @@ fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
 }
 
 fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    // (defun add (x y) (+ x y)) => (label add (lambda (x y) (+ x y)))
     ensure_length_eq!(args, 3);
     let name = args[0].clone();
     let params = args[1].clone();
-    let exp = args[2].clone();
-    let lambda_args = vec![Exp::Sym("lambda".to_string()), params, exp];
+    let body = args[2].clone();
+    let lambda_args = vec![Exp::Sym("lambda".to_string()), params, body];
     let label_args = vec![name, Exp::List(lambda_args)];
     eval_label_args(&label_args, env)
 }
@@ -615,6 +620,12 @@ fn eval_apply_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
         _ => return Err(Err::Reason("Expected last argument to be a list".to_string())),
     }
     eval(&Exp::List(args.to_vec()), env)
+}
+
+fn eval_eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let exp = eval(&args[0], env)?;
+    eval(&exp, env)
 }
 
 fn eval_progn_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
@@ -640,28 +651,34 @@ fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     Ok(Exp::Bool(true))
 }
 
+const BUILT_INS: [&str; 22] = [
+    "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "lambda", "define", "def",
+    "function", "fun", "fn", "defun", "defn", "apply", "eval", "progn", "begin", "do", "load"
+];
+
 fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Option<Result<Exp, Err>> {
     match exp {
         Exp::Sym(s) => {
             match s.as_ref() {
                 // Seven Primitive Operators
-                "quote"          => Some(eval_quote_args(args)),
-                "atom"           => Some(eval_atom_args(args, env)),
-                "eq"             => Some(eval_eq_args(args, env)),
-                "car"            => Some(eval_car_args(args, env)),
-                "cdr"            => Some(eval_cdr_args(args, env)),
-                "cons"           => Some(eval_cons_args(args, env)),
-                "cond"           => Some(eval_cond_args(args, env)),
+                "quote"                      => Some(eval_quote_args(args)),
+                "atom"                       => Some(eval_atom_args(args, env)),
+                "eq"                         => Some(eval_eq_args(args, env)),
+                "car"                        => Some(eval_car_args(args, env)),
+                "cdr"                        => Some(eval_cdr_args(args, env)),
+                "cons"                       => Some(eval_cons_args(args, env)),
+                "cond"                       => Some(eval_cond_args(args, env)),
 
                 // Two Special Forms
-                "label" | "def"  => Some(eval_label_args(args, env)),
-                "lambda" | "fn"  => Some(eval_lambda_args(args)),
+                "label" | "define" | "def"   => Some(eval_label_args(args, env)),
+                "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
 
-                "defun" | "defn" => Some(eval_defun_args(args, env)),
-                "apply"          => Some(eval_apply_args(args, env)),
-                "progn" | "do"   => Some(eval_progn_args(args, env)),
-                "load"           => Some(eval_load_args(args, env)),
-                _                => None,
+                "defun" | "defn"             => Some(eval_defun_args(args, env)),
+                "apply"                      => Some(eval_apply_args(args, env)),
+                "eval"                       => Some(eval_eval_args(args, env)),
+                "progn" | "begin" | "do"     => Some(eval_progn_args(args, env)),
+                "load"                       => Some(eval_load_args(args, env)),
+                _                            => None,
             }
         },
         _ => None,
@@ -681,7 +698,7 @@ fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
-fn env_for_lambda(params: Rc<Exp>, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
+fn lambda_env(params: Rc<Exp>, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
     let ks = list_of_symbols(&params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
@@ -714,19 +731,19 @@ fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 None => {
                     let first_eval = eval(first_form, env)?;
                     match first_eval {
-                        Exp::Func(func) => {
-                            func(&eval_args(args, env)?)
+                        Exp::Primitive(f) => {
+                            f(&eval_args(args, env)?)
                         },
-                        Exp::Lambda(lambda) => {
-                            let mut env = env_for_lambda(lambda.params, args, env)?;
-                            eval(&lambda.body, &mut env)
+                        Exp::Lambda(f) => {
+                            let mut env = lambda_env(f.params, args, env)?;
+                            eval(&f.body, &mut env)
                         },
                         _ => Err(Err::Reason("First form must be a function".to_string())),
                     }
                 }
             }
         },
-        Exp::Func(_) => Err(Err::Reason("Unexpected form".to_string())),
+        Exp::Primitive(_) => Err(Err::Reason("Unexpected form".to_string())),
         Exp::Lambda(_) => Err(Err::Reason("Unexpected form".to_string())),
     }
 }
@@ -749,7 +766,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
-    println!("MOROS Lisp v0.3.0\n");
+    println!("MOROS Lisp v0.4.0\n");
 
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
@@ -952,7 +969,7 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
 
     // number
-    assert_eq!(eval!("(number-decode (number-encode 42))"), "42");
+    assert_eq!(eval!("(bytes->number (number->bytes 42))"), "42");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
