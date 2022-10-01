@@ -15,14 +15,14 @@ use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::convert::TryInto;
+use core::convert::TryFrom;
 use core::f64::consts::PI;
 use core::fmt;
+use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
-use spin::Mutex;
-
 use num_bigint::BigInt;
-use core::str::FromStr;
+use spin::Mutex;
 
 use nom::IResult;
 use nom::branch::alt;
@@ -145,6 +145,19 @@ impl From<&Number> for f64 {
             Number::Float(n)  => *n,
             Number::Int(n)    => *n as f64,
             Number::BigInt(_) => f64::INFINITY,
+        }
+    }
+}
+
+impl TryFrom<Number> for u8 {
+    type Error = Err;
+
+    fn try_from(num: Number) -> Result<Self, Self::Error> {
+        let num = f64::from(&num);
+        if num >= 0.0 && num < u8::MAX.into() && (num - libm::trunc(num) == 0.0) {
+            Ok(num as u8)
+        } else {
+            Err(Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX)))
         }
     }
 }
@@ -613,12 +626,7 @@ fn float(exp: &Exp) -> Result<f64, Err> {
 }
 
 fn byte(exp: &Exp) -> Result<u8, Err> {
-    let num = float(exp)?;
-    if num >= 0.0 && num < u8::MAX.into() && (num - libm::trunc(num) == 0.0) {
-        Ok(num as u8)
-    } else {
-        Err(Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX)))
-    }
+    number(exp)?.try_into()
 }
 
 // Eval
