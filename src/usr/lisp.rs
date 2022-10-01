@@ -1107,7 +1107,8 @@ fn test_lisp() {
     assert_eq!(eval!("(eq \"a\" 'b)"), "false");
     assert_eq!(eval!("(eq 1 1)"), "true");
     assert_eq!(eval!("(eq 1 2)"), "false");
-    assert_eq!(eval!("(eq 1 1.0)"), "true");
+    assert_eq!(eval!("(eq 1 1.0)"), "false");
+    assert_eq!(eval!("(eq 1.0 1.0)"), "true");
 
     // car
     assert_eq!(eval!("(car (quote (1)))"), "1");
@@ -1168,9 +1169,11 @@ fn test_lisp() {
     assert_eq!(eval!("(* 2 (* 3 4))"), "24");
 
     // division
-    assert_eq!(eval!("(/ 4)"), "0.25");
+    assert_eq!(eval!("(/ 4)"), "0");
+    assert_eq!(eval!("(/ 4.0)"), "0.25");
     assert_eq!(eval!("(/ 4 2)"), "2");
-    assert_eq!(eval!("(/ 1 2)"), "0.5");
+    assert_eq!(eval!("(/ 1 2)"), "0");
+    assert_eq!(eval!("(/ 1 2.0)"), "0.5");
     assert_eq!(eval!("(/ 8 4 2)"), "1");
 
     // exponential
@@ -1188,7 +1191,7 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
 
     // number
-    assert_eq!(eval!("(bytes->number (number->bytes 42))"), "42");
+    assert_eq!(eval!("(bytes->number (number->bytes 42.0))"), "42.0");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
@@ -1209,10 +1212,10 @@ fn test_lisp() {
     assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
     assert_eq!(eval!("(acos 0)"), (PI / 2.0).to_string());
     assert_eq!(eval!("(asin 1)"), (PI / 2.0).to_string());
-    assert_eq!(eval!("(atan 0)"), "0");
-    assert_eq!(eval!("(cos pi)"), "-1");
-    assert_eq!(eval!("(sin (/ pi 2))"), "1");
-    assert_eq!(eval!("(tan 0)"), "0");
+    assert_eq!(eval!("(atan 0)"), "0.0");
+    assert_eq!(eval!("(cos pi)"), "-1.0");
+    assert_eq!(eval!("(sin (/ pi 2))"), "1.0");
+    assert_eq!(eval!("(tan 0)"), "0.0");
 
     // list
     assert_eq!(eval!("(list)"), "()");
