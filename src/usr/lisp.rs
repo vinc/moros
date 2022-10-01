@@ -101,6 +101,16 @@ impl From<u8> for Number {
     }
 }
 
+impl From<&Number> for f64 {
+    fn from(num: &Number) -> f64 {
+        match num {
+            Number::Float(n)  => *n,
+            Number::Int(n)    => *n as f64,
+            Number::BigInt(_) => f64::INFINITY,
+        }
+    }
+}
+
 impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         //write!(f, "{}", self), // FIXME: alloc error
@@ -550,7 +560,7 @@ fn string(exp: &Exp) -> Result<String, Err> {
 
 fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
-        Exp::Num(Number::Float(num)) => Ok(*num),
+        Exp::Num(num) => Ok(num.into()),
         _ => Err(Err::Reason("Expected a float".to_string())),
     }
 }
