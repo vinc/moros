@@ -57,9 +57,9 @@ use nom::sequence::preceded;
 
 #[derive(Clone, PartialEq)]
 enum Number {
-    Int(i64),
     BigInt(BigInt),
     Float(f64),
+    Int(i64),
 }
 
 impl FromStr for Number {
@@ -103,7 +103,13 @@ impl From<u8> for Number {
 
 impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        //write!(f, "{}", self), // FIXME: alloc error
+        match self {
+            //Number::BigInt(n) => write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
+            Number::BigInt(_) => write!(f, "BigInt"),
+            Number::Float(n)  => write!(f, "{}", n),
+            Number::Int(n)    => write!(f, "{}", n),
+        }
     }
 }
 
