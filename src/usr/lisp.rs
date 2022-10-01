@@ -107,8 +107,14 @@ impl fmt::Display for Number {
         match self {
             //Number::BigInt(n) => write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
             Number::BigInt(_) => write!(f, "BigInt"),
-            Number::Float(n)  => write!(f, "{}", n),
             Number::Int(n)    => write!(f, "{}", n),
+            Number::Float(n)  => {
+                if n - libm::trunc(*n) == 0.0 {
+                    write!(f, "{}.0", n)
+                } else {
+                    write!(f, "{}", n)
+                }
+            }
         }
     }
 }
