@@ -32,13 +32,15 @@ use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
 use nom::character::complete::char;
 use nom::character::complete::multispace0;
+use nom::character::complete::digit1;
 use nom::combinator::map;
 use nom::combinator::opt;
 use nom::combinator::value;
 use nom::multi::many0;
-use nom::number::complete::double;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
+use nom::sequence::tuple;
+use nom::combinator::recognize;
 
 // Eval & Env adapted from Risp
 // Copyright 2019 Stepan Parunashvili
@@ -76,6 +78,16 @@ impl FromStr for Number {
         //    return Ok(Number::BigInt(n));
         }
         Err(Err::Reason("Could not parse number".to_string()))
+    }
+}
+
+impl From<&str> for Number {
+    fn from(s: &str) -> Self {
+        if let Ok(num) = s.parse() {
+            num
+        } else {
+            Number::Float(f64::NAN)
+        }
     }
 }
 
@@ -230,7 +242,11 @@ fn parse_sym(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
-    let (input, num) = double(input)?;
+    let (input, num) = recognize(tuple((
+        opt(alt((char('+'), char('-')))),
+        digit1,
+        opt(tuple((char('.'), digit1)))
+    )))(input)?;
     Ok((input, Exp::Num(Number::from(num))))
 }
 
