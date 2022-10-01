@@ -18,7 +18,7 @@ use core::convert::TryInto;
 use core::convert::TryFrom;
 use core::f64::consts::PI;
 use core::fmt;
-use core::ops::{Add, Mul};
+use core::ops::{Neg, Add, Mul, Sub};
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
@@ -91,6 +91,17 @@ impl Number {
     }
 }
 
+impl Neg for Number {
+    type Output = Number;
+
+    fn neg(self) -> Number {
+        match self {
+            Number::Int(a)   => Number::Int(-a),
+            Number::Float(a) => Number::Float(-a),
+        }
+    }
+}
+
 impl Add for Number {
     type Output = Number;
 
@@ -113,6 +124,19 @@ impl Mul for Number {
             (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) * b),
             (Number::Float(a), Number::Int(b))   => Number::Float(a * (b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(a * b),
+        }
+    }
+}
+
+impl Sub for Number {
+    type Output = Number;
+
+    fn sub(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::Int(a), Number::Int(b))     => Number::Int(a - b),
+            (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) - b),
+            (Number::Float(a), Number::Int(b))   => Number::Float(a - (b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(a - b),
         }
     }
 }
@@ -400,13 +424,13 @@ fn default_env() -> Rc<RefCell<Env>> {
     }));
     data.insert("-".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_floats(args)?;
-        let car = args[0];
+        let args = list_of_numbers(args)?;
+        let car = args[0].clone();
         if args.len() == 1 {
-            Ok(Exp::Num(Number::from(-car)))
+            Ok(Exp::Num(-car))
         } else {
-            let res = args[1..].iter().fold(0.0, |acc, a| acc + a);
-            Ok(Exp::Num(Number::from(car - res)))
+            let res = args[1..].iter().fold(Number::Int(0), |acc, a| acc + a.clone());
+            Ok(Exp::Num(car - res))
         }
     }));
     data.insert("/".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
