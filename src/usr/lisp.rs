@@ -18,7 +18,7 @@ use core::convert::TryInto;
 use core::convert::TryFrom;
 use core::f64::consts::PI;
 use core::fmt;
-use core::ops::Add;
+use core::ops::{Add, Mul};
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
@@ -96,10 +96,23 @@ impl Add for Number {
 
     fn add(self, other: Number) -> Number {
         match (self, other) {
-            (Number::Int(a), Number::Int(b)) => Number::Int(a + b),
-            (Number::Int(a), Number::Float(b)) => Number::Float((a as f64) + b),
-            (Number::Float(a), Number::Int(b)) => Number::Float(a + (b as f64)),
+            (Number::Int(a), Number::Int(b))     => Number::Int(a + b),
+            (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) + b),
+            (Number::Float(a), Number::Int(b))   => Number::Float(a + (b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(a + b),
+        }
+    }
+}
+
+impl Mul for Number {
+    type Output = Number;
+
+    fn mul(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::Int(a), Number::Int(b))     => Number::Int(a * b),
+            (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) * b),
+            (Number::Float(a), Number::Int(b))   => Number::Float(a * (b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(a * b),
         }
     }
 }
@@ -378,12 +391,12 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("<".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
     data.insert("<=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
     data.insert("*".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_floats(args)?.iter().fold(1.0, |acc, a| acc * a);
-        Ok(Exp::Num(Number::from(res)))
+        let res = list_of_numbers(args)?.iter().fold(Number::Int(1), |acc, a| acc * a.clone());
+        Ok(Exp::Num(res))
     }));
     data.insert("+".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let res = list_of_numbers(args)?.iter().fold(Number::Int(0), |acc, a| acc + a.clone());
-        Ok(Exp::Num(Number::from(res)))
+        Ok(Exp::Num(res))
     }));
     data.insert("-".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
