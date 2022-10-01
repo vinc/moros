@@ -18,10 +18,11 @@ use core::convert::TryInto;
 use core::convert::TryFrom;
 use core::f64::consts::PI;
 use core::fmt;
+use core::ops::Add;
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
-use num_bigint::BigInt;
+//use num_bigint::BigInt;
 use spin::Mutex;
 
 use nom::IResult;
@@ -59,7 +60,7 @@ use nom::combinator::recognize;
 
 #[derive(Clone, PartialEq)]
 enum Number {
-    BigInt(BigInt),
+    //BigInt(BigInt),
     Float(f64),
     Int(i64),
 }
@@ -90,6 +91,19 @@ impl Number {
     }
 }
 
+impl Add for Number {
+    type Output = Number;
+
+    fn add(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::Int(a), Number::Int(b)) => Number::Int(a + b),
+            (Number::Int(a), Number::Float(b)) => Number::Float((a as f64) + b),
+            (Number::Float(a), Number::Int(b)) => Number::Float(a + (b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(a + b),
+        }
+    }
+}
+
 impl FromStr for Number {
     type Err = Err;
 
@@ -100,9 +114,9 @@ impl FromStr for Number {
             }
         } else if let Ok(n) = s.parse() {
             return Ok(Number::Int(n));
-        //} else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
-        //    return Ok(Number::BigInt(n));
-        }
+        } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
+            return Ok(Number::BigInt(n));
+        } */
         Err(Err::Reason("Could not parse number".to_string()))
     }
 }
@@ -126,7 +140,8 @@ impl From<f64> for Number {
 impl From<usize> for Number {
     fn from(num: usize) -> Self {
         if num > i64::MAX as usize {
-            Number::BigInt(BigInt::from(num))
+            //Number::BigInt(BigInt::from(num))
+            Number::Int(i64::MAX) // FIXME
         } else {
             Number::Int(num as i64)
         }
@@ -144,7 +159,7 @@ impl From<&Number> for f64 {
         match num {
             Number::Float(n)  => *n,
             Number::Int(n)    => *n as f64,
-            Number::BigInt(_) => f64::INFINITY,
+            //Number::BigInt(_) => f64::INFINITY,
         }
     }
 }
@@ -167,7 +182,7 @@ impl fmt::Display for Number {
         //write!(f, "{}", self), // FIXME: alloc error
         match self {
             //Number::BigInt(n) => write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
-            Number::BigInt(_) => write!(f, "BigInt"),
+            //Number::BigInt(_) => write!(f, "BigInt"),
             Number::Int(n)    => write!(f, "{}", n),
             Number::Float(n)  => {
                 if n - libm::trunc(*n) == 0.0 {
@@ -367,7 +382,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         Ok(Exp::Num(Number::from(res)))
     }));
     data.insert("+".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_floats(args)?.iter().fold(0.0, |acc, a| acc + a);
+        let res = list_of_numbers(args)?.iter().fold(Number::Int(0), |acc, a| acc + a.clone());
         Ok(Exp::Num(Number::from(res)))
     }));
     data.insert("-".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
