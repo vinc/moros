@@ -64,6 +64,32 @@ enum Number {
     Int(i64),
 }
 
+impl Number {
+    fn cos(&self) -> Number {
+        Number::Float(libm::cos(self.into()))
+    }
+
+    fn sin(&self) -> Number {
+        Number::Float(libm::sin(self.into()))
+    }
+
+    fn tan(&self) -> Number {
+        Number::Float(libm::tan(self.into()))
+    }
+
+    fn acos(&self) -> Number {
+        Number::Float(libm::acos(self.into()))
+    }
+
+    fn asin(&self) -> Number {
+        Number::Float(libm::asin(self.into()))
+    }
+
+    fn atan(&self) -> Number {
+        Number::Float(libm::atan(self.into()))
+    }
+}
+
 impl FromStr for Number {
     type Err = Err;
 
@@ -369,41 +395,35 @@ fn default_env() -> Rc<RefCell<Env>> {
     }));
     data.insert("cos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(Number::from(libm::cos(args[0]))))
+        Ok(Exp::Num(number(&args[0])?.cos()))
     }));
     data.insert("acos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        if -1.0 <= args[0] && args[0] <= 1.0 {
-            Ok(Exp::Num(Number::from(libm::acos(args[0]))))
+        if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
+            Ok(Exp::Num(number(&args[0])?.acos()))
         } else {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
     }));
     data.insert("asin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        if -1.0 <= args[0] && args[0] <= 1.0 {
-            Ok(Exp::Num(Number::from(libm::asin(args[0]))))
+        if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
+            Ok(Exp::Num(number(&args[0])?.asin()))
         } else {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
     }));
     data.insert("atan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(Number::from(libm::atan(args[0]))))
+        Ok(Exp::Num(number(&args[0])?.atan()))
     }));
     data.insert("sin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(Number::from(libm::sin(args[0]))))
+        Ok(Exp::Num(number(&args[0])?.sin()))
     }));
     data.insert("tan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(Number::from(libm::tan(args[0]))))
+        Ok(Exp::Num(number(&args[0])?.tan()))
     }));
     data.insert("system".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -559,6 +579,10 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
     }
 }
 
+fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
+    args.iter().map(number).collect()
+}
+
 fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
     args.iter().map(float).collect()
 }
@@ -571,6 +595,13 @@ fn string(exp: &Exp) -> Result<String, Err> {
     match exp {
         Exp::Str(s) => Ok(s.to_string()),
         _ => Err(Err::Reason("Expected a string".to_string())),
+    }
+}
+
+fn number(exp: &Exp) -> Result<Number, Err> {
+    match exp {
+        Exp::Num(num) => Ok(num.clone()),
+        _ => Err(Err::Reason("Expected a number".to_string())),
     }
 }
 
