@@ -57,7 +57,7 @@ use nom::sequence::preceded;
 
 #[derive(Clone, PartialEq)]
 enum Number {
-    Int(Box<BigInt>),
+    Int(BigInt),
     Float(f64),
 }
 
