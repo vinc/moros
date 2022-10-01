@@ -194,7 +194,7 @@ impl FromStr for Number {
         } else if let Ok(n) = s.parse() {
             return Ok(Number::Int(n));
         } else {
-            let sign = s.start_with('-') { Sign::Minus } else { Sign::Plus };
+            let sign = if s.starts_with('-') { Sign::Minus } else { Sign::Plus };
             let digits: Vec<u32> = s.chars().filter_map(|c| c.to_digit(10)).collect();
             return Ok(Number::BigInt(BigInt::from_slice(sign, &digits)));
         } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
