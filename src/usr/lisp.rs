@@ -92,14 +92,12 @@ impl Number {
 
     fn pow(&self, other: &Number) -> Number {
         match (self, other) {
-            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.pow(b)),
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a.pow(b)),
-            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a.pow(b)),
-            (Number::Int(a),    Number::Int(b))    => Number::Int(a.pow(*b as u32)), // FIXME
-            (Number::Int(a),    Number::Float(b))  => Number::Float(libm::pow(*a as f64, *b)),
-            (Number::Float(a),  Number::Int(b))    => Number::Float(libm::pow(*a, *b as f64)),
-            (Number::Float(a),  Number::Float(b))  => Number::Float(libm::pow(*a, *b)),
-            _                                      => Number::Float(f64::NAN), // TODO
+            (Number::BigInt(a), Number::Int(b))   => Number::BigInt(a.pow(*b as u32)), // FIXME
+            (Number::Int(a),    Number::Int(b))   => Number::Int(a.pow(*b as u32)), // FIXME
+            (Number::Int(a),    Number::Float(b)) => Number::Float(libm::pow(*a as f64, *b)),
+            (Number::Float(a),  Number::Int(b))   => Number::Float(libm::pow(*a, *b as f64)),
+            (Number::Float(a),  Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
+            _                                     => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -112,7 +110,6 @@ impl Neg for Number {
             Number::BigInt(a) => Number::BigInt(-a),
             Number::Int(a)    => Number::Int(-a),
             Number::Float(a)  => Number::Float(-a),
-            _                 => Number::Float(f64::NAN), // TODO
         }
     }
 }
