@@ -122,7 +122,13 @@ impl Add for Number {
             (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a + b),
             (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a + b),
             (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a + b),
-            (Number::Int(a),    Number::Int(b))    => Number::Int(a + b),
+            (Number::Int(a),    Number::Int(b))    => {
+                if let Some(r) = a.checked_add(b) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a) + BigInt::from(b))
+                }
+            }
             (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) + b),
             (Number::Float(a),  Number::Int(b))    => Number::Float(a + (b as f64)),
             (Number::Float(a),  Number::Float(b))  => Number::Float(a + b),
@@ -156,7 +162,13 @@ impl Mul for Number {
             (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a * b),
             (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a * b),
             (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a * b),
-            (Number::Int(a),    Number::Int(b))    => Number::Int(a * b),
+            (Number::Int(a),    Number::Int(b))    => {
+                if let Some(r) = a.checked_mul(b) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a) * BigInt::from(b))
+                }
+            }
             (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) * b),
             (Number::Float(a),  Number::Int(b))    => Number::Float(a * (b as f64)),
             (Number::Float(a),  Number::Float(b))  => Number::Float(a * b),
