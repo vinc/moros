@@ -22,7 +22,7 @@ use core::ops::{Neg, Add, Div, Mul, Sub, Rem};
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
-use num_bigint::BigInt;
+use num_bigint::{BigInt, Sign};
 use spin::Mutex;
 
 use nom::IResult;
@@ -193,6 +193,10 @@ impl FromStr for Number {
             }
         } else if let Ok(n) = s.parse() {
             return Ok(Number::Int(n));
+        } else {
+            let sign = s.start_with('-') { Sign::Minus } else { Sign::Plus };
+            let digits: Vec<u32> = s.chars().filter_map(|c| c.to_digit(10)).collect();
+            return Ok(Number::BigInt(BigInt::from_slice(sign, &digits)));
         } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
             return Ok(Number::BigInt(n));
         } */
@@ -237,7 +241,7 @@ impl From<&Number> for f64 {
         match num {
             Number::Float(n)  => *n,
             Number::Int(n)    => *n as f64,
-            Number::BigInt(_) => f64::INFINITY,
+            Number::BigInt(_) => f64::INFINITY, // TODO
         }
     }
 }
@@ -259,10 +263,14 @@ impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         //write!(f, "{}", self), // FIXME: alloc error
         match self {
-            //Number::BigInt(n) => write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
-            Number::BigInt(_) => write!(f, "BigInt"),
-            Number::Int(n)    => write!(f, "{}", n),
-            Number::Float(n)  => {
+            Number::Int(n) => {
+                write!(f, "{}", n)
+            }
+            Number::BigInt(n) => {
+                //write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
+                n.iter_u32_digits().try_for_each(|d| write!(f, "{}", d))
+            }
+            Number::Float(n) => {
                 if n - libm::trunc(*n) == 0.0 {
                     write!(f, "{}.0", n)
                 } else {
