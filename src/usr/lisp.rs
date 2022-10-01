@@ -92,11 +92,14 @@ impl Number {
 
     fn pow(&self, other: &Number) -> Number {
         match (self, other) {
-            (Number::Int(a), Number::Int(b))     => Number::Int(a.pow(*b as u32)), // FIXME
-            (Number::Int(a), Number::Float(b))   => Number::Float(libm::pow(*a as f64, *b)),
-            (Number::Float(a), Number::Int(b))   => Number::Float(libm::pow(*a, *b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
-            _                                    => Number::Float(f64::NAN), // TODO
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.pow(b)),
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a.pow(b)),
+            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a.pow(b)),
+            (Number::Int(a),    Number::Int(b))    => Number::Int(a.pow(*b as u32)), // FIXME
+            (Number::Int(a),    Number::Float(b))  => Number::Float(libm::pow(*a as f64, *b)),
+            (Number::Float(a),  Number::Int(b))    => Number::Float(libm::pow(*a, *b as f64)),
+            (Number::Float(a),  Number::Float(b))  => Number::Float(libm::pow(*a, *b)),
+            _                                      => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -106,9 +109,10 @@ impl Neg for Number {
 
     fn neg(self) -> Number {
         match self {
-            Number::Int(a)   => Number::Int(-a),
-            Number::Float(a) => Number::Float(-a),
-            _                => Number::Float(f64::NAN), // TODO
+            Number::BigInt(a) => Number::BigInt(-a),
+            Number::Int(a)    => Number::Int(-a),
+            Number::Float(a)  => Number::Float(-a),
+            _                 => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -118,11 +122,14 @@ impl Add for Number {
 
     fn add(self, other: Number) -> Number {
         match (self, other) {
-            (Number::Int(a), Number::Int(b))     => Number::Int(a + b),
-            (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) + b),
-            (Number::Float(a), Number::Int(b))   => Number::Float(a + (b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(a + b),
-            _                                    => Number::Float(f64::NAN), // TODO
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a + b),
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a + b),
+            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a + b),
+            (Number::Int(a),    Number::Int(b))    => Number::Int(a + b),
+            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) + b),
+            (Number::Float(a),  Number::Int(b))    => Number::Float(a + (b as f64)),
+            (Number::Float(a),  Number::Float(b))  => Number::Float(a + b),
+            _                                      => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -132,11 +139,14 @@ impl Div for Number {
 
     fn div(self, other: Number) -> Number {
         match (self, other) {
-            (Number::Int(a), Number::Int(b))     => Number::Int(a / b),
-            (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) / b),
-            (Number::Float(a), Number::Int(b))   => Number::Float(a / (b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(a / b),
-            _                                    => Number::Float(f64::NAN), // TODO
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a / b),
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a / b),
+            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a / b),
+            (Number::Int(a),    Number::Int(b))    => Number::Int(a / b),
+            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) / b),
+            (Number::Float(a),  Number::Int(b))    => Number::Float(a / (b as f64)),
+            (Number::Float(a),  Number::Float(b))  => Number::Float(a / b),
+            _                                      => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -146,11 +156,14 @@ impl Mul for Number {
 
     fn mul(self, other: Number) -> Number {
         match (self, other) {
-            (Number::Int(a), Number::Int(b))     => Number::Int(a * b),
-            (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) * b),
-            (Number::Float(a), Number::Int(b))   => Number::Float(a * (b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(a * b),
-            _                                    => Number::Float(f64::NAN), // TODO
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a * b),
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a * b),
+            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a * b),
+            (Number::Int(a),    Number::Int(b))    => Number::Int(a * b),
+            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) * b),
+            (Number::Float(a),  Number::Int(b))    => Number::Float(a * (b as f64)),
+            (Number::Float(a),  Number::Float(b))  => Number::Float(a * b),
+            _                                      => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -160,11 +173,14 @@ impl Sub for Number {
 
     fn sub(self, other: Number) -> Number {
         match (self, other) {
-            (Number::Int(a), Number::Int(b))     => Number::Int(a - b),
-            (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) - b),
-            (Number::Float(a), Number::Int(b))   => Number::Float(a - (b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(a - b),
-            _                                    => Number::Float(f64::NAN), // TODO
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a - b),
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a - b),
+            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a - b),
+            (Number::Int(a),    Number::Int(b))    => Number::Int(a - b),
+            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) - b),
+            (Number::Float(a),  Number::Int(b))    => Number::Float(a - (b as f64)),
+            (Number::Float(a),  Number::Float(b))  => Number::Float(a - b),
+            _                                      => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -174,11 +190,14 @@ impl Rem for Number {
 
     fn rem(self, other: Number) -> Number {
         match (self, other) {
-            (Number::Int(a), Number::Int(b))     => Number::Int(a % b),
-            (Number::Int(a), Number::Float(b))   => Number::Float(libm::fmod(a as f64, b)),
-            (Number::Float(a), Number::Int(b))   => Number::Float(libm::fmod(a, b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(libm::fmod(a, b)),
-            _                                    => Number::Float(f64::NAN), // TODO
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a % b),
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a % b),
+            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a % b),
+            (Number::Int(a),    Number::Int(b))    => Number::Int(a % b),
+            (Number::Int(a),    Number::Float(b))  => Number::Float(libm::fmod(a as f64, b)),
+            (Number::Float(a),  Number::Int(b))    => Number::Float(libm::fmod(a, b as f64)),
+            (Number::Float(a),  Number::Float(b))  => Number::Float(libm::fmod(a, b)),
+            _                                      => Number::Float(f64::NAN), // TODO
         }
     }
 }
