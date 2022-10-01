@@ -21,7 +21,7 @@ use float_cmp::approx_eq;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-use num_bigint::BigInt;
+//use num_bigint::BigInt;
 use core::str::FromStr;
 
 use nom::IResult;
@@ -57,7 +57,8 @@ use nom::sequence::preceded;
 
 #[derive(Clone, PartialEq)]
 enum Number {
-    Int(BigInt),
+    Int(i64),
+//    BigInt(BigInt),
     Float(f64),
 }
 
@@ -66,12 +67,13 @@ impl FromStr for Number {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.contains('.') {
-            Ok(Number::Float(s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?))
-        } else {
-            // rust-lld: error: undefined symbol: fmod
-            let n: i64 = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
-            Ok(Number::Int(BigInt::from(n)))
+            if let Ok(n) = s.parse() {
+                return Ok(Number::Float(n));
+            }
+        } else if let Ok(n) = s.parse() {
+            return Ok(Number::Int(n));
         }
+        Err(Err::Reason("Could not parse number".to_string()))
     }
 }
 
@@ -83,13 +85,15 @@ impl From<f64> for Number {
 
 impl From<usize> for Number {
     fn from(num: usize) -> Self {
-        Number::Int(BigInt::from(num))
+        //Number::Int(BigInt::from(num))
+        Number::Int(num as i64)
     }
 }
 
 impl From<u8> for Number {
     fn from(num: u8) -> Self {
-        Number::Int(BigInt::from(num))
+        //Number::Int(BigInt::from(num))
+        Number::Int(num as i64)
     }
 }
 
