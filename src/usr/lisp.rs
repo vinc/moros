@@ -22,7 +22,7 @@ use core::ops::{Neg, Add, Div, Mul, Sub, Rem};
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
-//use num_bigint::BigInt;
+use num_bigint::BigInt;
 use spin::Mutex;
 
 use nom::IResult;
@@ -60,7 +60,7 @@ use nom::combinator::recognize;
 
 #[derive(Clone, PartialEq)]
 enum Number {
-    //BigInt(BigInt),
+    BigInt(BigInt),
     Float(f64),
     Int(i64),
 }
@@ -96,6 +96,7 @@ impl Number {
             (Number::Int(a), Number::Float(b))   => Number::Float(libm::pow(*a as f64, *b)),
             (Number::Float(a), Number::Int(b))   => Number::Float(libm::pow(*a, *b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
+            _                                    => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -107,6 +108,7 @@ impl Neg for Number {
         match self {
             Number::Int(a)   => Number::Int(-a),
             Number::Float(a) => Number::Float(-a),
+            _                => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -120,6 +122,7 @@ impl Add for Number {
             (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) + b),
             (Number::Float(a), Number::Int(b))   => Number::Float(a + (b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(a + b),
+            _                                    => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -133,6 +136,7 @@ impl Div for Number {
             (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) / b),
             (Number::Float(a), Number::Int(b))   => Number::Float(a / (b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(a / b),
+            _                                    => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -146,6 +150,7 @@ impl Mul for Number {
             (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) * b),
             (Number::Float(a), Number::Int(b))   => Number::Float(a * (b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(a * b),
+            _                                    => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -159,6 +164,7 @@ impl Sub for Number {
             (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) - b),
             (Number::Float(a), Number::Int(b))   => Number::Float(a - (b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(a - b),
+            _                                    => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -172,6 +178,7 @@ impl Rem for Number {
             (Number::Int(a), Number::Float(b))   => Number::Float(libm::fmod(a as f64, b)),
             (Number::Float(a), Number::Int(b))   => Number::Float(libm::fmod(a, b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(libm::fmod(a, b)),
+            _                                    => Number::Float(f64::NAN), // TODO
         }
     }
 }
@@ -212,8 +219,7 @@ impl From<f64> for Number {
 impl From<usize> for Number {
     fn from(num: usize) -> Self {
         if num > i64::MAX as usize {
-            //Number::BigInt(BigInt::from(num))
-            Number::Int(i64::MAX) // FIXME
+            Number::BigInt(BigInt::from(num))
         } else {
             Number::Int(num as i64)
         }
@@ -231,7 +237,7 @@ impl From<&Number> for f64 {
         match num {
             Number::Float(n)  => *n,
             Number::Int(n)    => *n as f64,
-            //Number::BigInt(_) => f64::INFINITY,
+            Number::BigInt(_) => f64::INFINITY,
         }
     }
 }
@@ -254,7 +260,7 @@ impl fmt::Display for Number {
         //write!(f, "{}", self), // FIXME: alloc error
         match self {
             //Number::BigInt(n) => write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
-            //Number::BigInt(_) => write!(f, "BigInt"),
+            Number::BigInt(_) => write!(f, "BigInt"),
             Number::Int(n)    => write!(f, "{}", n),
             Number::Float(n)  => {
                 if n - libm::trunc(*n) == 0.0 {
