@@ -89,6 +89,15 @@ impl Number {
     fn atan(&self) -> Number {
         Number::Float(libm::atan(self.into()))
     }
+
+    fn pow(&self, other: &Number) -> Number {
+        match (self, other) {
+            (Number::Int(a), Number::Int(b))     => Number::Int(a.pow(*b as u32)), // FIXME
+            (Number::Int(a), Number::Float(b))   => Number::Float(libm::pow(*a as f64, *b)),
+            (Number::Float(a), Number::Int(b))   => Number::Float(libm::pow(*a, *b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
+        }
+    }
 }
 
 impl Neg for Number {
@@ -475,14 +484,14 @@ fn default_env() -> Rc<RefCell<Env>> {
         let args = list_of_numbers(args)?;
         let car = args[0].clone();
         let res = args[1..].iter().fold(car, |acc, a| acc % a.clone());
-        Ok(Exp::Num(Number::from(res)))
+        Ok(Exp::Num(res))
     }));
     data.insert("^".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_floats(args)?;
-        let car = args[0];
-        let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
-        Ok(Exp::Num(Number::from(res)))
+        let args = list_of_numbers(args)?;
+        let car = args[0].clone();
+        let res = args[1..].iter().fold(car, |acc, a| acc.pow(&a));
+        Ok(Exp::Num(res))
     }));
     data.insert("cos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
