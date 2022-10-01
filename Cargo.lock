@@ -261,6 +261,7 @@ dependencies = [
  "littlewing",
  "nom",
  "num-bigint",
+ "num-traits",
  "object",
  "pbkdf2",
  "pc-keyboard",

@@ -22,7 +22,8 @@ use core::ops::{Neg, Add, Div, Mul, Sub, Rem};
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
-use num_bigint::{BigInt, Sign};
+use num_bigint::BigInt;
+use num_traits::cast::ToPrimitive;
 use spin::Mutex;
 
 use nom::IResult;
@@ -222,9 +223,18 @@ impl FromStr for Number {
         } else if let Ok(n) = s.parse() {
             return Ok(Number::Int(n));
         } else {
-            let sign = if s.starts_with('-') { Sign::Minus } else { Sign::Plus };
-            let digits: Vec<u32> = s.chars().filter_map(|c| c.to_digit(10)).collect();
-            return Ok(Number::BigInt(BigInt::from_slice(sign, &digits)));
+            let mut chars = s.chars().peekable();
+            let is_neg = chars.peek() == Some(&&'-');
+            if is_neg {
+                chars.next().unwrap();
+            }
+            let mut res = BigInt::from(0);
+            for c in chars {
+                let d = c as u8 - b'0';
+                res = res * BigInt::from(10) + BigInt::from(d as u32);
+            }
+            res *= BigInt::from(if is_neg { -1 } else { 1 });
+            return Ok(Number::BigInt(res));
         } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
             return Ok(Number::BigInt(n));
         } */
@@ -296,7 +306,23 @@ impl fmt::Display for Number {
             }
             Number::BigInt(n) => {
                 //write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
-                n.iter_u32_digits().try_for_each(|d| write!(f, "{}", d))
+                let mut v = Vec::new();
+                let mut n = n.clone();
+                if n < BigInt::from(0) {
+                    write!(f, "-").ok();
+                    n = -n;
+                }
+                loop {
+                    v.push((n.clone() % BigInt::from(10)).to_u64().unwrap());
+                    n = n / BigInt::from(10);
+                    if n == BigInt::from(0) {
+                        break;
+                    }
+                }
+                for d in v.iter().rev() {
+                    write!(f, "{}", d).ok();
+                }
+                Ok(())
             }
             Number::Float(n) => {
                 if n - libm::trunc(*n) == 0.0 {
