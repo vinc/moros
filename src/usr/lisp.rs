@@ -21,6 +21,9 @@ use float_cmp::approx_eq;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
+use num_bigint::BigInt;
+use core::str::FromStr;
+
 use nom::IResult;
 use nom::branch::alt;
 use nom::bytes::complete::escaped_transform;
@@ -52,13 +55,57 @@ use nom::sequence::preceded;
 
 // Types
 
+#[derive(Clone, PartialEq)]
+enum Number {
+    Int(Box<BigInt>),
+    Float(f64),
+}
+
+impl FromStr for Number {
+    type Err = Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.contains('.') {
+            Ok(Number::Float(s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?))
+        } else {
+            // rust-lld: error: undefined symbol: fmod
+            let n: i64 = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
+            Ok(Number::Int(BigInt::from(n)))
+        }
+    }
+}
+
+impl From<f64> for Number {
+    fn from(num: f64) -> Self {
+        Number::Float(num)
+    }
+}
+
+impl From<usize> for Number {
+    fn from(num: usize) -> Self {
+        Number::Int(BigInt::from(num))
+    }
+}
+
+impl From<u8> for Number {
+    fn from(num: u8) -> Self {
+        Number::Int(BigInt::from(num))
+    }
+}
+
+impl fmt::Display for Number {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
 #[derive(Clone)]
 enum Exp {
     Primitive(fn(&[Exp]) -> Result<Exp, Err>),
     Lambda(Lambda),
     List(Vec<Exp>),
     Bool(bool),
-    Num(f64),
+    Num(Number),
     Str(String),
     Sym(String),
 }
@@ -154,7 +201,7 @@ fn parse_sym(input: &str) -> IResult<&str, Exp> {
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
     let (input, num) = double(input)?;
-    Ok((input, Exp::Num(num)))
+    Ok((input, Exp::Num(Number::from(num))))
 }
 
 fn parse_bool(input: &str) -> IResult<&str, Exp> {
@@ -224,7 +271,7 @@ macro_rules! ensure_length_gt {
 
 fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
-    data.insert("pi".to_string(), Exp::Num(PI));
+    data.insert("pi".to_string(), Exp::Num(Number::from(PI)));
     data.insert("=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
     data.insert(">".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
     data.insert(">=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
@@ -232,21 +279,21 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("<=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
     data.insert("*".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let res = list_of_floats(args)?.iter().fold(1.0, |acc, a| acc * a);
-        Ok(Exp::Num(res))
+        Ok(Exp::Num(Number::from(res)))
     }));
     data.insert("+".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let res = list_of_floats(args)?.iter().fold(0.0, |acc, a| acc + a);
-        Ok(Exp::Num(res))
+        Ok(Exp::Num(Number::from(res)))
     }));
     data.insert("-".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
         if args.len() == 1 {
-            Ok(Exp::Num(-car))
+            Ok(Exp::Num(Number::from(-car)))
         } else {
             let res = args[1..].iter().fold(0.0, |acc, a| acc + a);
-            Ok(Exp::Num(car - res))
+            Ok(Exp::Num(Number::from(car - res)))
         }
     }));
     data.insert("/".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
@@ -254,10 +301,10 @@ fn default_env() -> Rc<RefCell<Env>> {
         let args = list_of_floats(args)?;
         let car = args[0];
         if args.len() == 1 {
-            Ok(Exp::Num(1.0 / car))
+            Ok(Exp::Num(Number::from(1.0 / car)))
         } else {
             let res = args[1..].iter().fold(car, |acc, a| acc / a);
-            Ok(Exp::Num(res))
+            Ok(Exp::Num(Number::from(res)))
         }
     }));
     data.insert("%".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
@@ -265,25 +312,25 @@ fn default_env() -> Rc<RefCell<Env>> {
         let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::fmod(acc, *a));
-        Ok(Exp::Num(res))
+        Ok(Exp::Num(Number::from(res)))
     }));
     data.insert("^".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_floats(args)?;
         let car = args[0];
         let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
-        Ok(Exp::Num(res))
+        Ok(Exp::Num(Number::from(res)))
     }));
     data.insert("cos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::cos(args[0])))
+        Ok(Exp::Num(Number::from(libm::cos(args[0]))))
     }));
     data.insert("acos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         if -1.0 <= args[0] && args[0] <= 1.0 {
-            Ok(Exp::Num(libm::acos(args[0])))
+            Ok(Exp::Num(Number::from(libm::acos(args[0]))))
         } else {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
@@ -292,7 +339,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
         if -1.0 <= args[0] && args[0] <= 1.0 {
-            Ok(Exp::Num(libm::asin(args[0])))
+            Ok(Exp::Num(Number::from(libm::asin(args[0]))))
         } else {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
@@ -300,24 +347,24 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("atan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::atan(args[0])))
+        Ok(Exp::Num(Number::from(libm::atan(args[0]))))
     }));
     data.insert("sin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::sin(args[0])))
+        Ok(Exp::Num(Number::from(libm::sin(args[0]))))
     }));
     data.insert("tan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::tan(args[0])))
+        Ok(Exp::Num(Number::from(libm::tan(args[0]))))
     }));
     data.insert("system".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
         match usr::shell::exec(&cmd) {
-            Ok(()) => Ok(Exp::Num(0.0)),
-            Err(code) => Ok(Exp::Num(code as u8 as f64)),
+            Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
+            Err(code) => Ok(Exp::Num(Number::from(code as u8))),
         }
     }));
     data.insert("read-file".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
@@ -333,7 +380,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         let mut buf = vec![0; len as usize];
         let bytes = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
         buf.resize(bytes, 0);
-        Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
+        Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
     }));
     data.insert("write-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
@@ -342,7 +389,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             Exp::List(list) => {
                 let buf = list_of_bytes(list)?;
                 let bytes = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-                Ok(Exp::Num(bytes as f64))
+                Ok(Exp::Num(Number::from(bytes)))
             }
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
@@ -354,7 +401,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             Exp::List(list) => {
                 let buf = list_of_bytes(list)?;
                 let bytes = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-                Ok(Exp::Num(bytes as f64))
+                Ok(Exp::Num(Number::from(bytes)))
             }
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
@@ -370,7 +417,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
-        Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
+        Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
     }));
     data.insert("bytes->string".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -389,7 +436,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             Exp::List(list) => {
                 let bytes = list_of_bytes(list)?;
                 ensure_length_eq!(bytes, 8);
-                Ok(Exp::Num(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))
+                Ok(Exp::Num(Number::from(f64::from_be_bytes(bytes[0..8].try_into().unwrap()))))
             }
             _ => Err(Err::Reason("Expected arg to be a list".to_string()))
         }
@@ -397,14 +444,14 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("number->bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let f = float(&args[0])?;
-        Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
+        Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
     }));
     data.insert("regex-find".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         match (&args[0], &args[1]) {
             (Exp::Str(regex), Exp::Str(s)) => {
                 let res = Regex::new(regex).find(s).map(|(a, b)| {
-                    vec![Exp::Num(a as f64), Exp::Num(b as f64)]
+                    vec![Exp::Num(Number::from(a)), Exp::Num(Number::from(b))]
                 }).unwrap_or(vec![]);
                 Ok(Exp::List(res))
             }
@@ -483,8 +530,8 @@ fn string(exp: &Exp) -> Result<String, Err> {
 
 fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
-        Exp::Num(num) => Ok(*num),
-        _ => Err(Err::Reason("Expected a number".to_string())),
+        Exp::Num(Number::Float(num)) => Ok(*num),
+        _ => Err(Err::Reason("Expected a float".to_string())),
     }
 }
 
