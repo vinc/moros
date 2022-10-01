@@ -18,7 +18,7 @@ use core::convert::TryInto;
 use core::convert::TryFrom;
 use core::f64::consts::PI;
 use core::fmt;
-use core::ops::{Neg, Add, Div, Mul, Sub};
+use core::ops::{Neg, Add, Div, Mul, Sub, Rem};
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
@@ -150,6 +150,19 @@ impl Sub for Number {
             (Number::Int(a), Number::Float(b))   => Number::Float((a as f64) - b),
             (Number::Float(a), Number::Int(b))   => Number::Float(a - (b as f64)),
             (Number::Float(a), Number::Float(b)) => Number::Float(a - b),
+        }
+    }
+}
+
+impl Rem for Number {
+    type Output = Number;
+
+    fn rem(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::Int(a), Number::Int(b))     => Number::Int(a % b),
+            (Number::Int(a), Number::Float(b))   => Number::Float(libm::fmod(a as f64, b)),
+            (Number::Float(a), Number::Int(b))   => Number::Float(libm::fmod(a, b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(libm::fmod(a, b)),
         }
     }
 }
@@ -459,9 +472,9 @@ fn default_env() -> Rc<RefCell<Env>> {
     }));
     data.insert("%".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_floats(args)?;
-        let car = args[0];
-        let res = args[1..].iter().fold(car, |acc, a| libm::fmod(acc, *a));
+        let args = list_of_numbers(args)?;
+        let car = args[0].clone();
+        let res = args[1..].iter().fold(car, |acc, a| acc % a.clone());
         Ok(Exp::Num(Number::from(res)))
     }));
     data.insert("^".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
