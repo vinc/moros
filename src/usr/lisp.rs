@@ -214,7 +214,7 @@ impl Sub for Number {
             (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a - b),
             (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a - b),
             (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_div(b) {
+                if let Some(r) = a.checked_sub(b) {
                     Number::Int(r)
                 } else {
                     Number::BigInt(BigInt::from(a) - BigInt::from(b))
