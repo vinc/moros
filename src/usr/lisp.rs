@@ -717,6 +717,15 @@ fn default_env() -> Rc<RefCell<Env>> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
+    data.insert("number-type".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        match args[0] {
+            Exp::Num(Number::Int(_)) => Ok(Exp::Str("int".to_string())),
+            Exp::Num(Number::BigInt(_)) => Ok(Exp::Str("bigint".to_string())),
+            Exp::Num(Number::Float(_)) => Ok(Exp::Str("float".to_string())),
+            _ => Err(Err::Reason("Expected arg to be a number".to_string()))
+        }
+    }));
     data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::List(args.to_vec()))
     }));
