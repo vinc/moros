@@ -94,7 +94,13 @@ impl Number {
     fn pow(&self, other: &Number) -> Number {
         match (self, other) {
             (Number::BigInt(a), Number::Int(b))   => Number::BigInt(a.pow(*b as u32)), // FIXME
-            (Number::Int(a),    Number::Int(b))   => Number::Int(a.pow(*b as u32)), // FIXME
+            (Number::Int(a),    Number::Int(b))   => {
+                if let Some(r) = a.checked_pow(*b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(*a)).pow(other)
+                }
+            }
             (Number::Int(a),    Number::Float(b)) => Number::Float(libm::pow(*a as f64, *b)),
             (Number::Float(a),  Number::Int(b))   => Number::Float(libm::pow(*a, *b as f64)),
             (Number::Float(a),  Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
@@ -1309,6 +1315,10 @@ fn test_lisp() {
     assert_eq!(eval!("(+ 9223372036854775807 1.0)"),  "9223372036854776000.0"); // -> float
     assert_eq!(eval!("(+ 9223372036854775807 10)"),   "9223372036854775817");   // -> bigint
     assert_eq!(eval!("(* 9223372036854775807 10)"),  "92233720368547758070");   // -> bigint
+
+    assert_eq!(eval!("(^ 2 16"),                                      "65536");   // -> int
+    assert_eq!(eval!("(^ 2 128"),   "340282366920938463463374607431768211456");   // -> bigint
+    assert_eq!(eval!("(^ 2.0 128"), "340282366920938500000000000000000000000.0"); // -> float
 
     assert_eq!(eval!("(number-type 9223372036854775807)"),   "\"int\"");
     assert_eq!(eval!("(number-type 9223372036854775808)"),   "\"bigint\"");
