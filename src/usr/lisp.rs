@@ -24,6 +24,7 @@ use float_cmp::approx_eq;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::cast::ToPrimitive;
+use num_traits::Zero;
 use spin::Mutex;
 
 use nom::IResult;
@@ -67,6 +68,14 @@ enum Number {
 }
 
 impl Number {
+    fn is_zero(&self) -> bool {
+        match self {
+            Number::Int(n) => *n == 0,
+            Number::Float(n) => *n == 0.0,
+            Number::BigInt(n) => n.is_zero(),
+        }
+    }
+
     fn cos(&self) -> Number {
         Number::Float(libm::cos(self.into()))
     }
@@ -568,14 +577,18 @@ fn default_env() -> Rc<RefCell<Env>> {
     }));
     data.insert("/".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_numbers(args)?;
-        let car = args[0].clone();
+        let mut args = list_of_numbers(args)?;
         if args.len() == 1 {
-            Ok(Exp::Num(Number::Int(1) / car))
-        } else {
-            let res = args[1..].iter().fold(car, |acc, a| acc / a.clone());
-            Ok(Exp::Num(res))
+            args.insert(0, Number::Int(1));
         }
+        for arg in &args[1..] {
+            if arg.is_zero() {
+                return Err(Err::Reason("Division by zero".to_string()));
+            }
+        }
+        let car = args[0].clone();
+        let res = args[1..].iter().fold(car, |acc, a| acc / a.clone());
+        Ok(Exp::Num(res))
     }));
     data.insert("%".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
