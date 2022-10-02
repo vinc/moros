@@ -115,7 +115,13 @@ impl Neg for Number {
     fn neg(self) -> Number {
         match self {
             Number::BigInt(a) => Number::BigInt(-a),
-            Number::Int(a)    => Number::Int(-a),
+            Number::Int(a)    => {
+                if let Some(r) = a.checked_neg() {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(-BigInt::from(a))
+                }
+            }
             Number::Float(a)  => Number::Float(-a),
         }
     }
@@ -152,7 +158,13 @@ impl Div for Number {
             (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a / b),
             (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a / b),
             (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a / b),
-            (Number::Int(a),    Number::Int(b))    => Number::Int(a / b),
+            (Number::Int(a),    Number::Int(b))    => {
+                if let Some(r) = a.checked_div(b) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a) / BigInt::from(b))
+                }
+            }
             (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) / b),
             (Number::Float(a),  Number::Int(b))    => Number::Float(a / (b as f64)),
             (Number::Float(a),  Number::Float(b))  => Number::Float(a / b),
@@ -192,7 +204,13 @@ impl Sub for Number {
             (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a - b),
             (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a - b),
             (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a - b),
-            (Number::Int(a),    Number::Int(b))    => Number::Int(a - b),
+            (Number::Int(a),    Number::Int(b))    => {
+                if let Some(r) = a.checked_div(b) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a) - BigInt::from(b))
+                }
+            }
             (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) - b),
             (Number::Float(a),  Number::Int(b))    => Number::Float(a - (b as f64)),
             (Number::Float(a),  Number::Float(b))  => Number::Float(a - b),
@@ -209,7 +227,13 @@ impl Rem for Number {
             (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a % b),
             (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a % b),
             (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a % b),
-            (Number::Int(a),    Number::Int(b))    => Number::Int(a % b),
+            (Number::Int(a),    Number::Int(b))    => {
+                if let Some(r) = a.checked_rem(b) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a) % BigInt::from(b))
+                }
+            }
             (Number::Int(a),    Number::Float(b))  => Number::Float(libm::fmod(a as f64, b)),
             (Number::Float(a),  Number::Int(b))    => Number::Float(libm::fmod(a, b as f64)),
             (Number::Float(a),  Number::Float(b))  => Number::Float(libm::fmod(a, b)),
