@@ -597,6 +597,11 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("%".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
         let args = list_of_numbers(args)?;
+        for arg in &args[1..] {
+            if arg.is_zero() {
+                return Err(Err::Reason("Division by zero".to_string()));
+            }
+        }
         let car = args[0].clone();
         let res = args[1..].iter().fold(car, |acc, a| acc % a.clone());
         Ok(Exp::Num(res))
