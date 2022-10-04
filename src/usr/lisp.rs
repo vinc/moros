@@ -101,9 +101,13 @@ impl Number {
     }
 
     fn pow(&self, other: &Number) -> Number {
+        let bmax = BigInt::from(u32::MAX);
+        let imax = u32::MAX as i64;
         match (self, other) {
-            (Number::BigInt(a), Number::Int(b))   => Number::BigInt(a.pow(*b as u32)), // FIXME
-            (Number::Int(a),    Number::Int(b))   => {
+            (_, Number::BigInt(b)) if *b > bmax   => Number::Float(f64::INFINITY),
+            (_, Number::Int(b)) if *b > imax      => Number::Float(f64::INFINITY),
+            (Number::BigInt(a), Number::Int(b))   => Number::BigInt(a.pow(*b as u32)),
+            (Number::Int(a),    Number::Int(b)) => {
                 if let Some(r) = a.checked_pow(*b as u32) {
                     Number::Int(r)
                 } else {
