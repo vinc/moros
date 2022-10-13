@@ -20,7 +20,6 @@ aml = "0.16.1"
 base64 = { version = "0.13.0", default-features = false }
 bit_field = "0.10.0"
 bootloader = { version = "0.9.23", features = ["map_physical_memory"] }
-float-cmp = "0.9.0"
 hmac = { version = "0.12.1", default-features = false }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.5"

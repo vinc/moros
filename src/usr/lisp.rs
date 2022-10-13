@@ -20,7 +20,6 @@ use core::f64::consts::PI;
 use core::fmt;
 use core::ops::{Neg, Add, Div, Mul, Sub, Rem, Shl, Shr};
 use core::str::FromStr;
-use float_cmp::approx_eq;
 use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_traits::cast::ToPrimitive;
@@ -60,7 +59,7 @@ use nom::combinator::recognize;
 
 // Types
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, PartialOrd)]
 enum Number {
     BigInt(BigInt),
     Float(f64),
@@ -552,24 +551,6 @@ fn parse(input: &str)-> Result<(String, Exp), Err> {
 
 // Env
 
-macro_rules! ensure_tonicity {
-    ($check_fn:expr) => {
-        |args: &[Exp]| -> Result<Exp, Err> {
-            let floats = list_of_floats(args)?;
-            ensure_length_gt!(floats, 0);
-            let first = &floats[0];
-            let rest = &floats[1..];
-            fn f(prev: &f64, xs: &[f64]) -> bool {
-                match xs.first() {
-                    Some(x) => $check_fn(*prev, *x) && f(x, &xs[1..]),
-                    None => true,
-                }
-            }
-            Ok(Exp::Bool(f(first, rest)))
-        }
-    };
-}
-
 macro_rules! ensure_length_eq {
     ($list:expr, $count:expr) => {
         if $list.len() != $count {
@@ -591,11 +572,21 @@ macro_rules! ensure_length_gt {
 fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     data.insert("pi".to_string(), Exp::Num(Number::from(PI)));
-    data.insert("=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
-    data.insert(">".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
-    data.insert(">=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
-    data.insert("<".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
-    data.insert("<=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
+    data.insert("=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])))
+    }));
+    data.insert(">".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] > nums[1])))
+    }));
+    data.insert(">=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] >= nums[1])))
+    }));
+    data.insert("<".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] < nums[1])))
+    }));
+    data.insert("<=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] <= nums[1])))
+    }));
     data.insert("*".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let res = list_of_numbers(args)?.iter().fold(Number::Int(1), |acc, a| acc * a.clone());
         Ok(Exp::Num(res))
@@ -858,10 +849,6 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
 
 fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
     args.iter().map(number).collect()
-}
-
-fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
-    args.iter().map(float).collect()
 }
 
 fn list_of_bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
@@ -1362,10 +1349,13 @@ fn test_lisp() {
 
     // comparisons
     assert_eq!(eval!("(< 6 4)"), "false");
-    assert_eq!(eval!("(> 6 4 3 1)"), "true");
+    assert_eq!(eval!("(> 6 4)"), "true");
+    assert_eq!(eval!("(> 6 4 2)"), "true");
+    assert_eq!(eval!("(> 6)"), "true");
+    assert_eq!(eval!("(>)"), "true");
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
-    assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
+    assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
 
     // number
     assert_eq!(eval!("(bytes->number (number->bytes 42.0))"), "42.0");
