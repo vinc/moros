@@ -18,7 +18,7 @@ use core::convert::TryInto;
 use core::convert::TryFrom;
 use core::f64::consts::PI;
 use core::fmt;
-use core::ops::{Neg, Add, Div, Mul, Sub, Rem};
+use core::ops::{Neg, Add, Div, Mul, Sub, Rem, Shl, Shr};
 use core::str::FromStr;
 use float_cmp::approx_eq;
 use lazy_static::lazy_static;
@@ -250,6 +250,42 @@ impl Rem for Number {
             (Number::Int(a),    Number::Float(b))  => Number::Float(libm::fmod(a as f64, b)),
             (Number::Float(a),  Number::Int(b))    => Number::Float(libm::fmod(a, b as f64)),
             (Number::Float(a),  Number::Float(b))  => Number::Float(libm::fmod(a, b)),
+            _                                      => Number::Float(f64::NAN), // TODO
+        }
+    }
+}
+
+impl Shl for Number {
+    type Output = Number;
+
+    fn shl(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a << b),
+            (Number::Int(a),    Number::Int(b))    => {
+                if let Some(r) = a.checked_shl(b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a) << b)
+                }
+            }
+            _                                      => Number::Float(f64::NAN), // TODO
+        }
+    }
+}
+
+impl Shr for Number {
+    type Output = Number;
+
+    fn shr(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a >> b),
+            (Number::Int(a),    Number::Int(b))    => {
+                if let Some(r) = a.checked_shr(b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a) >> b)
+                }
+            }
             _                                      => Number::Float(f64::NAN), // TODO
         }
     }
@@ -611,6 +647,18 @@ fn default_env() -> Rc<RefCell<Env>> {
         let args = list_of_numbers(args)?;
         let car = args[0].clone();
         let res = args[1..].iter().fold(car, |acc, a| acc.pow(&a));
+        Ok(Exp::Num(res))
+    }));
+    data.insert("<<".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let args = list_of_numbers(args)?;
+        let res = args[0].clone() << args[1].clone();
+        Ok(Exp::Num(res))
+    }));
+    data.insert(">>".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let args = list_of_numbers(args)?;
+        let res = args[0].clone() >> args[1].clone();
         Ok(Exp::Num(res))
     }));
     data.insert("cos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
