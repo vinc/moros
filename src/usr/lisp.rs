@@ -974,6 +974,18 @@ fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     }
 }
 
+fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    match &args[0] {
+        Exp::Sym(name) => {
+            let exp = eval(&args[1], env)?;
+            env_set(name, exp, env)?;
+            Ok(Exp::Sym(name.clone()))
+        }
+        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+    }
+}
+
 fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     Ok(Exp::Lambda(Lambda {
@@ -1054,6 +1066,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
                 "label" | "define" | "def"   => Some(eval_label_args(args, env)),
                 "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
 
+                "set"                        => Some(eval_set_args(args, env)),
                 "defun" | "defn"             => Some(eval_defun_args(args, env)),
                 "apply"                      => Some(eval_apply_args(args, env)),
                 "eval"                       => Some(eval_eval_args(args, env)),
@@ -1073,6 +1086,22 @@ fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
         None => {
             match &env.outer {
                 Some(outer_env) => env_get(key, outer_env.borrow()),
+                None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
+            }
+        }
+    }
+}
+
+fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
+    let mut env = env.borrow_mut();
+    match env.data.get(key) {
+        Some(_) => {
+            env.data.insert(key.to_string(), val);
+            Ok(())
+        }
+        None => {
+            match &env.outer {
+                Some(outer_env) => env_set(key, val, outer_env.borrow()),
                 None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
             }
         }
