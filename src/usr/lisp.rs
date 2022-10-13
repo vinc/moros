@@ -941,10 +941,8 @@ fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
         match arg {
             Exp::List(list) => {
                 ensure_length_eq!(list, 2);
-                let pred = eval(&list[0], env)?;
-                let exp = eval(&list[1], env)?;
-                match pred {
-                    Exp::Bool(b) if b => return Ok(exp),
+                match eval(&list[0], env)? {
+                    Exp::Bool(b) if b => return Ok(eval(&list[1], env)?),
                     _ => continue,
                 }
             },
