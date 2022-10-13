@@ -986,6 +986,13 @@ fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
+fn eval_loop_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    loop {
+        eval(&args[0], env)?;
+    }
+}
+
 fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     Ok(Exp::Lambda(Lambda {
@@ -1067,6 +1074,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
                 "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
 
                 "set"                        => Some(eval_set_args(args, env)),
+                "loop"                       => Some(eval_loop_args(args, env)),
                 "defun" | "defn"             => Some(eval_defun_args(args, env)),
                 "apply"                      => Some(eval_apply_args(args, env)),
                 "eval"                       => Some(eval_eval_args(args, env)),
