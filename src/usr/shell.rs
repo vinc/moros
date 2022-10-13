@@ -286,6 +286,53 @@ fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     Ok(())
 }
 
+fn cmd_pi(args: &[&str], _config: &mut Config) -> Result<(), ExitCode> {
+    use num_bigint::BigInt;
+    use usr::lisp::Number;
+    if args.len() == 2 {
+        let mut digits = args[1].parse().unwrap_or(10);
+        let mut q = BigInt::from(1);
+        let mut r = BigInt::from(0);
+        let mut t = BigInt::from(1);
+        let mut k = BigInt::from(1);
+        let mut n = BigInt::from(3);
+        let mut l = BigInt::from(3);
+        let mut first = true;
+        loop {
+            if sys::console::end_of_text() {
+                break;
+            }
+            if &q * 4 + &r - &t < &n * &t {
+                print!("{}", Number::BigInt(n.clone()));
+                if first {
+                    print!(".");
+                    first = false;
+                }
+                if digits == 0 {
+                    break;
+                }
+                digits -= 1;
+
+                let nr = (&r - &n * &t) * 10;
+                n = (&q * 3 + &r) * 10 / &t - &n * 10;
+                q *= 10;
+                r = nr;
+            } else {
+                let nr = (&q * 2 + &r) * &l;
+                let nn = (&q * &k * 7 + 2 + &r * &l) / (&t * &l);
+                q *= &k;
+                t *= &l;
+                l += 2;
+                k += 1;
+                n = nn;
+                r = nr;
+            }
+        }
+    }
+    println!();
+    Ok(())
+}
+
 fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
@@ -439,6 +486,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
 
     let res = match args[0] {
         ""         => Ok(()),
+        "pi"       => cmd_pi(&args, config),
         "2048"     => usr::pow::main(&args),
         "alias"    => cmd_alias(&args, config),
         "base64"   => usr::base64::main(&args),

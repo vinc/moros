@@ -60,7 +60,7 @@ use nom::combinator::recognize;
 // Types
 
 #[derive(Clone, PartialEq, PartialOrd)]
-enum Number {
+pub enum Number {
     BigInt(BigInt),
     Float(f64),
     Int(i64),
@@ -463,7 +463,7 @@ struct Lambda {
 }
 
 #[derive(Debug)]
-enum Err {
+pub enum Err {
     Reason(String),
 }
 
