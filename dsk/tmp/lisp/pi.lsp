@@ -12,8 +12,6 @@
     (map
       (lambda (j)
         (do
-          (println (string "\nDEBUG: q=" q " r=" r " t=" t " k=" k " n=" n " l=" l))
-          (println (string "DEBUG: " (- (+ (* q 4) r) t) " < " (* n t) " => " (< (- (+ (* q 4) r) t) (* n t))))
           (cond
             ((< (- (+ (* q 4) r) t) (* n t)) (do
               (print (string n (cond (dot ".") (true ""))))
@@ -32,7 +30,7 @@
               (set n nn)
               (set r nr))))))
       (range 0 y))
-    (println "")))
+    n))
 
 (println
   (cond
