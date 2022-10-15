@@ -97,10 +97,10 @@
     (print "\n")))
 
 (define (uptime)
-  (bytes->number (read-file-bytes "/dev/clk/uptime" 8)))
+  (bytes->number (read-file-bytes "/dev/clk/uptime" 8) "float"))
 
 (define (realtime)
-  (bytes->number (read-file-bytes "realtime" 8)))
+  (bytes->number (read-file-bytes "realtime" 8) "float"))
 
 (define (write-file path str)
   (write-file-bytes path (string->bytes str)))

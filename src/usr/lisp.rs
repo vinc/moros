@@ -67,6 +67,14 @@ pub enum Number {
 }
 
 impl Number {
+    fn to_be_bytes(&self) -> Vec<u8> {
+        match self {
+            Number::Int(n) => n.to_be_bytes().to_vec(),
+            Number::Float(n) => n.to_be_bytes().to_vec(),
+            Number::BigInt(n) => n.to_bytes_be().1, // TODO
+        }
+    }
+
     fn is_zero(&self) -> bool {
         match self {
             Number::Int(n) => *n == 0,
@@ -769,20 +777,25 @@ fn default_env() -> Rc<RefCell<Env>> {
         }
     }));
     data.insert("bytes->number".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match &args[0] {
-            Exp::List(list) => {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) { // TODO: default type to "int" and make it optional
+            (Exp::List(list), Exp::Str(kind)) => {
                 let bytes = list_of_bytes(list)?;
                 ensure_length_eq!(bytes, 8);
-                Ok(Exp::Num(Number::from(f64::from_be_bytes(bytes[0..8].try_into().unwrap()))))
+                match kind.as_str() { // TODO: bigint
+                    "int" => Ok(Exp::Num(Number::Int(i64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
+                    "float" => Ok(Exp::Num(Number::Float(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
+                    _ => Err(Err::Reason("Invalid number type".to_string())),
+                }
             }
-            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
+            _ => Err(Err::Reason("Expected args to be the number type and a list of bytes".to_string()))
         }
+
     }));
     data.insert("number->bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let f = float(&args[0])?;
-        Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
+        let n = number(&args[0])?;
+        Ok(Exp::List(n.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
     }));
     data.insert("regex-find".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
@@ -1406,7 +1419,8 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
 
     // number
-    assert_eq!(eval!("(bytes->number (number->bytes 42.0))"), "42.0");
+    assert_eq!(eval!("(bytes->number (number->bytes 42) \"int\")"), "42");
+    assert_eq!(eval!("(bytes->number (number->bytes 42.0) \"float\")"), "42.0");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
