@@ -357,7 +357,20 @@ impl From<&Number> for f64 {
         match num {
             Number::Float(n)  => *n,
             Number::Int(n)    => *n as f64,
-            Number::BigInt(_) => f64::INFINITY, // TODO
+            Number::BigInt(n) => n.to_f64().unwrap_or(f64::NAN),
+        }
+    }
+}
+
+impl TryFrom<Number> for usize {
+    type Error = Err;
+
+    fn try_from(num: Number) -> Result<Self, Self::Error> {
+        let err = Err::Reason(format!("Expected an integer between 0 and {}", usize::MAX));
+        match num {
+            Number::Float(n)  => usize::try_from(n as i64).or(Err(err)),
+            Number::Int(n)    => usize::try_from(n).or(Err(err)),
+            Number::BigInt(n) => n.to_usize().ok_or(err),
         }
     }
 }
@@ -366,11 +379,11 @@ impl TryFrom<Number> for u8 {
     type Error = Err;
 
     fn try_from(num: Number) -> Result<Self, Self::Error> {
-        let num = f64::from(&num);
-        if num >= 0.0 && num < u8::MAX.into() && (num - libm::trunc(num) == 0.0) {
-            Ok(num as u8)
-        } else {
-            Err(Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX)))
+        let err = Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX));
+        match num {
+            Number::Float(n)  => u8::try_from(n as i64).or(Err(err)),
+            Number::Int(n)    => u8::try_from(n).or(Err(err)),
+            Number::BigInt(n) => n.to_u8().ok_or(err),
         }
     }
 }
@@ -701,8 +714,8 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("read-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
-        let len = float(&args[1])?;
-        let mut buf = vec![0; len as usize];
+        let len = number(&args[1])?;
+        let mut buf = vec![0; len.try_into()?];
         let bytes = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
         buf.resize(bytes, 0);
         Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
