@@ -26,6 +26,7 @@ pub mod list;
 pub mod memory;
 pub mod net;
 pub mod pci;
+pub mod pi;
 pub mod pow;
 pub mod r#move;
 pub mod read;
