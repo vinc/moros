@@ -66,7 +66,15 @@ pub enum Number {
     Int(i64),
 }
 
-macro_rules! impl_op_method {
+macro_rules! trigonometric_method {
+    ($op:ident) => {
+        fn $op(&self) -> Number {
+            Number::Float(libm::$op(self.into()))
+        }
+    }
+}
+
+macro_rules! arithmetic_method {
     ($op:ident, $checked_op:ident) => {
         fn $op(self, other: Number) -> Number {
             match (self, other) {
@@ -90,10 +98,17 @@ macro_rules! impl_op_method {
 }
 
 impl Number {
-    impl_op_method!(add, checked_add);
-    impl_op_method!(sub, checked_sub);
-    impl_op_method!(mul, checked_mul);
-    impl_op_method!(div, checked_div);
+    trigonometric_method!(cos);
+    trigonometric_method!(sin);
+    trigonometric_method!(tan);
+    trigonometric_method!(acos);
+    trigonometric_method!(asin);
+    trigonometric_method!(atan);
+
+    arithmetic_method!(add, checked_add);
+    arithmetic_method!(sub, checked_sub);
+    arithmetic_method!(mul, checked_mul);
+    arithmetic_method!(div, checked_div);
 
     // NOTE: Rem use `libm::fmod` for `f64` instead of `rem`
     fn rem(self, other: Number) -> Number {
@@ -193,30 +208,6 @@ impl Number {
             Number::BigInt(n) => n.is_zero(),
         }
     }
-
-    fn cos(&self) -> Number {
-        Number::Float(libm::cos(self.into()))
-    }
-
-    fn sin(&self) -> Number {
-        Number::Float(libm::sin(self.into()))
-    }
-
-    fn tan(&self) -> Number {
-        Number::Float(libm::tan(self.into()))
-    }
-
-    fn acos(&self) -> Number {
-        Number::Float(libm::acos(self.into()))
-    }
-
-    fn asin(&self) -> Number {
-        Number::Float(libm::asin(self.into()))
-    }
-
-    fn atan(&self) -> Number {
-        Number::Float(libm::atan(self.into()))
-    }
 }
 
 impl Neg for Number {
@@ -226,7 +217,7 @@ impl Neg for Number {
     }
 }
 
-macro_rules! impl_op {
+macro_rules! operator {
     ($t:ty, $op:ident) => {
         impl $t for Number {
             type Output = Number;
@@ -237,13 +228,13 @@ macro_rules! impl_op {
     }
 }
 
-impl_op!(Add, add);
-impl_op!(Sub, sub);
-impl_op!(Mul, mul);
-impl_op!(Div, div);
-impl_op!(Rem, rem);
-impl_op!(Shl, shl);
-impl_op!(Shr, shr);
+operator!(Add, add);
+operator!(Sub, sub);
+operator!(Mul, mul);
+operator!(Div, div);
+operator!(Rem, rem);
+operator!(Shl, shl);
+operator!(Shr, shr);
 
 impl FromStr for Number {
     type Err = Err;
@@ -291,6 +282,12 @@ impl From<f64> for Number {
     }
 }
 
+impl From<u8> for Number {
+    fn from(num: u8) -> Self {
+        Number::Int(num as i64)
+    }
+}
+
 impl From<usize> for Number {
     fn from(num: usize) -> Self {
         if num > i64::MAX as usize {
@@ -298,12 +295,6 @@ impl From<usize> for Number {
         } else {
             Number::Int(num as i64)
         }
-    }
-}
-
-impl From<u8> for Number {
-    fn from(num: u8) -> Self {
-        Number::Int(num as i64)
     }
 }
 
@@ -317,31 +308,25 @@ impl From<&Number> for f64 {
     }
 }
 
-impl TryFrom<Number> for usize {
-    type Error = Err;
+macro_rules! try_from_number {
+    ($int:ident, $to_int:ident) => {
+        impl TryFrom<Number> for $int {
+            type Error = Err;
 
-    fn try_from(num: Number) -> Result<Self, Self::Error> {
-        let err = Err::Reason(format!("Expected an integer between 0 and {}", usize::MAX));
-        match num {
-            Number::Float(n)  => usize::try_from(n as i64).or(Err(err)),
-            Number::Int(n)    => usize::try_from(n).or(Err(err)),
-            Number::BigInt(n) => n.to_usize().ok_or(err),
+            fn try_from(num: Number) -> Result<Self, Self::Error> {
+                let err = Err::Reason(format!("Expected an integer between 0 and {}", $int::MAX));
+                match num {
+                    Number::Float(n)  => $int::try_from(n as i64).or(Err(err)),
+                    Number::Int(n)    => $int::try_from(n).or(Err(err)),
+                    Number::BigInt(n) => n.$to_int().ok_or(err),
+                }
+            }
         }
     }
 }
 
-impl TryFrom<Number> for u8 {
-    type Error = Err;
-
-    fn try_from(num: Number) -> Result<Self, Self::Error> {
-        let err = Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX));
-        match num {
-            Number::Float(n)  => u8::try_from(n as i64).or(Err(err)),
-            Number::Int(n)    => u8::try_from(n).or(Err(err)),
-            Number::BigInt(n) => n.to_u8().ok_or(err),
-        }
-    }
-}
+try_from_number!(usize, to_usize);
+try_from_number!(u8, to_u8);
 
 impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
