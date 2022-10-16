@@ -66,7 +66,118 @@ pub enum Number {
     Int(i64),
 }
 
+macro_rules! impl_op_method {
+    ($op:ident, $checked_op:ident) => {
+        fn $op(self, other: Number) -> Number {
+            match (self, other) {
+                (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.$op(b)),
+                (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.$op(b)),
+                (Number::Int(a), Number::BigInt(b)) => Number::BigInt(a.$op(b)),
+                (Number::Int(a), Number::Int(b)) => {
+                    if let Some(r) = a.$checked_op(b) {
+                        Number::Int(r)
+                    } else {
+                        Number::BigInt(BigInt::from(a).$op(BigInt::from(b)))
+                    }
+                }
+                (Number::Int(a), Number::Float(b)) => Number::Float((a as f64).$op(b)),
+                (Number::Float(a), Number::Int(b)) => Number::Float(a.$op(b as f64)),
+                (Number::Float(a), Number::Float(b)) => Number::Float(a.$op(b)),
+                _ => Number::Float(f64::NAN), // TODO
+            }
+        }
+    }
+}
+
 impl Number {
+    impl_op_method!(add, checked_add);
+    impl_op_method!(sub, checked_sub);
+    impl_op_method!(mul, checked_mul);
+    impl_op_method!(div, checked_div);
+
+    // NOTE: Rem use `libm::fmod` for `f64` instead of `rem`
+    fn rem(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.rem(b)),
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.rem(b)),
+            (Number::Int(a), Number::BigInt(b)) => Number::BigInt(a.rem(b)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_rem(b) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a).rem(BigInt::from(b)))
+                }
+            }
+            (Number::Int(a), Number::Float(b)) => Number::Float(libm::fmod(a as f64, b)),
+            (Number::Float(a), Number::Int(b)) => Number::Float(libm::fmod(a, b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(libm::fmod(a, b)),
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
+    fn pow(&self, other: &Number) -> Number {
+        let bmax = BigInt::from(u32::MAX);
+        let imax = u32::MAX as i64;
+        match (self, other) {
+            (_, Number::BigInt(b)) if *b > bmax => Number::Float(f64::INFINITY),
+            (_, Number::Int(b)) if *b > imax => Number::Float(f64::INFINITY),
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.pow(*b as u32)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_pow(*b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(*a)).pow(other)
+                }
+            }
+            (Number::Int(a), Number::Float(b)) => Number::Float(libm::pow(*a as f64, *b)),
+            (Number::Float(a), Number::Int(b)) => Number::Float(libm::pow(*a, *b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
+    fn neg(self) -> Number {
+        match self {
+            Number::BigInt(a) => Number::BigInt(-a),
+            Number::Int(a) => {
+                if let Some(r) = a.checked_neg() {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(-BigInt::from(a))
+                }
+            }
+            Number::Float(a) => Number::Float(-a),
+        }
+    }
+
+    fn shl(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.shl(b)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_shl(b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a).shl(b))
+                }
+            }
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
+    fn shr(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.shr(b)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_shr(b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a).shr(b))
+                }
+            }
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
     fn to_be_bytes(&self) -> Vec<u8> {
         match self {
             Number::Int(n) => n.to_be_bytes().to_vec(),
@@ -106,229 +217,33 @@ impl Number {
     fn atan(&self) -> Number {
         Number::Float(libm::atan(self.into()))
     }
-
-    fn pow(&self, other: &Number) -> Number {
-        let bmax = BigInt::from(u32::MAX);
-        let imax = u32::MAX as i64;
-        match (self, other) {
-            (_, Number::BigInt(b)) if *b > bmax   => Number::Float(f64::INFINITY),
-            (_, Number::Int(b)) if *b > imax      => Number::Float(f64::INFINITY),
-            (Number::BigInt(a), Number::Int(b))   => Number::BigInt(a.pow(*b as u32)),
-            (Number::Int(a),    Number::Int(b)) => {
-                if let Some(r) = a.checked_pow(*b as u32) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(*a)).pow(other)
-                }
-            }
-            (Number::Int(a),    Number::Float(b)) => Number::Float(libm::pow(*a as f64, *b)),
-            (Number::Float(a),  Number::Int(b))   => Number::Float(libm::pow(*a, *b as f64)),
-            (Number::Float(a),  Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
-            _                                     => Number::Float(f64::NAN), // TODO
-        }
-    }
-
-    fn neg(self) -> Number {
-        match self {
-            Number::BigInt(a) => Number::BigInt(-a),
-            Number::Int(a)    => {
-                if let Some(r) = a.checked_neg() {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(-BigInt::from(a))
-                }
-            }
-            Number::Float(a)  => Number::Float(-a),
-        }
-    }
-
-    fn add(self, other: Number) -> Number {
-        match (self, other) {
-            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a + b),
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a + b),
-            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a + b),
-            (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_add(b) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(a) + BigInt::from(b))
-                }
-            }
-            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) + b),
-            (Number::Float(a),  Number::Int(b))    => Number::Float(a + (b as f64)),
-            (Number::Float(a),  Number::Float(b))  => Number::Float(a + b),
-            _                                      => Number::Float(f64::NAN), // TODO
-        }
-    }
-
-    fn div(self, other: Number) -> Number {
-        match (self, other) {
-            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a / b),
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a / b),
-            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a / b),
-            (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_div(b) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(a) / BigInt::from(b))
-                }
-            }
-            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) / b),
-            (Number::Float(a),  Number::Int(b))    => Number::Float(a / (b as f64)),
-            (Number::Float(a),  Number::Float(b))  => Number::Float(a / b),
-            _                                      => Number::Float(f64::NAN), // TODO
-        }
-    }
-
-    fn mul(self, other: Number) -> Number {
-        match (self, other) {
-            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a * b),
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a * b),
-            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a * b),
-            (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_mul(b) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(a) * BigInt::from(b))
-                }
-            }
-            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) * b),
-            (Number::Float(a),  Number::Int(b))    => Number::Float(a * (b as f64)),
-            (Number::Float(a),  Number::Float(b))  => Number::Float(a * b),
-            _                                      => Number::Float(f64::NAN), // TODO
-        }
-    }
-
-    fn sub(self, other: Number) -> Number {
-        match (self, other) {
-            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a - b),
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a - b),
-            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a - b),
-            (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_sub(b) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(a) - BigInt::from(b))
-                }
-            }
-            (Number::Int(a),    Number::Float(b))  => Number::Float((a as f64) - b),
-            (Number::Float(a),  Number::Int(b))    => Number::Float(a - (b as f64)),
-            (Number::Float(a),  Number::Float(b))  => Number::Float(a - b),
-            _                                      => Number::Float(f64::NAN), // TODO
-        }
-    }
-
-    fn rem(self, other: Number) -> Number {
-        match (self, other) {
-            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a % b),
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a % b),
-            (Number::Int(a),    Number::BigInt(b)) => Number::BigInt(a % b),
-            (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_rem(b) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(a) % BigInt::from(b))
-                }
-            }
-            (Number::Int(a),    Number::Float(b))  => Number::Float(libm::fmod(a as f64, b)),
-            (Number::Float(a),  Number::Int(b))    => Number::Float(libm::fmod(a, b as f64)),
-            (Number::Float(a),  Number::Float(b))  => Number::Float(libm::fmod(a, b)),
-            _                                      => Number::Float(f64::NAN), // TODO
-        }
-    }
-
-    fn shl(self, other: Number) -> Number {
-        match (self, other) {
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a << b),
-            (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_shl(b as u32) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(a) << b)
-                }
-            }
-            _                                      => Number::Float(f64::NAN), // TODO
-        }
-    }
-
-    fn shr(self, other: Number) -> Number {
-        match (self, other) {
-            (Number::BigInt(a), Number::Int(b))    => Number::BigInt(a >> b),
-            (Number::Int(a),    Number::Int(b))    => {
-                if let Some(r) = a.checked_shr(b as u32) {
-                    Number::Int(r)
-                } else {
-                    Number::BigInt(BigInt::from(a) >> b)
-                }
-            }
-            _                                      => Number::Float(f64::NAN), // TODO
-        }
-    }
 }
 
 impl Neg for Number {
     type Output = Number;
-
     fn neg(self) -> Number {
         self.neg()
     }
 }
 
-impl Add for Number {
-    type Output = Number;
-
-    fn add(self, other: Number) -> Number {
-        self.add(other)
+macro_rules! impl_op {
+    ($t:ty, $op:ident) => {
+        impl $t for Number {
+            type Output = Number;
+            fn $op(self, other: Number) -> Number {
+                self.$op(other)
+            }
+        }
     }
 }
 
-impl Div for Number {
-    type Output = Number;
-
-    fn div(self, other: Number) -> Number {
-        self.div(other)
-    }
-}
-
-impl Mul for Number {
-    type Output = Number;
-
-    fn mul(self, other: Number) -> Number {
-        self.mul(other)
-    }
-}
-
-impl Sub for Number {
-    type Output = Number;
-
-    fn sub(self, other: Number) -> Number {
-        self.sub(other)
-    }
-}
-
-impl Rem for Number {
-    type Output = Number;
-
-    fn rem(self, other: Number) -> Number {
-        self.rem(other)
-    }
-}
-
-impl Shl for Number {
-    type Output = Number;
-
-    fn shl(self, other: Number) -> Number {
-        self.shl(other)
-    }
-}
-
-impl Shr for Number {
-    type Output = Number;
-
-    fn shr(self, other: Number) -> Number {
-        self.shr(other)
-    }
-}
+impl_op!(Add, add);
+impl_op!(Sub, sub);
+impl_op!(Mul, mul);
+impl_op!(Div, div);
+impl_op!(Rem, rem);
+impl_op!(Shl, shl);
+impl_op!(Shr, shr);
 
 impl FromStr for Number {
     type Err = Err;
