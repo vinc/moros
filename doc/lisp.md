@@ -14,6 +14,11 @@ In version 0.2.0 the whole implementation was refactored and the parser was
 rewritten to use [Nom](https://github.com/Geal/nom). This allowed the addition
 of strings to the language and reading from the filesystem.
 
+
+## Types
+- Basics: `bool`, `list`, `symbol`, `string`
+- Numbers: `float`, `int`, `bigint`
+
 ## Seven Primitive Operators
 - `quote` (with the `'` syntax)
 - `atom` (aliased to `atom?`)
