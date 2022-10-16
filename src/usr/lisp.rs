@@ -127,10 +127,6 @@ impl Number {
             _                                     => Number::Float(f64::NAN), // TODO
         }
     }
-}
-
-impl Neg for Number {
-    type Output = Number;
 
     fn neg(self) -> Number {
         match self {
@@ -145,10 +141,6 @@ impl Neg for Number {
             Number::Float(a)  => Number::Float(-a),
         }
     }
-}
-
-impl Add for Number {
-    type Output = Number;
 
     fn add(self, other: Number) -> Number {
         match (self, other) {
@@ -168,10 +160,6 @@ impl Add for Number {
             _                                      => Number::Float(f64::NAN), // TODO
         }
     }
-}
-
-impl Div for Number {
-    type Output = Number;
 
     fn div(self, other: Number) -> Number {
         match (self, other) {
@@ -191,10 +179,6 @@ impl Div for Number {
             _                                      => Number::Float(f64::NAN), // TODO
         }
     }
-}
-
-impl Mul for Number {
-    type Output = Number;
 
     fn mul(self, other: Number) -> Number {
         match (self, other) {
@@ -214,10 +198,6 @@ impl Mul for Number {
             _                                      => Number::Float(f64::NAN), // TODO
         }
     }
-}
-
-impl Sub for Number {
-    type Output = Number;
 
     fn sub(self, other: Number) -> Number {
         match (self, other) {
@@ -237,10 +217,6 @@ impl Sub for Number {
             _                                      => Number::Float(f64::NAN), // TODO
         }
     }
-}
-
-impl Rem for Number {
-    type Output = Number;
 
     fn rem(self, other: Number) -> Number {
         match (self, other) {
@@ -260,10 +236,6 @@ impl Rem for Number {
             _                                      => Number::Float(f64::NAN), // TODO
         }
     }
-}
-
-impl Shl for Number {
-    type Output = Number;
 
     fn shl(self, other: Number) -> Number {
         match (self, other) {
@@ -278,10 +250,6 @@ impl Shl for Number {
             _                                      => Number::Float(f64::NAN), // TODO
         }
     }
-}
-
-impl Shr for Number {
-    type Output = Number;
 
     fn shr(self, other: Number) -> Number {
         match (self, other) {
@@ -295,6 +263,70 @@ impl Shr for Number {
             }
             _                                      => Number::Float(f64::NAN), // TODO
         }
+    }
+}
+
+impl Neg for Number {
+    type Output = Number;
+
+    fn neg(self) -> Number {
+        self.neg()
+    }
+}
+
+impl Add for Number {
+    type Output = Number;
+
+    fn add(self, other: Number) -> Number {
+        self.add(other)
+    }
+}
+
+impl Div for Number {
+    type Output = Number;
+
+    fn div(self, other: Number) -> Number {
+        self.div(other)
+    }
+}
+
+impl Mul for Number {
+    type Output = Number;
+
+    fn mul(self, other: Number) -> Number {
+        self.mul(other)
+    }
+}
+
+impl Sub for Number {
+    type Output = Number;
+
+    fn sub(self, other: Number) -> Number {
+        self.sub(other)
+    }
+}
+
+impl Rem for Number {
+    type Output = Number;
+
+    fn rem(self, other: Number) -> Number {
+        self.rem(other)
+    }
+}
+
+impl Shl for Number {
+    type Output = Number;
+
+    fn shl(self, other: Number) -> Number {
+        self.shl(other)
+    }
+}
+
+impl Shr for Number {
+    type Output = Number;
+
+    fn shr(self, other: Number) -> Number {
+        self.shr(other)
     }
 }
 
