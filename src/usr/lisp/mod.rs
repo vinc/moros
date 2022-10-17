@@ -168,7 +168,6 @@ pub fn byte(exp: &Exp) -> Result<u8, Err> {
     number(exp)?.try_into()
 }
 
-
 // REPL
 
 fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
