@@ -248,7 +248,7 @@ impl FromStr for Number {
             return Ok(Number::Int(n));
         } else {
             let mut chars = s.chars().peekable();
-            let is_neg = chars.peek() == Some(&&'-');
+            let is_neg = chars.peek() == Some(&'-');
             if is_neg {
                 chars.next().unwrap();
             }
@@ -590,7 +590,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_gt!(args, 0);
         let args = list_of_numbers(args)?;
         let car = args[0].clone();
-        let res = args[1..].iter().fold(car, |acc, a| acc.pow(&a));
+        let res = args[1..].iter().fold(car, |acc, a| acc.pow(a));
         Ok(Exp::Num(res))
     }));
     data.insert("<<".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
@@ -900,7 +900,7 @@ fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
             Exp::List(list) => {
                 ensure_length_eq!(list, 2);
                 match eval(&list[0], env)? {
-                    Exp::Bool(b) if b => return Ok(eval(&list[1], env)?),
+                    Exp::Bool(b) if b => return eval(&list[1], env),
                     _ => continue,
                 }
             },
@@ -1094,7 +1094,7 @@ fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> 
 
 fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     match exp {
-        Exp::Sym(key) => env_get(&key, &env),
+        Exp::Sym(key) => env_get(key, env),
         Exp::Bool(_) => Ok(exp.clone()),
         Exp::Num(_) => Ok(exp.clone()),
         Exp::Str(_) => Ok(exp.clone()),
