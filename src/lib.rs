@@ -43,7 +43,10 @@ pub fn init(boot_info: &'static BootInfo) {
 
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
-    panic!("allocation error: {:?}", layout)
+    let csi_color = api::console::Style::color("LightRed");
+    let csi_reset = api::console::Style::reset();
+    printk!("{}Error:{} Could not allocate {} bytes\n", csi_color, csi_reset, layout.size());
+    hlt_loop();
 }
 
 pub trait Testable {

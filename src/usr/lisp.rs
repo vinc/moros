@@ -15,10 +15,15 @@ use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::convert::TryInto;
+use core::convert::TryFrom;
 use core::f64::consts::PI;
 use core::fmt;
-use float_cmp::approx_eq;
+use core::ops::{Neg, Add, Div, Mul, Sub, Rem, Shl, Shr};
+use core::str::FromStr;
 use lazy_static::lazy_static;
+use num_bigint::BigInt;
+use num_traits::cast::ToPrimitive;
+use num_traits::Zero;
 use spin::Mutex;
 
 use nom::IResult;
@@ -29,13 +34,15 @@ use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
 use nom::character::complete::char;
 use nom::character::complete::multispace0;
+use nom::character::complete::digit1;
 use nom::combinator::map;
 use nom::combinator::opt;
 use nom::combinator::value;
 use nom::multi::many0;
-use nom::number::complete::double;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
+use nom::sequence::tuple;
+use nom::combinator::recognize;
 
 // Eval & Env adapted from Risp
 // Copyright 2019 Stepan Parunashvili
@@ -52,13 +59,320 @@ use nom::sequence::preceded;
 
 // Types
 
+#[derive(Clone, PartialEq, PartialOrd)]
+pub enum Number {
+    BigInt(BigInt),
+    Float(f64),
+    Int(i64),
+}
+
+macro_rules! trigonometric_method {
+    ($op:ident) => {
+        fn $op(&self) -> Number {
+            Number::Float(libm::$op(self.into()))
+        }
+    }
+}
+
+macro_rules! arithmetic_method {
+    ($op:ident, $checked_op:ident) => {
+        fn $op(self, other: Number) -> Number {
+            match (self, other) {
+                (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.$op(b)),
+                (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.$op(b)),
+                (Number::Int(a), Number::BigInt(b)) => Number::BigInt(a.$op(b)),
+                (Number::Int(a), Number::Int(b)) => {
+                    if let Some(r) = a.$checked_op(b) {
+                        Number::Int(r)
+                    } else {
+                        Number::BigInt(BigInt::from(a).$op(BigInt::from(b)))
+                    }
+                }
+                (Number::Int(a), Number::Float(b)) => Number::Float((a as f64).$op(b)),
+                (Number::Float(a), Number::Int(b)) => Number::Float(a.$op(b as f64)),
+                (Number::Float(a), Number::Float(b)) => Number::Float(a.$op(b)),
+                _ => Number::Float(f64::NAN), // TODO
+            }
+        }
+    }
+}
+
+impl Number {
+    trigonometric_method!(cos);
+    trigonometric_method!(sin);
+    trigonometric_method!(tan);
+    trigonometric_method!(acos);
+    trigonometric_method!(asin);
+    trigonometric_method!(atan);
+
+    arithmetic_method!(add, checked_add);
+    arithmetic_method!(sub, checked_sub);
+    arithmetic_method!(mul, checked_mul);
+    arithmetic_method!(div, checked_div);
+
+    // NOTE: Rem use `libm::fmod` for `f64` instead of `rem`
+    fn rem(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.rem(b)),
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.rem(b)),
+            (Number::Int(a), Number::BigInt(b)) => Number::BigInt(a.rem(b)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_rem(b) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a).rem(BigInt::from(b)))
+                }
+            }
+            (Number::Int(a), Number::Float(b)) => Number::Float(libm::fmod(a as f64, b)),
+            (Number::Float(a), Number::Int(b)) => Number::Float(libm::fmod(a, b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(libm::fmod(a, b)),
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
+    fn pow(&self, other: &Number) -> Number {
+        let bmax = BigInt::from(u32::MAX);
+        let imax = u32::MAX as i64;
+        match (self, other) {
+            (_, Number::BigInt(b)) if *b > bmax => Number::Float(f64::INFINITY),
+            (_, Number::Int(b)) if *b > imax => Number::Float(f64::INFINITY),
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.pow(*b as u32)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_pow(*b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(*a)).pow(other)
+                }
+            }
+            (Number::Int(a), Number::Float(b)) => Number::Float(libm::pow(*a as f64, *b)),
+            (Number::Float(a), Number::Int(b)) => Number::Float(libm::pow(*a, *b as f64)),
+            (Number::Float(a), Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
+    fn neg(self) -> Number {
+        match self {
+            Number::BigInt(a) => Number::BigInt(-a),
+            Number::Int(a) => {
+                if let Some(r) = a.checked_neg() {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(-BigInt::from(a))
+                }
+            }
+            Number::Float(a) => Number::Float(-a),
+        }
+    }
+
+    fn shl(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.shl(b)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_shl(b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a).shl(b))
+                }
+            }
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
+    fn shr(self, other: Number) -> Number {
+        match (self, other) {
+            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.shr(b)),
+            (Number::Int(a), Number::Int(b)) => {
+                if let Some(r) = a.checked_shr(b as u32) {
+                    Number::Int(r)
+                } else {
+                    Number::BigInt(BigInt::from(a).shr(b))
+                }
+            }
+            _ => Number::Float(f64::NAN), // TODO
+        }
+    }
+
+    fn to_be_bytes(&self) -> Vec<u8> {
+        match self {
+            Number::Int(n) => n.to_be_bytes().to_vec(),
+            Number::Float(n) => n.to_be_bytes().to_vec(),
+            Number::BigInt(n) => n.to_bytes_be().1, // TODO
+        }
+    }
+
+    fn is_zero(&self) -> bool {
+        match self {
+            Number::Int(n) => *n == 0,
+            Number::Float(n) => *n == 0.0,
+            Number::BigInt(n) => n.is_zero(),
+        }
+    }
+}
+
+impl Neg for Number {
+    type Output = Number;
+    fn neg(self) -> Number {
+        self.neg()
+    }
+}
+
+macro_rules! operator {
+    ($t:ty, $op:ident) => {
+        impl $t for Number {
+            type Output = Number;
+            fn $op(self, other: Number) -> Number {
+                self.$op(other)
+            }
+        }
+    }
+}
+
+operator!(Add, add);
+operator!(Sub, sub);
+operator!(Mul, mul);
+operator!(Div, div);
+operator!(Rem, rem);
+operator!(Shl, shl);
+operator!(Shr, shr);
+
+impl FromStr for Number {
+    type Err = Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.contains('.') {
+            if let Ok(n) = s.parse() {
+                return Ok(Number::Float(n));
+            }
+        } else if let Ok(n) = s.parse() {
+            return Ok(Number::Int(n));
+        } else {
+            let mut chars = s.chars().peekable();
+            let is_neg = chars.peek() == Some(&'-');
+            if is_neg {
+                chars.next().unwrap();
+            }
+            let mut res = BigInt::from(0);
+            for c in chars {
+                let d = c as u8 - b'0';
+                res = res * BigInt::from(10) + BigInt::from(d as u32);
+            }
+            res *= BigInt::from(if is_neg { -1 } else { 1 });
+            return Ok(Number::BigInt(res));
+        } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
+            return Ok(Number::BigInt(n));
+        } */
+        Err(Err::Reason("Could not parse number".to_string()))
+    }
+}
+
+impl From<&str> for Number {
+    fn from(s: &str) -> Self {
+        if let Ok(num) = s.parse() {
+            num
+        } else {
+            Number::Float(f64::NAN)
+        }
+    }
+}
+
+impl From<f64> for Number {
+    fn from(num: f64) -> Self {
+        Number::Float(num)
+    }
+}
+
+impl From<u8> for Number {
+    fn from(num: u8) -> Self {
+        Number::Int(num as i64)
+    }
+}
+
+impl From<usize> for Number {
+    fn from(num: usize) -> Self {
+        if num > i64::MAX as usize {
+            Number::BigInt(BigInt::from(num))
+        } else {
+            Number::Int(num as i64)
+        }
+    }
+}
+
+impl From<&Number> for f64 {
+    fn from(num: &Number) -> f64 {
+        match num {
+            Number::Float(n)  => *n,
+            Number::Int(n)    => *n as f64,
+            Number::BigInt(n) => n.to_f64().unwrap_or(f64::NAN),
+        }
+    }
+}
+
+macro_rules! try_from_number {
+    ($int:ident, $to_int:ident) => {
+        impl TryFrom<Number> for $int {
+            type Error = Err;
+
+            fn try_from(num: Number) -> Result<Self, Self::Error> {
+                let err = Err::Reason(format!("Expected an integer between 0 and {}", $int::MAX));
+                match num {
+                    Number::Float(n)  => $int::try_from(n as i64).or(Err(err)),
+                    Number::Int(n)    => $int::try_from(n).or(Err(err)),
+                    Number::BigInt(n) => n.$to_int().ok_or(err),
+                }
+            }
+        }
+    }
+}
+
+try_from_number!(usize, to_usize);
+try_from_number!(u8, to_u8);
+
+impl fmt::Display for Number {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        //write!(f, "{}", self), // FIXME: alloc error
+        match self {
+            Number::Int(n) => {
+                write!(f, "{}", n)
+            }
+            Number::BigInt(n) => {
+                //write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
+                let mut v = Vec::new();
+                let mut n = n.clone();
+                if n < BigInt::from(0) {
+                    write!(f, "-").ok();
+                    n = -n;
+                }
+                loop {
+                    v.push((n.clone() % BigInt::from(10)).to_u64().unwrap());
+                    n = n / BigInt::from(10);
+                    if n == BigInt::from(0) {
+                        break;
+                    }
+                }
+                for d in v.iter().rev() {
+                    write!(f, "{}", d).ok();
+                }
+                Ok(())
+            }
+            Number::Float(n) => {
+                if n - libm::trunc(*n) == 0.0 {
+                    write!(f, "{}.0", n)
+                } else {
+                    write!(f, "{}", n)
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 enum Exp {
     Primitive(fn(&[Exp]) -> Result<Exp, Err>),
     Lambda(Lambda),
     List(Vec<Exp>),
     Bool(bool),
-    Num(f64),
+    Num(Number),
     Str(String),
     Sym(String),
 }
@@ -102,7 +416,7 @@ struct Lambda {
 }
 
 #[derive(Debug)]
-enum Err {
+pub enum Err {
     Reason(String),
 }
 
@@ -153,8 +467,12 @@ fn parse_sym(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
-    let (input, num) = double(input)?;
-    Ok((input, Exp::Num(num)))
+    let (input, num) = recognize(tuple((
+        opt(alt((char('+'), char('-')))),
+        digit1,
+        opt(tuple((char('.'), digit1)))
+    )))(input)?;
+    Ok((input, Exp::Num(Number::from(num))))
 }
 
 fn parse_bool(input: &str) -> IResult<&str, Exp> {
@@ -186,24 +504,6 @@ fn parse(input: &str)-> Result<(String, Exp), Err> {
 
 // Env
 
-macro_rules! ensure_tonicity {
-    ($check_fn:expr) => {
-        |args: &[Exp]| -> Result<Exp, Err> {
-            let floats = list_of_floats(args)?;
-            ensure_length_gt!(floats, 0);
-            let first = &floats[0];
-            let rest = &floats[1..];
-            fn f(prev: &f64, xs: &[f64]) -> bool {
-                match xs.first() {
-                    Some(x) => $check_fn(*prev, *x) && f(x, &xs[1..]),
-                    None => true,
-                }
-            }
-            Ok(Exp::Bool(f(first, rest)))
-        }
-    };
-}
-
 macro_rules! ensure_length_eq {
     ($list:expr, $count:expr) => {
         if $list.len() != $count {
@@ -224,100 +524,125 @@ macro_rules! ensure_length_gt {
 
 fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
-    data.insert("pi".to_string(), Exp::Num(PI));
-    data.insert("=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b))));
-    data.insert(">".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a > b)));
-    data.insert(">=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a > b)));
-    data.insert("<".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| !approx_eq!(f64, a, b) && a < b)));
-    data.insert("<=".to_string(), Exp::Primitive(ensure_tonicity!(|a, b| approx_eq!(f64, a, b) || a < b)));
+    data.insert("pi".to_string(), Exp::Num(Number::from(PI)));
+    data.insert("=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])))
+    }));
+    data.insert(">".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] > nums[1])))
+    }));
+    data.insert(">=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] >= nums[1])))
+    }));
+    data.insert("<".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] < nums[1])))
+    }));
+    data.insert("<=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] <= nums[1])))
+    }));
     data.insert("*".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_floats(args)?.iter().fold(1.0, |acc, a| acc * a);
+        let res = list_of_numbers(args)?.iter().fold(Number::Int(1), |acc, a| acc * a.clone());
         Ok(Exp::Num(res))
     }));
     data.insert("+".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_floats(args)?.iter().fold(0.0, |acc, a| acc + a);
+        let res = list_of_numbers(args)?.iter().fold(Number::Int(0), |acc, a| acc + a.clone());
         Ok(Exp::Num(res))
     }));
     data.insert("-".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_floats(args)?;
-        let car = args[0];
+        let args = list_of_numbers(args)?;
+        let car = args[0].clone();
         if args.len() == 1 {
             Ok(Exp::Num(-car))
         } else {
-            let res = args[1..].iter().fold(0.0, |acc, a| acc + a);
+            let res = args[1..].iter().fold(Number::Int(0), |acc, a| acc + a.clone());
             Ok(Exp::Num(car - res))
         }
     }));
     data.insert("/".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_floats(args)?;
-        let car = args[0];
+        let mut args = list_of_numbers(args)?;
         if args.len() == 1 {
-            Ok(Exp::Num(1.0 / car))
-        } else {
-            let res = args[1..].iter().fold(car, |acc, a| acc / a);
-            Ok(Exp::Num(res))
+            args.insert(0, Number::Int(1));
         }
+        for arg in &args[1..] {
+            if arg.is_zero() {
+                return Err(Err::Reason("Division by zero".to_string()));
+            }
+        }
+        let car = args[0].clone();
+        let res = args[1..].iter().fold(car, |acc, a| acc / a.clone());
+        Ok(Exp::Num(res))
     }));
     data.insert("%".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_floats(args)?;
-        let car = args[0];
-        let res = args[1..].iter().fold(car, |acc, a| libm::fmod(acc, *a));
+        let args = list_of_numbers(args)?;
+        for arg in &args[1..] {
+            if arg.is_zero() {
+                return Err(Err::Reason("Division by zero".to_string()));
+            }
+        }
+        let car = args[0].clone();
+        let res = args[1..].iter().fold(car, |acc, a| acc % a.clone());
         Ok(Exp::Num(res))
     }));
     data.insert("^".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_gt!(args, 0);
-        let args = list_of_floats(args)?;
-        let car = args[0];
-        let res = args[1..].iter().fold(car, |acc, a| libm::pow(acc, *a));
+        let args = list_of_numbers(args)?;
+        let car = args[0].clone();
+        let res = args[1..].iter().fold(car, |acc, a| acc.pow(a));
+        Ok(Exp::Num(res))
+    }));
+    data.insert("<<".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let args = list_of_numbers(args)?;
+        let res = args[0].clone() << args[1].clone();
+        Ok(Exp::Num(res))
+    }));
+    data.insert(">>".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        let args = list_of_numbers(args)?;
+        let res = args[0].clone() >> args[1].clone();
         Ok(Exp::Num(res))
     }));
     data.insert("cos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::cos(args[0])))
+        Ok(Exp::Num(number(&args[0])?.cos()))
     }));
     data.insert("acos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        if -1.0 <= args[0] && args[0] <= 1.0 {
-            Ok(Exp::Num(libm::acos(args[0])))
+        if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
+            Ok(Exp::Num(number(&args[0])?.acos()))
         } else {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
     }));
     data.insert("asin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        if -1.0 <= args[0] && args[0] <= 1.0 {
-            Ok(Exp::Num(libm::asin(args[0])))
+        if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
+            Ok(Exp::Num(number(&args[0])?.asin()))
         } else {
             Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
         }
     }));
     data.insert("atan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::atan(args[0])))
+        Ok(Exp::Num(number(&args[0])?.atan()))
     }));
     data.insert("sin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::sin(args[0])))
+        Ok(Exp::Num(number(&args[0])?.sin()))
     }));
     data.insert("tan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let args = list_of_floats(args)?;
-        Ok(Exp::Num(libm::tan(args[0])))
+        Ok(Exp::Num(number(&args[0])?.tan()))
     }));
     data.insert("system".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
         match usr::shell::exec(&cmd) {
-            Ok(()) => Ok(Exp::Num(0.0)),
-            Err(code) => Ok(Exp::Num(code as u8 as f64)),
+            Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
+            Err(code) => Ok(Exp::Num(Number::from(code as u8))),
         }
     }));
     data.insert("read-file".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
@@ -329,11 +654,11 @@ fn default_env() -> Rc<RefCell<Env>> {
     data.insert("read-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         let path = string(&args[0])?;
-        let len = float(&args[1])?;
-        let mut buf = vec![0; len as usize];
+        let len = number(&args[1])?;
+        let mut buf = vec![0; len.try_into()?];
         let bytes = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
         buf.resize(bytes, 0);
-        Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
+        Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
     }));
     data.insert("write-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
@@ -342,7 +667,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             Exp::List(list) => {
                 let buf = list_of_bytes(list)?;
                 let bytes = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-                Ok(Exp::Num(bytes as f64))
+                Ok(Exp::Num(Number::from(bytes)))
             }
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
@@ -354,7 +679,7 @@ fn default_env() -> Rc<RefCell<Env>> {
             Exp::List(list) => {
                 let buf = list_of_bytes(list)?;
                 let bytes = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-                Ok(Exp::Num(bytes as f64))
+                Ok(Exp::Num(Number::from(bytes)))
             }
             _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
         }
@@ -370,7 +695,7 @@ fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let buf = s.as_bytes();
-        Ok(Exp::List(buf.iter().map(|b| Exp::Num(*b as f64)).collect()))
+        Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
     }));
     data.insert("bytes->string".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
@@ -384,27 +709,32 @@ fn default_env() -> Rc<RefCell<Env>> {
         }
     }));
     data.insert("bytes->number".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match &args[0] {
-            Exp::List(list) => {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) { // TODO: default type to "int" and make it optional
+            (Exp::List(list), Exp::Str(kind)) => {
                 let bytes = list_of_bytes(list)?;
                 ensure_length_eq!(bytes, 8);
-                Ok(Exp::Num(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))
+                match kind.as_str() { // TODO: bigint
+                    "int" => Ok(Exp::Num(Number::Int(i64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
+                    "float" => Ok(Exp::Num(Number::Float(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
+                    _ => Err(Err::Reason("Invalid number type".to_string())),
+                }
             }
-            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
+            _ => Err(Err::Reason("Expected args to be the number type and a list of bytes".to_string()))
         }
+
     }));
     data.insert("number->bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        let f = float(&args[0])?;
-        Ok(Exp::List(f.to_be_bytes().iter().map(|b| Exp::Num(*b as f64)).collect()))
+        let n = number(&args[0])?;
+        Ok(Exp::List(n.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
     }));
     data.insert("regex-find".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         match (&args[0], &args[1]) {
             (Exp::Str(regex), Exp::Str(s)) => {
                 let res = Regex::new(regex).find(s).map(|(a, b)| {
-                    vec![Exp::Num(a as f64), Exp::Num(b as f64)]
+                    vec![Exp::Num(Number::from(a)), Exp::Num(Number::from(b))]
                 }).unwrap_or(vec![]);
                 Ok(Exp::List(res))
             }
@@ -436,6 +766,15 @@ fn default_env() -> Rc<RefCell<Env>> {
         };
         Ok(Exp::Str(exp.to_string()))
     }));
+    data.insert("number-type".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        match args[0] {
+            Exp::Num(Number::Int(_)) => Ok(Exp::Str("int".to_string())),
+            Exp::Num(Number::BigInt(_)) => Ok(Exp::Str("bigint".to_string())),
+            Exp::Num(Number::Float(_)) => Ok(Exp::Str("float".to_string())),
+            _ => Err(Err::Reason("Expected arg to be a number".to_string()))
+        }
+    }));
     data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::List(args.to_vec()))
     }));
@@ -466,8 +805,8 @@ fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
     }
 }
 
-fn list_of_floats(args: &[Exp]) -> Result<Vec<f64>, Err> {
-    args.iter().map(float).collect()
+fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
+    args.iter().map(number).collect()
 }
 
 fn list_of_bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
@@ -481,20 +820,22 @@ fn string(exp: &Exp) -> Result<String, Err> {
     }
 }
 
-fn float(exp: &Exp) -> Result<f64, Err> {
+fn number(exp: &Exp) -> Result<Number, Err> {
     match exp {
-        Exp::Num(num) => Ok(*num),
+        Exp::Num(num) => Ok(num.clone()),
         _ => Err(Err::Reason("Expected a number".to_string())),
     }
 }
 
-fn byte(exp: &Exp) -> Result<u8, Err> {
-    let num = float(exp)?;
-    if num >= 0.0 && num < u8::MAX.into() && (num - libm::trunc(num) == 0.0) {
-        Ok(num as u8)
-    } else {
-        Err(Err::Reason(format!("Expected an integer between 0 and {}", u8::MAX)))
+fn float(exp: &Exp) -> Result<f64, Err> {
+    match exp {
+        Exp::Num(num) => Ok(num.into()),
+        _ => Err(Err::Reason("Expected a float".to_string())),
     }
+}
+
+fn byte(exp: &Exp) -> Result<u8, Err> {
+    number(exp)?.try_into()
 }
 
 // Eval
@@ -558,10 +899,8 @@ fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
         match arg {
             Exp::List(list) => {
                 ensure_length_eq!(list, 2);
-                let pred = eval(&list[0], env)?;
-                let exp = eval(&list[1], env)?;
-                match pred {
-                    Exp::Bool(b) if b => return Ok(exp),
+                match eval(&list[0], env)? {
+                    Exp::Bool(b) if b => return eval(&list[1], env),
                     _ => continue,
                 }
             },
@@ -590,6 +929,25 @@ fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
             eval_label_args(&label_args, env)
         }
         _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
+    }
+}
+
+fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    match &args[0] {
+        Exp::Sym(name) => {
+            let exp = eval(&args[1], env)?;
+            env_set(name, exp, env)?;
+            Ok(Exp::Sym(name.clone()))
+        }
+        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+    }
+}
+
+fn eval_loop_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    loop {
+        eval(&args[0], env)?;
     }
 }
 
@@ -673,6 +1031,8 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
                 "label" | "define" | "def"   => Some(eval_label_args(args, env)),
                 "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
 
+                "set"                        => Some(eval_set_args(args, env)),
+                "loop"                       => Some(eval_loop_args(args, env)),
                 "defun" | "defn"             => Some(eval_defun_args(args, env)),
                 "apply"                      => Some(eval_apply_args(args, env)),
                 "eval"                       => Some(eval_eval_args(args, env)),
@@ -692,6 +1052,22 @@ fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
         None => {
             match &env.outer {
                 Some(outer_env) => env_get(key, outer_env.borrow()),
+                None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
+            }
+        }
+    }
+}
+
+fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
+    let mut env = env.borrow_mut();
+    match env.data.get(key) {
+        Some(_) => {
+            env.data.insert(key.to_string(), val);
+            Ok(())
+        }
+        None => {
+            match &env.outer {
+                Some(outer_env) => env_set(key, val, outer_env.borrow()),
                 None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
             }
         }
@@ -718,7 +1094,7 @@ fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, Err> 
 
 fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     match exp {
-        Exp::Sym(key) => env_get(&key, &env),
+        Exp::Sym(key) => env_get(key, env),
         Exp::Bool(_) => Ok(exp.clone()),
         Exp::Num(_) => Ok(exp.clone()),
         Exp::Str(_) => Ok(exp.clone()),
@@ -888,7 +1264,8 @@ fn test_lisp() {
     assert_eq!(eval!("(eq \"a\" 'b)"), "false");
     assert_eq!(eval!("(eq 1 1)"), "true");
     assert_eq!(eval!("(eq 1 2)"), "false");
-    assert_eq!(eval!("(eq 1 1.0)"), "true");
+    assert_eq!(eval!("(eq 1 1.0)"), "false");
+    assert_eq!(eval!("(eq 1.0 1.0)"), "true");
 
     // car
     assert_eq!(eval!("(car (quote (1)))"), "1");
@@ -949,9 +1326,11 @@ fn test_lisp() {
     assert_eq!(eval!("(* 2 (* 3 4))"), "24");
 
     // division
-    assert_eq!(eval!("(/ 4)"), "0.25");
+    assert_eq!(eval!("(/ 4)"), "0");
+    assert_eq!(eval!("(/ 4.0)"), "0.25");
     assert_eq!(eval!("(/ 4 2)"), "2");
-    assert_eq!(eval!("(/ 1 2)"), "0.5");
+    assert_eq!(eval!("(/ 1 2)"), "0");
+    assert_eq!(eval!("(/ 1 2.0)"), "0.5");
     assert_eq!(eval!("(/ 8 4 2)"), "1");
 
     // exponential
@@ -963,13 +1342,17 @@ fn test_lisp() {
 
     // comparisons
     assert_eq!(eval!("(< 6 4)"), "false");
-    assert_eq!(eval!("(> 6 4 3 1)"), "true");
+    assert_eq!(eval!("(> 6 4)"), "true");
+    assert_eq!(eval!("(> 6 4 2)"), "true");
+    assert_eq!(eval!("(> 6)"), "true");
+    assert_eq!(eval!("(>)"), "true");
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
-    assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "true");
+    assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
 
     // number
-    assert_eq!(eval!("(bytes->number (number->bytes 42))"), "42");
+    assert_eq!(eval!("(bytes->number (number->bytes 42) \"int\")"), "42");
+    assert_eq!(eval!("(bytes->number (number->bytes 42.0) \"float\")"), "42.0");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
@@ -990,14 +1373,32 @@ fn test_lisp() {
     assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
     assert_eq!(eval!("(acos 0)"), (PI / 2.0).to_string());
     assert_eq!(eval!("(asin 1)"), (PI / 2.0).to_string());
-    assert_eq!(eval!("(atan 0)"), "0");
-    assert_eq!(eval!("(cos pi)"), "-1");
-    assert_eq!(eval!("(sin (/ pi 2))"), "1");
-    assert_eq!(eval!("(tan 0)"), "0");
+    assert_eq!(eval!("(atan 0)"), "0.0");
+    assert_eq!(eval!("(cos pi)"), "-1.0");
+    assert_eq!(eval!("(sin (/ pi 2))"), "1.0");
+    assert_eq!(eval!("(tan 0)"), "0.0");
 
     // list
     assert_eq!(eval!("(list)"), "()");
     assert_eq!(eval!("(list 1)"), "(1)");
     assert_eq!(eval!("(list 1 2)"), "(1 2)");
     assert_eq!(eval!("(list 1 2 (+ 1 2))"), "(1 2 3)");
+
+    // bigint
+    assert_eq!(eval!("9223372036854775807"),          "9223372036854775807");   // -> int
+    assert_eq!(eval!("9223372036854775808"),          "9223372036854775808");   // -> bigint
+    assert_eq!(eval!("(+ 9223372036854775807 0)"),    "9223372036854775807");   // -> int
+    assert_eq!(eval!("(- 9223372036854775808 1)"),    "9223372036854775807");   // -> bigint
+    assert_eq!(eval!("(+ 9223372036854775807 1)"),    "9223372036854775808");   // -> bigint
+    assert_eq!(eval!("(+ 9223372036854775807 1.0)"),  "9223372036854776000.0"); // -> float
+    assert_eq!(eval!("(+ 9223372036854775807 10)"),   "9223372036854775817");   // -> bigint
+    assert_eq!(eval!("(* 9223372036854775807 10)"),  "92233720368547758070");   // -> bigint
+
+    assert_eq!(eval!("(^ 2 16)"),                                      "65536");   // -> int
+    assert_eq!(eval!("(^ 2 128)"),   "340282366920938463463374607431768211456");   // -> bigint
+    assert_eq!(eval!("(^ 2.0 128)"), "340282366920938500000000000000000000000.0"); // -> float
+
+    assert_eq!(eval!("(number-type 9223372036854775807)"),   "\"int\"");
+    assert_eq!(eval!("(number-type 9223372036854775808)"),   "\"bigint\"");
+    assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
 }

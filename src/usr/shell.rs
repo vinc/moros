@@ -471,6 +471,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "move"     => usr::r#move::main(&args),
         "net"      => usr::net::main(&args),
         "pci"      => usr::pci::main(&args),
+        "pi"       => usr::pi::main(&args),
         "proc"     => cmd_proc(&args),
         "quit"     => Err(ExitCode::ShellExit),
         "read"     => usr::read::main(&args),

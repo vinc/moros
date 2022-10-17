@@ -1,6 +1,5 @@
-use crate::api;
+use crate::{api, sys, hlt_loop};
 use crate::api::process::ExitCode;
-use crate::sys;
 use crate::sys::process::Registers;
 
 use core::arch::asm;
@@ -112,13 +111,13 @@ extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, 
     //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
     let addr = Cr2::read().as_u64();
     if sys::allocator::alloc_pages(addr, 1).is_err() {
+        let csi_color = api::console::Style::color("LightRed");
+        let csi_reset = api::console::Style::reset();
+        printk!("{}Error:{} Could not allocate address {:#x}\n", csi_color, csi_reset, addr);
         if error_code.contains(PageFaultErrorCode::USER_MODE) {
-            let csi_color = api::console::Style::color("LightRed");
-            let csi_reset = api::console::Style::reset();
-            printk!("{}Error:{} Could not allocate address {:#x}\n", csi_color, csi_reset, addr);
             api::syscall::exit(ExitCode::PageFaultError);
         } else {
-            panic!();
+            hlt_loop();
         }
     }
 }
