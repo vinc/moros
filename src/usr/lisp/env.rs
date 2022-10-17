@@ -8,6 +8,8 @@ use super::list_of_numbers;
 use super::list_of_symbols;
 use super::list_of_bytes;
 
+use crate::{ensure_length_eq, ensure_length_gt};
+
 use crate::usr::shell;
 use crate::api::fs;
 use crate::api::regex::Regex;
@@ -28,26 +30,6 @@ use core::convert::TryInto;
 pub struct Env {
     pub data: BTreeMap<String, Exp>,
     pub outer: Option<Rc<RefCell<Env>>>,
-}
-
-#[macro_export]
-macro_rules! ensure_length_eq {
-    ($list:expr, $count:expr) => {
-        if $list.len() != $count {
-            let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected {} expression{}", $count, plural)))
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! ensure_length_gt {
-    ($list:expr, $count:expr) => {
-        if $list.len() <= $count {
-            let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected more than {} expression{}", $count, plural)))
-        }
-    };
 }
 
 pub fn default_env() -> Rc<RefCell<Env>> {

@@ -100,6 +100,26 @@ lazy_static! {
     pub static ref FORMS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
+#[macro_export]
+macro_rules! ensure_length_eq {
+    ($list:expr, $count:expr) => {
+        if $list.len() != $count {
+            let plural = if $count != 1 { "s" } else { "" };
+            return Err(Err::Reason(format!("Expected {} expression{}", $count, plural)))
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! ensure_length_gt {
+    ($list:expr, $count:expr) => {
+        if $list.len() <= $count {
+            let plural = if $count != 1 { "s" } else { "" };
+            return Err(Err::Reason(format!("Expected more than {} expression{}", $count, plural)))
+        }
+    };
+}
+
 fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
