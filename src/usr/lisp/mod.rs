@@ -121,20 +121,6 @@ macro_rules! ensure_length_gt {
     };
 }
 
-fn lisp_completer(line: &str) -> Vec<String> {
-    let mut entries = Vec::new();
-    if let Some(last_word) = line.split_whitespace().next_back() {
-        if let Some(f) = last_word.strip_prefix('(') {
-            for form in &*FORMS.lock() {
-                if let Some(entry) = form.strip_prefix(f) {
-                    entries.push(entry.into());
-                }
-            }
-        }
-    }
-    entries
-}
-
 fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
     match form {
         Exp::List(list) => {
@@ -193,6 +179,20 @@ fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
 
 fn strip_comments(s: &str) -> String {
     s.split('#').next().unwrap().into()
+}
+
+fn lisp_completer(line: &str) -> Vec<String> {
+    let mut entries = Vec::new();
+    if let Some(last_word) = line.split_whitespace().next_back() {
+        if let Some(f) = last_word.strip_prefix('(') {
+            for form in &*FORMS.lock() {
+                if let Some(entry) = form.strip_prefix(f) {
+                    entries.push(entry.into());
+                }
+            }
+        }
+    }
+    entries
 }
 
 fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
