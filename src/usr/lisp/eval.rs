@@ -1,15 +1,14 @@
 use super::{Err, Exp, Env, Lambda};
+use super::env::{env_get, env_set, lambda_env};
 use super::parse::parse;
 use super::string;
-use super::env::{env_get, env_set, lambda_env};
 
 use crate::{ensure_length_eq, ensure_length_gt};
-
 use crate::api::fs;
 
 use alloc::format;
-use alloc::string::ToString;
 use alloc::rc::Rc;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
 use core::cell::RefCell;

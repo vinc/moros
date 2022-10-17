@@ -5,6 +5,7 @@ mod parse;
 
 pub use number::Number;
 pub use env::Env;
+
 use env::default_env;
 use eval::{eval, eval_label_args};
 use parse::parse;
@@ -21,11 +22,11 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
 use core::cell::RefCell;
+use core::convert::TryInto;
 use core::f64::consts::PI;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use core::convert::TryInto;
 
 // Eval & Env adapted from Risp
 // Copyright 2019 Stepan Parunashvili

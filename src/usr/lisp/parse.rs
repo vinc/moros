@@ -11,16 +11,16 @@ use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
 use nom::character::complete::char;
-use nom::character::complete::multispace0;
 use nom::character::complete::digit1;
+use nom::character::complete::multispace0;
 use nom::combinator::map;
 use nom::combinator::opt;
+use nom::combinator::recognize;
 use nom::combinator::value;
 use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::tuple;
-use nom::combinator::recognize;
 
 fn is_symbol_letter(c: char) -> bool {
     let chars = "<>=-+*/%^?:";

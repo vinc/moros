@@ -1,30 +1,29 @@
-use super::{Err, Exp, Number};
 use super::FORMS;
 use super::eval::BUILT_INS;
-use super::parse::parse;
 use super::eval::eval_args;
-use super::{float, number, string};
+use super::list_of_bytes;
 use super::list_of_numbers;
 use super::list_of_symbols;
-use super::list_of_bytes;
+use super::parse::parse;
+use super::{Err, Exp, Number};
+use super::{float, number, string};
 
 use crate::{ensure_length_eq, ensure_length_gt};
-
-use crate::usr::shell;
 use crate::api::fs;
 use crate::api::regex::Regex;
+use crate::usr::shell;
 
 use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
-use alloc::format;
 use core::borrow::Borrow;
-use alloc::rc::Rc;
 use core::cell::RefCell;
-use core::f64::consts::PI;
 use core::convert::TryInto;
+use core::f64::consts::PI;
 
 #[derive(Clone)]
 pub struct Env {
