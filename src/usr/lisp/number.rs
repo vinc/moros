@@ -192,6 +192,7 @@ impl FromStr for Number {
     type Err = Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let err = Err(Err::Reason("Could not parse number".to_string()));
         if s.contains('.') {
             if let Ok(n) = s.parse() {
                 return Ok(Number::Float(n));
@@ -206,6 +207,9 @@ impl FromStr for Number {
             }
             let mut res = BigInt::from(0);
             for c in chars {
+                if !c.is_ascii_digit() {
+                    return err;
+                }
                 let d = c as u8 - b'0';
                 res = res * BigInt::from(10) + BigInt::from(d as u32);
             }
@@ -214,7 +218,7 @@ impl FromStr for Number {
         } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
             return Ok(Number::BigInt(n));
         } */
-        Err(Err::Reason("Could not parse number".to_string()))
+        err
     }
 }
 
