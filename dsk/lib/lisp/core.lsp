@@ -85,9 +85,7 @@
     '()))
 
 (def (println exp)
-  (do
-    (print exp)
-    (print "\n")))
+  (print (string exp "\n")))
 
 (def (uptime)
   (bytes->number (read-file-bytes "/dev/clk/uptime" 8) "float"))
