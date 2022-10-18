@@ -1,7 +1,8 @@
 # Changelog
 
 ## Unreleased
-
+- Refactor Lisp (#417)
+- Add BigInt support to Lisp (#415)
 - Extend and refactor Lisp implementation (#412)
 - Add apply to Lisp (#410)
 - Add Conway's Game of Life (#409)
@@ -24,6 +25,7 @@
 - ATA: Sata LBA2 wrong address (#388)
 - Add file append (#387)
 
+- Bump linked_list_allocator from 0.10.3 to 0.10.4 (#416)
 - Bump sha2 from 0.10.5 to 0.10.6 (#413)
 - Bump raw-cpuid from 10.5.0 to 10.6.0 (#411)
 - Bump sha2 from 0.10.3 to 0.10.5 (#407)
