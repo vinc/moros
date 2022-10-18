@@ -23,7 +23,6 @@ use alloc::vec::Vec;
 use alloc::vec;
 use core::cell::RefCell;
 use core::convert::TryInto;
-use core::f64::consts::PI;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -290,6 +289,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 #[test_case]
 fn test_lisp() {
+    use core::f64::consts::PI;
     let env = &mut default_env();
 
     macro_rules! eval {

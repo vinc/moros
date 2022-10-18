@@ -34,6 +34,8 @@ of strings to the language and reading from the filesystem.
 
 ## Additional Builtins
 - `defun` (aliased to `defn`)
+- `set`
+- `while`
 - `apply`
 - `type`
 - `string`

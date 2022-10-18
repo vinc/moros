@@ -117,11 +117,13 @@ fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
-fn eval_loop_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    loop {
-        eval(&args[0], env)?;
+fn eval_while_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let mut res = Exp::List(vec![]);
+    while eval(&args[0], env)? == Exp::Bool(true) {
+        res = eval(&args[1], env)?;
     }
+    Ok(res)
 }
 
 fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
@@ -182,9 +184,10 @@ fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     Ok(Exp::Bool(true))
 }
 
-pub const BUILT_INS: [&str; 22] = [
+pub const BUILT_INS: [&str; 23] = [
     "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "lambda", "define", "def",
-    "function", "fun", "fn", "defun", "defn", "apply", "eval", "progn", "begin", "do", "load"
+    "function", "fun", "fn", "while", "defun", "defn", "apply", "eval", "progn", "begin", "do",
+    "load"
 ];
 
 fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Option<Result<Exp, Err>> {
@@ -205,7 +208,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
                 "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
 
                 "set"                        => Some(eval_set_args(args, env)),
-                "loop"                       => Some(eval_loop_args(args, env)),
+                "while"                      => Some(eval_while_args(args, env)),
                 "defun" | "defn"             => Some(eval_defun_args(args, env)),
                 "apply"                      => Some(eval_apply_args(args, env)),
                 "eval"                       => Some(eval_eval_args(args, env)),
