@@ -80,7 +80,18 @@ fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
             _ => return Err(Err::Reason("Expected lists of predicate and expression".to_string())),
         }
     }
-    Ok(Exp::List(Vec::new()))
+    Ok(Exp::List(vec![]))
+}
+
+fn eval_if_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 1);
+    if eval(&args[0], env)? == Exp::Bool(true) {
+        eval(&args[1], env)
+    } else if args.len() > 2 {
+        eval(&args[2], env)
+    } else {
+        Ok(Exp::List(vec![]))
+    }
 }
 
 pub fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
@@ -118,10 +129,13 @@ fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
 }
 
 fn eval_while_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
+    ensure_length_gt!(args, 1);
+    let cond = &args[0];
     let mut res = Exp::List(vec![]);
-    while eval(&args[0], env)? == Exp::Bool(true) {
-        res = eval(&args[1], env)?;
+    while eval(cond, env)? == Exp::Bool(true) {
+        for arg in &args[1..] {
+            res = eval(arg, env)?;
+        }
     }
     Ok(res)
 }
@@ -184,9 +198,9 @@ fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     Ok(Exp::Bool(true))
 }
 
-pub const BUILT_INS: [&str; 23] = [
+pub const BUILT_INS: [&str; 24] = [
     "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "lambda", "define", "def",
-    "function", "fun", "fn", "while", "defun", "defn", "apply", "eval", "progn", "begin", "do",
+    "function", "fun", "fn", "if", "while", "defun", "defn", "apply", "eval", "progn", "begin", "do",
     "load"
 ];
 
@@ -207,6 +221,7 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
                 "label" | "define" | "def"   => Some(eval_label_args(args, env)),
                 "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
 
+                "if"                         => Some(eval_if_args(args, env)),
                 "set"                        => Some(eval_set_args(args, env)),
                 "while"                      => Some(eval_while_args(args, env)),
                 "defun" | "defn"             => Some(eval_defun_args(args, env)),

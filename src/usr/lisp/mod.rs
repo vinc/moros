@@ -343,6 +343,12 @@ fn test_lisp() {
     assert_eq!(eval!("(cond ((< 2 4) 1) (true 2))"), "1");
     assert_eq!(eval!("(cond ((> 2 4) 1) (true 2))"), "2");
 
+    // if
+    assert_eq!(eval!("(if (< 2 4) 1)"), "1");
+    assert_eq!(eval!("(if (> 2 4) 1)"), "()");
+    assert_eq!(eval!("(if (< 2 4) 1 2)"), "1");
+    assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
+
     // label
     eval!("(label a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");

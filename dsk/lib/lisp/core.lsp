@@ -28,15 +28,13 @@
   (eq? x nil))
 
 (def (and x y)
-  (cond
-    (x (cond (y true) (true false)))
-    (true false)))
+  (if x (if y true) false))
 
 (def (not x)
-  (cond (x false) (true true)))
+  (if x false true))
 
 (def (or x y)
-  (cond (x true) (y true) (true false)))
+  (if x true (if y true) false))
 
 (def (rest x)
   (cdr x))
@@ -51,34 +49,29 @@
   (second (rest x)))
 
 (def (reduce f ls)
-  (cond
-    ((nil? (rest ls)) (first ls))
-    (true (f (first ls) (reduce f (rest ls))))))
+  (if (nil? (rest ls)) (first ls)
+    (f (first ls) (reduce f (rest ls)))))
 
 (def (string-join ls s)
   (reduce (fn (x y) (string x s y)) ls))
 
 (def (map f ls)
-  (cond
-    ((nil? ls) nil)
-    (true (cons
+  (if (nil? ls) nil
+    (cons
       (f (first ls))
-      (map f (rest ls))))))
+      (map f (rest ls)))))
 
 (def (append x y)
-  (cond
-    ((nil? x) y)
-    (true (cons (first x) (append (rest x) y)))))
+  (if (nil? x) y
+    (cons (first x) (append (rest x) y))))
 
 (def (reverse x)
-  (cond
-    ((nil? x) x)
-    (true (append (reverse (rest x)) (cons (first x) '())))))
+  (if (nil? x) x
+    (append (reverse (rest x)) (cons (first x) '()))))
 
 (def (range i n)
-  (cond
-    ((= i n) nil)
-    (true (append (list i) (range (+ i 1) n)))))
+  (if (= i n) nil
+    (append (list i) (range (+ i 1) n))))
 
 (def (read-line)
   (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
