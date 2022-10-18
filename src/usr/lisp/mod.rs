@@ -350,7 +350,7 @@ fn test_lisp() {
     assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
 
     // while
-    assert_eq!(eval!("(do (def i 0) (def r 0) (while (< i 5) (do (set r (+ i r)) (set i (+ i 1)))) r)"), "10");
+    assert_eq!(eval!("(do (def i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
 
     // label
     eval!("(label a 2)");
