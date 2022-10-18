@@ -27,14 +27,14 @@
 (def (nil? x)
   (eq? x nil))
 
-(def (and x y)
-  (if x (if y true) false))
-
 (def (not x)
   (if x false true))
 
 (def (or x y)
-  (if x true (if y true) false))
+  (if x true (if y true false)))
+
+(def (and x y)
+  (if x (if y true false) false))
 
 (def (rest x)
   (cdr x))
