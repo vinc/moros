@@ -1,11 +1,11 @@
 (load "/lib/lisp/core.lsp")
 
-(define (factorial-helper n acc)
+(def (factorial-helper n acc)
   (cond
     ((< n 2) acc)
     (true (factorial-helper (- n 1) (* acc n)))))
 
-(define (factorial n)
+(def (factorial n)
   (factorial-helper n 1))
 
 (println
