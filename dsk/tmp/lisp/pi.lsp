@@ -9,7 +9,7 @@
     (def k 1)
     (def n 3)
     (def l 3)
-    (while (< i digits)
+    (while (<= i digits)
       (if (< (- (+ (* q 4) r) t) (* n t))
         (do
           (print (string n (if (= i 0) "." "")))
@@ -27,7 +27,7 @@
           (set k (+ k 1))
           (set n nn)
           (set r nr))))
-    n)
+    ""))
 
 (println
   (if (nil? args) "Usage: pi <precision>"
