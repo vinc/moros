@@ -200,9 +200,8 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
             Exp::Str(_) => return Ok(exp.clone()),
             Exp::List(list) => {
                 ensure_length_gt!(list, 0);
-                let first_form = &list[0];
                 let args = &list[1..];
-                match first_form {
+                match &list[0] {
                     Exp::Sym(s) if s == "quote"  => return eval_quote_args(args),
                     Exp::Sym(s) if s == "atom"   => return eval_atom_args(args, &mut env),
                     Exp::Sym(s) if s == "eq"     => return eval_eq_args(args, &mut env),
@@ -232,17 +231,16 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
-                        if eval(&args[0], &mut env)? == Exp::Bool(true) {
+                        if eval(&args[0], &mut env)? == Exp::Bool(true) { // consequent
                             exp = args[1].clone();
-                        } else if args.len() > 2 {
+                        } else if args.len() > 2 { // alternate
                             exp = args[2].clone();
-                        } else {
+                        } else { // '()
                             exp = Exp::List(vec![Exp::Sym("quote".to_string()), Exp::List(vec![])]);
                         }
                     }
                     _ => {
-                        let first_eval = eval(first_form, &mut env)?;
-                        match first_eval {
+                        match eval(&list[0], &mut env)? {
                             Exp::Primitive(f) => {
                                 return f(&eval_args(args, &mut env)?)
                             },
