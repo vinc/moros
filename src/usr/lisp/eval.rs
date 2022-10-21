@@ -237,7 +237,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         } else if args.len() > 2 {
                             exp = args[2].clone();
                         } else {
-                            exp = Exp::List(vec![]);
+                            exp = Exp::List(vec![Exp::Sym("quote".to_string()), Exp::List(vec![])]);
                         }
                     }
                     _ => {
