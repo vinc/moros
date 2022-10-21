@@ -334,9 +334,9 @@ dependencies = [
 
 [[package]]
 name = "pc-keyboard"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c6f2d937e3b8d63449b01401e2bae4041bc9dd1129c2e3e0d239407cf6635ac"
+checksum = "32d2d3d49a70986a10cbbbf19e9703b627957b19d58f0fac5b9dcb60c16930c8"
 
 [[package]]
 name = "pic8259"
