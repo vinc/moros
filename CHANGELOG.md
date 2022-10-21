@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add if and while to Lisp (#418)
 - Refactor Lisp (#417)
 - Add BigInt support to Lisp (#415)
 - Extend and refactor Lisp implementation (#412)
