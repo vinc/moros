@@ -80,7 +80,18 @@ fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
             _ => return Err(Err::Reason("Expected lists of predicate and expression".to_string())),
         }
     }
-    Ok(Exp::List(Vec::new()))
+    Ok(Exp::List(vec![]))
+}
+
+fn eval_if_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 1);
+    if eval(&args[0], env)? == Exp::Bool(true) {
+        eval(&args[1], env)
+    } else if args.len() > 2 {
+        eval(&args[2], env)
+    } else {
+        Ok(Exp::List(vec![]))
+    }
 }
 
 pub fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
@@ -117,11 +128,16 @@ fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
-fn eval_loop_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    loop {
-        eval(&args[0], env)?;
+fn eval_while_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 1);
+    let cond = &args[0];
+    let mut res = Exp::List(vec![]);
+    while eval(cond, env)? == Exp::Bool(true) {
+        for arg in &args[1..] {
+            res = eval(arg, env)?;
+        }
     }
+    Ok(res)
 }
 
 fn eval_lambda_args(args: &[Exp]) -> Result<Exp, Err> {
@@ -182,9 +198,10 @@ fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     Ok(Exp::Bool(true))
 }
 
-pub const BUILT_INS: [&str; 22] = [
+pub const BUILT_INS: [&str; 24] = [
     "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "lambda", "define", "def",
-    "function", "fun", "fn", "defun", "defn", "apply", "eval", "progn", "begin", "do", "load"
+    "function", "fun", "fn", "if", "while", "defun", "defn", "apply", "eval", "progn", "begin", "do",
+    "load"
 ];
 
 fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Option<Result<Exp, Err>> {
@@ -192,26 +209,27 @@ fn eval_built_in_form(exp: &Exp, args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Op
         Exp::Sym(s) => {
             match s.as_ref() {
                 // Seven Primitive Operators
-                "quote"                      => Some(eval_quote_args(args)),
-                "atom"                       => Some(eval_atom_args(args, env)),
-                "eq"                         => Some(eval_eq_args(args, env)),
-                "car"                        => Some(eval_car_args(args, env)),
-                "cdr"                        => Some(eval_cdr_args(args, env)),
-                "cons"                       => Some(eval_cons_args(args, env)),
-                "cond"                       => Some(eval_cond_args(args, env)),
+                "quote"                              => Some(eval_quote_args(args)),
+                "atom"                               => Some(eval_atom_args(args, env)),
+                "eq"                                 => Some(eval_eq_args(args, env)),
+                "car"                                => Some(eval_car_args(args, env)),
+                "cdr"                                => Some(eval_cdr_args(args, env)),
+                "cons"                               => Some(eval_cons_args(args, env)),
+                "cond"                               => Some(eval_cond_args(args, env)),
 
                 // Two Special Forms
-                "label" | "define" | "def"   => Some(eval_label_args(args, env)),
-                "lambda" | "function" | "fn" => Some(eval_lambda_args(args)),
+                "label" | "define" | "def"           => Some(eval_label_args(args, env)),
+                "lambda" | "function" | "fun" | "fn" => Some(eval_lambda_args(args)),
 
-                "set"                        => Some(eval_set_args(args, env)),
-                "loop"                       => Some(eval_loop_args(args, env)),
-                "defun" | "defn"             => Some(eval_defun_args(args, env)),
-                "apply"                      => Some(eval_apply_args(args, env)),
-                "eval"                       => Some(eval_eval_args(args, env)),
-                "progn" | "begin" | "do"     => Some(eval_progn_args(args, env)),
-                "load"                       => Some(eval_load_args(args, env)),
-                _                            => None,
+                "if"                                 => Some(eval_if_args(args, env)),
+                "set"                                => Some(eval_set_args(args, env)),
+                "while"                              => Some(eval_while_args(args, env)),
+                "defun" | "defn"                     => Some(eval_defun_args(args, env)),
+                "apply"                              => Some(eval_apply_args(args, env)),
+                "eval"                               => Some(eval_eval_args(args, env)),
+                "progn" | "begin" | "do"             => Some(eval_progn_args(args, env)),
+                "load"                               => Some(eval_load_args(args, env)),
+                _                                    => None,
             }
         },
         _ => None,

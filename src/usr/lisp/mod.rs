@@ -23,7 +23,6 @@ use alloc::vec::Vec;
 use alloc::vec;
 use core::cell::RefCell;
 use core::convert::TryInto;
-use core::f64::consts::PI;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -290,6 +289,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 #[test_case]
 fn test_lisp() {
+    use core::f64::consts::PI;
     let env = &mut default_env();
 
     macro_rules! eval {
@@ -342,6 +342,15 @@ fn test_lisp() {
     assert_eq!(eval!("(cond ((> 2 4) 1))"), "()");
     assert_eq!(eval!("(cond ((< 2 4) 1) (true 2))"), "1");
     assert_eq!(eval!("(cond ((> 2 4) 1) (true 2))"), "2");
+
+    // if
+    assert_eq!(eval!("(if (< 2 4) 1)"), "1");
+    assert_eq!(eval!("(if (> 2 4) 1)"), "()");
+    assert_eq!(eval!("(if (< 2 4) 1 2)"), "1");
+    assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
+
+    // while
+    assert_eq!(eval!("(do (def i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
 
     // label
     eval!("(label a 2)");

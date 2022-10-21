@@ -34,6 +34,8 @@ of strings to the language and reading from the filesystem.
 
 ## Additional Builtins
 - `defun` (aliased to `defn`)
+- `set`
+- `while`
 - `apply`
 - `type`
 - `string`
@@ -83,15 +85,13 @@ with the following content:
 ```lisp
 (load "/lib/lisp/core.lsp")
 
-(define (fibonacci n)
-  (cond
-    ((< n 2) n)
-    (true (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))
+(def (fibonacci n)
+  (if (< n 2) n
+    (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))
 
 (println
-  (cond
-    ((nil? args) "Usage: fibonacci <num>")
-    (true (fibonacci (string->number (car args))))))
+  (if (nil? args) "Usage: fibonacci <num>"
+    (fibonacci (string->number (car args)))))
 ```
 
 Would produce the following output:
@@ -99,4 +99,45 @@ Would produce the following output:
 ```
 > lisp /tmp/lisp/fibonacci.lsp 20
 6755
+```
+
+## Examples
+
+```lisp
+(load "/lib/lisp/core.lsp")
+
+(def foo 42)                       # Variable definition
+
+(def double (fun (x) (* x 2)))     # Function definition
+(def (double x) (* x 2))           # Shortcut
+
+(double foo)                       # => 84
+
+(def (map f ls)
+  (if (nil? ls) nil
+    (cons
+      (f (first ls))
+      (map f (rest ls)))))
+
+(def bar (quote (1 2 3)))
+(def bar '(1 2 3))                 # Shortcut
+
+(map double bar)                   # => (2 4 6)
+
+(map (fun (x) (+ x 1)) '(4 5 6))   # => (5 6 7)
+
+(set foo 0)                        # Variable assignment
+
+(= foo 10)                         # => false
+
+(while (< foo 10)
+  (set foo (+ foo 1)))
+
+(= foo 10)                         # => true
+
+(def name "Alice")
+
+(string "Hello, " name)            # => "Hello, Alice"
+
+(^ 2 128)                          # => 340282366920938463463374607431768211456
 ```

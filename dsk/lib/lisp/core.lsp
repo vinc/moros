@@ -1,112 +1,103 @@
-(define (eq? x y)
+(def (eq? x y)
   (eq x y))
 
-(define (atom? x)
+(def (atom? x)
   (atom x))
 
-(define (string? x)
+(def (string? x)
   (eq? (type x) "string"))
 
-(define (boolean? x)
+(def (boolean? x)
   (eq? (type x) "boolean"))
 
-(define (symbol? x)
+(def (symbol? x)
   (eq? (type x) "symbol"))
 
-(define (number? x)
+(def (number? x)
   (eq? (type x) "number"))
 
-(define (list? x)
+(def (list? x)
   (eq? (type x) "list"))
 
-(define (function? x)
+(def (function? x)
   (eq? (type x) "function"))
 
-(define nil '())
+(def nil '())
 
-(define (nil? x)
+(def (nil? x)
   (eq? x nil))
 
-(define (and x y)
-  (cond
-    (x (cond (y true) (true false)))
-    (true false)))
+(def (not x)
+  (if x false true))
 
-(define (not x)
-  (cond (x false) (true true)))
+(def (or x y)
+  (if x true (if y true false)))
 
-(define (or x y)
-  (cond (x true) (y true) (true false)))
+(def (and x y)
+  (if x (if y true false) false))
 
-(define (rest x)
+(def (rest x)
   (cdr x))
 
-(define (first x)
+(def (first x)
   (car x))
 
-(define (second x)
+(def (second x)
   (first (rest x)))
 
-(define (third x)
+(def (third x)
   (second (rest x)))
 
-(define (reduce f ls)
-  (cond
-    ((nil? (rest ls)) (first ls))
-    (true (f (first ls) (reduce f (rest ls))))))
+(def (reduce f ls)
+  (if (nil? (rest ls)) (first ls)
+    (f (first ls) (reduce f (rest ls)))))
 
-(define (string-join ls s)
+(def (string-join ls s)
   (reduce (fn (x y) (string x s y)) ls))
 
-(define (map f ls)
-  (cond
-    ((nil? ls) nil)
-    (true (cons
+(def (map f ls)
+  (if (nil? ls) nil
+    (cons
       (f (first ls))
-      (map f (rest ls))))))
+      (map f (rest ls)))))
 
-(define (append x y)
-  (cond
-    ((nil? x) y)
-    (true (cons (first x) (append (rest x) y)))))
+(def (append x y)
+  (if (nil? x) y
+    (cons (first x) (append (rest x) y))))
 
-(define (reverse x)
-  (cond
-    ((nil? x) x)
-    (true (append (reverse (rest x)) (cons (first x) '())))))
+(def (reverse x)
+  (if (nil? x) x
+    (append (reverse (rest x)) (cons (first x) '()))))
 
-(define (range i n)
-  (cond
-    ((= i n) nil)
-    (true (append (list i) (range (+ i 1) n)))))
+(def (range i n)
+  (if (= i n) nil
+    (append (list i) (range (+ i 1) n))))
 
-(define (read-line)
+(def (read-line)
   (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
 
-(define (read-char)
+(def (read-char)
   (bytes->string (read-file-bytes "/dev/console" 4)))
 
-(define (print exp)
+(def (print exp)
   (do
     (append-file-bytes "/dev/console" (string->bytes (string exp)))
     '()))
 
-(define (println exp)
-  (do
-    (print exp)
-    (print "\n")))
+(def (println exp)
+  (print (string exp "\n")))
 
-(define (uptime)
+(def (uptime)
   (bytes->number (read-file-bytes "/dev/clk/uptime" 8) "float"))
 
-(define (realtime)
+(def (realtime)
   (bytes->number (read-file-bytes "realtime" 8) "float"))
 
-(define (write-file path str)
+(def (write-file path str)
   (write-file-bytes path (string->bytes str)))
 
-(define (append-file path str)
+(def (append-file path str)
   (append-file-bytes path (string->bytes str)))
 
-(define (regex-match? pattern str)
+(def (regex-match? pattern str)
   (not (nil? (regex-find pattern str))))
