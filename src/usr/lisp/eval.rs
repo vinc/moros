@@ -190,8 +190,9 @@ pub const BUILT_INS: [&str; 24] = [
 ];
 
 pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    let mut env = env.clone();
     let mut exp = exp.clone();
+    let mut tmp = env.clone();
+    let mut env = &mut tmp;
     loop {
         match exp.clone() {
             Exp::Sym(key) => return env_get(&key, &env),
@@ -203,25 +204,25 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 let args = &list[1..];
                 match &list[0] {
                     Exp::Sym(s) if s == "quote"  => return eval_quote_args(args),
-                    Exp::Sym(s) if s == "atom"   => return eval_atom_args(args, &mut env),
-                    Exp::Sym(s) if s == "eq"     => return eval_eq_args(args, &mut env),
-                    Exp::Sym(s) if s == "car"    => return eval_car_args(args, &mut env),
-                    Exp::Sym(s) if s == "cdr"    => return eval_cdr_args(args, &mut env),
-                    Exp::Sym(s) if s == "cons"   => return eval_cons_args(args, &mut env),
-                    Exp::Sym(s) if s == "cond"   => return eval_cond_args(args, &mut env),
-                    Exp::Sym(s) if s == "set"    => return eval_set_args(args, &mut env),
-                    Exp::Sym(s) if s == "while"  => return eval_while_args(args, &mut env),
-                    Exp::Sym(s) if s == "defun"  => return eval_defun_args(args, &mut env),
-                    Exp::Sym(s) if s == "defn"   => return eval_defun_args(args, &mut env),
-                    Exp::Sym(s) if s == "apply"  => return eval_apply_args(args, &mut env),
-                    Exp::Sym(s) if s == "eval"   => return eval_eval_args(args, &mut env),
-                    Exp::Sym(s) if s == "progn"  => return eval_progn_args(args, &mut env),
-                    Exp::Sym(s) if s == "begin"  => return eval_progn_args(args, &mut env),
-                    Exp::Sym(s) if s == "do"     => return eval_progn_args(args, &mut env),
-                    Exp::Sym(s) if s == "load"   => return eval_load_args(args, &mut env),
-                    Exp::Sym(s) if s == "label"  => return eval_label_args(args, &mut env),
-                    Exp::Sym(s) if s == "define" => return eval_label_args(args, &mut env),
-                    Exp::Sym(s) if s == "def"    => return eval_label_args(args, &mut env),
+                    Exp::Sym(s) if s == "atom"   => return eval_atom_args(args, env),
+                    Exp::Sym(s) if s == "eq"     => return eval_eq_args(args, env),
+                    Exp::Sym(s) if s == "car"    => return eval_car_args(args, env),
+                    Exp::Sym(s) if s == "cdr"    => return eval_cdr_args(args, env),
+                    Exp::Sym(s) if s == "cons"   => return eval_cons_args(args, env),
+                    Exp::Sym(s) if s == "cond"   => return eval_cond_args(args, env),
+                    Exp::Sym(s) if s == "set"    => return eval_set_args(args, env),
+                    Exp::Sym(s) if s == "while"  => return eval_while_args(args, env),
+                    Exp::Sym(s) if s == "defun"  => return eval_defun_args(args, env),
+                    Exp::Sym(s) if s == "defn"   => return eval_defun_args(args, env),
+                    Exp::Sym(s) if s == "apply"  => return eval_apply_args(args, env),
+                    Exp::Sym(s) if s == "eval"   => return eval_eval_args(args, env),
+                    Exp::Sym(s) if s == "progn"  => return eval_progn_args(args, env),
+                    Exp::Sym(s) if s == "begin"  => return eval_progn_args(args, env),
+                    Exp::Sym(s) if s == "do"     => return eval_progn_args(args, env),
+                    Exp::Sym(s) if s == "load"   => return eval_load_args(args, env),
+                    Exp::Sym(s) if s == "label"  => return eval_label_args(args, env),
+                    Exp::Sym(s) if s == "define" => return eval_label_args(args, env),
+                    Exp::Sym(s) if s == "def"    => return eval_label_args(args, env),
                     Exp::Sym(s) if s == "lambda" || s == "function" || s == "fun" || s == "fn" => {
                         ensure_length_eq!(args, 2);
                         return Ok(Exp::Lambda(Lambda {
@@ -231,7 +232,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
-                        if eval(&args[0], &mut env)? == Exp::Bool(true) { // consequent
+                        if eval(&args[0], env)? == Exp::Bool(true) { // consequent
                             exp = args[1].clone();
                         } else if args.len() > 2 { // alternate
                             exp = args[2].clone();
@@ -240,12 +241,13 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         }
                     }
                     _ => {
-                        match eval(&list[0], &mut env)? {
+                        match eval(&list[0], env)? {
                             Exp::Primitive(f) => {
-                                return f(&eval_args(args, &mut env)?)
+                                return f(&eval_args(args, env)?)
                             },
                             Exp::Lambda(f) => {
-                                env = lambda_env(f.params, args, &mut env)?;
+                                tmp = lambda_env(f.params, args, env)?;
+                                env = &mut tmp;
                                 exp = (*f.body).clone();
                             },
                             _ => return Err(Err::Reason("First form must be a function".to_string())),
