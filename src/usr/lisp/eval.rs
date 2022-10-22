@@ -194,10 +194,10 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut exp = exp.clone();
     loop {
         match exp.clone() {
-            Exp::Sym(key) => return env_get(&key, &mut env),
-            Exp::Bool(_) => return Ok(exp.clone()),
-            Exp::Num(_) => return Ok(exp.clone()),
-            Exp::Str(_) => return Ok(exp.clone()),
+            Exp::Sym(key) => return env_get(&key, &env),
+            Exp::Bool(_) => return Ok(exp),
+            Exp::Num(_) => return Ok(exp),
+            Exp::Str(_) => return Ok(exp),
             Exp::List(list) => {
                 ensure_length_gt!(list, 0);
                 let args = &list[1..];
