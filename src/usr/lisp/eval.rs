@@ -247,7 +247,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         match eval(&list[0], env)? {
                             Exp::Lambda(f) => {
                                 env_tmp = lambda_env(&f.params, args, env)?;
-                                exp_tmp = f.body.clone();
+                                exp_tmp = f.body;
                                 env = &mut env_tmp;
                                 exp = &exp_tmp;
                             },
