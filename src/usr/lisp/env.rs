@@ -330,7 +330,7 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
 }
 
 pub fn lambda_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
-    let ks = list_of_symbols(&params)?;
+    let ks = list_of_symbols(params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
         return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
