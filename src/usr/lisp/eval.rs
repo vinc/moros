@@ -191,8 +191,8 @@ pub const BUILT_INS: [&str; 24] = [
 
 pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut exp = exp.clone();
-    let mut tmp = env.clone();
-    let mut env = &mut tmp;
+    let mut env = env;
+    let mut tmp;
     loop {
         match exp.clone() {
             Exp::Sym(key) => return env_get(&key, &env),
