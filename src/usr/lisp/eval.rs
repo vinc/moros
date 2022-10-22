@@ -196,7 +196,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut env_tmp;
     let mut exp_tmp;
     loop {
-        match exp.clone() {
+        match exp {
             Exp::Sym(key) => return env_get(&key, env),
             Exp::Bool(_) => return Ok(exp.clone()),
             Exp::Num(_) => return Ok(exp.clone()),
