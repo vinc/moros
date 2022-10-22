@@ -225,13 +225,6 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "label"  => return eval_label_args(args, env),
                     Exp::Sym(s) if s == "define" => return eval_label_args(args, env),
                     Exp::Sym(s) if s == "def"    => return eval_label_args(args, env),
-                    Exp::Sym(s) if s == "lambda" || s == "function" || s == "fun" || s == "fn" => {
-                        ensure_length_eq!(args, 2);
-                        return Ok(Exp::Lambda(Box::new(Lambda {
-                            params: args[0].clone(),
-                            body: args[1].clone(),
-                        })))
-                    }
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
                         if eval(&args[0], env)? == Exp::Bool(true) { // consequent
@@ -243,16 +236,23 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         }
                         exp = &exp_tmp;
                     }
+                    Exp::Sym(s) if s == "lambda" || s == "function" || s == "fun" || s == "fn" => {
+                        ensure_length_eq!(args, 2);
+                        return Ok(Exp::Lambda(Box::new(Lambda {
+                            params: args[0].clone(),
+                            body: args[1].clone(),
+                        })))
+                    }
                     _ => {
                         match eval(&list[0], env)? {
-                            Exp::Primitive(f) => {
-                                return f(&eval_args(args, env)?)
-                            },
                             Exp::Lambda(f) => {
                                 env_tmp = lambda_env(&f.params, args, env)?;
                                 exp_tmp = f.body.clone();
                                 env = &mut env_tmp;
                                 exp = &exp_tmp;
+                            },
+                            Exp::Primitive(f) => {
+                                return f(&eval_args(args, env)?)
                             },
                             _ => return Err(Err::Reason("First form must be a function".to_string())),
                         }
