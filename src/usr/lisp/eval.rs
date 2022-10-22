@@ -191,15 +191,16 @@ pub const BUILT_INS: [&str; 24] = [
 ];
 
 pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    let mut exp = exp.clone();
+    let mut exp = exp;
     let mut env = env;
-    let mut tmp;
+    let mut env_tmp;
+    let mut exp_tmp;
     loop {
         match exp.clone() {
             Exp::Sym(key) => return env_get(&key, &env),
-            Exp::Bool(_) => return Ok(exp),
-            Exp::Num(_) => return Ok(exp),
-            Exp::Str(_) => return Ok(exp),
+            Exp::Bool(_) => return Ok(exp.clone()),
+            Exp::Num(_) => return Ok(exp.clone()),
+            Exp::Str(_) => return Ok(exp.clone()),
             Exp::List(list) => {
                 ensure_length_gt!(list, 0);
                 let args = &list[1..];
@@ -234,12 +235,13 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
                         if eval(&args[0], env)? == Exp::Bool(true) { // consequent
-                            exp = args[1].clone();
+                            exp_tmp = args[1].clone();
                         } else if args.len() > 2 { // alternate
-                            exp = args[2].clone();
+                            exp_tmp = args[2].clone();
                         } else { // '()
-                            exp = Exp::List(vec![Exp::Sym("quote".to_string()), Exp::List(vec![])]);
+                            exp_tmp = Exp::List(vec![Exp::Sym("quote".to_string()), Exp::List(vec![])]);
                         }
+                        exp = &exp_tmp;
                     }
                     _ => {
                         match eval(&list[0], env)? {
@@ -247,9 +249,10 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                                 return f(&eval_args(args, env)?)
                             },
                             Exp::Lambda(f) => {
-                                tmp = lambda_env(&f.params, args, env)?;
-                                env = &mut tmp;
-                                exp = f.body.clone();
+                                env_tmp = lambda_env(&f.params, args, env)?;
+                                exp_tmp = f.body.clone();
+                                env = &mut env_tmp;
+                                exp = &exp_tmp;
                             },
                             _ => return Err(Err::Reason("First form must be a function".to_string())),
                         }
