@@ -6,6 +6,7 @@ use super::string;
 use crate::{ensure_length_eq, ensure_length_gt};
 use crate::api::fs;
 
+use alloc::boxed::Box;
 use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::ToString;
@@ -225,10 +226,10 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "def"    => return eval_label_args(args, env),
                     Exp::Sym(s) if s == "lambda" || s == "function" || s == "fun" || s == "fn" => {
                         ensure_length_eq!(args, 2);
-                        return Ok(Exp::Lambda(Lambda {
-                            params: Rc::new(args[0].clone()),
-                            body: Rc::new(args[1].clone()),
-                        }))
+                        return Ok(Exp::Lambda(Box::new(Lambda {
+                            params: args[0].clone(),
+                            body: args[1].clone(),
+                        })))
                     }
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
@@ -246,9 +247,9 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                                 return f(&eval_args(args, env)?)
                             },
                             Exp::Lambda(f) => {
-                                tmp = lambda_env(f.params, args, env)?;
+                                tmp = lambda_env(&f.params, args, env)?;
                                 env = &mut tmp;
-                                exp = (*f.body).clone();
+                                exp = f.body.clone();
                             },
                             _ => return Err(Err::Reason("First form must be a function".to_string())),
                         }
