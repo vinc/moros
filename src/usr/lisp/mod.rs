@@ -15,6 +15,7 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
+use alloc::boxed::Box;
 use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::String;
@@ -45,7 +46,7 @@ use spin::Mutex;
 #[derive(Clone)]
 pub enum Exp {
     Primitive(fn(&[Exp]) -> Result<Exp, Err>),
-    Lambda(Lambda),
+    Lambda(Box<Lambda>),
     List(Vec<Exp>),
     Bool(bool),
     Num(Number),
@@ -87,8 +88,8 @@ impl fmt::Display for Exp {
 
 #[derive(Clone, PartialEq)]
 pub struct Lambda {
-    params: Rc<Exp>,
-    body: Rc<Exp>,
+    params: Exp,
+    body: Exp,
 }
 
 #[derive(Debug)]
