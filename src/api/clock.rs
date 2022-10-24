@@ -15,8 +15,7 @@ fn read_float(path: &str) -> f64 {
             return f64::from_be_bytes(bytes[0..8].try_into().unwrap());
         }
     }
-
-    return 0.0;
+    0.0
 }
 
 pub fn uptime() -> f64 {

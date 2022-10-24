@@ -11,7 +11,7 @@ use crate::sys::clock::{Uptime, Realtime};
 use alloc::vec;
 use alloc::vec::Vec;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum DeviceType {
     Null     = 0,

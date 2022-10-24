@@ -30,8 +30,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     // Split <host> and <port>
     if args.len() == 2 {
         if let Some(i) = args[1].find(':') {
-            let arg = args[1].clone();
-            let (host, path) = arg.split_at(i);
+            let (host, path) = args[1].split_at(i);
             args[1] = host;
             args.push(&path[1..]);
         }
