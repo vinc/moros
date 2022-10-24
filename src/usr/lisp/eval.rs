@@ -61,7 +61,7 @@ fn eval_cons_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     match eval(&args[1], env)? {
         Exp::List(mut list) => {
             list.insert(0, eval(&args[0], env)?);
-            Ok(Exp::List(list.to_vec()))
+            Ok(Exp::List(list))
         },
         _ => Err(Err::Reason("Expected list form".to_string())),
     }
