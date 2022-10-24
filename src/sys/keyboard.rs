@@ -37,9 +37,9 @@ impl KeyboardLayout {
 
     fn from(name: &str) -> Option<Self> {
         match name {
-            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(layouts::Azerty, ScancodeSet1, HandleControl::MapLettersToUnicode))),
-            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(layouts::Dvorak104Key, ScancodeSet1, HandleControl::MapLettersToUnicode))),
-            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(layouts::Us104Key, ScancodeSet1, HandleControl::MapLettersToUnicode))),
+            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(HandleControl::MapLettersToUnicode))),
+            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(HandleControl::MapLettersToUnicode))),
+            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(HandleControl::MapLettersToUnicode))),
             _ => None,
         }
     }
