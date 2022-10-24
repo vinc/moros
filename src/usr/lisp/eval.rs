@@ -67,6 +67,7 @@ fn eval_cons_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     }
 }
 
+// TODO: Remove this when macro is enabled
 fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     for arg in args {
@@ -130,6 +131,7 @@ fn eval_while_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     Ok(res)
 }
 
+// TODO: Remove this when macro is enabled
 fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     // (defun add (x y) (+ x y)) => (label add (lambda (x y) (+ x y)))
     ensure_length_eq!(args, 3);
