@@ -369,9 +369,11 @@ fn test_lisp() {
     assert_eq!(eval!("((lambda (a) (* a a)) 2)"), "4");
     assert_eq!(eval!("((lambda (x) (cons x '(b c))) 'a)"), "(a b c)");
 
-    // defun
-    eval!("(defun add (a b) (+ a b))");
-    assert_eq!(eval!("(add 1 2)"), "3");
+    // function definition shortcut
+    eval!("(define (double x) (* x 2))");
+    assert_eq!(eval!("(double 2)"), "4");
+    eval!("(define-function (triple x) (* x 3))");
+    assert_eq!(eval!("(triple 2)"), "6");
 
     // addition
     assert_eq!(eval!("(+)"), "0");
