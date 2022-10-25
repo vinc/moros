@@ -7,7 +7,7 @@ pub use number::Number;
 pub use env::Env;
 
 use env::default_env;
-use eval::{eval, eval_label_args};
+use eval::{eval, eval_define_args, expand};
 use parse::parse;
 
 use crate::api;
@@ -172,6 +172,7 @@ pub fn byte(exp: &Exp) -> Result<u8, Err> {
 
 fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let (_, exp) = parse(exp)?;
+    let exp = expand(&exp)?;
     let exp = eval(&exp, env)?;
     Ok(exp)
 }
@@ -244,7 +245,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         args[2..].iter().map(|arg| Exp::Str(arg.to_string())).collect()
     });
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
-    if eval_label_args(&[key, quote], env).is_err() {
+    if eval_define_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
         return Err(ExitCode::Failure);
     }
