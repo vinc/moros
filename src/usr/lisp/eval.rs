@@ -251,6 +251,11 @@ pub fn expand_quasiquote(exp: &Exp) -> Result<Exp, Err> {
     }
 }
 
+pub fn expand_list(list: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
+    Ok(Exp::List(expanded?))
+}
+
 pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     if let Exp::List(list) = exp {
         ensure_length_gt!(list, 0);
@@ -292,10 +297,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             ])
                         ]))
                     }
-                    (Exp::Sym(_), _) => { // TODO: dry this
-                        let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
-                        Ok(Exp::List(expanded?))
-                    }
+                    (Exp::Sym(_), _) => expand_list(list, env),
                     _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
                 }
             }
@@ -319,15 +321,11 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     let mut macro_env = function_env(&m.params, &list[1..], env, true)?;
                     let macro_exp = m.body;
                     expand(&eval(&macro_exp, &mut macro_env)?, env)
-                } else { // TODO: dry this
-                    let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
-                    Ok(Exp::List(expanded?))
+                } else {
+                    expand_list(list, env)
                 }
             }
-            _ => {
-                let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
-                Ok(Exp::List(expanded?))
-            }
+            _ => expand_list(list, env),
         }
     } else {
         Ok(exp.clone())
