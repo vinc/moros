@@ -1,5 +1,5 @@
-use super::{Err, Exp, Env, Lambda};
-use super::env::{env_get, env_set, lambda_env};
+use super::{Err, Exp, Env, Function};
+use super::env::{env_get, env_set, function_env};
 use super::parse::parse;
 use super::string;
 
@@ -198,15 +198,15 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "function" => {
                         ensure_length_eq!(args, 2);
-                        return Ok(Exp::Lambda(Box::new(Lambda {
+                        return Ok(Exp::Function(Box::new(Function {
                             params: args[0].clone(),
                             body: args[1].clone(),
                         })))
                     }
                     _ => {
                         match eval(&list[0], env)? {
-                            Exp::Lambda(f) => {
-                                env_tmp = lambda_env(&f.params, args, env)?;
+                            Exp::Function(f) => {
+                                env_tmp = function_env(&f.params, args, env)?;
                                 exp_tmp = f.body;
                                 env = &mut env_tmp;
                                 exp = &exp_tmp;
@@ -220,7 +220,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 }
             },
             Exp::Primitive(_) => return Err(Err::Reason("Unexpected form".to_string())),
-            Exp::Lambda(_) => return Err(Err::Reason("Unexpected form".to_string())),
+            Exp::Function(_) => return Err(Err::Reason("Unexpected form".to_string())),
         }
     }
 }

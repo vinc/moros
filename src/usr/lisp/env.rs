@@ -271,7 +271,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
             Exp::Num(_) => "number",
             Exp::List(_) => "list",
             Exp::Primitive(_) => "function",
-            Exp::Lambda(_) => "function",
+            Exp::Function(_) => "function",
         };
         Ok(Exp::Str(exp.to_string()))
     }));
@@ -329,7 +329,7 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
     }
 }
 
-pub fn lambda_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
+pub fn function_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
     let ks = list_of_symbols(params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };

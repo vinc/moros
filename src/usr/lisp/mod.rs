@@ -46,7 +46,7 @@ use spin::Mutex;
 #[derive(Clone)]
 pub enum Exp {
     Primitive(fn(&[Exp]) -> Result<Exp, Err>),
-    Lambda(Box<Lambda>),
+    Function(Box<Function>),
     List(Vec<Exp>),
     Bool(bool),
     Num(Number),
@@ -57,12 +57,12 @@ pub enum Exp {
 impl PartialEq for Exp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Exp::Lambda(a), Exp::Lambda(b)) => a == b,
-            (Exp::List(a),   Exp::List(b))   => a == b,
-            (Exp::Bool(a),   Exp::Bool(b))   => a == b,
-            (Exp::Num(a),    Exp::Num(b))    => a == b,
-            (Exp::Str(a),    Exp::Str(b))    => a == b,
-            (Exp::Sym(a),    Exp::Sym(b))    => a == b,
+            (Exp::Function(a), Exp::Function(b)) => a == b,
+            (Exp::List(a),     Exp::List(b))     => a == b,
+            (Exp::Bool(a),     Exp::Bool(b))     => a == b,
+            (Exp::Num(a),      Exp::Num(b))      => a == b,
+            (Exp::Str(a),      Exp::Str(b))      => a == b,
+            (Exp::Sym(a),      Exp::Sym(b))      => a == b,
             _ => false,
         }
     }
@@ -72,7 +72,7 @@ impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
             Exp::Primitive(_) => "<function>".to_string(),
-            Exp::Lambda(_)    => "<function>".to_string(),
+            Exp::Function(_)  => "<function>".to_string(),
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
@@ -87,7 +87,7 @@ impl fmt::Display for Exp {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct Lambda {
+pub struct Function {
     params: Exp,
     body: Exp,
 }
@@ -357,17 +357,17 @@ fn test_lisp() {
     // label
     eval!("(label a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");
-    //eval!("(label fn lambda)");
+    //eval!("(label fn function)");
     //assert_eq!(eval!("((fn (a) (+ 1 a)) 2)"), "3");
-    eval!("(label add-one (lambda (b) (+ b 1)))");
+    eval!("(label add-one (function (b) (+ b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
-    eval!("(label fib (lambda (n) (cond ((< n 2) n) (true (+ (fib (- n 1)) (fib (- n 2)))))))");
+    eval!("(label fib (function (n) (cond ((< n 2) n) (true (+ (fib (- n 1)) (fib (- n 2)))))))");
     assert_eq!(eval!("(fib 6)"), "8");
 
-    // lambda
-    assert_eq!(eval!("((lambda (a) (+ 1 a)) 2)"), "3");
-    assert_eq!(eval!("((lambda (a) (* a a)) 2)"), "4");
-    assert_eq!(eval!("((lambda (x) (cons x '(b c))) 'a)"), "(a b c)");
+    // function
+    assert_eq!(eval!("((function (a) (+ 1 a)) 2)"), "3");
+    assert_eq!(eval!("((function (a) (* a a)) 2)"), "4");
+    assert_eq!(eval!("((function (x) (cons x '(b c))) 'a)"), "(a b c)");
 
     // function definition shortcut
     eval!("(define (double x) (* x 2))");
