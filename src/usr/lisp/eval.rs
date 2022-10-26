@@ -301,6 +301,24 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
                 }
             }
+            Exp::Sym(s) if s == "define-macro" || s == "def-mac" => {
+                ensure_length_eq!(list, 3);
+                match (&list[1], &list[2]) {
+                    (Exp::List(args), Exp::List(_)) => {
+                        ensure_length_gt!(args, 0);
+                        let name = args[0].clone();
+                        let args = Exp::List(args[1..].to_vec());
+                        let body = expand(&list[2], env)?;
+                        Ok(Exp::List(vec![
+                            Exp::Sym("define".to_string()), name, Exp::List(vec![
+                                Exp::Sym("macro".to_string()), args, body
+                            ])
+                        ]))
+                    }
+                    (Exp::Sym(_), _) => expand_list(list, env),
+                    _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
+                }
+            }
             Exp::Sym(s) if s == "cond" => {
                 ensure_length_gt!(list, 1);
                 if let Exp::List(args) = &list[1] {
