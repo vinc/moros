@@ -133,7 +133,7 @@ fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     let mut code = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
     loop {
         let (rest, exp) = parse(&code)?;
-        let exp = expand(&exp)?;
+        let exp = expand(&exp, env)?;
         eval(&exp, env)?;
         if rest.is_empty() {
             break;
@@ -183,7 +183,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "define" => return eval_define_args(args, env),
                     Exp::Sym(s) if s == "expand" => {
                         ensure_length_eq!(args, 1);
-                        return expand(&args[0]);
+                        return expand(&args[0], env);
                     }
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
@@ -203,10 +203,17 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             body: args[1].clone(),
                         })))
                     }
+                    Exp::Sym(s) if s == "macro" => {
+                        ensure_length_eq!(args, 2);
+                        return Ok(Exp::Macro(Box::new(Function {
+                            params: args[0].clone(),
+                            body: args[1].clone(),
+                        })))
+                    }
                     _ => {
                         match eval(&list[0], env)? {
                             Exp::Function(f) => {
-                                env_tmp = function_env(&f.params, args, env)?;
+                                env_tmp = function_env(&f.params, args, env, false)?;
                                 exp_tmp = f.body;
                                 env = &mut env_tmp;
                                 exp = &exp_tmp;
@@ -219,8 +226,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                 }
             },
-            Exp::Primitive(_) => return Err(Err::Reason("Unexpected form".to_string())),
-            Exp::Function(_) => return Err(Err::Reason("Unexpected form".to_string())),
+            _ => return Err(Err::Reason("Unexpected form".to_string())),
         }
     }
 }
@@ -245,7 +251,7 @@ pub fn expand_quasiquote(exp: &Exp) -> Result<Exp, Err> {
     }
 }
 
-pub fn expand(exp: &Exp) -> Result<Exp, Err> {
+pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     if let Exp::List(list) = exp {
         ensure_length_gt!(list, 0);
         match &list[0] {
@@ -260,17 +266,17 @@ pub fn expand(exp: &Exp) -> Result<Exp, Err> {
             Exp::Sym(s) if s == "begin" || s == "progn" => {
                 let mut res = vec![Exp::Sym("do".to_string())];
                 res.extend_from_slice(&list[1..]);
-                expand(&Exp::List(res))
+                expand(&Exp::List(res), env)
             }
             Exp::Sym(s) if s == "def" || s == "label" => {
                 let mut res = vec![Exp::Sym("define".to_string())];
                 res.extend_from_slice(&list[1..]);
-                expand(&Exp::List(res))
+                expand(&Exp::List(res), env)
             }
             Exp::Sym(s) if s == "fun" || s == "fn" || s == "lambda" => {
                 let mut res = vec![Exp::Sym("function".to_string())];
                 res.extend_from_slice(&list[1..]);
-                expand(&Exp::List(res))
+                expand(&Exp::List(res), env)
             }
             Exp::Sym(s) if s == "define-function" || s == "def-fun" || s == "define" => {
                 ensure_length_eq!(list, 3);
@@ -279,7 +285,7 @@ pub fn expand(exp: &Exp) -> Result<Exp, Err> {
                         ensure_length_gt!(args, 0);
                         let name = args[0].clone();
                         let args = Exp::List(args[1..].to_vec());
-                        let body = expand(&list[2])?;
+                        let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
                             Exp::Sym("define".to_string()), name, Exp::List(vec![
                                 Exp::Sym("function".to_string()), args, body
@@ -287,7 +293,7 @@ pub fn expand(exp: &Exp) -> Result<Exp, Err> {
                         ]))
                     }
                     (Exp::Sym(_), _) => { // TODO: dry this
-                        let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item)).collect();
+                        let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
                         Ok(Exp::List(expanded?))
                     }
                     _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
@@ -301,15 +307,25 @@ pub fn expand(exp: &Exp) -> Result<Exp, Err> {
                     if list.len() > 2 {
                         let mut acc = vec![Exp::Sym("cond".to_string())];
                         acc.extend_from_slice(&list[2..]);
-                        res.push(expand(&Exp::List(acc))?);
+                        res.push(expand(&Exp::List(acc), env)?);
                     }
                     Ok(Exp::List(res))
                 } else {
                     Err(Err::Reason("Expected lists of predicate and expression".to_string()))
                 }
             }
+            Exp::Sym(s) => {
+                if let Ok(Exp::Macro(m)) = env_get(s, env) {
+                    let mut macro_env = function_env(&m.params, &list[1..], env, true)?;
+                    let macro_exp = m.body;
+                    expand(&eval(&macro_exp, &mut macro_env)?, env)
+                } else { // TODO: dry this
+                    let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
+                    Ok(Exp::List(expanded?))
+                }
+            }
             _ => {
-                let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item)).collect();
+                let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
                 Ok(Exp::List(expanded?))
             }
         }

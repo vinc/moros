@@ -265,13 +265,14 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("type".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let exp = match args[0] {
-            Exp::Str(_) => "string",
-            Exp::Bool(_) => "boolean",
-            Exp::Sym(_) => "symbol",
-            Exp::Num(_) => "number",
-            Exp::List(_) => "list",
             Exp::Primitive(_) => "function",
-            Exp::Function(_) => "function",
+            Exp::Function(_)  => "function",
+            Exp::Macro(_)     => "macro",
+            Exp::List(_)      => "list",
+            Exp::Bool(_)      => "boolean",
+            Exp::Str(_)       => "string",
+            Exp::Sym(_)       => "symbol",
+            Exp::Num(_)       => "number",
         };
         Ok(Exp::Str(exp.to_string()))
     }));
@@ -329,13 +330,13 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
     }
 }
 
-pub fn function_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
+pub fn function_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>, is_macro: bool) -> Result<Rc<RefCell<Env>>, Err> {
     let ks = list_of_symbols(params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
         return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
     }
-    let vs = eval_args(args, outer)?;
+    let vs = if is_macro { args } else { eval_args(args, outer)? };
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());

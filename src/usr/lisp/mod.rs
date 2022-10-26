@@ -47,6 +47,7 @@ use spin::Mutex;
 pub enum Exp {
     Primitive(fn(&[Exp]) -> Result<Exp, Err>),
     Function(Box<Function>),
+    Macro(Box<Function>),
     List(Vec<Exp>),
     Bool(bool),
     Num(Number),
@@ -58,6 +59,7 @@ impl PartialEq for Exp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Exp::Function(a), Exp::Function(b)) => a == b,
+            (Exp::Macro(a),    Exp::Macro(b))    => a == b,
             (Exp::List(a),     Exp::List(b))     => a == b,
             (Exp::Bool(a),     Exp::Bool(b))     => a == b,
             (Exp::Num(a),      Exp::Num(b))      => a == b,
@@ -73,6 +75,7 @@ impl fmt::Display for Exp {
         let out = match self {
             Exp::Primitive(_) => "<function>".to_string(),
             Exp::Function(_)  => "<function>".to_string(),
+            Exp::Macro(_)     => "<macro>".to_string(),
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
@@ -172,7 +175,7 @@ pub fn byte(exp: &Exp) -> Result<u8, Err> {
 
 fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let (_, exp) = parse(exp)?;
-    let exp = expand(&exp)?;
+    let exp = expand(&exp, env)?;
     let exp = eval(&exp, env)?;
     Ok(exp)
 }
@@ -477,4 +480,10 @@ fn test_lisp() {
     eval!("(def x 'a)");
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
+
+    // macro
+    eval!("(define foo 42)");
+    eval!("(define set-10 (macro (x) `(set ,x 10)))");
+    eval!("(set-10 foo)");
+    assert_eq!(eval!("foo"), "10");
 }
