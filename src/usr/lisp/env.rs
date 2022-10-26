@@ -336,7 +336,7 @@ pub fn function_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>, is
         let plural = if ks.len() == 1 { "" } else { "s" };
         return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
     }
-    let vs = if is_macro { args } else { eval_args(args, outer)? };
+    let vs = if is_macro { args.to_vec() } else { eval_args(args, outer)? };
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
