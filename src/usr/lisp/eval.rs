@@ -283,6 +283,11 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 res.extend_from_slice(&list[1..]);
                 expand(&Exp::List(res), env)
             }
+            Exp::Sym(s) if s == "mac" => {
+                let mut res = vec![Exp::Sym("macro".to_string())];
+                res.extend_from_slice(&list[1..]);
+                expand(&Exp::List(res), env)
+            }
             Exp::Sym(s) if s == "define-function" || s == "def-fun" || s == "define" => {
                 ensure_length_eq!(list, 3);
                 match (&list[1], &list[2]) {
