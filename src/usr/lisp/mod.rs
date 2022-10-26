@@ -472,4 +472,9 @@ fn test_lisp() {
     assert_eq!(eval!("(number-type 9223372036854775807)"),   "\"int\"");
     assert_eq!(eval!("(number-type 9223372036854775808)"),   "\"bigint\"");
     assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
+
+    // quasiquote
+    eval!("(def x 'a)");
+    assert_eq!(eval!("`(x ,x y)"), "(x a y)");
+    assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
 }

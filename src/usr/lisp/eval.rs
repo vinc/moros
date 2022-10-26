@@ -225,6 +225,26 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
+pub fn expand_quasiquote(exp: &Exp) -> Result<Exp, Err> {
+    match exp {
+        Exp::List(list) if list.len() > 0 => {
+            match &list[0] {
+                Exp::Sym(s) if s == "unquote" => {
+                    Ok(list[1].clone())
+                }
+                _ => {
+                    Ok(Exp::List(vec![
+                        Exp::Sym("cons".to_string()),
+                        expand_quasiquote(&list[0])?,
+                        expand_quasiquote(&Exp::List(list[1..].to_vec()))?,
+                    ]))
+                }
+            }
+        }
+        _ => Ok(Exp::List(vec![Exp::Sym("quote".to_string()), exp.clone()])),
+    }
+}
+
 pub fn expand(exp: &Exp) -> Result<Exp, Err> {
     if let Exp::List(list) = exp {
         ensure_length_gt!(list, 0);
@@ -232,6 +252,10 @@ pub fn expand(exp: &Exp) -> Result<Exp, Err> {
             Exp::Sym(s) if s == "quote" => {
                 ensure_length_eq!(list, 2);
                 Ok(exp.clone())
+            }
+            Exp::Sym(s) if s == "quasiquote" => {
+                ensure_length_eq!(list, 2);
+                expand_quasiquote(&list[1])
             }
             Exp::Sym(s) if s == "begin" || s == "progn" => {
                 let mut res = vec![Exp::Sym("do".to_string())];
