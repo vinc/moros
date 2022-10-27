@@ -294,6 +294,17 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         let (_, exp) = parse(&s)?;
         Ok(exp)
     }));
+    data.insert("append".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        let mut res = vec![];
+        for arg in args {
+            if let Exp::List(list) = arg {
+                res.extend_from_slice(&list);
+            } else {
+                return Err(Err::Reason("Expected arg to be a list".to_string()))
+            }
+        }
+        Ok(Exp::List(res))
+    }));
 
     // Setup autocompletion
     *FORMS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();

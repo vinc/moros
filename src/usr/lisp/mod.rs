@@ -488,4 +488,8 @@ fn test_lisp() {
     eval!("(define set-10 (macro (x) `(set ,x 10)))");
     eval!("(set-10 foo)");
     assert_eq!(eval!("foo"), "10");
+
+    eval!("((def x '(1 2 3)))");
+    assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
+    assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
 }

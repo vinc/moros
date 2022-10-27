@@ -18,6 +18,13 @@ pub fn expand_quasiquote(exp: &Exp) -> Result<Exp, Err> {
                 Exp::Sym(s) if s == "unquote" => {
                     Ok(list[1].clone())
                 }
+                Exp::List(l) if l.len() == 2 && l[0] == Exp::Sym("unquote-splicing".to_string()) => {
+                    Ok(Exp::List(vec![
+                        Exp::Sym("append".to_string()),
+                        l[1].clone(),
+                        expand_quasiquote(&Exp::List(list[1..].to_vec()))?
+                    ]))
+                }
                 _ => {
                     Ok(Exp::List(vec![
                         Exp::Sym("cons".to_string()),

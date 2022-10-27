@@ -67,6 +67,12 @@ fn parse_quote(input: &str) -> IResult<&str, Exp> {
     Ok((input, Exp::List(list)))
 }
 
+fn parse_unquote_splicing(input: &str) -> IResult<&str, Exp> {
+    let (input, list) = preceded(tag(",@"), parse_exp)(input)?;
+    let list = vec![Exp::Sym("unquote-splicing".to_string()), list];
+    Ok((input, Exp::List(list)))
+}
+
 fn parse_unquote(input: &str) -> IResult<&str, Exp> {
     let (input, list) = preceded(char(','), parse_exp)(input)?;
     let list = vec![Exp::Sym("unquote".to_string()), list];
@@ -81,7 +87,7 @@ fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
 
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
     delimited(multispace0, alt((
-        parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_unquote, parse_quasiquote, parse_sym
+        parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_unquote_splicing, parse_unquote, parse_quasiquote, parse_sym
     )), multispace0)(input)
 }
 
