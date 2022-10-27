@@ -330,16 +330,29 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
     }
 }
 
-pub fn function_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>, is_macro: bool) -> Result<Rc<RefCell<Env>>, Err> {
+enum InnerEnv { Function, Macro }
+
+fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
     let ks = list_of_symbols(params)?;
     if ks.len() != args.len() {
         let plural = if ks.len() == 1 { "" } else { "s" };
         return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
     }
-    let vs = if is_macro { args.to_vec() } else { eval_args(args, outer)? };
+    let vs = match kind {
+        InnerEnv::Function => eval_args(args, outer)?,
+        InnerEnv::Macro => args.to_vec(),
+    };
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     for (k, v) in ks.iter().zip(vs.iter()) {
         data.insert(k.clone(), v.clone());
     }
     Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
+}
+
+pub fn function_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
+    inner_env(InnerEnv::Function, params, args, outer)
+}
+
+pub fn macro_env(params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
+    inner_env(InnerEnv::Macro, params, args, outer)
 }

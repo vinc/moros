@@ -1,5 +1,5 @@
 use super::{Err, Exp, Env, Function};
-use super::env::{env_get, env_set, function_env};
+use super::env::{env_get, env_set, function_env, macro_env};
 use super::parse::parse;
 use super::string;
 
@@ -213,7 +213,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     _ => {
                         match eval(&list[0], env)? {
                             Exp::Function(f) => {
-                                env_tmp = function_env(&f.params, args, env, false)?;
+                                env_tmp = function_env(&f.params, args, env)?;
                                 exp_tmp = f.body;
                                 env = &mut env_tmp;
                                 exp = &exp_tmp;
@@ -341,9 +341,9 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
             }
             Exp::Sym(s) => {
                 if let Ok(Exp::Macro(m)) = env_get(s, env) {
-                    let mut macro_env = function_env(&m.params, &list[1..], env, true)?;
-                    let macro_exp = m.body;
-                    expand(&eval(&macro_exp, &mut macro_env)?, env)
+                    let mut m_env = macro_env(&m.params, &list[1..], env)?;
+                    let m_exp = m.body;
+                    expand(&eval(&m_exp, &mut m_env)?, env)
                 } else {
                     expand_list(list, env)
                 }
