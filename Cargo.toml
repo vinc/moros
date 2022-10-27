@@ -17,7 +17,7 @@ serial = []
 [dependencies]
 acpi = "4.1.0"
 aml = "0.16.1"
-base64 = { version = "0.13.0", default-features = false }
+base64 = { version = "0.13.1", default-features = false }
 bit_field = "0.10.0"
 bootloader = { version = "0.9.23", features = ["map_physical_memory"] }
 hmac = { version = "0.12.1", default-features = false }
