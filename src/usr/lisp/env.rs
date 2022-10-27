@@ -3,7 +3,6 @@ use super::eval::BUILT_INS;
 use super::eval::eval_args;
 use super::list_of_bytes;
 use super::list_of_numbers;
-use super::list_of_symbols;
 use super::parse::parse;
 use super::{Err, Exp, Number};
 use super::{float, number, string};
@@ -344,18 +343,29 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
 enum InnerEnv { Function, Macro }
 
 fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
-    let ks = list_of_symbols(params)?;
-    if ks.len() != args.len() {
-        let plural = if ks.len() == 1 { "" } else { "s" };
-        return Err(Err::Reason(format!("Expected {} argument{}, got {}", ks.len(), plural, args.len())));
-    }
-    let vs = match kind {
+    let args = match kind {
         InnerEnv::Function => eval_args(args, outer)?,
         InnerEnv::Macro => args.to_vec(),
     };
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
-    for (k, v) in ks.iter().zip(vs.iter()) {
-        data.insert(k.clone(), v.clone());
+    match params {
+        Exp::Sym(s) =>
+            data.insert(s.clone(), Exp::List(args));
+        }
+        Exp::List(list) => {
+            if list.len() != args.len() {
+                let plural = if list.len() == 1 { "" } else { "s" };
+                return Err(Err::Reason(format!("Expected {} argument{}, got {}", list.len(), plural, args.len())));
+            }
+            for (exp, arg) in list.iter().zip(args.iter()) {
+                if let Exp::Sym(s) = exp {
+                    data.insert(s.clone(), arg.clone());
+                } else {
+                    return Err(Err::Reason("Expected symbols in the argument list".to_string()));
+                }
+            }
+        }
+        _ => return Err(Err::Reason("Expected args form to be a list".to_string())),
     }
     Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
 }

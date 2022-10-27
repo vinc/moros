@@ -126,20 +126,6 @@ macro_rules! ensure_length_gt {
     };
 }
 
-fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
-    match form {
-        Exp::List(list) => {
-            list.iter().map(|exp| {
-                match exp {
-                    Exp::Sym(sym) => Ok(sym.clone()),
-                    _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
-                }
-            }).collect()
-        }
-        _ => Err(Err::Reason("Expected args form to be a list".to_string()))
-    }
-}
-
 pub fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
     args.iter().map(number).collect()
 }
@@ -481,13 +467,18 @@ fn test_lisp() {
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
 
+    // unquote-splicing
+    eval!("(define x '(1 2 3))");
+    assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
+    assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
+
     // macro
     eval!("(define foo 42)");
     eval!("(define set-10 (macro (x) `(set ,x 10)))");
     eval!("(set-10 foo)");
     assert_eq!(eval!("foo"), "10");
 
-    eval!("(define x '(1 2 3))");
-    assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
-    assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
+    // args
+    eval!("(define list* (function args (append args '())))");
+    assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
 }
