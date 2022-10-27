@@ -1,5 +1,6 @@
 mod env;
 mod eval;
+mod expand;
 mod number;
 mod parse;
 
@@ -7,7 +8,8 @@ pub use number::Number;
 pub use env::Env;
 
 use env::default_env;
-use eval::{eval, eval_define_args, expand};
+use eval::{eval, eval_define_args};
+use expand::expand;
 use parse::parse;
 
 use crate::api;
