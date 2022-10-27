@@ -349,7 +349,7 @@ fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<
     };
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     match params {
-        Exp::Sym(s) =>
+        Exp::Sym(s) => {
             data.insert(s.clone(), Exp::List(args));
         }
         Exp::List(list) => {
