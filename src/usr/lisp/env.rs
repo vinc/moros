@@ -284,14 +284,14 @@ pub fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected arg to be a number".to_string()))
         }
     }));
-    data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::List(args.to_vec()))
-    }));
     data.insert("parse".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
         let (_, exp) = parse(&s)?;
         Ok(exp)
+    }));
+    data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        Ok(Exp::List(args.to_vec()))
     }));
     data.insert("append".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let mut res = vec![];
