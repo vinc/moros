@@ -359,15 +359,13 @@ fn test_lisp() {
     // while
     assert_eq!(eval!("(do (def i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
 
-    // label
-    eval!("(label a 2)");
+    // define
+    eval!("(define a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");
-    //eval!("(label fn function)");
-    //assert_eq!(eval!("((fn (a) (+ 1 a)) 2)"), "3");
-    eval!("(label add-one (function (b) (+ b 1)))");
+    eval!("(define add-one (function (b) (+ b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
-    eval!("(label fib (function (n) (cond ((< n 2) n) (true (+ (fib (- n 1)) (fib (- n 2)))))))");
-    assert_eq!(eval!("(fib 6)"), "8");
+    eval!("(define fibonacci (function (n) (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
+    assert_eq!(eval!("(fibonacci 6)"), "8");
 
     // function
     assert_eq!(eval!("((function (a) (+ 1 a)) 2)"), "3");
@@ -479,7 +477,7 @@ fn test_lisp() {
     assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
-    eval!("(def x 'a)");
+    eval!("(define x 'a)");
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
 
