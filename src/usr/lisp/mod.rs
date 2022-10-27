@@ -489,7 +489,7 @@ fn test_lisp() {
     eval!("(set-10 foo)");
     assert_eq!(eval!("foo"), "10");
 
-    eval!("((def x '(1 2 3)))");
+    eval!("(define x '(1 2 3))");
     assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
     assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
 }
