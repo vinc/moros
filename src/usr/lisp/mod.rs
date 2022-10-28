@@ -478,16 +478,7 @@ fn test_lisp() {
     eval!("(set-10 foo)");
     assert_eq!(eval!("foo"), "10");
 
-    // dotted pair
-    assert_eq!(eval!("(cons 1 (cons 2 (cons 3 '())))"), "(1 2 3)");
-    assert_eq!(eval!("(cons 1 (2 . (3 . '())))"),       "(1 2 3)");
-    assert_eq!(eval!("(cons 1 (list 2 3))"),            "(1 2 3)");
-    assert_eq!(eval!("'(cons 1 (cons 2 (cons 3 '())))"), "(cons 1 (cons 2 (cons 3 (quote ()))))");
-    assert_eq!(eval!("'(1 . (2 . (3 . '())))"),          "(cons 1 (cons 2 (cons 3 (quote ()))))");
-
     // args
     eval!("(define list* (function args (append args '())))");
-    assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
-    eval!("(define (list* . args) (append args '())))");
     assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
 }
