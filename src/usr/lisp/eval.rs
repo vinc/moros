@@ -1,6 +1,7 @@
-use super::{Err, Exp, Env, Lambda};
-use super::env::{env_get, env_set, lambda_env};
+use super::{Err, Exp, Env, Function};
+use super::env::{env_get, env_set, function_env};
 use super::parse::parse;
+use super::expand::expand;
 use super::string;
 
 use crate::{ensure_length_eq, ensure_length_gt};
@@ -67,25 +68,7 @@ fn eval_cons_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     }
 }
 
-// TODO: Remove this when macro is enabled
-fn eval_cond_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    ensure_length_gt!(args, 0);
-    for arg in args {
-        match arg {
-            Exp::List(list) => {
-                ensure_length_eq!(list, 2);
-                match eval(&list[0], env)? {
-                    Exp::Bool(b) if b => return eval(&list[1], env),
-                    _ => continue,
-                }
-            },
-            _ => return Err(Err::Reason("Expected lists of predicate and expression".to_string())),
-        }
-    }
-    Ok(Exp::List(vec![]))
-}
-
-pub fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+pub fn eval_define_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
         Exp::Sym(name) => {
@@ -93,17 +76,7 @@ pub fn eval_label_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, 
             env.borrow_mut().data.insert(name.clone(), exp);
             Ok(Exp::Sym(name.clone()))
         }
-        Exp::List(params) => {
-            // (label (add x y) (+ x y)) => (label add (lambda (x y) (+ x y)))
-            ensure_length_gt!(params, 0);
-            let name = params[0].clone();
-            let params = Exp::List(params[1..].to_vec());
-            let body = args[1].clone();
-            let lambda_args = vec![Exp::Sym("lambda".to_string()), params, body];
-            let label_args = vec![name, Exp::List(lambda_args)];
-            eval_label_args(&label_args, env)
-        }
-        _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
+        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
     }
 }
 
@@ -131,18 +104,6 @@ fn eval_while_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     Ok(res)
 }
 
-// TODO: Remove this when macro is enabled
-fn eval_defun_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    // (defun add (x y) (+ x y)) => (label add (lambda (x y) (+ x y)))
-    ensure_length_eq!(args, 3);
-    let name = args[0].clone();
-    let params = args[1].clone();
-    let body = args[2].clone();
-    let lambda_args = vec![Exp::Sym("lambda".to_string()), params, body];
-    let label_args = vec![name, Exp::List(lambda_args)];
-    eval_label_args(&label_args, env)
-}
-
 fn eval_apply_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_gt!(args, 1);
     let mut args = args.to_vec();
@@ -159,7 +120,7 @@ fn eval_eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     eval(&exp, env)
 }
 
-fn eval_progn_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+fn eval_do_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut res = Ok(Exp::List(vec![]));
     for arg in args {
         res = Ok(eval(arg, env)?);
@@ -173,6 +134,7 @@ fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     let mut code = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
     loop {
         let (rest, exp) = parse(&code)?;
+        let exp = expand(&exp, env)?;
         eval(&exp, env)?;
         if rest.is_empty() {
             break;
@@ -213,20 +175,17 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "car"    => return eval_car_args(args, env),
                     Exp::Sym(s) if s == "cdr"    => return eval_cdr_args(args, env),
                     Exp::Sym(s) if s == "cons"   => return eval_cons_args(args, env),
-                    Exp::Sym(s) if s == "cond"   => return eval_cond_args(args, env),
                     Exp::Sym(s) if s == "set"    => return eval_set_args(args, env),
                     Exp::Sym(s) if s == "while"  => return eval_while_args(args, env),
-                    Exp::Sym(s) if s == "defun"  => return eval_defun_args(args, env),
-                    Exp::Sym(s) if s == "defn"   => return eval_defun_args(args, env),
                     Exp::Sym(s) if s == "apply"  => return eval_apply_args(args, env),
                     Exp::Sym(s) if s == "eval"   => return eval_eval_args(args, env),
-                    Exp::Sym(s) if s == "progn"  => return eval_progn_args(args, env),
-                    Exp::Sym(s) if s == "begin"  => return eval_progn_args(args, env),
-                    Exp::Sym(s) if s == "do"     => return eval_progn_args(args, env),
+                    Exp::Sym(s) if s == "do"     => return eval_do_args(args, env),
                     Exp::Sym(s) if s == "load"   => return eval_load_args(args, env),
-                    Exp::Sym(s) if s == "label"  => return eval_label_args(args, env),
-                    Exp::Sym(s) if s == "define" => return eval_label_args(args, env),
-                    Exp::Sym(s) if s == "def"    => return eval_label_args(args, env),
+                    Exp::Sym(s) if s == "define" => return eval_define_args(args, env),
+                    Exp::Sym(s) if s == "expand" => {
+                        ensure_length_eq!(args, 1);
+                        return expand(&args[0], env);
+                    }
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
                         if eval(&args[0], env)? == Exp::Bool(true) { // consequent
@@ -238,17 +197,24 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         }
                         exp = &exp_tmp;
                     }
-                    Exp::Sym(s) if s == "lambda" || s == "function" || s == "fun" || s == "fn" => {
+                    Exp::Sym(s) if s == "function" => {
                         ensure_length_eq!(args, 2);
-                        return Ok(Exp::Lambda(Box::new(Lambda {
+                        return Ok(Exp::Function(Box::new(Function {
+                            params: args[0].clone(),
+                            body: args[1].clone(),
+                        })))
+                    }
+                    Exp::Sym(s) if s == "macro" => {
+                        ensure_length_eq!(args, 2);
+                        return Ok(Exp::Macro(Box::new(Function {
                             params: args[0].clone(),
                             body: args[1].clone(),
                         })))
                     }
                     _ => {
                         match eval(&list[0], env)? {
-                            Exp::Lambda(f) => {
-                                env_tmp = lambda_env(&f.params, args, env)?;
+                            Exp::Function(f) => {
+                                env_tmp = function_env(&f.params, args, env)?;
                                 exp_tmp = f.body;
                                 env = &mut env_tmp;
                                 exp = &exp_tmp;
@@ -261,8 +227,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                 }
             },
-            Exp::Primitive(_) => return Err(Err::Reason("Unexpected form".to_string())),
-            Exp::Lambda(_) => return Err(Err::Reason("Unexpected form".to_string())),
+            _ => return Err(Err::Reason("Unexpected form".to_string())),
         }
     }
 }

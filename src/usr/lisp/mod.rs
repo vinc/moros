@@ -1,5 +1,6 @@
 mod env;
 mod eval;
+mod expand;
 mod number;
 mod parse;
 
@@ -7,7 +8,8 @@ pub use number::Number;
 pub use env::Env;
 
 use env::default_env;
-use eval::{eval, eval_label_args};
+use eval::{eval, eval_define_args};
+use expand::expand;
 use parse::parse;
 
 use crate::api;
@@ -46,7 +48,8 @@ use spin::Mutex;
 #[derive(Clone)]
 pub enum Exp {
     Primitive(fn(&[Exp]) -> Result<Exp, Err>),
-    Lambda(Box<Lambda>),
+    Function(Box<Function>),
+    Macro(Box<Function>),
     List(Vec<Exp>),
     Bool(bool),
     Num(Number),
@@ -57,12 +60,13 @@ pub enum Exp {
 impl PartialEq for Exp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Exp::Lambda(a), Exp::Lambda(b)) => a == b,
-            (Exp::List(a),   Exp::List(b))   => a == b,
-            (Exp::Bool(a),   Exp::Bool(b))   => a == b,
-            (Exp::Num(a),    Exp::Num(b))    => a == b,
-            (Exp::Str(a),    Exp::Str(b))    => a == b,
-            (Exp::Sym(a),    Exp::Sym(b))    => a == b,
+            (Exp::Function(a), Exp::Function(b)) => a == b,
+            (Exp::Macro(a),    Exp::Macro(b))    => a == b,
+            (Exp::List(a),     Exp::List(b))     => a == b,
+            (Exp::Bool(a),     Exp::Bool(b))     => a == b,
+            (Exp::Num(a),      Exp::Num(b))      => a == b,
+            (Exp::Str(a),      Exp::Str(b))      => a == b,
+            (Exp::Sym(a),      Exp::Sym(b))      => a == b,
             _ => false,
         }
     }
@@ -72,7 +76,8 @@ impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
             Exp::Primitive(_) => "<function>".to_string(),
-            Exp::Lambda(_)    => "<function>".to_string(),
+            Exp::Function(_)  => "<function>".to_string(),
+            Exp::Macro(_)     => "<macro>".to_string(),
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
@@ -87,7 +92,7 @@ impl fmt::Display for Exp {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct Lambda {
+pub struct Function {
     params: Exp,
     body: Exp,
 }
@@ -119,20 +124,6 @@ macro_rules! ensure_length_gt {
             return Err(Err::Reason(format!("Expected more than {} expression{}", $count, plural)))
         }
     };
-}
-
-fn list_of_symbols(form: &Exp) -> Result<Vec<String>, Err> {
-    match form {
-        Exp::List(list) => {
-            list.iter().map(|exp| {
-                match exp {
-                    Exp::Sym(sym) => Ok(sym.clone()),
-                    _ => Err(Err::Reason("Expected symbols in the argument list".to_string()))
-                }
-            }).collect()
-        }
-        _ => Err(Err::Reason("Expected args form to be a list".to_string()))
-    }
 }
 
 pub fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
@@ -172,6 +163,7 @@ pub fn byte(exp: &Exp) -> Result<u8, Err> {
 
 fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let (_, exp) = parse(exp)?;
+    let exp = expand(&exp, env)?;
     let exp = eval(&exp, env)?;
     Ok(exp)
 }
@@ -244,7 +236,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         args[2..].iter().map(|arg| Exp::Str(arg.to_string())).collect()
     });
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
-    if eval_label_args(&[key, quote], env).is_err() {
+    if eval_define_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
         return Err(ExitCode::Failure);
     }
@@ -353,24 +345,24 @@ fn test_lisp() {
     // while
     assert_eq!(eval!("(do (def i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
 
-    // label
-    eval!("(label a 2)");
+    // define
+    eval!("(define a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");
-    //eval!("(label fn lambda)");
-    //assert_eq!(eval!("((fn (a) (+ 1 a)) 2)"), "3");
-    eval!("(label add-one (lambda (b) (+ b 1)))");
+    eval!("(define add-one (function (b) (+ b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
-    eval!("(label fib (lambda (n) (cond ((< n 2) n) (true (+ (fib (- n 1)) (fib (- n 2)))))))");
-    assert_eq!(eval!("(fib 6)"), "8");
+    eval!("(define fibonacci (function (n) (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
+    assert_eq!(eval!("(fibonacci 6)"), "8");
 
-    // lambda
-    assert_eq!(eval!("((lambda (a) (+ 1 a)) 2)"), "3");
-    assert_eq!(eval!("((lambda (a) (* a a)) 2)"), "4");
-    assert_eq!(eval!("((lambda (x) (cons x '(b c))) 'a)"), "(a b c)");
+    // function
+    assert_eq!(eval!("((function (a) (+ 1 a)) 2)"), "3");
+    assert_eq!(eval!("((function (a) (* a a)) 2)"), "4");
+    assert_eq!(eval!("((function (x) (cons x '(b c))) 'a)"), "(a b c)");
 
-    // defun
-    eval!("(defun add (a b) (+ a b))");
-    assert_eq!(eval!("(add 1 2)"), "3");
+    // function definition shortcut
+    eval!("(define (double x) (* x 2))");
+    assert_eq!(eval!("(double 2)"), "4");
+    eval!("(define-function (triple x) (* x 3))");
+    assert_eq!(eval!("(triple 2)"), "6");
 
     // addition
     assert_eq!(eval!("(+)"), "0");
@@ -469,4 +461,24 @@ fn test_lisp() {
     assert_eq!(eval!("(number-type 9223372036854775807)"),   "\"int\"");
     assert_eq!(eval!("(number-type 9223372036854775808)"),   "\"bigint\"");
     assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
+
+    // quasiquote
+    eval!("(define x 'a)");
+    assert_eq!(eval!("`(x ,x y)"), "(x a y)");
+    assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
+
+    // unquote-splicing
+    eval!("(define x '(1 2 3))");
+    assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
+    assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
+
+    // macro
+    eval!("(define foo 42)");
+    eval!("(define set-10 (macro (x) `(set ,x 10)))");
+    eval!("(set-10 foo)");
+    assert_eq!(eval!("foo"), "10");
+
+    // args
+    eval!("(define list* (function args (append args '())))");
+    assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
 }

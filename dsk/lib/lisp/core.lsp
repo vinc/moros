@@ -61,10 +61,6 @@
       (f (first ls))
       (map f (rest ls)))))
 
-(def (append x y)
-  (if (nil? x) y
-    (cons (first x) (append (rest x) y))))
-
 (def (reverse x)
   (if (nil? x) x
     (append (reverse (rest x)) (cons (first x) '()))))
