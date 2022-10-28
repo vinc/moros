@@ -64,8 +64,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     if args.len() == required_args_count - 1 {
         if let Some(i) = args[1].find(':') { // Split <host> and <port>
-            let arg = args[1].clone();
-            let (host, path) = arg.split_at(i);
+            let (host, path) = args[1].split_at(i);
             args[1] = host;
             args.push(&path[1..]);
         }
@@ -76,7 +75,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    let host = if listen { "0.0.0.0" } else { &args[1] };
+    let host = if listen { "0.0.0.0" } else { args[1] };
     let port: u16 = args[required_args_count - 1].parse().expect("Could not parse port");
 
     let address = if host.ends_with(char::is_numeric) {

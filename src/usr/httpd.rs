@@ -62,7 +62,7 @@ impl Request {
                         is_header = false;
                     }
                 } else if !is_header { // Message body
-                    req.body.extend_from_slice(&format!("{}\n", line).as_bytes());
+                    req.body.extend_from_slice(format!("{}\n", line).as_bytes());
                 }
             }
             Some(req)
@@ -119,9 +119,9 @@ impl Response {
 
     fn write(&mut self) {
         self.buf.clear();
-        self.buf.extend_from_slice(&format!("{}\r\n", self.status()).as_bytes());
+        self.buf.extend_from_slice(format!("{}\r\n", self.status()).as_bytes());
         for (key, val) in &self.headers {
-            self.buf.extend_from_slice(&format!("{}: {}\r\n", key, val).as_bytes());
+            self.buf.extend_from_slice(format!("{}: {}\r\n", key, val).as_bytes());
         }
         self.buf.extend_from_slice(b"\r\n");
         self.buf.extend_from_slice(&self.body);
@@ -258,7 +258,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
                                     } else {
                                         let mut not_found = true;
-                                        for autocomplete in vec!["", "/index.html", "/index.htm", "/index.txt"] {
+                                        for autocomplete in &["", "/index.html", "/index.htm", "/index.txt"] {
                                             let real_path = format!("{}{}", real_path, autocomplete);
                                             if fs::is_dir(&real_path) {
                                                 continue;
@@ -281,12 +281,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                             if let Ok(mut files) = fs::read_dir(&real_path) {
                                                 res.code = 200;
                                                 res.mime = "text/html".to_string();
-                                                res.body.extend_from_slice(&format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes());
+                                                res.body.extend_from_slice(format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes());
                                                 files.sort_by_key(|f| f.name());
                                                 for file in files {
                                                     let path = format!("{}{}", req.path, file.name());
                                                     let link = format!("<li><a href=\"{}\">{}</a></li>\n", path, file.name());
-                                                    res.body.extend_from_slice(&link.as_bytes());
+                                                    res.body.extend_from_slice(link.as_bytes());
                                                 }
                                             } else {
                                                 res.code = 404;
@@ -299,7 +299,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 "PUT" if !read_only => {
                                     if real_path.ends_with('/') { // Write directory
                                         let real_path = real_path.trim_end_matches('/');
-                                        if fs::exists(&real_path) {
+                                        if fs::exists(real_path) {
                                             res.code = 403;
                                         } else if let Some(handle) = fs::create_dir(&real_path) {
                                             syscall::close(handle);

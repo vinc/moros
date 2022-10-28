@@ -30,7 +30,7 @@ enum Interrupt {
     Update = 1 << 4,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RTC {
     pub year: u16,
     pub month: u8,
@@ -60,7 +60,7 @@ impl FileIO for RTC {
         let date = Date::try_from_ymd(self.year.into(), self.month, self.day).map_err(|_| ())?;
         let date_time = date.try_with_hms(self.hour, self.minute, self.second).map_err(|_| ())?;
         let out = date_time.format(DATE_TIME);
-        buf.copy_from_slice(&out.as_bytes());
+        buf.copy_from_slice(out.as_bytes());
         Ok(out.len())
     }
 

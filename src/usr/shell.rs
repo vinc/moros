@@ -187,14 +187,15 @@ pub fn split_args(cmd: &str) -> Vec<String> {
         args.push("".to_string());
     }
 
-    args.iter().map(|s| tilde_expansion(&s)).collect()
+    args.iter().map(|s| tilde_expansion(s)).collect()
 }
 
 // Replace `~` with the value of `$HOME` when it's at the begining of an arg
 fn tilde_expansion(arg: &str) -> String {
     if let Some(home) = sys::process::env("HOME") {
-        if arg == "~" || arg.starts_with("~/") {
-            return arg.replacen("~", &home, 1);
+        let tilde = "~";
+        if arg == tilde || arg.starts_with("~/") {
+            return arg.replacen(tilde, &home, 1);
         }
     }
     arg.to_string()
@@ -520,7 +521,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
 }
 
 fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
-    match api::process::spawn(&path, &args) {
+    match api::process::spawn(path, args) {
         Err(ExitCode::ExecError) => {
             error!("Could not execute '{}'", args[0]);
             Err(ExitCode::ExecError)

@@ -77,7 +77,7 @@ pub fn login(username: &str) -> Result<(), ExitCode> {
     let home = format!("/usr/{}", username);
     sys::process::set_user(username);
     sys::process::set_dir(&home);
-    sys::process::set_env("USER", &username);
+    sys::process::set_env("USER", username);
     sys::process::set_env("HOME", &home);
 
     // TODO: load shell
