@@ -21,6 +21,7 @@ use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::tuple;
+use nom::sequence::separated_pair;
 
 fn is_symbol_letter(c: char) -> bool {
     let chars = "<>=-+*/%^?:";
@@ -61,6 +62,16 @@ fn parse_list(input: &str) -> IResult<&str, Exp> {
     Ok((input, Exp::List(list)))
 }
 
+fn parse_pair(input: &str) -> IResult<&str, Exp> {
+    let (input, (car, cdr)) = delimited(
+        char('('),
+        separated_pair(parse_exp, char('.'), parse_exp),
+        char(')')
+    )(input)?;
+    let list = vec![Exp::Sym("cons".to_string()), car, cdr];
+    Ok((input, Exp::List(list)))
+}
+
 fn parse_quote(input: &str) -> IResult<&str, Exp> {
     let (input, list) = preceded(char('\''), parse_exp)(input)?;
     let list = vec![Exp::Sym("quote".to_string()), list];
@@ -87,7 +98,8 @@ fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
 
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
     delimited(multispace0, alt((
-        parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_unquote_splicing, parse_unquote, parse_quasiquote, parse_sym
+        parse_num, parse_bool, parse_str, parse_list, parse_pair, parse_quote,
+        parse_unquote_splicing, parse_unquote, parse_quasiquote, parse_sym
     )), multispace0)(input)
 }
 
