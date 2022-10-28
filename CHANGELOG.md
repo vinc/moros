@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Add macro to Lisp (#425)
+- Run clippy (#424)
+- Update pc-keyboard from 0.5.1 to 0.6.1 (#423)
+- Add TCO to Lisp (#420)
 - Add if and while to Lisp (#418)
 - Refactor Lisp (#417)
 - Add BigInt support to Lisp (#415)
@@ -26,6 +30,7 @@
 - ATA: Sata LBA2 wrong address (#388)
 - Add file append (#387)
 
+- Bump base64 from 0.13.0 to 0.13.1 (#422)
 - Bump linked_list_allocator from 0.10.3 to 0.10.4 (#416)
 - Bump sha2 from 0.10.5 to 0.10.6 (#413)
 - Bump raw-cpuid from 10.5.0 to 10.6.0 (#411)
