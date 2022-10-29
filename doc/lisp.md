@@ -19,24 +19,33 @@ of strings to the language and reading from the filesystem.
 - Basics: `bool`, `list`, `symbol`, `string`
 - Numbers: `float`, `int`, `bigint`
 
-## Seven Primitive Operators
+## Built-in Operators
 - `quote` (with the `'` syntax)
+- `quasiquote` (with the `` ` ``)
+- `unquote` (with the `,` syntax)
+- `unquote-splicing` (with the `,@` syntax)
 - `atom` (aliased to `atom?`)
 - `eq` (aliased to `eq?`)
 - `car` (aliased to `first`)
 - `cdr` (aliased to `rest`)
 - `cons`
+- `if`
 - `cond`
-
-## Two Special Forms
-- `label` (aliased to `define` and `def`)
-- `lambda` (aliased to `function`, `fun`, and `fn`)
-
-## Additional Builtins
-- `defun` (aliased to `defn`)
-- `set`
 - `while`
+- `set`
+- `define` (aliased to `def` and `label`)
+- `function` (aliased to `fun` and `lambda`)
+- `macro` (aliased to `mac`)
+- `define-function` (aliased to `def-fun`)
+- `define-macro` (aliased to `def-mac`)
 - `apply`
+- `eval`
+- `expand`
+- `do` (aliased to `begin` and `progn`)
+- `load`
+
+## Primitive Operators
+- `append`
 - `type`
 - `string`
 - `string->number`
@@ -44,26 +53,26 @@ of strings to the language and reading from the filesystem.
 - `number->bytes` and `bytes->number`
 - `regex-find`
 - `system`
-- `load`
 
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Boolean operations: `not`, `and`, `or`
 - String operations: `lines`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
 ## Core Library
 - `nil`, `nil?`, `eq?`
-- `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `lambda?`
+- `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `macro?`
 - `first`, `second`, `third`, `rest`
-- `map`, `reduce`, `append`, `reverse`
+- `map`, `reduce`, `reverse`, `range`
 - `string-join`
 - `read-line`, `read-char`
 - `print`, `println`
 - `write-file`, `append-file`
 - `uptime`, `realtime`
 - `regex-match?`
+
+- Boolean operations: `not`, `and`, `or`
 
 ## Usage
 
