@@ -55,9 +55,6 @@
   (if (nil? (rest ls)) (first ls)
     (f (first ls) (reduce f (rest ls)))))
 
-(def (string-join ls s)
-  (reduce (fn (x y) (string x s y)) ls))
-
 (def (map f ls)
   (if (nil? ls) nil
     (cons
@@ -71,6 +68,9 @@
 (def (range i n)
   (if (= i n) nil
     (append (list i) (range (+ i 1) n))))
+
+(def (string-join ls s)
+  (reduce (fn (x y) (string x s y)) ls))
 
 (def (read-line)
   (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
