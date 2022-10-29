@@ -33,11 +33,11 @@
 (def (not x)
   (if x false true))
 
-(def (or x y)
-  (if x true (if y true false)))
+(def-mac (or x y)
+  `(if ,x true (if ,y true false)))
 
-(def (and x y)
-  (if x (if y true false) false))
+(def-mac (and x y)
+  `(if ,x (if ,y true false) false))
 
 (def (rest x)
   (cdr x))
