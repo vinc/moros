@@ -94,7 +94,7 @@ with the following content:
 ```lisp
 (load "/lib/lisp/core.lsp")
 
-(def (fibonacci n)
+(define (fibonacci n)
   (if (< n 2) n
     (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))
 
@@ -115,21 +115,21 @@ Would produce the following output:
 ```lisp
 (load "/lib/lisp/core.lsp")
 
-(def foo 42)                       # Variable definition
+(define foo 42)                    # Variable definition
 
-(def double (fun (x) (* x 2)))     # Function definition
-(def (double x) (* x 2))           # Shortcut
+(define double (fun (x) (* x 2)))  # Function definition
+(define (double x) (* x 2))        # Shortcut
 
 (double foo)                       # => 84
 
-(def (map f ls)
+(define (map f ls)
   (if (nil? ls) nil
     (cons
       (f (first ls))
       (map f (rest ls)))))
 
-(def bar (quote (1 2 3)))
-(def bar '(1 2 3))                 # Shortcut
+(define bar (quote (1 2 3)))
+(define bar '(1 2 3))              # Shortcut
 
 (map double bar)                   # => (2 4 6)
 
@@ -144,7 +144,7 @@ Would produce the following output:
 
 (= foo 10)                         # => true
 
-(def name "Alice")
+(define name "Alice")
 
 (string "Hello, " name)            # => "Hello, Alice"
 
