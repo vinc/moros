@@ -22,6 +22,9 @@
 (def (function? x)
   (eq? (type x) "function"))
 
+(def (macro? x)
+  (eq? (type x) "macro"))
+
 (def nil '())
 
 (def (nil? x)
