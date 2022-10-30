@@ -5,21 +5,44 @@ of the Shell.
 
 MOROS Lisp is a Lisp-1 dialect inspired by Scheme and Clojure.
 
-It started from [Risp](https://github.com/stopachka/risp) and was extended to
-include the seven primitive operators and the two special forms of John
-McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
+## Changelog
+
+### 0.1.0 (2021-07-21)
+MOROS Lisp started from [Risp](https://github.com/stopachka/risp) and was
+extended to include the seven primitive operators and the two special forms of
+John McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
 Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.
 
-In version 0.2.0 the whole implementation was refactored and the parser was
-rewritten to use [Nom](https://github.com/Geal/nom). This allowed the addition
-of strings to the language and reading from the filesystem.
+### 0.2.0 (2021-12-04)
+The whole implementation was refactored and the parser was rewritten to use
+[Nom](https://github.com/Geal/nom). This allowed the addition of strings to the
+language and reading from the filesystem.
 
+### 0.3.0 (2022-12-12)
+Rewrite the evaluation code, add new functions and a core library.
 
-## Types
+### 0.3.1 (2022-06-06)
+Rewrite parts of the code and add new functions and examples.
+
+### 0.3.2 (2022-07-02)
+- Add new functions
+
+### 0.3.2 (2022-08-25)
+- Add new functions
+
+### 0.4.0 (2022-08-25)
+- Rewrite a lot of the code
+- Add integer and big integer support
+- Add tail call optimization (TCO)
+- Add macro support
+
+## Overview
+
+### Types
 - Basics: `bool`, `list`, `symbol`, `string`
 - Numbers: `float`, `int`, `bigint`
 
-## Built-in Operators
+### Built-in Operators
 - `quote` (with the `'` syntax)
 - `quasiquote` (with the `` ` ``)
 - `unquote` (with the `,` syntax)
@@ -44,7 +67,7 @@ of strings to the language and reading from the filesystem.
 - `do` (aliased to `begin` and `progn`)
 - `load`
 
-## Primitive Operators
+### Primitive Operators
 - `append`
 - `type`
 - `string`
@@ -60,7 +83,7 @@ of strings to the language and reading from the filesystem.
 - String operations: `lines`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
-## Core Library
+### Core Library
 - `nil`, `nil?`, `eq?`
 - `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `macro?`
 - `first`, `second`, `third`, `rest`
