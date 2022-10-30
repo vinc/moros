@@ -1,3 +1,5 @@
+(load "/lib/lisp/alias.lsp")
+
 (define (eq? x y)
   (eq x y))
 

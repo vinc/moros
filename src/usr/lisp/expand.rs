@@ -55,27 +55,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 ensure_length_eq!(list, 2);
                 expand_quasiquote(&list[1])
             }
-            Exp::Sym(s) if s == "begin" || s == "progn" => {
-                let mut res = vec![Exp::Sym("do".to_string())];
-                res.extend_from_slice(&list[1..]);
-                expand(&Exp::List(res), env)
-            }
-            Exp::Sym(s) if s == "def" || s == "label" => {
-                let mut res = vec![Exp::Sym("define".to_string())];
-                res.extend_from_slice(&list[1..]);
-                expand(&Exp::List(res), env)
-            }
-            Exp::Sym(s) if s == "fun" || s == "fn" || s == "lambda" => {
-                let mut res = vec![Exp::Sym("function".to_string())];
-                res.extend_from_slice(&list[1..]);
-                expand(&Exp::List(res), env)
-            }
-            Exp::Sym(s) if s == "mac" => {
-                let mut res = vec![Exp::Sym("macro".to_string())];
-                res.extend_from_slice(&list[1..]);
-                expand(&Exp::List(res), env)
-            }
-            Exp::Sym(s) if s == "define-function" || s == "def-fun" || s == "define" => {
+            Exp::Sym(s) if s == "define-function" || s == "define" => {
                 ensure_length_eq!(list, 3);
                 match (&list[1], &list[2]) {
                     (Exp::List(args), Exp::List(_)) => {
@@ -93,7 +73,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
                 }
             }
-            Exp::Sym(s) if s == "define-macro" || s == "def-mac" => {
+            Exp::Sym(s) if s == "define-macro" => {
                 ensure_length_eq!(list, 3);
                 match (&list[1], &list[2]) {
                     (Exp::List(args), Exp::List(_)) => {
