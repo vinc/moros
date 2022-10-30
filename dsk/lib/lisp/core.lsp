@@ -42,7 +42,7 @@
   `(if ,x (if ,y true false) false))
 
 (define-macro (let params values body)
-  `((function ,params ,body) ,values))
+  `((function ,params ,body) ,@values))
 
 (define (caar x)
   (car (car x)))
