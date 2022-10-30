@@ -169,6 +169,7 @@ fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
 }
 
 fn strip_comments(s: &str) -> String {
+    // FIXME: This doesn't handle `#` inside a string
     s.split('#').next().unwrap().into()
 }
 
