@@ -44,6 +44,18 @@
 (define-macro (let params values body)
   `((function ,params ,body) ,values))
 
+(define (caar x)
+  (car (car x)))
+
+(define (cadr x)
+  (car (cdr x)))
+
+(define (cdar x)
+  (cdr (car x)))
+
+(define (cddr x)
+  (cdr (cdr x)))
+
 (define (rest x)
   (cdr x))
 

@@ -86,8 +86,9 @@ Rewrite parts of the code and add new functions and examples.
 ### Core Library
 - `nil`, `nil?`, `eq?`
 - `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `macro?`
-- `first`, `second`, `third`, `rest`
+- `caar`, `cadr`, `cdar`, `cddr`, `first`, `second`, `third`, `rest`
 - `map`, `reduce`, `reverse`, `range`
+- `let`
 - `string-join`
 - `read-line`, `read-char`
 - `print`, `println`
