@@ -323,9 +323,11 @@ impl Editor {
                     let y = self.offset.y + self.cursor.y;
                     let n = self.lines[y].chars().count();
                     if self.offset.x + self.cursor.x >= n { // Remove newline from line
-                        let line = self.lines.remove(y + 1);
-                        self.lines[y].push_str(&line);
-                        self.print_screen();
+                        if y + 1 < self.lines.len() {
+                            let line = self.lines.remove(y + 1);
+                            self.lines[y].push_str(&line);
+                            self.print_screen();
+                        }
                     } else { // Remove char from line
                         self.lines[y].remove(self.offset.x + self.cursor.x);
                         let line = self.render_line(y);
