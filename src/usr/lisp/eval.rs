@@ -148,10 +148,19 @@ pub fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, E
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 24] = [
-    "quote", "atom", "eq", "car", "cdr", "cons", "cond", "label", "lambda", "define", "def",
-    "function", "fun", "fn", "if", "while", "defun", "defn", "apply", "eval", "progn", "begin",
-    "do", "load"
+pub const BUILT_INS: [&str; 32] = [
+    "quote", "quasiquote", "unquote", "unquote-splicing",
+    "atom", "eq", "car", "cdr", "cons",
+    "if", "cond", "while",
+    "set",
+    "define", "def", "label",
+    "function", "fun", "lambda",
+    "macro", "mac",
+    "define-function", "def-fun",
+    "define-macro", "def-mac",
+    "apply", "eval", "expand",
+    "do", "begin", "progn",
+    "load"
 ];
 
 pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {

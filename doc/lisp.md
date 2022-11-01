@@ -5,38 +5,70 @@ of the Shell.
 
 MOROS Lisp is a Lisp-1 dialect inspired by Scheme and Clojure.
 
-It started from [Risp](https://github.com/stopachka/risp) and was extended to
-include the seven primitive operators and the two special forms of John
-McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
+## Changelog
+
+### 0.1.0 (2021-07-21)
+MOROS Lisp started from [Risp](https://github.com/stopachka/risp) and was
+extended to include the seven primitive operators and the two special forms of
+John McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
 Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.
 
-In version 0.2.0 the whole implementation was refactored and the parser was
-rewritten to use [Nom](https://github.com/Geal/nom). This allowed the addition
-of strings to the language and reading from the filesystem.
+### 0.2.0 (2021-12-04)
+The whole implementation was refactored and the parser was rewritten to use
+[Nom](https://github.com/Geal/nom). This allowed the addition of strings to the
+language and reading from the filesystem.
 
+### 0.3.0 (2022-12-12)
+Rewrite the evaluation code, add new functions and a core library.
 
-## Types
+### 0.3.1 (2022-06-06)
+Rewrite parts of the code and add new functions and examples.
+
+### 0.3.2 (2022-07-02)
+- Add new functions
+
+### 0.3.2 (2022-08-25)
+- Add new functions
+
+### 0.4.0 (2022-08-25)
+- Rewrite a lot of the code
+- Add integer and big integer support
+- Add tail call optimization (TCO)
+- Add macro support
+
+## Overview
+
+### Types
 - Basics: `bool`, `list`, `symbol`, `string`
 - Numbers: `float`, `int`, `bigint`
 
-## Seven Primitive Operators
+### Built-in Operators
 - `quote` (with the `'` syntax)
+- `quasiquote` (with the `` ` ``)
+- `unquote` (with the `,` syntax)
+- `unquote-splicing` (with the `,@` syntax)
 - `atom` (aliased to `atom?`)
 - `eq` (aliased to `eq?`)
 - `car` (aliased to `first`)
 - `cdr` (aliased to `rest`)
 - `cons`
+- `if`
 - `cond`
-
-## Two Special Forms
-- `label` (aliased to `define` and `def`)
-- `lambda` (aliased to `function`, `fun`, and `fn`)
-
-## Additional Builtins
-- `defun` (aliased to `defn`)
-- `set`
 - `while`
+- `set`
+- `define` (aliased to `def` and `label`)
+- `function` (aliased to `fun` and `lambda`)
+- `macro` (aliased to `mac`)
+- `define-function` (aliased to `def-fun`)
+- `define-macro` (aliased to `def-mac`)
 - `apply`
+- `eval`
+- `expand`
+- `do` (aliased to `begin` and `progn`)
+- `load`
+
+### Primitive Operators
+- `append`
 - `type`
 - `string`
 - `string->number`
@@ -44,26 +76,27 @@ of strings to the language and reading from the filesystem.
 - `number->bytes` and `bytes->number`
 - `regex-find`
 - `system`
-- `load`
 
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Boolean operations: `not`, `and`, `or`
 - String operations: `lines`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
 
-## Core Library
+### Core Library
 - `nil`, `nil?`, `eq?`
-- `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `lambda?`
-- `first`, `second`, `third`, `rest`
-- `map`, `reduce`, `append`, `reverse`
+- `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `macro?`
+- `caar`, `cadr`, `cdar`, `cddr`, `first`, `second`, `third`, `rest`
+- `map`, `reduce`, `reverse`, `range`
+- `let`
 - `string-join`
 - `read-line`, `read-char`
 - `print`, `println`
 - `write-file`, `append-file`
 - `uptime`, `realtime`
 - `regex-match?`
+
+- Boolean operations: `not`, `and`, `or`
 
 ## Usage
 
@@ -85,7 +118,7 @@ with the following content:
 ```lisp
 (load "/lib/lisp/core.lsp")
 
-(def (fibonacci n)
+(define (fibonacci n)
   (if (< n 2) n
     (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))
 
@@ -106,21 +139,21 @@ Would produce the following output:
 ```lisp
 (load "/lib/lisp/core.lsp")
 
-(def foo 42)                       # Variable definition
+(define foo 42)                    # Variable definition
 
-(def double (fun (x) (* x 2)))     # Function definition
-(def (double x) (* x 2))           # Shortcut
+(define double (fun (x) (* x 2)))  # Function definition
+(define (double x) (* x 2))        # Shortcut
 
 (double foo)                       # => 84
 
-(def (map f ls)
+(define (map f ls)
   (if (nil? ls) nil
     (cons
       (f (first ls))
       (map f (rest ls)))))
 
-(def bar (quote (1 2 3)))
-(def bar '(1 2 3))                 # Shortcut
+(define bar (quote (1 2 3)))
+(define bar '(1 2 3))              # Shortcut
 
 (map double bar)                   # => (2 4 6)
 
@@ -135,7 +168,7 @@ Would produce the following output:
 
 (= foo 10)                         # => true
 
-(def name "Alice")
+(define name "Alice")
 
 (string "Hello, " name)            # => "Hello, Alice"
 
