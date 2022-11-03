@@ -2,7 +2,6 @@
 #![cfg_attr(test, no_main)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
-#![feature(asm_sym)]
 #![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
