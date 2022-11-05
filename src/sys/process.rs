@@ -200,7 +200,12 @@ use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
 
-static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20));
+static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
+
+// Called during kernel heap initialization
+pub fn init_process_addr(addr: u64) {
+    sys::process::CODE_ADDR.store(addr, Ordering::SeqCst);
+}
 
 #[repr(align(8), C)]
 #[derive(Debug, Clone, Copy, Default)]

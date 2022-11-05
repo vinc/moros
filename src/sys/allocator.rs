@@ -12,15 +12,21 @@ use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
-pub const HEAP_START: usize = 0x4444_4444_0000;
+pub const HEAP_START: u64 = 0x4444_4444_0000;
 
 #[global_allocator]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
+fn max_memory() -> u64 {
+    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<u64>().unwrap() << 20 // MB
+}
+
 pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
-    // Use half of the memory for the heap, caped to 16 MB because the allocator is too slow
-    let heap_size = cmp::min(sys::mem::memory_size() / 2, 16 << 20);
-    let heap_start = VirtAddr::new(HEAP_START as u64);
+    // Use half of the memory for the heap caped to 16MB by default because the
+    // allocator is slow.
+    let heap_size = cmp::min(sys::mem::memory_size(), max_memory()) / 2;
+    let heap_start = VirtAddr::new(HEAP_START);
+    sys::process::init_process_addr(HEAP_START + heap_size);
 
     let pages = {
         let heap_end = heap_start + heap_size - 1u64;

@@ -8,6 +8,7 @@ setup:
 	cargo install bootimage
 
 # Compilation options
+memory = 32
 output = video# video, serial
 keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
@@ -19,6 +20,7 @@ kvm = false
 pcap = false
 
 export MOROS_KEYBOARD = $(keyboard)
+export MOROS_MEMORY = $(memory)
 
 # Build userspace binaries
 user-nasm:
@@ -56,7 +58,7 @@ image: $(img)
 	dd conv=notrunc if=$(bin) of=$(img)
 
 
-qemu-opts = -m 32 -drive file=$(img),format=raw \
+qemu-opts = -m $(memory) -drive file=$(img),format=raw \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
 ifeq ($(kvm),true)
