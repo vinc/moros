@@ -26,6 +26,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-s" | "--size" => sort = "size",
             "-t" | "--time" => sort = "time",
             "-b" | "--binary-size" => unit = SizeUnit::Binary,
+            "-d" | "--decimal-size" => unit = SizeUnit::Decimal,
             _ => path = args[i],
         }
     }

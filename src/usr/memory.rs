@@ -33,6 +33,9 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
             "-b" | "--binary-size" => {
                 unit = SizeUnit::Binary;
             }
+            "-d" | "--decimal-size" => {
+                unit = SizeUnit::Decimal;
+            }
             "-h" | "--help" => {
                 help_usage();
                 return Ok(());
