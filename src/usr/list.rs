@@ -90,7 +90,7 @@ fn print_file(file: &FileInfo, width: usize, unit: SizeUnit) {
     } else {
         csi_reset
     };
-    println!("{:width$} {} {}{}{}", size, time, color, file.name(), csi_reset, width = width);
+    println!("{:>width$} {} {}{}{}", size, time, color, file.name(), csi_reset, width = width);
 }
 
 fn help() -> Result<(), ExitCode> {

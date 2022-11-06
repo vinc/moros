@@ -51,9 +51,9 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
     });
     let color = Style::color("LightCyan");
     let reset = Style::reset();
-    println!("{}size:{} {:width$}", color, reset, unit.format(size), width = width);
-    println!("{}used:{} {:width$}", color, reset, unit.format(used), width = width);
-    println!("{}free:{} {:width$}", color, reset, unit.format(free), width = width);
+    println!("{}size:{} {:>width$}", color, reset, unit.format(size), width = width);
+    println!("{}used:{} {:>width$}", color, reset, unit.format(used), width = width);
+    println!("{}free:{} {:>width$}", color, reset, unit.format(free), width = width);
     Ok(())
 }
 
