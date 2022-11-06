@@ -1,6 +1,7 @@
 use crate::api::console::Style;
 use crate::api::io;
 use crate::api::process::ExitCode;
+use crate::api::unit::SizeUnit;
 use crate::sys;
 use crate::sys::ata::Drive;
 
@@ -11,15 +12,27 @@ use alloc::vec::Vec;
 use alloc::vec;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() == 1 {
-        return usage();
-    }
-    match args[1] {
-        "format" if args.len() == 3 => format(args[2]),
-        "erase" if args.len() == 3 => erase(args[2]),
-        "usage" => usage(),
-        "list" => list(),
-        _ => help(),
+    match *args.get(1).unwrap_or(&"") {
+        "f" | "format" if args.len() == 3 => {
+            format(args[2])
+        }
+        "e" | "erase" if args.len() == 3 => {
+            erase(args[2])
+        }
+        "u" | "usage" => {
+            usage(&args[2..])
+        }
+        "l" | "list" => {
+            list()
+        }
+        "-h" | "--help" => {
+            help();
+            Ok(())
+        }
+        _ => {
+            help();
+            Err(ExitCode::UsageError)
+        }
     }
 }
 
@@ -92,21 +105,48 @@ fn list() -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn usage() -> Result<(), ExitCode> {
+fn usage(args: &[&str]) -> Result<(), ExitCode> {
+    let mut unit = SizeUnit::None;
+    for arg in args {
+        match *arg {
+            "-b" | "--binary-size" => {
+                unit = SizeUnit::Binary;
+            }
+            "-h" | "--help" => {
+                help_usage();
+                return Ok(());
+            }
+            _ => {
+                help_usage();
+                return Err(ExitCode::Failure);
+            }
+        }
+    }
     let size = sys::fs::disk_size();
     let used = sys::fs::disk_used();
     let free = size - used;
-
-    let width = size.to_string().len();
+    let width = [size, used, free].iter().fold(0, |acc, num| {
+        core::cmp::max(acc, unit.format(*num).len())
+    });
     let color = Style::color("LightCyan");
     let reset = Style::reset();
-    println!("{}size:{} {:width$} bytes", color, reset, size, width = width);
-    println!("{}used:{} {:width$} bytes", color, reset, used, width = width);
-    println!("{}free:{} {:width$} bytes", color, reset, free, width = width);
+    println!("{}size:{} {:width$}", color, reset, unit.format(size), width = width);
+    println!("{}used:{} {:width$}", color, reset, unit.format(used), width = width);
+    println!("{}free:{} {:width$}", color, reset, unit.format(free), width = width);
     Ok(())
 }
 
-fn help() -> Result<(), ExitCode> {
+fn help_usage() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} disk usage {}<options>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-b{1},{0} --binary-size{1}   Use binary size", csi_option, csi_reset);
+}
+
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -117,5 +157,4 @@ fn help() -> Result<(), ExitCode> {
     println!("  {}usage{}            List disk usage", csi_option, csi_reset);
     println!("  {}format <path>{}    Format disk", csi_option, csi_reset);
     println!("  {}erase <path>{}     Erase disk", csi_option, csi_reset);
-    Ok(())
 }
