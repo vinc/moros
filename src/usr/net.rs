@@ -18,17 +18,12 @@ use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() == 1 {
-        help();
-        return Err(ExitCode::UsageError);
-    }
-
-    match args[1] {
+    match *args.get(1).unwrap_or(&"") {
         "-h" | "--help" => {
             help();
             return Ok(());
         }
-        "config" => {
+        "c" | "config" => {
             if args.len() < 3 {
                 print_config("mac");
                 print_config("ip");
@@ -43,7 +38,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 set_config(args[2], args[3]);
             }
         }
-        "stat" => {
+        "s" | "stat" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 let stats = iface.device().stats();
                 let csi_color = Style::color("LightCyan");
@@ -54,7 +49,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 error!("Network error");
             }
         }
-        "monitor" => {
+        "m" | "monitor" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 iface.device_mut().config().enable_debug();
 
