@@ -3,9 +3,10 @@ use crate::api::clock::DATE_TIME;
 use crate::api::console::Style;
 use crate::api::time;
 use crate::api::fs;
+use crate::api::fs::FileInfo;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
-use crate::api::fs::FileInfo;
+use crate::api::unit::SizeUnit;
 
 use alloc::string::ToString;
 use alloc::vec::Vec;
@@ -14,6 +15,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut sort = "name";
     let mut hide_dot_files = true;
+    let mut unit = SizeUnit::None;
 
     let n = args.len();
     for i in 1..n {
@@ -23,6 +25,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-n" | "--name" => sort = "name",
             "-s" | "--size" => sort = "size",
             "-t" | "--time" => sort = "time",
+            "-b" | "--binary-size" => unit = SizeUnit::Binary,
             _ => path = args[i],
         }
     }
@@ -50,15 +53,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                 }
 
-                let mut max_size = 0;
-                for file in &files {
-                    max_size = core::cmp::max(max_size, file.size());
-                }
-                let width = max_size.to_string().len();
-
+                let width = files.iter().fold(0, |max_len, file| {
+                    let len = unit.format(file.size() as usize).len();
+                    core::cmp::max(max_len, len)
+                });
 
                 for file in files {
-                    print_file(file, width);
+                    print_file(file, width, unit.clone());
                 }
                 Ok(())
             } else {
@@ -66,7 +67,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 Err(ExitCode::Failure)
             }
         } else {
-            print_file(&info, info.size().to_string().len());
+            print_file(&info, info.size().to_string().len(), unit);
             Ok(())
         }
     } else {
@@ -75,12 +76,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 }
 
-fn print_file(file: &FileInfo, width: usize) {
+fn print_file(file: &FileInfo, width: usize, unit: SizeUnit) {
     let csi_dir_color = Style::color("LightCyan");
     let csi_dev_color = Style::color("Yellow");
     let csi_reset = Style::reset();
 
-    let time = time::from_timestamp(file.time() as i64);
+    let size = unit.format(file.size() as usize);
+    let time = time::from_timestamp(file.time() as i64).format(DATE_TIME);
     let color = if file.is_dir() {
         csi_dir_color
     } else if file.is_device() {
@@ -88,7 +90,7 @@ fn print_file(file: &FileInfo, width: usize) {
     } else {
         csi_reset
     };
-    println!("{:width$} {} {}{}{}", file.size(), time.format(DATE_TIME), color, file.name(), csi_reset, width = width);
+    println!("{:width$} {} {}{}{}", size, time, color, file.name(), csi_reset, width = width);
 }
 
 fn help() -> Result<(), ExitCode> {
