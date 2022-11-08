@@ -256,10 +256,10 @@ impl Process {
     }
 
     pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<(), ExitCode> {
-        if let Ok(pid) = Self::create(bin) {
+        if let Ok(id) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
-                table[pid].clone()
+                table[id].clone()
             };
             proc.exec(args_ptr, args_len);
             Ok(())
