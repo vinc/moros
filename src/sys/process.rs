@@ -256,10 +256,10 @@ impl Process {
     }
 
     pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<(), ExitCode> {
-        if let Ok(pid) = Self::create(bin) {
+        if let Ok(id) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
-                table[pid].clone()
+                table[id].clone()
             };
             proc.exec(args_ptr, args_len);
             Ok(())
@@ -297,8 +297,10 @@ impl Process {
             return Err(());
         }
 
-        let mut table = PROCESS_TABLE.write();
-        let parent = &table[id()];
+        let parent = {
+            let table = PROCESS_TABLE.read();
+            table[id()].clone()
+        };
 
         let data = parent.data.clone();
         let registers = parent.registers;
@@ -306,6 +308,8 @@ impl Process {
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
         let proc = Process { id, code_addr, stack_addr, entry_point, data, stack_frame, registers };
+
+        let mut table = PROCESS_TABLE.write();
         table[id] = Box::new(proc);
 
         Ok(id)
