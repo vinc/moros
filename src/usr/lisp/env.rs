@@ -297,7 +297,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         let mut res = vec![];
         for arg in args {
             if let Exp::List(list) = arg {
-                res.extend_from_slice(&list);
+                res.extend_from_slice(list);
             } else {
                 return Err(Err::Reason("Expected arg to be a list".to_string()))
             }

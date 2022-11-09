@@ -95,7 +95,7 @@ fn days_before_year(year: u64) -> u64 {
 
 fn days_before_month(year: u64, month: u64) -> u64 {
     let leap_day = is_leap_year(year) && month > 2;
-    DAYS_BEFORE_MONTH[(month as usize) - 1] + if leap_day { 1 } else { 0 }
+    DAYS_BEFORE_MONTH[(month as usize) - 1] + (leap_day as u64)
 }
 
 fn is_leap_year(year: u64) -> bool {
