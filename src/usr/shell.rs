@@ -334,6 +334,11 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     Ok(())
 }
 
+fn cmd_version(_args: &[&str]) -> Result<(), ExitCode> {
+    println!("MOROS v{}", option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION")));
+    Ok(())
+}
+
 fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
     sys::console::print_fmt(format_args!(""));
@@ -483,6 +488,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "time"     => usr::time::main(&args),
         "unalias"  => cmd_unalias(&args, config),
         "unset"    => cmd_unset(&args, config),
+        "version"  => cmd_version(&args),
         "user"     => usr::user::main(&args),
         "vga"      => usr::vga::main(&args),
         "write"    => usr::write::main(&args),
