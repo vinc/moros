@@ -258,7 +258,7 @@ impl Writer {
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         for (i, (r, g, b)) in palette.colors.iter().enumerate() {
             if i < 16 {
-                let reg = color::from_index(i as usize).to_vga_reg();
+                let reg = color::from_index(i).to_vga_reg();
                 unsafe {
                     addr.write(reg);
                     data.write(vga_color(*r));

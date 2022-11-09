@@ -13,7 +13,7 @@ pub fn sleep(seconds: f64) {
 
 pub fn delete(path: &str) -> Result<(), ()> {
     let path_ptr = path.as_ptr() as usize;
-    let path_len = path.len() as usize;
+    let path_len = path.len();
     let res = unsafe { syscall!(DELETE, path_ptr, path_len) } as isize;
     if res >= 0 {
         Ok(())
@@ -24,7 +24,7 @@ pub fn delete(path: &str) -> Result<(), ()> {
 
 pub fn info(path: &str) -> Option<FileInfo> {
     let path_ptr = path.as_ptr() as usize;
-    let path_len = path.len() as usize;
+    let path_len = path.len();
     let mut info = FileInfo::new();
     let stat_ptr = &mut info as *mut FileInfo as usize;
     let res = unsafe { syscall!(INFO, path_ptr, path_len, stat_ptr) } as isize;
@@ -37,7 +37,7 @@ pub fn info(path: &str) -> Option<FileInfo> {
 
 pub fn open(path: &str, flags: usize) -> Option<usize> {
     let ptr = path.as_ptr() as usize;
-    let len = path.len() as usize;
+    let len = path.len();
     let res = unsafe { syscall!(OPEN, ptr, len, flags) } as isize;
     if res >= 0 {
         Some(res as usize)
@@ -57,7 +57,7 @@ pub fn dup(old_handle: usize, new_handle: usize) -> Option<usize> {
 
 pub fn read(handle: usize, buf: &mut [u8]) -> Option<usize> {
     let ptr = buf.as_ptr() as usize;
-    let len = buf.len() as usize;
+    let len = buf.len();
     let res = unsafe { syscall!(READ, handle, ptr, len) } as isize;
     if res >= 0 {
         Some(res as usize)
@@ -68,7 +68,7 @@ pub fn read(handle: usize, buf: &mut [u8]) -> Option<usize> {
 
 pub fn write(handle: usize, buf: &[u8]) -> Option<usize> {
     let ptr = buf.as_ptr() as usize;
-    let len = buf.len() as usize;
+    let len = buf.len();
     let res = unsafe { syscall!(WRITE, handle, ptr, len) } as isize;
     if res >= 0 {
         Some(res as usize)
@@ -78,14 +78,14 @@ pub fn write(handle: usize, buf: &[u8]) -> Option<usize> {
 }
 
 pub fn close(handle: usize) {
-    unsafe { syscall!(CLOSE, handle as usize) };
+    unsafe { syscall!(CLOSE, handle) };
 }
 
 pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     let path_ptr = path.as_ptr() as usize;
-    let path_len = path.len() as usize;
     let args_ptr = args.as_ptr() as usize;
-    let args_len = args.len() as usize;
+    let path_len = path.len();
+    let args_len = args.len();
     let res = unsafe { syscall!(SPAWN, path_ptr, path_len, args_ptr, args_len) };
     if res == 0 {
         Ok(())

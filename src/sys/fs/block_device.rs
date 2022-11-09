@@ -39,15 +39,15 @@ impl BlockDeviceIO for BlockDevice {
 
     fn block_size(&self) -> usize {
         match self {
-            BlockDevice::Mem(dev) => dev.block_size() as usize,
-            BlockDevice::Ata(dev) => dev.block_size() as usize,
+            BlockDevice::Mem(dev) => dev.block_size(),
+            BlockDevice::Ata(dev) => dev.block_size(),
         }
     }
 
     fn block_count(&self) -> usize {
         match self {
-            BlockDevice::Mem(dev) => dev.block_count() as usize,
-            BlockDevice::Ata(dev) => dev.block_count() as usize,
+            BlockDevice::Mem(dev) => dev.block_count(),
+            BlockDevice::Ata(dev) => dev.block_count(),
         }
     }
 }

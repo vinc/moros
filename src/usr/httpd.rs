@@ -146,7 +146,7 @@ impl Response {
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 
@@ -301,7 +301,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         let real_path = real_path.trim_end_matches('/');
                                         if fs::exists(real_path) {
                                             res.code = 403;
-                                        } else if let Some(handle) = fs::create_dir(&real_path) {
+                                        } else if let Some(handle) = fs::create_dir(real_path) {
                                             syscall::close(handle);
                                             res.code = 200;
                                         } else {
