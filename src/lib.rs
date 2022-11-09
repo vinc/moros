@@ -30,7 +30,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::keyboard::init();
     sys::time::init();
 
-    log!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
+    log!("MOROS v{}\n", option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION")));
     sys::mem::init(boot_info);
     sys::cpu::init();
     sys::pci::init(); // Require MEM

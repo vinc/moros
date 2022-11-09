@@ -19,8 +19,9 @@ audio = sdl# sdl, coreaudio
 kvm = false
 pcap = false
 
-export MOROS_KEYBOARD = $(keyboard)
+export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_MEMORY = $(memory)
+export MOROS_KEYBOARD = $(keyboard)
 
 # Build userspace binaries
 user-nasm:
