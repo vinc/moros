@@ -78,7 +78,7 @@ impl Chess {
         self.game.show_coordinates = true;
         self.game.clock = Clock::new(40, 5 * 60 * 1000); // 40 moves in 5 minutes
         self.game.clock.system_time = Arc::new(system_time);
-        let size = 1 << 20; // MB
+        let size = 1 << 20; // 1 MB
         self.game.tt_resize(size);
         self.game.load_fen(FEN).unwrap();
         println!("{}", self.game);
