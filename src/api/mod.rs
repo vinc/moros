@@ -76,5 +76,6 @@ pub mod random;
 pub mod regex;
 pub mod syscall;
 pub mod time;
+pub mod unit;
 pub mod vga;
 // TODO: add mod wildcard
