@@ -21,7 +21,8 @@ fn max_memory() -> u64 {
     option_env!("MOROS_MEMORY").unwrap_or("32").parse::<u64>().unwrap() << 20 // MB
 }
 
-pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
+pub fn init_heap(frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
+    let mapper = unsafe { sys::mem::MAPPER.as_mut().unwrap() };
     // Use half of the memory for the heap caped to 16MB by default because the
     // allocator is slow.
     let heap_size = cmp::min(sys::mem::memory_size(), max_memory()) / 2;
@@ -52,7 +53,7 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
 
 pub fn alloc_pages(addr: u64, size: usize) -> Result<(), ()> {
     //debug!("Alloc pages (addr={:#x}, size={})", addr, size);
-    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
+    let mapper = unsafe { sys::mem::MAPPER.as_mut().unwrap() };
     let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
     let pages = {
@@ -84,7 +85,7 @@ use x86_64::structures::paging::page::PageRangeInclusive;
 
 // TODO: Replace `free` by `dealloc`
 pub fn free_pages(addr: u64, size: usize) {
-    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
+    let mapper = unsafe { sys::mem::MAPPER.as_mut().unwrap() };
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
         let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));
