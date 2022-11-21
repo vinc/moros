@@ -32,10 +32,12 @@ pub fn init(boot_info: &'static BootInfo) {
         unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
         unsafe { MAPPER.replace(OffsetPageTable::new(active_page_table(), VirtAddr::new(phys_mem_offset))) };
 
-        let mut frame_allocator = unsafe { BootInfoFrameAllocator::init(&boot_info.memory_map) };
-
-        sys::allocator::init_heap(&mut frame_allocator).expect("heap initialization failed");
+        sys::allocator::init_heap().expect("heap initialization failed");
     });
+}
+
+pub fn mapper() -> &'static mut OffsetPageTable<'static> {
+    unsafe { sys::mem::MAPPER.as_mut().unwrap() }
 }
 
 pub fn memory_size() -> u64 {
@@ -48,8 +50,7 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
 }
 
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
-    let mapper = unsafe { MAPPER.as_mut().unwrap() };
-    mapper.translate_addr(addr)
+    mapper().translate_addr(addr)
 }
 
 unsafe fn active_page_table() -> &'static mut PageTable {
@@ -87,4 +88,8 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
         // the heap is larger than a few megabytes.
         self.usable_frames().nth(next)
     }
+}
+
+pub fn frame_allocator() -> BootInfoFrameAllocator {
+    unsafe { BootInfoFrameAllocator::init(MEMORY_MAP.unwrap()) }
 }
