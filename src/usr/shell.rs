@@ -83,10 +83,21 @@ fn shell_completer(line: &str) -> Vec<String> {
 }
 
 pub fn prompt_string(success: bool) -> String {
-    let csi_color = Style::color("Magenta");
+    let csi_line1 = Style::color("Blue");
+    let csi_line2 = Style::color("Magenta");
     let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
-    format!("{}>{} ", if success { csi_color } else { csi_error }, csi_reset)
+
+    let mut current_dir = sys::process::dir();
+    if let Some(home) = sys::process::env("HOME") {
+        if current_dir.starts_with(&home) {
+            let n = home.len();
+            current_dir.replace_range(..n, "~");
+        }
+    }
+    let line1 = format!("{}{}{}", csi_line1, current_dir, csi_reset);
+    let line2 = format!("{}>{} ", if success { csi_line2 } else { csi_error }, csi_reset);
+    format!("{}\n{}", line1, line2)
 }
 
 fn is_globbing(arg: &str) -> bool {
