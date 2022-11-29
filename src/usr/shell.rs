@@ -13,10 +13,10 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
-    "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit", "env",
-    "geotime", "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life",
-    "lisp", "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
+const AUTOCOMPLETE_COMMANDS: [&str; 34] = [
+    "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "env",
+    "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
+    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
     "time", "user", "vga", "write"
 ];
 
@@ -462,7 +462,6 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "beep"     => usr::beep::main(&args),
         "calc"     => usr::calc::main(&args),
         "chess"    => usr::chess::main(&args),
-        "colors"   => usr::colors::main(&args),
         "copy"     => usr::copy::main(&args),
         "date"     => usr::date::main(&args),
         "delete"   => usr::delete::main(&args),
@@ -472,7 +471,6 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "elf"      => usr::elf::main(&args),
         "env"      => usr::env::main(&args),
         "find"     => usr::find::main(&args),
-        "geotime"  => usr::geotime::main(&args),
         "goto"     => cmd_change_dir(&args, config),
         "help"     => usr::help::main(&args),
         "hex"      => usr::hex::main(&args),
