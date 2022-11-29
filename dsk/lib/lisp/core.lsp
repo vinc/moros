@@ -87,7 +87,7 @@
     (append (list i) (range (+ i 1) n))))
 
 (define (string-join ls s)
-  (reduce (fn (x y) (string x s y)) ls))
+  (reduce (function (x y) (string x s y)) ls))
 
 (define (read-line)
   (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))

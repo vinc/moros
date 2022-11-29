@@ -2,7 +2,6 @@ pub mod base64;
 pub mod beep;
 pub mod calc;
 pub mod chess;
-pub mod colors;
 pub mod copy;
 pub mod date;
 pub mod delete;
