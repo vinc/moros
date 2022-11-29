@@ -13,6 +13,7 @@
 (define def-fun
   (macro args `(define-function ,@args)))
 
+(define len length)
 
 (define label
   (macro args `(define ,@args)))
@@ -22,7 +23,6 @@
 
 (define progn
   (macro args `(do ,@args)))
-
 
 (define begin
   (macro args `(do ,@args)))
