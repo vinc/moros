@@ -471,7 +471,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "elf"      => usr::elf::main(&args),
         "env"      => usr::env::main(&args),
         "find"     => usr::find::main(&args),
-        "goto"     => cmd_change_dir(&args, config),
+        "goto"     => cmd_change_dir(&args, config), // TODO: Remove this
         "help"     => usr::help::main(&args),
         "hex"      => usr::hex::main(&args),
         "host"     => usr::host::main(&args),
