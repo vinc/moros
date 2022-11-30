@@ -54,8 +54,10 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/machines.txt", include_bytes!("../../dsk/tmp/machines.txt"), verbose);
 
     create_dir("/tmp/lisp", verbose);
+    copy_file("/tmp/lisp/colors.lsp", include_bytes!("../../dsk/tmp/lisp/colors.lsp"), verbose);
     copy_file("/tmp/lisp/factorial.lsp", include_bytes!("../../dsk/tmp/lisp/factorial.lsp"), verbose);
     copy_file("/tmp/lisp/fibonacci.lsp", include_bytes!("../../dsk/tmp/lisp/fibonacci.lsp"), verbose);
+    copy_file("/tmp/lisp/geotime.lsp", include_bytes!("../../dsk/tmp/lisp/geotime.lsp"), verbose);
     copy_file("/tmp/lisp/pi.lsp", include_bytes!("../../dsk/tmp/lisp/pi.lsp"), verbose);
     copy_file("/tmp/lisp/sum.lsp", include_bytes!("../../dsk/tmp/lisp/sum.lsp"), verbose);
 
