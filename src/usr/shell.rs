@@ -356,7 +356,11 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
 
     let cmd = variables_expansion(cmd, config);
 
-    let mut args = split_args(&cmd);
+    let mut args = split_args(&cmd.trim());
+
+    if args.is_empty() {
+        return Ok(());
+    }
 
     // Replace command alias
     if let Some(alias) = config.aliases.get(&args[0]) {
