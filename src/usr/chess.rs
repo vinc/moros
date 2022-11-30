@@ -263,7 +263,7 @@ impl Chess {
 fn is_move(m: &str) -> bool {
     let m = m.as_bytes();
     let n = m.len();
-    if n < 3 || 5 < n {
+    if n < 4 || 5 < n {
         return false;
     }
     if m[0] < b'a' || b'h' < m[0] {
