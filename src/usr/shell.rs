@@ -53,8 +53,10 @@ fn autocomplete_commands() -> Vec<String> {
 
 fn shell_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
-
-    let args = split_args(line);
+    let mut args = split_args(line);
+    if line.ends_with(' ') {
+        args.push(String::new());
+    }
     let i = args.len() - 1;
     if args.len() == 1 && !args[0].starts_with('/') && !args[0].starts_with('~') { // Autocomplete command
         for cmd in autocomplete_commands() {
