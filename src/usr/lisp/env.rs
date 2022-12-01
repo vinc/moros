@@ -21,6 +21,7 @@ use alloc::vec::Vec;
 use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
+use core::cmp::Ordering::Equal;
 use core::convert::TryInto;
 use core::f64::consts::PI;
 
@@ -297,12 +298,22 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::List(args.to_vec()))
     }));
+    data.insert("sort".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        if let Exp::List(list) = &args[0] {
+            let mut nums = list_of_numbers(list)?;
+            nums.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
+            Ok(Exp::List(nums.iter().map(|num| Exp::Num(num.clone())).collect()))
+        } else {
+            Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
+    }));
     data.insert("length".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         if let Exp::List(list) = &args[0] {
             Ok(Exp::Num(Number::from(list.len())))
         } else {
-            return Err(Err::Reason("Expected arg to be a list".to_string()))
+            Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
     data.insert("append".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
