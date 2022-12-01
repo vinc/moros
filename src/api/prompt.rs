@@ -33,10 +33,12 @@ impl Prompt {
         while let Some(c) = io::stdin().read_char() {
             match c {
                 console::ETX_KEY => { // End of Text (^C)
+                    self.update_completion();
                     println!();
                     return Some(String::new());
                 },
                 console::EOT_KEY => { // End of Transmission (^D)
+                    self.update_completion();
                     println!();
                     return None;
                 },
