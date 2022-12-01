@@ -22,6 +22,7 @@ use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::cmp::Ordering::Equal;
+use core::convert::TryFrom;
 use core::convert::TryInto;
 use core::f64::consts::PI;
 
@@ -306,6 +307,25 @@ pub fn default_env() -> Rc<RefCell<Env>> {
             Ok(Exp::List(nums.iter().map(|num| Exp::Num(num.clone())).collect()))
         } else {
             Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
+    }));
+    data.insert("slice".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_gt!(args, 1);
+        if let Exp::List(list) = &args[0] {
+            match args.len() {
+                2 => {
+                    let a = usize::try_from(number(&args[1])?)?;
+                    Ok(list[a].clone())
+                }
+                3 => {
+                    let a = usize::try_from(number(&args[1])?)?;
+                    let b = usize::try_from(number(&args[2])?)? + 1;
+                    Ok(Exp::List(list[a..b].to_vec()))
+                }
+                _ => Err(Err::Reason("Expected no more than 3 args".to_string())),
+            }
+        } else {
+            Err(Err::Reason("Expected first arg to be a list".to_string()))
         }
     }));
     data.insert("length".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
