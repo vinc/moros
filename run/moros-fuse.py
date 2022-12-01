@@ -255,4 +255,4 @@ if __name__ == '__main__':
     parser.add_argument('mount')
     args = parser.parse_args()
     #logging.basicConfig(level=logging.DEBUG)
-    fuse = FUSE(MorosFuse(args.image), args.mount, ro=False, foreground=True, allow_other=True)
+    fuse = FUSE(MorosFuse(args.image), args.mount, ro=False, foreground=True)
