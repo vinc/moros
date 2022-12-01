@@ -58,28 +58,35 @@ fn shell_completer(line: &str) -> Vec<String> {
         args.push(String::new());
     }
     let i = args.len() - 1;
-    if args.len() == 1 && !args[0].starts_with('/') && !args[0].starts_with('~') { // Autocomplete command
+
+    // Autocomplete command
+    if args.len() == 1 && !args[i].starts_with('/') && !args[i].starts_with('~') {
         for cmd in autocomplete_commands() {
             if let Some(entry) = cmd.strip_prefix(&args[i]) {
                 entries.push(entry.into());
             }
         }
-    } else { // Autocomplete path
-        let pathname = fs::realpath(&args[i]);
-        let dirname = fs::dirname(&pathname);
-        let filename = fs::filename(&pathname);
-        let sep = if dirname.ends_with('/') { "" } else { "/" };
-        if let Ok(files) = fs::read_dir(dirname) {
-            for file in files {
-                let name = file.name();
-                if name.starts_with(filename) {
-                    let end = if file.is_dir() { "/" } else { "" };
-                    let path = format!("{}{}{}{}", dirname, sep, name, end);
-                    entries.push(path[pathname.len()..].into());
+    }
+
+    // Autocomplete path
+    let pathname = fs::realpath(&args[i]);
+    let dirname = fs::dirname(&pathname);
+    let filename = fs::filename(&pathname);
+    let sep = if dirname.ends_with('/') { "" } else { "/" };
+    if let Ok(files) = fs::read_dir(dirname) {
+        for file in files {
+            let name = file.name();
+            if name.starts_with(filename) {
+                if args.len() == 1 && !file.is_dir() {
+                    continue;
                 }
+                let end = if args.len() != 1 && file.is_dir() { "/" } else { "" };
+                let path = format!("{}{}{}{}", dirname, sep, name, end);
+                entries.push(path[pathname.len()..].into());
             }
         }
     }
+
     entries.sort();
     entries
 }
