@@ -89,7 +89,7 @@ qemu:
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
-		-m 32 -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+		-m $(memory) -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
 
 clean:
 	cargo clean
