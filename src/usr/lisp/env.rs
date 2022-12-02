@@ -310,22 +310,36 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         }
     }));
     data.insert("slice".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_gt!(args, 1);
-        if let Exp::List(list) = &args[0] {
-            match args.len() {
-                2 => {
-                    let a = usize::try_from(number(&args[1])?)?;
-                    Ok(list[a].clone())
+        match args.len() {
+            2 => {
+                let a = usize::try_from(number(&args[1])?)?;
+                match &args[0] {
+                    Exp::List(l) => {
+                        Ok(l.get(a).ok_or(Err::Reason("Invalid index".to_string()))?.clone())
+                    }
+                    Exp::Str(s) => {
+                        let s: String = s.chars().skip(a).take(1).collect(); //.ok_or(Err::Reason("Invalid index".to_string()))?;
+                        Ok(Exp::Str(s))
+                    }
+                    _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
                 }
-                3 => {
-                    let a = usize::try_from(number(&args[1])?)?;
-                    let b = usize::try_from(number(&args[2])?)? + 1;
-                    Ok(Exp::List(list[a..b].to_vec()))
+            }
+            3 => {
+                let a = usize::try_from(number(&args[1])?)?;
+                let b = usize::try_from(number(&args[2])?)? + 1;
+                match &args[0] {
+                    Exp::List(l) => {
+                        Ok(Exp::List(l.get(a..b).ok_or(Err::Reason("Invalid range".to_string()))?.to_vec()))
+                    }
+                    Exp::Str(s) => {
+                        let s: String = s.chars().skip(a).take(b).collect(); //.ok_or(Err::Reason("Invalid range".to_string()))?;
+                        Ok(Exp::Str(s))
+                    }
+                    _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
                 }
-                _ => Err(Err::Reason("Expected no more than 3 args".to_string())),
             }
         } else {
-            Err(Err::Reason("Expected first arg to be a list".to_string()))
+            Err(Err::Reason("Expected a string and a pattern".to_string()))
         }
     }));
     data.insert("length".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
