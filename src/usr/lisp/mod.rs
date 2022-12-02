@@ -422,7 +422,7 @@ fn test_lisp() {
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
     assert_eq!(eval!("(eq \"foo\" \"foo\")"), "true");
     assert_eq!(eval!("(eq \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");

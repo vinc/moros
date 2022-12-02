@@ -117,3 +117,12 @@
 
 (define (regex-match? pattern str)
   (not (nil? (regex-find pattern str))))
+
+(define (lines contents)
+  (split (trim contents) "\n"))
+
+(define (words contents)
+  (split contents " "))
+
+(define (chars contents)
+  (split contents ""))

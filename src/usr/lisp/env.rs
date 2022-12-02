@@ -255,12 +255,6 @@ pub fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
         }
     }));
-    data.insert("lines".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let s = string(&args[0])?;
-        let lines = s.lines().map(|line| Exp::Str(line.to_string())).collect();
-        Ok(Exp::List(lines))
-    }));
     data.insert("string->number".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let s = string(&args[0])?;
@@ -338,6 +332,23 @@ pub fn default_env() -> Rc<RefCell<Env>> {
                     _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
                 }
             }
+            _ => Err(Err::Reason("Expected 2 or 3 args".to_string())),
+        }
+    }));
+    data.insert("split".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) {
+            (Exp::Str(string), Exp::Str(pattern)) => {
+                let list = string.split(pattern).map(|s| Exp::Str(s.to_string())).collect();
+                Ok(Exp::List(list))
+            }
+            _ => Err(Err::Reason("Expected a string and a pattern".to_string()))
+        }
+    }));
+    data.insert("trim".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        if let Exp::Str(s) = &args[0] {
+            Ok(Exp::Str(s.trim().to_string()))
         } else {
             Err(Err::Reason("Expected a string and a pattern".to_string()))
         }
