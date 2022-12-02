@@ -344,10 +344,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     }));
     data.insert("length".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
-        if let Exp::List(list) = &args[0] {
-            Ok(Exp::Num(Number::from(list.len())))
-        } else {
-            Err(Err::Reason("Expected arg to be a list".to_string()))
+        match &args[0] {
+            Exp::List(list) => Ok(Exp::Num(Number::from(list.len()))),
+            Exp::Str(string) => Ok(Exp::Num(Number::from(string.chars().count()))),
+            _ => Err(Err::Reason("Expected arg to be a list or a string".to_string()))
         }
     }));
     data.insert("append".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
