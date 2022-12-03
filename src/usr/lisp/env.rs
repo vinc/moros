@@ -339,7 +339,12 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 2);
         match (&args[0], &args[1]) {
             (Exp::Str(string), Exp::Str(pattern)) => {
-                let list = string.split(pattern).map(|s| Exp::Str(s.to_string())).collect();
+                let list = if pattern.is_empty() {
+                    // NOTE: "abc".split("") => ["", "b", "c", ""]
+                    string.chars().map(|s| Exp::Str(s.to_string())).collect()
+                } else {
+                    string.split(pattern).map(|s| Exp::Str(s.to_string())).collect()
+                };
                 Ok(Exp::List(list))
             }
             _ => Err(Err::Reason("Expected a string and a pattern".to_string()))
