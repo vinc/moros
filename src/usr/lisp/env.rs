@@ -313,6 +313,14 @@ pub fn default_env() -> Rc<RefCell<Env>> {
             Err(Err::Reason("Expected arg to be a list".to_string()))
         }
     }));
+    data.insert("contains?".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        if let Exp::List(list) = &args[0] {
+            Ok(Exp::Bool(list.contains(&args[1])))
+        } else {
+            Err(Err::Reason("Expected first arg to be a list".to_string()))
+        }
+    }));
     data.insert("slice".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let (a, b) = match args.len() {
             2 => (usize::try_from(number(&args[1])?)?, 1),
