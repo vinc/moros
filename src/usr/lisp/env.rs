@@ -293,6 +293,16 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::List(args.to_vec()))
     }));
+    data.insert("uniq".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        if let Exp::List(list) = &args[0] {
+            let mut list = list.clone();
+            list.dedup();
+            Ok(Exp::List(list))
+        } else {
+            Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
+    }));
     data.insert("sort".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         if let Exp::List(list) = &args[0] {
