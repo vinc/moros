@@ -320,13 +320,14 @@ pub fn default_env() -> Rc<RefCell<Env>> {
             }
             3 => {
                 let a = usize::try_from(number(&args[1])?)?;
-                let b = usize::try_from(number(&args[2])?)? + 1;
+                let b = usize::try_from(number(&args[2])?)?;
                 match &args[0] {
                     Exp::List(l) => {
-                        Ok(Exp::List(l.get(a..b).ok_or(Err::Reason("Invalid range".to_string()))?.to_vec()))
+                        let l: Vec<Exp> = l.iter().cloned().skip(a).take(b).collect();
+                        Ok(Exp::List(l))
                     }
                     Exp::Str(s) => {
-                        let s: String = s.chars().skip(a).take(b).collect(); //.ok_or(Err::Reason("Invalid range".to_string()))?;
+                        let s: String = s.chars().skip(a).take(b).collect();
                         Ok(Exp::Str(s))
                     }
                     _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
