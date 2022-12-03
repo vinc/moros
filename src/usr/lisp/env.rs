@@ -306,9 +306,9 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("sort".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         if let Exp::List(list) = &args[0] {
-            let mut nums = list_of_numbers(list)?;
-            nums.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
-            Ok(Exp::List(nums.iter().map(|num| Exp::Num(num.clone())).collect()))
+            let mut list = list.clone();
+            list.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
+            Ok(Exp::List(list))
         } else {
             Err(Err::Reason("Expected arg to be a list".to_string()))
         }

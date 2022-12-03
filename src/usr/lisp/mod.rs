@@ -72,6 +72,22 @@ impl PartialEq for Exp {
     }
 }
 
+use core::cmp::Ordering;
+impl PartialOrd for Exp {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Exp::Function(a), Exp::Function(b)) => a.partial_cmp(b),
+            (Exp::Macro(a),    Exp::Macro(b))    => a.partial_cmp(b),
+            (Exp::List(a),     Exp::List(b))     => a.partial_cmp(b),
+            (Exp::Bool(a),     Exp::Bool(b))     => a.partial_cmp(b),
+            (Exp::Num(a),      Exp::Num(b))      => a.partial_cmp(b),
+            (Exp::Str(a),      Exp::Str(b))      => a.partial_cmp(b),
+            (Exp::Sym(a),      Exp::Sym(b))      => a.partial_cmp(b),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
@@ -91,7 +107,7 @@ impl fmt::Display for Exp {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, PartialOrd)]
 pub struct Function {
     params: Exp,
     body: Exp,
