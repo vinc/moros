@@ -314,36 +314,21 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         }
     }));
     data.insert("slice".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        match args.len() {
-            2 => {
-                let a = usize::try_from(number(&args[1])?)?;
-                match &args[0] {
-                    Exp::List(l) => {
-                        Ok(l.get(a).ok_or(Err::Reason("Invalid index".to_string()))?.clone())
-                    }
-                    Exp::Str(s) => {
-                        let s: String = s.chars().skip(a).take(1).collect(); //.ok_or(Err::Reason("Invalid index".to_string()))?;
-                        Ok(Exp::Str(s))
-                    }
-                    _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
-                }
+        let (a, b) = match args.len() {
+            2 => (usize::try_from(number(&args[1])?)?, 1),
+            3 => (usize::try_from(number(&args[1])?)?, usize::try_from(number(&args[2])?)?),
+            _ => return Err(Err::Reason("Expected 2 or 3 args".to_string())),
+        };
+        match &args[0] {
+            Exp::List(l) => {
+                let l: Vec<Exp> = l.iter().cloned().skip(a).take(b).collect();
+                Ok(Exp::List(l))
             }
-            3 => {
-                let a = usize::try_from(number(&args[1])?)?;
-                let b = usize::try_from(number(&args[2])?)?;
-                match &args[0] {
-                    Exp::List(l) => {
-                        let l: Vec<Exp> = l.iter().cloned().skip(a).take(b).collect();
-                        Ok(Exp::List(l))
-                    }
-                    Exp::Str(s) => {
-                        let s: String = s.chars().skip(a).take(b).collect();
-                        Ok(Exp::Str(s))
-                    }
-                    _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
-                }
+            Exp::Str(s) => {
+                let s: String = s.chars().skip(a).take(b).collect();
+                Ok(Exp::Str(s))
             }
-            _ => Err(Err::Reason("Expected 2 or 3 args".to_string())),
+            _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
         }
     }));
     data.insert("split".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
