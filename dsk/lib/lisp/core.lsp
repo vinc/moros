@@ -78,6 +78,15 @@
       (f (first ls))
       (map f (rest ls)))))
 
+(define (filter f ls)
+  (if (nil? ls) nil
+    (if (f (first ls))
+      (cons (first ls) (filter f (rest ls)))
+      (filter f (rest ls)))))
+
+(define (intersection a b)
+  (filter (function (x) (contains? b x)) a))
+
 (define (reverse x)
   (if (nil? x) x
     (append (reverse (rest x)) (cons (first x) '()))))
