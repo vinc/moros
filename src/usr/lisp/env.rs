@@ -1,29 +1,16 @@
 use super::FORMS;
+use super::primitive;
 use super::eval::BUILT_INS;
 use super::eval::eval_args;
-use super::list_of_bytes;
-use super::list_of_numbers;
-use super::parse::parse;
 use super::{Err, Exp, Number};
-use super::{float, number, string};
-
-use crate::{ensure_length_eq, ensure_length_gt};
-use crate::api::fs;
-use crate::api::regex::Regex;
-use crate::usr::shell;
 
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
-use alloc::vec::Vec;
-use alloc::vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
-use core::cmp::Ordering::Equal;
-use core::convert::TryFrom;
-use core::convert::TryInto;
 use core::f64::consts::PI;
 
 #[derive(Clone)]
@@ -34,363 +21,53 @@ pub struct Env {
 
 pub fn default_env() -> Rc<RefCell<Env>> {
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
-    data.insert("pi".to_string(), Exp::Num(Number::from(PI)));
-    data.insert("=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])))
-    }));
-    data.insert(">".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] > nums[1])))
-    }));
-    data.insert(">=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] >= nums[1])))
-    }));
-    data.insert("<".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] < nums[1])))
-    }));
-    data.insert("<=".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] <= nums[1])))
-    }));
-    data.insert("*".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_numbers(args)?.iter().fold(Number::Int(1), |acc, a| acc * a.clone());
-        Ok(Exp::Num(res))
-    }));
-    data.insert("+".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let res = list_of_numbers(args)?.iter().fold(Number::Int(0), |acc, a| acc + a.clone());
-        Ok(Exp::Num(res))
-    }));
-    data.insert("-".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_gt!(args, 0);
-        let args = list_of_numbers(args)?;
-        let car = args[0].clone();
-        if args.len() == 1 {
-            Ok(Exp::Num(-car))
-        } else {
-            let res = args[1..].iter().fold(Number::Int(0), |acc, a| acc + a.clone());
-            Ok(Exp::Num(car - res))
-        }
-    }));
-    data.insert("/".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_gt!(args, 0);
-        let mut args = list_of_numbers(args)?;
-        if args.len() == 1 {
-            args.insert(0, Number::Int(1));
-        }
-        for arg in &args[1..] {
-            if arg.is_zero() {
-                return Err(Err::Reason("Division by zero".to_string()));
-            }
-        }
-        let car = args[0].clone();
-        let res = args[1..].iter().fold(car, |acc, a| acc / a.clone());
-        Ok(Exp::Num(res))
-    }));
-    data.insert("%".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_gt!(args, 0);
-        let args = list_of_numbers(args)?;
-        for arg in &args[1..] {
-            if arg.is_zero() {
-                return Err(Err::Reason("Division by zero".to_string()));
-            }
-        }
-        let car = args[0].clone();
-        let res = args[1..].iter().fold(car, |acc, a| acc % a.clone());
-        Ok(Exp::Num(res))
-    }));
-    data.insert("^".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_gt!(args, 0);
-        let args = list_of_numbers(args)?;
-        let car = args[0].clone();
-        let res = args[1..].iter().fold(car, |acc, a| acc.pow(a));
-        Ok(Exp::Num(res))
-    }));
-    data.insert("<<".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        let args = list_of_numbers(args)?;
-        let res = args[0].clone() << args[1].clone();
-        Ok(Exp::Num(res))
-    }));
-    data.insert(">>".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        let args = list_of_numbers(args)?;
-        let res = args[0].clone() >> args[1].clone();
-        Ok(Exp::Num(res))
-    }));
-    data.insert("cos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        Ok(Exp::Num(number(&args[0])?.cos()))
-    }));
-    data.insert("acos".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
-            Ok(Exp::Num(number(&args[0])?.acos()))
-        } else {
-            Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
-        }
-    }));
-    data.insert("asin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
-            Ok(Exp::Num(number(&args[0])?.asin()))
-        } else {
-            Err(Err::Reason("Expected arg to be between -1.0 and 1.0".to_string()))
-        }
-    }));
-    data.insert("atan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        Ok(Exp::Num(number(&args[0])?.atan()))
-    }));
-    data.insert("sin".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        Ok(Exp::Num(number(&args[0])?.sin()))
-    }));
-    data.insert("tan".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        Ok(Exp::Num(number(&args[0])?.tan()))
-    }));
-    data.insert("trunc".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        Ok(Exp::Num(number(&args[0])?.trunc()))
-    }));
-    data.insert("system".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let cmd = string(&args[0])?;
-        match shell::exec(&cmd) {
-            Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
-            Err(code) => Ok(Exp::Num(Number::from(code as u8))),
-        }
-    }));
-    data.insert("read-file".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let path = string(&args[0])?;
-        let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
-        Ok(Exp::Str(contents))
-    }));
-    data.insert("read-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        let path = string(&args[0])?;
-        let len = number(&args[1])?;
-        let mut buf = vec![0; len.try_into()?];
-        let bytes = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
-        buf.resize(bytes, 0);
-        Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
-    }));
-    data.insert("write-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        let path = string(&args[0])?;
-        match &args[1] {
-            Exp::List(list) => {
-                let buf = list_of_bytes(list)?;
-                let bytes = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-                Ok(Exp::Num(Number::from(bytes)))
-            }
-            _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
-        }
-    }));
-    data.insert("append-file-bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        let path = string(&args[0])?;
-        match &args[1] {
-            Exp::List(list) => {
-                let buf = list_of_bytes(list)?;
-                let bytes = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-                Ok(Exp::Num(Number::from(bytes)))
-            }
-            _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
-        }
-    }));
-    data.insert("string".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let args: Vec<String> = args.iter().map(|arg| match arg {
-            Exp::Str(s) => format!("{}", s),
-            exp => format!("{}", exp),
-        }).collect();
-        Ok(Exp::Str(args.join("")))
-    }));
-    data.insert("string->bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let s = string(&args[0])?;
-        let buf = s.as_bytes();
-        Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
-    }));
-    data.insert("bytes->string".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match &args[0] {
-            Exp::List(list) => {
-                let buf = list_of_bytes(list)?;
-                let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
-                Ok(Exp::Str(s))
-            }
-            _ => Err(Err::Reason("Expected arg to be a list".to_string()))
-        }
-    }));
-    data.insert("bytes->number".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (&args[0], &args[1]) { // TODO: default type to "int" and make it optional
-            (Exp::List(list), Exp::Str(kind)) => {
-                let bytes = list_of_bytes(list)?;
-                ensure_length_eq!(bytes, 8);
-                match kind.as_str() { // TODO: bigint
-                    "int" => Ok(Exp::Num(Number::Int(i64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
-                    "float" => Ok(Exp::Num(Number::Float(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
-                    _ => Err(Err::Reason("Invalid number type".to_string())),
-                }
-            }
-            _ => Err(Err::Reason("Expected args to be the number type and a list of bytes".to_string()))
-        }
 
-    }));
-    data.insert("number->bytes".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let n = number(&args[0])?;
-        Ok(Exp::List(n.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
-    }));
-    data.insert("regex-find".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (&args[0], &args[1]) {
-            (Exp::Str(regex), Exp::Str(s)) => {
-                let res = Regex::new(regex).find(s).map(|(a, b)| {
-                    vec![Exp::Num(Number::from(a)), Exp::Num(Number::from(b))]
-                }).unwrap_or(vec![]);
-                Ok(Exp::List(res))
-            }
-            _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
-        }
-    }));
-    data.insert("string->number".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let s = string(&args[0])?;
-        let n = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
-        Ok(Exp::Num(n))
-    }));
-    data.insert("type".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let exp = match args[0] {
-            Exp::Primitive(_) => "function",
-            Exp::Function(_)  => "function",
-            Exp::Macro(_)     => "macro",
-            Exp::List(_)      => "list",
-            Exp::Bool(_)      => "boolean",
-            Exp::Str(_)       => "string",
-            Exp::Sym(_)       => "symbol",
-            Exp::Num(_)       => "number",
-        };
-        Ok(Exp::Str(exp.to_string()))
-    }));
-    data.insert("number-type".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match args[0] {
-            Exp::Num(Number::Int(_)) => Ok(Exp::Str("int".to_string())),
-            Exp::Num(Number::BigInt(_)) => Ok(Exp::Str("bigint".to_string())),
-            Exp::Num(Number::Float(_)) => Ok(Exp::Str("float".to_string())),
-            _ => Err(Err::Reason("Expected arg to be a number".to_string()))
-        }
-    }));
-    data.insert("parse".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        let s = string(&args[0])?;
-        let (_, exp) = parse(&s)?;
-        Ok(exp)
-    }));
-    data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        Ok(Exp::List(args.to_vec()))
-    }));
-    data.insert("uniq".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        if let Exp::List(list) = &args[0] {
-            let mut list = list.clone();
-            list.dedup();
-            Ok(Exp::List(list))
-        } else {
-            Err(Err::Reason("Expected arg to be a list".to_string()))
-        }
-    }));
-    data.insert("sort".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        if let Exp::List(list) = &args[0] {
-            let mut list = list.clone();
-            list.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
-            Ok(Exp::List(list))
-        } else {
-            Err(Err::Reason("Expected arg to be a list".to_string()))
-        }
-    }));
-    data.insert("contains?".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        if let Exp::List(list) = &args[0] {
-            Ok(Exp::Bool(list.contains(&args[1])))
-        } else {
-            Err(Err::Reason("Expected first arg to be a list".to_string()))
-        }
-    }));
-    data.insert("slice".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let (a, b) = match args.len() {
-            2 => (usize::try_from(number(&args[1])?)?, 1),
-            3 => (usize::try_from(number(&args[1])?)?, usize::try_from(number(&args[2])?)?),
-            _ => return Err(Err::Reason("Expected 2 or 3 args".to_string())),
-        };
-        match &args[0] {
-            Exp::List(l) => {
-                let l: Vec<Exp> = l.iter().cloned().skip(a).take(b).collect();
-                Ok(Exp::List(l))
-            }
-            Exp::Str(s) => {
-                let s: String = s.chars().skip(a).take(b).collect();
-                Ok(Exp::Str(s))
-            }
-            _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
-        }
-    }));
-    data.insert("chunks".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (&args[0], &args[1]) {
-            (Exp::List(list), Exp::Num(num)) => {
-                let n = usize::try_from(num.clone())?;
-                Ok(Exp::List(list.chunks(n).map(|a| Exp::List(a.to_vec())).collect()))
-            }
-            _ => Err(Err::Reason("Expected a list and a number".to_string()))
-        }
-    }));
-    data.insert("split".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 2);
-        match (&args[0], &args[1]) {
-            (Exp::Str(string), Exp::Str(pattern)) => {
-                let list = if pattern.is_empty() {
-                    // NOTE: "abc".split("") => ["", "b", "c", ""]
-                    string.chars().map(|s| Exp::Str(s.to_string())).collect()
-                } else {
-                    string.split(pattern).map(|s| Exp::Str(s.to_string())).collect()
-                };
-                Ok(Exp::List(list))
-            }
-            _ => Err(Err::Reason("Expected a string and a pattern".to_string()))
-        }
-    }));
-    data.insert("trim".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        if let Exp::Str(s) = &args[0] {
-            Ok(Exp::Str(s.trim().to_string()))
-        } else {
-            Err(Err::Reason("Expected a string and a pattern".to_string()))
-        }
-    }));
-    data.insert("length".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        ensure_length_eq!(args, 1);
-        match &args[0] {
-            Exp::List(list) => Ok(Exp::Num(Number::from(list.len()))),
-            Exp::Str(string) => Ok(Exp::Num(Number::from(string.chars().count()))),
-            _ => Err(Err::Reason("Expected arg to be a list or a string".to_string()))
-        }
-    }));
-    data.insert("append".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
-        let mut res = vec![];
-        for arg in args {
-            if let Exp::List(list) = arg {
-                res.extend_from_slice(list);
-            } else {
-                return Err(Err::Reason("Expected arg to be a list".to_string()))
-            }
-        }
-        Ok(Exp::List(res))
-    }));
+    data.insert("pi".to_string(),                Exp::Num(Number::from(PI)));
+    data.insert("=".to_string(),                 Exp::Primitive(primitive::lisp_eq));
+    data.insert(">".to_string(),                 Exp::Primitive(primitive::lisp_gt));
+    data.insert(">=".to_string(),                Exp::Primitive(primitive::lisp_gte));
+    data.insert("<".to_string(),                 Exp::Primitive(primitive::lisp_lt));
+    data.insert("<=".to_string(),                Exp::Primitive(primitive::lisp_lte));
+    data.insert("*".to_string(),                 Exp::Primitive(primitive::lisp_mul));
+    data.insert("+".to_string(),                 Exp::Primitive(primitive::lisp_add));
+    data.insert("-".to_string(),                 Exp::Primitive(primitive::lisp_sub));
+    data.insert("/".to_string(),                 Exp::Primitive(primitive::lisp_div));
+    data.insert("%".to_string(),                 Exp::Primitive(primitive::lisp_mod));
+    data.insert("^".to_string(),                 Exp::Primitive(primitive::lisp_exp));
+    data.insert("<<".to_string(),                Exp::Primitive(primitive::lisp_shl));
+    data.insert(">>".to_string(),                Exp::Primitive(primitive::lisp_shr));
+    data.insert("cos".to_string(),               Exp::Primitive(primitive::lisp_cos));
+    data.insert("acos".to_string(),              Exp::Primitive(primitive::lisp_acos));
+    data.insert("asin".to_string(),              Exp::Primitive(primitive::lisp_asin));
+    data.insert("atan".to_string(),              Exp::Primitive(primitive::lisp_atan));
+    data.insert("sin".to_string(),               Exp::Primitive(primitive::lisp_sin));
+    data.insert("tan".to_string(),               Exp::Primitive(primitive::lisp_tan));
+    data.insert("trunc".to_string(),             Exp::Primitive(primitive::lisp_trunc));
+    data.insert("system".to_string(),            Exp::Primitive(primitive::lisp_system));
+    data.insert("read-file".to_string(),         Exp::Primitive(primitive::lisp_read_file));
+    data.insert("read-file-bytes".to_string(),   Exp::Primitive(primitive::lisp_read_file_bytes));
+    data.insert("write-file-bytes".to_string(),  Exp::Primitive(primitive::lisp_write_file_bytes));
+    data.insert("append-file-bytes".to_string(), Exp::Primitive(primitive::lisp_append_file_bytes));
+    data.insert("string".to_string(),            Exp::Primitive(primitive::lisp_string));
+    data.insert("string->bytes".to_string(),     Exp::Primitive(primitive::lisp_string_bytes));
+    data.insert("bytes->string".to_string(),     Exp::Primitive(primitive::lisp_bytes_string));
+    data.insert("bytes->number".to_string(),     Exp::Primitive(primitive::lisp_bytes_number));
+    data.insert("number->bytes".to_string(),     Exp::Primitive(primitive::lisp_number_bytes));
+    data.insert("regex-find".to_string(),        Exp::Primitive(primitive::lisp_regex_find));
+    data.insert("string->number".to_string(),    Exp::Primitive(primitive::lisp_string_number));
+    data.insert("type".to_string(),              Exp::Primitive(primitive::lisp_type));
+    data.insert("number-type".to_string(),       Exp::Primitive(primitive::lisp_number_type));
+    data.insert("parse".to_string(),             Exp::Primitive(primitive::lisp_parse));
+    data.insert("list".to_string(),              Exp::Primitive(primitive::lisp_list));
+    data.insert("uniq".to_string(),              Exp::Primitive(primitive::lisp_uniq));
+    data.insert("sort".to_string(),              Exp::Primitive(primitive::lisp_sort));
+    data.insert("contains?".to_string(),         Exp::Primitive(primitive::lisp_contains));
+    data.insert("slice".to_string(),             Exp::Primitive(primitive::lisp_slice));
+    data.insert("chunks".to_string(),            Exp::Primitive(primitive::lisp_chunks));
+    data.insert("split".to_string(),             Exp::Primitive(primitive::lisp_split));
+    data.insert("trim".to_string(),              Exp::Primitive(primitive::lisp_trim));
+    data.insert("length".to_string(),            Exp::Primitive(primitive::lisp_length));
+    data.insert("append".to_string(),            Exp::Primitive(primitive::lisp_append));
 
     // Setup autocompletion
     *FORMS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();

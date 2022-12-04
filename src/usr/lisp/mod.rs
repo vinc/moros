@@ -3,6 +3,7 @@ mod eval;
 mod expand;
 mod number;
 mod parse;
+mod primitive;
 
 pub use number::Number;
 pub use env::Env;
