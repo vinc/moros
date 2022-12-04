@@ -339,6 +339,16 @@ pub fn default_env() -> Rc<RefCell<Env>> {
             _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
         }
     }));
+    data.insert("chunks".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 2);
+        match (&args[0], &args[1]) {
+            (Exp::List(list), Exp::Num(num)) => {
+                let n = usize::try_from(num.clone())?;
+                Ok(Exp::List(list.chunks(n).map(|a| Exp::List(a.to_vec())).collect()))
+            }
+            _ => Err(Err::Reason("Expected a list and a number".to_string()))
+        }
+    }));
     data.insert("split".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 2);
         match (&args[0], &args[1]) {
