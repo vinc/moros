@@ -88,12 +88,12 @@ pub fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
-pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<(), Err> {
+pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut env = env.borrow_mut();
     match env.data.get(key) {
         Some(_) => {
-            env.data.insert(key.to_string(), val);
-            Ok(())
+            env.data.insert(key.to_string(), val.clone());
+            Ok(val)
         }
         None => {
             match &env.outer {
