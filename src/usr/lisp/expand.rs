@@ -60,8 +60,11 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 match (&list[1], &list[2]) {
                     (Exp::List(args), Exp::List(_)) => {
                         ensure_length_gt!(args, 0);
-                        let name = args[0].clone();
-                        let args = Exp::List(args[1..].to_vec());
+                        let (name, args) = if args.len() == 3 && args[0] == Exp::Sym("cons".to_string()) {
+                            (args[1].clone(), args[2].clone())
+                        } else {
+                            (args[0].clone(), Exp::List(args[1..].to_vec()))
+                        };
                         let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
                             Exp::Sym("define".to_string()), name, Exp::List(vec![
