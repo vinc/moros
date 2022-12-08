@@ -485,10 +485,14 @@ fn test_lisp() {
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
 
-    // unquote-splicing
+    // unquote-splice
     eval!("(define x '(1 2 3))");
     assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
     assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
+
+    // splice
+    assert_eq!(eval!("((function (a @b) a) 1 2 3)"), "1");
+    assert_eq!(eval!("((function (a @b) b) 1 2 3)"), "(2 3)");
 
     // macro
     eval!("(define foo 42)");

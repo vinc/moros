@@ -107,7 +107,7 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> 
 enum InnerEnv { Function, Macro }
 
 fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<Env>>) -> Result<Rc<RefCell<Env>>, Err> {
-    let args = match kind {
+    let mut args = match kind {
         InnerEnv::Function => eval_args(args, outer)?,
         InnerEnv::Macro => args.to_vec(),
     };
@@ -117,9 +117,31 @@ fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<
             data.insert(s.clone(), Exp::List(args));
         }
         Exp::List(list) => {
-            if list.len() != args.len() {
-                let plural = if list.len() == 1 { "" } else { "s" };
-                return Err(Err::Reason(format!("Expected {} argument{}, got {}", list.len(), plural, args.len())));
+            let mut list = list.to_vec();
+            let n = list.len();
+            let m = args.len();
+
+            let mut is_variadic = false;
+            if n > 0 {
+                if let Exp::List(l) = &list[n - 1] {
+                    if l.len() == 2 && l[0] == Exp::Sym("splice".to_string()) {
+                        if let Exp::Sym(_) = &l[1] {
+                            is_variadic = true;
+                            list[n - 1] = l[1].clone();
+                            if n <= m {
+                                let rest = args.drain((n - 1)..).collect();
+                                args.push(Exp::List(rest));
+                            }
+                        }
+                    }
+                }
+            }
+            let m = args.len();
+
+            if n != m {
+                let s = if n != 1 { "s" } else { "" };
+                let a = if is_variadic { "at least " } else { "" };
+                return Err(Err::Reason(format!("Expected {}{} argument{}, got {}", a, n, s, m)));
             }
             for (exp, arg) in list.iter().zip(args.iter()) {
                 if let Exp::Sym(s) = exp {
