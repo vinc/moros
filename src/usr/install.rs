@@ -130,7 +130,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         println!();
         println!("{}Installation successful!{}", csi_color, csi_reset);
         println!();
-        println!("Exit console or reboot to apply changes");
+        println!("Quit the console or reboot to apply changes");
     }
 
     Ok(())

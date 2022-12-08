@@ -46,7 +46,7 @@ fn help_summary() -> Result<(), ExitCode> {
     print_usage("l", "ist <dir>",         "List entries in directory");
     print_usage("m", "ove <file> <file>", "Move file from source to destination");
     print_usage("p", "rint <string>",     "Print string to screen");
-    print_usage("q", "uit",               "Quit the shell");
+    print_usage("q", "uit",               "Quit the console");
     print_usage("r", "ead <file>",        "Read file to screen");
     print_usage("w", "rite <file>",       "Write file or directory");
     println!();
