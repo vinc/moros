@@ -1,18 +1,19 @@
 # Command shortcuts
-alias p    print
 alias c    copy
 alias d    delete
-alias del  delete
 alias e    edit
 alias f    find
 alias g    goto
-alias go   goto
 alias h    help
 alias l    list
 alias m    move
+alias p    print
 alias q    quit
 alias r    read
 alias w    write
+
+alias del  delete
+alias go   goto
 alias sh   shell
 alias dsk  disk
 alias mem  memory

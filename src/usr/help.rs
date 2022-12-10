@@ -26,7 +26,7 @@ fn print_usage(alias: &str, command: &str, usage: &str) {
     let csi_col1 = Style::color("LightGreen");
     let csi_col2 = Style::color("LightCyan");
     let csi_reset = Style::reset();
-    println!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
+    println!("  {}{}{}{:21}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
 }
 
 fn help_summary() -> Result<(), ExitCode> {
@@ -39,16 +39,17 @@ fn help_summary() -> Result<(), ExitCode> {
     println!();
 
     println!("{}Commands:{}", csi_color, csi_reset);
-    print_usage("c", "opy <file> <file>", "Copy file from source to destination");
-    print_usage("d", "elete <file>",      "Delete file or empty directory");
-    print_usage("e", "dit <file>",        "Edit existing or new file");
-    print_usage("h", "elp <cmd>",         "Display help about a command");
-    print_usage("l", "ist <dir>",         "List entries in directory");
-    print_usage("m", "ove <file> <file>", "Move file from source to destination");
-    print_usage("p", "rint <string>",     "Print string to screen");
-    print_usage("q", "uit",               "Quit the console");
-    print_usage("r", "ead <file>",        "Read file to screen");
-    print_usage("w", "rite <file>",       "Write file or directory");
+    print_usage("c", "opy <file> <file>",    "Copy file from source to destination");
+    print_usage("d", "elete <file>",         "Delete file or empty directory");
+    print_usage("e", "dit <file>",           "Edit existing or new file");
+    print_usage("f", "ind <str> <path>",     "Find pattern in path");
+    print_usage("h", "elp <cmd>",            "Display help about a command");
+    print_usage("l", "ist <dir>",            "List entries in directory");
+    print_usage("m", "ove <file> <file>",    "Move file from source to destination");
+    print_usage("p", "rint <str>",           "Print string to screen");
+    print_usage("q", "uit",                  "Quit the console");
+    print_usage("r", "ead <file>",           "Read file to screen");
+    print_usage("w", "rite <file>",          "Write file or directory");
     println!();
 
     println!("{}Credits:{}", csi_color, csi_reset);
