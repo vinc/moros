@@ -85,8 +85,7 @@ fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     match &args[0] {
         Exp::Sym(name) => {
             let exp = eval(&args[1], env)?;
-            env_set(name, exp, env)?;
-            Ok(Exp::Sym(name.clone()))
+            Ok(env_set(name, exp, env)?)
         }
         _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
     }

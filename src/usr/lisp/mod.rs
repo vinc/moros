@@ -3,6 +3,7 @@ mod eval;
 mod expand;
 mod number;
 mod parse;
+mod primitive;
 
 pub use number::Number;
 pub use env::Env;
@@ -72,6 +73,22 @@ impl PartialEq for Exp {
     }
 }
 
+use core::cmp::Ordering;
+impl PartialOrd for Exp {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Exp::Function(a), Exp::Function(b)) => a.partial_cmp(b),
+            (Exp::Macro(a),    Exp::Macro(b))    => a.partial_cmp(b),
+            (Exp::List(a),     Exp::List(b))     => a.partial_cmp(b),
+            (Exp::Bool(a),     Exp::Bool(b))     => a.partial_cmp(b),
+            (Exp::Num(a),      Exp::Num(b))      => a.partial_cmp(b),
+            (Exp::Str(a),      Exp::Str(b))      => a.partial_cmp(b),
+            (Exp::Sym(a),      Exp::Sym(b))      => a.partial_cmp(b),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
@@ -91,7 +108,7 @@ impl fmt::Display for Exp {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, PartialOrd)]
 pub struct Function {
     params: Exp,
     body: Exp,
@@ -422,7 +439,7 @@ fn test_lisp() {
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
     assert_eq!(eval!("(eq \"foo\" \"foo\")"), "true");
     assert_eq!(eval!("(eq \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");
@@ -468,10 +485,14 @@ fn test_lisp() {
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
 
-    // unquote-splicing
+    // unquote-splice
     eval!("(define x '(1 2 3))");
     assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
     assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
+
+    // splice
+    assert_eq!(eval!("((function (a @b) a) 1 2 3)"), "1");
+    assert_eq!(eval!("((function (a @b) b) 1 2 3)"), "(2 3)");
 
     // macro
     eval!("(define foo 42)");

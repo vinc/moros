@@ -46,7 +46,8 @@ Rewrite parts of the code and add new functions and examples.
 - `quote` (with the `'` syntax)
 - `quasiquote` (with the `` ` ``)
 - `unquote` (with the `,` syntax)
-- `unquote-splicing` (with the `,@` syntax)
+- `unquote-splice` (with the `,@` syntax)
+- `splice` (with the `@` syntax)
 - `atom` (aliased to `atom?`)
 - `eq` (aliased to `eq?`)
 - `car` (aliased to `first`)
@@ -80,23 +81,23 @@ Rewrite parts of the code and add new functions and examples.
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- String operations: `lines`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
+- List: `chunks`, `slice`, `sort`, `uniq`, `length`
+- String: `trim`, `split`
 
 ### Core Library
 - `nil`, `nil?`, `eq?`
 - `atom?`, `string?`, `boolean?`, `symbol?`, `number?`, `list?`, `function?`, `macro?`
 - `caar`, `cadr`, `cdar`, `cddr`, `first`, `second`, `third`, `rest`
-- `map`, `reduce`, `reverse`, `range`
+- `map`, `reduce`, `reverse`, `range`, `filter`, `intersection`
+- `not`, `and`, `or`
 - `let`
-- `string-join`
+- `string-join`, `lines`, `words`, `chars`
 - `read-line`, `read-char`
 - `print`, `println`
 - `write-file`, `append-file`
 - `uptime`, `realtime`
 - `regex-match?`
-
-- Boolean operations: `not`, `and`, `or`
 
 ## Usage
 
