@@ -53,12 +53,18 @@ pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr)
 }
 
-unsafe fn active_page_table() -> &'static mut PageTable {
+pub unsafe fn active_page_table() -> &'static mut PageTable {
     let (frame, _) = Cr3::read();
     let phys_addr = frame.start_address();
     let virt_addr = phys_to_virt(phys_addr);
     let page_table_ptr: *mut PageTable = virt_addr.as_mut_ptr();
+    &mut *page_table_ptr // unsafe
+}
 
+pub unsafe fn create_page_table(frame: PhysFrame) -> &'static mut PageTable {
+    let phys_addr = frame.start_address();
+    let virt_addr = phys_to_virt(phys_addr);
+    let page_table_ptr: *mut PageTable = virt_addr.as_mut_ptr();
     &mut *page_table_ptr // unsafe
 }
 

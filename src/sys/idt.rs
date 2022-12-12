@@ -9,6 +9,8 @@ use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue, PageFaultErrorCode};
+use x86_64::structures::paging::OffsetPageTable;
+use x86_64::VirtAddr;
 
 const PIC1: u16 = 0x21;
 const PIC2: u16 = 0xA1;
@@ -110,8 +112,13 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame,
 extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
     //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
     let addr = Cr2::read().as_u64();
-    let mapper = sys::mem::mapper();
-    if sys::allocator::alloc_pages(mapper, addr, 1).is_err() {
+
+    //let mut mapper = sys::mem::mapper();
+    let page_table = unsafe { sys::process::page_table() };
+    let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
+    let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
+
+    if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
         let csi_color = api::console::Style::color("LightRed");
         let csi_reset = api::console::Style::reset();
         printk!("{}Error:{} Could not allocate address {:#x}\n", csi_color, csi_reset, addr);

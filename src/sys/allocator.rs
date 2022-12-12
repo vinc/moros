@@ -86,8 +86,7 @@ pub fn alloc_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) -> Resu
 use x86_64::structures::paging::page::PageRangeInclusive;
 
 // TODO: Replace `free` by `dealloc`
-pub fn free_pages(addr: u64, size: usize) {
-    let mapper = sys::mem::mapper();
+pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
         let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));

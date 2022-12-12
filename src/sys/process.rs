@@ -12,6 +12,12 @@ use lazy_static::lazy_static;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
 use x86_64::structures::idt::InterruptStackFrameValue;
+use x86_64::registers::control::Cr3;
+use x86_64::structures::paging::FrameAllocator;
+use x86_64::structures::paging::OffsetPageTable;
+use x86_64::structures::paging::PhysFrame;
+use x86_64::structures::paging::PageTable;
+use x86_64::structures::paging::{Mapper, Page, PageTableFlags, Size4KiB};
 
 const MAX_FILE_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
@@ -183,9 +189,29 @@ pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
 pub fn exit() {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    sys::allocator::free_pages(proc.code_addr, MAX_PROC_SIZE);
+
+    let page_table = unsafe { sys::mem::create_page_table(proc.page_table_frame) };
+    let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
+    let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
+
+    sys::allocator::free_pages(&mut mapper, proc.code_addr, MAX_PROC_SIZE);
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(0); // FIXME: No process manager so we switch back to process 0
+
+    unsafe {
+        let (_, flags) = Cr3::read();
+        Cr3::write(page_table_frame(), flags);
+    }
+}
+
+unsafe fn page_table_frame() -> PhysFrame {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.page_table_frame
+}
+
+pub unsafe fn page_table() -> &'static mut PageTable {
+    sys::mem::create_page_table(page_table_frame())
 }
 
 /************************
@@ -229,7 +255,8 @@ pub struct Process {
     id: usize,
     code_addr: u64,
     stack_addr: u64,
-    entry_point: u64,
+    entry_point_addr: u64,
+    page_table_frame: PhysFrame,
     stack_frame: InterruptStackFrameValue,
     registers: Registers,
     data: ProcessData,
@@ -248,8 +275,9 @@ impl Process {
             id,
             code_addr: 0,
             stack_addr: 0,
-            entry_point: 0,
+            entry_point_addr: 0,
             stack_frame: isf,
+            page_table_frame: Cr3::read().0,
             registers: Registers::default(),
             data: ProcessData::new("/", None),
         }
@@ -269,16 +297,28 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
+        let page_table_frame = sys::mem::frame_allocator().allocate_frame().expect("frame allocation failed");
+        let page_table = unsafe { sys::mem::create_page_table(page_table_frame) };
+        let kernel_page_table = unsafe { sys::mem::active_page_table() };
+
+        for (user_page, kernel_page) in page_table.iter_mut().zip(kernel_page_table.iter()) {
+            *user_page = kernel_page.clone();
+        }
+
+        let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
+        let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
+
         let proc_size = MAX_PROC_SIZE as u64;
         let code_addr = CODE_ADDR.fetch_add(proc_size, Ordering::SeqCst);
         let stack_addr = code_addr + proc_size;
 
-        let mut entry_point = 0;
+        let mut entry_point_addr = 0;
         let code_ptr = code_addr as *mut u8;
+        let code_size = bin.len();
         if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
-                //sys::allocator::alloc_pages(code_addr, code_size);
-                entry_point = obj.entry();
+                sys::allocator::alloc_pages(&mut mapper, code_addr, code_size);
+                entry_point_addr = obj.entry();
                 for segment in obj.segments() {
                     let addr = segment.address() as usize;
                     if let Ok(data) = segment.data() {
@@ -289,7 +329,7 @@ impl Process {
                 }
             }
         } else if bin[0..4] == BIN_MAGIC { // Flat binary
-            //sys::allocator::alloc_pages(code_addr, code_size);
+            sys::allocator::alloc_pages(&mut mapper, code_addr, code_size);
             for (i, b) in bin.iter().skip(4).enumerate() {
                 unsafe { core::ptr::write(code_ptr.add(i), *b) };
             }
@@ -298,8 +338,8 @@ impl Process {
         }
 
         let parent = {
-            let table = PROCESS_TABLE.read();
-            table[id()].clone()
+            let process_table = PROCESS_TABLE.read();
+            process_table[id()].clone()
         };
 
         let data = parent.data.clone();
@@ -307,18 +347,24 @@ impl Process {
         let stack_frame = parent.stack_frame;
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
-        let proc = Process { id, code_addr, stack_addr, entry_point, data, stack_frame, registers };
+        let proc = Process {
+            id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers
+        };
 
-        let mut table = PROCESS_TABLE.write();
-        table[id] = Box::new(proc);
+        let mut process_table = PROCESS_TABLE.write();
+        process_table[id] = Box::new(proc);
 
         Ok(id)
     }
 
     // Switch to user mode and execute the program
     fn exec(&self, args_ptr: usize, args_len: usize) {
+        let page_table = unsafe { sys::process::page_table() };
+        let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
+        let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
+
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        sys::allocator::alloc_pages(heap_addr, 1).expect("Could not allocate");
+        sys::allocator::alloc_pages(&mut mapper, heap_addr, 1).expect("Could not allocate");
 
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
         let args: &[&str] = unsafe { core::slice::from_raw_parts(args_ptr as *const &str, args_len) };
@@ -344,7 +390,11 @@ impl Process {
         let args_ptr = args.as_ptr() as u64;
 
         set_id(self.id); // Change PID
+
         unsafe {
+            let (_, flags) = Cr3::read();
+            Cr3::write(self.page_table_frame, flags);
+
             asm!(
                 "cli",        // Disable interrupts
                 "push {:r}",  // Stack segment (SS)
@@ -356,7 +406,7 @@ impl Process {
                 in(reg) GDT.1.user_data.0,
                 in(reg) self.stack_addr,
                 in(reg) GDT.1.user_code.0,
-                in(reg) self.code_addr + self.entry_point,
+                in(reg) self.code_addr + self.entry_point_addr,
                 in("rdi") args_ptr,
                 in("rsi") args_len,
             );
