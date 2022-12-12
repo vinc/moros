@@ -45,3 +45,6 @@ x86_64 = "0.14.10"
 
 [package.metadata.bootimage]
 test-success-exit-code = 33 # (0x10 << 1) | 1
+
+[package.metadata.bootloader]
+physical-memory-offset = "0xFFFF800000000000"
