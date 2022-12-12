@@ -13,10 +13,10 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
-    "2048", "base64", "calc", "colors", "copy", "date", "delete", "dhcp", "disk", "edit", "env",
-    "geotime", "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life",
-    "lisp", "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
+const AUTOCOMPLETE_COMMANDS: [&str; 34] = [
+    "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "env",
+    "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
+    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
     "time", "user", "vga", "write"
 ];
 
@@ -53,40 +53,60 @@ fn autocomplete_commands() -> Vec<String> {
 
 fn shell_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
-
-    let args = split_args(line);
+    let mut args = split_args(line);
+    if line.ends_with(' ') {
+        args.push(String::new());
+    }
     let i = args.len() - 1;
-    if args.len() == 1 && !args[0].starts_with('/') && !args[0].starts_with('~') { // Autocomplete command
+
+    // Autocomplete command
+    if args.len() == 1 && !args[i].starts_with('/') && !args[i].starts_with('~') {
         for cmd in autocomplete_commands() {
             if let Some(entry) = cmd.strip_prefix(&args[i]) {
                 entries.push(entry.into());
             }
         }
-    } else { // Autocomplete path
-        let pathname = fs::realpath(&args[i]);
-        let dirname = fs::dirname(&pathname);
-        let filename = fs::filename(&pathname);
-        let sep = if dirname.ends_with('/') { "" } else { "/" };
-        if let Ok(files) = fs::read_dir(dirname) {
-            for file in files {
-                let name = file.name();
-                if name.starts_with(filename) {
-                    let end = if file.is_dir() { "/" } else { "" };
-                    let path = format!("{}{}{}{}", dirname, sep, name, end);
-                    entries.push(path[pathname.len()..].into());
+    }
+
+    // Autocomplete path
+    let pathname = fs::realpath(&args[i]);
+    let dirname = fs::dirname(&pathname);
+    let filename = fs::filename(&pathname);
+    let sep = if dirname.ends_with('/') { "" } else { "/" };
+    if let Ok(files) = fs::read_dir(dirname) {
+        for file in files {
+            let name = file.name();
+            if name.starts_with(filename) {
+                if args.len() == 1 && !file.is_dir() {
+                    continue;
                 }
+                let end = if args.len() != 1 && file.is_dir() { "/" } else { "" };
+                let path = format!("{}{}{}{}", dirname, sep, name, end);
+                entries.push(path[pathname.len()..].into());
             }
         }
     }
+
     entries.sort();
     entries
 }
 
 pub fn prompt_string(success: bool) -> String {
-    let csi_color = Style::color("Magenta");
+    let csi_line1 = Style::color("Blue");
+    let csi_line2 = Style::color("Magenta");
     let csi_error = Style::color("Red");
     let csi_reset = Style::reset();
-    format!("{}>{} ", if success { csi_color } else { csi_error }, csi_reset)
+
+    let mut current_dir = sys::process::dir();
+    if let Some(home) = sys::process::env("HOME") {
+        if current_dir.starts_with(&home) {
+            let n = home.len();
+            current_dir.replace_range(..n, "~");
+        }
+    }
+    let line1 = format!("{}{}{}", csi_line1, current_dir, csi_reset);
+    let line2 = format!("{}>{} ", if success { csi_line2 } else { csi_error }, csi_reset);
+    format!("{}\n{}", line1, line2)
 }
 
 fn is_globbing(arg: &str) -> bool {
@@ -345,7 +365,11 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
 
     let cmd = variables_expansion(cmd, config);
 
-    let mut args = split_args(&cmd);
+    let mut args = split_args(&cmd.trim());
+
+    if args.is_empty() {
+        return Ok(());
+    }
 
     // Replace command alias
     if let Some(alias) = config.aliases.get(&args[0]) {
@@ -451,7 +475,6 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "beep"     => usr::beep::main(&args),
         "calc"     => usr::calc::main(&args),
         "chess"    => usr::chess::main(&args),
-        "colors"   => usr::colors::main(&args),
         "copy"     => usr::copy::main(&args),
         "date"     => usr::date::main(&args),
         "delete"   => usr::delete::main(&args),
@@ -461,8 +484,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "elf"      => usr::elf::main(&args),
         "env"      => usr::env::main(&args),
         "find"     => usr::find::main(&args),
-        "geotime"  => usr::geotime::main(&args),
-        "goto"     => cmd_change_dir(&args, config),
+        "goto"     => cmd_change_dir(&args, config), // TODO: Remove this
         "help"     => usr::help::main(&args),
         "hex"      => usr::hex::main(&args),
         "host"     => usr::host::main(&args),

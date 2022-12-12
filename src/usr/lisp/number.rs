@@ -117,6 +117,14 @@ impl Number {
         }
     }
 
+    pub fn trunc(self) -> Number {
+        if let Number::Float(a) = self {
+            Number::Int(libm::trunc(a) as i64)
+        } else {
+            self
+        }
+    }
+
     pub fn shl(self, other: Number) -> Number {
         match (self, other) {
             (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.shl(b)),

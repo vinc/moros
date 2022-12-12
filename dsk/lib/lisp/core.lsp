@@ -87,7 +87,7 @@
     (append (list i) (range (+ i 1) n))))
 
 (define (string-join ls s)
-  (reduce (fn (x y) (string x s y)) ls))
+  (reduce (function (x y) (string x s y)) ls))
 
 (define (read-line)
   (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
@@ -107,7 +107,7 @@
   (bytes->number (read-file-bytes "/dev/clk/uptime" 8) "float"))
 
 (define (realtime)
-  (bytes->number (read-file-bytes "realtime" 8) "float"))
+  (bytes->number (read-file-bytes "/dev/clk/realtime" 8) "float"))
 
 (define (write-file path str)
   (write-file-bytes path (string->bytes str)))

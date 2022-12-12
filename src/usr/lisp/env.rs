@@ -145,6 +145,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         ensure_length_eq!(args, 1);
         Ok(Exp::Num(number(&args[0])?.tan()))
     }));
+    data.insert("trunc".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        Ok(Exp::Num(number(&args[0])?.trunc()))
+    }));
     data.insert("system".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         ensure_length_eq!(args, 1);
         let cmd = string(&args[0])?;
@@ -292,6 +296,14 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     }));
     data.insert("list".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         Ok(Exp::List(args.to_vec()))
+    }));
+    data.insert("length".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
+        ensure_length_eq!(args, 1);
+        if let Exp::List(list) = &args[0] {
+            Ok(Exp::Num(Number::from(list.len())))
+        } else {
+            return Err(Err::Reason("Expected arg to be a list".to_string()))
+        }
     }));
     data.insert("append".to_string(), Exp::Primitive(|args: &[Exp]| -> Result<Exp, Err> {
         let mut res = vec![];

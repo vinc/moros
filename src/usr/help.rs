@@ -22,29 +22,36 @@ fn help_unknown(cmd: &str) -> Result<(), ExitCode> {
     Err(ExitCode::Failure)
 }
 
+fn print_usage(alias: &str, command: &str, usage: &str) {
+    let csi_col1 = Style::color("LightGreen");
+    let csi_col2 = Style::color("LightCyan");
+    let csi_reset = Style::reset();
+    println!("  {}{}{}{:21}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
+}
+
 fn help_summary() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Commands:{}", csi_color, csi_reset);
-    let cmds = [
-        ("c", "opy <file> <file>", "Copy file from source to destination"),
-        ("d", "elete <file>",      "Delete file or empty directory"),
-        ("e", "dit <file>",        "Edit existing or new file"),
-        ("g", "oto <dir>",         "Go to directory"),
-        ("h", "elp <command>",     "Display help about a command"),
-        ("l", "ist <dir>",         "List entries in directory"),
-        ("m", "ove <file> <file>", "Move file from source to destination"),
-        ("p", "rint <string>",     "Print string to screen"),
-        ("q", "uit",               "Quit the shell"),
-        ("r", "ead <file>",        "Read file to screen"),
-        ("w", "rite <file>",       "Write file or directory"),
-    ];
-    for (alias, command, usage) in &cmds {
-        let csi_col1 = Style::color("LightGreen");
-        let csi_col2 = Style::color("LightCyan");
-        println!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, csi_reset, usage);
-    }
+
+    println!("{}Usage:{}", csi_color, csi_reset);
+    print_usage("",  "<dir>",            " Change directory");
+    print_usage("",  "<cmd>",            " Execute command");
     println!();
+
+    println!("{}Commands:{}", csi_color, csi_reset);
+    print_usage("c", "opy <file> <file>",    "Copy file from source to destination");
+    print_usage("d", "elete <file>",         "Delete file or empty directory");
+    print_usage("e", "dit <file>",           "Edit existing or new file");
+    print_usage("f", "ind <str> <path>",     "Find pattern in path");
+    print_usage("h", "elp <cmd>",            "Display help about a command");
+    print_usage("l", "ist <dir>",            "List entries in directory");
+    print_usage("m", "ove <file> <file>",    "Move file from source to destination");
+    print_usage("p", "rint <str>",           "Print string to screen");
+    print_usage("q", "uit",                  "Quit the console");
+    print_usage("r", "ead <file>",           "Read file to screen");
+    print_usage("w", "rite <file>",          "Write file or directory");
+    println!();
+
     println!("{}Credits:{}", csi_color, csi_reset);
     println!("  Made with <3 in 2019-2022 by Vincent Ollivier <v@vinc.cc>");
     Ok(())
