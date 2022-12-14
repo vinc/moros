@@ -311,7 +311,7 @@ pub fn lisp_list(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::List(args.to_vec()))
 }
 
-pub fn lisp_uniq(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_unique(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     if let Exp::List(list) = &args[0] {
         let mut list = list.clone();

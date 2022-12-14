@@ -149,3 +149,4 @@
 (define rest tail)
 (define len length)
 (define rev reverse)
+(define uniq unique)
