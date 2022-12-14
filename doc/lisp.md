@@ -126,7 +126,7 @@ with the following content:
 
 (println
   (if (nil? args) "Usage: fibonacci <num>"
-    (fibonacci (string->number (car args)))))
+    (fibonacci (string->number (head args)))))
 ```
 
 Would produce the following output:
