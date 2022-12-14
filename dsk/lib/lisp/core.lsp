@@ -146,7 +146,7 @@
 (define (cddr x)
   (cdr (cdr x)))
 
-(define rest tail)
+(define rest cdr)
 (define len length)
 (define rev reverse)
 (define uniq unique)
