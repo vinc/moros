@@ -59,15 +59,6 @@
 (define (rest x)
   (cdr x))
 
-(define (first x)
-  (car x))
-
-(define (second x)
-  (first (rest x)))
-
-(define (third x)
-  (second (rest x)))
-
 (define (reduce f ls)
   (if (nil? (tail ls)) (head ls)
     (f (head ls) (reduce f (tail ls)))))
@@ -144,3 +135,18 @@
 
 (define (chars contents)
   (split contents ""))
+
+(define (first lst)
+  (nth lst 0))
+
+(define (second lst)
+  (nth lst 1))
+
+(define (third lst)
+  (nth lst 2))
+
+(define (last lst)
+  (nth lst
+    (if (= (length lst) 0) 0 (- (length lst) 1))))
+
+(define rest tail)

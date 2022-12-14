@@ -342,6 +342,28 @@ pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
+pub fn lisp_nth(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let i = usize::try_from(number(&args[1])?)?;
+    match &args[0] {
+        Exp::List(l) => {
+            if let Some(e) = l.iter().nth(i) {
+                Ok(e.clone())
+            } else {
+                Ok(Exp::List(Vec::new()))
+            }
+        }
+        Exp::Str(s) => {
+            if let Some(c) = s.chars().nth(i) {
+                Ok(Exp::Str(c.to_string()))
+            } else {
+                Ok(Exp::Str("".to_string()))
+            }
+        }
+        _ => Err(Err::Reason("Expected first arg to be a list or a string".to_string()))
+    }
+}
+
 pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
     let (a, b) = match args.len() {
         2 => (usize::try_from(number(&args[1])?)?, 1),
@@ -357,7 +379,7 @@ pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
             let s: String = s.chars().skip(a).take(b).collect();
             Ok(Exp::Str(s))
         }
-        _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
+        _ => Err(Err::Reason("Expected first arg to be a list or a string".to_string()))
     }
 }
 
