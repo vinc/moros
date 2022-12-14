@@ -21,9 +21,6 @@
       (/ (* 2 pi) 365.0)
       (+ (days timestamp) (/ (- (hours timestamp) 12.0) 24.0))))))
 
-(define (abs x)
-  (if (< x 0) (- x) x))
-
 (define (pad x)
   (string (if (< x 10) "0" "") x))
 
