@@ -69,37 +69,46 @@
   (second (rest x)))
 
 (define (reduce f ls)
-  (if (nil? (rest ls)) (first ls)
-    (f (first ls) (reduce f (rest ls)))))
+  (if (nil? (tail ls)) (head ls)
+    (f (head ls) (reduce f (tail ls)))))
 
 (define (map f ls)
   (if (nil? ls) nil
     (cons
-      (f (first ls))
-      (map f (rest ls)))))
+      (f (head ls))
+      (map f (tail ls)))))
 
 (define (filter f ls)
   (if (nil? ls) nil
-    (if (f (first ls))
-      (cons (first ls) (filter f (rest ls)))
-      (filter f (rest ls)))))
+    (if (f (head ls))
+      (cons (head ls) (filter f (tail ls)))
+      (filter f (tail ls)))))
 
 (define (intersection a b)
   (filter (function (x) (contains? b x)) a))
 
 (define (reverse x)
   (if (nil? x) x
-    (append (reverse (rest x)) (cons (first x) '()))))
+    (append (reverse (tail x)) (cons (head x) '()))))
 
 (define (range i n)
   (if (= i n) nil
     (append (list i) (range (+ i 1) n))))
 
+(define (min lst)
+  (head (sort lst)))
+
+(define (max lst)
+  (head (reverse (sort lst))))
+
+(define (abs x)
+  (if (> x 0) x (- x)))
+
 (define (string-join ls s)
   (reduce (function (x y) (string x s y)) ls))
 
 (define (read-line)
-  (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
+  (bytes->string (reverse (tail (reverse (read-file-bytes "/dev/console" 256))))))
 
 (define (read-char)
   (bytes->string (read-file-bytes "/dev/console" 4)))

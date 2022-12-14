@@ -51,12 +51,12 @@ pub fn lisp_add(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_sub(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let args = list_of_numbers(args)?;
-    let car = args[0].clone();
+    let head = args[0].clone();
     if args.len() == 1 {
-        Ok(Exp::Num(-car))
+        Ok(Exp::Num(-head))
     } else {
         let res = args[1..].iter().fold(Number::Int(0), |acc, a| acc + a.clone());
-        Ok(Exp::Num(car - res))
+        Ok(Exp::Num(head - res))
     }
 }
 
@@ -71,8 +71,8 @@ pub fn lisp_div(args: &[Exp]) -> Result<Exp, Err> {
             return Err(Err::Reason("Division by zero".to_string()));
         }
     }
-    let car = args[0].clone();
-    let res = args[1..].iter().fold(car, |acc, a| acc / a.clone());
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a| acc / a.clone());
     Ok(Exp::Num(res))
 }
 
@@ -84,16 +84,16 @@ pub fn lisp_mod(args: &[Exp]) -> Result<Exp, Err> {
             return Err(Err::Reason("Division by zero".to_string()));
         }
     }
-    let car = args[0].clone();
-    let res = args[1..].iter().fold(car, |acc, a| acc % a.clone());
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a| acc % a.clone());
     Ok(Exp::Num(res))
 }
 
 pub fn lisp_exp(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let args = list_of_numbers(args)?;
-    let car = args[0].clone();
-    let res = args[1..].iter().fold(car, |acc, a| acc.pow(a));
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a| acc.pow(a));
     Ok(Exp::Num(res))
 }
 

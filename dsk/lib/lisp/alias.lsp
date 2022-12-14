@@ -14,6 +14,11 @@
   (macro args `(define-function ,@args)))
 
 (define len length)
+(define (car lst)
+  (head lst))
+
+(define (cdr lst)
+  (tail lst))
 
 (define label
   (macro args `(define ,@args)))
