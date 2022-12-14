@@ -336,13 +336,13 @@ fn test_lisp() {
     assert_eq!(eval!("(eq 1 1.0)"), "false");
     assert_eq!(eval!("(eq 1.0 1.0)"), "true");
 
-    // car
-    assert_eq!(eval!("(car (quote (1)))"), "1");
-    assert_eq!(eval!("(car (quote (1 2 3)))"), "1");
+    // head
+    assert_eq!(eval!("(head (quote (1)))"), "1");
+    assert_eq!(eval!("(head (quote (1 2 3)))"), "1");
 
-    // cdr
-    assert_eq!(eval!("(cdr (quote (1)))"), "()");
-    assert_eq!(eval!("(cdr (quote (1 2 3)))"), "(2 3)");
+    // tail
+    assert_eq!(eval!("(tail (quote (1)))"), "()");
+    assert_eq!(eval!("(tail (quote (1 2 3)))"), "(2 3)");
 
     // cons
     assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
