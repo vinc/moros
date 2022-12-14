@@ -50,8 +50,8 @@ Rewrite parts of the code and add new functions and examples.
 - `splice` (with the `@` syntax)
 - `atom` (aliased to `atom?`)
 - `eq` (aliased to `eq?`)
-- `car` (aliased to `first`)
-- `cdr` (aliased to `rest`)
+- `head` (aliased to `car`)
+- `tail` (aliased to `cdr`)
 - `cons`
 - `if`
 - `cond`
@@ -78,12 +78,13 @@ Rewrite parts of the code and add new functions and examples.
 - `regex-find`
 - `system`
 
-- Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`
+- Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
-- List: `chunks`, `slice`, `sort`, `uniq`, `length`
+- List: `chunks`, `sort`, `unique`, `min`, `max`
 - String: `trim`, `split`
+- Enumerable: `length`, `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
 
 ### Core Library
 - `nil`, `nil?`, `eq?`
