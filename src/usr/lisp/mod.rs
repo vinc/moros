@@ -484,6 +484,7 @@ fn test_lisp() {
     eval!("(define x 'a)");
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
+    assert_eq!(eval!("`(list ,(+ 1 2) 4)"), "(list 3 4)");
 
     // unquote-splice
     eval!("(define x '(1 2 3))");
