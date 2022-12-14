@@ -44,21 +44,6 @@
 (define-macro (let params values body)
   `((function ,params ,body) ,@values))
 
-(define (caar x)
-  (car (car x)))
-
-(define (cadr x)
-  (car (cdr x)))
-
-(define (cdar x)
-  (cdr (car x)))
-
-(define (cddr x)
-  (cdr (cdr x)))
-
-(define (rest x)
-  (cdr x))
-
 (define (reduce f ls)
   (if (nil? (tail ls)) (head ls)
     (f (head ls) (reduce f (tail ls)))))
@@ -149,4 +134,18 @@
   (nth lst
     (if (= (length lst) 0) 0 (- (length lst) 1))))
 
+(define (caar x)
+  (car (car x)))
+
+(define (cadr x)
+  (car (cdr x)))
+
+(define (cdar x)
+  (cdr (car x)))
+
+(define (cddr x)
+  (cdr (cdr x)))
+
 (define rest tail)
+(define len length)
+(define rev reverse)
