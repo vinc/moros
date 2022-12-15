@@ -298,6 +298,10 @@ impl Editor {
 
                     self.print_screen();
                 },
+                '\x19' => { // Ctrl Y -> Yank (copy) line
+                    let i = self.offset.y + self.cursor.y;
+                    self.clipboard.push(self.lines[i].clone());
+                },
                 '\x10' => { // Ctrl P -> Put (paste) line
                     let i = self.offset.y + self.cursor.y;
                     if let Some(line) = self.clipboard.pop() {

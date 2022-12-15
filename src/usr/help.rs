@@ -73,6 +73,7 @@ fn help_edit() -> Result<(), ExitCode> {
         ("^A", "Go to beginning of line"),
         ("^E", "Go to end of line"),
         ("^D", "Cut line"),
+        ("^Y", "Copy line"),
         ("^P", "Paste line"),
     ];
     for (shortcut, usage) in &shortcuts {
