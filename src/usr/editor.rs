@@ -298,6 +298,15 @@ impl Editor {
 
                     self.print_screen();
                 },
+                '\x10' => { // Ctrl P -> Put (paste) line
+                    let i = self.offset.y + self.cursor.y;
+                    if let Some(line) = self.clipboard.pop() {
+                        self.lines.insert(i + 1, line);
+                    }
+                    self.cursor.x = 0;
+                    self.offset.x = 0;
+                    self.print_screen();
+                },
                 '\x08' => { // Backspace
                     let y = self.offset.y + self.cursor.y;
                     if self.offset.x + self.cursor.x > 0 { // Remove char from line
