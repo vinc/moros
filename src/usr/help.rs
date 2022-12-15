@@ -72,6 +72,7 @@ fn help_edit() -> Result<(), ExitCode> {
         ("^B", "Go to bottom of file"),
         ("^A", "Go to beginning of line"),
         ("^E", "Go to end of line"),
+        ("^D", "Cut line"),
     ];
     for (shortcut, usage) in &shortcuts {
         let csi_color = Style::color("LightCyan");

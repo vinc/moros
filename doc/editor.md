@@ -10,3 +10,4 @@
 - `CTRL` + `E` to move cursor to enf of line
 - `CTRL` + `T` to move cursor to begining of file
 - `CTRL` + `B` to move cursor to enf of file
+- `CTRL` + `d` to cut (delete) a line
