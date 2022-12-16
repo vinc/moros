@@ -5,4 +5,4 @@
 
 (println
   (if (nil? args) "Usage: sum <num>"
-    (sum (string->number (car args)) 0)))
+    (sum (string->number (head args)) 0)))

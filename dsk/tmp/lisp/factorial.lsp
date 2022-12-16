@@ -9,4 +9,4 @@
 
 (println
   (if (nil? args) "Usage: factorial <num>"
-    (factorial (string->number (car args)))))
+    (factorial (string->number (head args)))))

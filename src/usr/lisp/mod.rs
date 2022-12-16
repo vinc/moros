@@ -336,13 +336,13 @@ fn test_lisp() {
     assert_eq!(eval!("(eq 1 1.0)"), "false");
     assert_eq!(eval!("(eq 1.0 1.0)"), "true");
 
-    // car
-    assert_eq!(eval!("(car (quote (1)))"), "1");
-    assert_eq!(eval!("(car (quote (1 2 3)))"), "1");
+    // head
+    assert_eq!(eval!("(head (quote (1)))"), "1");
+    assert_eq!(eval!("(head (quote (1 2 3)))"), "1");
 
-    // cdr
-    assert_eq!(eval!("(cdr (quote (1)))"), "()");
-    assert_eq!(eval!("(cdr (quote (1 2 3)))"), "(2 3)");
+    // tail
+    assert_eq!(eval!("(tail (quote (1)))"), "()");
+    assert_eq!(eval!("(tail (quote (1 2 3)))"), "(2 3)");
 
     // cons
     assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
@@ -484,6 +484,7 @@ fn test_lisp() {
     eval!("(define x 'a)");
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
+    assert_eq!(eval!("`(list ,(+ 1 2) 4)"), "(list 3 4)");
 
     // unquote-splice
     eval!("(define x '(1 2 3))");

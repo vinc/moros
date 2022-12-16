@@ -35,7 +35,7 @@ fn eval_eq_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     Ok(Exp::Bool(a == b))
 }
 
-fn eval_car_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+fn eval_head_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(list) => {
@@ -46,7 +46,7 @@ fn eval_car_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
-fn eval_cdr_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+fn eval_tail_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
         Exp::List(list) => {
@@ -149,7 +149,7 @@ pub fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, E
 
 pub const BUILT_INS: [&str; 32] = [
     "quote", "quasiquote", "unquote", "unquote-splicing",
-    "atom", "eq", "car", "cdr", "cons",
+    "atom", "eq", "head", "tail", "cons",
     "if", "cond", "while",
     "set",
     "define", "def", "label",
@@ -180,8 +180,8 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "quote"  => return eval_quote_args(args),
                     Exp::Sym(s) if s == "atom"   => return eval_atom_args(args, env),
                     Exp::Sym(s) if s == "eq"     => return eval_eq_args(args, env),
-                    Exp::Sym(s) if s == "car"    => return eval_car_args(args, env),
-                    Exp::Sym(s) if s == "cdr"    => return eval_cdr_args(args, env),
+                    Exp::Sym(s) if s == "head"   => return eval_head_args(args, env),
+                    Exp::Sym(s) if s == "tail"   => return eval_tail_args(args, env),
                     Exp::Sym(s) if s == "cons"   => return eval_cons_args(args, env),
                     Exp::Sym(s) if s == "set"    => return eval_set_args(args, env),
                     Exp::Sym(s) if s == "while"  => return eval_while_args(args, env),

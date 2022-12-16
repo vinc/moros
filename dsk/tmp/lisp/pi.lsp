@@ -31,4 +31,4 @@
 
 (println
   (if (nil? args) "Usage: pi <precision>"
-    (pi-digits (string->number (car args)))))
+    (pi-digits (string->number (head args)))))

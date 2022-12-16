@@ -51,12 +51,12 @@ pub fn lisp_add(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_sub(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let args = list_of_numbers(args)?;
-    let car = args[0].clone();
+    let head = args[0].clone();
     if args.len() == 1 {
-        Ok(Exp::Num(-car))
+        Ok(Exp::Num(-head))
     } else {
         let res = args[1..].iter().fold(Number::Int(0), |acc, a| acc + a.clone());
-        Ok(Exp::Num(car - res))
+        Ok(Exp::Num(head - res))
     }
 }
 
@@ -71,8 +71,8 @@ pub fn lisp_div(args: &[Exp]) -> Result<Exp, Err> {
             return Err(Err::Reason("Division by zero".to_string()));
         }
     }
-    let car = args[0].clone();
-    let res = args[1..].iter().fold(car, |acc, a| acc / a.clone());
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a| acc / a.clone());
     Ok(Exp::Num(res))
 }
 
@@ -84,16 +84,16 @@ pub fn lisp_mod(args: &[Exp]) -> Result<Exp, Err> {
             return Err(Err::Reason("Division by zero".to_string()));
         }
     }
-    let car = args[0].clone();
-    let res = args[1..].iter().fold(car, |acc, a| acc % a.clone());
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a| acc % a.clone());
     Ok(Exp::Num(res))
 }
 
 pub fn lisp_exp(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let args = list_of_numbers(args)?;
-    let car = args[0].clone();
-    let res = args[1..].iter().fold(car, |acc, a| acc.pow(a));
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a| acc.pow(a));
     Ok(Exp::Num(res))
 }
 
@@ -311,7 +311,7 @@ pub fn lisp_list(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::List(args.to_vec()))
 }
 
-pub fn lisp_uniq(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_unique(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     if let Exp::List(list) = &args[0] {
         let mut list = list.clone();
@@ -342,6 +342,28 @@ pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
+pub fn lisp_nth(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let i = usize::try_from(number(&args[1])?)?;
+    match &args[0] {
+        Exp::List(l) => {
+            if let Some(e) = l.iter().nth(i) {
+                Ok(e.clone())
+            } else {
+                Ok(Exp::List(Vec::new()))
+            }
+        }
+        Exp::Str(s) => {
+            if let Some(c) = s.chars().nth(i) {
+                Ok(Exp::Str(c.to_string()))
+            } else {
+                Ok(Exp::Str("".to_string()))
+            }
+        }
+        _ => Err(Err::Reason("Expected first arg to be a list or a string".to_string()))
+    }
+}
+
 pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
     let (a, b) = match args.len() {
         2 => (usize::try_from(number(&args[1])?)?, 1),
@@ -357,7 +379,7 @@ pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
             let s: String = s.chars().skip(a).take(b).collect();
             Ok(Exp::Str(s))
         }
-        _ => Err(Err::Reason("Expected first arg to be a list or a number".to_string()))
+        _ => Err(Err::Reason("Expected first arg to be a list or a string".to_string()))
     }
 }
 

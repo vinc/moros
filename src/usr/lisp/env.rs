@@ -59,8 +59,9 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("number-type".to_string(),       Exp::Primitive(primitive::lisp_number_type));
     data.insert("parse".to_string(),             Exp::Primitive(primitive::lisp_parse));
     data.insert("list".to_string(),              Exp::Primitive(primitive::lisp_list));
-    data.insert("uniq".to_string(),              Exp::Primitive(primitive::lisp_uniq));
     data.insert("sort".to_string(),              Exp::Primitive(primitive::lisp_sort));
+    data.insert("unique".to_string(),            Exp::Primitive(primitive::lisp_unique));
+    data.insert("nth".to_string(),               Exp::Primitive(primitive::lisp_nth));
     data.insert("contains?".to_string(),         Exp::Primitive(primitive::lisp_contains));
     data.insert("slice".to_string(),             Exp::Primitive(primitive::lisp_slice));
     data.insert("chunks".to_string(),            Exp::Primitive(primitive::lisp_chunks));
