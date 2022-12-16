@@ -27,11 +27,11 @@ impl KeyboardLayout {
         }
     }
 
-    fn process_keyevent(&mut self, key_event: KeyEvent) -> Option<DecodedKey> {
+    fn process_keyevent(&mut self, event: KeyEvent) -> Option<DecodedKey> {
         match self {
-            KeyboardLayout::Azerty(keyboard) => keyboard.process_keyevent(key_event),
-            KeyboardLayout::Dvorak(keyboard) => keyboard.process_keyevent(key_event),
-            KeyboardLayout::Qwerty(keyboard) => keyboard.process_keyevent(key_event),
+            KeyboardLayout::Azerty(keyboard) => keyboard.process_keyevent(event),
+            KeyboardLayout::Dvorak(keyboard) => keyboard.process_keyevent(event),
+            KeyboardLayout::Qwerty(keyboard) => keyboard.process_keyevent(event),
         }
     }
 
@@ -75,20 +75,20 @@ fn send_csi(c: char) {
 }
 
 fn interrupt_handler() {
+    let scancode = read_scancode();
     if let Some(ref mut keyboard) = *KEYBOARD.lock() {
-        let scancode = read_scancode();
-        if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
-            match key_event.code {
-                KeyCode::AltLeft | KeyCode::AltRight => ALT.store(key_event.state == KeyState::Down, Ordering::Relaxed),
-                KeyCode::ShiftLeft | KeyCode::ShiftRight => SHIFT.store(key_event.state == KeyState::Down, Ordering::Relaxed),
-                KeyCode::ControlLeft | KeyCode::ControlRight => CTRL.store(key_event.state == KeyState::Down, Ordering::Relaxed),
+        if let Ok(Some(event)) = keyboard.add_byte(scancode) {
+            let ord = Ordering::Relaxed;
+            match event.code {
+                KeyCode::AltLeft | KeyCode::AltRight => ALT.store(event.state == KeyState::Down, ord),
+                KeyCode::ShiftLeft | KeyCode::ShiftRight => SHIFT.store(event.state == KeyState::Down, ord),
+                KeyCode::ControlLeft | KeyCode::ControlRight => CTRL.store(event.state == KeyState::Down, ord),
                 _ => {}
             }
-            let is_alt = ALT.load(Ordering::Relaxed);
-            let is_ctrl = CTRL.load(Ordering::Relaxed);
-            let is_shift = SHIFT.load(Ordering::Relaxed);
-
-            if let Some(key) = keyboard.process_keyevent(key_event) {
+            let is_alt = ALT.load(ord);
+            let is_ctrl = CTRL.load(ord);
+            let is_shift = SHIFT.load(ord);
+            if let Some(key) = keyboard.process_keyevent(event) {
                 match key {
                     DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => syscall::reboot(), // Ctrl-Alt-Del
                     DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi('A'),
