@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+- Add cut/copy/paste to editor (#456)
+- Improve lisp (#455)
+- Improve lisp (#449)
+- Bump aml from 0.16.1 to 0.16.2 (#450)
+- Improve help (#451)
+- Improve shell autocompletion (#448)
+- Remove allow other (#447)
+- Replace some rust programs with lisp scripts (#445)
+- Fix panic on commands containing only spaces (#442)
+- Fix panic in chess move parser (#446)
+- Add path to prompt (#444)
+- Bump smoltcp from 0.8.1 to 0.8.2 (#443)
+- Bump object from 0.29.0 to 0.30.0 (#441)
+
 ## 0.9.0 (2022-11-11)
 - Add BigInt support to Lisp ([#415](https://github.com/vinc/moros/pull/415))
 - Add Conway's Game of Life ([#409](https://github.com/vinc/moros/pull/409))
