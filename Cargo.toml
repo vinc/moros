@@ -28,7 +28,7 @@ littlewing = { version = "0.7.0", default-features = false }
 nom = { version = "7.1.2", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.3", default-features = false }
 num-traits = { version = "0.2.15", default-features = false }
-object = { version = "0.30.0", default-features = false, features = ["read"] }
+object = { version = "0.30.2", default-features = false, features = ["read"] }
 pbkdf2 = { version = "0.11.0", default-features = false }
 pc-keyboard = "0.6.1"
 pic8259 = "0.10.2"
