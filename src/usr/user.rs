@@ -10,7 +10,6 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::str;
-use hmac::Hmac;
 use sha2::Sha256;
 
 const USERS: &str = "/ini/users.csv";
@@ -144,7 +143,7 @@ pub fn check(password: &str, hashed_password: &str) -> bool {
     let salt: [u8; 16] = decoded_field[0..16].try_into().unwrap();
 
     let mut hash = [0u8; 32];
-    pbkdf2::pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, c, &mut hash);
+    pbkdf2::pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, c, &mut hash);
     let encoded_hash = String::from_utf8(usr::base64::encode(&hash)).unwrap();
 
     encoded_hash == fields[3]
@@ -170,7 +169,7 @@ pub fn hash(password: &str) -> String {
     }
 
     // Hashing password with PBKDF2-HMAC-SHA256
-    pbkdf2::pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, c, &mut hash);
+    pbkdf2::pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, c, &mut hash);
 
     // Encoding in Base64 standard without padding
     let c = c.to_be_bytes();
