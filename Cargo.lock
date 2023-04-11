@@ -244,7 +244,6 @@ dependencies = [
  "base64",
  "bit_field",
  "bootloader",
- "hmac",
  "lazy_static",
  "libm",
  "linked_list_allocator",
@@ -330,6 +329,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0ca0b5a68607598bf3bad68f32227a8164f6254833f84eafaac409cd6746c31"
 dependencies = [
  "digest",
+ "hmac",
 ]
 
 [[package]]
