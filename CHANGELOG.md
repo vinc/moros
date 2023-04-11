@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- Use pbkdf2_hmac to fix compilation warnings (#477)
+- Bump spin from 0.9.5 to 0.9.6 (#474)
+- Bump pbkdf2 from 0.11.0 to 0.12.1 (#470)
+- Bump aml from 0.16.2 to 0.16.3 (#471)
+- Bump linked_list_allocator from 0.10.4 to 0.10.5 (#472)
+- Bump pic8259 from 0.10.2 to 0.10.3 (#473)
+- Bump spin from 0.9.4 to 0.9.5 (#465)
+- Bump nom from 7.1.2 to 7.1.3 (#461)
+- Bump object from 0.30.0 to 0.30.3 (#462)
+- Bump bit_field from 0.10.1 to 0.10.2 (#468)
+- Bump raw-cpuid from 10.6.0 to 10.7.0 (#469)
+- Bump nom from 7.1.1 to 7.1.2 (#457)
+- Refactor keyboard interrupt handler (#453)
 - Add cut/copy/paste to editor (#456)
 - Improve lisp (#455)
 - Improve lisp (#449)
