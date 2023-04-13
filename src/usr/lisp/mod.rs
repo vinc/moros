@@ -9,7 +9,7 @@ pub use number::Number;
 pub use env::Env;
 
 use env::default_env;
-use eval::{eval, eval_define_args};
+use eval::{eval, eval_variable_args};
 use expand::expand;
 use parse::parse;
 
@@ -143,6 +143,12 @@ macro_rules! ensure_length_gt {
     };
 }
 
+// TODO: rename to strings
+pub fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
+    args.iter().map(string).collect()
+}
+
+// TODO: rename to numbers
 pub fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
     args.iter().map(number).collect()
 }
@@ -254,7 +260,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         args[2..].iter().map(|arg| Exp::Str(arg.to_string())).collect()
     });
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
-    if eval_define_args(&[key, quote], env).is_err() {
+    if eval_variable_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
         return Err(ExitCode::Failure);
     }
@@ -318,23 +324,23 @@ fn test_lisp() {
     assert_eq!(eval!("'a"), "a");
     assert_eq!(eval!("(quote '(a b c))"), "(quote (a b c))");
 
-    // atom
-    assert_eq!(eval!("(atom (quote a))"), "true");
-    assert_eq!(eval!("(atom (quote (1 2 3)))"), "false");
-    assert_eq!(eval!("(atom 1)"), "true");
+    // atom?
+    assert_eq!(eval!("(atom? (quote a))"), "true");
+    assert_eq!(eval!("(atom? (quote (1 2 3)))"), "false");
+    assert_eq!(eval!("(atom? 1)"), "true");
 
-    // eq
-    assert_eq!(eval!("(eq (quote a) (quote a))"), "true");
-    assert_eq!(eval!("(eq (quote a) (quote b))"), "false");
-    assert_eq!(eval!("(eq (quote a) (quote ()))"), "false");
-    assert_eq!(eval!("(eq (quote ()) (quote ()))"), "true");
-    assert_eq!(eval!("(eq \"a\" \"a\")"), "true");
-    assert_eq!(eval!("(eq \"a\" \"b\")"), "false");
-    assert_eq!(eval!("(eq \"a\" 'b)"), "false");
-    assert_eq!(eval!("(eq 1 1)"), "true");
-    assert_eq!(eval!("(eq 1 2)"), "false");
-    assert_eq!(eval!("(eq 1 1.0)"), "false");
-    assert_eq!(eval!("(eq 1.0 1.0)"), "true");
+    // equal?
+    assert_eq!(eval!("(equal? (quote a) (quote a))"), "true");
+    assert_eq!(eval!("(equal? (quote a) (quote b))"), "false");
+    assert_eq!(eval!("(equal? (quote a) (quote ()))"), "false");
+    assert_eq!(eval!("(equal? (quote ()) (quote ()))"), "true");
+    assert_eq!(eval!("(equal? \"a\" \"a\")"), "true");
+    assert_eq!(eval!("(equal? \"a\" \"b\")"), "false");
+    assert_eq!(eval!("(equal? \"a\" 'b)"), "false");
+    assert_eq!(eval!("(equal? 1 1)"), "true");
+    assert_eq!(eval!("(equal? 1 2)"), "false");
+    assert_eq!(eval!("(equal? 1 1.0)"), "false");
+    assert_eq!(eval!("(equal? 1.0 1.0)"), "true");
 
     // head
     assert_eq!(eval!("(head (quote (1)))"), "1");
@@ -361,14 +367,14 @@ fn test_lisp() {
     assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
 
     // while
-    assert_eq!(eval!("(do (define i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
+    assert_eq!(eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
 
-    // define
-    eval!("(define a 2)");
+    // variable
+    eval!("(variable a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");
-    eval!("(define add-one (function (b) (+ b 1)))");
+    eval!("(variable add-one (function (b) (+ b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
-    eval!("(define fibonacci (function (n) (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
+    eval!("(variable fibonacci (function (n) (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
     assert_eq!(eval!("(fibonacci 6)"), "8");
 
     // function
@@ -481,13 +487,13 @@ fn test_lisp() {
     assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
-    eval!("(define x 'a)");
+    eval!("(variable x 'a)");
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
     assert_eq!(eval!("`(list ,(+ 1 2) 4)"), "(list 3 4)");
 
     // unquote-splice
-    eval!("(define x '(1 2 3))");
+    eval!("(variable x '(1 2 3))");
     assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
     assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
 
@@ -496,12 +502,12 @@ fn test_lisp() {
     assert_eq!(eval!("((function (a @b) b) 1 2 3)"), "(2 3)");
 
     // macro
-    eval!("(define foo 42)");
-    eval!("(define set-10 (macro (x) `(set ,x 10)))");
+    eval!("(variable foo 42)");
+    eval!("(variable set-10 (macro (x) `(set ,x 10)))");
     eval!("(set-10 foo)");
     assert_eq!(eval!("foo"), "10");
 
     // args
-    eval!("(define list* (function args (append args '())))");
+    eval!("(variable list* (function args (append args '())))");
     assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
 }

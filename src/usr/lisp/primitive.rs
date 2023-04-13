@@ -1,8 +1,7 @@
-use super::list_of_bytes;
-use super::list_of_numbers;
 use super::parse::parse;
 use super::{Err, Exp, Number};
 use super::{float, number, string};
+use super::{list_of_bytes, list_of_numbers, list_of_strings};
 
 use crate::{ensure_length_eq, ensure_length_gt};
 use crate::api::fs;
@@ -155,8 +154,8 @@ pub fn lisp_trunc(args: &[Exp]) -> Result<Exp, Err> {
 }
 
 pub fn lisp_system(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    let cmd = string(&args[0])?;
+    ensure_length_gt!(args, 0);
+    let cmd = list_of_strings(&args)?.join(" ");
     match shell::exec(&cmd) {
         Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
         Err(code) => Ok(Exp::Num(Number::from(code as u8))),

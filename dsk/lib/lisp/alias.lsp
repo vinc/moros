@@ -1,32 +1,44 @@
-(define def
-  (macro args `(define ,@args)))
+(variable var
+  (macro args `(variable ,@args)))
 
-(define mac
+(var mac
   (macro args `(macro ,@args)))
 
-(define fun
+(var fun
   (macro args `(function ,@args)))
 
-(define def-mac
-  (macro args `(define-macro ,@args)))
-
-(define def-fun
-  (macro args `(define-function ,@args)))
-
-(define (car lst)
-  (head lst))
-
-(define (cdr lst)
-  (tail lst))
-
-(define label
+(var def
   (macro args `(define ,@args)))
 
-(define lambda
+(var def-mac
+  (macro args `(define-macro ,@args)))
+
+(var def-fun
+  (macro args `(define-function ,@args)))
+
+(def (car lst)
+  (head lst))
+
+(def (cdr lst)
+  (tail lst))
+
+(def (atom x)
+  (atom? x))
+
+(def (eq x y)
+  (equal? x y))
+
+(def (eq? x y)
+  (equal? x y))
+
+(var label
+  (macro args `(variable ,@args)))
+
+(var lambda
   (macro args `(function ,@args)))
 
-(define progn
+(var progn
   (macro args `(do ,@args)))
 
-(define begin
+(var begin
   (macro args `(do ,@args)))
