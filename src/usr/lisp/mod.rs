@@ -143,18 +143,16 @@ macro_rules! ensure_length_gt {
     };
 }
 
-// TODO: rename to strings
-pub fn list_of_strings(args: &[Exp]) -> Result<Vec<String>, Err> {
+pub fn bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
+    args.iter().map(byte).collect()
+}
+
+pub fn strings(args: &[Exp]) -> Result<Vec<String>, Err> {
     args.iter().map(string).collect()
 }
 
-// TODO: rename to numbers
-pub fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
+pub fn numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
     args.iter().map(number).collect()
-}
-
-pub fn list_of_bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
-    args.iter().map(byte).collect()
 }
 
 pub fn string(exp: &Exp) -> Result<String, Err> {
