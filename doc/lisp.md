@@ -77,15 +77,15 @@ Rewrite parts of the code and add new functions and examples.
 - `type`, `number-type` (aliased to `num-type`)
 - `string` (aliased to `str`)
 - `string->number` (aliased to to `str->num`)
-- `string->bytes` and `bytes->string` (aliased to `str->bin` and `bin->str`)
-- `number->bytes` and `bytes->number` (aliased to `num->bin` and `bin->num`)
+- `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
+- `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex-find`
 - `system`
 
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- File IO: `read-file`, `read-file-bytes`, `write-file-bytes`, `append-file-bytes`
+- File IO: `read-file`, `read-file-binary`, `write-file-binary`, `append-file-binary`
 - List: `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
 - String: `trim`, `split`
 - Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`

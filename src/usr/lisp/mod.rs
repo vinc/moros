@@ -433,8 +433,8 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
 
     // number
-    assert_eq!(eval!("(bytes->number (number->bytes 42) \"int\")"), "42");
-    assert_eq!(eval!("(bytes->number (number->bytes 42.0) \"float\")"), "42.0");
+    assert_eq!(eval!("(binary->number (number->binary 42) \"int\")"), "42");
+    assert_eq!(eval!("(binary->number (number->binary 42.0) \"float\")"), "42.0");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");

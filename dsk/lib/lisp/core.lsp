@@ -78,30 +78,30 @@
   (reduce (fun (x y) (string x s y)) ls))
 
 (def (read-line)
-  (bytes->string (reverse (tail (reverse (read-file-bytes "/dev/console" 256))))))
+  (binary->string (reverse (tail (reverse (read-file-binary "/dev/console" 256))))))
 
 (def (read-char)
-  (bytes->string (read-file-bytes "/dev/console" 4)))
+  (binary->string (read-file-binary "/dev/console" 4)))
 
 (def (p exp)
   (do
-    (append-file-bytes "/dev/console" (string->bytes (string exp)))
+    (append-file-binary "/dev/console" (string->binary (string exp)))
     '()))
 
 (def (print exp)
   (p (string exp "\n")))
 
 (def (uptime)
-  (bytes->number (read-file-bytes "/dev/clk/uptime" 8) "float"))
+  (binary->number (read-file-binary "/dev/clk/uptime" 8) "float"))
 
 (def (realtime)
-  (bytes->number (read-file-bytes "/dev/clk/realtime" 8) "float"))
+  (binary->number (read-file-binary "/dev/clk/realtime" 8) "float"))
 
 (def (write-file path s)
-  (write-file-bytes path (string->bytes s)))
+  (write-file-binary path (string->binary s)))
 
 (def (append-file path s)
-  (append-file-bytes path (string->bytes s)))
+  (append-file-binary path (string->binary s)))
 
 (def (regex-match? pattern s)
   (not (nil? (regex-find pattern str))))
@@ -145,10 +145,10 @@
 (var join-str join-string)
 
 (var str->num string->number)
-(var str->bin string->bytes)
-(var num->bin number->bytes)
-(var bin->str bytes->string)
-(var bin->num bytes->number)
+(var str->bin string->binary)
+(var num->bin number->binary)
+(var bin->str binary->string)
+(var bin->num binary->number)
 
 (var bool? boolean?)
 (var str? string?)
