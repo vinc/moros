@@ -16,29 +16,8 @@
 (var def-fun
   (macro args `(define-function ,@args)))
 
-(def (car lst)
-  (head lst))
+(var eq?
+  (macro args `(equal? ,@args)))
 
-(def (cdr lst)
-  (tail lst))
-
-(def (atom x)
-  (atom? x))
-
-(def (eq x y)
-  (equal? x y))
-
-(def (eq? x y)
-  (equal? x y))
-
-(var label
-  (macro args `(variable ,@args)))
-
-(var lambda
-  (macro args `(function ,@args)))
-
-(var progn
-  (macro args `(do ,@args)))
-
-(var begin
-  (macro args `(do ,@args)))
+(var rest
+  (macro args `(tail ,@args)))

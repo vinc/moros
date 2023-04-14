@@ -51,16 +51,16 @@ Rewrite parts of the code and add new functions and examples.
 - `unquote` (with the `,` syntax)
 - `unquote-splice` (with the `,@` syntax)
 - `splice` (with the `@` syntax)
-- `atom?` (aliased to `atom`)
-- `equal?` (aliased to `eq?` and `eq`)
-- `head` (aliased to `car`)
-- `tail` (aliased to `cdr`)
+- `atom?`
+- `equal?` (aliased to `eq?`)
+- `head`
+- `tail`
 - `cons`
 - `if`
 - `cond`
 - `while`
-- `variable` (aliased to `var` and `label`)
-- `function` (aliased to `fun` and `lambda`)
+- `variable` (aliased to `var`)
+- `function` (aliased to `fun`)
 - `macro` (aliased to `mac`)
 - `set`
 - `define` (aliased to `def` and equivalent to `define-function`)
@@ -69,7 +69,7 @@ Rewrite parts of the code and add new functions and examples.
 - `apply`
 - `eval`
 - `expand`
-- `do` (aliased to `begin` and `progn`)
+- `do`
 - `load`
 
 ### Primitive Operators
@@ -94,7 +94,7 @@ Rewrite parts of the code and add new functions and examples.
 - `nil`, `nil?`, `list?`
 - `boolean?` (aliased to `bool?`), `string?` (aliased to `str?`), `symbol?` (aliased to `sym?`), `number?` (aliased to `num?`)
 - `function?` (aliased to `fun?`), `macro?` (aliased to `mac?`)
-- `caar`, `cadr`, `cdar`, `cddr`, `first`, `second`, `third`, `rest`
+- `first`, `second`, `third`, `rest`
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `intersection`
 - `not`, `and`, `or`
 - `let`
@@ -104,6 +104,11 @@ Rewrite parts of the code and add new functions and examples.
 - `write-file`, `append-file`
 - `uptime`, `realtime`
 - `regex-match?`
+
+### Compatibility Library
+
+- `atom`, `eq`, `label`, `lambda`, `progn`, `begin`
+- `car`, `cdr`, `caar`, `cadr`, `cdar`, `cddr`
 
 ## Usage
 

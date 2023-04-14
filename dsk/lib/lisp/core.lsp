@@ -128,18 +128,6 @@
   (nth lst
     (if (= (length lst) 0) 0 (- (length lst) 1))))
 
-(def (caar x)
-  (car (car x)))
-
-(def (cadr x)
-  (car (cdr x)))
-
-(def (cdar x)
-  (cdr (car x)))
-
-(def (cddr x)
-  (cdr (cdr x)))
-
 (var str string)
 (var num-type number-type)
 (var join-str join-string)
@@ -158,7 +146,6 @@
 (var fun? function?)
 (var mac? macro?)
 
-(var rest cdr)
 (var len length)
 (var rev reverse)
 (var uniq unique)
