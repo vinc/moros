@@ -75,8 +75,8 @@ fn send_csi(c: char) {
 }
 
 fn interrupt_handler() {
-    let scancode = read_scancode();
     if let Some(ref mut keyboard) = *KEYBOARD.lock() {
+        let scancode = read_scancode();
         if let Ok(Some(event)) = keyboard.add_byte(scancode) {
             let ord = Ordering::Relaxed;
             match event.code {

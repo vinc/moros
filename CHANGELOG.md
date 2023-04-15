@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Refactor lisp functions (#478)
+- Fix invalid bytes from serial (#479)
 - Use pbkdf2_hmac to fix compilation warnings (#477)
 - Bump spin from 0.9.5 to 0.9.6 (#474)
 - Bump pbkdf2 from 0.11.0 to 0.12.1 (#470)
