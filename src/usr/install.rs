@@ -37,12 +37,15 @@ pub fn copy_files(verbose: bool) {
 
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
-    copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"), verbose);
     copy_file("/ini/shell.sh", include_bytes!("../../dsk/ini/shell.sh"), verbose);
     copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
 
+    create_dir("/ini/palettes", verbose);
+    copy_file("/ini/palettes/gruvbox-dark.csv", include_bytes!("../../dsk/ini/palettes/gruvbox-dark.csv"), verbose);
+    copy_file("/ini/palettes/gruvbox-light.csv", include_bytes!("../../dsk/ini/palettes/gruvbox-light.csv"), verbose);
+
     create_dir("/ini/fonts", verbose);
-    copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
+    //copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
     copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"), verbose);
     copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"), verbose);
 
