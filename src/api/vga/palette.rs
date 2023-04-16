@@ -56,7 +56,7 @@ fn parse_palette_csv() {
     assert!(from_csv("").is_err());
     assert!(from_csv("0,0,0,0").is_err());
 
-    let s = include_str!("../../../dsk/ini/palette.csv");
+    let s = include_str!("../../../dsk/ini/palettes/gruvbox-dark.csv");
     let palette = from_csv(s).unwrap();
     assert_eq!(palette.colors[0x03].0, 0x68);
     assert_eq!(palette.colors[0x0D].1, 0x86);
