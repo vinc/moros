@@ -2,15 +2,19 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() > 1 {
-        help_command(args[1])
-    } else {
-        help_summary()
+    match args.len() {
+        1 => help_summary(),
+        2 => help_command(args[1]),
+        _ => {
+            help();
+            Err(ExitCode::UsageError)
+        }
     }
 }
 
 fn help_command(cmd: &str) -> Result<(), ExitCode> {
     match cmd {
+        "-h" | "--help" => { help(); Ok(()) },
         "date" => help_date(),
         "edit" => help_edit(),
         _      => help_unknown(cmd),
@@ -129,4 +133,11 @@ fn help_date() -> Result<(), ExitCode> {
         println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }
     Ok(())
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} help {}[<command>]{}", csi_title, csi_reset, csi_option, csi_reset);
 }
