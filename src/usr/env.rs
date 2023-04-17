@@ -1,11 +1,23 @@
+use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::sys;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    match args.len() {
+    let n = args.len();
+    for i in 1..n {
+        match args[i] {
+            "-h" | "--help" => {
+                help();
+                return Ok(());
+            }
+            _ => continue
+        }
+    }
+    match n {
         1 => {
+            let width = sys::process::envs().keys().map(|k| k.len()).max().unwrap_or(0);
             for (key, val) in sys::process::envs() {
-                println!("{:10} \"{}\"", key, val);
+                println!("{:width$} \"{}\"", key, val, width = width);
             }
             Ok(())
         }
@@ -24,8 +36,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Ok(())
         }
         _ => {
-            error!("Invalid number of arguments");
+            help();
             Err(ExitCode::UsageError)
         }
     }
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} env {}[<key> [<value>]]{}", csi_title, csi_reset, csi_option, csi_reset);
 }
