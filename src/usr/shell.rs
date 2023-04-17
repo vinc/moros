@@ -13,8 +13,8 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 34] = [
-    "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "env",
+const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
+    "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "elf", "env",
     "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
     "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
     "time", "user", "vga", "write"
