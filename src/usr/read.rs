@@ -1,5 +1,6 @@
 use crate::{api, sys, usr};
 use crate::api::console;
+use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::syscall;
 use crate::api::process::ExitCode;
@@ -12,7 +13,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
         return Err(ExitCode::UsageError);
     }
-
+    if args[1] == "-h" || args[1] == "--help" {
+        return help();
+    }
     let mut path = args[1];
 
     // The commands `read /usr/alice/` and `read /usr/alice` are equivalent,
@@ -113,4 +116,16 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         error!("File not found '{}'", path);
         Err(ExitCode::Failure)
     }
+}
+
+fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} read {}<path>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Paths:{}", csi_title, csi_reset);
+    println!("  {0}<dir>/{1}     Read directory", csi_option, csi_reset);
+    println!("  {0}<file>{1}     Read file", csi_option, csi_reset);
+    Ok(())
 }
