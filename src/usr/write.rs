@@ -5,10 +5,12 @@ use crate::api::syscall;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
+        help();
         return Err(ExitCode::UsageError);
     }
     if args[1] == "-h" || args[1] == "--help" {
-        return help();
+        help();
+        return Ok(());
     }
     let pathname = args[1];
 
@@ -31,7 +33,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 }
 
-fn help() -> Result<(), ExitCode> {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -40,5 +42,4 @@ fn help() -> Result<(), ExitCode> {
     println!("{}Paths:{}", csi_title, csi_reset);
     println!("  {0}<dir>/{1}     Write directory", csi_option, csi_reset);
     println!("  {0}<file>{1}     Write file", csi_option, csi_reset);
-    Ok(())
 }

@@ -1,5 +1,6 @@
 use crate::{sys, usr, debug};
 use crate::api::clock;
+use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 
@@ -15,9 +16,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     for arg in args {
         match *arg {
-            "-v" | "--verbose" => {
-                verbose = true;
-            }
+            "-h" | "--help" => return help(),
+            "-v" | "--verbose" => verbose = true,
             _ => {}
         }
     }
@@ -93,4 +93,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     Err(ExitCode::Failure)
+}
+
+fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} dhcp {}<options>{1}", csi_title, csi_reset, csi_option);
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}              Increase verbosity", csi_option, csi_reset);
+    Ok(())
 }
