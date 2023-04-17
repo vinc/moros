@@ -60,11 +60,10 @@ fn help_summary() -> Result<(), ExitCode> {
 fn help_edit() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range");
-    println!("of features.");
+    println!("MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.");
     println!();
-    println!("{}Shortcuts:{}", csi_color, csi_reset);
-    let shortcuts = [
+    println!("{}Commands:{}", csi_color, csi_reset);
+    let commands = [
         ("^Q", "Quit editor"),
         ("^W", "Write to file"),
         ("^X", "Write to file and quit"),
@@ -76,10 +75,10 @@ fn help_edit() -> Result<(), ExitCode> {
         ("^Y", "Copy line"),
         ("^P", "Paste line"),
     ];
-    for (shortcut, usage) in &shortcuts {
+    for (command, usage) in &commands {
         let csi_color = Style::color("LightCyan");
         let csi_reset = Style::reset();
-        println!("  {}{}{}    {}", csi_color, shortcut, csi_reset, usage);
+        println!("  {}{}{}    {}", csi_color, command, csi_reset, usage);
     }
     Ok(())
 }
@@ -87,7 +86,7 @@ fn help_edit() -> Result<(), ExitCode> {
 fn help_date() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("The date command's formatting behavior is based on strftime in C");
+    println!("The date command's formatting behavior is based on strftime from C.");
     println!();
     println!("{}Specifiers:{}", csi_color, csi_reset);
     let specifiers = [
