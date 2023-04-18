@@ -610,6 +610,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
         repl(&mut config)
     } else {
+        if args[1] == "-h" || args[1] == "--help" {
+            return help();
+        }
         config.env.insert(0.to_string(), args[1].to_string());
 
         // Add script arguments to the environment as `$1`, `$2`, `$3`, ...
@@ -630,6 +633,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::Failure)
         }
     }
+}
+
+fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} shell {}[<file> [<args>]]{}", csi_title, csi_reset, csi_option, csi_reset);
+    Ok(())
 }
 
 #[test_case]
