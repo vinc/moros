@@ -1,7 +1,7 @@
 [bits 64]
 
 section .data
-msg: db "Not implemented", 10
+msg: db 27, "[2J", 27, "[1;1H"
 
 global _start
 section .text
@@ -9,7 +9,7 @@ _start:
   mov rax, 4                ; syscall number for WRITE
   mov rdi, 1                ; standard output
   mov rsi, msg              ; addr of string
-  mov rdx, 16               ; size of string
+  mov rdx, 10               ; size of string
   int 0x80
   mov rax, 1                ; syscall number for EXIT
   mov rdi, 0                ; no error
