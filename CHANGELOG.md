@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improve asm binaries (#482)
 - Add light palette (#480)
 - Fix invalid bytes from serial (#479)
 - Use pbkdf2_hmac to fix compilation warnings (#477)
