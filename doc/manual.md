@@ -38,7 +38,7 @@ memory size, processor, devices, network cards, disks, and the real time clock.
 
 ## Installation
 
-The first time MOROS will boot in diskless mode where you can use the bultin
+The first time MOROS will boot in diskless mode where you can use the builtin
 commands to test the system or `install` to setup a disk:
 
     MFS is not mounted to '/'
@@ -169,7 +169,7 @@ You can change directory by typing it as if it was a command:
     > print $DIR
     /tmp
 
-From now on we'll ommit the directory line in most examples.
+From now on we'll omit the directory line in most examples.
 
 You can list the content of a directory with `list`:
 
@@ -219,7 +219,7 @@ The command `read` will read the content of the file:
 
 You can edit a file with the `edit` command that will run the text editor.
 
-Use `^W` (a key combination of `CTRL` and `D`) inside the editor to write the
+Use `^W` (a key combination of `CTRL` and `W`) inside the editor to write the
 content to the file and `^Q` to quit the editor and go back to the shell.
 
 The help command has a subcommand `help edit` to list the editor commands:
@@ -239,15 +239,22 @@ The help command has a subcommand `help edit` to list the editor commands:
       ^Y    Copy line
       ^P    Paste line
 
-## Date
+## Time
+
+You can print the date with `date`:
 
     > date
     2001-01-01 00:00:00 +0000
+
+You can update the real time clock (RTC) by writing the correct time to its
+device file:
 
     > print "2023-03-21 10:00:00" => /dev/rtc
 
     > date
     2023-03-21 10:00:00 +0000
+
+You can also set the `TZ` environment variable to use your preferred timezone:
 
     > calc "2 * 60 * 60"
     7200
@@ -257,6 +264,59 @@ The help command has a subcommand `help edit` to list the editor commands:
     > date
     2023-03-21 12:00:00 +0200
 
-Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone.
+Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
+    > read /ini/boot.sh
+    vga set palette /ini/palettes/gruvbox-dark.csv
+    vga set font /ini/fonts/zap-light-8x16.psf
+    read /ini/banner.txt
+    user login
+    env TZ 7200
+    shell
+
+There's a device file to get the number of seconds elapsed since Unix Epoch:
+
+    > read /dev/clk/realtime
+    1682105344.624905
+
+And another one since boot:
+
+    > read /dev/clk/uptime
+    1169.384929
+
+## Aliases
+
+You can add custom commands to the shell with the `alias` command.
+
+For example you can define an `uptime` command that will read the device file
+described above:
+
+    > alias uptime "read /dev/clk/uptime"
+
+    > uptime
+    1406.304852
+
+You can add that command to `/ini/shell.sh` to save it.
+
+Some shortcuts have been defined in that file for the most frequent commands,
+for example you can use `e` instead of `edit` to edit a file.
+
+    > read /ini/shell.sh
+    # Command shortcuts
+    alias c    copy
+    alias d    delete
+    alias e    edit
+    alias f    find
+    alias h    help
+    alias l    list
+    alias m    move
+    alias p    print
+    alias q    quit
+    alias r    read
+    alias w    write
+
+    alias sh   shell
+    alias dsk  disk
+    alias mem  memory
+    alias kbd  keyboard
 
