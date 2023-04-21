@@ -115,6 +115,7 @@ pub fn stop(code: usize) -> usize {
             }
         }
         0xdead => { // Halt
+            sys::process::exit();
             sys::acpi::shutdown();
         }
         _ => {
