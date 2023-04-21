@@ -15,7 +15,7 @@ use x86_64::structures::idt::InterruptStackFrameValue;
 
 const MAX_FILE_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
-const MAX_PROC_SIZE: usize = 1 << 20; // 1 MB
+const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
 pub static PID: AtomicUsize = AtomicUsize::new(0);
 pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
