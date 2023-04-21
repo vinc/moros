@@ -208,7 +208,8 @@ create a directory instead of a file.
 
 ## Files
 
-You can create a file by redirecting the output of a command with an arrow `=>`:
+You can create a file by redirecting the output of a command with an arrow `=>`
+to the file:
 
     > print "Hello, World!" => hello.txt
 
@@ -246,8 +247,8 @@ You can print the date with `date`:
     > date
     2001-01-01 00:00:00 +0000
 
-You can update the real time clock (RTC) by writing the correct time to its
-device file:
+You can update the real time clock by writing the correct time to its device
+file:
 
     > print "2023-03-21 10:00:00" => /dev/rtc
 
