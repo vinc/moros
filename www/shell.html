@@ -7,186 +7,186 @@
   </head>
   <body>
     <h1>MOROS Shell</h1>
-    
+
     <h2>Configuration</h2>
-    
+
     <p>The shell will read <code>/ini/shell.sh</code> during initialization to setup its
-    configuration.</p>
-    
+configuration.</p>
+
     <h2>Commands</h2>
-    
+
     <p>The main commands have a long name, a one-letter alias, and may have
-    additional common aliases.</p>
-    
+additional common aliases.</p>
+
     <p><strong>Alias</strong> command:</p>
-    
+
     <pre><code>&gt; alias d delete
     </code></pre>
-    
+
     <!--
-    **Append** to file:
-    
-        > a a.txt
-        > append a.txt
-    -->
-    
+**Append** to file:
+
+    > a a.txt
+    > append a.txt
+-->
+
     <p><strong>Delete</strong> file:</p>
-    
+
     <pre><code>&gt; d a.txt
-    &gt; del a.txt
-    &gt; delete a.txt
+&gt; del a.txt
+&gt; delete a.txt
     </code></pre>
-    
+
     <p><strong>Copy</strong> file:</p>
-    
+
     <pre><code>&gt; c a.txt b.txt
-    &gt; copy a.txt b.txt
+&gt; copy a.txt b.txt
     </code></pre>
-    
+
     <p><strong>Move</strong> file:</p>
-    
+
     <pre><code>&gt; m a.txt b.txt
-    &gt; move a.txt b.txt
+&gt; move a.txt b.txt
     </code></pre>
-    
+
     <p><strong>Print</strong> string:</p>
-    
+
     <pre><code>&gt; p &quot;Hi&quot;
-    &gt; print &quot;Hi&quot;
+&gt; print &quot;Hi&quot;
     </code></pre>
-    
+
     <p><strong>Read</strong> file:</p>
-    
+
     <pre><code>&gt; r a.txt
-    &gt; read a.txt
+&gt; read a.txt
     </code></pre>
-    
+
     <p><strong>Write</strong> file:</p>
-    
+
     <pre><code>&gt; w a.txt
-    &gt; write a.txt
+&gt; write a.txt
     </code></pre>
-    
+
     <p><strong>Write</strong> dir:</p>
-    
+
     <pre><code>&gt; write /usr/alice/ # with a trailing slash to create a dir instead of a file
     </code></pre>
-    
+
     <p><strong>List</strong> files in dir:</p>
-    
+
     <pre><code>&gt; list /usr/alice
     </code></pre>
-    
+
     <p>When executed without arguments, this command will list the files of the
-    current directory.</p>
-    
+current directory.</p>
+
     <p><strong>Go to</strong> dir:</p>
-    
+
     <pre><code>&gt; goto /usr/alice
     </code></pre>
-    
+
     <p>When executed without arguments, this command will print the current directory.</p>
-    
+
     <h2>Combiners (TODO)</h2>
-    
+
     <p><strong>And combiner:</strong></p>
-    
+
     <pre><code>&gt; read foo.txt and read bar.txt
     </code></pre>
-    
+
     <p><strong>Or combiners:</strong></p>
-    
+
     <pre><code>&gt; read foo.txt or read bar.txt
     </code></pre>
-    
+
     <h2>Pipes and redirections (WIP)</h2>
-    
+
     <p>A thin arrow <code>-&gt;</code> can be used for piping the output from one command to the
-    input of another command (TODO):</p>
-    
+input of another command (TODO):</p>
+
     <pre><code>&gt; read foo.txt -&gt; write bar.txt
     </code></pre>
-    
+
     <p>A fat arrow <code>=&gt;</code> can be used for redirecting directly to a file:</p>
-    
+
     <pre><code>&gt; read foo.txt =&gt; bar.txt
     </code></pre>
-    
+
     <p>In the following example the standard output is redirected to the null device
-    file while the standard error is kept:</p>
-    
+file while the standard error is kept:</p>
+
     <pre><code>&gt; time read foo.txt =&gt; /dev/null
     </code></pre>
-    
+
     <p>The standard output is implied as the source of a redirection, but it is
-    possible to explicitly redirect a file handle to another (TODO):</p>
-    
+possible to explicitly redirect a file handle to another (TODO):</p>
+
     <pre><code>&gt; time read foo.txt [1]=&gt;[3]
     </code></pre>
-    
+
     <p>Or to redirect a file handle to a file:</p>
-    
+
     <pre><code>&gt; time read foo.txt [1]=&gt; bar.txt
     </code></pre>
-    
+
     <p>Or to pipe a file handle to another command:</p>
-    
+
     <pre><code>&gt; time read foo.txt [1]-&gt; write bar.txt
     </code></pre>
-    
+
     <p>It is possible to chain multiple redirections:</p>
-    
+
     <pre><code>&gt; time read foo.txt [1]=&gt; bar.txt [2]=&gt; time.txt
     </code></pre>
-    
+
     <p>When the arrow point to the other direction the source and destination are
-    swapped and the standard input is implied (TODO):</p>
-    
+swapped and the standard input is implied (TODO):</p>
+
     <pre><code>&gt; write &lt;= req.txt =&gt; /net/http/moros.cc
     </code></pre>
-    
+
     <p>Redirections should be declared before piping (TODO):</p>
-    
+
     <pre><code>&gt; write &lt;= req.txt =&gt; /net/http/moros.cc -&gt; find --line href -&gt; sort
     </code></pre>
-    
+
     <p>NOTE: The following file handles are available when a process is created:</p>
-    
+
     <ul>
     <li><code>stdin(0)</code></li>
     <li><code>stdout(1)</code></li>
     <li><code>stderr(2)</code></li>
     <li><code>stdnull(3)</code></li>
     </ul>
-    
+
     <p>A redirection with a single arrow head will truncate its destination while
-    multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
-    
+multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
+
     <p>NOTE: Arrows can be longer, and also shorter in the case of fat arrows:</p>
-    
+
     <pre><code>&gt; read foo.txt --&gt; write bar.txt
-    &gt; read foo.txt -&gt; write bar.txt
+&gt; read foo.txt -&gt; write bar.txt
     </code></pre>
-    
+
     <!--
-        > read foo.txt | write bar.txt
-    -->
-    
+    > read foo.txt | write bar.txt
+-->
+
     <pre><code>&gt; read foo.txt ==&gt; bar.txt
-    &gt; read foo.txt =&gt; bar.txt
-    &gt; read foo.txt &gt; bar.txt
-    
-    &gt; write bar.txt &lt;== foo.txt
-    &gt; write bar.txt &lt;= foo.txt
-    &gt; write bar.txt &lt; foo.txt
-    
-    &gt; read foo.txt ==&gt;&gt; bar.txt
-    &gt; read foo.txt =&gt;&gt; bar.txt
-    &gt; read foo.txt &gt;&gt; bar.txt
+&gt; read foo.txt =&gt; bar.txt
+&gt; read foo.txt &gt; bar.txt
+
+&gt; write bar.txt &lt;== foo.txt
+&gt; write bar.txt &lt;= foo.txt
+&gt; write bar.txt &lt; foo.txt
+
+&gt; read foo.txt ==&gt;&gt; bar.txt
+&gt; read foo.txt =&gt;&gt; bar.txt
+&gt; read foo.txt &gt;&gt; bar.txt
     </code></pre>
-    
+
     <h2>Variables</h2>
-    
+
     <ul>
     <li>Name of the shell or the script: <code>$0</code></li>
     <li>Script arguments: <code>$1</code>, <code>$2</code>, <code>$3</code>, <code>$4</code>, ...</li>
@@ -194,49 +194,49 @@
     <li>Process environment variable: <code>$HOME</code>, ...</li>
     <li>Shell environment variable: <code>$foo</code>, ...</li>
     </ul>
-    
+
     <p>Setting a variable in the shell environment is done with the following command:</p>
-    
+
     <pre><code>&gt; set foo 42
-    
-    &gt; set bar &quot;Alice and Bob&quot;
+
+&gt; set bar &quot;Alice and Bob&quot;
     </code></pre>
-    
+
     <p>And accessing a variable is done with the <code>$</code> operator:</p>
-    
+
     <pre><code>&gt; print $foo
-    42
-    
-    &gt; print &quot;Hello $bar&quot;
-    Hello Alice and Bob
+42
+
+&gt; print &quot;Hello $bar&quot;
+Hello Alice and Bob
     </code></pre>
-    
+
     <p>The process environment is copied to the shell environment when a session is
-    started. By convention a process env var should be in uppercase and a shell
-    env var should be lowercase.</p>
-    
+started. By convention a process env var should be in uppercase and a shell
+env var should be lowercase.</p>
+
     <p>Unsetting a variable is done like this:</p>
-    
+
     <pre><code>&gt; unset foo
     </code></pre>
-    
+
     <h2>Globbing</h2>
-    
+
     <p>MOROS Shell support filename expansion or globbing for <code>*</code> and <code>?</code> wildcard
-    characters, where a pattern given in an argument of a command will be replaced
-    by files matching the pattern.</p>
-    
+characters, where a pattern given in an argument of a command will be replaced
+by files matching the pattern.</p>
+
     <ul>
     <li><code>*</code> means zero or more chars except <code>/</code></li>
     <li><code>?</code> means any char except <code>/</code></li>
     </ul>
-    
+
     <p>For example <code>/tmp/*.txt</code> will match any files with the <code>txt</code> extension inside
     <code>/tmp</code>, and <code>a?c.txt</code> will match a file named <code>abc.txt</code>.</p>
-    
+
     <h2>Tilde Expansion</h2>
-    
+
     <p>The tilde character <code>~</code> is a shortcut to <code>$HOME</code> so <code>~/test</code> will be expanded
-    to <code>$HOME/test</code> by the shell.</p>
+to <code>$HOME/test</code> by the shell.</p>
   </body>
 </html>

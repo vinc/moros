@@ -7,199 +7,199 @@
   </head>
   <body>
     <h1>MOROS Filesystem</h1>
-    
+
     <h2>Hard drive</h2>
-    
+
     <p>A hard drive is separated in blocks of 512 bytes, grouped into 4 areas:</p>
-    
+
     <pre><code>+------------+
-    | Boot       | (4096 blocks)
-    +------------+
-    | Superblock | (2 blocks)
-    +------------+
-    | Bitmap     | (n / (8 * 512) blocks)
-    +------------+
-    | Data       | (n blocks)
-    +------------+
+| Boot       | (4096 blocks)
++------------+
+| Superblock | (2 blocks)
++------------+
+| Bitmap     | (n / (8 * 512) blocks)
++------------+
+| Data       | (n blocks)
++------------+
     </code></pre>
-    
+
     <p>The first area contains the bootloader and the kernel, the second is a
-    superblock with a magic string to identify the file system, the third is a
-    bitmap mapping the allocated data blocks of the last area.</p>
-    
+superblock with a magic string to identify the file system, the third is a
+bitmap mapping the allocated data blocks of the last area.</p>
+
     <p>A location on the tree of dirs and files is named a path:</p>
-    
+
     <ul>
     <li>The root dir is represented by a slash: <code>/</code></li>
     <li>A dir inside the root will have its name appended to the slash: <code>/usr</code></li>
     <li>Subsequent dirs will append a slash and their names: <code>/usr/admin</code></li>
     </ul>
-    
+
     <h3>Creation with QEMU</h3>
-    
+
     <pre><code>$ qemu-img create disk.img 128M
-    Formatting &#39;disk.img&#39;, fmt=raw size=134217728
+Formatting &#39;disk.img&#39;, fmt=raw size=134217728
     </code></pre>
-    
+
     <h3>Setup in diskless console</h3>
-    
+
     <p>During boot MOROS will detect any hard drives present on the ATA buses, then
-    look for a filesystem on those hard drives. If no filesystem is found, MOROS
-    will open a console in diskless mode to allow the user to create one with
-    the <code>disk format</code> command:</p>
-    
+look for a filesystem on those hard drives. If no filesystem is found, MOROS
+will open a console in diskless mode to allow the user to create one with
+the <code>disk format</code> command:</p>
+
     <pre><code>&gt; disk format /dev/ata/0/0
     </code></pre>
-    
+
     <p>This command will format the first disk on the first ATA bus by writing a magic
-    string in a superblock, mounting the filesystem, and allocating the root
-    directory.</p>
-    
+string in a superblock, mounting the filesystem, and allocating the root
+directory.</p>
+
     <p>The next step during setup is to create the directory structure:</p>
-    
+
     <pre><code>&gt; write /bin/           # Binaries
-    &gt; write /dev/           # Devices
-    &gt; write /ini/           # Initialisation files
-    &gt; write /lib/           # Libraries
-    &gt; write /net/           # Network
-    &gt; write /src/           # Sources
-    &gt; write /tmp/           # Temporary files
-    &gt; write /usr/           # User directories
-    &gt; write /var/           # Variable files
+&gt; write /dev/           # Devices
+&gt; write /ini/           # Initialisation files
+&gt; write /lib/           # Libraries
+&gt; write /net/           # Network
+&gt; write /src/           # Sources
+&gt; write /tmp/           # Temporary files
+&gt; write /usr/           # User directories
+&gt; write /var/           # Variable files
     </code></pre>
-    
+
     <p>Then the following should be added to the boot script with the
-    command <code>edit /ini/boot.sh</code> to allow MOROS to finish booting:</p>
-    
+command <code>edit /ini/boot.sh</code> to allow MOROS to finish booting:</p>
+
     <pre><code>user login
-    shell
+shell
     </code></pre>
-    
+
     <p>Finally a user can be created with the following command:</p>
-    
+
     <pre><code>&gt; user create
     </code></pre>
-    
+
     <p>All of this can be made more easily by running the <code>install</code> command instead.
-    This installer  will also add additional files contained in the <code>dsk</code>
-    repository of the source code, like a nice login banner :)</p>
-    
+This installer  will also add additional files contained in the <code>dsk</code>
+repository of the source code, like a nice login banner :)</p>
+
     <h2>Data Structures</h2>
-    
+
     <h3>BlockBitmap</h3>
-    
+
     <p>Bitmap of allocated blocks in the data area.</p>
-    
+
     <h3>Block</h3>
-    
+
     <p>A block is small area of 512 bytes on a hard drive, and it is also part of
-    linked list representing a file or a directory.</p>
-    
+linked list representing a file or a directory.</p>
+
     <p>The first 4 bytes of a block is the address of the next block on the list and
-    the rest of block is the data stored in the block.</p>
-    
+the rest of block is the data stored in the block.</p>
+
     <p>Structure:</p>
-    
+
     <pre><code> 0
-     0 1 2 3 4 5 6      n
-    +-+-+-+-+-+-+-+ // +-+
-    | addr  | data       |
-    +-+-+-+-+-+-+-+ // +-+
-    
-    n = 512
+ 0 1 2 3 4 5 6      n
++-+-+-+-+-+-+-+ // +-+
+| addr  | data       |
++-+-+-+-+-+-+-+ // +-+
+
+n = 512
     </code></pre>
-    
+
     <h3>Superblock</h3>
-    
+
     <pre><code> 0                   1                   2
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2    n
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    | signature     |v|b| count | alloc | reserved       |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    
-    signature = &quot;MOROS FS&quot;
-    v = version number of the FS
-    b = size of a block in 2 ^ (9 + b) bytes
-    count = number of blocks
-    alloc = number of allocated blocks
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2    n
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+| signature     |v|b| count | alloc | reserved       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+
+signature = &quot;MOROS FS&quot;
+v = version number of the FS
+b = size of a block in 2 ^ (9 + b) bytes
+count = number of blocks
+alloc = number of allocated blocks
     </code></pre>
-    
+
     <h3>File</h3>
-    
+
     <p>The first block of a contains the address of the next block where its contents
-    is stored and the beginning of its contents in the rest of the block.</p>
-    
+is stored and the beginning of its contents in the rest of the block.</p>
+
     <p>If all contents can fit into one block the address of the next block will be
-    empty.</p>
-    
+empty.</p>
+
     <p>Structure:</p>
-    
+
     <pre><code> 0
-     0 1 2 3 4 5 6 7 8      n
-    +-+-+-+-+-+-+-+-+-+ // +-+
-    | addr  | contents       |
-    +-+-+-+-+-+-+-+-+-+ // +-+
-    
-    n = 512
+ 0 1 2 3 4 5 6 7 8      n
++-+-+-+-+-+-+-+-+-+ // +-+
+| addr  | contents       |
++-+-+-+-+-+-+-+-+-+ // +-+
+
+n = 512
     </code></pre>
-    
+
     <h3>Dir</h3>
-    
+
     <p>The first block of a directory contains the address of the next block where its
-    directory entries are stored and the first entries in the rest of the block.</p>
-    
+directory entries are stored and the first entries in the rest of the block.</p>
+
     <p>If all entries can fit into one block the address of the next block will be
-    empty.</p>
-    
+empty.</p>
+
     <p>Structure:</p>
-    
+
     <pre><code> 0                   1
-     0 1 2 3 4 5 6 7 8 9 0                            n
-    +-+-+-+-+-+-+-+-+-+-+-+ // +-+-+-+-+-+-+-+-+ // +-+
-    | addr  | dir entry 1        | dir entry 2        |
-    +-+-+-+-+-+-+-+-+-+-+-+ // +-+-+-+-+-+-+-+-+ // +-+
-    
-    n = 512
+ 0 1 2 3 4 5 6 7 8 9 0                            n
++-+-+-+-+-+-+-+-+-+-+-+ // +-+-+-+-+-+-+-+-+ // +-+
+| addr  | dir entry 1        | dir entry 2        |
++-+-+-+-+-+-+-+-+-+-+-+ // +-+-+-+-+-+-+-+-+ // +-+
+
+n = 512
     </code></pre>
-    
+
     <h3>DirEntry</h3>
-    
+
     <p>A directory entry represents a file or a directory contained inside a
-    directory. Each entry use a variable number of bytes that must fit inside the
-    data of one block. Those bytes represent the kind of entry (file or dir), the
-    address of the first block, the filesize (max 4GB), the last modified time in
-    seconds since Unix Epoch, the length of the filename, and the filename (max
-    255 chars) of the entry.</p>
-    
+directory. Each entry use a variable number of bytes that must fit inside the
+data of one block. Those bytes represent the kind of entry (file or dir), the
+address of the first block, the filesize (max 4GB), the last modified time in
+seconds since Unix Epoch, the length of the filename, and the filename (max
+255 chars) of the entry.</p>
+
     <p>Structure:</p>
-    
+
     <pre><code> 0                   1                   2
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4      m
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    |k| addr  | size  | time          |n| name buffer        |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    
-    k = kind of entry
-    n = length of name buffer
-    m = 17 + n
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4      m
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+|k| addr  | size  | time          |n| name buffer        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+
+k = kind of entry
+n = length of name buffer
+m = 17 + n
     </code></pre>
-    
+
     <h3>FileInfo</h3>
-    
+
     <p>The <code>info</code> syscall on a file or directory and the <code>read</code> syscall on a directory
-    return a subset of a directory entry for userspace programs.</p>
-    
+return a subset of a directory entry for userspace programs.</p>
+
     <p>Structure:</p>
-    
+
     <pre><code> 0                   1                   2
-     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0      m
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    |k| size  | time          |n| name buffer        |
-    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
-    
-    k = kind of entry
-    n = length of name buffer
-    m = 13 + n
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0      m
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+|k| size  | time          |n| name buffer        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ // +-+
+
+k = kind of entry
+n = length of name buffer
+m = 13 + n
     </code></pre>
   </body>
 </html>

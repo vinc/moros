@@ -7,63 +7,63 @@
   </head>
   <body>
     <h1>MOROS Syscalls</h1>
-    
+
     <p>This list is unstable and subject to change between versions of MOROS.</p>
-    
+
     <h2>EXIT (0x1)</h2>
-    
+
     <pre><code class="rust">pub fn exit(code: usize) -&gt; usize
     </code></pre>
-    
+
     <h2>SPAWN (0x2)</h2>
-    
+
     <pre><code class="rust">pub fn spawn(path: &amp;str) -&gt; isize
     </code></pre>
-    
+
     <h2>READ (0x3)</h2>
-    
+
     <pre><code class="rust">pub fn read(handle: usize, buf: &amp;mut [u8]) -&gt; isize
     </code></pre>
-    
+
     <h2>WRITE (0x4)</h2>
-    
+
     <pre><code class="rust">pub fn write(handle: usize, buf: &amp;mut [u8]) -&gt; isize
     </code></pre>
-    
+
     <h2>OPEN (0x5)</h2>
-    
+
     <pre><code class="rust">pub fn open(path: &amp;str, flags: usize) -&gt; isize
     </code></pre>
-    
+
     <h2>CLOSE (0x6)</h2>
-    
+
     <pre><code class="rust">pub fn close(handle: usize)
     </code></pre>
-    
+
     <h2>INFO (0x7)</h2>
-    
+
     <pre><code class="rust">pub fn info(path: &amp;str, info: &amp;mut FileInfo) -&gt; isize
     </code></pre>
-    
+
     <h2>DUP (0x8)</h2>
-    
+
     <pre><code class="rust">pub fn dup(old_handle: usize, new_handle: usize) -&gt; isize
     </code></pre>
-    
+
     <h2>DELETE (0x9)</h2>
-    
+
     <pre><code class="rust">pub fn delete(path: &amp;str) -&gt; isize
     </code></pre>
-    
+
     <h2>STOP (0xA)</h2>
-    
+
     <pre><code class="rust">pub fn stop(code: usize)
     </code></pre>
-    
+
     <p>The system will reboot with <code>0xcafe</code> and halt with <code>0xdead</code>.</p>
-    
+
     <h2>SLEEP (0xB)</h2>
-    
+
     <pre><code class="rust">pub fn sleep(seconds: f64)
     </code></pre>
   </body>
