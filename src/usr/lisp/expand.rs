@@ -64,7 +64,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
-                            Exp::Sym("define".to_string()), name, Exp::List(vec![
+                            Exp::Sym("variable".to_string()), name, Exp::List(vec![
                                 Exp::Sym("function".to_string()), args, body
                             ])
                         ]))
@@ -82,7 +82,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
-                            Exp::Sym("define".to_string()), name, Exp::List(vec![
+                            Exp::Sym("variable".to_string()), name, Exp::List(vec![
                                 Exp::Sym("macro".to_string()), args, body
                             ])
                         ]))

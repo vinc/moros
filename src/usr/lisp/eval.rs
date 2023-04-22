@@ -28,7 +28,7 @@ fn eval_atom_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     }
 }
 
-fn eval_eq_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+fn eval_equal_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let a = eval(&args[0], env)?;
     let b = eval(&args[1], env)?;
@@ -68,7 +68,7 @@ fn eval_cons_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
     }
 }
 
-pub fn eval_define_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+pub fn eval_variable_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
         Exp::Sym(name) => {
@@ -147,18 +147,16 @@ pub fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, E
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 32] = [
+pub const BUILT_INS: [&str; 24] = [
     "quote", "quasiquote", "unquote", "unquote-splicing",
-    "atom", "eq", "head", "tail", "cons",
+    "atom?", "equal?", "head", "tail", "cons",
     "if", "cond", "while",
+    "variable", "function", "macro",
+    "define-function", "define",
+    "define-macro",
     "set",
-    "define", "def", "label",
-    "function", "fun", "lambda",
-    "macro", "mac",
-    "define-function", "def-fun",
-    "define-macro", "def-mac",
     "apply", "eval", "expand",
-    "do", "begin", "progn",
+    "do",
     "load"
 ];
 
@@ -177,20 +175,20 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 ensure_length_gt!(list, 0);
                 let args = &list[1..];
                 match &list[0] {
-                    Exp::Sym(s) if s == "quote"  => return eval_quote_args(args),
-                    Exp::Sym(s) if s == "atom"   => return eval_atom_args(args, env),
-                    Exp::Sym(s) if s == "eq"     => return eval_eq_args(args, env),
-                    Exp::Sym(s) if s == "head"   => return eval_head_args(args, env),
-                    Exp::Sym(s) if s == "tail"   => return eval_tail_args(args, env),
-                    Exp::Sym(s) if s == "cons"   => return eval_cons_args(args, env),
-                    Exp::Sym(s) if s == "set"    => return eval_set_args(args, env),
-                    Exp::Sym(s) if s == "while"  => return eval_while_args(args, env),
-                    Exp::Sym(s) if s == "apply"  => return eval_apply_args(args, env),
-                    Exp::Sym(s) if s == "eval"   => return eval_eval_args(args, env),
-                    Exp::Sym(s) if s == "do"     => return eval_do_args(args, env),
-                    Exp::Sym(s) if s == "load"   => return eval_load_args(args, env),
-                    Exp::Sym(s) if s == "define" => return eval_define_args(args, env),
-                    Exp::Sym(s) if s == "expand" => {
+                    Exp::Sym(s) if s == "quote"    => return eval_quote_args(args),
+                    Exp::Sym(s) if s == "atom?"    => return eval_atom_args(args, env),
+                    Exp::Sym(s) if s == "equal?"   => return eval_equal_args(args, env),
+                    Exp::Sym(s) if s == "head"     => return eval_head_args(args, env),
+                    Exp::Sym(s) if s == "tail"     => return eval_tail_args(args, env),
+                    Exp::Sym(s) if s == "cons"     => return eval_cons_args(args, env),
+                    Exp::Sym(s) if s == "set"      => return eval_set_args(args, env),
+                    Exp::Sym(s) if s == "while"    => return eval_while_args(args, env),
+                    Exp::Sym(s) if s == "apply"    => return eval_apply_args(args, env),
+                    Exp::Sym(s) if s == "eval"     => return eval_eval_args(args, env),
+                    Exp::Sym(s) if s == "do"       => return eval_do_args(args, env),
+                    Exp::Sym(s) if s == "load"     => return eval_load_args(args, env),
+                    Exp::Sym(s) if s == "variable" => return eval_variable_args(args, env),
+                    Exp::Sym(s) if s == "expand"   => {
                         ensure_length_eq!(args, 1);
                         return expand(&args[0], env);
                     }
