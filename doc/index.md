@@ -11,7 +11,7 @@ to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).
 ## Installation
 
 MOROS is open source, you can [build it](https://github.com/vinc/moros)
-yourself or [download an image](https://github.com/vinc/moros/releases).
+or [download an image](https://github.com/vinc/moros/releases).
 
 Consult the [manual](manual.md) to learn how to use the system.
 
