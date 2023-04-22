@@ -18,6 +18,7 @@ nic = rtl8139# rtl8139, pcnet
 audio = sdl# sdl, coreaudio
 kvm = false
 pcap = false
+monitor = false
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_MEMORY = $(memory)
@@ -70,6 +71,10 @@ endif
 
 ifeq ($(pcap),true)
 	qemu-opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
+endif
+
+ifeq ($(monitor),true)
+	qemu-opts += -monitor telnet:127.0.0.1:7777,server,nowait
 endif
 
 ifeq ($(output),serial)
