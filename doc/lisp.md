@@ -5,40 +5,6 @@ of the Shell.
 
 MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
-## Changelog
-
-### 0.1.0 (2021-07-21)
-MOROS Lisp started from [Risp](https://github.com/stopachka/risp) and was
-extended to include the seven primitive operators and the two special forms of
-John McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
-Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.
-
-### 0.2.0 (2021-12-04)
-The whole implementation was refactored and the parser was rewritten to use
-[Nom](https://github.com/Geal/nom). This allowed the addition of strings to the
-language and reading from the filesystem.
-
-### 0.3.0 (2022-12-12)
-Rewrite the evaluation code, add new functions and a core library.
-
-### 0.3.1 (2022-06-06)
-Rewrite parts of the code and add new functions and examples.
-
-### 0.3.2 (2022-07-02)
-- Add new functions
-
-### 0.3.2 (2022-08-25)
-- Add new functions
-
-### 0.4.0 (2022-08-25)
-- Rewrite a lot of the code
-- Add integer and big integer support
-- Add tail call optimization (TCO)
-- Add macro support
-
-### 0.5.0 (unpublished)
-- Rename or add aliases to many functions
-
 ## Overview
 
 ### Types
@@ -81,7 +47,6 @@ Rewrite parts of the code and add new functions and examples.
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex-find`
 - `system`
-
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
@@ -186,5 +151,39 @@ Would produce the following output:
 
 (str "Hello, " name)               # => "Hello, Alice"
 
-(^ 2 128)                          # => 340282366920938463463374607431768211456
+(^ 2 64)                           # => 18446744073709551616
 ```
+
+## Changelog
+
+### 0.1.0 (2021-07-21)
+MOROS Lisp started from [Risp](https://github.com/stopachka/risp) and was
+extended to include the seven primitive operators and the two special forms of
+John McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
+Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.
+
+### 0.2.0 (2021-12-04)
+The whole implementation was refactored and the parser was rewritten to use
+[Nom](https://github.com/Geal/nom). This allowed the addition of strings to the
+language and reading from the filesystem.
+
+### 0.3.0 (2022-12-12)
+Rewrite the evaluation code, add new functions and a core library.
+
+### 0.3.1 (2022-06-06)
+Rewrite parts of the code and add new functions and examples.
+
+### 0.3.2 (2022-07-02)
+- Add new functions
+
+### 0.3.2 (2022-08-25)
+- Add new functions
+
+### 0.4.0 (2022-08-25)
+- Rewrite a lot of the code
+- Add integer and big integer support
+- Add tail call optimization (TCO)
+- Add macro support
+
+### 0.5.0 (unpublished)
+- Rename or add aliases to many functions

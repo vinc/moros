@@ -61,7 +61,8 @@ And finally it is quite customizable:
 
 ## Demo
 
-You log in to a demo with the following command using the name of the system
-as a password for the guest account:
+You can log in to a demo with the following command using the name of the
+system as a password for the guest account:
 
     $ ssh guest@try.moros.cc
+
