@@ -1,8 +1,7 @@
-use super::list_of_bytes;
-use super::list_of_numbers;
 use super::parse::parse;
 use super::{Err, Exp, Number};
 use super::{float, number, string};
+use super::{bytes, numbers, strings};
 
 use crate::{ensure_length_eq, ensure_length_gt};
 use crate::api::fs;
@@ -19,38 +18,38 @@ use core::convert::TryFrom;
 use core::convert::TryInto;
 
 pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
-    Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])))
+    Ok(Exp::Bool(numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])))
 }
 
 pub fn lisp_gt(args: &[Exp]) -> Result<Exp, Err> {
-    Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] > nums[1])))
+    Ok(Exp::Bool(numbers(args)?.windows(2).all(|nums| nums[0] > nums[1])))
 }
 
 pub fn lisp_gte(args: &[Exp]) -> Result<Exp, Err> {
-    Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] >= nums[1])))
+    Ok(Exp::Bool(numbers(args)?.windows(2).all(|nums| nums[0] >= nums[1])))
 }
 
 pub fn lisp_lt(args: &[Exp]) -> Result<Exp, Err> {
-    Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] < nums[1])))
+    Ok(Exp::Bool(numbers(args)?.windows(2).all(|nums| nums[0] < nums[1])))
 }
 
 pub fn lisp_lte(args: &[Exp]) -> Result<Exp, Err> {
-    Ok(Exp::Bool(list_of_numbers(args)?.windows(2).all(|nums| nums[0] <= nums[1])))
+    Ok(Exp::Bool(numbers(args)?.windows(2).all(|nums| nums[0] <= nums[1])))
 }
 
 pub fn lisp_mul(args: &[Exp]) -> Result<Exp, Err> {
-    let res = list_of_numbers(args)?.iter().fold(Number::Int(1), |acc, a| acc * a.clone());
+    let res = numbers(args)?.iter().fold(Number::Int(1), |acc, a| acc * a.clone());
     Ok(Exp::Num(res))
 }
 
 pub fn lisp_add(args: &[Exp]) -> Result<Exp, Err> {
-    let res = list_of_numbers(args)?.iter().fold(Number::Int(0), |acc, a| acc + a.clone());
+    let res = numbers(args)?.iter().fold(Number::Int(0), |acc, a| acc + a.clone());
     Ok(Exp::Num(res))
 }
 
 pub fn lisp_sub(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
-    let args = list_of_numbers(args)?;
+    let args = numbers(args)?;
     let head = args[0].clone();
     if args.len() == 1 {
         Ok(Exp::Num(-head))
@@ -62,7 +61,7 @@ pub fn lisp_sub(args: &[Exp]) -> Result<Exp, Err> {
 
 pub fn lisp_div(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
-    let mut args = list_of_numbers(args)?;
+    let mut args = numbers(args)?;
     if args.len() == 1 {
         args.insert(0, Number::Int(1));
     }
@@ -78,7 +77,7 @@ pub fn lisp_div(args: &[Exp]) -> Result<Exp, Err> {
 
 pub fn lisp_mod(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
-    let args = list_of_numbers(args)?;
+    let args = numbers(args)?;
     for arg in &args[1..] {
         if arg.is_zero() {
             return Err(Err::Reason("Division by zero".to_string()));
@@ -91,7 +90,7 @@ pub fn lisp_mod(args: &[Exp]) -> Result<Exp, Err> {
 
 pub fn lisp_exp(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
-    let args = list_of_numbers(args)?;
+    let args = numbers(args)?;
     let head = args[0].clone();
     let res = args[1..].iter().fold(head, |acc, a| acc.pow(a));
     Ok(Exp::Num(res))
@@ -99,14 +98,14 @@ pub fn lisp_exp(args: &[Exp]) -> Result<Exp, Err> {
 
 pub fn lisp_shl(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
-    let args = list_of_numbers(args)?;
+    let args = numbers(args)?;
     let res = args[0].clone() << args[1].clone();
     Ok(Exp::Num(res))
 }
 
 pub fn lisp_shr(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
-    let args = list_of_numbers(args)?;
+    let args = numbers(args)?;
     let res = args[0].clone() >> args[1].clone();
     Ok(Exp::Num(res))
 }
@@ -155,8 +154,8 @@ pub fn lisp_trunc(args: &[Exp]) -> Result<Exp, Err> {
 }
 
 pub fn lisp_system(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    let cmd = string(&args[0])?;
+    ensure_length_gt!(args, 0);
+    let cmd = strings(&args)?.join(" ");
     match shell::exec(&cmd) {
         Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
         Err(code) => Ok(Exp::Num(Number::from(code as u8))),
@@ -175,8 +174,8 @@ pub fn lisp_read_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
     let path = string(&args[0])?;
     let len = number(&args[1])?;
     let mut buf = vec![0; len.try_into()?];
-    let bytes = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
-    buf.resize(bytes, 0);
+    let n = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
+    buf.resize(n, 0);
     Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
 }
 
@@ -185,9 +184,9 @@ pub fn lisp_write_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
     let path = string(&args[0])?;
     match &args[1] {
         Exp::List(list) => {
-            let buf = list_of_bytes(list)?;
-            let bytes = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-            Ok(Exp::Num(Number::from(bytes)))
+            let buf = bytes(list)?;
+            let n = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+            Ok(Exp::Num(Number::from(n)))
         }
         _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
     }
@@ -198,9 +197,9 @@ pub fn lisp_append_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
     let path = string(&args[0])?;
     match &args[1] {
         Exp::List(list) => {
-            let buf = list_of_bytes(list)?;
-            let bytes = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
-            Ok(Exp::Num(Number::from(bytes)))
+            let buf = bytes(list)?;
+            let n = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+            Ok(Exp::Num(Number::from(n)))
         }
         _ => Err(Err::Reason("Expected second arg to be a list".to_string()))
     }
@@ -225,7 +224,7 @@ pub fn lisp_bytes_string(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match &args[0] {
         Exp::List(list) => {
-            let buf = list_of_bytes(list)?;
+            let buf = bytes(list)?;
             let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
             Ok(Exp::Str(s))
         }
@@ -237,11 +236,11 @@ pub fn lisp_bytes_number(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match (&args[0], &args[1]) { // TODO: default type to "int" and make it optional
         (Exp::List(list), Exp::Str(kind)) => {
-            let bytes = list_of_bytes(list)?;
-            ensure_length_eq!(bytes, 8);
+            let buf = bytes(list)?;
+            ensure_length_eq!(buf, 8);
             match kind.as_str() { // TODO: bigint
-                "int" => Ok(Exp::Num(Number::Int(i64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
-                "float" => Ok(Exp::Num(Number::Float(f64::from_be_bytes(bytes[0..8].try_into().unwrap())))),
+                "int" => Ok(Exp::Num(Number::Int(i64::from_be_bytes(buf[0..8].try_into().unwrap())))),
+                "float" => Ok(Exp::Num(Number::Float(f64::from_be_bytes(buf[0..8].try_into().unwrap())))),
                 _ => Err(Err::Reason("Invalid number type".to_string())),
             }
         }

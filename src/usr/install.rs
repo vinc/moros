@@ -52,6 +52,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/lib/lisp", verbose);
     copy_file("/lib/lisp/core.lsp", include_bytes!("../../dsk/lib/lisp/core.lsp"), verbose);
     copy_file("/lib/lisp/alias.lsp", include_bytes!("../../dsk/lib/lisp/alias.lsp"), verbose);
+    //copy_file("/lib/lisp/legacy.lsp", include_bytes!("../../dsk/lib/lisp/legacy.lsp"), verbose);
 
     copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"), verbose);
     copy_file("/tmp/machines.txt", include_bytes!("../../dsk/tmp/machines.txt"), verbose);

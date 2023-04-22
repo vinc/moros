@@ -1,9 +1,9 @@
 (load "/lib/lisp/core.lsp")
 
-(define (fibonacci n)
+(def (fibonacci n)
   (if (< n 2) n
     (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))
 
-(println
+(print
   (if (nil? args) "Usage: fibonacci <num>"
-    (fibonacci (string->number (head args)))))
+    (fibonacci (str->num (head args)))))
