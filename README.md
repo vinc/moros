@@ -11,7 +11,7 @@ This project started from the [seventh post][1] of the second edition of
 [Writing an OS in Rust][2] by Philipp Oppermann and by reading the
 [OSDev wiki][3] along with many open source kernels.
 
-[![Travis](https://img.shields.io/travis/vinc/moros/master.svg)](https://travis-ci.org/vinc/moros/branches)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/vinc/moros/rust.yml)](https://github.com/vinc/moros)
 [![Crates.io](https://img.shields.io/crates/v/moros.svg)](https://crates.io/crates/moros)
 
 
