@@ -1,0 +1,17 @@
+body {
+  max-width: 720px;
+  margin: 1rem;
+  color: #111;
+  font-size: 18px;
+}
+li code,
+p code {
+  background: #eee;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+}
+pre {
+  background: #eee;
+  padding: 1rem;
+  border-radius: 0.25rem;
+}
