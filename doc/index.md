@@ -15,6 +15,7 @@ or [download an image](https://github.com/vinc/moros/releases). Consult the
 [manual](manual.md) to learn how to use the system.
 
 
+
 ## Features
 
 Everything in MOROS is done from a command line interface and most programs are
@@ -56,3 +57,11 @@ It even has 2048:
 And finally it is quite customizable:
 
 ![light](light.png)
+
+
+## Demo
+
+You log in to a demo with the following command using the name of the system
+as a password for the guest account:
+
+    $ ssh guest@try.moros.cc
