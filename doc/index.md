@@ -8,12 +8,11 @@ It targets computers with a x86-64 architecture and a BIOS, so mostly from 2005
 to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).
 
 
-## Installation
+## Usage
 
 MOROS is open source, you can [build it](https://github.com/vinc/moros)
-or [download an image](https://github.com/vinc/moros/releases).
-
-Consult the [manual](manual.md) to learn how to use the system.
+or [download an image](https://github.com/vinc/moros/releases). Consult the
+[manual](manual.md) to learn how to use the system.
 
 
 ## Features
