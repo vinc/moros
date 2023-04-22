@@ -321,3 +321,37 @@ for example you can use `e` instead of `edit` to edit a file.
     alias mem  memory
     alias kbd  keyboard
 
+## Network
+
+    > dhcp
+    ip:  10.0.2.15/24
+    gw:  10.0.2.2
+    dns: 10.0.2.3
+
+    > http moros.cc
+    <!doctype html>
+    <html style="display: grid; place-content: center">
+      <head>
+        <meta charset="utf-8">
+        <title>MOROS: Obscure Rust Operating System</title>
+      </head>
+      <body style="max-width: 720px; margin: 1em">
+        <h1>MOROS: Obscure Rust Operating System</h1>
+        <img src="moros.png" style="max-width: 100%">
+        <p>
+          MOROS is a hobby operating system written in Rust by
+          <a href="https://vinc.cc">Vincent Ollivier</a>.
+        </p>
+        <p>
+          It targets computers with a x86-64 architecture and a BIOS,
+          so mostly from 2005 to 2020, but it also runs well on most
+          emulators (Bochs, QEMU, and VirtualBox).
+        </p>
+        <p>
+          MOROS is
+          <a href="https://github.com/vinc/moros">free and open source</a>,
+          you can compile it yourself or
+          <a href="http://moros.cc/moros.img">download an image</a>.
+        </p>
+      </body>
+    </html>
