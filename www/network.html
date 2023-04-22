@@ -17,25 +17,25 @@ mac: 52-54-00-12-34-56
 ip:  10.0.2.15/24
 gw:  10.0.2.2
 dns: 10.0.2.3
-    </code></pre>
+</code></pre>
 
     <p>Display one attribute of the network configuration:</p>
 
     <pre><code>&gt; net config dns
 dns: 10.0.2.3
-    </code></pre>
+</code></pre>
 
     <p>Set one attribute of the network configuration:</p>
 
     <pre><code>&gt; net config dns 10.0.2.3
-    </code></pre>
+</code></pre>
 
     <p>Display network statistics:</p>
 
     <pre><code>&gt; net stat
 rx: 13 packets (4052 bytes)
 tx: 15 packets (1518 bytes)
-    </code></pre>
+</code></pre>
 
     <p>Listen for packets transmitted on the network:</p>
 
@@ -56,7 +56,7 @@ tx: 15 packets (1518 bytes)
 00000020: 020F A2E8 0016 0412 F801 0000 0000 6002 ..............`.
 00000030: 2238 BECB 0000 0204 05B4 0000           &quot;8..........
 ------------------------------------------------------------------
-    </code></pre>
+</code></pre>
 
     <h2>DHCP</h2>
 
@@ -68,7 +68,7 @@ DEBUG: DHCP Offer received
 ip:  10.0.2.15/24
 gw:  10.0.2.2
 dns: 10.0.2.3
-    </code></pre>
+</code></pre>
 
     <h2>HOST</h2>
 
@@ -76,7 +76,7 @@ dns: 10.0.2.3
 
     <pre><code>&gt; host example.com                                                                                 
 example.com has address 93.184.216.34
-    </code></pre>
+</code></pre>
 
     <h2>TCP</h2>
 
@@ -86,31 +86,31 @@ example.com has address 93.184.216.34
 DEBUG: Connecting to 129.6.15.30:13
 
 58884 20-02-05 19:19:42 00 0 0  49.2 UTC(NIST) *
-    </code></pre>
+</code></pre>
 
     <p>This could also be done with the <code>read</code> command:</p>
 
     <pre><code>&gt; read /net/tcp/time.nist.gov:13
 
 58884 20-02-05 19:19:55 00 0 0  49.2 UTC(NIST) *
-    </code></pre>
+</code></pre>
 
     <h2>HTTP</h2>
 
     <p>Requesting a resource on a host:</p>
 
     <pre><code>&gt; http moros.cc /test.html
-    </code></pre>
+</code></pre>
 
     <p>Is equivalent to:</p>
 
     <pre><code>&gt; read /net/http/moros.cc/test.html
-    </code></pre>
+</code></pre>
 
     <p>And:</p>
 
     <pre><code>&gt; read /net/http/moros.cc:80/test.html
-    </code></pre>
+</code></pre>
 
     <h2>SOCKET</h2>
 
@@ -122,7 +122,7 @@ like the <code>netcat</code> command on Unix.</p>
     <pre><code>&gt; socket time.nist.gov 13 --read-only
 
 59710 22-05-11 21:44:52 50 0 0 359.3 UTC(NIST) *
-    </code></pre>
+</code></pre>
 
     <p>And the request made with <code>http</code> is equivalent to that:</p>
 
@@ -152,7 +152,7 @@ Accept-Ranges: bytes
     &lt;h1&gt;MOROS&lt;/h1&gt;
   &lt;/body&gt;
 &lt;/html&gt;
-    </code></pre>
+</code></pre>
 
     <p>Here&#39;s a connexion to a SMTP server to send a mail:</p>
 
@@ -176,11 +176,11 @@ MOROS Socket v0.1.0
 &gt; QUIT
 250 Message accepted
 221 Ok
-    </code></pre>
+</code></pre>
 
     <p>Sending a file to a server:</p>
 
     <pre><code>&gt; socket 10.0.2.2 1234 &lt;= /tmp/alice.txt
-    </code></pre>
+</code></pre>
   </body>
 </html>

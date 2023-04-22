@@ -43,7 +43,7 @@ memory size, processor, devices, network cards, disks, and the real time clock.<
 [0.382942] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
 [0.384941] MFS Superblock found in ATA 0:0
 [0.386941] RTC 2023-04-17 20:00:28 +0000
-    </code></pre>
+</code></pre>
 
     <h2>Installation</h2>
 
@@ -140,7 +140,7 @@ Confirm:
 Installation successful!
 
 Quit the console or reboot to apply changes
-    </code></pre>
+</code></pre>
 
     <p>You can then use <code>^D</code> (a key combination of <code>CTRL</code> and <code>D</code>) to quit the
 diskless mode and let MOROS run the bootscript <code>/ini/boot.sh</code> to login and use
@@ -158,7 +158,7 @@ to do:</p>
     <pre><code>~
 &gt; print &quot;Hello, World!&quot;
 Hello, World!
-    </code></pre>
+</code></pre>
 
     <p>The system has a <code>help</code> command to help you remember the basic commands.</p>
 
@@ -172,7 +172,7 @@ tilde <code>~</code> means that you are in your home directory:</p>
     <pre><code>~
 &gt; print $DIR
 /usr/vinc
-    </code></pre>
+</code></pre>
 
     <p>You can change directory by typing it as if it was a command:</p>
 
@@ -182,7 +182,7 @@ tilde <code>~</code> means that you are in your home directory:</p>
 /tmp
 &gt; print $DIR
 /tmp
-    </code></pre>
+</code></pre>
 
     <p>From now on we&#39;ll omit the directory line in most examples.</p>
 
@@ -194,7 +194,7 @@ tilde <code>~</code> means that you are in your home directory:</p>
  324 2023-04-17 06:25:55 life
  168 2023-04-17 06:25:55 lisp
  649 2023-04-17 06:25:54 machines.txt
-    </code></pre>
+</code></pre>
 
     <p>The command has some options to sort the results:</p>
 
@@ -206,7 +206,7 @@ Options:
   -n, --name    Sort by name
   -s, --size    Sort by size
   -t, --time    Sort by time
-    </code></pre>
+</code></pre>
 
     <p>You can write a directory in the disk with <code>write</code>:</p>
 
@@ -219,7 +219,7 @@ Options:
  168 2023-04-17 06:25:55 lisp
  649 2023-04-17 06:25:54 machines.txt
    0 2023-04-17 07:06:18 test
-    </code></pre>
+</code></pre>
 
     <p>The slash <code>/</code> at the end of <code>test/</code> is there to tell the <code>write</code> command to
 create a directory instead of a file.</p>
@@ -230,13 +230,13 @@ create a directory instead of a file.</p>
 to the file:</p>
 
     <pre><code>&gt; print &quot;Hello, World!&quot; =&gt; hello.txt
-    </code></pre>
+</code></pre>
 
     <p>The command <code>read</code> will read the content of the file:</p>
 
     <pre><code>&gt; read hello.txt
 Hello, World!
-    </code></pre>
+</code></pre>
 
     <p>You can edit a file with the <code>edit</code> command that will run the text editor.</p>
 
@@ -259,7 +259,7 @@ Commands:
   ^D    Cut line
   ^Y    Copy line
   ^P    Paste line
-    </code></pre>
+</code></pre>
 
     <h2>Time</h2>
 
@@ -267,7 +267,7 @@ Commands:
 
     <pre><code>&gt; date
 2001-01-01 00:00:00 +0000
-    </code></pre>
+</code></pre>
 
     <p>You can update the real time clock by writing the correct time to its device
 file:</p>
@@ -276,7 +276,7 @@ file:</p>
 
 &gt; date
 2023-03-21 10:00:00 +0000
-    </code></pre>
+</code></pre>
 
     <p>You can also set the <code>TZ</code> environment variable to use your preferred timezone:</p>
 
@@ -287,7 +287,7 @@ file:</p>
 
 &gt; date
 2023-03-21 12:00:00 +0200
-    </code></pre>
+</code></pre>
 
     <p>Add <code>env TZ 7200</code> to <code>/ini/boot.sh</code> before <code>shell</code> to save the timezone:</p>
 
@@ -298,19 +298,19 @@ read /ini/banner.txt
 user login
 env TZ 7200
 shell
-    </code></pre>
+</code></pre>
 
     <p>There&#39;s a device file to get the number of seconds elapsed since Unix Epoch:</p>
 
     <pre><code>&gt; read /dev/clk/realtime
 1682105344.624905
-    </code></pre>
+</code></pre>
 
     <p>And another one since boot:</p>
 
     <pre><code>&gt; read /dev/clk/uptime
 1169.384929
-    </code></pre>
+</code></pre>
 
     <h2>Aliases</h2>
 
@@ -323,7 +323,7 @@ described above:</p>
 
 &gt; uptime
 1406.304852
-    </code></pre>
+</code></pre>
 
     <p>You can add that command to <code>/ini/shell.sh</code> to save it.</p>
 
@@ -348,7 +348,7 @@ alias sh   shell
 alias dsk  disk
 alias mem  memory
 alias kbd  keyboard
-    </code></pre>
+</code></pre>
 
     <h2>Network</h2>
 
@@ -359,7 +359,7 @@ with <code>dhcp</code>:</p>
 ip:  10.0.2.15/24
 gw:  10.0.2.2
 dns: 10.0.2.3
-    </code></pre>
+</code></pre>
 
     <p>A few tools are available like the <code>http</code> command:</p>
 
@@ -374,6 +374,6 @@ dns: 10.0.2.3
     &lt;h1&gt;MOROS&lt;/h1&gt;
   &lt;/body&gt;
 &lt;/html&gt;
-    </code></pre>
+</code></pre>
   </body>
 </html>

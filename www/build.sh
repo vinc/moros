@@ -18,7 +18,7 @@ for md in ../doc/*.md; do
   </head>
   <body>
 EOF
-  redcarpet --parse fenced-code-blocks ../doc/$md | sed "s/.md/.html/g" | sed "s/^</    </" >> $html
+  redcarpet --parse fenced-code-blocks ../doc/$md | sed "s/.md/.html/g" | sed "s/^</    </" | sed "s/    <\/code/<\/code/" >> $html
   cat << EOF >> $html
   </body>
 </html>

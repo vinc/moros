@@ -21,7 +21,7 @@
 +------------+
 | Data       | (n blocks)
 +------------+
-    </code></pre>
+</code></pre>
 
     <p>The first area contains the bootloader and the kernel, the second is a
 superblock with a magic string to identify the file system, the third is a
@@ -39,7 +39,7 @@ bitmap mapping the allocated data blocks of the last area.</p>
 
     <pre><code>$ qemu-img create disk.img 128M
 Formatting &#39;disk.img&#39;, fmt=raw size=134217728
-    </code></pre>
+</code></pre>
 
     <h3>Setup in diskless console</h3>
 
@@ -49,7 +49,7 @@ will open a console in diskless mode to allow the user to create one with
 the <code>disk format</code> command:</p>
 
     <pre><code>&gt; disk format /dev/ata/0/0
-    </code></pre>
+</code></pre>
 
     <p>This command will format the first disk on the first ATA bus by writing a magic
 string in a superblock, mounting the filesystem, and allocating the root
@@ -66,19 +66,19 @@ directory.</p>
 &gt; write /tmp/           # Temporary files
 &gt; write /usr/           # User directories
 &gt; write /var/           # Variable files
-    </code></pre>
+</code></pre>
 
     <p>Then the following should be added to the boot script with the
 command <code>edit /ini/boot.sh</code> to allow MOROS to finish booting:</p>
 
     <pre><code>user login
 shell
-    </code></pre>
+</code></pre>
 
     <p>Finally a user can be created with the following command:</p>
 
     <pre><code>&gt; user create
-    </code></pre>
+</code></pre>
 
     <p>All of this can be made more easily by running the <code>install</code> command instead.
 This installer  will also add additional files contained in the <code>dsk</code>
@@ -107,7 +107,7 @@ the rest of block is the data stored in the block.</p>
 +-+-+-+-+-+-+-+ // +-+
 
 n = 512
-    </code></pre>
+</code></pre>
 
     <h3>Superblock</h3>
 
@@ -122,7 +122,7 @@ v = version number of the FS
 b = size of a block in 2 ^ (9 + b) bytes
 count = number of blocks
 alloc = number of allocated blocks
-    </code></pre>
+</code></pre>
 
     <h3>File</h3>
 
@@ -141,7 +141,7 @@ empty.</p>
 +-+-+-+-+-+-+-+-+-+ // +-+
 
 n = 512
-    </code></pre>
+</code></pre>
 
     <h3>Dir</h3>
 
@@ -160,7 +160,7 @@ empty.</p>
 +-+-+-+-+-+-+-+-+-+-+-+ // +-+-+-+-+-+-+-+-+ // +-+
 
 n = 512
-    </code></pre>
+</code></pre>
 
     <h3>DirEntry</h3>
 
@@ -182,7 +182,7 @@ seconds since Unix Epoch, the length of the filename, and the filename (max
 k = kind of entry
 n = length of name buffer
 m = 17 + n
-    </code></pre>
+</code></pre>
 
     <h3>FileInfo</h3>
 
@@ -200,6 +200,6 @@ return a subset of a directory entry for userspace programs.</p>
 k = kind of entry
 n = length of name buffer
 m = 13 + n
-    </code></pre>
+</code></pre>
   </body>
 </html>
