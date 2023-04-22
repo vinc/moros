@@ -1,6 +1,8 @@
-body {
+html {
   display: grid;
   place-content: center;
+}
+body {
   max-width: 720px;
   margin: 1rem;
   color: #111;
