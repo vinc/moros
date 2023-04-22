@@ -39,7 +39,8 @@ memory size, processor, devices, network cards, disks, and the real time clock.
 ## Installation
 
 The first time MOROS will boot in diskless mode where you can use the builtin
-commands to test the system or `install` to setup a disk:
+commands to test the system or `install` to setup the
+[filesystem](filesystem.md) on a disk:
 
     MFS is not mounted to '/'
     Running console in diskless mode
@@ -140,8 +141,9 @@ system in memory to use a virtual disk with `memory format` before `install`.
 
 ## Shell
 
-The shell is the primary command line interface to use MOROS. This is were you
-can type a command and its arguments to tell the system what to do:
+The [shell](shell.md) is the primary command line interface to use MOROS.
+This is were you can type a command and its arguments to tell the system what
+to do:
 
     ~
     > print "Hello, World!"
@@ -323,10 +325,15 @@ for example you can use `e` instead of `edit` to edit a file.
 
 ## Network
 
+You can setup the [network](network.md) manually with `net` or automatically
+with `dhcp`:
+
     > dhcp
     ip:  10.0.2.15/24
     gw:  10.0.2.2
     dns: 10.0.2.3
+
+A few tools are available like the `http` command:
 
     > http moros.cc
     <!doctype html>
