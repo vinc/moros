@@ -37,8 +37,9 @@ This project started from the [seventh post][1] of the second edition of
 - [x] Basic [shell](doc/shell.md)
 - [x] Basic [text editor](doc/editor.md)
 - [x] Basic [lisp](doc/lisp.md) interpreter
-- [x] Basic file and [network](doc/network.md) commands
 - [x] Basic userspace for NASM and Rust programs without alloc
+- [x] Some file and [network](doc/network.md) commands
+- [x] Some games
 - [ ] Multitasking
 - [ ] C standard library port
 
