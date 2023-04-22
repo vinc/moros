@@ -10,7 +10,7 @@ for md in ../doc/*.md; do
   echo "$md => $html"
   cat << EOF > $html
 <!doctype html>
-<html style="display: grid; place-content: center">
+<html>
   <head>
     <meta charset="utf-8">
     <title>$title</title>

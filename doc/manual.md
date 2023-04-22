@@ -340,7 +340,8 @@ A few tools are available like the `http` command:
     <html>
       <head>
         <meta charset="utf-8">
-        <title>MOROS: Obscure Rust Operating System</title>
+        <title>MOROS</title>
+        <link rel="stylesheet" type="text/css" href="/moros.css">
       </head>
       <body>
         <h1>MOROS</h1>
