@@ -7,12 +7,16 @@ MOROS is a hobby operating system written in Rust by [Vincent Ollivier](https://
 It targets computers with a x86-64 architecture and a BIOS, so mostly from 2005
 to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).
 
-* * *
 
-The first task when running the OS is to install the
-[filesystem](filesystem.md) on a disk (or in RAM) using the `install` program,
-although it's possible to skip the installation and stay in read only mode.
-See the [manual](manual.md) for more information.
+## Installation
+
+MOROS is open source, you can [build it](https://github.com/vinc/moros)
+yourself or [download an image](https://github.com/vinc/moros/releases).
+
+Consult the [manual](manual.md) to learn how to use the system.
+
+
+## Features
 
 Everything in MOROS is done from a command line interface and most programs are
 rather minimalist.
