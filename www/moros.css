@@ -3,6 +3,7 @@ html {
   place-content: center;
 }
 body {
+  font-family: sans-serif;
   max-width: 720px;
   margin: 1rem;
   color: #111;
