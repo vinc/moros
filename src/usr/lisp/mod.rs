@@ -266,6 +266,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() < 2 {
         repl(env)
     } else {
+        if args[1] == "-h" || args[1] == "--help" {
+            return help();
+        }
         let pathname = args[1];
         if let Ok(code) = api::fs::read_to_string(pathname) {
             let mut block = String::new();
@@ -300,6 +303,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::Failure)
         }
     }
+}
+
+fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} lisp {}[<file> [<args>]]{}", csi_title, csi_reset, csi_option, csi_reset);
+    Ok(())
 }
 
 #[test_case]

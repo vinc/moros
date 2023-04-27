@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MOROS Network</title>
+    <link rel="stylesheet" type="text/css" href="/moros.css">
+  </head>
+  <body>
+    <h1>MOROS Network</h1>
+
+    <h2>NET</h2>
+
+    <p>Display the network configuration:</p>
+
+    <pre><code>&gt; net config
+mac: 52-54-00-12-34-56
+ip:  10.0.2.15/24
+gw:  10.0.2.2
+dns: 10.0.2.3
+</code></pre>
+
+    <p>Display one attribute of the network configuration:</p>
+
+    <pre><code>&gt; net config dns
+dns: 10.0.2.3
+</code></pre>
+
+    <p>Set one attribute of the network configuration:</p>
+
+    <pre><code>&gt; net config dns 10.0.2.3
+</code></pre>
+
+    <p>Display network statistics:</p>
+
+    <pre><code>&gt; net stat
+rx: 13 packets (4052 bytes)
+tx: 15 packets (1518 bytes)
+</code></pre>
+
+    <p>Listen for packets transmitted on the network:</p>
+
+    <pre><code>&gt; net monitor
+------------------------------------------------------------------
+[488.396667] NET RTL8139 Receiving:
+00000000: 3333 0000 0001 5256 0000 0002 86DD 6000 33....RV......`.
+00000010: 0000 0038 3AFF FE80 0000 0000 0000 0000 ...8:...........
+00000020: 0000 0000 0002 FF02 0000 0000 0000 0000 ................
+00000030: 0000 0000 0001 8600 155E 4000 0708 0000 .........^@.....
+00000040: 0000 0000 0000 0101 5256 0000 0002 0304 ........RV......
+00000050: 40C0 0001 5180 0000 3840 0000 0000 FEC0 @...Q...8@......
+00000060: 0000 0000 0000 0000 0000 0000 0000      ..............
+------------------------------------------------------------------
+[543.871322] NET RTL8139 Receiving:
+00000000: 5254 0012 3456 5255 0A00 0202 0800 4500 RT..4VRU .....E.
+00000010: 002C 0001 0000 4006 62BB 0A00 0202 0A00 .,....@.b. ... .
+00000020: 020F A2E8 0016 0412 F801 0000 0000 6002 ..............`.
+00000030: 2238 BECB 0000 0204 05B4 0000           &quot;8..........
+------------------------------------------------------------------
+</code></pre>
+
+    <h2>DHCP</h2>
+
+    <p>The <code>dhcp</code> command configures the network automatically:</p>
+
+    <pre><code>&gt; dhcp --verbose
+DEBUG: DHCP Discover transmitted
+DEBUG: DHCP Offer received
+ip:  10.0.2.15/24
+gw:  10.0.2.2
+dns: 10.0.2.3
+</code></pre>
+
+    <h2>HOST</h2>
+
+    <p>The <code>host</code> command performs DNS lookups:</p>
+
+    <pre><code>&gt; host example.com                                                                                 
+example.com has address 93.184.216.34
+</code></pre>
+
+    <h2>TCP</h2>
+
+    <p>The <code>tcp</code> command connects to TCP sockets:</p>
+
+    <pre><code>&gt; tcp time.nist.gov 13 --verbose
+DEBUG: Connecting to 129.6.15.30:13
+
+58884 20-02-05 19:19:42 00 0 0  49.2 UTC(NIST) *
+</code></pre>
+
+    <p>This could also be done with the <code>read</code> command:</p>
+
+    <pre><code>&gt; read /net/tcp/time.nist.gov:13
+
+58884 20-02-05 19:19:55 00 0 0  49.2 UTC(NIST) *
+</code></pre>
+
+    <h2>HTTP</h2>
+
+    <p>Requesting a resource on a host:</p>
+
+    <pre><code>&gt; http moros.cc /test.html
+</code></pre>
+
+    <p>Is equivalent to:</p>
+
+    <pre><code>&gt; read /net/http/moros.cc/test.html
+</code></pre>
+
+    <p>And:</p>
+
+    <pre><code>&gt; read /net/http/moros.cc:80/test.html
+</code></pre>
+
+    <h2>SOCKET</h2>
+
+    <p>The <code>socket</code> command is used to read and write to network connexions
+like the <code>netcat</code> command on Unix.</p>
+
+    <p>For example the request made with <code>tcp</code> above is equivalent to this:</p>
+
+    <pre><code>&gt; socket time.nist.gov 13 --read-only
+
+59710 22-05-11 21:44:52 50 0 0 359.3 UTC(NIST) *
+</code></pre>
+
+    <p>And the request made with <code>http</code> is equivalent to that:</p>
+
+    <pre><code>&gt; socket moros.cc 80 --prompt
+MOROS Socket v0.1.0
+
+&gt; GET /test.html HTTP/1.0
+&gt; Host: moros.cc
+&gt; 
+HTTP/1.1 200 OK
+Server: nginx
+Date: Wed, 11 May 2022 21:46:34 GMT
+Content-Type: text/html
+Content-Length: 866
+Connection: close
+Last-Modified: Fri, 29 Oct 2021 17:50:58 GMT
+ETag: &quot;617c3482-362&quot;
+Accept-Ranges: bytes
+
+&lt;!doctype html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;MOROS: Obscure Rust Operating System&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;MOROS&lt;/h1&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+    <p>Here&#39;s a connexion to a SMTP server to send a mail:</p>
+
+    <pre><code>&gt; socket 10.0.2.2 2500 --prompt
+MOROS Socket v0.1.0
+
+220 EventMachine SMTP Server
+&gt; EHLO moros.cc
+250-Ok EventMachine SMTP Server
+250-NO-SOLICITING
+250 SIZE 20000000
+&gt; MAIL FROM:&lt;v@moros.cc&gt;
+&gt; RCPT TO:&lt;alice@example.com&gt;
+250 Ok
+250 Ok
+&gt; DATA
+354 Send it
+&gt; Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec
+&gt; diam vitae ex blandit malesuada nec a turpis.
+&gt; .
+&gt; QUIT
+250 Message accepted
+221 Ok
+</code></pre>
+
+    <p>Sending a file to a server:</p>
+
+    <pre><code>&gt; socket 10.0.2.2 1234 &lt;= /tmp/alice.txt
+</code></pre>
+  </body>
+</html>

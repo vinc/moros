@@ -98,7 +98,7 @@ fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} list {}<options>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!("{}Usage:{} list {}<options> [<dir>]{}", csi_title, csi_reset, csi_option, csi_reset);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-a{1},{0} --all{1}     Show dot files", csi_option, csi_reset);

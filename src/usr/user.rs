@@ -1,4 +1,5 @@
 use crate::{api, sys, usr};
+use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
 use crate::api::random;
@@ -13,12 +14,20 @@ use core::str;
 use sha2::Sha256;
 
 const USERS: &str = "/ini/users.csv";
-const COMMANDS: [&str; 2] = ["create", "login"];
 const DISABLE_EMPTY_PASSWORD: bool = false;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() == 1 || !COMMANDS.contains(&args[1]) {
-        return usage();
+    match *args.get(1).unwrap_or(&"invalid") {
+        "create" => {},
+        "login" => {},
+        "-h" | "--help" => {
+            help();
+            return Ok(());
+        }
+        _ => {
+            help();
+            return Err(ExitCode::UsageError);
+        }
     }
 
     let username: String = if args.len() == 2 {
@@ -31,13 +40,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match args[1] {
         "create" => create(&username),
         "login" => login(&username),
-        _ => usage(),
+        _ => unreachable!(),
     }
-}
-
-fn usage() -> Result<(), ExitCode> {
-    eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    Err(ExitCode::UsageError)
 }
 
 // TODO: Add max number of attempts
@@ -213,4 +217,15 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     }
 
     fs::write(USERS, csv.as_bytes())
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} user {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Commands:{}", csi_title, csi_reset);
+    println!("  {}create [<user>]{}    Create user", csi_option, csi_reset);
+    println!("  {}login [<user>]{}     Login user", csi_option, csi_reset);
 }

@@ -1,26 +1,74 @@
 <!doctype html>
-<html style="display: grid; place-content: center">
+<html>
   <head>
     <meta charset="utf-8">
     <title>MOROS: Obscure Rust Operating System</title>
+    <link rel="stylesheet" type="text/css" href="/moros.css">
   </head>
-  <body style="max-width: 720px; margin: 1em">
+  <body>
     <h1>MOROS: Obscure Rust Operating System</h1>
-    <img src="moros.png" style="max-width: 100%">
-    <p>
-      MOROS is a hobby operating system written in Rust by
-      <a href="https://vinc.cc">Vincent Ollivier</a>.
-    </p>
-    <p>
-      It targets computers with a x86-64 architecture and a BIOS,
-      so mostly from 2005 to 2020, but it also runs well on most
-      emulators (Bochs, QEMU, and VirtualBox).
-    </p>
-    <p>
-      MOROS is
-      <a href="https://github.com/vinc/moros">free and open source</a>,
-      you can compile it yourself or
-      <a href="moros.bin">download an image</a>.
-    </p>
+
+    <p><img src="moros.png" alt="screenshot"></p>
+
+    <p>MOROS is a hobby operating system written in Rust by <a href="https://vinc.cc">Vincent Ollivier</a>.</p>
+
+    <p>It targets computers with a x86-64 architecture and a BIOS, so mostly from 2005
+to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).</p>
+
+    <h2>Usage</h2>
+
+    <p>MOROS is open source, you can <a href="https://github.com/vinc/moros">build it</a>
+or <a href="https://github.com/vinc/moros/releases">download an image</a>. Consult the
+    <a href="manual.html">manual</a> to learn how to use the system.</p>
+
+    <h2>Features</h2>
+
+    <p>Everything in MOROS is done from a command line interface and most programs are
+rather minimalist.</p>
+
+    <p>It has a <a href="shell.html">shell</a>:</p>
+
+    <p><img src="shell.png" alt="screenshot"></p>
+
+    <p>With a few programs like <code>find</code> that use a <a href="regex.html">regex engine</a> to find
+files or lines:</p>
+
+    <p><img src="find.png" alt="screenshot"></p>
+
+    <p>It has a <a href="calculator.html">calculator</a> and also a <a href="lisp.html">lisp</a> interpreter:</p>
+
+    <p><img src="lisp.png" alt="screenshot"></p>
+
+    <p>And a <a href="editor.html">text editor</a>:</p>
+
+    <p><img src="edit.png" alt="screenshot"></p>
+
+    <p>It has a <a href="network.html">network stack</a> with two drivers for RTL81339 and PCNET cards:</p>
+
+    <p><img src="network.png" alt="screenshot"></p>
+
+    <p>It has a chess game:</p>
+
+    <p><img src="chess.png" alt="chess"></p>
+
+    <p>And the game of life:</p>
+
+    <p><img src="life.png" alt="life"></p>
+
+    <p>It even has 2048:</p>
+
+    <p><img src="2048.png" alt="2048"></p>
+
+    <p>And finally it is quite customizable:</p>
+
+    <p><img src="light.png" alt="light"></p>
+
+    <h2>Demo</h2>
+
+    <p>You can log in to a demo with the following command using the name of the
+system as a password for the guest account:</p>
+
+    <pre><code>$ ssh guest@try.moros.cc
+</code></pre>
   </body>
 </html>
