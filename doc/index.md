@@ -38,7 +38,7 @@ And a [text editor](editor.md):
 
 ![screenshot](edit.png)
 
-It has a [network stack](network.md) with two drivers for RTL81339 and PCNET cards:
+It has a [network stack](network.md) with two drivers for RTL8139 and PCNET cards:
 
 ![screenshot](network.png)
 
