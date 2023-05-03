@@ -14,7 +14,7 @@ keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
 
 # Emulation options
-nic = rtl8139 # rtl8139, pcnet, e1000
+nic = rtl8139# rtl8139, pcnet, e1000
 audio = sdl# sdl, coreaudio
 kvm = false
 pcap = false
