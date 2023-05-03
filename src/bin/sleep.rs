@@ -2,16 +2,19 @@
 #![no_main]
 
 use moros::api::syscall;
-use core::panic::PanicInfo;
+use moros::api::process::ExitCode;
+use moros::entry_point;
 
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
+entry_point!(main);
 
-#[no_mangle]
-pub unsafe extern "sysv64" fn _start() -> ! {
-    syscall::sleep(5.0);
-    syscall::exit(0);
-    unreachable!();
+fn main(args: &[&str]) {
+    if args.len() == 2 {
+        if let Ok(duration) = args[1].parse::<f64>() {
+            syscall::sleep(duration);
+        } else {
+            syscall::exit(ExitCode::DataError);
+        }
+    } else {
+        syscall::exit(ExitCode::UsageError);
+    }
 }

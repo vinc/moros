@@ -1,10 +1,21 @@
-use crate::usr;
+use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process::ExitCode;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    if args.len() != 3 {
-        eprintln!("Usage: copy <source> <dest>");
-        return usr::shell::ExitCode::CommandError;
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    let n = args.len();
+    if n != 3 {
+        help();
+        return Err(ExitCode::UsageError);
+    }
+    for i in 1..n {
+        match args[i] {
+            "-h" | "--help" => {
+                help();
+                return Ok(());
+            }
+            _ => continue
+        }
     }
 
     let source = args[1];
@@ -12,13 +23,20 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
 
     if let Ok(contents) = fs::read_to_bytes(source) {
         if fs::write(dest, &contents).is_ok() {
-            usr::shell::ExitCode::CommandSuccessful
+            Ok(())
         } else {
             error!("Could not write to '{}'", dest);
-            usr::shell::ExitCode::CommandError
+            Err(ExitCode::Failure)
         }
     } else {
         error!("File not found '{}'", source);
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} copy {}<src> <dst>{}", csi_title, csi_reset, csi_option, csi_reset);
 }

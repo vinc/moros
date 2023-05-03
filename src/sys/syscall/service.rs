@@ -1,25 +1,19 @@
 use crate::sys;
+use crate::api::process::ExitCode;
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
+
 use alloc::vec;
 use core::arch::asm;
 
-pub fn exit(_code: usize) -> usize {
+pub fn exit(code: ExitCode) -> ExitCode {
     sys::process::exit();
-    0
+    code
 }
 
 pub fn sleep(seconds: f64) {
     sys::time::sleep(seconds);
-}
-
-pub fn uptime() -> f64 {
-    sys::clock::uptime()
-}
-
-pub fn realtime() -> f64 {
-    sys::clock::realtime()
 }
 
 pub fn delete(path: &str) -> isize {
@@ -88,20 +82,26 @@ pub fn close(handle: usize) {
     sys::process::delete_file_handle(handle);
 }
 
-pub fn spawn(path: &str) -> isize {
+pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
-        Err(_) => return -1,
+        Err(_) => return ExitCode::OpenError,
     };
     if let Some(mut file) = sys::fs::File::open(&path) {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            Process::spawn(&buf);
-            return 0;
+            if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
+                code
+            } else {
+                ExitCode::Success
+            }
+        } else {
+            ExitCode::ReadError
         }
+    } else {
+        ExitCode::OpenError
     }
-    -1
 }
 
 pub fn stop(code: usize) -> usize {
@@ -115,9 +115,12 @@ pub fn stop(code: usize) -> usize {
             }
         }
         0xdead => { // Halt
+            sys::process::exit();
             sys::acpi::shutdown();
         }
-        _ => {}
+        _ => {
+            debug!("STOP SYSCALL: Invalid code '{:#x}' received", code);
+        }
     }
     0
 }

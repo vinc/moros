@@ -1,13 +1,73 @@
+use crate::api::clock::DATE_TIME_ZONE;
 use crate::sys;
 use crate::sys::cmos::CMOS;
+use crate::sys::fs::FileIO;
 
 use time::{OffsetDateTime, Duration};
 
 const DAYS_BEFORE_MONTH: [u64; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
 
+#[derive(Debug, Clone)]
+pub struct Uptime;
+
+impl Uptime {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn size() -> usize {
+        core::mem::size_of::<f64>()
+    }
+}
+
+impl FileIO for Uptime {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let time = uptime().to_be_bytes();
+        let n = time.len();
+        if buf.len() >= n {
+            buf[0..n].clone_from_slice(&time);
+            Ok(n)
+        } else {
+            Err(())
+        }
+    }
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        unimplemented!();
+    }
+}
+
 // NOTE: This clock is monotonic
 pub fn uptime() -> f64 {
     sys::time::time_between_ticks() * sys::time::ticks() as f64
+}
+
+#[derive(Debug, Clone)]
+pub struct Realtime;
+
+impl Realtime {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn size() -> usize {
+        core::mem::size_of::<f64>()
+    }
+}
+
+impl FileIO for Realtime {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let time = realtime().to_be_bytes();
+        let n = time.len();
+        if buf.len() >= n {
+            buf[0..n].clone_from_slice(&time);
+            Ok(n)
+        } else {
+            Err(())
+        }
+    }
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        unimplemented!();
+    }
 }
 
 // NOTE: This clock is not monotonic
@@ -35,7 +95,7 @@ fn days_before_year(year: u64) -> u64 {
 
 fn days_before_month(year: u64, month: u64) -> u64 {
     let leap_day = is_leap_year(year) && month > 2;
-    DAYS_BEFORE_MONTH[(month as usize) - 1] + if leap_day { 1 } else { 0 }
+    DAYS_BEFORE_MONTH[(month as usize) - 1] + (leap_day as u64)
 }
 
 fn is_leap_year(year: u64) -> bool {
@@ -54,7 +114,7 @@ pub fn init() {
     let s = realtime();
     let ns = Duration::nanoseconds(libm::floor(1e9 * (s - libm::floor(s))) as i64);
     let dt = OffsetDateTime::from_unix_timestamp(s as i64) + ns;
-    let rtc = dt.format("%F %H:%M:%S UTC");
+    let rtc = dt.format(DATE_TIME_ZONE);
     log!("RTC {}\n", rtc);
 }
 

@@ -11,8 +11,9 @@ This project started from the [seventh post][1] of the second edition of
 [Writing an OS in Rust][2] by Philipp Oppermann and by reading the
 [OSDev wiki][3] along with many open source kernels.
 
-[![Travis](https://img.shields.io/travis/vinc/moros/master.svg)](https://travis-ci.org/vinc/moros/branches)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/vinc/moros/rust.yml)](https://github.com/vinc/moros)
 [![Crates.io](https://img.shields.io/crates/v/moros.svg)](https://crates.io/crates/moros)
+
 
 ## Features
 
@@ -28,7 +29,7 @@ This project started from the [seventh post][1] of the second edition of
 - [x] RTC clock
 - [x] PCI devices
 - [x] ATA PIO mode
-- [x] Random number generator (using [rand_chacha](https://crates.io/crates/rand_chacha))
+- [x] Random number generator (using [rand_hc](https://crates.io/crates/rand_hc))
 - [x] RTL8139 network card
 - [x] AMD PCNET network card
 - [x] DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp](https://crates.io/crates/smoltcp))
@@ -36,10 +37,10 @@ This project started from the [seventh post][1] of the second edition of
 - [x] Basic [shell](doc/shell.md)
 - [x] Basic [text editor](doc/editor.md)
 - [x] Basic [lisp](doc/lisp.md) interpreter
-- [x] Basic file and [network](doc/network.md) commands
-- [x] Basic userspace for nasm binaries
-- [ ] Support for Rust binaries
-- [ ] Support for multitasking
+- [x] Basic userspace for NASM and Rust programs without alloc
+- [x] Some file and [network](doc/network.md) commands
+- [x] Some games
+- [ ] Multitasking
 - [ ] C standard library port
 
 
@@ -97,7 +98,7 @@ Run the test suite in QEMU:
     $ make test
 
 
-## LICENSE
+## License
 
 MOROS is released under MIT.
 

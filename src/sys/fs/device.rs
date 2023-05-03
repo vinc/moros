@@ -3,45 +3,63 @@ use super::dir::Dir;
 use super::file::File;
 use super::block::LinkedBlock;
 
-use alloc::vec;
-use alloc::vec::Vec;
+use crate::sys::cmos::RTC;
 use crate::sys::console::Console;
 use crate::sys::random::Random;
+use crate::sys::clock::{Uptime, Realtime};
 
-#[derive(PartialEq, Clone, Copy)]
+use alloc::vec;
+use alloc::vec::Vec;
+
+#[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum DeviceType {
-    File = 0,
-    Console = 1,
-    Random = 2,
-    Null = 3,
+    Null     = 0,
+    File     = 1,
+    Console  = 2,
+    Random   = 3,
+    Uptime   = 4,
+    Realtime = 5,
+    RTC      = 6,
 }
 
+// Used when creating a device
 impl DeviceType {
     pub fn buf(self) -> Vec<u8> {
-        if self == DeviceType::Console {
-            vec![self as u8, 0, 0, 0] // 4 bytes
-        } else {
-            vec![self as u8] // 1 byte
-        }
+        let len = match self {
+            DeviceType::RTC      => RTC::size(),
+            DeviceType::Uptime   => Uptime::size(),
+            DeviceType::Realtime => Realtime::size(),
+            DeviceType::Console  => Console::size(),
+            _                    => 1,
+        };
+        let mut res = vec![0; len];
+        res[0] = self as u8;
+        res
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Device {
+    Null,
     File(File),
     Console(Console),
     Random(Random),
-    Null,
+    Uptime(Uptime),
+    Realtime(Realtime),
+    RTC(RTC),
 }
 
 impl From<u8> for Device {
     fn from(i: u8) -> Self {
         match i {
+            i if i == DeviceType::Null as u8 => Device::Null,
             i if i == DeviceType::File as u8 => Device::File(File::new()),
             i if i == DeviceType::Console as u8 => Device::Console(Console::new()),
             i if i == DeviceType::Random as u8 => Device::Random(Random::new()),
-            i if i == DeviceType::Null as u8 => Device::Null,
+            i if i == DeviceType::Uptime as u8 => Device::Uptime(Uptime::new()),
+            i if i == DeviceType::Realtime as u8 => Device::Realtime(Realtime::new()),
+            i if i == DeviceType::RTC as u8 => Device::RTC(RTC::new()),
             _ => unimplemented!(),
         }
     }
@@ -75,23 +93,32 @@ impl Device {
         }
         None
     }
+
+    // TODO: Add size()
 }
 
 impl FileIO for Device {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match self {
-            Device::File(io) => io.read(buf),
-            Device::Console(io) => io.read(buf),
-            Device::Random(io) => io.read(buf),
-            Device::Null => Err(()),
+            Device::Null         => Err(()),
+            Device::File(io)     => io.read(buf),
+            Device::Console(io)  => io.read(buf),
+            Device::Random(io)   => io.read(buf),
+            Device::Uptime(io)   => io.read(buf),
+            Device::Realtime(io) => io.read(buf),
+            Device::RTC(io)      => io.read(buf),
         }
     }
+
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match self {
-            Device::File(io) => io.write(buf),
-            Device::Console(io) => io.write(buf),
-            Device::Random(io) => io.write(buf),
-            Device::Null => Ok(0),
+            Device::Null         => Ok(0),
+            Device::File(io)     => io.write(buf),
+            Device::Console(io)  => io.write(buf),
+            Device::Random(io)   => io.write(buf),
+            Device::Uptime(io)   => io.write(buf),
+            Device::Realtime(io) => io.write(buf),
+            Device::RTC(io)      => io.write(buf),
         }
     }
 }

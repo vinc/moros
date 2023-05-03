@@ -1,4 +1,5 @@
-use crate::{api, sys, usr};
+use crate::{api, sys};
+use crate::api::process::ExitCode;
 use crate::api::console::Style;
 
 use x86_64::instructions::port::Port;
@@ -31,7 +32,7 @@ fn beep(freq: f64, len: f64) {
     stop_sound();
 }
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut freq = 440.0;
     let mut len = 200.0;
     let mut i = 1;
@@ -47,12 +48,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         freq = value;
                     } else {
                         error!("Could not parse freq");
-                        return usr::shell::ExitCode::CommandError;
+                        return Err(ExitCode::Failure);
                     }
                     i += 1;
                 } else {
                     error!("Missing freq");
-                    return usr::shell::ExitCode::CommandError;
+                    return Err(ExitCode::UsageError);
                 }
             },
             "-l" | "--len" => {
@@ -61,12 +62,12 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                         len = value;
                     } else {
                         error!("Could not parse len");
-                        return usr::shell::ExitCode::CommandError;
+                        return Err(ExitCode::Failure);
                     }
                     i += 1;
                 } else {
                     error!("Missing len");
-                    return usr::shell::ExitCode::CommandError;
+                    return Err(ExitCode::UsageError);
                 }
             },
             _ => {},
@@ -75,10 +76,10 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     }
 
     beep(freq, len / 1000.0);
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -87,5 +88,5 @@ fn help() -> usr::shell::ExitCode {
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-f{1},{0} --freq <hertz>{1}          Tone frequency", csi_option, csi_reset);
     println!("  {0}-l{1},{0} --len <milliseconds>{1}    Tone length", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }

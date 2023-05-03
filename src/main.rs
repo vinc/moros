@@ -5,7 +5,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use moros::{sys, usr, print, println};
+use moros::{sys, usr, print, println, debug, hlt_loop};
 
 entry_point!(main);
 
@@ -16,7 +16,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
         if let Some(cmd) = option_env!("MOROS_CMD") {
             let prompt = usr::shell::prompt_string(true);
             println!("{}{}", prompt, cmd);
-            usr::shell::exec(cmd);
+            usr::shell::exec(cmd).ok();
             sys::acpi::shutdown();
         } else {
             user_boot();
@@ -27,7 +27,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
 fn user_boot() {
     let script = "/ini/boot.sh";
     if sys::fs::File::open(script).is_some() {
-        usr::shell::main(&["shell", script]);
+        usr::shell::main(&["shell", script]).ok();
     } else {
         if sys::fs::is_mounted() {
             println!("Could not find '{}'", script);
@@ -35,14 +35,12 @@ fn user_boot() {
             println!("MFS is not mounted to '/'");
         }
         println!("Running console in diskless mode");
-        usr::shell::main(&["shell"]);
+        usr::shell::main(&["shell"]).ok();
     }
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
-    loop {
-        sys::time::sleep(10.0)
-    }
+    debug!("{}", info);
+    hlt_loop();
 }

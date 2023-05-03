@@ -5,7 +5,6 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloc::vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use lazy_static::lazy_static;
 use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes};
 use smoltcp::phy::DeviceCapabilities;
 use smoltcp::phy::{Device, Medium};
@@ -19,9 +18,7 @@ mod e1000;
 
 pub type Interface = smoltcp::iface::Interface<'static, EthernetDevice>;
 
-lazy_static! {
-    pub static ref IFACE: Mutex<Option<Interface>> = Mutex::new(None);
-}
+pub static IFACE: Mutex<Option<Interface>> = Mutex::new(None);
 
 #[derive(Clone)]
 pub enum EthernetDevice {
@@ -131,12 +128,12 @@ pub struct TxToken {
 impl smoltcp::phy::TxToken for TxToken {
     fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R> where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
         let config = self.device.config();
-        let mut buf = self.device.next_tx_buffer(len);
-        let res = f(&mut buf);
+        let buf = self.device.next_tx_buffer(len);
+        let res = f(buf);
         if res.is_ok() {
             if config.is_debug_enabled() {
                 debug!("NET Packet Transmitted");
-                usr::hex::print_hex(&buf);
+                usr::hex::print_hex(buf);
             }
             self.device.transmit_packet(len);
             self.device.stats().tx_add(len as u64);

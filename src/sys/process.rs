@@ -1,3 +1,4 @@
+use crate::api::process::ExitCode;
 use crate::sys::fs::{Resource, Device};
 use crate::sys::console::Console;
 
@@ -14,10 +15,12 @@ use x86_64::structures::idt::InterruptStackFrameValue;
 
 const MAX_FILE_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
+const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
+
+pub static PID: AtomicUsize = AtomicUsize::new(0);
+pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
 
 lazy_static! {
-    pub static ref PID: AtomicUsize = AtomicUsize::new(0);
-    pub static ref MAX_PID: AtomicUsize = AtomicUsize::new(1);
     pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new(0))));
 }
 
@@ -35,10 +38,10 @@ impl ProcessData {
         let dir = dir.to_string();
         let user = user.map(String::from);
         let mut file_handles = [(); MAX_FILE_HANDLES].map(|_| None);
-        file_handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
-        file_handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
-        file_handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new()))));
-        file_handles[3] = Some(Box::new(Resource::Device(Device::Null)));
+        file_handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdin
+        file_handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdout
+        file_handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stderr
+        file_handles[3] = Some(Box::new(Resource::Device(Device::Null))); // stdnull
         Self { env, dir, user, file_handles }
     }
 }
@@ -145,7 +148,12 @@ pub fn set_code_addr(addr: u64) {
 }
 
 pub fn ptr_from_addr(addr: u64) -> *mut u8 {
-    (code_addr() + addr) as *mut u8
+    let base = code_addr();
+    if addr < base {
+        (base + addr) as *mut u8
+    } else {
+        addr as *mut u8
+    }
 }
 
 pub fn registers() -> Registers {
@@ -175,7 +183,7 @@ pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
 pub fn exit() {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    sys::allocator::free_pages(proc.code_addr, proc.code_size);
+    sys::allocator::free_pages(proc.code_addr, MAX_PROC_SIZE);
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(0); // FIXME: No process manager so we switch back to process 0
 }
@@ -192,8 +200,12 @@ use crate::sys::gdt::GDT;
 use core::sync::atomic::AtomicU64;
 use x86_64::VirtAddr;
 
-static CODE_ADDR: AtomicU64 = AtomicU64::new((sys::allocator::HEAP_START as u64) + (16 << 20));
-const PAGE_SIZE: u64 = 4 * 1024;
+static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
+
+// Called during kernel heap initialization
+pub fn init_process_addr(addr: u64) {
+    sys::process::CODE_ADDR.store(addr, Ordering::SeqCst);
+}
 
 #[repr(align(8), C)]
 #[derive(Debug, Clone, Copy, Default)]
@@ -209,13 +221,14 @@ pub struct Registers {
     pub rax: usize,
 }
 
-const ELF_MAGIC: [u8; 4] = [0x74, b'E', b'L', b'F'];
+const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
+const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 
 #[derive(Clone, Debug)]
 pub struct Process {
     id: usize,
     code_addr: u64,
-    code_size: u64,
+    stack_addr: u64,
     entry_point: u64,
     stack_frame: InterruptStackFrameValue,
     registers: Registers,
@@ -234,7 +247,7 @@ impl Process {
         Self {
             id,
             code_addr: 0,
-            code_size: 0,
+            stack_addr: 0,
             entry_point: 0,
             stack_frame: isf,
             registers: Registers::default(),
@@ -242,78 +255,114 @@ impl Process {
         }
     }
 
-    pub fn spawn(bin: &[u8]) {
-        if let Ok(pid) = Self::create(bin) {
+    pub fn spawn(bin: &[u8], args_ptr: usize, args_len: usize) -> Result<(), ExitCode> {
+        if let Ok(id) = Self::create(bin) {
             let proc = {
                 let table = PROCESS_TABLE.read();
-                table[pid].clone()
+                table[id].clone()
             };
-            proc.exec();
+            proc.exec(args_ptr, args_len);
+            Ok(())
+        } else {
+            Err(ExitCode::ExecError)
         }
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
-        let code_size = 1 * PAGE_SIZE;
-        let code_addr = CODE_ADDR.fetch_add(code_size, Ordering::SeqCst);
-
-        sys::allocator::alloc_pages(code_addr, code_size);
+        let proc_size = MAX_PROC_SIZE as u64;
+        let code_addr = CODE_ADDR.fetch_add(proc_size, Ordering::SeqCst);
+        let stack_addr = code_addr + proc_size;
+        //debug!("code_addr:  {:#x}", code_addr);
+        //debug!("stack_addr: {:#x}", stack_addr);
 
         let mut entry_point = 0;
         let code_ptr = code_addr as *mut u8;
         if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
+                //sys::allocator::alloc_pages(code_addr, proc_size as usize).expect("proc mem alloc");
                 entry_point = obj.entry();
                 for segment in obj.segments() {
                     let addr = segment.address() as usize;
                     if let Ok(data) = segment.data() {
-                        for (i, op) in data.iter().enumerate() {
-                            unsafe {
-                                let ptr = code_ptr.add(addr + i);
-                                core::ptr::write(ptr, *op);
-                            }
+                        for (i, b) in data.iter().enumerate() {
+                            //debug!("code:       {:#x}", unsafe { code_ptr.add(addr + i) as usize });
+                            unsafe { core::ptr::write(code_ptr.add(addr + i), *b) };
                         }
                     }
                 }
             }
-        } else { // Raw binary
-            for (i, op) in bin.iter().enumerate() {
-                unsafe {
-                    let ptr = code_ptr.add(i);
-                    core::ptr::write(ptr, *op);
-                }
+        } else if bin[0..4] == BIN_MAGIC { // Flat binary
+            //sys::allocator::alloc_pages(code_addr, proc_size as usize).expect("proc mem alloc");
+            for (i, b) in bin.iter().skip(4).enumerate() {
+                unsafe { core::ptr::write(code_ptr.add(i), *b) };
             }
+        } else {
+            return Err(());
         }
 
-        let mut table = PROCESS_TABLE.write();
-        let parent = &table[id()];
+        let parent = {
+            let table = PROCESS_TABLE.read();
+            table[id()].clone()
+        };
 
         let data = parent.data.clone();
         let registers = parent.registers;
         let stack_frame = parent.stack_frame;
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
-        let proc = Process { id, code_addr, code_size, entry_point, data, stack_frame, registers };
+        let proc = Process { id, code_addr, stack_addr, entry_point, data, stack_frame, registers };
+
+        let mut table = PROCESS_TABLE.write();
         table[id] = Box::new(proc);
 
         Ok(id)
     }
 
     // Switch to user mode and execute the program
-    fn exec(&self) {
+    fn exec(&self, args_ptr: usize, args_len: usize) {
+        let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
+        //debug!("heap_addr:  {:#x}", heap_addr);
+        sys::allocator::alloc_pages(heap_addr, 1).expect("proc heap alloc");
+
+        let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
+        let args: &[&str] = unsafe { core::slice::from_raw_parts(args_ptr as *const &str, args_len) };
+        let mut addr = heap_addr;
+        let vec: Vec<&str> = args.iter().map(|arg| {
+            let ptr = addr as *mut u8;
+            addr += arg.len() as u64;
+            unsafe {
+                let s = core::slice::from_raw_parts_mut(ptr, arg.len());
+                s.copy_from_slice(arg.as_bytes());
+                core::str::from_utf8_unchecked(s)
+            }
+        }).collect();
+        let align = core::mem::align_of::<&str>() as u64;
+        addr += align - (addr % align);
+        let args = vec.as_slice();
+        let ptr = addr as *mut &str;
+        let args: &[&str] = unsafe {
+            let s = core::slice::from_raw_parts_mut(ptr, args.len());
+            s.copy_from_slice(args);
+            s
+        };
+        let args_ptr = args.as_ptr() as u64;
+
         set_id(self.id); // Change PID
         unsafe {
             asm!(
                 "cli",        // Disable interrupts
-                "push rax",   // Stack segment (SS)
-                "push rsi",   // Stack pointer (RSP)
+                "push {:r}",  // Stack segment (SS)
+                "push {:r}",  // Stack pointer (RSP)
                 "push 0x200", // RFLAGS with interrupts enabled
-                "push rdx",   // Code segment (CS)
-                "push rdi",   // Instruction pointer (RIP)
+                "push {:r}",  // Code segment (CS)
+                "push {:r}",  // Instruction pointer (RIP)
                 "iretq",
-                in("rax") GDT.1.user_data.0,
-                in("rsi") self.code_addr + self.code_size,
-                in("rdx") GDT.1.user_code.0,
-                in("rdi") self.code_addr + self.entry_point,
+                in(reg) GDT.1.user_data.0,
+                in(reg) self.stack_addr,
+                in(reg) GDT.1.user_code.0,
+                in(reg) self.code_addr + self.entry_point,
+                in("rdi") args_ptr,
+                in("rsi") args_len,
             );
         }
     }

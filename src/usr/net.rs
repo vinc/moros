@@ -1,8 +1,10 @@
-use crate::{sys, usr, debug};
+use crate::sys;
 use alloc::format;
-use crate::api::syscall;
-use crate::api::fs;
+use crate::api::clock;
 use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::syscall;
+use crate::api::process::ExitCode;
 use crate::sys::net::EthernetDeviceIO;
 
 use alloc::borrow::ToOwned;
@@ -15,31 +17,28 @@ use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    if args.len() == 1 {
-        help();
-        return usr::shell::ExitCode::CommandError;
-    }
-
-    match args[1] {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    match *args.get(1).unwrap_or(&"") {
         "-h" | "--help" => {
-            return help();
+            help();
+            return Ok(());
         }
-        "config" => {
+        "c" | "config" => {
             if args.len() < 3 {
                 print_config("mac");
                 print_config("ip");
                 print_config("gw");
                 print_config("dns");
             } else if args[2] == "-h" || args[2] == "--help" {
-                return help_config();
+                help_config();
+                return Ok(());
             } else if args.len() < 4 {
                 print_config(args[2]);
             } else {
                 set_config(args[2], args[3]);
             }
         }
-        "stat" => {
+        "s" | "stat" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 let stats = iface.device().stats();
                 let csi_color = Style::color("LightCyan");
@@ -50,7 +49,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 error!("Network error");
             }
         }
-        "monitor" => {
+        "m" | "monitor" => {
             if let Some(ref mut iface) = *sys::net::IFACE.lock() {
                 iface.device_mut().config().enable_debug();
 
@@ -61,13 +60,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                 let tcp_handle = iface.add_socket(tcp_socket);
 
                 loop {
-                    if sys::console::end_of_text() {
+                    if sys::console::end_of_text() || sys::console::end_of_transmission() {
                         println!();
-                        return usr::shell::ExitCode::CommandSuccessful;
+                        iface.remove_socket(tcp_handle);
+                        return Ok(());
                     }
                     syscall::sleep(0.1);
 
-                    let timestamp = Instant::from_micros((syscall::realtime() * 1000000.0) as i64);
+                    let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
                     if let Err(e) = iface.poll(timestamp) {
                         error!("Network Error: {}", e);
                     }
@@ -88,13 +88,13 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         }
         _ => {
             error!("Invalid command");
-            return usr::shell::ExitCode::CommandError;
+            return Err(ExitCode::Failure);
         }
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
-fn help() -> usr::shell::ExitCode {
+fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -104,10 +104,9 @@ fn help() -> usr::shell::ExitCode {
     println!("  {}config{}   Configure network", csi_option, csi_reset);
     println!("  {}monitor{}  Monitor network", csi_option, csi_reset);
     println!("  {}stat{}     Display network status", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
 }
 
-fn help_config() -> usr::shell::ExitCode {
+fn help_config() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
@@ -118,7 +117,6 @@ fn help_config() -> usr::shell::ExitCode {
     println!("  {}ip{}   IP Address", csi_option, csi_reset);
     println!("  {}gw{}   Gateway Address", csi_option, csi_reset);
     println!("  {}dns{}  Domain Name Servers", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
 }
 
 fn print_config(attribute: &str) {

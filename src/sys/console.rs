@@ -4,14 +4,10 @@ use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
 use core::sync::atomic::{AtomicBool, Ordering};
-use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 
-lazy_static! {
-    pub static ref STDIN: Mutex<String> = Mutex::new(String::new());
-}
-
+pub static STDIN: Mutex<String> = Mutex::new(String::new());
 pub static ECHO: AtomicBool = AtomicBool::new(true);
 pub static RAW: AtomicBool = AtomicBool::new(false);
 
@@ -21,6 +17,10 @@ pub struct Console;
 impl Console {
     pub fn new() -> Self {
         Self {}
+    }
+
+    pub fn size() -> usize {
+        core::mem::size_of::<char>()
     }
 }
 

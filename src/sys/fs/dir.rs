@@ -85,12 +85,7 @@ impl Dir {
     }
 
     pub fn find(&self, name: &str) -> Option<DirEntry> {
-        for entry in self.entries() {
-            if entry.name() == name {
-                return Some(entry);
-            }
-        }
-        None
+        self.entries().find(|entry| entry.name() == name)
     }
 
     // TODO: return a Result

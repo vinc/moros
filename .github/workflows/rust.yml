@@ -17,4 +17,5 @@ jobs:
     - run: sudo apt-get -qqy update
     - run: sudo apt-get -qqy install qemu-system-x86
     - run: make
+    - run: make user-rust
     - run: make test

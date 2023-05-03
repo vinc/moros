@@ -2,7 +2,6 @@
 #![cfg_attr(test, no_main)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
-#![feature(asm_sym)]
 #![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
@@ -13,7 +12,9 @@ extern crate alloc;
 #[macro_use]
 pub mod api;
 
+#[macro_use]
 pub mod sys;
+
 pub mod usr;
 
 use bootloader::BootInfo;
@@ -29,7 +30,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::keyboard::init();
     sys::time::init();
 
-    log!("MOROS v{}\n", env!("CARGO_PKG_VERSION"));
+    log!("MOROS v{}\n", option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION")));
     sys::mem::init(boot_info);
     sys::cpu::init();
     sys::pci::init(); // Require MEM
@@ -41,7 +42,10 @@ pub fn init(boot_info: &'static BootInfo) {
 
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
-    panic!("allocation error: {:?}", layout)
+    let csi_color = api::console::Style::color("LightRed");
+    let csi_reset = api::console::Style::reset();
+    printk!("{}Error:{} Could not allocate {} bytes\n", csi_color, csi_reset, layout.size());
+    hlt_loop();
 }
 
 pub trait Testable {

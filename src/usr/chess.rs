@@ -1,5 +1,6 @@
-use crate::{api, usr, sys};
+use crate::{api, sys};
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
 use alloc::format;
@@ -44,7 +45,7 @@ fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
 }
 
 fn system_time() -> u128 {
-    (api::syscall::realtime() * 1000.0) as u128
+    (api::clock::realtime() * 1000.0) as u128
 }
 
 struct Chess {
@@ -77,7 +78,7 @@ impl Chess {
         self.game.show_coordinates = true;
         self.game.clock = Clock::new(40, 5 * 60 * 1000); // 40 moves in 5 minutes
         self.game.clock.system_time = Arc::new(system_time);
-        let size = 1 << 20; // MB
+        let size = 1 << 20; // 1 MB
         self.game.tt_resize(size);
         self.game.load_fen(FEN).unwrap();
         println!("{}", self.game);
@@ -86,7 +87,7 @@ impl Chess {
         while let Some(cmd) = prompt.input(&prompt_string) {
             let args: Vec<&str> = cmd.trim().split(' ').collect();
             match args[0] {
-                "q" | "quit" | "exit" => break,
+                "q" | "quit" => break,
                 "h" | "help" => self.cmd_help(args),
                 "i" | "init" => self.cmd_init(args),
                 "t" | "time" => self.cmd_time(args),
@@ -262,7 +263,7 @@ impl Chess {
 fn is_move(m: &str) -> bool {
     let m = m.as_bytes();
     let n = m.len();
-    if n < 3 || 5 < n {
+    if n < 4 || 5 < n {
         return false;
     }
     if m[0] < b'a' || b'h' < m[0] {
@@ -286,8 +287,8 @@ fn is_move(m: &str) -> bool {
     false
 }
 
-pub fn main(_args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     let mut chess = Chess::new();
     chess.play();
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
