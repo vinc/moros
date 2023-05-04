@@ -17,7 +17,7 @@ const RX_BUFFER_IDX: usize = 0;
 const MTU: usize = 1500;
 
 const RX_BUFFER_PAD: usize = 16;
-const RX_BUFFER_LEN: usize = (8129 << RX_BUFFER_IDX) + RX_BUFFER_PAD;
+const RX_BUFFER_LEN: usize = (8192 << RX_BUFFER_IDX) + RX_BUFFER_PAD;
 
 const TX_BUFFER_LEN: usize = 4096;
 const TX_BUFFERS_COUNT: usize = 4;
