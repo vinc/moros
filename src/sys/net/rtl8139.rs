@@ -5,6 +5,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use core::hint::spin_loop;
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::port::Port;
 
@@ -175,7 +176,9 @@ impl Device {
         // Software reset
         unsafe {
             self.ports.cmd.write(CR_RST);
-            while self.ports.cmd.read() & CR_RST != 0 {}
+            while self.ports.cmd.read() & CR_RST != 0 {
+                spin_loop();
+            }
         }
 
         // Set interrupts
@@ -267,11 +270,12 @@ impl EthernetDeviceIO for Device {
             // transmit threshold means 8 bytes. So we just write the size of
             // the packet.
             cmd_port.write(0x1FFF & len as u32);
-
-            // When the whole packet is moved to FIFO, the OWN bit is set to 1
-            while cmd_port.read() & OWN != OWN {}
-            // When the whole packet is moved to line, the TOK bit is set to 1
-            while cmd_port.read() & TOK != TOK {}
+            while cmd_port.read() & OWN != OWN {
+                spin_loop();
+            }
+            while cmd_port.read() & TOK != TOK {
+                spin_loop();
+            }
         }
     }
 
