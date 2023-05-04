@@ -178,6 +178,9 @@ impl Device {
             while self.ports.cmd.read() & CR_RST != 0 {}
         }
 
+        // Set interrupts
+        unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
+
         // Enable Receive and Transmitter
         unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
 
@@ -198,14 +201,11 @@ impl Device {
             unsafe { self.ports.tx_addrs[i].write(tx_addr as u32) }
         }
 
-        // Set interrupts
-        unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
-
         // Configure receive buffer (RCR)
         unsafe { self.ports.rx_config.write(RCR_RBLEN | RCR_WRAP | RCR_AB | RCR_AM | RCR_APM | RCR_AAP) }
 
         // Configure transmit buffer (TCR)
-        unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA0 | TCR_MXDMA1 | TCR_MXDMA2); }
+        unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA1 | TCR_MXDMA2); }
     }
 }
 
