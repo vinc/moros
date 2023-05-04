@@ -17,15 +17,15 @@ const RX_BUFFER_IDX: usize = 0;
 const MTU: usize = 1500;
 
 const RX_BUFFER_PAD: usize = 16;
-const RX_BUFFER_LEN: usize = (8192 << RX_BUFFER_IDX) + RX_BUFFER_PAD;
+const RX_BUFFER_LEN: usize = 8192 << RX_BUFFER_IDX;
 
 const TX_BUFFER_LEN: usize = 2048;
 const TX_BUFFERS_COUNT: usize = 4;
 const ROK: u16 = 0x01;
 
-const CR_RST: u8 = 1 << 4; // Reset
-const CR_RE: u8 = 1 << 3; // Receiver Enable
-const CR_TE: u8 = 1 << 2; // Transmitter Enable
+const CR_RST:  u8 = 1 << 4; // Reset
+const CR_RE:   u8 = 1 << 3; // Receiver Enable
+const CR_TE:   u8 = 1 << 2; // Transmitter Enable
 const CR_BUFE: u8 = 1 << 0; // Buffer Empty
 
 // Rx Buffer Length
@@ -37,10 +37,10 @@ const RCR_RBLEN: u32 = (RX_BUFFER_IDX << 11) as u32;
 // of the buffer. So the buffer must have an additionnal 1500 bytes.
 const RCR_WRAP: u32 = 1 << 7;
 
-const RCR_AB: u32 = 1 << 3; // Accept Broadcast packets
-const RCR_AM: u32 = 1 << 2; // Accept Multicast packets
-const RCR_APM: u32 = 1 << 1; // Accept Physical Match packets
-const RCR_AAP: u32 = 1 << 0; // Accept All Packets
+const RCR_AB:   u32 = 1 << 3; // Accept Broadcast packets
+const RCR_AM:   u32 = 1 << 2; // Accept Multicast packets
+const RCR_APM:  u32 = 1 << 1; // Accept Physical Match packets
+const RCR_AAP:  u32 = 1 << 0; // Accept All Packets
 
 // Interframe Gap Time
 const TCR_IFG: u32 = 3 << 24;
@@ -78,7 +78,7 @@ pub struct Ports {
     pub config1: Port<u8>,                       // Configuration Register 1 (CONFIG1)
     pub rx_addr: Port<u32>,                      // Receive (Rx) Buffer Start Address (RBSTART)
     pub capr: Port<u16>,                         // Current Address of Packet Read (CAPR)
-    pub cbr: Port<u16>,                          // Current Buffer Address (CBR)
+    pub cba: Port<u16>,                          // Current Buffer Address (CBA)
     pub cmd: Port<u8>,                           // Command Register (CR)
     pub imr: Port<u16>,                          // Interrupt Mask Register (IMR)
     pub isr: Port<u16>,                          // Interrupt Status Register (ISR)
@@ -112,7 +112,7 @@ impl Ports {
             config1: Port::new(io_base + 0x52),
             rx_addr: Port::new(io_base + 0x30),
             capr: Port::new(io_base + 0x38),
-            cbr: Port::new(io_base + 0x3A),
+            cba: Port::new(io_base + 0x3A),
             cmd: Port::new(io_base + 0x37),
             imr: Port::new(io_base + 0x3C),
             isr: Port::new(io_base + 0x3E),
@@ -155,7 +155,7 @@ impl Device {
             ports: Ports::new(io_base),
 
             // Add MTU to RX_BUFFER_LEN if RCR_WRAP is set
-            rx_buffer: PhysBuf::new(RX_BUFFER_LEN + MTU),
+            rx_buffer: PhysBuf::new(RX_BUFFER_LEN + RX_BUFFER_PAD + MTU),
 
             rx_offset: 0,
             tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(TX_BUFFER_LEN)),
@@ -230,14 +230,13 @@ impl EthernetDeviceIO for Device {
         }
 
         //let isr = unsafe { self.ports.isr.read() };
-        let capr = unsafe { self.ports.capr.read() };
-        let cbr = unsafe { self.ports.cbr.read() };
+        let cba = unsafe { self.ports.cba.read() };
         // CAPR starts at 65520 and with the pad it overflows to 0
+        let capr = unsafe { self.ports.capr.read() };
         let offset = ((capr as usize) + RX_BUFFER_PAD) % (1 << 16);
-
         let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
         if header & ROK != ROK {
-            unsafe { self.ports.capr.write(cbr) };
+            unsafe { self.ports.capr.write((((cba as usize) % RX_BUFFER_LEN) - RX_BUFFER_PAD) as u16) };
             return None;
         }
 
@@ -247,7 +246,7 @@ impl EthernetDeviceIO for Device {
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
         unsafe {
-            self.ports.capr.write((self.rx_offset - RX_BUFFER_PAD) as u16);
+            self.ports.capr.write(((self.rx_offset % RX_BUFFER_LEN) - RX_BUFFER_PAD) as u16);
         }
 
         Some(self.rx_buffer[(offset + 4)..(offset + n)].to_vec())
