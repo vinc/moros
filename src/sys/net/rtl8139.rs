@@ -4,8 +4,8 @@ use crate::sys::net::{EthernetDeviceIO, Config, Stats};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::convert::TryInto;
-use core::sync::atomic::{AtomicUsize, Ordering};
 use core::hint::spin_loop;
+use core::sync::atomic::{fence, AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::port::Port;
 
@@ -176,6 +176,7 @@ impl Device {
         // Software reset
         unsafe {
             self.ports.cmd.write(CR_RST);
+            fence(Ordering::SeqCst);
             while self.ports.cmd.read() & CR_RST != 0 {
                 spin_loop();
             }
@@ -270,6 +271,8 @@ impl EthernetDeviceIO for Device {
             // transmit threshold means 8 bytes. So we just write the size of
             // the packet.
             cmd_port.write(0x1FFF & len as u32);
+            fence(Ordering::SeqCst);
+
             while cmd_port.read() & OWN != OWN {
                 spin_loop();
             }
