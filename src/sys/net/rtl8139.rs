@@ -257,6 +257,9 @@ impl EthernetDeviceIO for Device {
         let tx_id = self.tx_id.load(Ordering::SeqCst);
         let mut cmd_port = self.ports.tx_cmds[tx_id].clone();
         unsafe {
+            // RTL8139 will not transmit packets smaller than 64 bits
+            let len = len.max(60); // 60 + 4 bits of CRC
+
             // Fill in Transmit Status: the size of this packet, the early
             // transmit threshold, and clear OWN bit in TSD (this starts the
             // PCI operation).
