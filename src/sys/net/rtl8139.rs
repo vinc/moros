@@ -55,13 +55,13 @@ const TCR_IFG: u32 = 3 << 24;
 // 101 = 512 bytes
 // 110 = 1024 bytes
 // 111 = 2048 bytes
-const TCR_MXDMA0: u32 = 1 << 8;
+//const TCR_MXDMA0: u32 = 1 << 8;
 const TCR_MXDMA1: u32 = 1 << 9;
 const TCR_MXDMA2: u32 = 1 << 10;
 
 // Interrupt Mask Register
-const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
-const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
+//const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
+//const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
 
 //const CRS: u32 = 1 << 31; // Carrier Sense Lost
 //const TAB: u32 = 1 << 30; // Transmit Abort
