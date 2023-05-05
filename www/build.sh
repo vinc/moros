@@ -14,7 +14,7 @@ for md in ../doc/*.md; do
   <head>
     <meta charset="utf-8">
     <title>$title</title>
-    <link rel="stylesheet" type="text/css" href="/moros.css">
+    <link rel="stylesheet" type="text/css" href="moros.css">
   </head>
   <body>
 EOF
