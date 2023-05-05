@@ -79,7 +79,7 @@ impl<'a> smoltcp::phy::Device<'a> for EthernetDevice {
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
         caps.max_transmission_unit = 1500;
-        caps.max_burst_size = Some(1);
+        caps.max_burst_size = Some(64);
         caps
     }
 

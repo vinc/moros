@@ -15,7 +15,7 @@ use x86_64::instructions::port::Port;
 // 11 = 64K + 16 bytes
 const RX_BUFFER_IDX: usize = 0;
 
-const MTU: usize = 1500;
+const MTU: usize = 1536;
 
 const RX_BUFFER_PAD: usize = 16;
 const RX_BUFFER_LEN: usize = 8192 << RX_BUFFER_IDX;
