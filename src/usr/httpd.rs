@@ -209,7 +209,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
-        let buf_len = iface.device().capabilities().max_transmission_unit - 54;
+        let mtu = iface.device().capabilities().max_transmission_unit;
+        let buf_len = mtu - 14 - 20 - 20; // ETH+TCP+IP headers
         let mut connections = Vec::new();
         for _ in 0..MAX_CONNECTIONS {
             let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; buf_len]);
