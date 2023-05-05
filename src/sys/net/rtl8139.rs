@@ -183,7 +183,7 @@ impl Device {
         }
 
         // Set interrupts
-        unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
+        //unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
 
         // Enable Receive and Transmitter
         unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
@@ -253,6 +253,7 @@ impl EthernetDeviceIO for Device {
             self.ports.capr.write(((self.rx_offset % RX_BUFFER_LEN) - RX_BUFFER_PAD) as u16);
         }
 
+        //unsafe { self.ports.isr.write(0x1); }
         Some(self.rx_buffer[(offset + 4)..(offset + n)].to_vec())
     }
 
@@ -280,6 +281,7 @@ impl EthernetDeviceIO for Device {
                 spin_loop();
             }
         }
+        //unsafe { self.ports.isr.write(0x4); }
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
