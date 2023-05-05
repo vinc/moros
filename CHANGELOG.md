@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Fix RTL8139 driver issues (#483)
+- Improve help system (#481)
+- Refactor lisp functions (#478)
+- Improve asm binaries (#482)
+- Add light palette (#480)
+- Fix invalid bytes from serial (#479)
 - Refactor lisp functions (#478)
 - Improve asm binaries (#482)
 - Add light palette (#480)
