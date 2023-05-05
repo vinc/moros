@@ -209,11 +209,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if let Some(ref mut iface) = *sys::net::IFACE.lock() {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
-        let mtu = iface.device().capabilities().max_transmission_unit;
+        let buf_len = iface.device().capabilities().max_transmission_unit - 54;
         let mut connections = Vec::new();
         for _ in 0..MAX_CONNECTIONS {
-            let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
-            let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; mtu]);
+            let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; buf_len]);
+            let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; buf_len]);
             let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
             let tcp_handle = iface.add_socket(tcp_socket);
             let send_queue: VecDeque<Vec<u8>> = VecDeque::new();
@@ -339,12 +339,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         }
                         (buffer.len(), res)
                     }).unwrap();
-                    for chunk in res.buf.chunks(mtu) {
+                    for chunk in res.buf.chunks(buf_len) {
                         send_queue.push_back(chunk.to_vec());
                     }
                     if socket.can_send() {
                         if let Some(chunk) = send_queue.pop_front() {
-                            socket.send_slice(&chunk).unwrap();
+                            let sent = socket.send_slice(&chunk).expect("Could not send chunk");
+                            debug_assert!(sent == chunk.len());
                         }
                     }
                     if send_queue.is_empty() && !res.is_persistent() {
