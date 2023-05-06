@@ -57,6 +57,25 @@ impl Device {
         //self.config.update_mac(EthernetAddress::from_bytes(&[0, 0, 0, 0, 0, 0]));
         self.detect_eeprom();
         self.config.update_mac(self.read_mac());
+
+        // TODO:
+        // - Receive Initialization
+        //   - Set MAC address in Receive Address (RAL/RAH) register
+        //   - Set 0b in Multicast Table Array (MTA) register
+        //   - Set Interrupt Mask Set/Read (IMS) register
+        //   - Allocate a region of memory for the receive descriptor list
+        //   - Set Receive Descriptor Base Address (RDBAL/RDBAH) registers
+        //   - Set Receive Descriptor Length (RDLEN) register
+        //   - Set Receive Descriptor Head (RDH) register
+        //   - Set Receive Descriptor Tail (RDT) register
+        //   - Set Receive Control (RCTL) register
+        // - Transmit Initialization
+        //   - Allocate a region of memory for the transmit descriptor list
+        //   - Set Transmit Descriptor Base Address (TDBAL/TDBAH) registers
+        //   - Set Transmit Descriptor Length (TDLEN) register
+        //   - Set Transmit Descriptor Head (TDH) register
+        //   - Set Transmit Descriptor Tail (TDT) register
+        //   - Set Transmit Control (RCTL) register
     }
 
     fn read_mac(&self) -> EthernetAddress {
