@@ -361,9 +361,6 @@ fn cmd_version(_args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
-    #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
-    sys::console::print_fmt(format_args!(""));
-
     let cmd = variables_expansion(cmd, config);
 
     let mut args = split_args(&cmd.trim());
