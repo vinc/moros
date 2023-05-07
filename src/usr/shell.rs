@@ -489,7 +489,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "hex"      => usr::hex::main(&args),
         "host"     => usr::host::main(&args),
         "http"     => usr::http::main(&args),
-        "httpd"    => usr::httpd::main(&args),
+        //"httpd"    => usr::httpd::main(&args),
         "install"  => usr::install::main(&args),
         "keyboard" => usr::keyboard::main(&args),
         "life"     => usr::life::main(&args),
