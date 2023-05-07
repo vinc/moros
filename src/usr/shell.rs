@@ -7,6 +7,7 @@ use crate::api::regex::Regex;
 use crate::api::syscall;
 use crate::sys::fs::FileType;
 
+use core::sync::atomic::{fence, Ordering};
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::vec::Vec;
@@ -467,6 +468,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         }
     }
 
+    fence(Ordering::SeqCst);
     let res = match args[0] {
         ""         => Ok(()),
         "2048"     => usr::pow::main(&args),
@@ -489,7 +491,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "hex"      => usr::hex::main(&args),
         "host"     => usr::host::main(&args),
         "http"     => usr::http::main(&args),
-        //"httpd"    => usr::httpd::main(&args),
+        "httpd"    => usr::httpd::main(&args),
         "install"  => usr::install::main(&args),
         "keyboard" => usr::keyboard::main(&args),
         "life"     => usr::life::main(&args),
