@@ -207,9 +207,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-        println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
-
         let mut sockets = SocketSet::new(vec![]);
+
         let mtu = device.capabilities().max_transmission_unit;
         let buf_len = mtu - 14 - 20 - 20; // ETH+TCP+IP headers
         let mut connections = Vec::new();
@@ -218,10 +217,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; buf_len]);
             let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
             let tcp_handle = sockets.add(tcp_socket);
+
             let send_queue: VecDeque<Vec<u8>> = VecDeque::new();
             let keep_alive = true;
             connections.push((tcp_handle, send_queue, keep_alive));
         }
+
+        println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {

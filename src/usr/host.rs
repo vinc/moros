@@ -149,14 +149,17 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let qclass = QueryClass::IN;
     let query = Message::query(qname, qtype, qclass);
 
-    let udp_rx_buffer = udp::PacketBuffer::new(vec![udp::PacketMetadata::EMPTY], vec![0; 1024]);
-    let udp_tx_buffer = udp::PacketBuffer::new(vec![udp::PacketMetadata::EMPTY], vec![0; 1024]);
-    let udp_socket = udp::Socket::new(udp_rx_buffer, udp_tx_buffer);
-
     #[derive(Debug)]
     enum State { Bind, Query, Response }
     let mut state = State::Bind;
+
     if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+        let mut sockets = SocketSet::new(vec![]);
+        let udp_rx_buffer = udp::PacketBuffer::new(vec![udp::PacketMetadata::EMPTY], vec![0; 1024]);
+        let udp_tx_buffer = udp::PacketBuffer::new(vec![udp::PacketMetadata::EMPTY], vec![0; 1024]);
+        let udp_socket = udp::Socket::new(udp_rx_buffer, udp_tx_buffer);
+        let udp_handle = sockets.add(udp_socket);
+
         match iface.ipv4_addr() {
             None => {
                 return Err(ResponseCode::NetworkError);
@@ -167,15 +170,13 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             _ => {}
         }
 
-        let mut sockets = SocketSet::new(vec![]);
-        let udp_handle = sockets.add(udp_socket);
-
         let timeout = 5.0;
         let started = clock::realtime();
         loop {
             if clock::realtime() - started > timeout {
                 return Err(ResponseCode::NetworkError);
             }
+
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             iface.poll(timestamp, device, &mut sockets);
             let socket = sockets.get_mut::<udp::Socket>(udp_handle);

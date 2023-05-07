@@ -118,15 +118,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
-    let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
-    let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
-    let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
-
     let mut session_state = SessionState::Connect;
 
     if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
         let mut sockets = SocketSet::new(vec![]);
+        let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+        let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+        let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
         let tcp_handle = sockets.add(tcp_socket);
+
         let mut last_received_at = clock::realtime();
         let mut response_state = ResponseState::Headers;
         loop {
@@ -138,6 +138,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 eprintln!();
                 return Err(ExitCode::Failure);
             }
+
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             iface.poll(timestamp, device, &mut sockets);
             let socket = sockets.get_mut::<tcp::Socket>(tcp_handle);

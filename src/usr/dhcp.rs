@@ -46,6 +46,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
             iface.poll(timestamp, device, &mut sockets);
             let event = sockets.get_mut::<dhcpv4::Socket>(dhcp_handle).poll();
+
             match event {
                 None => {}
                 Some(dhcpv4::Event::Configured(config)) => {
