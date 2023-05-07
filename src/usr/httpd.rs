@@ -14,7 +14,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::fmt;
-use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
+use smoltcp::iface::SocketSet;
+use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::phy::Device;
 use smoltcp::wire::IpAddress;
@@ -32,9 +33,9 @@ struct Request {
 }
 
 impl Request {
-    pub fn new() -> Self {
+    pub fn new(addr: IpAddress) -> Self {
         Self {
-            addr: IpAddress::default(),
+            addr,
             verb: String::new(),
             path: String::new(),
             body: Vec::new(),
@@ -43,10 +44,9 @@ impl Request {
     }
 
     pub fn from(addr: IpAddress, buf: &[u8]) -> Option<Self> {
-        let mut req = Request::new();
         let msg = String::from_utf8_lossy(buf);
         if !msg.is_empty() {
-            req.addr = addr;
+            let mut req = Request::new(addr);
             let mut is_header = true;
             for (i, line) in msg.lines().enumerate() {
                 if i == 0 { // Request line
@@ -85,12 +85,12 @@ struct Response {
 }
 
 impl Response {
-    pub fn new() -> Self {
+    pub fn new(req: Request) -> Self {
         let mut headers = BTreeMap::new();
         headers.insert("Date".to_string(), time::now_utc().format("%a, %d %b %Y %H:%M:%S GMT"));
         headers.insert("Server".to_string(), format!("MOROS/{}", env!("CARGO_PKG_VERSION")));
         Self {
-            req: Request::new(),
+            req,
             buf: Vec::new(),
             mime: String::new(),
             time: time::now().format(DATE_TIME_ZONE),
@@ -206,47 +206,46 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         i += 1;
     }
 
-    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
+    if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
         println!("{}HTTP Server listening on 0.0.0.0:{}{}", csi_color, port, csi_reset);
 
-        let mtu = iface.device().capabilities().max_transmission_unit;
+        let mut sockets = SocketSet::new(vec![]);
+        let mtu = device.capabilities().max_transmission_unit;
         let buf_len = mtu - 14 - 20 - 20; // ETH+TCP+IP headers
         let mut connections = Vec::new();
         for _ in 0..MAX_CONNECTIONS {
-            let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; buf_len]);
-            let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; buf_len]);
-            let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-            let tcp_handle = iface.add_socket(tcp_socket);
+            let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; buf_len]);
+            let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; buf_len]);
+            let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
+            let tcp_handle = sockets.add(tcp_socket);
             let send_queue: VecDeque<Vec<u8>> = VecDeque::new();
-            connections.push((tcp_handle, send_queue));
+            let keep_alive = true;
+            connections.push((tcp_handle, send_queue, keep_alive));
         }
 
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
-                for (tcp_handle, _) in &connections {
-                    iface.remove_socket(*tcp_handle);
-                }
                 println!();
                 return Ok(());
             }
 
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
-            if let Err(e) = iface.poll(timestamp) {
-                error!("Network Error: {}", e);
-            }
+            iface.poll(timestamp, device, &mut sockets);
 
-            for (tcp_handle, send_queue) in &mut connections {
-                let socket = iface.get_socket::<TcpSocket>(*tcp_handle);
+            for (tcp_handle, send_queue, keep_alive) in &mut connections {
+                let socket = sockets.get_mut::<tcp::Socket>(*tcp_handle);
 
                 if !socket.is_open() {
                     socket.listen(port).unwrap();
                 }
-                let addr = socket.remote_endpoint().addr;
+                let endpoint = match socket.remote_endpoint() {
+                    Some(endpoint) => endpoint,
+                    None => continue,
+                };
                 if socket.may_recv() {
                     let res = socket.recv(|buffer| {
-                        let mut res = Response::new();
-                        if let Some(req) = Request::from(addr, buffer) {
-                            res.req = req.clone();
+                        if let Some(req) = Request::from(endpoint.addr, buffer) {
+                            let mut res = Response::new(req.clone());
                             let sep = if req.path == "/" { "" } else { "/" };
                             let real_path = format!("{}{}{}", dir, sep, req.path.strip_suffix('/').unwrap_or(&req.path)).replace("//", "/");
 
@@ -337,11 +336,16 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             }
                             res.end();
                             println!("{}", res);
+                            (buffer.len(), Some(res))
+                        } else {
+                            (0, None)
                         }
-                        (buffer.len(), res)
-                    }).unwrap();
-                    for chunk in res.buf.chunks(buf_len) {
-                        send_queue.push_back(chunk.to_vec());
+                    });
+                    if let Ok(Some(res)) = res {
+                        *keep_alive = res.is_persistent();
+                        for chunk in res.buf.chunks(buf_len) {
+                            send_queue.push_back(chunk.to_vec());
+                        }
                     }
                     if socket.can_send() {
                         if let Some(chunk) = send_queue.pop_front() {
@@ -349,7 +353,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             debug_assert!(sent == chunk.len());
                         }
                     }
-                    if send_queue.is_empty() && !res.is_persistent() {
+                    if send_queue.is_empty() && !*keep_alive {
                         socket.close();
                     }
                 } else if socket.may_send() {
@@ -357,7 +361,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     send_queue.clear();
                 }
             }
-            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = iface.poll_delay(timestamp, &sockets) {
                 let t = wait_duration.total_micros() / POLL_DELAY_DIV as u64;
                 if t > 0 {
                     syscall::sleep((t as f64) / 1000000.0);

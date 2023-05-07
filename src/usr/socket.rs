@@ -11,7 +11,8 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::{self, FromStr};
-use smoltcp::socket::{TcpSocket, TcpSocketBuffer, TcpState};
+use smoltcp::iface::SocketSet;
+use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
@@ -92,29 +93,27 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
-    let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
-    let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
-    let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
+    let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+    let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+    let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
 
     #[derive(Debug)]
     enum State { Connecting, Sending, Receiving }
     let mut state = State::Connecting;
 
-    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        let tcp_handle = iface.add_socket(tcp_socket);
+    if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+        let mut sockets = SocketSet::new(vec![]);
+        let tcp_handle = sockets.add(tcp_socket);
 
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
-                iface.remove_socket(tcp_handle);
                 return Err(ExitCode::Failure);
             }
             let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
-            if let Err(e) = iface.poll(timestamp) {
-                error!("Network Error: {}", e);
-            }
-
-            let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
+            iface.poll(timestamp, device, &mut sockets);
+            let socket = sockets.get_mut::<tcp::Socket>(tcp_handle);
+            let cx = iface.context();
             if verbose {
                 debug!("*********************************");
                 debug!("APP State: {:?}", state);
@@ -184,7 +183,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }).unwrap();
                     State::Receiving
                 }
-                _ if socket.state() == TcpState::SynSent || socket.state() == TcpState::SynReceived => {
+                _ if socket.state() == tcp::State::SynSent || socket.state() == tcp::State::SynReceived => {
                     state
                 }
                 State::Receiving if !socket.may_recv() && !listen => {
@@ -211,11 +210,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             if interval > 0.0 {
                 syscall::sleep(interval);
             }
-            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = iface.poll_delay(timestamp, &sockets) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
-        iface.remove_socket(tcp_handle);
         Ok(())
     } else {
         Err(ExitCode::Failure)
