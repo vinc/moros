@@ -7,7 +7,8 @@ use crate::api::syscall;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use core::str::{self, FromStr};
-use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
+use smoltcp::iface::SocketSet;
+use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
@@ -117,33 +118,31 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
-    let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
-    let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; 1024]);
-    let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-
     let mut session_state = SessionState::Connect;
 
-    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        let tcp_handle = iface.add_socket(tcp_socket);
+    if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+        let mut sockets = SocketSet::new(vec![]);
+        let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+        let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+        let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
+        let tcp_handle = sockets.add(tcp_socket);
+
         let mut last_received_at = clock::realtime();
         let mut response_state = ResponseState::Headers;
         loop {
             if clock::realtime() - last_received_at > timeout {
                 error!("Timeout reached");
-                iface.remove_socket(tcp_handle);
                 return Err(ExitCode::Failure);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
-                iface.remove_socket(tcp_handle);
                 return Err(ExitCode::Failure);
             }
-            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
-            if let Err(e) = iface.poll(timestamp) {
-                error!("Network Error: {}", e);
-            }
 
-            let (socket, cx) = iface.get_socket_and_context::<TcpSocket>(tcp_handle);
+            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
+            iface.poll(timestamp, device, &mut sockets);
+            let socket = sockets.get_mut::<tcp::Socket>(tcp_handle);
+            let cx = iface.context();
 
             session_state = match session_state {
                 SessionState::Connect if !socket.is_active() => {
@@ -155,7 +154,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                     if socket.connect(cx, (address, url.port), local_port).is_err() {
                         error!("Could not connect to {}:{}", address, url.port);
-                        iface.remove_socket(tcp_handle);
                         return Err(ExitCode::Failure);
                     }
                     SessionState::Request
@@ -227,11 +225,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 _ => session_state
             };
 
-            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = iface.poll_delay(timestamp, &sockets) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
-        iface.remove_socket(tcp_handle);
         Ok(())
     } else {
         Err(ExitCode::Failure)

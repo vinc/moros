@@ -1,23 +1,17 @@
 use crate::{sys, usr};
 
-use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use alloc::vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use smoltcp::iface::{InterfaceBuilder, NeighborCache, Routes};
+use smoltcp::iface::Interface;
 use smoltcp::phy::DeviceCapabilities;
-use smoltcp::phy::{Device, Medium};
-use smoltcp::time::Instant;
-use smoltcp::wire::{EthernetAddress, IpCidr, Ipv4Address};
+use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
 
 mod rtl8139;
 mod pcnet;
 
-pub type Interface = smoltcp::iface::Interface<'static, EthernetDevice>;
-
-pub static IFACE: Mutex<Option<Interface>> = Mutex::new(None);
+pub static NET: Mutex<Option<(Interface, EthernetDevice)>> = Mutex::new(None);
 
 #[derive(Clone)]
 pub enum EthernetDevice {
@@ -72,9 +66,9 @@ impl EthernetDeviceIO for EthernetDevice {
     }
 }
 
-impl<'a> smoltcp::phy::Device<'a> for EthernetDevice {
-    type RxToken = RxToken;
-    type TxToken = TxToken;
+impl<'a> smoltcp::phy::Device for EthernetDevice {
+    type RxToken<'b> = RxToken where Self: 'b;
+    type TxToken<'b> = TxToken where Self: 'b;
 
     fn capabilities(&self) -> DeviceCapabilities {
         let mut caps = DeviceCapabilities::default();
@@ -83,7 +77,7 @@ impl<'a> smoltcp::phy::Device<'a> for EthernetDevice {
         caps
     }
 
-    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+    fn receive(&mut self, _instant: smoltcp::time::Instant) -> Option<(Self::RxToken<'a>, Self::TxToken<'a>)> {
         if let Some(buffer) = self.receive_packet() {
             if self.config().is_debug_enabled() {
                 debug!("NET Packet Received");
@@ -98,7 +92,7 @@ impl<'a> smoltcp::phy::Device<'a> for EthernetDevice {
         }
     }
 
-    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+    fn transmit(&mut self, _instant: smoltcp::time::Instant) -> Option<Self::TxToken<'a>> {
         let tx = TxToken { device: self.clone() };
         Some(tx)
     }
@@ -110,7 +104,7 @@ pub struct RxToken {
 }
 
 impl smoltcp::phy::RxToken for RxToken {
-     fn consume<R, F>(mut self, _timestamp: Instant, f: F) -> smoltcp::Result<R> where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
+     fn consume<R, F>(mut self, f: F) -> R where F: FnOnce(&mut [u8]) -> R {
         f(&mut self.buffer)
     }
 }
@@ -120,18 +114,16 @@ pub struct TxToken {
     device: EthernetDevice,
 }
 impl smoltcp::phy::TxToken for TxToken {
-    fn consume<R, F>(mut self, _timestamp: Instant, len: usize, f: F) -> smoltcp::Result<R> where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
+    fn consume<R, F>(mut self, len: usize, f: F) -> R where F: FnOnce(&mut [u8]) -> R {
         let config = self.device.config();
         let buf = self.device.next_tx_buffer(len);
-        let res = f(buf);
-        if res.is_ok() {
-            if config.is_debug_enabled() {
-                debug!("NET Packet Transmitted");
-                usr::hex::print_hex(buf);
-            }
-            self.device.transmit_packet(len);
-            self.device.stats().tx_add(len as u64);
+        if config.is_debug_enabled() {
+            debug!("NET Packet Transmitted");
+            usr::hex::print_hex(buf);
         }
+        let res = f(buf);
+        self.device.transmit_packet(len);
+        self.device.stats().tx_add(len as u64);
         res
     }
 }
@@ -225,25 +217,21 @@ fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {
 }
 
 pub fn init() {
-    let add_interface = |device: EthernetDevice, name| {
+    let add = |mut device: EthernetDevice, name| {
         if let Some(mac) = device.config().mac() {
             log!("NET {} MAC {}\n", name, mac);
-            let neighbor_cache = NeighborCache::new(BTreeMap::new());
-            let routes = Routes::new(BTreeMap::new());
-            let ip_addrs = [IpCidr::new(Ipv4Address::UNSPECIFIED.into(), 0)];
-            let medium = device.capabilities().medium;
-            let mut builder = InterfaceBuilder::new(device, vec![]).ip_addrs(ip_addrs).routes(routes);
-            if medium == Medium::Ethernet {
-                builder = builder.hardware_addr(mac.into()).neighbor_cache(neighbor_cache);
-            }
-            let iface = builder.finalize();
-            *IFACE.lock() = Some(iface);
+
+            let mut config = smoltcp::iface::Config::new();
+            config.hardware_addr = Some(mac.into());
+            let iface = Interface::new(config, &mut device);
+
+            *NET.lock() = Some((iface, device));
         }
     };
     if let Some(io_base) = find_pci_io_base(0x10EC, 0x8139) {
-        add_interface(EthernetDevice::RTL8139(rtl8139::Device::new(io_base)), "RTL8139");
+        add(EthernetDevice::RTL8139(rtl8139::Device::new(io_base)), "RTL8139");
     }
     if let Some(io_base) = find_pci_io_base(0x1022, 0x2000) {
-        add_interface(EthernetDevice::PCNET(pcnet::Device::new(io_base)), "PCNET");
+        add(EthernetDevice::PCNET(pcnet::Device::new(io_base)), "PCNET");
     }
 }
