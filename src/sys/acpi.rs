@@ -1,11 +1,12 @@
 use crate::sys;
+
 use acpi::{AcpiHandler, PhysicalMapping, AcpiTables};
 use alloc::boxed::Box;
-use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use aml::value::AmlValue;
+use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use core::ptr::NonNull;
-use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
+use x86_64::instructions::port::Port;
 
 #[allow(dead_code)]
 #[repr(u64)]

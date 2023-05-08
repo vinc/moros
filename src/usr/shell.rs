@@ -7,6 +7,7 @@ use crate::api::regex::Regex;
 use crate::api::syscall;
 use crate::sys::fs::FileType;
 
+use core::sync::atomic::{fence, Ordering};
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::vec::Vec;
@@ -360,9 +361,6 @@ fn cmd_version(_args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
-    #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
-    sys::console::print_fmt(format_args!(""));
-
     let cmd = variables_expansion(cmd, config);
 
     let mut args = split_args(&cmd.trim());
@@ -467,6 +465,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         }
     }
 
+    fence(Ordering::SeqCst);
     let res = match args[0] {
         ""         => Ok(()),
         "2048"     => usr::pow::main(&args),
