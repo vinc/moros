@@ -16,28 +16,27 @@ serial = []
 
 [dependencies]
 acpi = "4.1.0"
-aml = "0.16.2"
+aml = "0.16.3"
 base64 = { version = "0.13.1", default-features = false }
-bit_field = "0.10.0"
+bit_field = "0.10.2"
 bootloader = { version = "0.9.23", features = ["map_physical_memory"] }
-hmac = { version = "0.12.1", default-features = false }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.6"
-linked_list_allocator = "0.10.4"
+linked_list_allocator = "0.10.5"
 littlewing = { version = "0.7.0", default-features = false }
-nom = { version = "7.1.1", default-features = false, features = ["alloc"] }
+nom = { version = "7.1.3", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.3", default-features = false }
 num-traits = { version = "0.2.15", default-features = false }
-object = { version = "0.30.0", default-features = false, features = ["read"] }
-pbkdf2 = { version = "0.11.0", default-features = false }
+object = { version = "0.30.3", default-features = false, features = ["read"] }
+pbkdf2 = { version = "0.12.1", default-features = false, features = ["hmac"] }
 pc-keyboard = "0.6.1"
-pic8259 = "0.10.2"
+pic8259 = "0.10.3"
 rand = { version = "0.8.5", default-features = false }
 rand_hc = "0.3.1"
-raw-cpuid = "10.6.0"
+raw-cpuid = "10.7.0"
 sha2 = { version = "0.10.6", default-features = false, features = ["force-soft"] }
 smoltcp = { version = "0.8.2", default-features = false, features = ["alloc", "medium-ethernet", "socket-tcp", "socket-udp", "socket-dhcpv4", "proto-ipv4", "proto-dhcpv4"] }
-spin = "0.9.4"
+spin = "0.9.8"
 time = { version = "0.2.27", default-features = false }
 uart_16550 = "0.2.18"
 vte = "0.11.0"

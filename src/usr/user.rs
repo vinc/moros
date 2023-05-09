@@ -1,4 +1,5 @@
 use crate::{api, sys, usr};
+use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
 use crate::api::random;
@@ -10,16 +11,23 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::str;
-use hmac::Hmac;
 use sha2::Sha256;
 
 const USERS: &str = "/ini/users.csv";
-const COMMANDS: [&str; 2] = ["create", "login"];
 const DISABLE_EMPTY_PASSWORD: bool = false;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() == 1 || !COMMANDS.contains(&args[1]) {
-        return usage();
+    match *args.get(1).unwrap_or(&"invalid") {
+        "create" => {},
+        "login" => {},
+        "-h" | "--help" => {
+            help();
+            return Ok(());
+        }
+        _ => {
+            help();
+            return Err(ExitCode::UsageError);
+        }
     }
 
     let username: String = if args.len() == 2 {
@@ -32,13 +40,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match args[1] {
         "create" => create(&username),
         "login" => login(&username),
-        _ => usage(),
+        _ => unreachable!(),
     }
-}
-
-fn usage() -> Result<(), ExitCode> {
-    eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    Err(ExitCode::UsageError)
 }
 
 // TODO: Add max number of attempts
@@ -144,7 +147,7 @@ pub fn check(password: &str, hashed_password: &str) -> bool {
     let salt: [u8; 16] = decoded_field[0..16].try_into().unwrap();
 
     let mut hash = [0u8; 32];
-    pbkdf2::pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, c, &mut hash);
+    pbkdf2::pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, c, &mut hash);
     let encoded_hash = String::from_utf8(usr::base64::encode(&hash)).unwrap();
 
     encoded_hash == fields[3]
@@ -170,7 +173,7 @@ pub fn hash(password: &str) -> String {
     }
 
     // Hashing password with PBKDF2-HMAC-SHA256
-    pbkdf2::pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, c, &mut hash);
+    pbkdf2::pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, c, &mut hash);
 
     // Encoding in Base64 standard without padding
     let c = c.to_be_bytes();
@@ -214,4 +217,15 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     }
 
     fs::write(USERS, csv.as_bytes())
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} user {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Commands:{}", csi_title, csi_reset);
+    println!("  {}create [<user>]{}    Create user", csi_option, csi_reset);
+    println!("  {}login [<user>]{}     Login user", csi_option, csi_reset);
 }

@@ -21,7 +21,7 @@ use x86_64::structures::paging::{Mapper, Page, PageTableFlags, Size4KiB};
 
 const MAX_FILE_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
-const MAX_PROC_SIZE: usize = 1 << 20; // 1 MB
+const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
 pub static PID: AtomicUsize = AtomicUsize::new(0);
 pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
@@ -311,25 +311,28 @@ impl Process {
         let proc_size = MAX_PROC_SIZE as u64;
         let code_addr = CODE_ADDR.fetch_add(proc_size, Ordering::SeqCst);
         let stack_addr = code_addr + proc_size;
+        //debug!("code_addr:  {:#x}", code_addr);
+        //debug!("stack_addr: {:#x}", stack_addr);
 
         let mut entry_point_addr = 0;
         let code_ptr = code_addr as *mut u8;
         let code_size = bin.len();
         if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
-                sys::allocator::alloc_pages(&mut mapper, code_addr, code_size);
+                //sys::allocator::alloc_pages(&mut mapper, code_addr, code_size).expect("proc mem alloc");
                 entry_point_addr = obj.entry();
                 for segment in obj.segments() {
                     let addr = segment.address() as usize;
                     if let Ok(data) = segment.data() {
                         for (i, b) in data.iter().enumerate() {
+                            //debug!("code:       {:#x}", unsafe { code_ptr.add(addr + i) as usize });
                             unsafe { core::ptr::write(code_ptr.add(addr + i), *b) };
                         }
                     }
                 }
             }
         } else if bin[0..4] == BIN_MAGIC { // Flat binary
-            sys::allocator::alloc_pages(&mut mapper, code_addr, code_size);
+            //sys::allocator::alloc_pages(&mut mapper, code_addr, code_size).expect("proc mem alloc");
             for (i, b) in bin.iter().skip(4).enumerate() {
                 unsafe { core::ptr::write(code_ptr.add(i), *b) };
             }
@@ -364,7 +367,7 @@ impl Process {
         let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
 
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        sys::allocator::alloc_pages(&mut mapper, heap_addr, 1).expect("Could not allocate");
+        sys::allocator::alloc_pages(&mut mapper, heap_addr, 1).expect("proc heap alloc");
 
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
         let args: &[&str] = unsafe { core::slice::from_raw_parts(args_ptr as *const &str, args_len) };

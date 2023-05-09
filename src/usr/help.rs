@@ -2,15 +2,19 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() > 1 {
-        help_command(args[1])
-    } else {
-        help_summary()
+    match args.len() {
+        1 => help_summary(),
+        2 => help_command(args[1]),
+        _ => {
+            help();
+            Err(ExitCode::UsageError)
+        }
     }
 }
 
 fn help_command(cmd: &str) -> Result<(), ExitCode> {
     match cmd {
+        "-h" | "--help" => { help(); Ok(()) },
         "date" => help_date(),
         "edit" => help_edit(),
         _      => help_unknown(cmd),
@@ -60,11 +64,10 @@ fn help_summary() -> Result<(), ExitCode> {
 fn help_edit() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("MOROS text editor is somewhat inspired by Pico, but with an even smaller range");
-    println!("of features.");
+    println!("MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.");
     println!();
-    println!("{}Shortcuts:{}", csi_color, csi_reset);
-    let shortcuts = [
+    println!("{}Commands:{}", csi_color, csi_reset);
+    let commands = [
         ("^Q", "Quit editor"),
         ("^W", "Write to file"),
         ("^X", "Write to file and quit"),
@@ -72,11 +75,14 @@ fn help_edit() -> Result<(), ExitCode> {
         ("^B", "Go to bottom of file"),
         ("^A", "Go to beginning of line"),
         ("^E", "Go to end of line"),
+        ("^D", "Cut line"),
+        ("^Y", "Copy line"),
+        ("^P", "Paste line"),
     ];
-    for (shortcut, usage) in &shortcuts {
+    for (command, usage) in &commands {
         let csi_color = Style::color("LightCyan");
         let csi_reset = Style::reset();
-        println!("  {}{}{}    {}", csi_color, shortcut, csi_reset, usage);
+        println!("  {}{}{}    {}", csi_color, command, csi_reset, usage);
     }
     Ok(())
 }
@@ -84,7 +90,7 @@ fn help_edit() -> Result<(), ExitCode> {
 fn help_date() -> Result<(), ExitCode> {
     let csi_color = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("The date command's formatting behavior is based on strftime in C");
+    println!("The date command's formatting behavior is based on strftime from C.");
     println!();
     println!("{}Specifiers:{}", csi_color, csi_reset);
     let specifiers = [
@@ -127,4 +133,11 @@ fn help_date() -> Result<(), ExitCode> {
         println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }
     Ok(())
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} help {}[<command>]{}", csi_title, csi_reset, csi_option, csi_reset);
 }

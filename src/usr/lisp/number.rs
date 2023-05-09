@@ -201,7 +201,9 @@ impl FromStr for Number {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let err = Err(Err::Reason("Could not parse number".to_string()));
-        if s.contains('.') {
+        if s.is_empty() {
+            return Ok(Number::Int(0));
+        } else if s.contains('.') {
             if let Ok(n) = s.parse() {
                 return Ok(Number::Float(n));
             }

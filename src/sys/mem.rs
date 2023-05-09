@@ -89,6 +89,7 @@ impl BootInfoFrameAllocator {
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         let next = ALLOCATED_FRAMES.fetch_add(1, Ordering::SeqCst);
+        //debug!("Allocate frame {} / {}", next, self.usable_frames().count());
 
         // FIXME: creating an iterator for each allocation is very slow if
         // the heap is larger than a few megabytes.

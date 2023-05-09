@@ -18,7 +18,7 @@ pub fn expand_quasiquote(exp: &Exp) -> Result<Exp, Err> {
                 Exp::Sym(s) if s == "unquote" => {
                     Ok(list[1].clone())
                 }
-                Exp::List(l) if l.len() == 2 && l[0] == Exp::Sym("unquote-splicing".to_string()) => {
+                Exp::List(l) if l.len() == 2 && l[0] == Exp::Sym("unquote-splice".to_string()) => {
                     Ok(Exp::List(vec![
                         Exp::Sym("append".to_string()),
                         l[1].clone(),
@@ -64,7 +64,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
-                            Exp::Sym("define".to_string()), name, Exp::List(vec![
+                            Exp::Sym("variable".to_string()), name, Exp::List(vec![
                                 Exp::Sym("function".to_string()), args, body
                             ])
                         ]))
@@ -82,7 +82,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
-                            Exp::Sym("define".to_string()), name, Exp::List(vec![
+                            Exp::Sym("variable".to_string()), name, Exp::List(vec![
                                 Exp::Sym("macro".to_string()), args, body
                             ])
                         ]))

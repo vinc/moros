@@ -1,11 +1,12 @@
 use crate::sys;
+
 use acpi::{AcpiHandler, PhysicalMapping, AcpiTables};
 use alloc::boxed::Box;
-use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use aml::value::AmlValue;
+use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use core::ptr::NonNull;
-use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
+use x86_64::instructions::port::Port;
 
 #[allow(dead_code)]
 #[repr(u64)]
@@ -41,10 +42,10 @@ pub fn shutdown() {
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {
-            //log!("ACPI Found RDSP in BIOS\n");
+            //debug!("ACPI Found RDSP in BIOS");
             for (sign, sdt) in acpi.sdts {
                 if sign.as_str() == "FACP" {
-                    //log!("ACPI Found FACP at {}\n", sdt.physical_address);
+                    //debug!("ACPI Found FACP at {:#x}", sdt.physical_address);
 
                     /*
                     // Enable ACPI
@@ -56,25 +57,25 @@ pub fn shutdown() {
                     */
 
                     pm1a_control_block = read_fadt::<u32>(sdt.physical_address, FADT::Pm1aControlBlock);
-                    //log!("ACPI Found PM1a Control Block: {:#X}\n", pm1a_control_block);
+                    //debug!("ACPI Found PM1a Control Block: {:#x}", pm1a_control_block);
                 }
             }
             match &acpi.dsdt {
                 Some(dsdt) => {
-                    //log!("ACPI Found DSDT at {}\n", dsdt.address);
                     let address = sys::mem::phys_to_virt(PhysAddr::new(dsdt.address as u64));
-                    let stream = unsafe { core::slice::from_raw_parts(address.as_ptr(), dsdt.length as usize) };
-                    if aml.parse_table(stream).is_ok() {
+                    //debug!("ACPI Found DSDT at {:#x} {:#x}", dsdt.address, address);
+                    let table = unsafe { core::slice::from_raw_parts(address.as_ptr(), dsdt.length as usize) };
+                    if aml.parse_table(table).is_ok() {
                         let name = AmlName::from_str("\\_S5").unwrap();
                         if let Ok(AmlValue::Package(s5)) = aml.namespace.get_by_path(&name) {
-                            //log!("ACPI Found \\_S5 in DSDT\n");
+                            //debug!("ACPI Found \\_S5 in DSDT");
                             if let AmlValue::Integer(value) = s5[0] {
                                 slp_typa = value as u16;
-                                //log!("ACPI Found SLP_TYPa in \\_S5: {}\n", slp_typa);
+                                //debug!("ACPI Found SLP_TYPa in \\_S5: {}", slp_typa);
                             }
                         }
                     } else {
-                        log!("ACPI Failed to parse AML in DSDT\n");
+                        debug!("ACPI Failed to parse AML in DSDT");
                         // FIXME: AML parsing works on QEMU and Bochs but not
                         // on VirtualBox at the moment, so we use the following
                         // hardcoded value:
@@ -85,11 +86,12 @@ pub fn shutdown() {
             }
         }
         Err(_e) => {
-            log!("ACPI Could not find RDSP in BIOS\n");
+            debug!("ACPI Could not find RDSP in BIOS\n");
         }
     };
 
     let mut port: Port<u16> = Port::new(pm1a_control_block as u16);
+    //debug!("ACPI shutdown");
     unsafe {
         port.write(slp_typa | slp_len);
     }
@@ -101,6 +103,7 @@ pub struct MorosAcpiHandler;
 impl AcpiHandler for MorosAcpiHandler {
     unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> PhysicalMapping<Self, T> {
         let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
+        //debug!("ACPI mapping phys {:#x} -> virt {:#x}", physical_address, virtual_address);
         PhysicalMapping::new(physical_address, NonNull::new(virtual_address.as_mut_ptr()).unwrap(), size, size, Self)
     }
 

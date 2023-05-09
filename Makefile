@@ -18,6 +18,7 @@ nic = rtl8139# rtl8139, pcnet
 audio = sdl# sdl, coreaudio
 kvm = false
 pcap = false
+monitor = false
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_MEMORY = $(memory)
@@ -72,6 +73,10 @@ ifeq ($(pcap),true)
 	qemu-opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
 endif
 
+ifeq ($(monitor),true)
+	qemu-opts += -monitor telnet:127.0.0.1:7777,server,nowait
+endif
+
 ifeq ($(output),serial)
 	qemu-opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
 endif
@@ -89,7 +94,11 @@ qemu:
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
-		-m 32 -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+		-m $(memory) -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+
+website:
+	cd www && sh build.sh
 
 clean:
 	cargo clean
+	rm -f www/*.html www/*.png

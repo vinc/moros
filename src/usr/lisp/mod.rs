@@ -3,12 +3,13 @@ mod eval;
 mod expand;
 mod number;
 mod parse;
+mod primitive;
 
 pub use number::Number;
 pub use env::Env;
 
 use env::default_env;
-use eval::{eval, eval_define_args};
+use eval::{eval, eval_variable_args};
 use expand::expand;
 use parse::parse;
 
@@ -72,6 +73,22 @@ impl PartialEq for Exp {
     }
 }
 
+use core::cmp::Ordering;
+impl PartialOrd for Exp {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Exp::Function(a), Exp::Function(b)) => a.partial_cmp(b),
+            (Exp::Macro(a),    Exp::Macro(b))    => a.partial_cmp(b),
+            (Exp::List(a),     Exp::List(b))     => a.partial_cmp(b),
+            (Exp::Bool(a),     Exp::Bool(b))     => a.partial_cmp(b),
+            (Exp::Num(a),      Exp::Num(b))      => a.partial_cmp(b),
+            (Exp::Str(a),      Exp::Str(b))      => a.partial_cmp(b),
+            (Exp::Sym(a),      Exp::Sym(b))      => a.partial_cmp(b),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
@@ -91,7 +108,7 @@ impl fmt::Display for Exp {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, PartialOrd)]
 pub struct Function {
     params: Exp,
     body: Exp,
@@ -126,12 +143,16 @@ macro_rules! ensure_length_gt {
     };
 }
 
-pub fn list_of_numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
-    args.iter().map(number).collect()
+pub fn bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
+    args.iter().map(byte).collect()
 }
 
-pub fn list_of_bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
-    args.iter().map(byte).collect()
+pub fn strings(args: &[Exp]) -> Result<Vec<String>, Err> {
+    args.iter().map(string).collect()
+}
+
+pub fn numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
+    args.iter().map(number).collect()
 }
 
 pub fn string(exp: &Exp) -> Result<String, Err> {
@@ -237,7 +258,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         args[2..].iter().map(|arg| Exp::Str(arg.to_string())).collect()
     });
     let quote = Exp::List(vec![Exp::Sym("quote".to_string()), list]);
-    if eval_define_args(&[key, quote], env).is_err() {
+    if eval_variable_args(&[key, quote], env).is_err() {
         error!("Could not parse args");
         return Err(ExitCode::Failure);
     }
@@ -245,6 +266,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() < 2 {
         repl(env)
     } else {
+        if args[1] == "-h" || args[1] == "--help" {
+            return help();
+        }
         let pathname = args[1];
         if let Ok(code) = api::fs::read_to_string(pathname) {
             let mut block = String::new();
@@ -281,6 +305,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 }
 
+fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} lisp {}[<file> [<args>]]{}", csi_title, csi_reset, csi_option, csi_reset);
+    Ok(())
+}
+
 #[test_case]
 fn test_lisp() {
     use core::f64::consts::PI;
@@ -301,31 +333,31 @@ fn test_lisp() {
     assert_eq!(eval!("'a"), "a");
     assert_eq!(eval!("(quote '(a b c))"), "(quote (a b c))");
 
-    // atom
-    assert_eq!(eval!("(atom (quote a))"), "true");
-    assert_eq!(eval!("(atom (quote (1 2 3)))"), "false");
-    assert_eq!(eval!("(atom 1)"), "true");
+    // atom?
+    assert_eq!(eval!("(atom? (quote a))"), "true");
+    assert_eq!(eval!("(atom? (quote (1 2 3)))"), "false");
+    assert_eq!(eval!("(atom? 1)"), "true");
 
-    // eq
-    assert_eq!(eval!("(eq (quote a) (quote a))"), "true");
-    assert_eq!(eval!("(eq (quote a) (quote b))"), "false");
-    assert_eq!(eval!("(eq (quote a) (quote ()))"), "false");
-    assert_eq!(eval!("(eq (quote ()) (quote ()))"), "true");
-    assert_eq!(eval!("(eq \"a\" \"a\")"), "true");
-    assert_eq!(eval!("(eq \"a\" \"b\")"), "false");
-    assert_eq!(eval!("(eq \"a\" 'b)"), "false");
-    assert_eq!(eval!("(eq 1 1)"), "true");
-    assert_eq!(eval!("(eq 1 2)"), "false");
-    assert_eq!(eval!("(eq 1 1.0)"), "false");
-    assert_eq!(eval!("(eq 1.0 1.0)"), "true");
+    // equal?
+    assert_eq!(eval!("(equal? (quote a) (quote a))"), "true");
+    assert_eq!(eval!("(equal? (quote a) (quote b))"), "false");
+    assert_eq!(eval!("(equal? (quote a) (quote ()))"), "false");
+    assert_eq!(eval!("(equal? (quote ()) (quote ()))"), "true");
+    assert_eq!(eval!("(equal? \"a\" \"a\")"), "true");
+    assert_eq!(eval!("(equal? \"a\" \"b\")"), "false");
+    assert_eq!(eval!("(equal? \"a\" 'b)"), "false");
+    assert_eq!(eval!("(equal? 1 1)"), "true");
+    assert_eq!(eval!("(equal? 1 2)"), "false");
+    assert_eq!(eval!("(equal? 1 1.0)"), "false");
+    assert_eq!(eval!("(equal? 1.0 1.0)"), "true");
 
-    // car
-    assert_eq!(eval!("(car (quote (1)))"), "1");
-    assert_eq!(eval!("(car (quote (1 2 3)))"), "1");
+    // head
+    assert_eq!(eval!("(head (quote (1)))"), "1");
+    assert_eq!(eval!("(head (quote (1 2 3)))"), "1");
 
-    // cdr
-    assert_eq!(eval!("(cdr (quote (1)))"), "()");
-    assert_eq!(eval!("(cdr (quote (1 2 3)))"), "(2 3)");
+    // tail
+    assert_eq!(eval!("(tail (quote (1)))"), "()");
+    assert_eq!(eval!("(tail (quote (1 2 3)))"), "(2 3)");
 
     // cons
     assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
@@ -344,14 +376,14 @@ fn test_lisp() {
     assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
 
     // while
-    assert_eq!(eval!("(do (define i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
+    assert_eq!(eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
 
-    // define
-    eval!("(define a 2)");
+    // variable
+    eval!("(variable a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");
-    eval!("(define add-one (function (b) (+ b 1)))");
+    eval!("(variable add-one (function (b) (+ b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
-    eval!("(define fibonacci (function (n) (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
+    eval!("(variable fibonacci (function (n) (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
     assert_eq!(eval!("(fibonacci 6)"), "8");
 
     // function
@@ -412,17 +444,17 @@ fn test_lisp() {
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
 
     // number
-    assert_eq!(eval!("(bytes->number (number->bytes 42) \"int\")"), "42");
-    assert_eq!(eval!("(bytes->number (number->bytes 42.0) \"float\")"), "42.0");
+    assert_eq!(eval!("(binary->number (number->binary 42) \"int\")"), "42");
+    assert_eq!(eval!("(binary->number (number->binary 42.0) \"float\")"), "42.0");
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
     assert_eq!(eval!("(string \"a\" \"b\" \"c\")"), "\"abc\"");
     assert_eq!(eval!("(string \"a\" \"\")"), "\"a\"");
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
-    assert_eq!(eval!("(eq \"foo\" \"foo\")"), "true");
-    assert_eq!(eval!("(eq \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(lines \"a\nb\nc\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(equal? \"foo\" \"foo\")"), "true");
+    assert_eq!(eval!("(equal? \"foo\" \"bar\")"), "false");
+    assert_eq!(eval!("(split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");
@@ -464,22 +496,27 @@ fn test_lisp() {
     assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
-    eval!("(define x 'a)");
+    eval!("(variable x 'a)");
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
     assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
+    assert_eq!(eval!("`(list ,(+ 1 2) 4)"), "(list 3 4)");
 
-    // unquote-splicing
-    eval!("(define x '(1 2 3))");
+    // unquote-splice
+    eval!("(variable x '(1 2 3))");
     assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
     assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
 
+    // splice
+    assert_eq!(eval!("((function (a @b) a) 1 2 3)"), "1");
+    assert_eq!(eval!("((function (a @b) b) 1 2 3)"), "(2 3)");
+
     // macro
-    eval!("(define foo 42)");
-    eval!("(define set-10 (macro (x) `(set ,x 10)))");
+    eval!("(variable foo 42)");
+    eval!("(variable set-10 (macro (x) `(set ,x 10)))");
     eval!("(set-10 foo)");
     assert_eq!(eval!("foo"), "10");
 
     // args
-    eval!("(define list* (function args (append args '())))");
+    eval!("(variable list* (function args (append args '())))");
     assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
 }

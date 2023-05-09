@@ -10,7 +10,12 @@ use core::cmp;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
+        help();
         return Err(ExitCode::UsageError);
+    }
+    if args[1] == "-h" || args[1] == "--help" {
+        help();
+        return Ok(());
     }
 
     let pathname = args[1];
@@ -29,6 +34,7 @@ struct Coords {
 
 pub struct Editor {
     pathname: String,
+    clipboard: Vec<String>,
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
@@ -39,6 +45,7 @@ impl Editor {
     pub fn new(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
+        let clipboard = Vec::new();
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
 
@@ -55,7 +62,7 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { pathname, lines, cursor, offset, config }
+        Self { pathname, clipboard, lines, cursor, offset, config }
     }
 
     pub fn save(&mut self) -> Result<(), ExitCode> {
@@ -276,10 +283,42 @@ impl Editor {
                     self.offset.x = w * (n / w);
                     self.print_screen();
                 },
+                '\x04' => { // Ctrl D -> Delete (cut) line
+                    let i = self.offset.y + self.cursor.y;
+                    self.clipboard.push(self.lines.remove(i));
+                    if self.lines.is_empty() {
+                        self.lines.push(String::new());
+                    }
+
+                    if i >= self.lines.len() {
+                        // Move cursor up to the previous line
+                        if self.cursor.y > 0 {
+                            self.cursor.y -= 1;
+                        } else if self.offset.y > 0 {
+                            self.offset.y -= 1;
+                        }
+                    }
+                    self.cursor.x = 0;
+                    self.offset.x = 0;
+
+                    self.print_screen();
+                },
+                '\x19' => { // Ctrl Y -> Yank (copy) line
+                    let i = self.offset.y + self.cursor.y;
+                    self.clipboard.push(self.lines[i].clone());
+                },
+                '\x10' => { // Ctrl P -> Put (paste) line
+                    let i = self.offset.y + self.cursor.y;
+                    if let Some(line) = self.clipboard.pop() {
+                        self.lines.insert(i + 1, line);
+                    }
+                    self.cursor.x = 0;
+                    self.offset.x = 0;
+                    self.print_screen();
+                },
                 '\x08' => { // Backspace
                     let y = self.offset.y + self.cursor.y;
                     if self.offset.x + self.cursor.x > 0 { // Remove char from line
-
                         let mut row: Vec<char> = self.lines[y].chars().collect();
                         row.remove(self.offset.x + self.cursor.x - 1);
                         self.lines[y] = row.into_iter().collect();
@@ -390,4 +429,11 @@ fn truncated_line_indicator() -> String {
     let color = Style::color("Black").with_background("LightGray");
     let reset = Style::reset();
     format!("{}>{}", color, reset)
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} edit {}<file>{}", csi_title, csi_reset, csi_option, csi_reset);
 }

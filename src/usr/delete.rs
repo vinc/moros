@@ -1,10 +1,22 @@
+use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
-use crate::api::fs;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() < 2 {
+    let n = args.len();
+    if n < 2 {
+        help();
         return Err(ExitCode::UsageError);
+    }
+    for i in 1..n {
+        match args[i] {
+            "-h" | "--help" => {
+                help();
+                return Ok(());
+            }
+            _ => continue
+        }
     }
 
     for arg in &args[1..] {
@@ -34,4 +46,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }
     Ok(())
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} delete {}<path>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Paths:{}", csi_title, csi_reset);
+    println!("  {0}<dir>/{1}     Delete directory", csi_option, csi_reset);
+    println!("  {0}<file>{1}     Delete file", csi_option, csi_reset);
 }

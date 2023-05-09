@@ -69,14 +69,15 @@ pub fn alloc_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) -> Resu
             //debug!("Alloc frame {:?}", frame);
             unsafe {
                 if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
+                    //debug!("Mapped {:?} to {:?}", page, frame);
                     mapping.flush();
                 } else {
-                    //debug!("Could not map {:?}", page);
+                    debug!("Could not map {:?} to {:?}", page, frame);
                     return Err(());
                 }
             }
         } else {
-            //debug!("Could not allocate frame for {:?}", page);
+            debug!("Could not allocate frame for {:?}", page);
             return Err(());
         }
     }

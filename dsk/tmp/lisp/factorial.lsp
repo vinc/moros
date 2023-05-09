@@ -1,12 +1,12 @@
 (load "/lib/lisp/core.lsp")
 
-(define (factorial-helper n acc)
+(def (factorial-helper n acc)
   (if (< n 2) acc
     (factorial-helper (- n 1) (* acc n))))
 
-(define (factorial n)
+(def (factorial n)
   (factorial-helper n 1))
 
-(println
+(print
   (if (nil? args) "Usage: factorial <num>"
-    (factorial (string->number (car args)))))
+    (factorial (str->num (head args)))))

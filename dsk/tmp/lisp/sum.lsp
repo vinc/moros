@@ -1,8 +1,8 @@
 (load "/lib/lisp/core.lsp")
 
-(define (sum n acc)
+(def (sum n acc)
   (if (= n 0) acc (sum (- n 1) (+ n acc))))
 
-(println
+(print
   (if (nil? args) "Usage: sum <num>"
-    (sum (string->number (car args)) 0)))
+    (sum (str->num (head args)) 0)))

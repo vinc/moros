@@ -37,18 +37,22 @@ pub fn copy_files(verbose: bool) {
 
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
-    copy_file("/ini/palette.csv", include_bytes!("../../dsk/ini/palette.csv"), verbose);
     copy_file("/ini/shell.sh", include_bytes!("../../dsk/ini/shell.sh"), verbose);
     copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
 
+    create_dir("/ini/palettes", verbose);
+    copy_file("/ini/palettes/gruvbox-dark.csv", include_bytes!("../../dsk/ini/palettes/gruvbox-dark.csv"), verbose);
+    copy_file("/ini/palettes/gruvbox-light.csv", include_bytes!("../../dsk/ini/palettes/gruvbox-light.csv"), verbose);
+
     create_dir("/ini/fonts", verbose);
-    copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
+    //copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
     copy_file("/ini/fonts/zap-light-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf"), verbose);
     copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"), verbose);
 
     create_dir("/lib/lisp", verbose);
     copy_file("/lib/lisp/core.lsp", include_bytes!("../../dsk/lib/lisp/core.lsp"), verbose);
     copy_file("/lib/lisp/alias.lsp", include_bytes!("../../dsk/lib/lisp/alias.lsp"), verbose);
+    //copy_file("/lib/lisp/legacy.lsp", include_bytes!("../../dsk/lib/lisp/legacy.lsp"), verbose);
 
     copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"), verbose);
     copy_file("/tmp/machines.txt", include_bytes!("../../dsk/tmp/machines.txt"), verbose);
@@ -78,8 +82,9 @@ pub fn copy_files(verbose: bool) {
     copy_file("/tmp/beep/mario.sh", include_bytes!("../../dsk/tmp/beep/mario.sh"), verbose);
 
     create_dir("/var/www", verbose);
-    copy_file("/var/www/index.html", include_bytes!("../../www/index.html"), verbose);
-    copy_file("/var/www/moros.png", include_bytes!("../../www/moros.png"), verbose);
+    copy_file("/var/www/index.html", include_bytes!("../../dsk/var/www/index.html"), verbose);
+    copy_file("/var/www/moros.png", include_bytes!("../../dsk/var/www/moros.png"), verbose);
+    copy_file("/var/www/moros.css", include_bytes!("../../dsk/var/www/moros.css"), verbose);
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {

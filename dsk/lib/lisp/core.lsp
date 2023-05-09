@@ -1,119 +1,151 @@
 (load "/lib/lisp/alias.lsp")
 
-(define (eq? x y)
-  (eq x y))
+(def (string? x)
+  (equal? (type x) "string"))
 
-(define (atom? x)
-  (atom x))
+(def (boolean? x)
+  (equal? (type x) "boolean"))
 
-(define (string? x)
-  (eq? (type x) "string"))
+(def (symbol? x)
+  (equal? (type x) "symbol"))
 
-(define (boolean? x)
-  (eq? (type x) "boolean"))
+(def (number? x)
+  (equal? (type x) "number"))
 
-(define (symbol? x)
-  (eq? (type x) "symbol"))
+(def (list? x)
+  (equal? (type x) "list"))
 
-(define (number? x)
-  (eq? (type x) "number"))
+(def (function? x)
+  (equal? (type x) "function"))
 
-(define (list? x)
-  (eq? (type x) "list"))
+(def (macro? x)
+  (equal? (type x) "macro"))
 
-(define (function? x)
-  (eq? (type x) "function"))
+(var nil '())
 
-(define (macro? x)
-  (eq? (type x) "macro"))
+(def (nil? x)
+  (equal? x nil))
 
-(define nil '())
-
-(define (nil? x)
-  (eq? x nil))
-
-(define (not x)
+(def (not x)
   (if x false true))
 
-(define-macro (or x y)
+(def-mac (or x y)
   `(if ,x true (if ,y true false)))
 
-(define-macro (and x y)
+(def-mac (and x y)
   `(if ,x (if ,y true false) false))
 
-(define-macro (let params values body)
-  `((function ,params ,body) ,@values))
+(def-mac (let params values body)
+  `((fun ,params ,body) ,@values))
 
-(define (caar x)
-  (car (car x)))
+(def (reduce f ls)
+  (if (nil? (tail ls)) (head ls)
+    (f (head ls) (reduce f (tail ls)))))
 
-(define (cadr x)
-  (car (cdr x)))
-
-(define (cdar x)
-  (cdr (car x)))
-
-(define (cddr x)
-  (cdr (cdr x)))
-
-(define (rest x)
-  (cdr x))
-
-(define (first x)
-  (car x))
-
-(define (second x)
-  (first (rest x)))
-
-(define (third x)
-  (second (rest x)))
-
-(define (reduce f ls)
-  (if (nil? (rest ls)) (first ls)
-    (f (first ls) (reduce f (rest ls)))))
-
-(define (map f ls)
+(def (map f ls)
   (if (nil? ls) nil
     (cons
-      (f (first ls))
-      (map f (rest ls)))))
+      (f (head ls))
+      (map f (tail ls)))))
 
-(define (reverse x)
+(def (filter f ls)
+  (if (nil? ls) nil
+    (if (f (head ls))
+      (cons (head ls) (filter f (tail ls)))
+      (filter f (tail ls)))))
+
+(def (intersection a b)
+  (filter (fun (x) (contains? b x)) a))
+
+(def (reverse x)
   (if (nil? x) x
-    (append (reverse (rest x)) (cons (first x) '()))))
+    (append (reverse (tail x)) (cons (head x) '()))))
 
-(define (range i n)
+(def (range i n)
   (if (= i n) nil
     (append (list i) (range (+ i 1) n))))
 
-(define (string-join ls s)
-  (reduce (function (x y) (string x s y)) ls))
+(def (min lst)
+  (head (sort lst)))
 
-(define (read-line)
-  (bytes->string (reverse (rest (reverse (read-file-bytes "/dev/console" 256))))))
+(def (max lst)
+  (head (reverse (sort lst))))
 
-(define (read-char)
-  (bytes->string (read-file-bytes "/dev/console" 4)))
+(def (abs x)
+  (if (> x 0) x (- x)))
 
-(define (print exp)
+(def (join-string ls s)
+  (reduce (fun (x y) (string x s y)) ls))
+
+(def (read-line)
+  (binary->string (reverse (tail (reverse (read-file-binary "/dev/console" 256))))))
+
+(def (read-char)
+  (binary->string (read-file-binary "/dev/console" 4)))
+
+(def (p exp)
   (do
-    (append-file-bytes "/dev/console" (string->bytes (string exp)))
+    (append-file-binary "/dev/console" (string->binary (string exp)))
     '()))
 
-(define (println exp)
-  (print (string exp "\n")))
+(def (print exp)
+  (p (string exp "\n")))
 
-(define (uptime)
-  (bytes->number (read-file-bytes "/dev/clk/uptime" 8) "float"))
+(def (uptime)
+  (binary->number (read-file-binary "/dev/clk/uptime" 8) "float"))
 
-(define (realtime)
-  (bytes->number (read-file-bytes "/dev/clk/realtime" 8) "float"))
+(def (realtime)
+  (binary->number (read-file-binary "/dev/clk/realtime" 8) "float"))
 
-(define (write-file path str)
-  (write-file-bytes path (string->bytes str)))
+(def (write-file path s)
+  (write-file-binary path (string->binary s)))
 
-(define (append-file path str)
-  (append-file-bytes path (string->bytes str)))
+(def (append-file path s)
+  (append-file-binary path (string->binary s)))
 
-(define (regex-match? pattern str)
+(def (regex-match? pattern s)
   (not (nil? (regex-find pattern str))))
+
+(def (lines contents)
+  (split (trim contents) "\n"))
+
+(def (words contents)
+  (split contents " "))
+
+(def (chars contents)
+  (split contents ""))
+
+(def (first lst)
+  (nth lst 0))
+
+(def (second lst)
+  (nth lst 1))
+
+(def (third lst)
+  (nth lst 2))
+
+(def (last lst)
+  (nth lst
+    (if (= (length lst) 0) 0 (- (length lst) 1))))
+
+(var str string)
+(var num-type number-type)
+(var join-str join-string)
+
+(var str->num string->number)
+(var str->bin string->binary)
+(var num->bin number->binary)
+(var bin->str binary->string)
+(var bin->num binary->number)
+
+(var bool? boolean?)
+(var str? string?)
+(var sym? symbol?)
+(var num? number?)
+
+(var fun? function?)
+(var mac? macro?)
+
+(var len length)
+(var rev reverse)
+(var uniq unique)

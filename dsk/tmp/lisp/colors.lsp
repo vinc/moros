@@ -1,23 +1,23 @@
 (load "/lib/lisp/core.lsp")
 
-(define esc (bytes->string '(27)))
+(var esc (bin->str '(27)))
 
-(define (ansi-color x y)
-  (string esc "[" x ";" y "m"))
+(def (ansi-color x y)
+  (str esc "[" x ";" y "m"))
 
-(define (fg c)
+(def (fg c)
   (ansi-color c 40))
 
-(define (bg c)
+(def (bg c)
   (ansi-color 30 c))
 
-(define (color f c)
-  (string " " (f c) (if (< c 100) " " "") c (ansi-color 0 0)))
+(def (color f c)
+  (str " " (f c) (if (< c 100) " " "") c (ansi-color 0 0)))
 
-(define (colors fs i j)
-  (string-join (map (function (c) (color fs c)) (range i j)) ""))
+(def (colors fs i j)
+  (join-str (map (fun (c) (color fs c)) (range i j)) ""))
 
-(println (colors fg 30 38))
-(println (colors fg 90 98))
-(println (colors bg 40 48))
-(println (colors bg 100 108))
+(print (colors fg 30 38))
+(print (colors fg 90 98))
+(print (colors bg 40 48))
+(print (colors bg 100 108))
