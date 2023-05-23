@@ -38,6 +38,7 @@ pub struct Editor {
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
+    highlighted: Vec<(usize, usize, char)>,
     config: EditorConfig,
 }
 
@@ -45,6 +46,7 @@ impl Editor {
     pub fn new(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
+        let highlighted = Vec::new();
         let clipboard = Vec::new();
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
@@ -62,7 +64,7 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { pathname, clipboard, lines, cursor, offset, config }
+        Self { pathname, clipboard, lines, cursor, offset, highlighted, config }
     }
 
     pub fn save(&mut self) -> Result<(), ExitCode> {
@@ -148,10 +150,85 @@ impl Editor {
         }
     }
 
+    fn match_parenthesis(&mut self) {
+        let ox = self.offset.x;
+        let oy = self.offset.y;
+        let cx = self.cursor.x;
+        let cy = self.cursor.y;
+        match self.lines[oy + cy].chars().nth(ox + cx) {
+            Some(')') => {
+                let mut stack = Vec::new();
+                for (y, line) in self.lines.iter().enumerate() {
+                    for (x, c) in line.chars().enumerate() {
+                        if oy + cy == y && ox + cx == x {
+                            if let Some((x, y)) = stack.pop() {
+                                if ox <= x && x < ox + self.cols() && oy <= y && y < oy + self.rows() {
+                                    self.highlighted.push((cx, cy, ')'));
+                                    self.highlighted.push((x - ox, y - oy, '('));
+                                }
+                            }
+                            break;
+                        }
+                        match c {
+                            '(' => stack.push((x, y)),
+                            ')' => { stack.pop(); },
+                            _ => continue,
+                        }
+                    }
+                    if oy + cy == y {
+                        break;
+                    }
+                }
+            }
+            Some('(') => {
+                let mut stack = Vec::new();
+                'row: for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
+                    for (x, c) in line.chars().enumerate() {
+                        if y == oy + cy && x <= ox + cx {
+                            continue;
+                        }
+                        match c {
+                            '(' => stack.push((x, y)),
+                            ')' => {
+                                if stack.is_empty() {
+                                    if ox <= x && x < ox + self.cols() && oy <= y && y < oy + self.rows() {
+                                        self.highlighted.push((cx, cy, '('));
+                                        self.highlighted.push((x - ox, y - oy, ')'));
+                                    }
+                                    break 'row;
+                                }
+                                stack.pop();
+                            }
+                            _ => continue,
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        for (x, y, c) in &self.highlighted {
+            let color = Style::color("LightRed");
+            let reset = Style::reset();
+            print!("\x1b[{};{}H", y + 1, x + 1);
+            print!("{}{}{}", color, c, reset);
+        }
+    }
+
+    fn clear_parenthesis(&mut self) {
+        for (x, y, c) in &self.highlighted {
+            let reset = Style::reset();
+            print!("\x1b[{};{}H", y + 1, x + 1);
+            print!("{}{}", reset, c);
+        }
+        self.highlighted.clear();
+    }
+
     pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         self.print_editing_status();
+        self.match_parenthesis();
         print!("\x1b[1;1H"); // Move cursor to the top of the screen
 
         let mut escape = false;
@@ -159,6 +236,8 @@ impl Editor {
         loop {
             let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
+            self.clear_parenthesis();
+
             match c {
                 '\x1B' => { // ESC
                     escape = true;
@@ -396,6 +475,7 @@ impl Editor {
             escape = false;
             csi = false;
             self.print_editing_status();
+            self.match_parenthesis();
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
             print!("\x1b[?25h"); // Enable cursor
         }
