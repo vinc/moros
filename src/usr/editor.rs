@@ -218,17 +218,23 @@ impl Editor {
 
     fn print_highlighted(&mut self) {
         self.match_parenthesis();
+        let color = Style::color("LightRed");
+        let reset = Style::reset();
         for (x, y, c) in &self.highlighted {
-            let color = Style::color("LightRed");
-            let reset = Style::reset();
+            if *x == self.cols() - 1 {
+                continue;
+            }
             print!("\x1b[{};{}H", y + 1, x + 1);
             print!("{}{}{}", color, c, reset);
         }
     }
 
     fn clear_highlighted(&mut self) {
+        let reset = Style::reset();
         for (x, y, c) in &self.highlighted {
-            let reset = Style::reset();
+            if *x == self.cols() - 1 {
+                continue;
+            }
             print!("\x1b[{};{}H", y + 1, x + 1);
             print!("{}{}", reset, c);
         }
