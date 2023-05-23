@@ -151,27 +151,33 @@ impl Editor {
     }
 
     fn match_parenthesis(&mut self) {
+        let mut stack = Vec::new();
         let ox = self.offset.x;
         let oy = self.offset.y;
         let cx = self.cursor.x;
         let cy = self.cursor.y;
         match self.lines[oy + cy].chars().nth(ox + cx) {
             Some(')') => {
-                let mut stack = Vec::new();
                 for (y, line) in self.lines.iter().enumerate() {
                     for (x, c) in line.chars().enumerate() {
-                        if oy + cy == y && ox + cx == x {
+                        if oy + cy == y && ox + cx == x { // Cursor position
                             if let Some((x, y)) = stack.pop() {
-                                if ox <= x && x < ox + self.cols() && oy <= y && y < oy + self.rows() {
-                                    self.highlighted.push((cx, cy, ')'));
+                                self.highlighted.push((cx, cy, ')'));
+                                let is_col = ox <= x && x < ox + self.cols();
+                                let is_row = oy <= y && y < oy + self.rows();
+                                if is_col && is_row {
                                     self.highlighted.push((x - ox, y - oy, '('));
                                 }
                             }
-                            break;
+                            return;
                         }
                         match c {
-                            '(' => stack.push((x, y)),
-                            ')' => { stack.pop(); },
+                            '(' => {
+                                stack.push((x, y));
+                            }
+                            ')' => {
+                                stack.pop();
+                            }
                             _ => continue,
                         }
                     }
@@ -181,23 +187,25 @@ impl Editor {
                 }
             }
             Some('(') => {
-                let mut stack = Vec::new();
-                'row: for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
+                for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
                     for (x, c) in line.chars().enumerate() {
-                        if y == oy + cy && x <= ox + cx {
+                        if y == oy + cy && x <= ox + cx { // Skip chars before cursor
                             continue;
                         }
                         match c {
-                            '(' => stack.push((x, y)),
+                            '(' => {
+                                stack.push((x, y));
+                            }
                             ')' => {
-                                if stack.is_empty() {
-                                    if ox <= x && x < ox + self.cols() && oy <= y && y < oy + self.rows() {
-                                        self.highlighted.push((cx, cy, '('));
+                                if stack.pop().is_none() {
+                                    self.highlighted.push((cx, cy, '('));
+                                    let is_col = ox <= x && x < ox + self.cols();
+                                    let is_row = oy <= y && y < oy + self.rows();
+                                    if is_col && is_row {
                                         self.highlighted.push((x - ox, y - oy, ')'));
                                     }
-                                    break 'row;
+                                    return;
                                 }
-                                stack.pop();
                             }
                             _ => continue,
                         }
@@ -206,7 +214,10 @@ impl Editor {
             }
             _ => {}
         }
+    }
 
+    fn print_highlighted(&mut self) {
+        self.match_parenthesis();
         for (x, y, c) in &self.highlighted {
             let color = Style::color("LightRed");
             let reset = Style::reset();
@@ -215,7 +226,7 @@ impl Editor {
         }
     }
 
-    fn clear_parenthesis(&mut self) {
+    fn clear_highlighted(&mut self) {
         for (x, y, c) in &self.highlighted {
             let reset = Style::reset();
             print!("\x1b[{};{}H", y + 1, x + 1);
@@ -228,7 +239,7 @@ impl Editor {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         self.print_editing_status();
-        self.match_parenthesis();
+        self.print_highlighted();
         print!("\x1b[1;1H"); // Move cursor to the top of the screen
 
         let mut escape = false;
@@ -236,7 +247,7 @@ impl Editor {
         loop {
             let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
-            self.clear_parenthesis();
+            self.clear_highlighted();
 
             match c {
                 '\x1B' => { // ESC
@@ -475,7 +486,7 @@ impl Editor {
             escape = false;
             csi = false;
             self.print_editing_status();
-            self.match_parenthesis();
+            self.print_highlighted();
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
             print!("\x1b[?25h"); // Enable cursor
         }
