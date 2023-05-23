@@ -222,7 +222,6 @@ impl Editor {
             print!("\x1b[{};{}H", y + 1, x + 1);
             print!("{}{}{}", color, c, reset);
         }
-        print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
     }
 
     fn clear_highlighted(&mut self) {
@@ -235,7 +234,6 @@ impl Editor {
             print!("{}{}", reset, c);
         }
         self.highlighted.clear();
-        print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
     }
 
     pub fn run(&mut self) -> Result<(), ExitCode> {
@@ -251,6 +249,7 @@ impl Editor {
             let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
             self.clear_highlighted();
+            print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
 
             match c {
                 '\x1B' => { // ESC
