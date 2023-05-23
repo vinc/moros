@@ -150,35 +150,32 @@ impl Editor {
         }
     }
 
-    fn match_parenthesis(&mut self) {
+    fn match_chars(&mut self, opening: char, closing: char) {
         let mut stack = Vec::new();
         let ox = self.offset.x;
         let oy = self.offset.y;
         let cx = self.cursor.x;
         let cy = self.cursor.y;
-        match self.lines[oy + cy].chars().nth(ox + cx) {
-            Some(')') => {
+        if let Some(cursor) = self.lines[oy + cy].chars().nth(ox + cx) {
+            if cursor == closing {
                 for (y, line) in self.lines.iter().enumerate() {
                     for (x, c) in line.chars().enumerate() {
                         if oy + cy == y && ox + cx == x { // Cursor position
                             if let Some((x, y)) = stack.pop() {
-                                self.highlighted.push((cx, cy, ')'));
+                                self.highlighted.push((cx, cy, closing));
                                 let is_col = ox <= x && x < ox + self.cols();
                                 let is_row = oy <= y && y < oy + self.rows();
                                 if is_col && is_row {
-                                    self.highlighted.push((x - ox, y - oy, '('));
+                                    self.highlighted.push((x - ox, y - oy, opening));
                                 }
                             }
                             return;
                         }
-                        match c {
-                            '(' => {
-                                stack.push((x, y));
-                            }
-                            ')' => {
-                                stack.pop();
-                            }
-                            _ => continue,
+                        if c == opening {
+                            stack.push((x, y));
+                        }
+                        if c == closing {
+                            stack.pop();
                         }
                     }
                     if oy + cy == y {
@@ -186,38 +183,36 @@ impl Editor {
                     }
                 }
             }
-            Some('(') => {
+            if cursor == opening {
                 for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
                     for (x, c) in line.chars().enumerate() {
                         if y == oy + cy && x <= ox + cx { // Skip chars before cursor
                             continue;
                         }
-                        match c {
-                            '(' => {
-                                stack.push((x, y));
-                            }
-                            ')' => {
-                                if stack.pop().is_none() {
-                                    self.highlighted.push((cx, cy, '('));
-                                    let is_col = ox <= x && x < ox + self.cols();
-                                    let is_row = oy <= y && y < oy + self.rows();
-                                    if is_col && is_row {
-                                        self.highlighted.push((x - ox, y - oy, ')'));
-                                    }
-                                    return;
+                        if c == opening {
+                            stack.push((x, y));
+                        }
+                        if c == closing {
+                            if stack.pop().is_none() {
+                                self.highlighted.push((cx, cy, opening));
+                                let is_col = ox <= x && x < ox + self.cols();
+                                let is_row = oy <= y && y < oy + self.rows();
+                                if is_col && is_row {
+                                    self.highlighted.push((x - ox, y - oy, closing));
                                 }
+                                return;
                             }
-                            _ => continue,
                         }
                     }
                 }
             }
-            _ => {}
         }
     }
 
     fn print_highlighted(&mut self) {
-        self.match_parenthesis();
+        self.match_chars('(', ')');
+        self.match_chars('{', '}');
+        self.match_chars('[', ']');
         let color = Style::color("LightRed");
         let reset = Style::reset();
         for (x, y, c) in &self.highlighted {
