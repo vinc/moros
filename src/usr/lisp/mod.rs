@@ -182,16 +182,11 @@ pub fn byte(exp: &Exp) -> Result<u8, Err> {
 
 // REPL
 
-fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    let (_, exp) = parse(exp)?;
+fn parse_eval(input: &str, env: &mut Rc<RefCell<Env>>) -> Result<(String, Exp), Err> {
+    let (rest, exp) = parse(input)?;
     let exp = expand(&exp, env)?;
     let exp = eval(&exp, env)?;
-    Ok(exp)
-}
-
-fn strip_comments(s: &str) -> String {
-    // FIXME: This doesn't handle `#` inside a string
-    s.split('#').next().unwrap().into()
+    Ok((rest, exp))
 }
 
 fn lisp_completer(line: &str) -> Vec<String> {
@@ -221,33 +216,29 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     prompt.history.load(history_file);
     prompt.completion.set(&lisp_completer);
 
-    while let Some(line) = prompt.input(&prompt_string) {
-        if line == "(quit)" {
+    while let Some(input) = prompt.input(&prompt_string) {
+        if input == "(quit)" {
             break;
         }
-        if line.is_empty() {
+        if input.is_empty() {
             println!();
             continue;
         }
-        match parse_eval(&line, env) {
-            Ok(res) => {
-                println!("{}\n", res);
+        match parse_eval(&input, env) {
+            Ok((_, exp)) => {
+                println!("{}\n", exp);
             }
             Err(e) => match e {
                 Err::Reason(msg) => println!("{}Error:{} {}\n", csi_error, csi_reset, msg),
             },
         }
-        prompt.history.add(&line);
+        prompt.history.add(&input);
         prompt.history.save(history_file);
     }
     Ok(())
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let line_color = Style::color("Yellow");
-    let error_color = Style::color("LightRed");
-    let reset = Style::reset();
-
     let env = &mut default_env();
 
     // Store args in env
@@ -269,37 +260,27 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         if args[1] == "-h" || args[1] == "--help" {
             return help();
         }
-        let pathname = args[1];
-        if let Ok(code) = api::fs::read_to_string(pathname) {
-            let mut block = String::new();
-            let mut opened = 0;
-            let mut closed = 0;
-            for (i, line) in code.split('\n').enumerate() {
-                let line = strip_comments(line);
-                if !line.is_empty() {
-                    opened += line.matches('(').count();
-                    closed += line.matches(')').count();
-                    block.push_str(&line);
-                    if closed >= opened {
-                        if let Err(e) = parse_eval(&block, env) {
-                            match e {
-                                Err::Reason(msg) => {
-                                    eprintln!("{}Error:{} {}", error_color, reset, msg);
-                                    eprintln!();
-                                    eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                    return Err(ExitCode::Failure);
-                                }
-                            }
+        let path = args[1];
+        if let Ok(mut input) = api::fs::read_to_string(path) {
+            loop {
+                match parse_eval(&input, env) {
+                    Ok((rest, _)) => {
+                        if rest.is_empty() {
+                            break;
                         }
-                        block.clear();
-                        opened = 0;
-                        closed = 0;
+                        input = rest;
+                    }
+                    Err(Err::Reason(msg)) => {
+                        let csi_error = Style::color("LightRed");
+                        let csi_reset = Style::reset();
+                        eprintln!("{}Error:{} {}", csi_error, csi_reset, msg);
+                        return Err(ExitCode::Failure);
                     }
                 }
             }
             Ok(())
         } else {
-            error!("File not found '{}'", pathname);
+            error!("File not found '{}'", path);
             Err(ExitCode::Failure)
         }
     }
@@ -320,7 +301,7 @@ fn test_lisp() {
 
     macro_rules! eval {
         ($e:expr) => {
-            format!("{}", parse_eval($e, env).unwrap())
+            format!("{}", parse_eval($e, env).unwrap().1)
         };
     }
 

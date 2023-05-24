@@ -4,6 +4,7 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 
+use nom::Err::Error;
 use nom::IResult;
 use nom::branch::alt;
 use nom::bytes::complete::escaped_transform;
@@ -91,7 +92,15 @@ fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
     Ok((input, Exp::List(list)))
 }
 
+use nom::sequence::pair;
+use alloc::format;
+
+fn parse_comment(input: &str) -> IResult<&str, ()> {
+    value((), pair(char('#'), is_not("\n")))(input)
+}
+
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
+    let (input, _) = opt(parse_comment)(input)?;
     delimited(multispace0, alt((
         parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_quasiquote, parse_unquote_splice, parse_unquote, parse_splice, parse_sym
     )), multispace0)(input)
@@ -100,6 +109,10 @@ fn parse_exp(input: &str) -> IResult<&str, Exp> {
 pub fn parse(input: &str)-> Result<(String, Exp), Err> {
     match parse_exp(input) {
         Ok((input, exp)) => Ok((input.to_string(), exp)),
-        Err(_) => Err(Err::Reason("Could not parse input".to_string())),
+        Err(Error(err)) if !err.input.is_empty() => {
+            let line = err.input.lines().next().unwrap();
+            Err(Err::Reason(format!("Could not parse '{}'", line)))
+        }
+        _ => Err(Err::Reason(format!("Could not parse input"))),
     }
 }
