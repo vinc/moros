@@ -187,3 +187,4 @@ Rewrite parts of the code and add new functions and examples.
 
 ### 0.5.0 (unpublished)
 - Rename or add aliases to many functions
+- Add full support for line and inline comments

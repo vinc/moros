@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add full support for comments in lisp (#489)
 - Add parenthesis matching to editor (#488)
 - Upgrade smoltcp from 0.8.2 to 0.9.1 (#484)
 - Update rust to nightly-2022-12-21 (#485)
