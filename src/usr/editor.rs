@@ -38,6 +38,7 @@ pub struct Editor {
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
+    highlighted: Vec<(usize, usize, char)>,
     config: EditorConfig,
 }
 
@@ -45,6 +46,7 @@ impl Editor {
     pub fn new(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
+        let highlighted = Vec::new();
         let clipboard = Vec::new();
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
@@ -62,7 +64,7 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { pathname, clipboard, lines, cursor, offset, config }
+        Self { pathname, clipboard, lines, cursor, offset, highlighted, config }
     }
 
     pub fn save(&mut self) -> Result<(), ExitCode> {
@@ -148,10 +150,97 @@ impl Editor {
         }
     }
 
+    fn match_chars(&mut self, opening: char, closing: char) {
+        let mut stack = Vec::new();
+        let ox = self.offset.x;
+        let oy = self.offset.y;
+        let cx = self.cursor.x;
+        let cy = self.cursor.y;
+        if let Some(cursor) = self.lines[oy + cy].chars().nth(ox + cx) {
+            if cursor == closing {
+                for (y, line) in self.lines.iter().enumerate() {
+                    for (x, c) in line.chars().enumerate() {
+                        if oy + cy == y && ox + cx == x { // Cursor position
+                            if let Some((x, y)) = stack.pop() {
+                                self.highlighted.push((cx, cy, closing));
+                                let is_col = ox <= x && x < ox + self.cols();
+                                let is_row = oy <= y && y < oy + self.rows();
+                                if is_col && is_row {
+                                    self.highlighted.push((x - ox, y - oy, opening));
+                                }
+                            }
+                            return;
+                        }
+                        if c == opening {
+                            stack.push((x, y));
+                        }
+                        if c == closing {
+                            stack.pop();
+                        }
+                    }
+                    if oy + cy == y {
+                        break;
+                    }
+                }
+            }
+            if cursor == opening {
+                for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
+                    for (x, c) in line.chars().enumerate() {
+                        if y == oy + cy && x <= ox + cx { // Skip chars before cursor
+                            continue;
+                        }
+                        if c == opening {
+                            stack.push((x, y));
+                        }
+                        if c == closing {
+                            if stack.pop().is_none() {
+                                self.highlighted.push((cx, cy, opening));
+                                let is_col = ox <= x && x < ox + self.cols();
+                                let is_row = oy <= y && y < oy + self.rows();
+                                if is_col && is_row {
+                                    self.highlighted.push((x - ox, y - oy, closing));
+                                }
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn print_highlighted(&mut self) {
+        self.match_chars('(', ')');
+        self.match_chars('{', '}');
+        self.match_chars('[', ']');
+        let color = Style::color("LightRed");
+        let reset = Style::reset();
+        for (x, y, c) in &self.highlighted {
+            if *x == self.cols() - 1 {
+                continue;
+            }
+            print!("\x1b[{};{}H", y + 1, x + 1);
+            print!("{}{}{}", color, c, reset);
+        }
+    }
+
+    fn clear_highlighted(&mut self) {
+        let reset = Style::reset();
+        for (x, y, c) in &self.highlighted {
+            if *x == self.cols() - 1 {
+                continue;
+            }
+            print!("\x1b[{};{}H", y + 1, x + 1);
+            print!("{}{}", reset, c);
+        }
+        self.highlighted.clear();
+    }
+
     pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         self.print_editing_status();
+        self.print_highlighted();
         print!("\x1b[1;1H"); // Move cursor to the top of the screen
 
         let mut escape = false;
@@ -159,6 +248,9 @@ impl Editor {
         loop {
             let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
+            self.clear_highlighted();
+            print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
+
             match c {
                 '\x1B' => { // ESC
                     escape = true;
@@ -396,6 +488,7 @@ impl Editor {
             escape = false;
             csi = false;
             self.print_editing_status();
+            self.print_highlighted();
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
             print!("\x1b[?25h"); // Enable cursor
         }
