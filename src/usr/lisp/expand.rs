@@ -2,7 +2,7 @@ use super::{Err, Exp, Env};
 use super::env::{env_get, macro_env};
 use super::eval::eval;
 
-use crate::{ensure_length_eq, ensure_length_gt, ensure_list, ensure_string};
+use crate::{ensure_length_eq, ensure_length_gt, ensure_list, ensure_string, expected};
 
 use alloc::format;
 use alloc::rc::Rc;
@@ -66,7 +66,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         ensure_list!(&list[3]);
                         (&list[1], &list[3])
                     }
-                    _ => return Err(Err::Reason("Expected 3 or 4 args".to_string())),
+                    _ => return expected!("3 or 4 args"),
                 };
                 match params {
                     Exp::List(args) => {
@@ -83,7 +83,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         ]))
                     }
                     Exp::Sym(_) => expand_list(list, env),
-                    _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
+                    _ => expected!("first argument to be a symbol or a list")
                 }
             }
             Exp::Sym(s) if s == "define-macro" => {
@@ -101,7 +101,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         ]))
                     }
                     (Exp::Sym(_), _) => expand_list(list, env),
-                    _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
+                    _ => expected!("first argument to be a symbol or a list")
                 }
             }
             Exp::Sym(s) if s == "cond" => {
@@ -116,7 +116,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Ok(Exp::List(res))
                 } else {
-                    Err(Err::Reason("Expected lists of predicate and expression".to_string()))
+                    expected!("lists of predicate and expression")
                 }
             }
             Exp::Sym(s) => {

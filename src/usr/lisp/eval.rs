@@ -3,7 +3,7 @@ use super::env::{env_get, env_set, function_env};
 use super::expand::expand;
 use super::string;
 
-use crate::{ensure_length_eq, ensure_length_gt};
+use crate::{ensure_length_eq, ensure_length_gt, expected};
 use crate::api::fs;
 
 use alloc::boxed::Box;
@@ -41,7 +41,7 @@ fn eval_head_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
             ensure_length_gt!(list, 0);
             Ok(list[0].clone())
         },
-        _ => Err(Err::Reason("Expected first argument to be a list".to_string())),
+        _ => expected!("first argument to be a list"),
     }
 }
 
@@ -52,7 +52,7 @@ fn eval_tail_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
             ensure_length_gt!(list, 0);
             Ok(Exp::List(list[1..].to_vec()))
         },
-        _ => Err(Err::Reason("Expected first argument to be a list".to_string())),
+        _ => expected!("first argument to be a list"),
     }
 }
 
@@ -63,7 +63,7 @@ fn eval_cons_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> 
             list.insert(0, eval(&args[0], env)?);
             Ok(Exp::List(list))
         },
-        _ => Err(Err::Reason("Expected first argument to be a list".to_string())),
+        _ => expected!("first argument to be a list"),
     }
 }
 
@@ -75,7 +75,7 @@ pub fn eval_variable_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Ex
             env.borrow_mut().data.insert(name.clone(), exp);
             Ok(Exp::Sym(name.clone()))
         }
-        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+        _ => expected!("first argument to be a symbol")
     }
 }
 
@@ -86,7 +86,7 @@ fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
             let exp = eval(&args[1], env)?;
             Ok(env_set(name, exp, env)?)
         }
-        _ => Err(Err::Reason("Expected first argument to be a symbol".to_string()))
+        _ => expected!("first argument to be a symbol")
     }
 }
 
@@ -107,7 +107,7 @@ fn eval_apply_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     let mut args = args.to_vec();
     match eval(&args.pop().unwrap(), env) {
         Ok(Exp::List(rest)) => args.extend(rest),
-        _ => return Err(Err::Reason("Expected last argument to be a list".to_string())),
+        _ => return expected!("last argument to be a list"),
     }
     eval(&Exp::List(args.to_vec()), env)
 }
@@ -146,7 +146,7 @@ fn eval_doc_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
         Exp::Primitive(_) => Ok(Exp::Str("".to_string())),
         Exp::Function(f) => Ok(Exp::Str(f.doc.unwrap_or("".to_string()))),
         Exp::Macro(m) => Ok(Exp::Str(m.doc.unwrap_or("".to_string()))),
-        _ => Err(Err::Reason("Expected function or macro".to_string())),
+        _ => expected!("function or macro"),
     }
 }
 
@@ -216,7 +216,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let (params, body, doc) = match args.len() {
                             2 => (args[0].clone(), args[1].clone(), None),
                             3 => (args[0].clone(), args[2].clone(), Some(string(&args[1])?)),
-                            _ => return Err(Err::Reason("Expected 3 or 4 args".to_string())),
+                            _ => return expected!("3 or 4 args"),
                         };
                         return Ok(Exp::Function(Box::new(Function { params, body, doc })))
                     }
@@ -239,7 +239,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             Exp::Primitive(f) => {
                                 return f(&eval_args(args, env)?)
                             },
-                            _ => return Err(Err::Reason("Expected first argument to be a function".to_string())),
+                            _ => return expected!("first argument to be a function"),
                         }
                     }
                 }

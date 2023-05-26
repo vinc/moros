@@ -3,6 +3,7 @@ use super::primitive;
 use super::eval::BUILT_INS;
 use super::eval::eval_args;
 use super::{Err, Exp, Number};
+use crate::expected;
 
 use alloc::collections::BTreeMap;
 use alloc::format;
@@ -142,17 +143,17 @@ fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<
             if n != m {
                 let s = if n != 1 { "s" } else { "" };
                 let a = if is_variadic { "at least " } else { "" };
-                return Err(Err::Reason(format!("Expected {}{} argument{}, got {}", a, n, s, m)));
+                return expected!("{}{} argument{}, got {}", a, n, s, m);
             }
             for (exp, arg) in list.iter().zip(args.iter()) {
                 if let Exp::Sym(s) = exp {
                     data.insert(s.clone(), arg.clone());
                 } else {
-                    return Err(Err::Reason("Expected symbols in the argument list".to_string()));
+                    return expected!("symbols in the argument list");
                 }
             }
         }
-        _ => return Err(Err::Reason("Expected args form to be a list".to_string())),
+        _ => return expected!("args form to be a list"),
     }
     Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
 }

@@ -3,7 +3,7 @@ use super::{Err, Exp, Number};
 use super::{float, number, string};
 use super::{bytes, numbers, strings};
 
-use crate::{ensure_length_eq, ensure_length_gt};
+use crate::{ensure_length_eq, ensure_length_gt, expected};
 use crate::api::fs;
 use crate::api::regex::Regex;
 use crate::usr::shell;
@@ -67,7 +67,7 @@ pub fn lisp_div(args: &[Exp]) -> Result<Exp, Err> {
     }
     for arg in &args[1..] {
         if arg.is_zero() {
-            return Err(Err::Reason("Division by zero".to_string()));
+            return expected!("non-zero number");
         }
     }
     let head = args[0].clone();
@@ -80,7 +80,7 @@ pub fn lisp_mod(args: &[Exp]) -> Result<Exp, Err> {
     let args = numbers(args)?;
     for arg in &args[1..] {
         if arg.is_zero() {
-            return Err(Err::Reason("Division by zero".to_string()));
+            return expected!("non-zero number");
         }
     }
     let head = args[0].clone();
@@ -120,7 +120,7 @@ pub fn lisp_acos(args: &[Exp]) -> Result<Exp, Err> {
     if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
         Ok(Exp::Num(number(&args[0])?.acos()))
     } else {
-        Err(Err::Reason("Expected argument to be between -1.0 and 1.0".to_string()))
+        expected!("argument to be between -1.0 and 1.0")
     }
 }
 
@@ -129,7 +129,7 @@ pub fn lisp_asin(args: &[Exp]) -> Result<Exp, Err> {
     if -1.0 <= float(&args[0])? && float(&args[0])? <= 1.0 {
         Ok(Exp::Num(number(&args[0])?.asin()))
     } else {
-        Err(Err::Reason("Expected argument to be between -1.0 and 1.0".to_string()))
+        expected!("argument to be between -1.0 and 1.0")
     }
 }
 
@@ -188,7 +188,7 @@ pub fn lisp_write_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
             let n = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
             Ok(Exp::Num(Number::from(n)))
         }
-        _ => Err(Err::Reason("Expected second argument to be a list".to_string()))
+        _ => expected!("second argument to be a list")
     }
 }
 
@@ -201,7 +201,7 @@ pub fn lisp_append_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
             let n = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
             Ok(Exp::Num(Number::from(n)))
         }
-        _ => Err(Err::Reason("Expected second argument to be a list".to_string()))
+        _ => expected!("second argument to be a list")
     }
 }
 
@@ -225,10 +225,10 @@ pub fn lisp_bytes_string(args: &[Exp]) -> Result<Exp, Err> {
     match &args[0] {
         Exp::List(list) => {
             let buf = bytes(list)?;
-            let s = String::from_utf8(buf).or(Err(Err::Reason("Could not convert to valid UTF-8 string".to_string())))?;
+            let s = String::from_utf8(buf).or(expected!("valid UTF-8 string"))?;
             Ok(Exp::Str(s))
         }
-        _ => Err(Err::Reason("Expected argument to be a list".to_string()))
+        _ => expected!("argument to be a list")
     }
 }
 
@@ -241,10 +241,10 @@ pub fn lisp_bytes_number(args: &[Exp]) -> Result<Exp, Err> {
             match kind.as_str() { // TODO: bigint
                 "int" => Ok(Exp::Num(Number::Int(i64::from_be_bytes(buf[0..8].try_into().unwrap())))),
                 "float" => Ok(Exp::Num(Number::Float(f64::from_be_bytes(buf[0..8].try_into().unwrap())))),
-                _ => Err(Err::Reason("Invalid number type".to_string())),
+                _ => expected!("valid number type"),
             }
         }
-        _ => Err(Err::Reason("Expected args to be the number type and a list of bytes".to_string()))
+        _ => expected!("args to be the number type and a list of bytes")
     }
 }
 
@@ -263,7 +263,7 @@ pub fn lisp_regex_find(args: &[Exp]) -> Result<Exp, Err> {
             }).unwrap_or(vec![]);
             Ok(Exp::List(res))
         }
-        _ => Err(Err::Reason("Expected args to be a regex and a string".to_string()))
+        _ => expected!("args to be a regex and a string")
     }
 }
 
@@ -295,7 +295,7 @@ pub fn lisp_number_type(args: &[Exp]) -> Result<Exp, Err> {
         Exp::Num(Number::Int(_)) => Ok(Exp::Str("int".to_string())),
         Exp::Num(Number::BigInt(_)) => Ok(Exp::Str("bigint".to_string())),
         Exp::Num(Number::Float(_)) => Ok(Exp::Str("float".to_string())),
-        _ => Err(Err::Reason("Expected argument to be a number".to_string()))
+        _ => expected!("argument to be a number")
     }
 }
 
@@ -317,7 +317,7 @@ pub fn lisp_unique(args: &[Exp]) -> Result<Exp, Err> {
         list.dedup();
         Ok(Exp::List(list))
     } else {
-        Err(Err::Reason("Expected argument to be a list".to_string()))
+        expected!("argument to be a list")
     }
 }
 
@@ -328,7 +328,7 @@ pub fn lisp_sort(args: &[Exp]) -> Result<Exp, Err> {
         list.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Equal));
         Ok(Exp::List(list))
     } else {
-        Err(Err::Reason("Expected argument to be a list".to_string()))
+        expected!("argument to be a list")
     }
 }
 
@@ -337,7 +337,7 @@ pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
     if let Exp::List(list) = &args[0] {
         Ok(Exp::Bool(list.contains(&args[1])))
     } else {
-        Err(Err::Reason("Expected first argument to be a list".to_string()))
+        expected!("first argument to be a list")
     }
 }
 
@@ -359,7 +359,7 @@ pub fn lisp_nth(args: &[Exp]) -> Result<Exp, Err> {
                 Ok(Exp::Str("".to_string()))
             }
         }
-        _ => Err(Err::Reason("Expected first argument to be a list or a string".to_string()))
+        _ => expected!("first argument to be a list or a string")
     }
 }
 
@@ -367,7 +367,7 @@ pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
     let (a, b) = match args.len() {
         2 => (usize::try_from(number(&args[1])?)?, 1),
         3 => (usize::try_from(number(&args[1])?)?, usize::try_from(number(&args[2])?)?),
-        _ => return Err(Err::Reason("Expected 2 or 3 args".to_string())),
+        _ => return expected!("2 or 3 args"),
     };
     match &args[0] {
         Exp::List(l) => {
@@ -378,7 +378,7 @@ pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
             let s: String = s.chars().skip(a).take(b).collect();
             Ok(Exp::Str(s))
         }
-        _ => Err(Err::Reason("Expected first argument to be a list or a string".to_string()))
+        _ => expected!("first argument to be a list or a string")
     }
 }
 
@@ -389,7 +389,7 @@ pub fn lisp_chunks(args: &[Exp]) -> Result<Exp, Err> {
             let n = usize::try_from(num.clone())?;
             Ok(Exp::List(list.chunks(n).map(|a| Exp::List(a.to_vec())).collect()))
         }
-        _ => Err(Err::Reason("Expected a list and a number".to_string()))
+        _ => expected!("a list and a number")
     }
 }
 
@@ -405,7 +405,7 @@ pub fn lisp_split(args: &[Exp]) -> Result<Exp, Err> {
             };
             Ok(Exp::List(list))
         }
-        _ => Err(Err::Reason("Expected a string and a pattern".to_string()))
+        _ => expected!("a string and a pattern")
     }
 }
 
@@ -414,7 +414,7 @@ pub fn lisp_trim(args: &[Exp]) -> Result<Exp, Err> {
     if let Exp::Str(s) = &args[0] {
         Ok(Exp::Str(s.trim().to_string()))
     } else {
-        Err(Err::Reason("Expected a string and a pattern".to_string()))
+        expected!("a string and a pattern")
     }
 }
 
@@ -423,7 +423,7 @@ pub fn lisp_length(args: &[Exp]) -> Result<Exp, Err> {
     match &args[0] {
         Exp::List(list) => Ok(Exp::Num(Number::from(list.len()))),
         Exp::Str(string) => Ok(Exp::Num(Number::from(string.chars().count()))),
-        _ => Err(Err::Reason("Expected a list or a string".to_string()))
+        _ => expected!("a list or a string")
     }
 }
 
@@ -433,7 +433,7 @@ pub fn lisp_append(args: &[Exp]) -> Result<Exp, Err> {
         if let Exp::List(list) = arg {
             res.extend_from_slice(list);
         } else {
-            return Err(Err::Reason("Expected a list".to_string()))
+            return expected!("a list")
         }
     }
     Ok(Exp::List(res))

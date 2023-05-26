@@ -129,7 +129,7 @@ macro_rules! ensure_length_eq {
     ($list:expr, $count:expr) => {
         if $list.len() != $count {
             let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected {} expression{}", $count, plural)))
+            return expected!("{} expression{}", $count, plural);
         }
     };
 }
@@ -139,7 +139,7 @@ macro_rules! ensure_length_gt {
     ($list:expr, $count:expr) => {
         if $list.len() <= $count {
             let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected more than {} expression{}", $count, plural)))
+            return expected!("more than {} expression{}", $count, plural);
         }
     };
 }
@@ -149,7 +149,7 @@ macro_rules! ensure_string {
     ($exp:expr) => {
         match $exp {
             Exp::Str(_) => {},
-            _ => return Err(Err::Reason("Expected a string".to_string())),
+            _ => return expected!("a string"),
         }
     };
 }
@@ -159,9 +159,17 @@ macro_rules! ensure_list {
     ($exp:expr) => {
         match $exp {
             Exp::List(_) => {},
-            _ => return Err(Err::Reason("Expected a list".to_string())),
+            _ => return expected!("a list"),
         }
     };
+}
+
+#[macro_export]
+macro_rules! expected {
+    ($($arg:tt)*) => ({
+        use alloc::format;
+        Err(Err::Reason(format!("Expected {}", format_args!($($arg)*))))
+    });
 }
 
 pub fn bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
@@ -179,21 +187,21 @@ pub fn numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
 pub fn string(exp: &Exp) -> Result<String, Err> {
     match exp {
         Exp::Str(s) => Ok(s.to_string()),
-        _ => Err(Err::Reason("Expected a string".to_string())),
+        _ => expected!("a string"),
     }
 }
 
 pub fn number(exp: &Exp) -> Result<Number, Err> {
     match exp {
         Exp::Num(num) => Ok(num.clone()),
-        _ => Err(Err::Reason("Expected a number".to_string())),
+        _ => expected!("a number"),
     }
 }
 
 pub fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
         Exp::Num(num) => Ok(num.into()),
-        _ => Err(Err::Reason("Expected a float".to_string())),
+        _ => expected!("a float"),
     }
 }
 
@@ -292,9 +300,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         input = rest;
                     }
                     Err(Err::Reason(msg)) => {
-                        let csi_error = Style::color("LightRed");
-                        let csi_reset = Style::reset();
-                        eprintln!("{}Error:{} {}", csi_error, csi_reset, msg);
+                        error!("{}", msg);
                         return Err(ExitCode::Failure);
                     }
                 }
