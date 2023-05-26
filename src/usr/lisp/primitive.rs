@@ -3,7 +3,7 @@ use super::{Err, Exp, Number};
 use super::{float, number, string};
 use super::{bytes, numbers, strings};
 
-use crate::{ensure_length_eq, ensure_length_gt, expected};
+use crate::{ensure_length_eq, ensure_length_gt, expected, could_not};
 use crate::api::fs;
 use crate::api::regex::Regex;
 use crate::usr::shell;
@@ -165,7 +165,7 @@ pub fn lisp_system(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_read_file(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&args[0])?;
-    let contents = fs::read_to_string(&path).or(Err(Err::Reason("Could not read file".to_string())))?;
+    let contents = fs::read_to_string(&path).or(could_not!("read file"))?;
     Ok(Exp::Str(contents))
 }
 
@@ -174,7 +174,7 @@ pub fn lisp_read_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
     let path = string(&args[0])?;
     let len = number(&args[1])?;
     let mut buf = vec![0; len.try_into()?];
-    let n = fs::read(&path, &mut buf).or(Err(Err::Reason("Could not read file".to_string())))?;
+    let n = fs::read(&path, &mut buf).or(could_not!("read file"))?;
     buf.resize(n, 0);
     Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
 }
@@ -185,7 +185,7 @@ pub fn lisp_write_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
     match &args[1] {
         Exp::List(list) => {
             let buf = bytes(list)?;
-            let n = fs::write(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+            let n = fs::write(&path, &buf).or(could_not!("write file"))?;
             Ok(Exp::Num(Number::from(n)))
         }
         _ => expected!("second argument to be a list")
@@ -198,7 +198,7 @@ pub fn lisp_append_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
     match &args[1] {
         Exp::List(list) => {
             let buf = bytes(list)?;
-            let n = fs::append(&path, &buf).or(Err(Err::Reason("Could not write file".to_string())))?;
+            let n = fs::append(&path, &buf).or(could_not!("write file"))?;
             Ok(Exp::Num(Number::from(n)))
         }
         _ => expected!("second argument to be a list")
@@ -270,7 +270,7 @@ pub fn lisp_regex_find(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_string_number(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let s = string(&args[0])?;
-    let n = s.parse().or(Err(Err::Reason("Could not parse number".to_string())))?;
+    let n = s.parse().or(could_not!("parse number"))?;
     Ok(Exp::Num(n))
 }
 

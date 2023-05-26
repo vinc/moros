@@ -172,6 +172,14 @@ macro_rules! expected {
     });
 }
 
+#[macro_export]
+macro_rules! could_not {
+    ($($arg:tt)*) => ({
+        use alloc::format;
+        Err(Err::Reason(format!("Could not {}", format_args!($($arg)*))))
+    });
+}
+
 pub fn bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
     args.iter().map(byte).collect()
 }

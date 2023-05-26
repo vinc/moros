@@ -1,6 +1,7 @@
 use super::{Err, Exp, Env, Function, parse_eval};
 use super::env::{env_get, env_set, function_env};
 use super::expand::expand;
+use crate::could_not;
 use super::string;
 
 use crate::{ensure_length_eq, ensure_length_gt, expected};
@@ -129,7 +130,7 @@ fn eval_do_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
 fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&args[0])?;
-    let mut input = fs::read_to_string(&path).or(Err(Err::Reason(format!("File not found '{}'", path))))?;
+    let mut input = fs::read_to_string(&path).or(could_not!("find file '{}'", path))?;
     loop {
         let (rest, _) = parse_eval(&input, env)?;
         if rest.is_empty() {

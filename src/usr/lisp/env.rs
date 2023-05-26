@@ -3,7 +3,7 @@ use super::primitive;
 use super::eval::BUILT_INS;
 use super::eval::eval_args;
 use super::{Err, Exp, Number};
-use crate::expected;
+use crate::{could_not, expected};
 
 use alloc::collections::BTreeMap;
 use alloc::format;
@@ -84,7 +84,7 @@ pub fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
         None => {
             match &env.outer {
                 Some(outer_env) => env_get(key, outer_env.borrow()),
-                None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
+                None => could_not!("find symbol '{}'", key),
             }
         }
     }
@@ -100,7 +100,7 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> 
         None => {
             match &env.outer {
                 Some(outer_env) => env_set(key, val, outer_env.borrow()),
-                None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
+                None => could_not!("find symbol '{}'", key),
             }
         }
     }
