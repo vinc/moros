@@ -1,4 +1,4 @@
-use super::FORMS;
+use super::FUNCTIONS;
 use super::primitive;
 use super::eval::BUILT_INS;
 use super::eval::eval_args;
@@ -72,7 +72,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("append".to_string(),             Exp::Primitive(primitive::lisp_append));
 
     // Setup autocompletion
-    *FORMS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
+    *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
 
     Rc::new(RefCell::new(Env { data, outer: None }))
 }
@@ -149,11 +149,11 @@ fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<
                 if let Exp::Sym(s) = exp {
                     data.insert(s.clone(), arg.clone());
                 } else {
-                    return expected!("symbols in the argument list");
+                    return expected!("params to be a list of symbols");
                 }
             }
         }
-        _ => return expected!("args form to be a list"),
+        _ => return expected!("params to be a list"),
     }
     Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
 }

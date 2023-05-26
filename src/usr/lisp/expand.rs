@@ -66,7 +66,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         ensure_list!(&list[3]);
                         (&list[1], &list[3])
                     }
-                    _ => return expected!("3 or 4 args"),
+                    _ => return expected!("3 or 4 arguments"),
                 };
                 match params {
                     Exp::List(args) => {

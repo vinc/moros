@@ -217,7 +217,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let (params, body, doc) = match args.len() {
                             2 => (args[0].clone(), args[1].clone(), None),
                             3 => (args[0].clone(), args[2].clone(), Some(string(&args[1])?)),
-                            _ => return expected!("3 or 4 args"),
+                            _ => return expected!("3 or 4 arguments"),
                         };
                         return Ok(Exp::Function(Box::new(Function { params, body, doc })))
                     }

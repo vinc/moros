@@ -121,7 +121,7 @@ pub enum Err {
 }
 
 lazy_static! {
-    pub static ref FORMS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    pub static ref FUNCTIONS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
 #[macro_export]
@@ -230,8 +230,8 @@ fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
         if let Some(f) = last_word.strip_prefix('(') {
-            for form in &*FORMS.lock() {
-                if let Some(entry) = form.strip_prefix(f) {
+            for function in &*FUNCTIONS.lock() {
+                if let Some(entry) = function.strip_prefix(f) {
                     entries.push(entry.into());
                 }
             }

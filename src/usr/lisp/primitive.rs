@@ -225,7 +225,7 @@ pub fn lisp_bytes_string(args: &[Exp]) -> Result<Exp, Err> {
     match &args[0] {
         Exp::List(list) => {
             let buf = bytes(list)?;
-            let s = String::from_utf8(buf).or(expected!("valid UTF-8 string"))?;
+            let s = String::from_utf8(buf).or(expected!("a valid UTF-8 string"))?;
             Ok(Exp::Str(s))
         }
         _ => expected!("argument to be a list")
@@ -244,7 +244,7 @@ pub fn lisp_bytes_number(args: &[Exp]) -> Result<Exp, Err> {
                 _ => expected!("valid number type"),
             }
         }
-        _ => expected!("args to be the number type and a list of bytes")
+        _ => expected!("arguments to be the type of number and a list of bytes")
     }
 }
 
@@ -263,7 +263,7 @@ pub fn lisp_regex_find(args: &[Exp]) -> Result<Exp, Err> {
             }).unwrap_or(vec![]);
             Ok(Exp::List(res))
         }
-        _ => expected!("args to be a regex and a string")
+        _ => expected!("arguments to be a regex and a string")
     }
 }
 
@@ -367,7 +367,7 @@ pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
     let (a, b) = match args.len() {
         2 => (usize::try_from(number(&args[1])?)?, 1),
         3 => (usize::try_from(number(&args[1])?)?, usize::try_from(number(&args[2])?)?),
-        _ => return expected!("2 or 3 args"),
+        _ => return expected!("2 or 3 arguments"),
     };
     match &args[0] {
         Exp::List(l) => {
