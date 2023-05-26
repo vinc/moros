@@ -33,9 +33,10 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `define-function` (aliased to `def-fun`)
 - `define-macro` (aliased to `def-mac`)
 - `apply`
+- `do`
+- `doc`
 - `eval`
 - `expand`
-- `do`
 - `load`
 
 ### Primitive Operators
@@ -135,10 +136,13 @@ Would produce the following output:
 (= i 10)                           # => true
 
 (def (map f ls)
+  "Apply function to list"
   (if (nil? ls) nil
     (cons
       (f (first ls))
       (map f (rest ls)))))
+
+(doc map)                          # => "Apply function to list"
 
 (var bar (quote (1 2 3)))
 (var bar '(1 2 3))                 # Shortcut
@@ -188,3 +192,5 @@ Rewrite parts of the code and add new functions and examples.
 ### 0.5.0 (unpublished)
 - Rename or add aliases to many functions
 - Add full support for line and inline comments
+- Add params to function representations
+- Add docstring to functions

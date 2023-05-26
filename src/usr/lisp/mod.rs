@@ -92,9 +92,9 @@ impl PartialOrd for Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
-            Exp::Primitive(_) => "<function>".to_string(),
-            Exp::Function(_)  => "<function>".to_string(),
-            Exp::Macro(_)     => "<macro>".to_string(),
+            Exp::Primitive(_) => format!("(function args)"),
+            Exp::Function(f)  => format!("(function {})", f.params),
+            Exp::Macro(m)     => format!("(macro {})", m.params),
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
@@ -112,6 +112,7 @@ impl fmt::Display for Exp {
 pub struct Function {
     params: Exp,
     body: Exp,
+    doc: Option<String>,
 }
 
 #[derive(Debug)]
@@ -139,6 +140,26 @@ macro_rules! ensure_length_gt {
         if $list.len() <= $count {
             let plural = if $count != 1 { "s" } else { "" };
             return Err(Err::Reason(format!("Expected more than {} expression{}", $count, plural)))
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! ensure_string {
+    ($exp:expr) => {
+        match $exp {
+            Exp::Str(_) => {},
+            _ => return Err(Err::Reason("Expected a string".to_string())),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! ensure_list {
+    ($exp:expr) => {
+        match $exp {
+            Exp::List(_) => {},
+            _ => return Err(Err::Reason("Expected a list".to_string())),
         }
     };
 }
