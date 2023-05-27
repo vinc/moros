@@ -213,21 +213,18 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         }
                         exp = &exp_tmp;
                     }
-                    Exp::Sym(s) if s == "function" => {
+                    Exp::Sym(s) if s == "function" || s == "macro" => {
                         let (params, body, doc) = match args.len() {
                             2 => (args[0].clone(), args[1].clone(), None),
                             3 => (args[0].clone(), args[2].clone(), Some(string(&args[1])?)),
                             _ => return expected!("3 or 4 arguments"),
                         };
-                        return Ok(Exp::Function(Box::new(Function { params, body, doc })))
-                    }
-                    Exp::Sym(s) if s == "macro" => {
-                        ensure_length_eq!(args, 2);
-                        return Ok(Exp::Macro(Box::new(Function {
-                            params: args[0].clone(),
-                            body: args[1].clone(),
-                            doc: None,
-                        })))
+                        let f = Box::new(Function { params, body, doc });
+                        if s == "function" {
+                            return Ok(Exp::Function(f));
+                        } else {
+                            return Ok(Exp::Macro(f));
+                        }
                     }
                     _ => {
                         match eval(&list[0], env)? {
