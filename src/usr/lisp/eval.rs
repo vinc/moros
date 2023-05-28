@@ -1,5 +1,5 @@
 use super::{Err, Exp, Env, Function, parse_eval};
-use super::env::{env_get, env_set, function_env};
+use super::env::{env_keys, env_get, env_set, function_env};
 use super::expand::expand;
 use crate::could_not;
 use super::string;
@@ -91,6 +91,12 @@ fn eval_set_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     }
 }
 
+fn eval_env_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 0);
+    let keys = env_keys(env)?.iter().map(|k| Exp::Sym(k.clone())).collect();
+    Ok(Exp::List(keys))
+}
+
 fn eval_while_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_gt!(args, 1);
     let cond = &args[0];
@@ -155,7 +161,7 @@ pub fn eval_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Vec<Exp>, E
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 25] = [
+pub const BUILT_INS: [&str; 26] = [
     "quote", "quasiquote", "unquote", "unquote-splicing",
     "atom?", "equal?", "head", "tail", "cons",
     "if", "cond", "while",
@@ -166,7 +172,8 @@ pub const BUILT_INS: [&str; 25] = [
     "apply", "eval", "expand",
     "do",
     "load",
-    "doc"
+    "doc",
+    "env"
 ];
 
 pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
@@ -198,6 +205,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "load"     => return eval_load_args(args, env),
                     Exp::Sym(s) if s == "doc"      => return eval_doc_args(args, env),
                     Exp::Sym(s) if s == "variable" => return eval_variable_args(args, env),
+                    Exp::Sym(s) if s == "env"      => return eval_env_args(args, env),
                     Exp::Sym(s) if s == "expand"   => {
                         ensure_length_eq!(args, 1);
                         return expand(&args[0], env);
@@ -220,11 +228,8 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             _ => return expected!("3 or 4 arguments"),
                         };
                         let f = Box::new(Function { params, body, doc });
-                        if s == "function" {
-                            return Ok(Exp::Function(f));
-                        } else {
-                            return Ok(Exp::Macro(f));
-                        }
+                        let exp = if s == "function" { Exp::Function(f) } else { Exp::Macro(f) };
+                        return Ok(exp);
                     }
                     _ => {
                         match eval(&list[0], env)? {

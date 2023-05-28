@@ -10,6 +10,7 @@ use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
+use alloc::vec::Vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::f64::consts::PI;
@@ -75,6 +76,15 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
 
     Rc::new(RefCell::new(Env { data, outer: None }))
+}
+
+pub fn env_keys(env: &Rc<RefCell<Env>>) -> Result<Vec<String>, Err> {
+    let env = env.borrow_mut();
+    let mut keys: Vec<String> = env.data.keys().map(|k| k.clone()).collect();
+    if let Some(outer_env) = &env.outer {
+        keys.extend_from_slice(&env_keys(outer_env)?);
+    }
+    Ok(keys)
 }
 
 pub fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
