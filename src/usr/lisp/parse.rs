@@ -1,4 +1,5 @@
 use super::{Err, Exp, Number};
+use crate::could_not;
 
 use alloc::string::String;
 use alloc::string::ToString;
@@ -111,8 +112,8 @@ pub fn parse(input: &str)-> Result<(String, Exp), Err> {
         Ok((input, exp)) => Ok((input.to_string(), exp)),
         Err(Error(err)) if !err.input.is_empty() => {
             let line = err.input.lines().next().unwrap();
-            Err(Err::Reason(format!("Could not parse '{}'", line)))
+            could_not!("parse '{}'", line)
         }
-        _ => Err(Err::Reason(format!("Could not parse input"))),
+        _ => could_not!("parse input"),
     }
 }

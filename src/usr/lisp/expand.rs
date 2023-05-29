@@ -2,7 +2,7 @@ use super::{Err, Exp, Env};
 use super::env::{env_get, macro_env};
 use super::eval::eval;
 
-use crate::{ensure_length_eq, ensure_length_gt};
+use crate::{ensure_length_eq, ensure_length_gt, ensure_list, ensure_string, expected};
 
 use alloc::format;
 use alloc::rc::Rc;
@@ -56,21 +56,34 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 expand_quasiquote(&list[1])
             }
             Exp::Sym(s) if s == "define-function" || s == "define" => {
-                ensure_length_eq!(list, 3);
-                match (&list[1], &list[2]) {
-                    (Exp::List(args), Exp::List(_)) => {
+                let (params, body) = match list.len() {
+                    3 => {
+                        ensure_list!(&list[2]);
+                        (&list[1], &list[2])
+                    }
+                    4 => {
+                        ensure_string!(&list[2]);
+                        ensure_list!(&list[3]);
+                        (&list[1], &list[3])
+                    }
+                    _ => return expected!("3 or 4 arguments"),
+                };
+                match params {
+                    Exp::List(args) => {
                         ensure_length_gt!(args, 0);
                         let name = args[0].clone();
                         let args = Exp::List(args[1..].to_vec());
-                        let body = expand(&list[2], env)?;
+                        let body = expand(&body, env)?;
+                        let mut function = vec![Exp::Sym("function".to_string()), args, body];
+                        if list.len() == 4 {
+                            function.insert(2, list[2].clone());
+                        }
                         Ok(Exp::List(vec![
-                            Exp::Sym("variable".to_string()), name, Exp::List(vec![
-                                Exp::Sym("function".to_string()), args, body
-                            ])
+                            Exp::Sym("variable".to_string()), name, Exp::List(function)
                         ]))
                     }
-                    (Exp::Sym(_), _) => expand_list(list, env),
-                    _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
+                    Exp::Sym(_) => expand_list(list, env),
+                    _ => expected!("first argument to be a symbol or a list")
                 }
             }
             Exp::Sym(s) if s == "define-macro" => {
@@ -88,7 +101,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         ]))
                     }
                     (Exp::Sym(_), _) => expand_list(list, env),
-                    _ => Err(Err::Reason("Expected first argument to be a symbol or a list".to_string()))
+                    _ => expected!("first argument to be a symbol or a list")
                 }
             }
             Exp::Sym(s) if s == "cond" => {
@@ -103,7 +116,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Ok(Exp::List(res))
                 } else {
-                    Err(Err::Reason("Expected lists of predicate and expression".to_string()))
+                    expected!("lists of predicate and expression")
                 }
             }
             Exp::Sym(s) => {

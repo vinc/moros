@@ -92,9 +92,9 @@ impl PartialOrd for Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
-            Exp::Primitive(_) => "<function>".to_string(),
-            Exp::Function(_)  => "<function>".to_string(),
-            Exp::Macro(_)     => "<macro>".to_string(),
+            Exp::Primitive(_) => format!("(function args)"),
+            Exp::Function(f)  => format!("(function {})", f.params),
+            Exp::Macro(m)     => format!("(macro {})", m.params),
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
@@ -112,6 +112,7 @@ impl fmt::Display for Exp {
 pub struct Function {
     params: Exp,
     body: Exp,
+    doc: Option<String>,
 }
 
 #[derive(Debug)]
@@ -120,7 +121,7 @@ pub enum Err {
 }
 
 lazy_static! {
-    pub static ref FORMS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    pub static ref FUNCTIONS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
 #[macro_export]
@@ -128,7 +129,7 @@ macro_rules! ensure_length_eq {
     ($list:expr, $count:expr) => {
         if $list.len() != $count {
             let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected {} expression{}", $count, plural)))
+            return expected!("{} expression{}", $count, plural);
         }
     };
 }
@@ -138,9 +139,45 @@ macro_rules! ensure_length_gt {
     ($list:expr, $count:expr) => {
         if $list.len() <= $count {
             let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected more than {} expression{}", $count, plural)))
+            return expected!("more than {} expression{}", $count, plural);
         }
     };
+}
+
+#[macro_export]
+macro_rules! ensure_string {
+    ($exp:expr) => {
+        match $exp {
+            Exp::Str(_) => {},
+            _ => return expected!("a string"),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! ensure_list {
+    ($exp:expr) => {
+        match $exp {
+            Exp::List(_) => {},
+            _ => return expected!("a list"),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! expected {
+    ($($arg:tt)*) => ({
+        use alloc::format;
+        Err(Err::Reason(format!("Expected {}", format_args!($($arg)*))))
+    });
+}
+
+#[macro_export]
+macro_rules! could_not {
+    ($($arg:tt)*) => ({
+        use alloc::format;
+        Err(Err::Reason(format!("Could not {}", format_args!($($arg)*))))
+    });
 }
 
 pub fn bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
@@ -158,21 +195,21 @@ pub fn numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
 pub fn string(exp: &Exp) -> Result<String, Err> {
     match exp {
         Exp::Str(s) => Ok(s.to_string()),
-        _ => Err(Err::Reason("Expected a string".to_string())),
+        _ => expected!("a string"),
     }
 }
 
 pub fn number(exp: &Exp) -> Result<Number, Err> {
     match exp {
         Exp::Num(num) => Ok(num.clone()),
-        _ => Err(Err::Reason("Expected a number".to_string())),
+        _ => expected!("a number"),
     }
 }
 
 pub fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
         Exp::Num(num) => Ok(num.into()),
-        _ => Err(Err::Reason("Expected a float".to_string())),
+        _ => expected!("a float"),
     }
 }
 
@@ -193,8 +230,8 @@ fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
         if let Some(f) = last_word.strip_prefix('(') {
-            for form in &*FORMS.lock() {
-                if let Some(entry) = form.strip_prefix(f) {
+            for function in &*FUNCTIONS.lock() {
+                if let Some(entry) = function.strip_prefix(f) {
                     entries.push(entry.into());
                 }
             }
@@ -271,9 +308,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         input = rest;
                     }
                     Err(Err::Reason(msg)) => {
-                        let csi_error = Style::color("LightRed");
-                        let csi_reset = Style::reset();
-                        eprintln!("{}Error:{} {}", csi_error, csi_reset, msg);
+                        error!("{}", msg);
                         return Err(ExitCode::Failure);
                     }
                 }

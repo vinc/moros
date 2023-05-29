@@ -1,14 +1,16 @@
-use super::FORMS;
+use super::FUNCTIONS;
 use super::primitive;
 use super::eval::BUILT_INS;
 use super::eval::eval_args;
 use super::{Err, Exp, Number};
+use crate::{could_not, expected};
 
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
+use alloc::vec::Vec;
 use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::f64::consts::PI;
@@ -71,9 +73,18 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("append".to_string(),             Exp::Primitive(primitive::lisp_append));
 
     // Setup autocompletion
-    *FORMS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
+    *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
 
     Rc::new(RefCell::new(Env { data, outer: None }))
+}
+
+pub fn env_keys(env: &Rc<RefCell<Env>>) -> Result<Vec<String>, Err> {
+    let env = env.borrow_mut();
+    let mut keys: Vec<String> = env.data.keys().map(|k| k.clone()).collect();
+    if let Some(outer_env) = &env.outer {
+        keys.extend_from_slice(&env_keys(outer_env)?);
+    }
+    Ok(keys)
 }
 
 pub fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
@@ -83,7 +94,7 @@ pub fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
         None => {
             match &env.outer {
                 Some(outer_env) => env_get(key, outer_env.borrow()),
-                None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
+                None => could_not!("find symbol '{}'", key),
             }
         }
     }
@@ -99,7 +110,7 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> 
         None => {
             match &env.outer {
                 Some(outer_env) => env_set(key, val, outer_env.borrow()),
-                None => Err(Err::Reason(format!("Unexpected symbol '{}'", key))),
+                None => could_not!("find symbol '{}'", key),
             }
         }
     }
@@ -142,17 +153,17 @@ fn inner_env(kind: InnerEnv, params: &Exp, args: &[Exp], outer: &mut Rc<RefCell<
             if n != m {
                 let s = if n != 1 { "s" } else { "" };
                 let a = if is_variadic { "at least " } else { "" };
-                return Err(Err::Reason(format!("Expected {}{} argument{}, got {}", a, n, s, m)));
+                return expected!("{}{} argument{}, got {}", a, n, s, m);
             }
             for (exp, arg) in list.iter().zip(args.iter()) {
                 if let Exp::Sym(s) = exp {
                     data.insert(s.clone(), arg.clone());
                 } else {
-                    return Err(Err::Reason("Expected symbols in the argument list".to_string()));
+                    return expected!("params to be a list of symbols");
                 }
             }
         }
-        _ => return Err(Err::Reason("Expected args form to be a list".to_string())),
+        _ => return expected!("params to be a list"),
     }
     Ok(Rc::new(RefCell::new(Env { data, outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))) })))
 }
