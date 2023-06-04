@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix Lisp comments (#493)
 - Add docstring to lisp (#490)
 - Add full support for comments in lisp (#489)
 - Add parenthesis matching to editor (#488)
