@@ -101,7 +101,7 @@ fn parse_exp(input: &str) -> IResult<&str, Exp> {
     let (input, _) = opt(many0(parse_comment))(input)?;
     delimited(multispace0, alt((
         parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_quasiquote, parse_unquote_splice, parse_unquote, parse_splice, parse_sym
-    )), multispace0)(input)
+    )), alt((parse_comment, multispace0)))(input)
 }
 
 pub fn parse(input: &str)-> Result<(String, Exp), Err> {
