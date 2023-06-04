@@ -93,11 +93,8 @@ fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
     Ok((input, Exp::List(list)))
 }
 
-use nom::sequence::pair;
-use alloc::format;
-
-fn parse_comment(input: &str) -> IResult<&str, ()> {
-    value((), pair(char('#'), is_not("\n")))(input)
+fn parse_comment(input: &str) -> IResult<&str, &str> {
+    preceded(multispace0, preceded(char('#'), is_not("\n")))(input)
 }
 
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
