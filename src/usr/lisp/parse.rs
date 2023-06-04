@@ -107,9 +107,13 @@ fn parse_exp(input: &str) -> IResult<&str, Exp> {
 pub fn parse(input: &str)-> Result<(String, Exp), Err> {
     match parse_exp(input) {
         Ok((input, exp)) => Ok((input.to_string(), exp)),
-        Err(Error(err)) if !err.input.is_empty() => {
-            let line = err.input.lines().next().unwrap();
-            could_not!("parse '{}'", line)
+        Err(Error(err)) => {
+            if err.input.is_empty() {
+                Ok(("".to_string(), Exp::List(vec![Exp::Sym("quote".to_string()), Exp::List(vec![])])))
+            } else {
+                let line = err.input.lines().next().unwrap();
+                could_not!("parse '{}'", line)
+            }
         }
         _ => could_not!("parse input"),
     }
