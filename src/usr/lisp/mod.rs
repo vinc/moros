@@ -540,4 +540,5 @@ fn test_lisp() {
     assert_eq!(eval!("# comment"), "()");
     assert_eq!(eval!("# comment\n# comment"), "()");
     assert_eq!(eval!("(+ 1 2 3) # comment"), "6");
+    assert_eq!(eval!("(+ 1 2 3) # comment\n# comment"), "6");
 }
