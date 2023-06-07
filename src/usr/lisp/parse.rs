@@ -93,26 +93,27 @@ fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
     Ok((input, Exp::List(list)))
 }
 
-use nom::sequence::pair;
-use alloc::format;
-
-fn parse_comment(input: &str) -> IResult<&str, ()> {
-    value((), pair(char('#'), is_not("\n")))(input)
+fn parse_comment(input: &str) -> IResult<&str, &str> {
+    preceded(multispace0, preceded(char('#'), is_not("\n")))(input)
 }
 
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
-    let (input, _) = opt(parse_comment)(input)?;
+    let (input, _) = opt(many0(parse_comment))(input)?;
     delimited(multispace0, alt((
         parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_quasiquote, parse_unquote_splice, parse_unquote, parse_splice, parse_sym
-    )), multispace0)(input)
+    )), alt((parse_comment, multispace0)))(input)
 }
 
 pub fn parse(input: &str)-> Result<(String, Exp), Err> {
     match parse_exp(input) {
         Ok((input, exp)) => Ok((input.to_string(), exp)),
-        Err(Error(err)) if !err.input.is_empty() => {
-            let line = err.input.lines().next().unwrap();
-            could_not!("parse '{}'", line)
+        Err(Error(err)) => {
+            if err.input.is_empty() {
+                Ok(("".to_string(), Exp::List(vec![Exp::Sym("quote".to_string()), Exp::List(vec![])])))
+            } else {
+                let line = err.input.lines().next().unwrap();
+                could_not!("parse '{}'", line)
+            }
         }
         _ => could_not!("parse input"),
     }
