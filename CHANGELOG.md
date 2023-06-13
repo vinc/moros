@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Update rust version (#495)
 - Fix lisp range params (#494)
 - Fix lisp comments (#493)
 - Add docstring to lisp (#490)
