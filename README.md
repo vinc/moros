@@ -51,6 +51,9 @@ Documentation is available [here](doc/index.md)
 
 ## Setup
 
+You will need `git`, `gcc`, `make`, `curl`, `qemu-img`, and
+`qemu-system-x86_64` on the host system.
+
 Clone the repo:
 
     $ git clone https://github.com/vinc/moros
