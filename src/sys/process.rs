@@ -143,7 +143,7 @@ pub fn code_addr() -> u64 {
 
 pub fn set_code_addr(addr: u64) {
     let mut table = PROCESS_TABLE.write();
-    let mut proc = &mut table[id()];
+    let proc = &mut table[id()];
     proc.code_addr = addr;
 }
 
@@ -164,7 +164,7 @@ pub fn registers() -> Registers {
 
 pub fn set_registers(regs: Registers) {
     let mut table = PROCESS_TABLE.write();
-    let mut proc = &mut table[id()];
+    let proc = &mut table[id()];
     proc.registers = regs
 }
 
@@ -176,7 +176,7 @@ pub fn stack_frame() -> InterruptStackFrameValue {
 
 pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
     let mut table = PROCESS_TABLE.write();
-    let mut proc = &mut table[id()];
+    let proc = &mut table[id()];
     proc.stack_frame = stack_frame;
 }
 

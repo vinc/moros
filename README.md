@@ -51,6 +51,9 @@ Documentation is available [here](doc/index.md)
 
 ## Setup
 
+You will need `git`, `gcc`, `make`, `curl`, `qemu-img`, and
+`qemu-system-x86_64` on the host system.
+
 Clone the repo:
 
     $ git clone https://github.com/vinc/moros
@@ -58,9 +61,8 @@ Clone the repo:
 
 Install the required tools with `make setup` or the following commands:
 
-    $ curl https://sh.rustup.rs -sSf | sh
-    $ rustup install nightly
-    $ rustup default nightly
+    $ curl https://sh.rustup.rs -sSf | sh -- --default-toolchain none
+    $ rustup show
     $ cargo install bootimage
 
 
