@@ -68,8 +68,8 @@
 
 (def (range start stop)
   "Return a list of integers from start to stop excluded"
-  (if (= i n) nil
-    (append (list i) (range (+ i 1) n))))
+  (if (= start stop) nil
+    (append (list start) (range (+ start 1) stop))))
 
 (def (min lst)
   "Return the minimum element of the list"
