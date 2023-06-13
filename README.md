@@ -58,9 +58,8 @@ Clone the repo:
 
 Install the required tools with `make setup` or the following commands:
 
-    $ curl https://sh.rustup.rs -sSf | sh
-    $ rustup install nightly
-    $ rustup default nightly
+    $ curl https://sh.rustup.rs -sSf | sh -- --default-toolchain none
+    $ rustup show
     $ cargo install bootimage
 
 

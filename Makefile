@@ -2,9 +2,8 @@
 .EXPORT_ALL_VARIABLES:
 
 setup:
-	curl https://sh.rustup.rs -sSf | sh -s -- -y
-	rustup install nightly
-	rustup default nightly
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain none
+	rustup show
 	cargo install bootimage
 
 # Compilation options
