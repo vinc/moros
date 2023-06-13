@@ -37,7 +37,7 @@ user-rust:
 		cargo rustc --release --bin {}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
-	#strip dsk/bin/*
+	strip dsk/bin/*
 
 bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
 img = disk.img
