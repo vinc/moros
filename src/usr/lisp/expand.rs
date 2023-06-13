@@ -108,7 +108,9 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 ensure_length_gt!(list, 1);
                 if let Exp::List(args) = &list[1] {
                     ensure_length_eq!(args, 2);
-                    let mut res = vec![Exp::Sym("if".to_string()), args[0].clone(), args[1].clone()];
+                    let test_exp = expand(&args[0], env)?;
+                    let then_exp = expand(&args[1], env)?;
+                    let mut res = vec![Exp::Sym("if".to_string()), test_exp, then_exp];
                     if list.len() > 2 {
                         let mut acc = vec![Exp::Sym("cond".to_string())];
                         acc.extend_from_slice(&list[2..]);
