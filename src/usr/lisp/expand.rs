@@ -73,7 +73,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         ensure_length_gt!(args, 0);
                         let name = args[0].clone();
                         let args = Exp::List(args[1..].to_vec());
-                        let body = expand(&body, env)?;
+                        let body = expand(body, env)?;
                         let mut function = vec![Exp::Sym("function".to_string()), args, body];
                         if list.len() == 4 {
                             function.insert(2, list[2].clone());

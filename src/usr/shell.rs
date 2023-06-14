@@ -363,7 +363,7 @@ fn cmd_version(_args: &[&str]) -> Result<(), ExitCode> {
 fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     let cmd = variables_expansion(cmd, config);
 
-    let mut args = split_args(&cmd.trim());
+    let mut args = split_args(cmd.trim());
 
     if args.is_empty() {
         return Ok(());

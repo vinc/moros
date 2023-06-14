@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Run clippy (502)
+- Bump object from 0.30.3 to 0.31.1 (#497)
+- Bump libm from 0.2.6 to 0.2.7 (#498)
+- Bump raw-cpuid from 10.7.0 to 11.0.1 (#499)
+- Bump vte from 0.11.0 to 0.11.1 (#496)
 - Fix lisp cond expand (#501)
 - Update rust version (#495)
 - Fix lisp range params (#494)

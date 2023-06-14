@@ -311,7 +311,7 @@ impl fmt::Display for Number {
                 }
                 loop {
                     v.push((n.clone() % BigInt::from(10)).to_u64().unwrap());
-                    n = n / BigInt::from(10);
+                    n /= BigInt::from(10);
                     if n == BigInt::from(0) {
                         break;
                     }
