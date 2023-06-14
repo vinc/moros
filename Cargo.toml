@@ -39,7 +39,7 @@ smoltcp = { version = "0.9.1", default-features = false, features = ["alloc", "m
 spin = "0.9.8"
 time = { version = "0.2.27", default-features = false }
 uart_16550 = "0.2.18"
-vte = "0.11.0"
+vte = "0.11.1"
 x86_64 = "0.14.10"
 
 [package.metadata.bootimage]
