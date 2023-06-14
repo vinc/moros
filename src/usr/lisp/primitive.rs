@@ -155,7 +155,7 @@ pub fn lisp_trunc(args: &[Exp]) -> Result<Exp, Err> {
 
 pub fn lisp_system(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
-    let cmd = strings(&args)?.join(" ");
+    let cmd = strings(args)?.join(" ");
     match shell::exec(&cmd) {
         Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
         Err(code) => Ok(Exp::Num(Number::from(code as u8))),
@@ -346,7 +346,7 @@ pub fn lisp_nth(args: &[Exp]) -> Result<Exp, Err> {
     let i = usize::try_from(number(&args[1])?)?;
     match &args[0] {
         Exp::List(l) => {
-            if let Some(e) = l.iter().nth(i) {
+            if let Some(e) = l.get(i) {
                 Ok(e.clone())
             } else {
                 Ok(Exp::List(Vec::new()))
@@ -371,7 +371,7 @@ pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
     };
     match &args[0] {
         Exp::List(l) => {
-            let l: Vec<Exp> = l.iter().cloned().skip(a).take(b).collect();
+            let l: Vec<Exp> = l.iter().skip(a).cloned().take(b).collect();
             Ok(Exp::List(l))
         }
         Exp::Str(s) => {

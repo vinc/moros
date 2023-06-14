@@ -80,7 +80,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
 
 pub fn env_keys(env: &Rc<RefCell<Env>>) -> Result<Vec<String>, Err> {
     let env = env.borrow_mut();
-    let mut keys: Vec<String> = env.data.keys().map(|k| k.clone()).collect();
+    let mut keys: Vec<String> = env.data.keys().cloned().collect();
     if let Some(outer_env) = &env.outer {
         keys.extend_from_slice(&env_keys(outer_env)?);
     }
