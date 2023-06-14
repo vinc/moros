@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix lisp cond expand (#501)
 - Update rust version (#495)
 - Fix lisp range params (#494)
 - Fix lisp comments (#493)
