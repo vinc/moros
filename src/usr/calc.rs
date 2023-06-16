@@ -142,6 +142,12 @@ fn repl() -> Result<(), ExitCode> {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    for &arg in args {
+        match arg {
+            "-h" | "--help" => return help(),
+            _ => {},
+        }
+    }
     if args.len() == 1 {
         repl()
     } else {
@@ -156,6 +162,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     }
+}
+
+pub fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} calc {}[<exp>]{}", csi_title, csi_reset, csi_option, csi_reset);
+    Ok(())
 }
 
 #[test_case]
