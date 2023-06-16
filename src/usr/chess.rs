@@ -249,7 +249,8 @@ impl Chess {
     }
 
     fn cmd_perf(&mut self, args: Vec<&str>) {
-        let csi_color = Style::color("Cyan");
+        let csi_depth = Style::color("LightCyan");
+        let csi_count = Style::color("Pink");
         let csi_reset = Style::reset();
 
         let mut depth = if args.len() > 1 {
@@ -268,7 +269,7 @@ impl Chess {
             let n = self.game.perft(depth);
             let s = (((self.game.clock.system_time)() - started_at) as f64) / 1000.0;
             let nps = (n as f64) / s;
-            println!("{}perft {}:{} {} ({:.2} s, {:.2e} nps)", csi_color, depth, csi_reset, n, s, nps);
+            println!("{}{}:{} {}{} ({:.2} s, {:.2e} nps)", csi_depth, depth, csi_count, n, csi_reset, s, nps);
 
             if args.len() > 1 || sys::console::end_of_text() {
                 break;
