@@ -29,7 +29,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
 
         if !fs::exists(pathname) {
-            error!("File not found '{}'", pathname);
+            error!("Could not find file '{}'", pathname);
             return Err(ExitCode::Failure);
         }
 

@@ -51,7 +51,6 @@ fn system_time() -> u128 {
 struct Chess {
     game: Game,
     csi_color: Style,
-    csi_error: Style,
     csi_notif: Style,
     csi_reset: Style,
 }
@@ -61,7 +60,6 @@ impl Chess {
         Self {
             game: Game::new(),
             csi_color: Style::color("Cyan"),
-            csi_error: Style::color("LightRed"),
             csi_notif: Style::color("Yellow"),
             csi_reset: Style::reset(),
         }
@@ -94,12 +92,11 @@ impl Chess {
                 "m" | "move" => self.cmd_move(args),
                 "u" | "undo" => self.cmd_undo(args),
                 "p" | "perf" => self.cmd_perf(args),
-                //"s" | "show" => self.cmd_show(args),
                 cmd => {
                     if cmd.is_empty() {
                         println!();
                     } else {
-                        println!("{}Error:{} unknown command '{}'\n", self.csi_error, self.csi_reset, cmd);
+                        error!("Unknown command '{}'\n", cmd);
                     }
                 }
             }
@@ -118,8 +115,7 @@ impl Chess {
             ("t", "ime <moves> <time>", "Set clock to <moves> in <time> (in seconds)\n"),
             ("m", "ove <move>",         "Play <move> on the board\n"),
             ("u", "ndo",                "Undo the last move\n"),
-            ("p", "erf [<depth>]",       "Count the nodes at each depth\n"),
-            //("s", "how <attr>",         "Show <attr>\n"),
+            ("p", "erf [<depth>]",      "Count the nodes at each depth\n"),
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("LightGreen");
@@ -158,11 +154,11 @@ impl Chess {
     fn cmd_time(&mut self, args: Vec<&str>) {
         match args.len() {
             1 => {
-                println!("{}Error:{} no <moves> and <time> given\n", self.csi_error, self.csi_reset);
+                error!("No <moves> and <time> given\n");
                 return;
             },
             2 => {
-                println!("{}Error:{} no <time> given\n", self.csi_error, self.csi_reset);
+                error!("No <time> given\n");
                 return;
             },
             _ => {},
@@ -171,22 +167,27 @@ impl Chess {
             if let Ok(time) = args[2].parse::<f64>() {
                 self.game.clock = Clock::new(moves, (time * 1000.0) as u64);
                 self.game.clock.system_time = Arc::new(system_time);
+                println!();
+            } else {
+                error!("Could not parse time\n");
             }
+        } else {
+            error!("Could not parse moves\n");
         }
     }
 
     fn cmd_move(&mut self, args: Vec<&str>) {
         if args.len() < 2 {
-            println!("{}Error:{} no <move> given\n", self.csi_error, self.csi_reset);
+            error!("No <move> given\n");
             return;
         }
         if !is_move(args[1]) {
-            println!("{}Error:{} invalid move '{}'\n", self.csi_error, self.csi_reset, args[1]);
+            error!("Invalid move '{}'\n", args[1]);
             return;
         }
         let m = self.game.move_from_lan(args[1]);
         if !self.game.is_parsed_move_legal(m) {
-            println!("{}Error:{} illegal move '{}'\n", self.csi_error, self.csi_reset, args[1]);
+            error!("Illegal move '{}'\n", args[1]);
             return;
         }
 
@@ -237,7 +238,7 @@ impl Chess {
             if let Ok(d) = args[1].parse() {
                 d
             } else {
-                println!("{}Error:{} invalid depth '{}'\n", self.csi_error, self.csi_reset, args[1]);
+                error!("Invalid depth '{}'\n", args[1]);
                 return;
             }
         } else {
@@ -257,6 +258,7 @@ impl Chess {
                 depth += 1;
             }
         }
+        println!();
     }
 }
 

@@ -29,7 +29,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::Failure)
         }
     } else {
-        error!("File not found '{}'", source);
+        error!("Could not find file '{}'", source);
         Err(ExitCode::Failure)
     }
 }

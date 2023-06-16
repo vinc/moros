@@ -277,16 +277,16 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             Ok(())
         },
         2 => {
-            let mut pathname = fs::realpath(args[1]);
-            if pathname.len() > 1 {
-                pathname = pathname.trim_end_matches('/').into();
+            let mut path = fs::realpath(args[1]);
+            if path.len() > 1 {
+                path = path.trim_end_matches('/').into();
             }
-            if api::fs::is_dir(&pathname) {
-                sys::process::set_dir(&pathname);
+            if api::fs::is_dir(&path) {
+                sys::process::set_dir(&path);
                 config.env.insert("DIR".to_string(), sys::process::dir());
                 Ok(())
             } else {
-                error!("File not found '{}'", pathname);
+                error!("Could not find file '{}'", path);
                 Err(ExitCode::Failure)
             }
         },
@@ -318,7 +318,7 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 
     if config.aliases.remove(&args[1].to_string()).is_none() {
-        error!("Error: could not unalias '{}'", args[1]);
+        error!("Could not unalias '{}'", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -348,7 +348,7 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 
     if config.env.remove(&args[1].to_string()).is_none() {
-        error!("Error: could not unset '{}'", args[1]);
+        error!("Could not unset '{}'", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -619,8 +619,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             config.env.insert((i + 1).to_string(), arg.to_string());
         }
 
-        let pathname = args[1];
-        if let Ok(contents) = api::fs::read_to_string(pathname) {
+        let path = args[1];
+        if let Ok(contents) = api::fs::read_to_string(path) {
             for line in contents.split('\n') {
                 if !line.is_empty() {
                     exec_with_config(line, &mut config).ok();
@@ -628,7 +628,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             Ok(())
         } else {
-            println!("File not found '{}'", pathname);
+            error!("Could not find file '{}'", path);
             Err(ExitCode::Failure)
         }
     }
@@ -660,7 +660,7 @@ fn test_shell() {
 
     // Redirect standard error explicitely
     exec("hex /nope 2=> /tmp/test3").ok();
-    assert!(api::fs::read_to_string("/tmp/test3").unwrap().contains("File not found '/nope'"));
+    assert!(api::fs::read_to_string("/tmp/test3").unwrap().contains("Could not find file '/nope'"));
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();
