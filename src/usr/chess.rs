@@ -1,5 +1,6 @@
 use crate::{api, sys};
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
@@ -9,6 +10,7 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 
 use littlewing::chess::*;
+use littlewing::fen::FEN;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
@@ -91,6 +93,8 @@ impl Chess {
                 "t" | "time" => self.cmd_time(args),
                 "m" | "move" => self.cmd_move(args),
                 "u" | "undo" => self.cmd_undo(args),
+                "l" | "load" => self.cmd_load(args),
+                "s" | "save" => self.cmd_save(args),
                 "p" | "perf" => self.cmd_perf(args),
                 cmd => {
                     if cmd.is_empty() {
@@ -115,6 +119,8 @@ impl Chess {
             ("t", "ime <moves> <time>", "Set clock to <moves> in <time> (in seconds)\n"),
             ("m", "ove <move>",         "Play <move> on the board\n"),
             ("u", "ndo",                "Undo the last move\n"),
+            ("l", "oad <file>",         "Load game from <file>\n"),
+            ("s", "ave <file>",         "Save game to <file>\n"),
             ("p", "erf [<depth>]",      "Count the nodes at each depth\n"),
         ];
         for (alias, command, usage) in &cmds {
@@ -132,24 +138,36 @@ impl Chess {
         println!("{}", self.game);
     }
 
-    /*
-    // TODO: implement hide command
-    fn cmd_show(&mut self, args: Vec<&str>) {
-        if args.len() == 1 {
-            println!("{}Error:{} no <attr> given\n", self.csi_error, self.csi_reset);
+    fn cmd_load(&mut self, args: Vec<&str>) {
+        if args.len() != 2 {
+            error!("No <path> given\n");
             return;
         }
-        match args[1] {
-            "board" => {
+        let path = args[1];
+        if let Ok(contents) = fs::read_to_string(path) {
+            if self.game.load_fen(&contents).is_ok() {
                 println!();
                 println!("{}", self.game);
-            },
-            attr => {
-                println!("{}Error:{} unknown '{}' attribute\n", self.csi_error, self.csi_reset, attr);
+            } else {
+                error!("Could not load game\n");
             }
+        } else {
+            error!("Could not read '{}'\n", path);
         }
     }
-    */
+
+    fn cmd_save(&mut self, args: Vec<&str>) {
+        if args.len() != 2 {
+            error!("No <path> given\n");
+            return;
+        }
+        let path = args[1];
+        if fs::write(path, format!("{}\n", self.game.to_fen()).as_bytes()).is_ok() {
+            println!();
+        } else {
+            error!("Could not write to '{}'\n", path);
+        }
+    }
 
     fn cmd_time(&mut self, args: Vec<&str>) {
         match args.len() {
