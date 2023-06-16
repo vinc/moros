@@ -67,7 +67,7 @@ impl Chess {
         }
     }
 
-    fn play(&mut self) {
+    fn run(&mut self) {
         println!("MOROS Chess v0.1.0\n");
         let prompt_string = format!("{}>{} ", self.csi_color, self.csi_reset);
 
@@ -308,8 +308,22 @@ fn is_move(m: &str) -> bool {
     false
 }
 
-pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    for &arg in args {
+        match arg {
+            "-h" | "--help" => return help(),
+            _ => {},
+        }
+    }
     let mut chess = Chess::new();
-    chess.play();
+    chess.run();
+    Ok(())
+}
+
+pub fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} chess {}{}", csi_title, csi_reset, csi_option, csi_reset);
     Ok(())
 }
