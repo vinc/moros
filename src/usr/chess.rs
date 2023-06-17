@@ -9,6 +9,7 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
+use littlewing::color::*;
 use littlewing::chess::*;
 use littlewing::fen::FEN;
 use lazy_static::lazy_static;
@@ -52,6 +53,7 @@ fn system_time() -> u128 {
 
 struct Chess {
     game: Game,
+    side: Color,
     csi_color: Style,
     csi_notif: Style,
     csi_reset: Style,
@@ -61,6 +63,7 @@ impl Chess {
     fn new() -> Self {
         Self {
             game: Game::new(),
+            side: BLACK,
             csi_color: Style::color("Cyan"),
             csi_notif: Style::color("Yellow"),
             csi_reset: Style::reset(),
@@ -91,11 +94,12 @@ impl Chess {
                 "h" | "help" => self.cmd_help(args),
                 "i" | "init" => self.cmd_init(args),
                 "t" | "time" => self.cmd_time(args),
+                "p" | "play" => self.cmd_play(args),
                 "m" | "move" => self.cmd_move(args),
                 "u" | "undo" => self.cmd_undo(args),
                 "l" | "load" => self.cmd_load(args),
                 "s" | "save" => self.cmd_save(args),
-                "p" | "perf" => self.cmd_perf(args),
+                      "perf" => self.cmd_perf(args),
                 cmd => {
                     if cmd.is_empty() {
                         println!();
@@ -117,11 +121,12 @@ impl Chess {
             ("h", "elp",                "Display this screen\n"),
             ("i", "nit",                "Initialize a new game\n"),
             ("t", "ime <moves> <time>", "Set clock to <moves> in <time> (in seconds)\n"),
+            ("p", "lay [<side>]",       "Play <side> on the board\n"),
             ("m", "ove <move>",         "Play <move> on the board\n"),
             ("u", "ndo",                "Undo the last move\n"),
             ("l", "oad <file>",         "Load game from <file>\n"),
             ("s", "ave <file>",         "Save game to <file>\n"),
-            ("p", "erf [<depth>]",      "Count the nodes at each depth\n"),
+            ("", "perf [<depth>] ",     "Count the nodes at each depth\n"),
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("LightGreen");
@@ -194,6 +199,22 @@ impl Chess {
         }
     }
 
+    fn cmd_play(&mut self, args: Vec<&str>) {
+        self.side = match args.get(1) {
+            None => self.game.side(),
+            Some(&"white") => WHITE,
+            Some(&"black") => BLACK,
+            Some(_) => {
+                error!("Could not parse side\n");
+                return;
+            }
+        };
+        println!();
+        if self.game.side() == self.side {
+            self.play();
+        }
+    }
+
     fn cmd_move(&mut self, args: Vec<&str>) {
         if args.len() < 2 {
             error!("No <move> given\n");
@@ -214,17 +235,11 @@ impl Chess {
         self.game.history.push(m);
         println!();
         println!("{}", self.game);
-        let time = (self.game.clock.allocated_time() as f64) / 1000.0;
-        print!("{}<{} wait {:.2} seconds{}", self.csi_color, self.csi_notif, time, self.csi_reset);
-        let r = self.game.search(1..99);
-        print!("\x1b[2K\x1b[1G");
-        if let Some(m) = r {
-            println!("{}<{} move {}", self.csi_color, self.csi_reset, m.to_lan());
-            println!();
-            self.game.make_move(m);
-            self.game.history.push(m);
-            println!("{}", self.game);
+
+        if self.game.side() == self.side {
+            self.play();
         }
+
         if self.game.is_mate() {
             if self.game.is_check(color::WHITE) {
                 println!("{}<{} black mates", self.csi_color, self.csi_reset);
@@ -278,6 +293,20 @@ impl Chess {
             }
         }
         println!();
+    }
+
+    fn play(&mut self) {
+        let time = (self.game.clock.allocated_time() as f64) / 1000.0;
+        print!("{}<{} wait {:.2} seconds{}", self.csi_color, self.csi_notif, time, self.csi_reset);
+        let r = self.game.search(1..99);
+        print!("\x1b[2K\x1b[1G");
+        if let Some(m) = r {
+            println!("{}<{} move {}", self.csi_color, self.csi_reset, m.to_lan());
+            println!();
+            self.game.make_move(m);
+            self.game.history.push(m);
+            println!("{}", self.game);
+        }
     }
 }
 
