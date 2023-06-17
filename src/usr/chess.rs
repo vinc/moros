@@ -151,6 +151,10 @@ impl Chess {
         let path = args[1];
         if let Ok(contents) = fs::read_to_string(path) {
             if self.game.load_fen(&contents).is_ok() {
+                self.side = self.game.side() ^ 1;
+                let color = if self.game.side() == WHITE { "white" } else { "black" };
+                println!();
+                println!("{}<{} play {}", self.csi_color, self.csi_reset, color);
                 println!();
                 println!("{}", self.game);
             } else {
