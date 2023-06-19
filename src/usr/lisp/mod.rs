@@ -242,7 +242,6 @@ fn lisp_completer(line: &str) -> Vec<String> {
 
 fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_color = Style::color("Cyan");
-    let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -266,7 +265,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
                 println!("{}\n", exp);
             }
             Err(e) => match e {
-                Err::Reason(msg) => println!("{}Error:{} {}\n", csi_error, csi_reset, msg),
+                Err::Reason(msg) => error!("{}\n", msg),
             },
         }
         prompt.history.add(&input);
@@ -315,7 +314,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             Ok(())
         } else {
-            error!("File not found '{}'", path);
+            error!("Could not find file '{}'", path);
             Err(ExitCode::Failure)
         }
     }

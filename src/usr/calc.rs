@@ -109,7 +109,6 @@ fn parse_eval(line: &str) -> Result<f64, String> {
 fn repl() -> Result<(), ExitCode> {
     println!("MOROS Calc v0.1.0\n");
     let csi_color = Style::color("Cyan");
-    let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -131,7 +130,7 @@ fn repl() -> Result<(), ExitCode> {
                 println!("{}\n", res);
             }
             Err(msg) => {
-                println!("{}Error:{} {}\n", csi_error, csi_reset, msg);
+                error!("{}\n", msg);
                 continue;
             }
         }
@@ -143,6 +142,12 @@ fn repl() -> Result<(), ExitCode> {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    for &arg in args {
+        match arg {
+            "-h" | "--help" => return help(),
+            _ => {},
+        }
+    }
     if args.len() == 1 {
         repl()
     } else {
@@ -157,6 +162,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     }
+}
+
+pub fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} calc {}[<exp>]{}", csi_title, csi_reset, csi_option, csi_reset);
+    Ok(())
 }
 
 #[test_case]

@@ -205,7 +205,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if i > 0 {
                     let path = arg;
                     if !fs::exists(path) {
-                        error!("File not found '{}'", path);
+                        error!("Could not find file '{}'", path);
                         return Err(ExitCode::UsageError);
                     }
                     game.load_file(path);

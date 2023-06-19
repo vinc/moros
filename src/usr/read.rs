@@ -115,7 +115,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::Failure)
         }
     } else {
-        error!("File not found '{}'", path);
+        error!("Could not find file '{}'", path);
         Err(ExitCode::Failure)
     }
 }
