@@ -172,10 +172,13 @@ The whole implementation was refactored and the parser was rewritten to use
 language and reading from the filesystem.
 
 ### 0.3.0 (2022-12-12)
-Rewrite the evaluation code, add new functions and a core library.
+- Rewrite the evaluation code
+- Add new functions
+- Add a core library
 
 ### 0.3.1 (2022-06-06)
-Rewrite parts of the code and add new functions and examples.
+- Rewrite parts of the code
+- Add new functions and examples
 
 ### 0.3.2 (2022-07-02)
 - Add new functions
