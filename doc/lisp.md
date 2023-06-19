@@ -180,9 +180,6 @@ Rewrite parts of the code and add new functions and examples.
 ### 0.3.2 (2022-07-02)
 - Add new functions
 
-### 0.3.2 (2022-08-25)
-- Add new functions
-
 ### 0.4.0 (2022-08-25)
 - Rewrite a lot of the code
 - Add integer and big integer support
