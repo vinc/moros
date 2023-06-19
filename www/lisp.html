@@ -46,9 +46,10 @@ of the Shell.</p>
     <li><code>define-function</code> (aliased to <code>def-fun</code>)</li>
     <li><code>define-macro</code> (aliased to <code>def-mac</code>)</li>
     <li><code>apply</code></li>
+    <li><code>do</code></li>
+    <li><code>doc</code></li>
     <li><code>eval</code></li>
     <li><code>expand</code></li>
-    <li><code>do</code></li>
     <li><code>load</code></li>
     </ul>
 
@@ -153,10 +154,13 @@ with the following content:</p>
 (= i 10)                           # =&gt; true
 
 (def (map f ls)
+  &quot;Apply function to list&quot;
   (if (nil? ls) nil
     (cons
       (f (first ls))
       (map f (rest ls)))))
+
+(doc map)                          # =&gt; &quot;Apply function to list&quot;
 
 (var bar (quote (1 2 3)))
 (var bar &#39;(1 2 3))                 # Shortcut
@@ -221,6 +225,8 @@ language and reading from the filesystem.</p>
     <ul>
     <li>Rename or add aliases to many functions</li>
     <li>Add full support for line and inline comments</li>
+    <li>Add params to function representations</li>
+    <li>Add docstring to functions</li>
     </ul>
   </body>
 </html>
