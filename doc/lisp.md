@@ -189,7 +189,7 @@ language and reading from the filesystem.
 - Add tail call optimization (TCO)
 - Add macro support
 
-### 0.5.0 (unpublished)
+### 0.5.0 (2023-06-21)
 - Rename or add aliases to many functions
 - Add full support for line and inline comments
 - Add params to function representations
