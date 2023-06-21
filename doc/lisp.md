@@ -82,7 +82,7 @@ The interpreter can be invoked from the shell:
 
 ```
 > lisp
-MOROS Lisp v0.4.0
+MOROS Lisp v0.5.0
 
 > (+ 1 2 3)
 6
@@ -172,15 +172,15 @@ The whole implementation was refactored and the parser was rewritten to use
 language and reading from the filesystem.
 
 ### 0.3.0 (2022-12-12)
-Rewrite the evaluation code, add new functions and a core library.
+- Rewrite the evaluation code
+- Add new functions
+- Add a core library
 
 ### 0.3.1 (2022-06-06)
-Rewrite parts of the code and add new functions and examples.
+- Rewrite parts of the code
+- Add new functions and examples
 
 ### 0.3.2 (2022-07-02)
-- Add new functions
-
-### 0.3.2 (2022-08-25)
 - Add new functions
 
 ### 0.4.0 (2022-08-25)
@@ -189,7 +189,7 @@ Rewrite parts of the code and add new functions and examples.
 - Add tail call optimization (TCO)
 - Add macro support
 
-### 0.5.0 (unpublished)
+### 0.5.0 (2023-06-21)
 - Rename or add aliases to many functions
 - Add full support for line and inline comments
 - Add params to function representations

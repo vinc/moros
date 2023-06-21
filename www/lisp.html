@@ -46,9 +46,10 @@ of the Shell.</p>
     <li><code>define-function</code> (aliased to <code>def-fun</code>)</li>
     <li><code>define-macro</code> (aliased to <code>def-mac</code>)</li>
     <li><code>apply</code></li>
+    <li><code>do</code></li>
+    <li><code>doc</code></li>
     <li><code>eval</code></li>
     <li><code>expand</code></li>
-    <li><code>do</code></li>
     <li><code>load</code></li>
     </ul>
 
@@ -102,7 +103,7 @@ of the Shell.</p>
     <p>The interpreter can be invoked from the shell:</p>
 
     <pre><code>&gt; lisp
-MOROS Lisp v0.4.0
+MOROS Lisp v0.5.0
 
 &gt; (+ 1 2 3)
 6
@@ -153,10 +154,13 @@ with the following content:</p>
 (= i 10)                           # =&gt; true
 
 (def (map f ls)
+  &quot;Apply function to list&quot;
   (if (nil? ls) nil
     (cons
       (f (first ls))
       (map f (rest ls)))))
+
+(doc map)                          # =&gt; &quot;Apply function to list&quot;
 
 (var bar (quote (1 2 3)))
 (var bar &#39;(1 2 3))                 # Shortcut
@@ -189,19 +193,20 @@ language and reading from the filesystem.</p>
 
     <h3>0.3.0 (2022-12-12)</h3>
 
-    <p>Rewrite the evaluation code, add new functions and a core library.</p>
+    <ul>
+    <li>Rewrite the evaluation code</li>
+    <li>Add new functions</li>
+    <li>Add a core library</li>
+    </ul>
 
     <h3>0.3.1 (2022-06-06)</h3>
 
-    <p>Rewrite parts of the code and add new functions and examples.</p>
-
-    <h3>0.3.2 (2022-07-02)</h3>
-
     <ul>
-    <li>Add new functions</li>
+    <li>Rewrite parts of the code</li>
+    <li>Add new functions and examples</li>
     </ul>
 
-    <h3>0.3.2 (2022-08-25)</h3>
+    <h3>0.3.2 (2022-07-02)</h3>
 
     <ul>
     <li>Add new functions</li>
@@ -216,11 +221,13 @@ language and reading from the filesystem.</p>
     <li>Add macro support</li>
     </ul>
 
-    <h3>0.5.0 (unpublished)</h3>
+    <h3>0.5.0 (2023-06-21)</h3>
 
     <ul>
     <li>Rename or add aliases to many functions</li>
     <li>Add full support for line and inline comments</li>
+    <li>Add params to function representations</li>
+    <li>Add docstring to functions</li>
     </ul>
   </body>
 </html>

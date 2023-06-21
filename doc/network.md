@@ -144,7 +144,7 @@ Here's a connexion to a SMTP server to send a mail:
     250-Ok EventMachine SMTP Server
     250-NO-SOLICITING
     250 SIZE 20000000
-    > MAIL FROM:<v@moros.cc>
+    > MAIL FROM:<vinc@moros.cc>
     > RCPT TO:<alice@example.com>
     250 Ok
     250 Ok
