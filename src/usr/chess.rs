@@ -71,7 +71,7 @@ impl Chess {
     }
 
     fn run(&mut self) {
-        println!("MOROS Chess v0.1.0\n");
+        println!("MOROS Chess v0.2.0\n");
         let prompt_string = format!("{}>{} ", self.csi_color, self.csi_reset);
 
         let mut prompt = Prompt::new();
