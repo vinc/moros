@@ -82,7 +82,7 @@ The interpreter can be invoked from the shell:
 
 ```
 > lisp
-MOROS Lisp v0.4.0
+MOROS Lisp v0.5.0
 
 > (+ 1 2 3)
 6
