@@ -6,6 +6,7 @@ use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use smoltcp::iface::Interface;
 use smoltcp::phy::DeviceCapabilities;
 use smoltcp::wire::EthernetAddress;
+use smoltcp::time::Instant;
 use spin::Mutex;
 
 mod rtl8139;
@@ -221,9 +222,9 @@ pub fn init() {
         if let Some(mac) = device.config().mac() {
             log!("NET {} MAC {}\n", name, mac);
 
-            let mut config = smoltcp::iface::Config::new();
-            config.hardware_addr = Some(mac.into());
-            let iface = Interface::new(config, &mut device);
+            let config = smoltcp::iface::Config::new(mac.into());
+            let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
+            let iface = Interface::new(config, &mut device, time);
 
             *NET.lock() = Some((iface, device));
         }
