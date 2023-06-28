@@ -5,8 +5,8 @@ use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use smoltcp::iface::Interface;
 use smoltcp::phy::DeviceCapabilities;
-use smoltcp::wire::EthernetAddress;
 use smoltcp::time::Instant;
+use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
 
 mod rtl8139;
