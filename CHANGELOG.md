@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Update smoltcp from 0.9.1 to 0.10.0 ([#510](https://github.com/vinc/moros/pull/510))
 
 ## 0.10.0 (2023-06-21)
 - Add cut/copy/paste to editor ([#456](https://github.com/vinc/moros/pull/456))

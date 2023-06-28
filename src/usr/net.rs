@@ -68,8 +68,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                     syscall::sleep(0.1);
 
-                    let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
-                    iface.poll(timestamp, device, &mut sockets);
+                    let time = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
+                    iface.poll(time, device, &mut sockets);
                     let socket = sockets.get_mut::<tcp::Socket>(tcp_handle);
                     if socket.may_recv() {
                         socket.recv(|buffer| {
