@@ -43,8 +43,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 return Err(ExitCode::Failure);
             }
 
-            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
-            iface.poll(timestamp, device, &mut sockets);
+            let time = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
+            iface.poll(time, device, &mut sockets);
             let event = sockets.get_mut::<dhcpv4::Socket>(dhcp_handle).poll();
 
             match event {
@@ -60,7 +60,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
             }
 
-            if let Some(wait_duration) = iface.poll_delay(timestamp, &sockets) {
+            if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
