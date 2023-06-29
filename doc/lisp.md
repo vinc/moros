@@ -41,18 +41,18 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
 ### Primitive Operators
 - `append`
-- `type`, `number-type` (aliased to `num-type`)
+- `type`, `number:type` (aliased to `num:type`)
 - `string` (aliased to `str`)
 - `string->number` (aliased to to `str->num`)
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
-- `regex-find`
+- `regex:find`
 - `system`
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
-- String: `trim`, `split`
+- String: `string:trim`, `string:split`
 - List: `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
 - File: `file:size`, `file:open`, `file:close`, `file:read`, `file:write`
 
@@ -64,8 +64,8 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `intersection`
 - `not`, `and`, `or`
 - `let`
-- `join-string` (aliased to `join-str`), `lines`, `words`, `chars`
-- `regex-match?`
+- `string:join` (aliased to `str:join`), `lines`, `words`, `chars`
+- `regex:match?`
 
 ### File Library
 - `read-file-binary`, `write-file-binary`, `append-file-binary`

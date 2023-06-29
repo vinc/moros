@@ -212,19 +212,6 @@ pub fn lisp_number_bytes(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::List(n.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
 }
 
-pub fn lisp_regex_find(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    match (&args[0], &args[1]) {
-        (Exp::Str(regex), Exp::Str(s)) => {
-            let res = Regex::new(regex).find(s).map(|(a, b)| {
-                vec![Exp::Num(Number::from(a)), Exp::Num(Number::from(b))]
-            }).unwrap_or(vec![]);
-            Ok(Exp::List(res))
-        }
-        _ => expected!("arguments to be a regex and a string")
-    }
-}
-
 pub fn lisp_string_number(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let s = string(&args[0])?;
@@ -245,16 +232,6 @@ pub fn lisp_type(args: &[Exp]) -> Result<Exp, Err> {
         Exp::Num(_)       => "number",
     };
     Ok(Exp::Str(exp.to_string()))
-}
-
-pub fn lisp_number_type(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    match args[0] {
-        Exp::Num(Number::Int(_)) => Ok(Exp::Str("int".to_string())),
-        Exp::Num(Number::BigInt(_)) => Ok(Exp::Str("bigint".to_string())),
-        Exp::Num(Number::Float(_)) => Ok(Exp::Str("float".to_string())),
-        _ => expected!("argument to be a number")
-    }
 }
 
 pub fn lisp_parse(args: &[Exp]) -> Result<Exp, Err> {
@@ -351,31 +328,6 @@ pub fn lisp_chunks(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
-pub fn lisp_split(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    match (&args[0], &args[1]) {
-        (Exp::Str(string), Exp::Str(pattern)) => {
-            let list = if pattern.is_empty() {
-                // NOTE: "abc".split("") => ["", "b", "c", ""]
-                string.chars().map(|s| Exp::Str(s.to_string())).collect()
-            } else {
-                string.split(pattern).map(|s| Exp::Str(s.to_string())).collect()
-            };
-            Ok(Exp::List(list))
-        }
-        _ => expected!("a string and a pattern")
-    }
-}
-
-pub fn lisp_trim(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    if let Exp::Str(s) = &args[0] {
-        Ok(Exp::Str(s.trim().to_string()))
-    } else {
-        expected!("a string and a pattern")
-    }
-}
-
 pub fn lisp_length(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match &args[0] {
@@ -396,6 +348,62 @@ pub fn lisp_append(args: &[Exp]) -> Result<Exp, Err> {
     }
     Ok(Exp::List(res))
 }
+
+// Number module
+
+pub fn lisp_number_type(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    match args[0] {
+        Exp::Num(Number::Int(_)) => Ok(Exp::Str("int".to_string())),
+        Exp::Num(Number::BigInt(_)) => Ok(Exp::Str("bigint".to_string())),
+        Exp::Num(Number::Float(_)) => Ok(Exp::Str("float".to_string())),
+        _ => expected!("argument to be a number")
+    }
+}
+
+// Regex module
+
+pub fn lisp_regex_find(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    match (&args[0], &args[1]) {
+        (Exp::Str(regex), Exp::Str(s)) => {
+            let res = Regex::new(regex).find(s).map(|(a, b)| {
+                vec![Exp::Num(Number::from(a)), Exp::Num(Number::from(b))]
+            }).unwrap_or(vec![]);
+            Ok(Exp::List(res))
+        }
+        _ => expected!("arguments to be a regex and a string")
+    }
+}
+
+// String module
+
+pub fn lisp_string_split(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    match (&args[0], &args[1]) {
+        (Exp::Str(string), Exp::Str(pattern)) => {
+            let list = if pattern.is_empty() {
+                // NOTE: "abc".split("") => ["", "b", "c", ""]
+                string.chars().map(|s| Exp::Str(s.to_string())).collect()
+            } else {
+                string.split(pattern).map(|s| Exp::Str(s.to_string())).collect()
+            };
+            Ok(Exp::List(list))
+        }
+        _ => expected!("a string and a pattern")
+    }
+}
+
+pub fn lisp_string_trim(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    if let Exp::Str(s) = &args[0] {
+        Ok(Exp::Str(s.trim().to_string()))
+    } else {
+        expected!("a string and a pattern")
+    }
+}
+
+// File module
 
 pub fn lisp_file_size(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);

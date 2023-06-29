@@ -82,12 +82,12 @@
 (def (abs x)
   (if (> x 0) x (- x)))
 
-(def (join-string ls s)
+(def (string:join ls s)
   "Join the elements of the list with the string"
   (reduce (fun (x y) (string x s y)) ls))
 
-(def (regex-match? pattern s)
-  (not (nil? (regex-find pattern str))))
+(def (regex:match? pattern s)
+  (not (nil? (regex:find pattern str))))
 
 (def (lines contents)
   "Split contents into a list of lines"
@@ -117,8 +117,10 @@
 # Short aliases
 
 (var str string)
-(var num-type number-type)
-(var join-str join-string)
+(var str:split string:split)
+(var str:join string:join)
+(var str:trim string:trim)
+(var num:type number:type)
 (var str->num string->number)
 (var str->bin string->binary)
 (var num->bin number->binary)

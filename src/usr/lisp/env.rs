@@ -51,10 +51,8 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_bytes_string));
     data.insert("binary->number".to_string(),     Exp::Primitive(primitive::lisp_bytes_number));
     data.insert("number->binary".to_string(),     Exp::Primitive(primitive::lisp_number_bytes));
-    data.insert("regex-find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
     data.insert("string->number".to_string(),     Exp::Primitive(primitive::lisp_string_number));
     data.insert("type".to_string(),               Exp::Primitive(primitive::lisp_type));
-    data.insert("number-type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
     data.insert("parse".to_string(),              Exp::Primitive(primitive::lisp_parse));
     data.insert("list".to_string(),               Exp::Primitive(primitive::lisp_list));
     data.insert("sort".to_string(),               Exp::Primitive(primitive::lisp_sort));
@@ -63,10 +61,13 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("contains?".to_string(),          Exp::Primitive(primitive::lisp_contains));
     data.insert("slice".to_string(),              Exp::Primitive(primitive::lisp_slice));
     data.insert("chunks".to_string(),             Exp::Primitive(primitive::lisp_chunks));
-    data.insert("split".to_string(),              Exp::Primitive(primitive::lisp_split));
-    data.insert("trim".to_string(),               Exp::Primitive(primitive::lisp_trim));
     data.insert("length".to_string(),             Exp::Primitive(primitive::lisp_length));
     data.insert("append".to_string(),             Exp::Primitive(primitive::lisp_append));
+
+    data.insert("number:type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
+    data.insert("regex:find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
+    data.insert("string:split".to_string(),       Exp::Primitive(primitive::lisp_string_split));
+    data.insert("string:trim".to_string(),        Exp::Primitive(primitive::lisp_string_trim));
 
     data.insert("file:size".to_string(),          Exp::Primitive(primitive::lisp_file_size));
     data.insert("file:open".to_string(),          Exp::Primitive(primitive::lisp_file_open));
