@@ -4,8 +4,9 @@ use super::{float, number, string};
 use super::{bytes, numbers, strings};
 
 use crate::{ensure_length_eq, ensure_length_gt, expected, could_not};
-use crate::api::fs;
 use crate::api::regex::Regex;
+use crate::api::syscall;
+use crate::sys::fs::OpenFlag;
 use crate::usr::shell;
 
 use alloc::format;
@@ -159,49 +160,6 @@ pub fn lisp_system(args: &[Exp]) -> Result<Exp, Err> {
     match shell::exec(&cmd) {
         Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
         Err(code) => Ok(Exp::Num(Number::from(code as u8))),
-    }
-}
-
-pub fn lisp_read_file(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    let path = string(&args[0])?;
-    let contents = fs::read_to_string(&path).or(could_not!("read file"))?;
-    Ok(Exp::Str(contents))
-}
-
-pub fn lisp_read_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let path = string(&args[0])?;
-    let len = number(&args[1])?;
-    let mut buf = vec![0; len.try_into()?];
-    let n = fs::read(&path, &mut buf).or(could_not!("read file"))?;
-    buf.resize(n, 0);
-    Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
-}
-
-pub fn lisp_write_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let path = string(&args[0])?;
-    match &args[1] {
-        Exp::List(list) => {
-            let buf = bytes(list)?;
-            let n = fs::write(&path, &buf).or(could_not!("write file"))?;
-            Ok(Exp::Num(Number::from(n)))
-        }
-        _ => expected!("second argument to be a list")
-    }
-}
-
-pub fn lisp_append_file_bytes(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let path = string(&args[0])?;
-    match &args[1] {
-        Exp::List(list) => {
-            let buf = bytes(list)?;
-            let n = fs::append(&path, &buf).or(could_not!("write file"))?;
-            Ok(Exp::Num(Number::from(n)))
-        }
-        _ => expected!("second argument to be a list")
     }
 }
 
@@ -437,4 +395,76 @@ pub fn lisp_append(args: &[Exp]) -> Result<Exp, Err> {
         }
     }
     Ok(Exp::List(res))
+}
+
+pub fn lisp_file_size(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let path = string(&args[0])?;
+    match syscall::info(&path) {
+        Some(info) => Ok(Exp::Num(Number::from(info.size() as usize))),
+        None => return could_not!("open file"),
+    }
+}
+
+pub fn lisp_file_open(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let path = string(&args[0])?;
+    let mode = string(&args[1])?;
+
+    let mut flags = match mode.as_ref() {
+        "a" => OpenFlag::Append as usize,
+        "r" => OpenFlag::Read as usize,
+        "w" => OpenFlag::Write as usize,
+        _  => return expected!("valid mode"),
+    };
+    flags |= match syscall::info(&path) {
+        Some(info) if info.is_device() => OpenFlag::Device as usize,
+        Some(info) if info.is_dir() => OpenFlag::Dir as usize,
+        None if &mode == "r" => return could_not!("open file"),
+        None => OpenFlag::Create as usize,
+        _ => 0
+    };
+
+    match syscall::open(&path, flags) {
+        Some(handle) => Ok(Exp::Num(Number::from(handle))),
+        None => could_not!("open file"),
+    }
+}
+
+pub fn lisp_file_close(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let handle = number(&args[0])?.try_into()?;
+    syscall::close(handle);
+    Ok(Exp::List(vec![]))
+}
+
+pub fn lisp_file_read(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let handle = number(&args[0])?.try_into()?;
+    let len = number(&args[1])?;
+
+    let mut buf = vec![0; len.try_into()?];
+    match syscall::read(handle, &mut buf) {
+        Some(n) => {
+            buf.resize(n, 0);
+            Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
+        }
+        None => could_not!("read file"),
+    }
+}
+
+pub fn lisp_file_write(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let handle = number(&args[0])?.try_into()?;
+
+    match &args[1] {
+        Exp::List(list) => {
+            let buf = bytes(list)?;
+            match syscall::write(handle, &buf) {
+                Some(n) => Ok(Exp::Num(Number::from(n))),
+                None => could_not!("write file"),
+            }
+        }
+        _ => expected!("second argument to be a list")
+    }
 }

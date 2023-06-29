@@ -51,10 +51,10 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- File IO: `read-file`, `read-file-binary`, `write-file-binary`, `append-file-binary`
-- List: `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
-- String: `trim`, `split`
 - Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
+- String: `trim`, `split`
+- List: `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
+- File: `file:size`, `file:open`, `file:close`, `file:read`, `file:write`
 
 ### Core Library
 - `nil`, `nil?`, `list?`
@@ -65,11 +65,14 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `not`, `and`, `or`
 - `let`
 - `join-string` (aliased to `join-str`), `lines`, `words`, `chars`
-- `read-line`, `read-char`
-- `p`, `print`
-- `write-file`, `append-file`
-- `uptime`, `realtime`
 - `regex-match?`
+
+### File Library
+- `read-file-binary`, `write-file-binary`, `append-file-binary`
+- `read-file`, `write-file`, `append-file`
+- `read-line`, `read-char`
+- `uptime`, `realtime`
+- `p`, `print`
 
 ### Compatibility Library
 

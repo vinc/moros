@@ -46,10 +46,6 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("tan".to_string(),                Exp::Primitive(primitive::lisp_tan));
     data.insert("trunc".to_string(),              Exp::Primitive(primitive::lisp_trunc));
     data.insert("system".to_string(),             Exp::Primitive(primitive::lisp_system));
-    data.insert("read-file".to_string(),          Exp::Primitive(primitive::lisp_read_file));
-    data.insert("read-file-binary".to_string(),   Exp::Primitive(primitive::lisp_read_file_bytes));
-    data.insert("write-file-binary".to_string(),  Exp::Primitive(primitive::lisp_write_file_bytes));
-    data.insert("append-file-binary".to_string(), Exp::Primitive(primitive::lisp_append_file_bytes));
     data.insert("string".to_string(),             Exp::Primitive(primitive::lisp_string));
     data.insert("string->binary".to_string(),     Exp::Primitive(primitive::lisp_string_bytes));
     data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_bytes_string));
@@ -71,6 +67,12 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("trim".to_string(),               Exp::Primitive(primitive::lisp_trim));
     data.insert("length".to_string(),             Exp::Primitive(primitive::lisp_length));
     data.insert("append".to_string(),             Exp::Primitive(primitive::lisp_append));
+
+    data.insert("file:size".to_string(),          Exp::Primitive(primitive::lisp_file_size));
+    data.insert("file:open".to_string(),          Exp::Primitive(primitive::lisp_file_open));
+    data.insert("file:read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
+    data.insert("file:write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
+    data.insert("file:close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();

@@ -86,38 +86,6 @@
   "Join the elements of the list with the string"
   (reduce (fun (x y) (string x s y)) ls))
 
-(def (read-line)
-  "Read line from the console"
-  (binary->string (reverse (tail (reverse (read-file-binary "/dev/console" 256))))))
-
-(def (read-char)
-  "Read char from the console"
-  (binary->string (read-file-binary "/dev/console" 4)))
-
-(def (p exp)
-  "Print expression to the console"
-  (do
-    (append-file-binary "/dev/console" (string->binary (string exp)))
-    '()))
-
-(def (print exp)
-  "Print expression to the console with a newline"
-  (p (string exp "\n")))
-
-(def (uptime)
-  (binary->number (read-file-binary "/dev/clk/uptime" 8) "float"))
-
-(def (realtime)
-  (binary->number (read-file-binary "/dev/clk/realtime" 8) "float"))
-
-(def (write-file path s)
-  "Write string to file"
-  (write-file-binary path (string->binary s)))
-
-(def (append-file path s)
-  "Append string to file"
-  (append-file-binary path (string->binary s)))
-
 (def (regex-match? pattern s)
   (not (nil? (regex-find pattern str))))
 
@@ -147,6 +115,7 @@
     (if (= (length lst) 0) 0 (- (length lst) 1))))
 
 # Short aliases
+
 (var str string)
 (var num-type number-type)
 (var join-str join-string)
@@ -164,3 +133,5 @@
 (var len length)
 (var rev reverse)
 (var uniq unique)
+
+(load "/lib/lisp/file.lsp")
