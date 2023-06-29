@@ -292,10 +292,10 @@ pub fn lisp_sort(args: &[Exp]) -> Result<Exp, Err> {
 
 pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
-    if let Exp::List(list) = &args[0] {
-        Ok(Exp::Bool(list.contains(&args[1])))
-    } else {
-        expected!("first argument to be a list")
+    match &args[0] {
+        Exp::List(l) => Ok(Exp::Bool(l.contains(&args[1]))),
+        Exp::Str(s) => Ok(Exp::Bool(s.contains(&string(&args[1])?))),
+        _ => expected!("first argument to be a list or a string"),
     }
 }
 
