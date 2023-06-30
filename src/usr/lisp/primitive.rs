@@ -76,7 +76,7 @@ pub fn lisp_div(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(res))
 }
 
-pub fn lisp_mod(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_rem(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let args = numbers(args)?;
     for arg in &args[1..] {

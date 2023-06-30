@@ -34,7 +34,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("+".to_string(),                  Exp::Primitive(primitive::lisp_add));
     data.insert("-".to_string(),                  Exp::Primitive(primitive::lisp_sub));
     data.insert("/".to_string(),                  Exp::Primitive(primitive::lisp_div));
-    data.insert("%".to_string(),                  Exp::Primitive(primitive::lisp_mod));
+    data.insert("%".to_string(),                  Exp::Primitive(primitive::lisp_rem));
     data.insert("^".to_string(),                  Exp::Primitive(primitive::lisp_exp));
     data.insert("<<".to_string(),                 Exp::Primitive(primitive::lisp_shl));
     data.insert(">>".to_string(),                 Exp::Primitive(primitive::lisp_shr));
