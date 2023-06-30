@@ -89,17 +89,17 @@
 (def (regex:match? pattern s)
   (not (nil? (regex:find pattern str))))
 
-(def (lines contents)
-  "Split contents into a list of lines"
-  (split (string:trim contents) "\n"))
+(def (lines text)
+  "Split text into a list of lines"
+  (string:split (string:trim text) "\n"))
 
-(def (words contents)
-  "Split contents into a list of words"
-  (split contents " "))
+(def (words text)
+  "Split text into a list of words"
+  (string:split text " "))
 
-(def (chars contents)
-  "Split contents into a list of chars"
-  (split contents ""))
+(def (chars text)
+  "Split text into a list of chars"
+  (string:split text ""))
 
 (def (first lst)
   (nth lst 0))
