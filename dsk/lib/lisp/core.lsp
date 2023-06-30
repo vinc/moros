@@ -82,6 +82,9 @@
 (def (abs x)
   (if (> x 0) x (- x)))
 
+(def (mod a b)
+  (rem (+ (rem a b) b) b))
+
 (def (string:join ls s)
   "Join the elements of the list with the string"
   (reduce (fun (x y) (string x s y)) ls))
@@ -116,6 +119,7 @@
 
 # Short aliases
 
+(var % rem)
 (var str string)
 (var str:split string:split)
 (var str:join string:join)

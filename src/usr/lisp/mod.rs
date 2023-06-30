@@ -445,8 +445,12 @@ fn test_lisp() {
     assert_eq!(eval!("(^ 2 4)"), "16");
     assert_eq!(eval!("(^ 2 4 2)"), "256"); // Left to right
 
-    // modulo
-    assert_eq!(eval!("(% 3 2)"), "1");
+    // remainder
+    assert_eq!(eval!("(rem 0 2)"), "0");
+    assert_eq!(eval!("(rem 1 2)"), "1");
+    assert_eq!(eval!("(rem 2 2)"), "0");
+    assert_eq!(eval!("(rem 3 2)"), "1");
+    assert_eq!(eval!("(rem -1 2)"), "-1");
 
     // comparisons
     assert_eq!(eval!("(< 6 4)"), "false");

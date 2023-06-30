@@ -48,7 +48,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex:find`
 - `system`
-- Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
+- Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `abs`, `mod`, `rem` (aliased to `%`)
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
