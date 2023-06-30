@@ -47,10 +47,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("trunc".to_string(),              Exp::Primitive(primitive::lisp_trunc));
     data.insert("system".to_string(),             Exp::Primitive(primitive::lisp_system));
     data.insert("string".to_string(),             Exp::Primitive(primitive::lisp_string));
-    data.insert("string->binary".to_string(),     Exp::Primitive(primitive::lisp_string_bytes));
-    data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_bytes_string));
-    data.insert("binary->number".to_string(),     Exp::Primitive(primitive::lisp_bytes_number));
-    data.insert("number->binary".to_string(),     Exp::Primitive(primitive::lisp_number_bytes));
+    data.insert("string->binary".to_string(),     Exp::Primitive(primitive::lisp_string_binary));
+    data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_binary_string));
+    data.insert("binary->number".to_string(),     Exp::Primitive(primitive::lisp_binary_number));
+    data.insert("number->binary".to_string(),     Exp::Primitive(primitive::lisp_number_binary));
     data.insert("string->number".to_string(),     Exp::Primitive(primitive::lisp_string_number));
     data.insert("type".to_string(),               Exp::Primitive(primitive::lisp_type));
     data.insert("parse".to_string(),              Exp::Primitive(primitive::lisp_parse));

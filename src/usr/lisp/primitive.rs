@@ -171,14 +171,14 @@ pub fn lisp_string(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Str(args.join("")))
 }
 
-pub fn lisp_string_bytes(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_string_binary(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let s = string(&args[0])?;
     let buf = s.as_bytes();
     Ok(Exp::List(buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()))
 }
 
-pub fn lisp_bytes_string(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_binary_string(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match &args[0] {
         Exp::List(list) => {
@@ -190,7 +190,7 @@ pub fn lisp_bytes_string(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
-pub fn lisp_bytes_number(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_binary_number(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match (&args[0], &args[1]) { // TODO: default type to "int" and make it optional
         (Exp::List(list), Exp::Str(kind)) => {
@@ -206,7 +206,7 @@ pub fn lisp_bytes_number(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
-pub fn lisp_number_bytes(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_number_binary(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let n = number(&args[0])?;
     Ok(Exp::List(n.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
