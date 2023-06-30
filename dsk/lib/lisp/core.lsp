@@ -91,7 +91,7 @@
 
 (def (lines contents)
   "Split contents into a list of lines"
-  (split (trim contents) "\n"))
+  (split (string:trim contents) "\n"))
 
 (def (words contents)
   "Split contents into a list of words"

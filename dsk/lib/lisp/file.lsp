@@ -47,7 +47,7 @@
 
 (def (read-line)
   "Read line from the console"
-  (trim (binary->string (file:read stdin 256))))
+  (string:trim (binary->string (file:read stdin 256))))
 
 (def (read-char)
   "Read char from the console"
