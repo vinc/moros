@@ -85,24 +85,24 @@
 (def (mod a b)
   (rem (+ (rem a b) b) b))
 
-(def (string:join ls s)
+(def (string.join ls s)
   "Join the elements of the list with the string"
   (reduce (fun (x y) (string x s y)) ls))
 
-(def (regex:match? pattern s)
-  (not (nil? (regex:find pattern str))))
+(def (regex.match? pattern s)
+  (not (nil? (regex.find pattern str))))
 
 (def (lines text)
   "Split text into a list of lines"
-  (string:split (string:trim text) "\n"))
+  (string.split (string.trim text) "\n"))
 
 (def (words text)
   "Split text into a list of words"
-  (string:split text " "))
+  (string.split text " "))
 
 (def (chars text)
   "Split text into a list of chars"
-  (string:split text ""))
+  (string.split text ""))
 
 (def (first lst)
   (nth lst 0))
@@ -121,10 +121,10 @@
 
 (var % rem)
 (var str string)
-(var str:split string:split)
-(var str:join string:join)
-(var str:trim string:trim)
-(var num:type number:type)
+(var str.split string.split)
+(var str.join string.join)
+(var str.trim string.trim)
+(var num.type number.type)
 (var str->num string->number)
 (var str->bin string->binary)
 (var num->bin number->binary)
