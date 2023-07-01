@@ -64,12 +64,12 @@
 (def (reverse x)
   "Reverse list"
   (if (nil? x) x
-    (append (reverse (tail x)) (cons (head x) '()))))
+    (concat (reverse (tail x)) (cons (head x) '()))))
 
 (def (range start stop)
   "Return a list of integers from start to stop excluded"
   (if (= start stop) nil
-    (append (list start) (range (+ start 1) stop))))
+    (concat (list start) (range (+ start 1) stop))))
 
 (def (min lst)
   "Return the minimum element of the list"

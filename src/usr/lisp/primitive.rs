@@ -337,7 +337,8 @@ pub fn lisp_length(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
-pub fn lisp_append(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_concat(args: &[Exp]) -> Result<Exp, Err> {
+    // TODO: This could also concat strings
     let mut res = vec![];
     for arg in args {
         if let Exp::List(list) = arg {

@@ -537,7 +537,7 @@ fn test_lisp() {
     assert_eq!(eval!("foo"), "10");
 
     // args
-    eval!("(variable list* (function args (append args '())))");
+    eval!("(variable list* (function args (concat args '())))");
     assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
 
     // comments

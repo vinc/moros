@@ -40,7 +40,6 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `load`
 
 ### Primitive Operators
-- `append`
 - `type`, `number.type` (aliased to `num.type`)
 - `string` (aliased to `str`)
 - `string->number` (aliased to to `str->num`)
@@ -53,7 +52,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
 - String: `string.trim`, `string.split`
-- List: `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
+- List: `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
 - File: `file.size`, `file.open`, `file.close`, `file.read`, `file.write`
 
 ### Core Library
@@ -68,8 +67,8 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `regex.match?`
 
 ### File Library
-- `read-file-binary`, `write-file-binary`, `append-file-binary`
-- `read-file`, `write-file`, `append-file`
+- `read`, `write`, `append`
+- `read-binary`, `write-binary`, `append-binary`
 - `read-line`, `read-char`
 - `uptime`, `realtime`
 - `p`, `print`

@@ -4,7 +4,7 @@
 
 # Read
 
-(def (read-file-binary path)
+(def (read-binary path)
   "Read binary file"
   (do
     (var size (file.size path))
@@ -13,35 +13,35 @@
     (file.close file)
     data))
 
-(def (read-file path)
+(def (read path)
   "Read text file"
-  (binary->string (read-file-binary path)))
+  (binary->string (read-binary path)))
 
 # Write
 
-(def (write-file-binary path data)
+(def (write-binary path data)
   "Write binary to file"
   (do
     (var file (file.open path "w"))
     (file.write file data)
     (file.close file)))
 
-(def (write-file path text)
+(def (write path text)
   "Write text to file"
-  (write-file-binary path (string->binary text)))
+  (write-binary path (string->binary text)))
 
 # Append
 
-(def (append-file-binary path data)
+(def (append-binary path data)
   "Append binary to file"
   (do
     (var file (file.open path "a"))
     (file.write file data)
     (file.close file)))
 
-(def (append-file path text)
+(def (append path text)
   "Append text to file"
-  (append-file-binary path (string->binary text)))
+  (append-binary path (string->binary text)))
 
 # Console
 
@@ -66,7 +66,7 @@
 # Special
 
 (def (uptime)
-  (binary->number (read-file-binary "/dev/clk/uptime") "float"))
+  (binary->number (read-binary "/dev/clk/uptime") "float"))
 
 (def (realtime)
-  (binary->number (read-file-binary "/dev/clk/realtime") "float"))
+  (binary->number (read-binary "/dev/clk/realtime") "float"))

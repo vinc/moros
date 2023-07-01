@@ -62,7 +62,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("slice".to_string(),              Exp::Primitive(primitive::lisp_slice));
     data.insert("chunks".to_string(),             Exp::Primitive(primitive::lisp_chunks));
     data.insert("length".to_string(),             Exp::Primitive(primitive::lisp_length));
-    data.insert("append".to_string(),             Exp::Primitive(primitive::lisp_append));
+    data.insert("concat".to_string(),             Exp::Primitive(primitive::lisp_concat));
 
     data.insert("number.type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
     data.insert("regex.find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
