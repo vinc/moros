@@ -15,7 +15,7 @@
   (str " " (f c) (if (< c 100) " " "") c (ansi-color 0 0)))
 
 (def (colors fs i j)
-  (join-str (map (fun (c) (color fs c)) (range i j)) ""))
+  (str.join (map (fun (c) (color fs c)) (range i j)) ""))
 
 (print (colors fg 30 38))
 (print (colors fg 90 98))

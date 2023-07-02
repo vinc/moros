@@ -40,21 +40,20 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `load`
 
 ### Primitive Operators
-- `append`
-- `type`, `number-type` (aliased to `num-type`)
+- `type`, `number.type` (aliased to `num.type`)
 - `string` (aliased to `str`)
 - `string->number` (aliased to to `str->num`)
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
-- `regex-find`
+- `regex.find`
 - `system`
-- Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
+- Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `abs`, `mod`, `rem` (aliased to `%`)
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- File IO: `read-file`, `read-file-binary`, `write-file-binary`, `append-file-binary`
-- List: `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
-- String: `trim`, `split`
 - Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
+- String: `string.trim`, `string.split`
+- List: `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
+- File: `file.size`, `file.open`, `file.close`, `file.read`, `file.write`
 
 ### Core Library
 - `nil`, `nil?`, `list?`
@@ -64,12 +63,15 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `intersection`
 - `not`, `and`, `or`
 - `let`
-- `join-string` (aliased to `join-str`), `lines`, `words`, `chars`
+- `string.join` (aliased to `str.join`), `lines`, `words`, `chars`
+- `regex.match?`
+
+### File Library
+- `read`, `write`, `append`
+- `read-binary`, `write-binary`, `append-binary`
 - `read-line`, `read-char`
-- `p`, `print`
-- `write-file`, `append-file`
 - `uptime`, `realtime`
-- `regex-match?`
+- `p`, `print`
 
 ### Compatibility Library
 
@@ -194,3 +196,6 @@ language and reading from the filesystem.
 - Add full support for line and inline comments
 - Add params to function representations
 - Add docstring to functions
+
+### Unreleased
+- Add file, number, string, and regex namespaces

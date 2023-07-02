@@ -34,10 +34,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("+".to_string(),                  Exp::Primitive(primitive::lisp_add));
     data.insert("-".to_string(),                  Exp::Primitive(primitive::lisp_sub));
     data.insert("/".to_string(),                  Exp::Primitive(primitive::lisp_div));
-    data.insert("%".to_string(),                  Exp::Primitive(primitive::lisp_mod));
     data.insert("^".to_string(),                  Exp::Primitive(primitive::lisp_exp));
     data.insert("<<".to_string(),                 Exp::Primitive(primitive::lisp_shl));
     data.insert(">>".to_string(),                 Exp::Primitive(primitive::lisp_shr));
+    data.insert("rem".to_string(),                Exp::Primitive(primitive::lisp_rem));
     data.insert("cos".to_string(),                Exp::Primitive(primitive::lisp_cos));
     data.insert("acos".to_string(),               Exp::Primitive(primitive::lisp_acos));
     data.insert("asin".to_string(),               Exp::Primitive(primitive::lisp_asin));
@@ -46,19 +46,13 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("tan".to_string(),                Exp::Primitive(primitive::lisp_tan));
     data.insert("trunc".to_string(),              Exp::Primitive(primitive::lisp_trunc));
     data.insert("system".to_string(),             Exp::Primitive(primitive::lisp_system));
-    data.insert("read-file".to_string(),          Exp::Primitive(primitive::lisp_read_file));
-    data.insert("read-file-binary".to_string(),   Exp::Primitive(primitive::lisp_read_file_bytes));
-    data.insert("write-file-binary".to_string(),  Exp::Primitive(primitive::lisp_write_file_bytes));
-    data.insert("append-file-binary".to_string(), Exp::Primitive(primitive::lisp_append_file_bytes));
     data.insert("string".to_string(),             Exp::Primitive(primitive::lisp_string));
-    data.insert("string->binary".to_string(),     Exp::Primitive(primitive::lisp_string_bytes));
-    data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_bytes_string));
-    data.insert("binary->number".to_string(),     Exp::Primitive(primitive::lisp_bytes_number));
-    data.insert("number->binary".to_string(),     Exp::Primitive(primitive::lisp_number_bytes));
-    data.insert("regex-find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
+    data.insert("string->binary".to_string(),     Exp::Primitive(primitive::lisp_string_binary));
+    data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_binary_string));
+    data.insert("binary->number".to_string(),     Exp::Primitive(primitive::lisp_binary_number));
+    data.insert("number->binary".to_string(),     Exp::Primitive(primitive::lisp_number_binary));
     data.insert("string->number".to_string(),     Exp::Primitive(primitive::lisp_string_number));
     data.insert("type".to_string(),               Exp::Primitive(primitive::lisp_type));
-    data.insert("number-type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
     data.insert("parse".to_string(),              Exp::Primitive(primitive::lisp_parse));
     data.insert("list".to_string(),               Exp::Primitive(primitive::lisp_list));
     data.insert("sort".to_string(),               Exp::Primitive(primitive::lisp_sort));
@@ -67,10 +61,19 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("contains?".to_string(),          Exp::Primitive(primitive::lisp_contains));
     data.insert("slice".to_string(),              Exp::Primitive(primitive::lisp_slice));
     data.insert("chunks".to_string(),             Exp::Primitive(primitive::lisp_chunks));
-    data.insert("split".to_string(),              Exp::Primitive(primitive::lisp_split));
-    data.insert("trim".to_string(),               Exp::Primitive(primitive::lisp_trim));
     data.insert("length".to_string(),             Exp::Primitive(primitive::lisp_length));
-    data.insert("append".to_string(),             Exp::Primitive(primitive::lisp_append));
+    data.insert("concat".to_string(),             Exp::Primitive(primitive::lisp_concat));
+
+    data.insert("number.type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
+    data.insert("regex.find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
+    data.insert("string.split".to_string(),       Exp::Primitive(primitive::lisp_string_split));
+    data.insert("string.trim".to_string(),        Exp::Primitive(primitive::lisp_string_trim));
+
+    data.insert("file.size".to_string(),          Exp::Primitive(primitive::lisp_file_size));
+    data.insert("file.open".to_string(),          Exp::Primitive(primitive::lisp_file_open));
+    data.insert("file.read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
+    data.insert("file.write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
+    data.insert("file.close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();

@@ -445,8 +445,12 @@ fn test_lisp() {
     assert_eq!(eval!("(^ 2 4)"), "16");
     assert_eq!(eval!("(^ 2 4 2)"), "256"); // Left to right
 
-    // modulo
-    assert_eq!(eval!("(% 3 2)"), "1");
+    // remainder
+    assert_eq!(eval!("(rem 0 2)"), "0");
+    assert_eq!(eval!("(rem 1 2)"), "1");
+    assert_eq!(eval!("(rem 2 2)"), "0");
+    assert_eq!(eval!("(rem 3 2)"), "1");
+    assert_eq!(eval!("(rem -1 2)"), "-1");
 
     // comparisons
     assert_eq!(eval!("(< 6 4)"), "false");
@@ -469,7 +473,8 @@ fn test_lisp() {
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
     assert_eq!(eval!("(equal? \"foo\" \"foo\")"), "true");
     assert_eq!(eval!("(equal? \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(string.trim \"abc\n\")"), "\"abc\"");
+    assert_eq!(eval!("(string.split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");
@@ -506,9 +511,9 @@ fn test_lisp() {
     assert_eq!(eval!("(^ 2 128)"),   "340282366920938463463374607431768211456");   // -> bigint
     assert_eq!(eval!("(^ 2.0 128)"), "340282366920938500000000000000000000000.0"); // -> float
 
-    assert_eq!(eval!("(number-type 9223372036854775807)"),   "\"int\"");
-    assert_eq!(eval!("(number-type 9223372036854775808)"),   "\"bigint\"");
-    assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
+    assert_eq!(eval!("(number.type 9223372036854775807)"),   "\"int\"");
+    assert_eq!(eval!("(number.type 9223372036854775808)"),   "\"bigint\"");
+    assert_eq!(eval!("(number.type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
     eval!("(variable x 'a)");
@@ -532,7 +537,7 @@ fn test_lisp() {
     assert_eq!(eval!("foo"), "10");
 
     // args
-    eval!("(variable list* (function args (append args '())))");
+    eval!("(variable list* (function args (concat args '())))");
     assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
 
     // comments
