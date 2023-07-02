@@ -51,7 +51,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
-- String: `string.trim`, `string.split`
+- String: `string.trim` and `string.split` (aliased to `str.trim` and `str.split`)
 - List: `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
 - File: `file.size`, `file.open`, `file.close`, `file.read`, `file.write`
 
