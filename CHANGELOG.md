@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add namespaces to lisp ([#511](https://github.com/vinc/moros/pull/511))
 - Update smoltcp from 0.9.1 to 0.10.0 ([#510](https://github.com/vinc/moros/pull/510))
 
 ## 0.10.0 (2023-06-21)

@@ -196,3 +196,6 @@ language and reading from the filesystem.
 - Add full support for line and inline comments
 - Add params to function representations
 - Add docstring to functions
+
+### Unreleased
+- Add file, number, string, and regex namespaces
