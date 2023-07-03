@@ -12,11 +12,11 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Numbers: `float`, `int`, `bigint`
 
 ### Built-in Operators
-- `quote` (with the `'` syntax)
-- `quasiquote` (with the `` ` ``)
-- `unquote` (with the `,` syntax)
-- `unquote-splice` (with the `,@` syntax)
-- `splice` (with the `@` syntax)
+- `quote` (abbreviated with `'`)
+- `quasiquote` (abbreviated with `` ` ``)
+- `unquote` (abbreviated with `,`)
+- `unquote-splice` (abbreviated with `,@`)
+- `splice` (abbreviated with `@`)
 - `atom?`
 - `equal?` (aliased to `eq?`)
 - `head`
