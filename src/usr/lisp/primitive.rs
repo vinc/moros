@@ -477,3 +477,17 @@ pub fn lisp_file_write(args: &[Exp]) -> Result<Exp, Err> {
         _ => expected!("second argument to be a list")
     }
 }
+
+pub fn lisp_socket_connect(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 3);
+    let kind = string(&args[0])?;
+    let addr = string(&args[1])?;
+    let port: usize = number(&args[2])?.try_into()?;
+    let flags = OpenFlag::Device as usize;
+    if let Some(handle) = syscall::open(&format!("/dev/net/{}", kind), flags) {
+        if syscall::connect(handle, &addr, port as u16).is_ok() {
+            return Ok(Exp::Num(Number::from(handle)));
+        }
+    }
+    could_not!("connect to {}:{}", addr, port)
+}

@@ -74,6 +74,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("file.read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
     data.insert("file.write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
     data.insert("file.close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
+    data.insert("socket.connect".to_string(),     Exp::Primitive(primitive::lisp_socket_connect));
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
