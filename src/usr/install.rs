@@ -27,13 +27,15 @@ pub fn copy_files(verbose: bool) {
     copy_file("/bin/reboot", include_bytes!("../../dsk/bin/reboot"), verbose);
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
 
-    create_dir("/dev/clk", verbose); // Clocks
+    create_dir("/dev/clk", verbose); // Clock
     create_dev("/dev/clk/uptime", DeviceType::Uptime, verbose);
     create_dev("/dev/clk/realtime", DeviceType::Realtime, verbose);
     create_dev("/dev/rtc", DeviceType::RTC, verbose);
     create_dev("/dev/null", DeviceType::Null, verbose);
     create_dev("/dev/random", DeviceType::Random, verbose);
     create_dev("/dev/console", DeviceType::Console, verbose);
+    create_dir("/dev/net", verbose); // Network
+    create_dev("/dev/net/tcp", DeviceType::TcpSocket, verbose);
 
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);

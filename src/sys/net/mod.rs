@@ -1,16 +1,26 @@
 use crate::{sys, usr};
+use crate::sys::fs::FileIO;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use alloc::vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use lazy_static::lazy_static;
 use smoltcp::iface::Interface;
+use smoltcp::iface::SocketHandle;
+use smoltcp::iface::SocketSet;
 use smoltcp::phy::DeviceCapabilities;
+use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
 
 mod rtl8139;
 mod pcnet;
+
+lazy_static! {
+    pub static ref SOCKETS: Mutex<SocketSet<'static>> = Mutex::new(SocketSet::new(vec![]));
+}
 
 pub static NET: Mutex<Option<(Interface, EthernetDevice)>> = Mutex::new(None);
 
@@ -204,6 +214,90 @@ impl Stats {
     pub fn tx_add(&self, bytes_count: u64) {
         self.tx_packets_count.fetch_add(1, Ordering::SeqCst);
         self.tx_bytes_count.fetch_add(bytes_count, Ordering::SeqCst);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TcpSocket {
+    pub handle: SocketHandle,
+}
+
+impl TcpSocket {
+    pub fn new() -> Self {
+        let mut sockets = SOCKETS.lock();
+        let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+        let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
+        let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
+        let handle = sockets.add(tcp_socket);
+
+        Self { handle }
+    }
+}
+
+impl FileIO for TcpSocket {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let timeout = 5.0;
+        let started = sys::clock::realtime();
+        let mut bytes = 0;
+        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+            let mut sockets = SOCKETS.lock();
+            loop {
+                if sys::clock::realtime() - started > timeout {
+                    return Err(());
+                }
+                let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
+                iface.poll(time, device, &mut sockets);
+                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+
+                if socket.can_recv() {
+                    socket.recv(|data| {
+                        bytes = data.len();
+                        buf[0..bytes].clone_from_slice(&data);
+                        (bytes, ())
+                    }).map_err(|_| ())?;
+                    break;
+                }
+                if !socket.may_recv() {
+                    break;
+                }
+                if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
+                    sys::time::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                }
+                sys::time::halt();
+            }
+            Ok(bytes)
+        } else {
+            Err(())
+        }
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        let timeout = 5.0;
+        let started = sys::clock::realtime();
+        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+            let mut sockets = SOCKETS.lock();
+            loop {
+                if sys::clock::realtime() - started > timeout {
+                    return Err(());
+                }
+                let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
+                iface.poll(time, device, &mut sockets);
+                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+
+                if socket.can_send() {
+                    socket.send_slice(buf.as_ref()).expect("cannot send");
+                    break;
+                }
+
+                if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
+                    sys::time::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                }
+                sys::time::halt();
+            }
+            Ok(buf.len())
+        } else {
+            Ok(0)
+        }
     }
 }
 
