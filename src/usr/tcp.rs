@@ -1,17 +1,11 @@
-use crate::{sys, usr, debug};
+use crate::{sys, usr};
 use crate::api::console::Style;
-use crate::api::clock;
 use crate::api::process::ExitCode;
-use crate::api::random;
 use crate::api::syscall;
 
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::{self, FromStr};
-use smoltcp::iface::SocketSet;
-use smoltcp::socket::tcp;
-use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -44,9 +38,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     let host = &args[1];
     let port: u16 = args[2].parse().expect("Could not parse port");
-    let request = "";
-
-    let address = if host.ends_with(char::is_numeric) {
+    let addr = if host.ends_with(char::is_numeric) {
         IpAddress::from_str(host).expect("invalid address format")
     } else {
         match usr::host::resolve(host) {
@@ -54,77 +46,42 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 ip_addr
             }
             Err(e) => {
-                error!("Could not resolve host: {:?}", e);
+                error!("Could not resolve host {:?}", e);
                 return Err(ExitCode::Failure);
             }
         }
     };
 
-    enum State { Connect, Request, Response }
-    let mut state = State::Connect;
-
-    if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-        let mut sockets = SocketSet::new(vec![]);
-        let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
-        let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
-        let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
-        let tcp_handle = sockets.add(tcp_socket);
-
-        let timeout = 5.0;
-        let started = clock::realtime();
+    use alloc::format;
+    use crate::sys::fs::OpenFlag;
+    let addr = format!("{}", addr);
+    let flags = OpenFlag::Device as usize;
+    if let Some(handle) = syscall::open("/dev/net/tcp", flags) {
+        if syscall::connect(handle, &addr, port).is_err() {
+            error!("Could not connect to {}:{}", addr, port);
+            syscall::close(handle);
+            return Err(ExitCode::Failure);
+        }
         loop {
-            if clock::realtime() - started > timeout {
-                error!("Timeout reached");
-                return Err(ExitCode::Failure);
-            }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
+                syscall::close(handle);
                 return Err(ExitCode::Failure);
             }
-
-            let time = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
-            iface.poll(time, device, &mut sockets);
-            let socket = sockets.get_mut::<tcp::Socket>(tcp_handle);
-            let cx = iface.context();
-
-            state = match state {
-                State::Connect if !socket.is_active() => {
-                    let local_port = 49152 + random::get_u16() % 16384;
-                    if verbose {
-                        debug!("Connecting to {}:{}", address, port);
-                    }
-                    if socket.connect(cx, (address, port), local_port).is_err() {
-                        error!("Could not connect to {}:{}", address, port);
-                        return Err(ExitCode::Failure);
-                    }
-                    State::Request
-                }
-                State::Request if socket.may_send() => {
-                    if !request.is_empty() {
-                        socket.send_slice(request.as_ref()).expect("cannot send");
-                    }
-                    State::Response
-                }
-                State::Response if socket.can_recv() => {
-                    socket.recv(|data| {
-                        let contents = String::from_utf8_lossy(data);
-                        for line in contents.lines() {
-                            println!("{}", line);
-                        }
-                        (data.len(), ())
-                    }).unwrap();
-                    State::Response
-                }
-                State::Response if !socket.may_recv() => {
+            let mut data = vec![0; 2048];
+            if let Some(bytes) = syscall::read(handle, &mut data) {
+                if bytes == 0 {
                     break;
                 }
-                _ => state
-            };
-
-            if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
-                syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                data.resize(bytes, 0);
+                syscall::write(1, &data);
+            } else {
+                error!("Could not read from {}:{}", addr, port);
+                syscall::close(handle);
+                return Err(ExitCode::Failure);
             }
         }
+        syscall::close(handle);
         Ok(())
     } else {
         Err(ExitCode::Failure)
