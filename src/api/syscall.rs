@@ -106,6 +106,17 @@ pub fn halt() {
     stop(0xdead);
 }
 
+pub fn connect(handle: usize, addr: &str, port: u16) -> Result<(), ()> {
+    let ptr = addr.as_ptr() as usize;
+    let len = addr.len();
+    let res = unsafe { syscall!(CONNECT, handle, ptr, len, port) } as isize;
+    if res >= 0 {
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
 #[test_case]
 fn test_file() {
     use crate::sys::fs::{mount_mem, format_mem, dismount, OpenFlag};

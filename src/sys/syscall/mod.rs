@@ -6,6 +6,8 @@ use crate::sys;
 use crate::sys::fs::FileInfo;
 
 use core::arch::asm;
+use smoltcp::wire::IpAddress;
+use core::str::FromStr;
 
 /*
  * Dispatching system calls
@@ -75,7 +77,17 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
             service::spawn(path, args_ptr, args_len) as usize
         }
         number::STOP => {
-            service::stop(arg1)
+            let code = arg1;
+            service::stop(code)
+        }
+        number::CONNECT => {
+            let handle = arg1;
+            let addr_ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let addr_len = arg3;
+            let addr_str = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(addr_ptr, addr_len)) };
+            let addr = IpAddress::from_str(&addr_str).expect("invalid address format");
+            let port = arg4 as u16;
+            service::connect(handle, addr, port) as usize
         }
         _ => {
             unimplemented!();

@@ -9,3 +9,4 @@ pub const DUP:      usize = 0x8;
 pub const DELETE:   usize = 0x9;
 pub const STOP:     usize = 0xA;
 pub const SLEEP:    usize = 0xB;
+pub const CONNECT:  usize = 0xC;

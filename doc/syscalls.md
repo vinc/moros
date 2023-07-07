@@ -69,3 +69,9 @@ The system will reboot with `0xcafe` and halt with `0xdead`.
 ```rust
 pub fn sleep(seconds: f64)
 ```
+
+## CONNECT (0xC)
+
+```rust
+pub fn connect(handle, usize, addr: &str, port: u16) -> isize
+```
