@@ -11,6 +11,7 @@ use smoltcp::iface::SocketHandle;
 use smoltcp::iface::SocketSet;
 use smoltcp::phy::DeviceCapabilities;
 use smoltcp::socket::tcp;
+use smoltcp::time::Duration;
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
 use smoltcp::wire::IpAddress;
@@ -218,6 +219,28 @@ impl Stats {
     }
 }
 
+fn debug_tcp_socket(socket: &tcp::Socket) {
+    debug!("socket.state: {:?}", socket.state());
+    debug!("socket.is_active: {:?}", socket.is_active());
+    debug!("socket.is_open: {:?}", socket.is_open());
+    debug!("socket.can_recv: {:?}", socket.can_recv());
+    debug!("socket.may_recv: {:?}", socket.may_recv());
+    debug!("socket.can_send: {:?}", socket.can_send());
+    debug!("socket.may_send: {:?}", socket.may_send());
+}
+
+fn random_port() -> u16 {
+    49152 + sys::random::get_u16() % 16384
+}
+
+fn time() -> Instant {
+    Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64)
+}
+
+fn wait(duration: Duration) {
+    sys::time::sleep((duration.total_micros() as f64) / 1000000.0);
+}
+
 #[derive(Debug, Clone)]
 pub struct TcpSocket {
     pub handle: SocketHandle,
@@ -243,15 +266,14 @@ impl TcpSocket {
                     return Err(());
                 }
                 let mut sockets = SOCKETS.lock();
-                let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
-                iface.poll(time, device, &mut sockets);
+                iface.poll(time(), device, &mut sockets);
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-                let cx = iface.context();
 
                 match socket.state() {
                     tcp::State::Closed => {
-                        let local_port = 49152 + sys::random::get_u16() % 16384;
-                        if socket.connect(cx, (addr, port), local_port).is_err() {
+                        let cx = iface.context();
+                        let dest = (addr, port);
+                        if socket.connect(cx, dest, random_port()).is_err() {
                             return Err(());
                         }
                     }
@@ -265,8 +287,8 @@ impl TcpSocket {
                     }
                 }
 
-                if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
-                    sys::time::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                if let Some(duration) = iface.poll_delay(time(), &sockets) {
+                    wait(duration);
                 }
                 sys::time::halt();
             }
@@ -286,8 +308,7 @@ impl FileIO for TcpSocket {
                 if sys::clock::realtime() - started > timeout {
                     return Err(());
                 }
-                let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
-                iface.poll(time, device, &mut sockets);
+                iface.poll(time(), device, &mut sockets);
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
 
                 if socket.can_recv() {
@@ -297,8 +318,8 @@ impl FileIO for TcpSocket {
                 if !socket.may_recv() {
                     break;
                 }
-                if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
-                    sys::time::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                if let Some(duration) = iface.poll_delay(time(), &sockets) {
+                    wait(duration);
                 }
                 sys::time::halt();
             }
@@ -317,8 +338,7 @@ impl FileIO for TcpSocket {
                 if sys::clock::realtime() - started > timeout {
                     return Err(());
                 }
-                let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
-                iface.poll(time, device, &mut sockets);
+                iface.poll(time(), device, &mut sockets);
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
 
                 if socket.can_send() {
@@ -326,8 +346,8 @@ impl FileIO for TcpSocket {
                     break;
                 }
 
-                if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
-                    sys::time::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                if let Some(duration) = iface.poll_delay(time(), &sockets) {
+                    wait(duration);
                 }
                 sys::time::halt();
             }
@@ -354,8 +374,7 @@ pub fn init() {
             log!("NET {} MAC {}\n", name, mac);
 
             let config = smoltcp::iface::Config::new(mac.into());
-            let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
-            let iface = Interface::new(config, &mut device, time);
+            let iface = Interface::new(config, &mut device, time());
 
             *NET.lock() = Some((iface, device));
         }
