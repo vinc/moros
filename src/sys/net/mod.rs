@@ -250,11 +250,7 @@ impl FileIO for TcpSocket {
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
 
                 if socket.can_recv() {
-                    socket.recv(|data| {
-                        bytes = data.len();
-                        buf[0..bytes].clone_from_slice(&data);
-                        (bytes, ())
-                    }).map_err(|_| ())?;
+                    bytes = socket.recv_slice(buf).map_err(|_| ())?;
                     break;
                 }
                 if !socket.may_recv() {
