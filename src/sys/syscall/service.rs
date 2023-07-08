@@ -6,11 +6,8 @@ use crate::sys::process::Process;
 
 use alloc::vec;
 use core::arch::asm;
-use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
-use crate::sys::net::SOCKETS;
 use crate::sys::fs::Device;
-use smoltcp::socket::tcp;
 
 pub fn exit(code: ExitCode) -> ExitCode {
     sys::process::exit();
@@ -131,43 +128,11 @@ pub fn stop(code: usize) -> usize {
 }
 
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {
-    let timeout = 5.0;
-    let started = sys::clock::realtime();
+    //debug!("connect");
     if let Some(file) = sys::process::file_handle(handle) {
-        if let sys::fs::Resource::Device(Device::TcpSocket(dev)) = *file {
-            if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-                loop {
-                    if sys::clock::realtime() - started > timeout {
-                        return -1;
-                    }
-                    let mut sockets = SOCKETS.lock();
-                    let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
-                    iface.poll(time, device, &mut sockets);
-                    let socket = sockets.get_mut::<tcp::Socket>(dev.handle);
-                    let cx = iface.context();
-
-                    match socket.state() {
-                        tcp::State::Closed => {
-                            let local_port = 49152 + sys::random::get_u16() % 16384;
-                            if socket.connect(cx, (addr, port), local_port).is_err() {
-                                return -1;
-                            }
-                        }
-                        tcp::State::SynSent => {
-                        }
-                        tcp::State::Established => {
-                            break;
-                        }
-                        _ => {
-                            return -1;
-                        }
-                    }
-
-                    if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
-                        sys::time::sleep((wait_duration.total_micros() as f64) / 1000000.0);
-                    }
-                    sys::time::halt();
-                }
+        if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
+            if dev.connect(addr, port).is_err() {
+                return -1;
             }
         }
     }

@@ -13,6 +13,7 @@ use smoltcp::phy::DeviceCapabilities;
 use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
+use smoltcp::wire::IpAddress;
 use spin::Mutex;
 
 mod rtl8139;
@@ -231,6 +232,46 @@ impl TcpSocket {
         let handle = sockets.add(tcp_socket);
 
         Self { handle }
+    }
+
+    pub fn connect(&mut self, addr: IpAddress, port: u16) -> Result<(), ()> {
+        let timeout = 5.0;
+        let started = sys::clock::realtime();
+        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+            loop {
+                if sys::clock::realtime() - started > timeout {
+                    return Err(());
+                }
+                let mut sockets = SOCKETS.lock();
+                let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
+                iface.poll(time, device, &mut sockets);
+                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+                let cx = iface.context();
+
+                match socket.state() {
+                    tcp::State::Closed => {
+                        let local_port = 49152 + sys::random::get_u16() % 16384;
+                        if socket.connect(cx, (addr, port), local_port).is_err() {
+                            return Err(());
+                        }
+                    }
+                    tcp::State::SynSent => {
+                    }
+                    tcp::State::Established => {
+                        break;
+                    }
+                    _ => {
+                        return Err(());
+                    }
+                }
+
+                if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
+                    sys::time::sleep((wait_duration.total_micros() as f64) / 1000000.0);
+                }
+                sys::time::halt();
+            }
+        }
+        Ok(())
     }
 }
 
