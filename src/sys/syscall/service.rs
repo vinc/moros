@@ -131,10 +131,10 @@ pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {
     //debug!("connect");
     if let Some(file) = sys::process::file_handle(handle) {
         if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
-            if dev.connect(addr, port).is_err() {
-                return -1;
+            if dev.connect(addr, port).is_ok() {
+                return 0;
             }
         }
     }
-    0
+    -1
 }
