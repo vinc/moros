@@ -315,6 +315,34 @@ impl TcpSocket {
             Err(())
         }
     }
+
+    pub fn accept(&mut self) -> Result<IpAddress, ()> {
+        //let timeout = 5.0;
+        //let started = sys::clock::realtime();
+        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+            loop {
+                /*
+                if sys::clock::realtime() - started > timeout {
+                    return Err(());
+                }
+                */
+                let mut sockets = SOCKETS.lock();
+                iface.poll(time(), device, &mut sockets);
+                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+
+                if let Some(endpoint) = socket.remote_endpoint() {
+                    return Ok(endpoint.addr);
+                }
+
+                if let Some(duration) = iface.poll_delay(time(), &sockets) {
+                    wait(duration);
+                }
+                sys::time::halt();
+            }
+        } else {
+            Err(())
+        }
+    }
 }
 
 impl FileIO for TcpSocket {

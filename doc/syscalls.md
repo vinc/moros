@@ -81,3 +81,9 @@ pub fn connect(handle, usize, addr: &str, port: u16) -> isize
 ```rust
 pub fn listen(handle, usize, port: u16) -> isize
 ```
+
+## ACCEPT (0xE)
+
+```rust
+pub fn accept(handle, usize, addr: &str) -> isize
+```

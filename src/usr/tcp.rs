@@ -54,10 +54,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     use alloc::format;
     use crate::sys::fs::OpenFlag;
-    let addr = format!("{}", addr);
     let flags = OpenFlag::Device as usize;
     if let Some(handle) = syscall::open("/dev/net/tcp", flags) {
-        if syscall::connect(handle, &addr, port).is_err() {
+        if syscall::connect(handle, addr, port).is_err() {
             error!("Could not connect to {}:{}", addr, port);
             syscall::close(handle);
             return Err(ExitCode::Failure);

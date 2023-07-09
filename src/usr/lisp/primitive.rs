@@ -17,6 +17,8 @@ use alloc::vec;
 use core::cmp::Ordering::Equal;
 use core::convert::TryFrom;
 use core::convert::TryInto;
+use core::str::FromStr;
+use smoltcp::wire::IpAddress;
 
 pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Bool(numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])))
@@ -481,13 +483,40 @@ pub fn lisp_file_write(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_socket_connect(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 3);
     let kind = string(&args[0])?;
-    let addr = string(&args[1])?;
+    let addr_str = string(&args[1])?;
+    let addr = match IpAddress::from_str(&addr_str) {
+        Ok(addr) => addr,
+        Err(()) => return expected!("valid IP address"),
+    };
     let port: usize = number(&args[2])?.try_into()?;
     let flags = OpenFlag::Device as usize;
     if let Some(handle) = syscall::open(&format!("/dev/net/{}", kind), flags) {
-        if syscall::connect(handle, &addr, port as u16).is_ok() {
+        if syscall::connect(handle, addr, port as u16).is_ok() {
             return Ok(Exp::Num(Number::from(handle)));
         }
     }
     could_not!("connect to {}:{}", addr, port)
+}
+
+pub fn lisp_socket_listen(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let kind = string(&args[0])?;
+    let port: usize = number(&args[1])?.try_into()?;
+    let flags = OpenFlag::Device as usize;
+    if let Some(handle) = syscall::open(&format!("/dev/net/{}", kind), flags) {
+        if syscall::listen(handle, port as u16).is_ok() {
+            return Ok(Exp::Num(Number::from(handle)));
+        }
+    }
+    could_not!("listen to {}", port)
+}
+
+pub fn lisp_socket_accept(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let handle: usize = number(&args[0])?.try_into()?;
+    if let Ok(addr) = syscall::accept(handle) {
+        Ok(Exp::Str(format!("{}", addr)))
+    } else {
+        could_not!("accept connections")
+    }
 }

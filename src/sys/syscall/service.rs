@@ -148,3 +148,12 @@ pub fn listen(handle: usize, port: u16) -> isize {
     }
     -1
 }
+
+pub fn accept(handle: usize) -> Result<IpAddress, ()> {
+    if let Some(file) = sys::process::file_handle(handle) {
+        if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
+            return dev.accept();
+        }
+    }
+    Err(())
+}
