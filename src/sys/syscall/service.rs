@@ -128,10 +128,20 @@ pub fn stop(code: usize) -> usize {
 }
 
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {
-    //debug!("connect");
     if let Some(file) = sys::process::file_handle(handle) {
         if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
             if dev.connect(addr, port).is_ok() {
+                return 0;
+            }
+        }
+    }
+    -1
+}
+
+pub fn listen(handle: usize, port: u16) -> isize {
+    if let Some(file) = sys::process::file_handle(handle) {
+        if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
+            if dev.listen(port).is_ok() {
                 return 0;
             }
         }

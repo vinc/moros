@@ -75,3 +75,9 @@ pub fn sleep(seconds: f64)
 ```rust
 pub fn connect(handle, usize, addr: &str, port: u16) -> isize
 ```
+
+## LISTEN (0xD)
+
+```rust
+pub fn listen(handle, usize, port: u16) -> isize
+```

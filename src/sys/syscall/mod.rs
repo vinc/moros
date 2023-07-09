@@ -89,6 +89,11 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
             let port = arg4 as u16;
             service::connect(handle, addr, port) as usize
         }
+        number::LISTEN => {
+            let handle = arg1;
+            let port = arg2 as u16;
+            service::listen(handle, port) as usize
+        }
         _ => {
             unimplemented!();
         }

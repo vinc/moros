@@ -295,6 +295,26 @@ impl TcpSocket {
         }
         Ok(())
     }
+
+    pub fn listen(&mut self, port: u16) -> Result<(), ()> {
+        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+            let mut sockets = SOCKETS.lock();
+            iface.poll(time(), device, &mut sockets);
+            let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+
+            if socket.listen(port).is_err() {
+                return Err(());
+            }
+
+            if let Some(duration) = iface.poll_delay(time(), &sockets) {
+                wait(duration);
+            }
+            sys::time::halt();
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
 }
 
 impl FileIO for TcpSocket {
@@ -342,7 +362,9 @@ impl FileIO for TcpSocket {
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
 
                 if socket.can_send() {
-                    socket.send_slice(buf.as_ref()).expect("cannot send");
+                    if socket.send_slice(buf.as_ref()).is_err() {
+                        return Err(());
+                    }
                     break;
                 }
 
@@ -353,7 +375,7 @@ impl FileIO for TcpSocket {
             }
             Ok(buf.len())
         } else {
-            Ok(0)
+            Err(())
         }
     }
 }
