@@ -31,8 +31,12 @@ impl FileIO for Uptime {
             Err(())
         }
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         unimplemented!();
+    }
+
+    fn close(&mut self) {
     }
 }
 
@@ -65,8 +69,12 @@ impl FileIO for Realtime {
             Err(())
         }
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         unimplemented!();
+    }
+
+    fn close(&mut self) {
     }
 }
 

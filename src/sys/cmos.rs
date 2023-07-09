@@ -83,6 +83,9 @@ impl FileIO for RTC {
         CMOS::new().update_rtc(self);
         Ok(buf.len())
     }
+
+    fn close(&mut self) {
+    }
 }
 
 pub struct CMOS {

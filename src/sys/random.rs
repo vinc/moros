@@ -22,8 +22,12 @@ impl FileIO for Random {
         }
         Ok(n)
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         unimplemented!();
+    }
+
+    fn close(&mut self) {
     }
 }
 

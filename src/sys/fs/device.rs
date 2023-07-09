@@ -128,4 +128,17 @@ impl FileIO for Device {
             Device::TcpSocket(io) => io.write(buf),
         }
     }
+
+    fn close(&mut self) {
+        match self {
+            Device::Null          => {},
+            Device::File(io)      => io.close(),
+            Device::Console(io)   => io.close(),
+            Device::Random(io)    => io.close(),
+            Device::Uptime(io)    => io.close(),
+            Device::Realtime(io)  => io.close(),
+            Device::RTC(io)       => io.close(),
+            Device::TcpSocket(io) => io.close(),
+        }
+    }
 }

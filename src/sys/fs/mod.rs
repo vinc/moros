@@ -122,6 +122,14 @@ impl FileIO for Resource {
             Resource::Device(io) => io.write(buf),
         }
     }
+
+    fn close(&mut self) {
+        match self {
+            Resource::Dir(io) => io.close(),
+            Resource::File(io) => io.close(),
+            Resource::Device(io) => io.close(),
+        }
+    }
 }
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {

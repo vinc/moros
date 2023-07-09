@@ -43,6 +43,9 @@ impl FileIO for Console {
         print_fmt(format_args!("{}", s));
         Ok(n)
     }
+
+    fn close(&mut self) {
+    }
 }
 
 pub fn cols() -> usize {

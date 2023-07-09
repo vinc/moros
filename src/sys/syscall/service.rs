@@ -81,7 +81,10 @@ pub fn write(handle: usize, buf: &mut [u8]) -> isize {
 }
 
 pub fn close(handle: usize) {
-    sys::process::delete_file_handle(handle);
+    if let Some(mut file) = sys::process::file_handle(handle) {
+        file.close();
+        sys::process::delete_file_handle(handle);
+    }
 }
 
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {

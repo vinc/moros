@@ -406,6 +406,28 @@ impl FileIO for TcpSocket {
             Err(())
         }
     }
+
+    fn close(&mut self) {
+        let mut closed = false;
+        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+            let mut sockets = SOCKETS.lock();
+            loop {
+                iface.poll(time(), device, &mut sockets);
+                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+
+                if closed {
+                    break;
+                }
+                socket.close();
+                closed = true;
+
+                if let Some(duration) = iface.poll_delay(time(), &sockets) {
+                    wait(duration);
+                }
+                sys::time::halt();
+            }
+        }
+    }
 }
 
 fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {

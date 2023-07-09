@@ -199,6 +199,9 @@ impl FileIO for File {
         }
         Ok(bytes)
     }
+
+    fn close(&mut self) {
+    }
 }
 
 #[test_case]
