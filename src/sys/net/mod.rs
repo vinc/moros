@@ -380,6 +380,7 @@ impl FileIO for TcpSocket {
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let timeout = 5.0;
         let started = sys::clock::realtime();
+        let mut sent = false;
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             let mut sockets = SOCKETS.lock();
             loop {
@@ -389,11 +390,14 @@ impl FileIO for TcpSocket {
                 iface.poll(time(), device, &mut sockets);
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
 
+                if sent {
+                    break;
+                }
                 if socket.can_send() {
                     if socket.send_slice(buf.as_ref()).is_err() {
                         return Err(());
                     }
-                    break;
+                    sent = true; // Break after next poll
                 }
 
                 if let Some(duration) = iface.poll_delay(time(), &sockets) {
