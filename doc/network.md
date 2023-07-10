@@ -145,16 +145,16 @@ Here's a connexion to a SMTP server to send a mail:
     250-NO-SOLICITING
     250 SIZE 20000000
     > MAIL FROM:<vinc@moros.cc>
-    > RCPT TO:<alice@example.com>
     250 Ok
+    > RCPT TO:<alice@example.com>
     250 Ok
     > DATA
     354 Send it
     > Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec
     > diam vitae ex blandit malesuada nec a turpis.
     > .
-    > QUIT
     250 Message accepted
+    > QUIT
     221 Ok
 
 Sending a file to a server:

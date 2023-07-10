@@ -1,3 +1,4 @@
+use crate::api::fs::IO;
 use crate::api::process::ExitCode;
 use crate::syscall;
 use crate::sys::syscall::number::*;
@@ -107,6 +108,17 @@ pub fn reboot() {
 
 pub fn halt() {
     stop(0xdead);
+}
+
+pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {
+    let ptr = list.as_ptr() as usize;
+    let len = list.len();
+    let idx = unsafe { syscall!(POLL, ptr, len) } as isize;
+    if 0 <= idx && idx < len as isize {
+        Some(list[idx as usize])
+    } else {
+        None
+    }
 }
 
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> Result<(), ()> {
