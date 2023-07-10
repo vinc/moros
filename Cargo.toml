@@ -38,7 +38,7 @@ sha2 = { version = "0.10.7", default-features = false, features = ["force-soft"]
 smoltcp = { version = "0.10.0", default-features = false, features = ["alloc", "medium-ethernet", "socket-tcp", "socket-udp", "socket-dhcpv4", "proto-ipv4", "proto-dhcpv4"] }
 spin = "0.9.8"
 time = { version = "0.2.27", default-features = false }
-uart_16550 = "0.2.18"
+uart_16550 = "0.2.19"
 vte = "0.11.1"
 x86_64 = "0.14.10"
 
