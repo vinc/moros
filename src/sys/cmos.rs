@@ -1,5 +1,5 @@
 use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
-use crate::sys::fs::FileIO;
+use crate::api::fs::{FileIO, IO};
 
 use alloc::string::String;
 use bit_field::BitField;
@@ -85,6 +85,13 @@ impl FileIO for RTC {
     }
 
     fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => true,
+        }
     }
 }
 

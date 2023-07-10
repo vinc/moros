@@ -1,5 +1,5 @@
 use crate::{sys, usr};
-use crate::sys::fs::FileIO;
+use crate::api::fs::{FileIO, IO};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -430,6 +430,21 @@ impl FileIO for TcpSocket {
                 }
                 sys::time::halt();
             }
+        }
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+            let mut sockets = SOCKETS.lock();
+            iface.poll(time(), device, &mut sockets);
+            let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+
+            match event {
+                IO::Read => socket.can_recv(),
+                IO::Write => socket.can_send(),
+            }
+        } else {
+            false
         }
     }
 }

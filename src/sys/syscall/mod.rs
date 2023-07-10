@@ -3,7 +3,7 @@ pub mod service;
 
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::FileInfo;
+use crate::sys::fs::{FileInfo, IO};
 
 use core::arch::asm;
 use smoltcp::wire::IpAddress;
@@ -77,6 +77,12 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
         number::STOP => {
             let code = arg1;
             service::stop(code)
+        }
+        number::POLL => {
+            let ptr = sys::process::ptr_from_addr(arg1 as u64) as *const (usize, IO);
+            let len = arg2;
+            let list = unsafe { core::slice::from_raw_parts(ptr, len) };
+            service::poll(list) as usize
         }
         number::CONNECT => {
             let handle = arg1;

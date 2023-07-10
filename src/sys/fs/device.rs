@@ -1,4 +1,4 @@
-use super::{dirname, filename, realpath, FileIO};
+use super::{dirname, filename, realpath, FileIO, IO};
 use super::dir::Dir;
 use super::file::File;
 use super::block::LinkedBlock;
@@ -139,6 +139,19 @@ impl FileIO for Device {
             Device::Realtime(io)  => io.close(),
             Device::RTC(io)       => io.close(),
             Device::TcpSocket(io) => io.close(),
+        }
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match self {
+            Device::Null          => false,
+            Device::File(io)      => io.poll(event),
+            Device::Console(io)   => io.poll(event),
+            Device::Random(io)    => io.poll(event),
+            Device::Uptime(io)    => io.poll(event),
+            Device::Realtime(io)  => io.poll(event),
+            Device::RTC(io)       => io.poll(event),
+            Device::TcpSocket(io) => io.poll(event),
         }
     }
 }

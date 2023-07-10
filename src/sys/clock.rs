@@ -1,7 +1,7 @@
 use crate::api::clock::DATE_TIME_ZONE;
+use crate::api::fs::{FileIO, IO};
 use crate::sys;
 use crate::sys::cmos::CMOS;
-use crate::sys::fs::FileIO;
 
 use time::{OffsetDateTime, Duration};
 
@@ -37,6 +37,13 @@ impl FileIO for Uptime {
     }
 
     fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => false,
+        }
     }
 }
 
@@ -75,6 +82,13 @@ impl FileIO for Realtime {
     }
 
     fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => false,
+        }
     }
 }
 

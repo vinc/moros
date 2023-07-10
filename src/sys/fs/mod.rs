@@ -16,7 +16,7 @@ pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
-pub use crate::api::fs::{dirname, filename, realpath, FileIO};
+pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
 pub use crate::sys::ata::BLOCK_SIZE;
 
 use dir_entry::DirEntry;
@@ -26,6 +26,7 @@ use alloc::string::{String, ToString};
 
 pub const VERSION: u8 = 1;
 
+// TODO: Move that to API
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum OpenFlag {
@@ -128,6 +129,14 @@ impl FileIO for Resource {
             Resource::Dir(io) => io.close(),
             Resource::File(io) => io.close(),
             Resource::Device(io) => io.close(),
+        }
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match self {
+            Resource::Dir(io) => io.poll(event),
+            Resource::File(io) => io.poll(event),
+            Resource::Device(io) => io.poll(event),
         }
     }
 }

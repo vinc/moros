@@ -1,7 +1,7 @@
 use crate::sys;
 use crate::api::process::ExitCode;
+use crate::api::fs::{FileIO, IO};
 use crate::sys::fs::FileInfo;
-use crate::sys::fs::FileIO;
 use crate::sys::process::Process;
 
 use alloc::vec;
@@ -128,6 +128,17 @@ pub fn stop(code: usize) -> usize {
         }
     }
     0
+}
+
+pub fn poll(list: &[(usize, IO)]) -> isize {
+    for (i, (handle, event)) in list.iter().enumerate() {
+        if let Some(mut file) = sys::process::file_handle(*handle) {
+            if file.poll(*event) {
+                return i as isize;
+            }
+        }
+    }
+    -1
 }
 
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {

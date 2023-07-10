@@ -508,7 +508,7 @@ pub fn lisp_socket_listen(args: &[Exp]) -> Result<Exp, Err> {
             return Ok(Exp::Num(Number::from(handle)));
         }
     }
-    could_not!("listen to {}", port)
+    could_not!("listen to 0.0.0.0:{}", port)
 }
 
 pub fn lisp_socket_accept(args: &[Exp]) -> Result<Exp, Err> {

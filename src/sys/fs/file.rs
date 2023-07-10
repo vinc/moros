@@ -1,4 +1,4 @@
-use super::{dirname, filename, realpath, FileIO};
+use super::{dirname, filename, realpath, FileIO, IO};
 use super::dir::Dir;
 use super::block::LinkedBlock;
 use super::dir_entry::DirEntry;
@@ -201,6 +201,13 @@ impl FileIO for File {
     }
 
     fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => self.offset < self.size,
+            IO::Write => true,
+        }
     }
 }
 

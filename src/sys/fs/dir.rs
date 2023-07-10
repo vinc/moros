@@ -1,4 +1,4 @@
-use super::{dirname, filename, realpath, FileIO};
+use super::{dirname, filename, realpath, FileIO, IO};
 use super::super_block::SuperBlock;
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
@@ -245,6 +245,13 @@ impl FileIO for Dir {
     }
 
     fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => self.entry_index < self.entries().count() as u32,
+            IO::Write => true,
+        }
     }
 }
 

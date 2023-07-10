@@ -2,10 +2,13 @@ use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
+use crate::sys::fs::OpenFlag;
 
+use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
-use core::str::{self, FromStr};
+use core::str;
+use core::str::FromStr;
 use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -52,8 +55,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
-    use alloc::format;
-    use crate::sys::fs::OpenFlag;
     let flags = OpenFlag::Device as usize;
     if let Some(handle) = syscall::open("/dev/net/tcp", flags) {
         if syscall::connect(handle, addr, port).is_err() {

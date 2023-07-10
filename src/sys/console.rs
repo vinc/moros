@@ -1,5 +1,5 @@
+use crate::api::fs::{FileIO, IO};
 use crate::sys;
-use crate::sys::fs::FileIO;
 use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
@@ -45,6 +45,13 @@ impl FileIO for Console {
     }
 
     fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => !STDIN.lock().is_empty(),
+            IO::Write => true,
+        }
     }
 }
 
