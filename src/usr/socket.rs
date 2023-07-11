@@ -81,7 +81,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
-    let mut line = String::new();
     if prompt {
         print_prompt();
     }
@@ -107,6 +106,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
+                println!();
                 syscall::close(handle);
                 return Ok(());
             }
@@ -114,19 +114,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             let list = vec![(stdin, IO::Read), (handle, IO::Read)];
             if let Some((h, _)) = syscall::poll(&list) {
                 if h == stdin {
-                    match io::stdin().read_char() {
-                        Some('\n') => {
-                            line.push_str("\r\n");
-                            syscall::write(handle, &line.as_bytes());
-                            line.clear();
-                            if prompt {
-                                print_prompt();
-                            }
-                        }
-                        Some(c) => {
-                            line.push(c);
-                        }
-                        None => {}
+                    let line = io::stdin().read_line().replace("\n", "\r\n");
+                    syscall::write(handle, &line.as_bytes());
+                    if prompt {
+                        print_prompt();
                     }
                 } else {
                     let mut data = vec![0; 2048];

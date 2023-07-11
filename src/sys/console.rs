@@ -49,7 +49,7 @@ impl FileIO for Console {
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
-            IO::Read => !STDIN.lock().is_empty(),
+            IO::Read => STDIN.lock().contains('\n'),
             IO::Write => true,
         }
     }
