@@ -252,7 +252,7 @@ fn cmd_proc(args: &[&str]) -> Result<(), ExitCode> {
                     Ok(())
                 }
                 "files" => {
-                    for (i, handle) in sys::process::file_handles().iter().enumerate() {
+                    for (i, handle) in sys::process::handles().iter().enumerate() {
                         if let Some(resource) = handle {
                             println!("{}: {:?}", i, resource);
                         }
@@ -380,7 +380,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     let mut args: Vec<&str> = args.iter().map(String::as_str).collect();
 
     // Redirections
-    let mut restore_file_handles = false;
+    let mut restore_handles = false;
     let mut n = args.len();
     let mut i = 0;
     loop {
@@ -417,7 +417,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             continue;
         }
 
-        // Parse file handles
+        // Parse handles
         let mut num = String::new();
         for c in args[i].chars() {
             match c {
@@ -438,10 +438,10 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         }
 
         if is_fat_arrow { // Redirections
-            restore_file_handles = true;
+            restore_handles = true;
             if !num.is_empty() {
                 // if let Ok(right_handle) = num.parse() {}
-                println!("Redirecting to a file handle has not been implemented yet");
+                println!("Redirecting to a handle has not been implemented yet");
                 return Err(ExitCode::Failure);
             } else {
                 if i == n - 1 {
@@ -538,7 +538,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
 
 
     // TODO: Remove this when redirections are done in spawned process
-    if restore_file_handles {
+    if restore_handles {
         for i in 0..3 {
             api::fs::reopen("/dev/console", i, false).ok();
         }

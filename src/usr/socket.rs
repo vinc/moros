@@ -7,7 +7,6 @@ use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
 
 use alloc::format;
-use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::{self, FromStr};
