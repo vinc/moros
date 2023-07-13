@@ -12,23 +12,14 @@ use alloc::vec::Vec;
 use core::str::{self, FromStr};
 use smoltcp::wire::IpAddress;
 
-fn print_prompt() {
-    print!("{}>{} ", Style::color("Cyan"), Style::reset());
-}
-
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut listen = false;
-    let mut prompt = false;
     let mut verbose = false;
     let mut read_only = false;
     let mut args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
             "-l" | "--listen" => {
                 listen = true;
-                None
-            }
-            "-p" | "--prompt" => {
-                prompt = true;
                 None
             }
             "-r" | "--read-only" => {
@@ -44,7 +35,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     }).collect();
-    if prompt {
+    if verbose {
         println!("MOROS Socket v0.2.0\n");
     }
 
@@ -80,10 +71,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
-    if prompt {
-        print_prompt();
-    }
-
     let stdin = 0;
     let stdout = 1;
     let flags = OpenFlag::Device as usize;
@@ -115,9 +102,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if h == stdin {
                     let line = io::stdin().read_line().replace("\n", "\r\n");
                     syscall::write(handle, &line.as_bytes());
-                    if prompt {
-                        print_prompt();
-                    }
                 } else {
                     let mut data = vec![0; 2048];
                     if let Some(bytes) = syscall::read(handle, &mut data) {
@@ -141,7 +125,5 @@ fn help() {
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-l{1}, {0}--listen{1}             Listen to a local port", csi_option, csi_reset);
     println!("  {0}-v{1}, {0}--verbose{1}            Increase verbosity", csi_option, csi_reset);
-    println!("  {0}-p{1}, {0}--prompt{1}             Display prompt", csi_option, csi_reset);
     println!("  {0}-r{1}, {0}--read-only{1}          Read only connexion", csi_option, csi_reset);
-    println!("  {0}-i{1}, {0}--interval <time>{1}    Wait <time> between packets", csi_option, csi_reset);
 }

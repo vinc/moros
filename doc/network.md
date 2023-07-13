@@ -107,12 +107,10 @@ For example the request made with `tcp` above is equivalent to this:
 
 And the request made with `http` is equivalent to that:
 
-    > socket moros.cc 80 --prompt
-    MOROS Socket v0.1.0
+    > socket moros.cc 80
+    GET /test.html HTTP/1.0
+    Host: moros.cc
 
-    > GET /test.html HTTP/1.0
-    > Host: moros.cc
-    > 
     HTTP/1.1 200 OK
     Server: nginx
     Date: Wed, 11 May 2022 21:46:34 GMT
@@ -136,25 +134,22 @@ And the request made with `http` is equivalent to that:
 
 Here's a connexion to a SMTP server to send a mail:
 
-    > socket 10.0.2.2 2500 --prompt
-    MOROS Socket v0.1.0
-
+    > socket 10.0.2.2 2500
     220 EventMachine SMTP Server
-    > EHLO moros.cc
+    HELO moros.cc
     250-Ok EventMachine SMTP Server
-    250-NO-SOLICITING
-    250 SIZE 20000000
-    > MAIL FROM:<vinc@moros.cc>
+    MAIL FROM:<vinc@moros.cc>
     250 Ok
-    > RCPT TO:<alice@example.com>
+    RCPT TO:<alice@example.com>
     250 Ok
-    > DATA
+    DATA
     354 Send it
-    > Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec
-    > diam vitae ex blandit malesuada nec a turpis.
-    > .
+    Subject: Test
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec
+    diam vitae ex blandit malesuada nec a turpis.
+    .
     250 Message accepted
-    > QUIT
+    QUIT
     221 Ok
 
 Sending a file to a server:
