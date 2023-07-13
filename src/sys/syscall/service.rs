@@ -131,12 +131,23 @@ pub fn stop(code: usize) -> usize {
 }
 
 pub fn poll(list: &[(usize, IO)]) -> isize {
-    for (i, (handle, event)) in list.iter().enumerate() {
-        if let Some(mut file) = sys::process::handle(*handle) {
-            if file.poll(*event) {
-                return i as isize;
+    let timeout = 5.0;
+    let started = sys::clock::realtime();
+    loop {
+        if sys::clock::realtime() - started > timeout {
+            break;
+        }
+        if sys::console::end_of_text() || sys::console::end_of_transmission() {
+            break;
+        }
+        for (i, (handle, event)) in list.iter().enumerate() {
+            if let Some(mut file) = sys::process::handle(*handle) {
+                if file.poll(*event) {
+                    return i as isize;
+                }
             }
         }
+        sys::time::halt();
     }
     -1
 }
