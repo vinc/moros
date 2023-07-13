@@ -245,6 +245,7 @@ impl Editor {
 
         let mut escape = false;
         let mut csi = false;
+        let mut csi_params = String::new();
         loop {
             let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
@@ -296,7 +297,17 @@ impl Editor {
                     self.offset.x = 0;
                     self.print_screen();
                 },
-                'A' if csi => { // Arrow up
+                '~' if csi && csi_params == "5" => { // Page Up
+                    let scroll = self.rows() - 1; // Keep one previous line on screen
+                    self.offset.y -= cmp::min(scroll, self.offset.y);
+                    self.print_screen();
+                },
+                '~' if csi && csi_params == "6" => { // Page Down
+                    let scroll = self.rows() - 1; // Keep one previous line on screen
+                    self.offset.y += cmp::min(scroll, (self.lines.len() - 2) - self.offset.y);
+                    self.print_screen();
+                },
+                'A' if csi => { // Arrow Up
                     if self.cursor.y > 0 {
                         self.cursor.y -= 1
                     } else if self.offset.y > 0 {
@@ -305,7 +316,7 @@ impl Editor {
                     }
                     self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
                 },
-                'B' if csi => { // Arrow down
+                'B' if csi => { // Arrow Down
                     let is_eof = self.offset.y + self.cursor.y == self.lines.len() - 1;
                     let is_bottom = self.cursor.y == self.rows() - 1;
                     if self.cursor.y < cmp::min(self.rows(), self.lines.len() - 1) {
@@ -320,7 +331,7 @@ impl Editor {
                         self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
                     }
                 },
-                'C' if csi => { // Arrow right
+                'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     if line.is_empty() || self.cursor.x + self.offset.x >= line.chars().count() {
                         print!("\x1b[?25h"); // Enable cursor
@@ -333,7 +344,7 @@ impl Editor {
                         self.cursor.x += 1;
                     }
                 },
-                'D' if csi => { // Arrow left
+                'D' if csi => { // Arrow Left
                     if self.cursor.x + self.offset.x == 0 {
                         print!("\x1b[?25h"); // Enable cursor
                         continue;
@@ -465,6 +476,10 @@ impl Editor {
                         print!("\x1b[2K\x1b[1G{}", line);
                     }
                 },
+                c if csi => {
+                    csi_params.push(c);
+                    continue;
+                },
                 c => {
                     if let Some(s) = self.render_char(c) {
                         let y = self.offset.y + self.cursor.y;
@@ -487,6 +502,7 @@ impl Editor {
             }
             escape = false;
             csi = false;
+            csi_params = String::new();
             self.print_editing_status();
             self.print_highlighted();
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
