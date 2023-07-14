@@ -18,7 +18,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut listen = false;
     let mut verbose = false;
     let mut read_only = false;
-    let mut args: Vec<&str> = args.iter().filter_map(|arg| {
+    let args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
             "-l" | "--listen" => {
                 listen = true;
@@ -37,28 +37,26 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     }).collect();
+
     if verbose {
         println!("MOROS Socket v0.2.0\n");
     }
 
-    let required_args_count = if listen { 2 } else { 3 };
-
-    if args.len() == required_args_count - 1 {
-        if let Some(i) = args[1].find(':') { // Split <host> and <port>
-            let (host, path) = args[1].split_at(i);
-            args[1] = host;
-            args.push(&path[1..]);
-        }
-    }
-
-    if args.len() != required_args_count {
+    if args.len() != 2 {
         help();
         return Err(ExitCode::UsageError);
     }
-
-    let host = if listen { "0.0.0.0" } else { args[1] };
-    let port: u16 = args[required_args_count - 1].parse().expect("Could not parse port");
-
+    let (host, port) = match args[1].split_once(':') {
+        Some((h, p)) => (h, p),
+        None => ("0.0.0.0", args[1]),
+    };
+    let port: u16 = match port.parse() {
+        Ok(n) => n,
+        Err(_) => {
+            eprint!("Could not parse port");
+            return Err(ExitCode::UsageError);
+        }
+    };
     let addr = if host.ends_with(char::is_numeric) {
         IpAddress::from_str(host).expect("invalid address format")
     } else {
@@ -131,7 +129,7 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} socket {}[<host>] <port>{1}", csi_title, csi_reset, csi_option);
+    println!("{}Usage:{} socket {}[<host>:]<port>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!("  {0}-l{1}, {0}--listen{1}    Listen to a local port", csi_option, csi_reset);

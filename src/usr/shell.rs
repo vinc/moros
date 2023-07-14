@@ -301,8 +301,8 @@ fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
     config.aliases.insert(args[1].to_string(), args[2].to_string());
     Ok(())
@@ -313,8 +313,8 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
 
     if config.aliases.remove(&args[1].to_string()).is_none() {
@@ -330,8 +330,8 @@ fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
 
     config.env.insert(args[1].to_string(), args[2].to_string());
@@ -343,8 +343,8 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
 
     if config.env.remove(&args[1].to_string()).is_none() {

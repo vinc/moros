@@ -13,7 +13,7 @@ use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut verbose = false;
-    let mut args: Vec<&str> = args.iter().filter_map(|arg| {
+    let args: Vec<&str> = args.iter().filter_map(|arg| {
         match *arg {
             "-v" | "--verbose" => {
                 verbose = true;
@@ -25,22 +25,25 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }).collect();
 
-    // Split <host> and <port>
-    if args.len() == 2 {
-        if let Some(i) = args[1].find(':') {
-            let (host, path) = args[1].split_at(i);
-            args[1] = host;
-            args.push(&path[1..]);
-        }
-    }
-
-    if args.len() != 3 {
+    if args.len() != 2 {
         help();
         return Err(ExitCode::UsageError);
     }
 
-    let host = &args[1];
-    let port: u16 = args[2].parse().expect("Could not parse port");
+    let (host, port) = match args[1].split_once(':') {
+        Some((h, p)) => (h, p),
+        None => {
+            help();
+            return Err(ExitCode::UsageError);
+        }
+    };
+    let port: u16 = match port.parse() {
+        Ok(n) => n,
+        Err(_) => {
+            eprint!("Could not parse port");
+            return Err(ExitCode::UsageError);
+        }
+    };
     let addr = if host.ends_with(char::is_numeric) {
         IpAddress::from_str(host).expect("invalid address format")
     } else {
@@ -92,5 +95,5 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} tcp {}<host> <port>{1}", csi_title, csi_reset, csi_option);
+    println!("{}Usage:{} tcp {}<host>:<port>{1}", csi_title, csi_reset, csi_option);
 }

@@ -68,7 +68,7 @@ The `host` command performs DNS lookups:
 
 The `tcp` command connects to TCP sockets:
 
-    > tcp time.nist.gov 13 --verbose
+    > tcp time.nist.gov:13 --verbose
     DEBUG: Connecting to 129.6.15.30:13
 
     58884 20-02-05 19:19:42 00 0 0  49.2 UTC(NIST) *
@@ -101,13 +101,13 @@ like the `netcat` command on Unix.
 
 For example the request made with `tcp` above is equivalent to this:
 
-    > socket time.nist.gov 13 --read-only
+    > socket time.nist.gov:13 --read-only
 
     59710 22-05-11 21:44:52 50 0 0 359.3 UTC(NIST) *
 
 And the request made with `http` is equivalent to that:
 
-    > socket moros.cc 80
+    > socket moros.cc:80
     GET /test.html HTTP/1.0
     Host: moros.cc
 
@@ -134,7 +134,7 @@ And the request made with `http` is equivalent to that:
 
 Here's a connexion to a SMTP server to send a mail:
 
-    > socket 10.0.2.2 2500
+    > socket 10.0.2.2:2500
     220 EventMachine SMTP Server
     HELO moros.cc
     250-Ok EventMachine SMTP Server
@@ -154,4 +154,4 @@ Here's a connexion to a SMTP server to send a mail:
 
 Sending a file to a server:
 
-    > socket 10.0.2.2 1234 <= /tmp/alice.txt
+    > socket 10.0.2.2:1234 <= /tmp/alice.txt
