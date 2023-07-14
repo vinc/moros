@@ -297,7 +297,12 @@ impl TcpSocket {
                         break;
                     }
                     _ => {
-                        return Err(());
+                        // Did something get sent before the connection closed?
+                        return if socket.can_recv() {
+                            Ok(())
+                        } else {
+                            Err(())
+                        };
                     }
                 }
 
