@@ -131,6 +131,7 @@ pub fn stop(code: usize) -> usize {
 }
 
 pub fn poll(list: &[(usize, IO)]) -> isize {
+    /*
     let timeout = 5.0;
     let started = sys::clock::realtime();
     loop {
@@ -140,6 +141,7 @@ pub fn poll(list: &[(usize, IO)]) -> isize {
         if sys::console::end_of_text() || sys::console::end_of_transmission() {
             break;
         }
+    */
         for (i, (handle, event)) in list.iter().enumerate() {
             if let Some(mut file) = sys::process::handle(*handle) {
                 if file.poll(*event) {
@@ -147,8 +149,10 @@ pub fn poll(list: &[(usize, IO)]) -> isize {
                 }
             }
         }
+    /*
         sys::time::halt();
     }
+    */
     -1
 }
 

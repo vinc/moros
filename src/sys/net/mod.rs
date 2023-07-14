@@ -4,6 +4,7 @@ use crate::api::fs::{FileIO, IO};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use alloc::vec;
+use bit_field::BitField;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use lazy_static::lazy_static;
 use smoltcp::iface::Interface;
@@ -219,14 +220,27 @@ impl Stats {
     }
 }
 
-fn debug_tcp_socket(socket: &tcp::Socket) {
-    debug!("socket.state: {:?}", socket.state());
-    debug!("socket.is_active: {:?}", socket.is_active());
-    debug!("socket.is_open: {:?}", socket.is_open());
-    debug!("socket.can_recv: {:?}", socket.can_recv());
-    debug!("socket.may_recv: {:?}", socket.may_recv());
-    debug!("socket.can_send: {:?}", socket.can_send());
-    debug!("socket.may_send: {:?}", socket.may_send());
+#[repr(u8)]
+pub enum SocketStatus {
+    IsListening = 0,
+    IsActive = 1,
+    IsOpen = 2,
+    CanSend = 3,
+    MaySend = 4,
+    CanRecv = 5,
+    MayRecv = 6,
+}
+
+fn tcp_socket_status(socket: &tcp::Socket) -> u8 {
+    let mut status = 0;
+    status.set_bit(SocketStatus::IsListening as usize, socket.is_listening());
+    status.set_bit(SocketStatus::IsActive as usize, socket.is_active());
+    status.set_bit(SocketStatus::IsOpen as usize, socket.is_open());
+    status.set_bit(SocketStatus::MaySend as usize, socket.may_send());
+    status.set_bit(SocketStatus::CanSend as usize, socket.can_send());
+    status.set_bit(SocketStatus::MayRecv as usize, socket.may_recv());
+    status.set_bit(SocketStatus::CanRecv as usize, socket.can_recv());
+    status
 }
 
 fn random_port() -> u16 {
@@ -358,6 +372,11 @@ impl FileIO for TcpSocket {
                 }
                 iface.poll(time(), device, &mut sockets);
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
+
+                if buf.len() == 1 { // 1 byte status read
+                    buf[0] = tcp_socket_status(socket);
+                    return Ok(1);
+                }
 
                 if socket.can_recv() {
                     bytes = socket.recv_slice(buf).map_err(|_| ())?;

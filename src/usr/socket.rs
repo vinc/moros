@@ -5,10 +5,12 @@ use crate::api::fs::IO;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
+use crate::sys::net::SocketStatus;
 
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
+use bit_field::BitField;
 use core::str::{self, FromStr};
 use smoltcp::wire::IpAddress;
 
@@ -22,7 +24,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 listen = true;
                 None
             }
-            "-r" | "--read-only" => {
+            "-r" | "--read" => {
                 read_only = true;
                 None
             }
@@ -93,8 +95,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 println!();
-                syscall::close(handle);
-                return Ok(());
+                break;
             }
 
             let list = vec![(stdin, IO::Read), (handle, IO::Read)];
@@ -109,8 +110,18 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         syscall::write(stdout, &data);
                     }
                 }
+            } else {
+                let mut data = vec![0; 1]; // 1 byte status read
+                match syscall::read(handle, &mut data) {
+                    Some(1) if !data[0].get_bit(SocketStatus::MayRecv as usize) => {
+                        break; // recv closed
+                    }
+                    _ => continue,
+                }
             }
         }
+        syscall::close(handle);
+        Ok(())
     } else {
         Err(ExitCode::Failure)
     }
@@ -123,7 +134,7 @@ fn help() {
     println!("{}Usage:{} socket {}[<host>] <port>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-l{1}, {0}--listen{1}             Listen to a local port", csi_option, csi_reset);
-    println!("  {0}-v{1}, {0}--verbose{1}            Increase verbosity", csi_option, csi_reset);
-    println!("  {0}-r{1}, {0}--read-only{1}          Read only connexion", csi_option, csi_reset);
+    println!("  {0}-l{1}, {0}--listen{1}    Listen to a local port", csi_option, csi_reset);
+    println!("  {0}-v{1}, {0}--verbose{1}   Increase verbosity", csi_option, csi_reset);
+    println!("  {0}-r{1}, {0}--read{1}      Read only connexion", csi_option, csi_reset);
 }
