@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Add PageUp and PageDown keys support ([#515](https://github.com/vinc/moros/pull/515))
+- Bump pbkdf2 from 0.12.1 to 0.12.2 ([#513](https://github.com/vinc/moros/pull/513))
+- Bump uart_16550 from 0.2.18 to 0.2.19 ([#514](https://github.com/vinc/moros/pull/514))
 - Add namespaces to lisp ([#511](https://github.com/vinc/moros/pull/511))
 - Update smoltcp from 0.9.1 to 0.10.0 ([#510](https://github.com/vinc/moros/pull/510))
 
