@@ -304,7 +304,11 @@ impl Editor {
                 },
                 '~' if csi && csi_params == "6" => { // Page Down
                     let scroll = self.rows() - 1; // Keep one previous line on screen
-                    self.offset.y += cmp::min(scroll, (self.lines.len() - 2) - self.offset.y);
+                    let remaining = cmp::max(self.lines.len(), 1) - self.offset.y - 1;
+                    self.offset.y += cmp::min(scroll, remaining);
+                    if self.cursor.y + scroll > remaining {
+                        self.cursor.y = 0;
+                    }
                     self.print_screen();
                 },
                 'A' if csi => { // Arrow Up
