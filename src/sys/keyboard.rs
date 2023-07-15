@@ -68,10 +68,12 @@ fn send_key(c: char) {
     sys::console::key_handle(c);
 }
 
-fn send_csi(c: char) {
+fn send_csi(code: &str) {
     send_key('\x1B'); // ESC
     send_key('[');
-    send_key(c);
+    for c in code.chars() {
+        send_key(c);
+    }
 }
 
 fn interrupt_handler() {
@@ -91,11 +93,13 @@ fn interrupt_handler() {
             if let Some(key) = keyboard.process_keyevent(event) {
                 match key {
                     DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => syscall::reboot(), // Ctrl-Alt-Del
-                    DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi('A'),
-                    DecodedKey::RawKey(KeyCode::ArrowDown)  => send_csi('B'),
-                    DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi('C'),
-                    DecodedKey::RawKey(KeyCode::ArrowLeft)  => send_csi('D'),
-                    DecodedKey::Unicode('\t') if is_shift   => send_csi('Z'), // Convert Shift-Tab into Backtab
+                    DecodedKey::RawKey(KeyCode::PageUp)     => send_csi("5~"),
+                    DecodedKey::RawKey(KeyCode::PageDown)   => send_csi("6~"),
+                    DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi("A"),
+                    DecodedKey::RawKey(KeyCode::ArrowDown)  => send_csi("B"),
+                    DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi("C"),
+                    DecodedKey::RawKey(KeyCode::ArrowLeft)  => send_csi("D"),
+                    DecodedKey::Unicode('\t') if is_shift   => send_csi("Z"), // Convert Shift-Tab into Backtab
                     DecodedKey::Unicode(c)                  => send_key(c),
                     _ => {},
                 };
