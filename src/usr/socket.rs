@@ -81,12 +81,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 syscall::close(handle);
                 return Err(ExitCode::Failure);
             }
-
+            if verbose {
+                debug!("Listening to {}:{}", addr, port);
+            }
         } else {
             if syscall::connect(handle, addr, port).is_err() {
                 error!("Could not connect to {}:{}", addr, port);
                 syscall::close(handle);
                 return Err(ExitCode::Failure);
+            }
+            if verbose {
+                debug!("Connected to {}:{}", addr, port);
             }
         }
 

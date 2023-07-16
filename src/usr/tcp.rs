@@ -65,6 +65,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             syscall::close(handle);
             return Err(ExitCode::Failure);
         }
+        if verbose {
+            debug!("Connected to {}:{}", addr, port);
+        }
         loop {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
