@@ -109,6 +109,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                 }
             } else {
+                syscall::sleep(0.01);
                 let mut data = vec![0; 1]; // 1 byte status read
                 match syscall::read(handle, &mut data) {
                     Some(1) if !data[0].get_bit(SocketStatus::MayRecv as usize) => {
