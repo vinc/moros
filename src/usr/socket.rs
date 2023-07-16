@@ -71,6 +71,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
+    let mut connected = false;
     let stdin = 0;
     let stdout = 1;
     let flags = OpenFlag::Device as usize;
@@ -85,7 +86,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 debug!("Listening to {}:{}", addr, port);
             }
         } else {
-            if syscall::connect(handle, addr, port).is_err() {
+            if syscall::connect(handle, addr, port).is_ok() {
+                connected = true;
+            } else {
                 error!("Could not connect to {}:{}", addr, port);
                 syscall::close(handle);
                 return Err(ExitCode::Failure);
@@ -99,6 +102,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 println!();
                 break;
+            }
+
+            if listen && !connected {
+                if syscall::accept(handle).is_ok() {
+                    connected = true;
+                } else {
+                    syscall::sleep(0.01);
+                    continue;
+                }
             }
 
             let list = vec![(stdin, IO::Read), (handle, IO::Read)];
@@ -115,12 +127,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
             } else {
                 syscall::sleep(0.01);
-                let mut data = vec![0; 1]; // 1 byte status read
-                match syscall::read(handle, &mut data) {
-                    Some(1) if !data[0].get_bit(SocketStatus::MayRecv as usize) => {
-                        break; // recv closed
+                if connected {
+                    let mut data = vec![0; 1]; // 1 byte status read
+                    match syscall::read(handle, &mut data) {
+                        Some(1) if !data[0].get_bit(SocketStatus::MayRecv as usize) => {
+                            break; // recv closed
+                        }
+                        _ => continue,
                     }
-                    _ => continue,
                 }
             }
         }
