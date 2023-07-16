@@ -272,6 +272,7 @@ impl TcpSocket {
     }
 
     pub fn connect(&mut self, addr: IpAddress, port: u16) -> Result<(), ()> {
+        let mut connecting = false;
         let timeout = 5.0;
         let started = sys::clock::realtime();
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
@@ -285,11 +286,15 @@ impl TcpSocket {
 
                 match socket.state() {
                     tcp::State::Closed => {
+                        if connecting {
+                            return Err(());
+                        }
                         let cx = iface.context();
                         let dest = (addr, port);
                         if socket.connect(cx, dest, random_port()).is_err() {
                             return Err(());
                         }
+                        connecting = true;
                     }
                     tcp::State::SynSent => {
                     }
