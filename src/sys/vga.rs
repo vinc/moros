@@ -191,11 +191,7 @@ impl Writer {
             ascii_code: b' ',
             color_code: self.color_code,
         };
-        for i in x..BUFFER_WIDTH {
-            unsafe {
-                core::ptr::write_volatile(&mut self.buffer.chars[y][i], c);
-            }
-        }
+        self.buffer.chars[y][x..BUFFER_WIDTH].fill(c);
     }
 
     fn clear_screen(&mut self) {
