@@ -127,14 +127,14 @@ class MorosFuse(LoggingMixIn, Operations):
         self.image.close()
         return
 
-    def getattr(self, path, fh=None):
+    def getattr(self, path, handle=None):
         (kind, addr, size, time, name) = self.__scan(path)
         if addr == 0:
             raise FuseOSError(ENOENT)
         mode = S_IFDIR | 0o755 if kind == 0 else S_IFREG | 0o644
         return { "st_atime": 0, "st_mtime": time, "st_uid": 0, "st_gid": 0, "st_mode": mode, "st_size": size }
 
-    def read(self, path, size, offset, fh):
+    def read(self, path, size, offset, handle):
         with self.rwlock:
             (kind, next_block_addr, size, time, name) = self.__scan(path)
             res = b""
@@ -150,7 +150,7 @@ class MorosFuse(LoggingMixIn, Operations):
                 size -= self.block_size - 4
             return res
 
-    def readdir(self, path, fh):
+    def readdir(self, path, handle):
         with self.rwlock:
             files = [".", ".."]
             (_, next_block_addr, _, _, _) = self.__scan(path)
@@ -204,7 +204,7 @@ class MorosFuse(LoggingMixIn, Operations):
             self.image.write(name.encode("utf-8"))
             return 0
 
-    def write(self, path, data, offset, fh):
+    def write(self, path, data, offset, handle):
         with self.rwlock:
             (_, addr, size, _, name) = self.__scan(path)
             n = self.block_size - 4 # Space available for data in blocks
