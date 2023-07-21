@@ -6,6 +6,7 @@ from time import time
 from errno import ENOENT
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 from stat import S_IFDIR, S_IFREG
+from threading import Lock
 
 BLOCK_SIZE = 512
 SUPERBLOCK_ADDR = 4096 * BLOCK_SIZE
@@ -24,6 +25,7 @@ class MorosFuse(LoggingMixIn, Operations):
     getxattr = None
 
     def __init__(self, path):
+        self.rwlock = Lock()
         self.block_size = BLOCK_SIZE
         self.image = open(path, "r+b")
         self.image.seek(SUPERBLOCK_ADDR)
@@ -133,120 +135,126 @@ class MorosFuse(LoggingMixIn, Operations):
         return { "st_atime": 0, "st_mtime": time, "st_uid": 0, "st_gid": 0, "st_mode": mode, "st_size": size }
 
     def read(self, path, size, offset, fh):
-        (kind, next_block_addr, size, time, name) = self.__scan(path)
-        res = b""
-        while next_block_addr != 0 and size > 0:
-            self.image.seek(next_block_addr)
-            next_block_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
-            if offset < self.block_size - 4:
-                buf = self.image.read(max(0, min(self.block_size - 4, size)))
-                res = b"".join([res, buf[offset:]])
-                offset = 0
-            else:
-                offset -= self.block_size - 4
-            size -= self.block_size - 4
-        return res
+        with self.rwlock:
+            (kind, next_block_addr, size, time, name) = self.__scan(path)
+            res = b""
+            while next_block_addr != 0 and size > 0:
+                self.image.seek(next_block_addr)
+                next_block_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+                if offset < self.block_size - 4:
+                    buf = self.image.read(max(0, min(self.block_size - 4, size)))
+                    res = b"".join([res, buf[offset:]])
+                    offset = 0
+                else:
+                    offset -= self.block_size - 4
+                size -= self.block_size - 4
+            return res
 
     def readdir(self, path, fh):
-        files = [".", ".."]
-        (_, next_block_addr, _, _, _) = self.__scan(path)
-        for (kind, addr, size, time, name) in self.__read(next_block_addr):
-            files.append(name)
-        return files
+        with self.rwlock:
+            files = [".", ".."]
+            (_, next_block_addr, _, _, _) = self.__scan(path)
+            for (kind, addr, size, time, name) in self.__read(next_block_addr):
+                files.append(name)
+            return files
 
     def mkdir(self, path, mode):
-        self.create(path, S_IFDIR | mode)
+        with self.rwlock:
+            self.create(path, S_IFDIR | mode)
 
     def create(self, path, mode):
-        (path, _, name) = path.rpartition("/")
-        entries = self.readdir(path + "/", 0)
-        entries.append(name)
-        pos = self.image.tell()
-        parent_addr = self.__update_dir_size(path, entries)
+        with self.rwlock:
+            (path, _, name) = path.rpartition("/")
+            entries = self.readdir(path + "/", 0)
+            entries.append(name)
+            pos = self.image.tell()
+            parent_addr = self.__update_dir_size(path, entries)
 
-        # Allocate space for the new dir entry if needed
-        blocks = 0
-        addr = parent_addr
-        next_addr = parent_addr
-        while next_addr != 0:
-            addr = next_addr
-            blocks += 1
-            self.image.seek(addr)
-            next_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
-        free_size = (self.block_size - 4) - (pos - addr)
-        if free_size < ENTRY_SIZE + len(name):
-            pos = self.image.tell() - 4
+            # Allocate space for the new dir entry if needed
+            blocks = 0
+            addr = parent_addr
+            next_addr = parent_addr
+            while next_addr != 0:
+                addr = next_addr
+                blocks += 1
+                self.image.seek(addr)
+                next_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+            free_size = (self.block_size - 4) - (pos - addr)
+            if free_size < ENTRY_SIZE + len(name):
+                pos = self.image.tell() - 4
+                addr = self.__next_free_addr()
+                self.__alloc(addr)
+                self.image.seek(pos)
+                self.image.write((addr // self.block_size).to_bytes(4, "big"))
+                pos = addr + 4
+
+            # Allocate space for the new file
+            kind = int((mode & S_IFDIR) != S_IFDIR)
+            size = 0
             addr = self.__next_free_addr()
             self.__alloc(addr)
+
+            # Add dir entry
             self.image.seek(pos)
+            self.image.write(kind.to_bytes(1, "big"))
             self.image.write((addr // self.block_size).to_bytes(4, "big"))
-            pos = addr + 4
-
-        # Allocate space for the new file
-        kind = int((mode & S_IFDIR) != S_IFDIR)
-        size = 0
-        addr = self.__next_free_addr()
-        self.__alloc(addr)
-
-        # Add dir entry
-        self.image.seek(pos)
-        self.image.write(kind.to_bytes(1, "big"))
-        self.image.write((addr // self.block_size).to_bytes(4, "big"))
-        self.image.write(size.to_bytes(4, "big"))
-        self.image.write(int(time()).to_bytes(8, "big"))
-        self.image.write(len(name).to_bytes(1, "big"))
-        self.image.write(name.encode("utf-8"))
-        return 0
+            self.image.write(size.to_bytes(4, "big"))
+            self.image.write(int(time()).to_bytes(8, "big"))
+            self.image.write(len(name).to_bytes(1, "big"))
+            self.image.write(name.encode("utf-8"))
+            return 0
 
     def write(self, path, data, offset, fh):
-        (_, addr, size, _, name) = self.__scan(path)
-        n = self.block_size - 4 # Space available for data in blocks
-        j = size % n # Start of space available in last block
+        with self.rwlock:
+            (_, addr, size, _, name) = self.__scan(path)
+            n = self.block_size - 4 # Space available for data in blocks
+            j = size % n # Start of space available in last block
 
-        # Update file size
-        self.image.seek(-(4 + 8 + 1 + len(name)), 1)
-        size = max(size, offset + len(data))
-        self.image.write(size.to_bytes(4, "big"))
+            # Update file size
+            self.image.seek(-(4 + 8 + 1 + len(name)), 1)
+            size = max(size, offset + len(data))
+            self.image.write(size.to_bytes(4, "big"))
 
-        for i in range(0, offset, n):
-            self.image.seek(addr)
-            next_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
-            if i + n >= offset:
-                self.image.seek(addr + 4 + j)
-                self.image.write(data[0:(n - j)])
-            if next_addr == 0:
-                next_addr = self.__next_free_addr()
-                self.__alloc(next_addr)
+            for i in range(0, offset, n):
+                self.image.seek(addr)
+                next_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+                if i + n >= offset:
+                    self.image.seek(addr + 4 + j)
+                    self.image.write(data[0:(n - j)])
+                if next_addr == 0:
+                    next_addr = self.__next_free_addr()
+                    self.__alloc(next_addr)
+                    self.image.seek(addr)
+                    self.image.write((next_addr // self.block_size).to_bytes(4, "big"))
+                addr = next_addr
+
+            for i in range(n - j if j > 0 else 0, len(data), n):
+                next_addr = 0
+                if i + n < len(data): # TODO: check for off by one error
+                    next_addr = self.__next_free_addr()
+                    self.__alloc(next_addr)
                 self.image.seek(addr)
                 self.image.write((next_addr // self.block_size).to_bytes(4, "big"))
-            addr = next_addr
+                self.image.write(data[i:min(i + n, len(data))])
+                addr = next_addr
 
-        for i in range(n - j if j > 0 else 0, len(data), n):
-            next_addr = 0
-            if i + n < len(data): # TODO: check for off by one error
-                next_addr = self.__next_free_addr()
-                self.__alloc(next_addr)
-            self.image.seek(addr)
-            self.image.write((next_addr // self.block_size).to_bytes(4, "big"))
-            self.image.write(data[i:min(i + n, len(data))])
-            addr = next_addr
-
-        return len(data)
+            return len(data)
 
     def unlink(self, path):
-        # Unlink and free blocs
-        (_, addr, size, _, name) = self.__scan(path)
-        self.image.seek(-(4 + 4 + 8 + 1 + len(name)), 1)
-        self.image.write((0).to_bytes(4, "big"))
-        while addr != 0:
-            self.__free(addr)
-            self.image.seek(addr)
-            addr = int.from_bytes(self.image.read(4), "big") * self.block_size
+        with self.rwlock:
+            # Unlink and free blocs
+            (_, addr, size, _, name) = self.__scan(path)
+            self.image.seek(-(4 + 4 + 8 + 1 + len(name)), 1)
+            self.image.write((0).to_bytes(4, "big"))
+            while addr != 0:
+                self.__free(addr)
+                self.image.seek(addr)
+                addr = int.from_bytes(self.image.read(4), "big") * self.block_size
 
-        # Update parent dir size
-        (path, _, _) = path.rpartition("/")
-        entries = self.readdir(path + "/", 0)
-        self.__update_dir_size(path, entries)
+            # Update parent dir size
+            (path, _, _) = path.rpartition("/")
+            entries = self.readdir(path + "/", 0)
+            self.__update_dir_size(path, entries)
 
 if __name__ == '__main__':
     import argparse
