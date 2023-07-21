@@ -136,18 +136,19 @@ class MorosFuse(LoggingMixIn, Operations):
 
     def read(self, path, size, offset, handle):
         with self.rwlock:
-            (kind, next_block_addr, size, time, name) = self.__scan(path)
-            res = b""
+            (kind, next_block_addr, file_size, time, name) = self.__scan(path)
+            size = min(size, file_size - offset)
+            res = bytes()
             while next_block_addr != 0 and size > 0:
                 self.image.seek(next_block_addr)
                 next_block_addr = int.from_bytes(self.image.read(4), "big") * self.block_size
                 if offset < self.block_size - 4:
-                    buf = self.image.read(max(0, min(self.block_size - 4, size)))
-                    res = b"".join([res, buf[offset:]])
+                    buf = self.image.read(max(0, min(self.block_size - 4, size)))[offset:]
+                    res += buf
+                    size -= min(self.block_size - 4, len(buf))
                     offset = 0
                 else:
                     offset -= self.block_size - 4
-                size -= self.block_size - 4
             return res
 
     def readdir(self, path, handle):
