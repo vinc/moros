@@ -51,7 +51,8 @@ impl BitmapBlock {
         for i in 0..n {
             let block = Block::read(sb.bitmap_area() + i);
             let bitmap = block.data();
-            for j in 0..size {
+            let m = size / 8;
+            for j in 0..m {
                 for k in 0..8 {
                     if !bitmap[j as usize].get_bit(k) {
                         let bs = BITMAP_SIZE as u32;
