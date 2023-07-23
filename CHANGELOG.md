@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Fix CSI bug in editor ([#520](https://github.com/vinc/moros/pull/520))
+- Bump num-traits from 0.2.15 to 0.2.16 ([#517](https://github.com/vinc/moros/pull/517))
+- Fix read on fuse host driver ([#519](https://github.com/vinc/moros/pull/519))
+- Fix BitmapBlock#next_free_addr after 512 allocated blocks ([#518](https://github.com/vinc/moros/pull/518))
 - Speed up VGA text mode ([#516](https://github.com/vinc/moros/pull/516))
 - Add PageUp and PageDown keys support ([#515](https://github.com/vinc/moros/pull/515))
 - Bump pbkdf2 from 0.12.1 to 0.12.2 ([#513](https://github.com/vinc/moros/pull/513))
