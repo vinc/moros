@@ -259,6 +259,7 @@ impl Editor {
                 },
                 '[' if escape => {
                     csi = true;
+                    csi_params.clear();
                     continue;
                 },
                 '\0' => {
@@ -339,6 +340,8 @@ impl Editor {
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     if line.is_empty() || self.cursor.x + self.offset.x >= line.chars().count() {
                         print!("\x1b[?25h"); // Enable cursor
+                        escape = false;
+                        csi = false;
                         continue
                     } else if self.cursor.x == self.cols() - 1 {
                         self.cursor.x = self.offset.x;
@@ -351,6 +354,8 @@ impl Editor {
                 'D' if csi => { // Arrow Left
                     if self.cursor.x + self.offset.x == 0 {
                         print!("\x1b[?25h"); // Enable cursor
+                        escape = false;
+                        csi = false;
                         continue;
                     } else if self.cursor.x == 0 {
                         self.cursor.x = self.offset.x - 1;
@@ -442,6 +447,8 @@ impl Editor {
                     } else { // Remove newline from previous line
                         if self.cursor.y == 0 && self.offset.y == 0 {
                             print!("\x1b[?25h"); // Enable cursor
+                            escape = false;
+                            csi = false;
                             continue;
                         }
 
@@ -504,13 +511,12 @@ impl Editor {
                     }
                 },
             }
-            escape = false;
-            csi = false;
-            csi_params = String::new();
             self.print_editing_status();
             self.print_highlighted();
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
             print!("\x1b[?25h"); // Enable cursor
+            escape = false;
+            csi = false;
         }
         Ok(())
     }
