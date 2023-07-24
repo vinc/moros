@@ -236,25 +236,24 @@ impl Editor {
         self.highlighted.clear();
     }
 
-    // Align cursor that is past the end of line,
-    // to the end of line or to the left of the screen.
+    // Align cursor that is past the end of the line, to the end
+    // of the line or to the left of the screen.
     //
-    // If the cursor is at the end of the long line
-    // that takes two screens in the following diagram:
+    // If the cursor is at the end of the long line that takes
+    // two screens in the following diagram:
     //
-    // +----------------------+----------------------+
-    // |                      |                      |
-    // | This is a short line |                      |
-    // |                      |                      |
-    // | This is a loooooooooo|oooooong line         |
-    // |                      |                      |
-    // +----------------------+----------------------+
+    // +----------------------------+----------------------------+
+    // |                            |                            |
+    // | This is a short line       |                            |
+    // |                            |                            |
+    // | This is a loooooooooooooooo|oooooong line               |
+    // |                            |            ^               |
+    // +----------------------------+----------------------------+
     //
-    // Going up should move the cursor to the left of
-    // the second screen, then going left should move
-    // to the left of the first screen. If going up
-    // another time before going left, the cursor
-    // should be at the end of the short line.
+    // Going up should move the cursor to the left of the second
+    // screen, then going left should move to the left of the
+    // first screen. If going up another time before going left,
+    // the cursor should end up at the end of the short line.
     fn align_cursor(&mut self) {
         let eol = self.lines[self.offset.y + self.cursor.y].chars().count();
         if eol <= self.offset.x + self.cursor.x {
