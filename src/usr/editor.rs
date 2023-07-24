@@ -236,6 +236,36 @@ impl Editor {
         self.highlighted.clear();
     }
 
+    // Align cursor that is past the end of line,
+    // to the end of line or to the left of the screen.
+    //
+    // If the cursor is at the end of the long line
+    // that takes two screens in the following diagram:
+    //
+    // +----------------------+----------------------+
+    // |                      |                      |
+    // | This is a short line |                      |
+    // |                      |                      |
+    // | This is a loooooooooo|oooooong line         |
+    // |                      |                      |
+    // +----------------------+----------------------+
+    //
+    // Going up should move the cursor to the left of
+    // the second screen, then going left should move
+    // to the left of the first screen. If going up
+    // another time before going left, the cursor
+    // should be at the end of the short line.
+    fn align_cursor(&mut self) {
+        let eol = self.lines[self.offset.y + self.cursor.y].chars().count();
+        if eol <= self.offset.x + self.cursor.x {
+            if eol <= self.offset.x {
+                self.cursor.x = 0;
+            } else {
+                self.cursor.x = eol - self.offset.x - 1;
+            }
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
@@ -319,7 +349,7 @@ impl Editor {
                         self.offset.y -= 1;
                         self.print_screen();
                     }
-                    self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
+                    self.align_cursor();
                 },
                 'B' if csi => { // Arrow Down
                     let is_eof = self.offset.y + self.cursor.y == self.lines.len() - 1;
@@ -333,7 +363,7 @@ impl Editor {
                         } else {
                             self.cursor.y += 1;
                         }
-                        self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
+                        self.align_cursor();
                     }
                 },
                 'C' if csi => { // Arrow Right
@@ -361,7 +391,7 @@ impl Editor {
                         self.offset.x -= self.cols();
                         self.cursor.x += self.cols() - 1;
                         self.print_screen();
-                        self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
+                        self.align_cursor();
                     } else {
                         self.cursor.x -= 1;
                     }
@@ -519,20 +549,6 @@ impl Editor {
             csi = false;
         }
         Ok(())
-    }
-
-    // Move cursor past end of line to end of line or left of the screen
-    fn next_pos(&self, x: usize, y: usize) -> usize {
-        let eol = self.lines[self.offset.y + y].chars().count();
-        if eol <= self.offset.x + x {
-            if eol <= self.offset.x {
-                0
-            } else {
-                eol - 1
-            }
-        } else {
-            x
-        }
     }
 
     fn rows(&self) -> usize {
