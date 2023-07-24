@@ -344,8 +344,8 @@ impl Editor {
                         csi = false;
                         continue
                     } else if self.cursor.x == self.cols() - 1 {
-                        self.cursor.x = self.offset.x;
                         self.offset.x += self.cols();
+                        self.cursor.x -= self.cols() - 1;
                         self.print_screen();
                     } else {
                         self.cursor.x += 1;
@@ -358,8 +358,8 @@ impl Editor {
                         csi = false;
                         continue;
                     } else if self.cursor.x == 0 {
-                        self.cursor.x = self.offset.x - 1;
                         self.offset.x -= self.cols();
+                        self.cursor.x += self.cols() - 1;
                         self.print_screen();
                         self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
                     } else {
