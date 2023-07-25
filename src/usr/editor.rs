@@ -237,31 +237,27 @@ impl Editor {
     }
 
     // Align cursor that is past the end of the line, to the end
-    // of the line or to the left of the screen.
+    // of the line.
     //
-    // If the cursor is at the end of the long line that takes
-    // two screens in the following diagram:
+    // If the cursor is somewhere on the long line on the second
+    // screen in the following diagram, going down should move
+    // the cursor to the end of the short line and display the
+    // first screen instead of the second screen.
     //
     // +----------------------------+----------------------------+
-    // |                            |                            |
-    // | This is a short line       |                            |
     // |                            |                            |
     // | This is a loooooooooooooooo|oooooong line               |
-    // |                            |            ^               |
+    // | This is a short line       |          ^                 |
+    // |                     ^      |                            |
     // +----------------------------+----------------------------+
-    //
-    // Going up should move the cursor to the left of the second
-    // screen, then going left should move to the left of the
-    // first screen. If going up another time before going left,
-    // the cursor should end up at the end of the short line.
     fn align_cursor(&mut self) {
-        let eol = self.lines[self.offset.y + self.cursor.y].chars().count();
-        if eol <= self.offset.x + self.cursor.x {
-            if eol <= self.offset.x {
-                self.cursor.x = 0;
-            } else {
-                self.cursor.x = eol - self.offset.x - 1;
-            }
+        let x = self.offset.x + self.cursor.x;
+        let y = self.offset.y + self.cursor.y;
+        let eol = self.lines[y].chars().count();
+        if x > eol {
+            let n = self.cols();
+            self.offset.x = (eol / n) * n;
+            self.cursor.x = eol % n;
         }
     }
 
@@ -346,9 +342,9 @@ impl Editor {
                         self.cursor.y -= 1
                     } else if self.offset.y > 0 {
                         self.offset.y -= 1;
-                        self.print_screen();
                     }
                     self.align_cursor();
+                    self.print_screen();
                 },
                 'B' if csi => { // Arrow Down
                     let is_eof = self.offset.y + self.cursor.y == self.lines.len() - 1;
@@ -357,12 +353,12 @@ impl Editor {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.offset.y += 1;
-                                self.print_screen();
                             }
                         } else {
                             self.cursor.y += 1;
                         }
                         self.align_cursor();
+                        self.print_screen();
                     }
                 },
                 'C' if csi => { // Arrow Right
@@ -389,8 +385,8 @@ impl Editor {
                     } else if self.cursor.x == 0 {
                         self.offset.x -= self.cols();
                         self.cursor.x += self.cols() - 1;
-                        self.print_screen();
                         self.align_cursor();
+                        self.print_screen();
                     } else {
                         self.cursor.x -= 1;
                     }
