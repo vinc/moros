@@ -236,6 +236,31 @@ impl Editor {
         self.highlighted.clear();
     }
 
+    // Align cursor that is past the end of the line, to the end
+    // of the line.
+    //
+    // If the cursor is somewhere on the long line on the second
+    // screen in the following diagram, going down should move
+    // the cursor to the end of the short line and display the
+    // first screen instead of the second screen.
+    //
+    // +----------------------------+----------------------------+
+    // |                            |                            |
+    // | This is a loooooooooooooooo|oooooong line               |
+    // | This is a short line       |          ^                 |
+    // |                     ^      |                            |
+    // +----------------------------+----------------------------+
+    fn align_cursor(&mut self) {
+        let x = self.offset.x + self.cursor.x;
+        let y = self.offset.y + self.cursor.y;
+        let eol = self.lines[y].chars().count();
+        if x > eol {
+            let n = self.cols();
+            self.offset.x = (eol / n) * n;
+            self.cursor.x = eol % n;
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
@@ -317,9 +342,9 @@ impl Editor {
                         self.cursor.y -= 1
                     } else if self.offset.y > 0 {
                         self.offset.y -= 1;
-                        self.print_screen();
                     }
-                    self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
+                    self.align_cursor();
+                    self.print_screen();
                 },
                 'B' if csi => { // Arrow Down
                     let is_eof = self.offset.y + self.cursor.y == self.lines.len() - 1;
@@ -328,12 +353,12 @@ impl Editor {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.offset.y += 1;
-                                self.print_screen();
                             }
                         } else {
                             self.cursor.y += 1;
                         }
-                        self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
+                        self.align_cursor();
+                        self.print_screen();
                     }
                 },
                 'C' if csi => { // Arrow Right
@@ -344,8 +369,8 @@ impl Editor {
                         csi = false;
                         continue
                     } else if self.cursor.x == self.cols() - 1 {
-                        self.cursor.x = self.offset.x;
                         self.offset.x += self.cols();
+                        self.cursor.x -= self.cols() - 1;
                         self.print_screen();
                     } else {
                         self.cursor.x += 1;
@@ -358,10 +383,10 @@ impl Editor {
                         csi = false;
                         continue;
                     } else if self.cursor.x == 0 {
-                        self.cursor.x = self.offset.x - 1;
                         self.offset.x -= self.cols();
+                        self.cursor.x += self.cols() - 1;
+                        self.align_cursor();
                         self.print_screen();
-                        self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
                     } else {
                         self.cursor.x -= 1;
                     }
@@ -519,20 +544,6 @@ impl Editor {
             csi = false;
         }
         Ok(())
-    }
-
-    // Move cursor past end of line to end of line or left of the screen
-    fn next_pos(&self, x: usize, y: usize) -> usize {
-        let eol = self.lines[self.offset.y + y].chars().count();
-        if eol <= self.offset.x + x {
-            if eol <= self.offset.x {
-                0
-            } else {
-                eol - 1
-            }
-        } else {
-            x
-        }
     }
 
     fn rows(&self) -> usize {
