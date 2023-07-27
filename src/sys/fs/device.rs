@@ -8,6 +8,7 @@ use crate::sys::console::Console;
 use crate::sys::random::Random;
 use crate::sys::clock::{Uptime, Realtime};
 use crate::sys::net::socket::tcp::TcpSocket;
+use crate::sys::net::socket::udp::UdpSocket;
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -23,6 +24,7 @@ pub enum DeviceType {
     Realtime  = 5,
     RTC       = 6,
     TcpSocket = 7,
+    UdpSocket = 8,
 }
 
 // Used when creating a device
@@ -33,7 +35,6 @@ impl DeviceType {
             DeviceType::Uptime    => Uptime::size(),
             DeviceType::Realtime  => Realtime::size(),
             DeviceType::Console   => Console::size(),
-            DeviceType::TcpSocket => RTC::size(),
             _                     => 1,
         };
         let mut res = vec![0; len];
@@ -52,6 +53,7 @@ pub enum Device {
     Realtime(Realtime),
     RTC(RTC),
     TcpSocket(TcpSocket),
+    UdpSocket(UdpSocket),
 }
 
 impl From<u8> for Device {
@@ -65,6 +67,7 @@ impl From<u8> for Device {
             i if i == DeviceType::Realtime as u8 => Device::Realtime(Realtime::new()),
             i if i == DeviceType::RTC as u8 => Device::RTC(RTC::new()),
             i if i == DeviceType::TcpSocket as u8 => Device::TcpSocket(TcpSocket::new()),
+            i if i == DeviceType::UdpSocket as u8 => Device::UdpSocket(UdpSocket::new()),
             _ => unimplemented!(),
         }
     }
@@ -113,6 +116,7 @@ impl FileIO for Device {
             Device::Realtime(io)  => io.read(buf),
             Device::RTC(io)       => io.read(buf),
             Device::TcpSocket(io) => io.read(buf),
+            Device::UdpSocket(io) => io.read(buf),
         }
     }
 
@@ -126,6 +130,7 @@ impl FileIO for Device {
             Device::Realtime(io)  => io.write(buf),
             Device::RTC(io)       => io.write(buf),
             Device::TcpSocket(io) => io.write(buf),
+            Device::UdpSocket(io) => io.write(buf),
         }
     }
 
@@ -139,6 +144,7 @@ impl FileIO for Device {
             Device::Realtime(io)  => io.close(),
             Device::RTC(io)       => io.close(),
             Device::TcpSocket(io) => io.close(),
+            Device::UdpSocket(io) => io.close(),
         }
     }
 
@@ -152,6 +158,7 @@ impl FileIO for Device {
             Device::Realtime(io)  => io.poll(event),
             Device::RTC(io)       => io.poll(event),
             Device::TcpSocket(io) => io.poll(event),
+            Device::UdpSocket(io) => io.poll(event),
         }
     }
 }

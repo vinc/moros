@@ -2,12 +2,13 @@ use crate::sys;
 use crate::api::process::ExitCode;
 use crate::api::fs::{FileIO, IO};
 use crate::sys::fs::FileInfo;
+use crate::sys::fs::Resource;
+use crate::sys::fs::Device;
 use crate::sys::process::Process;
 
 use alloc::vec;
 use core::arch::asm;
 use smoltcp::wire::IpAddress;
-use crate::sys::fs::Device;
 
 pub fn exit(code: ExitCode) -> ExitCode {
     sys::process::exit();
@@ -142,11 +143,15 @@ pub fn poll(list: &[(usize, IO)]) -> isize {
 }
 
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {
-    if let Some(file) = sys::process::handle(handle) {
-        if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
-            if dev.connect(addr, port).is_ok() {
-                return 0;
-            }
+    if let Some(mut file) = sys::process::handle(handle) {
+        let res = match *file {
+            Resource::Device(Device::TcpSocket(ref mut dev)) => dev.connect(addr, port),
+            Resource::Device(Device::UdpSocket(ref mut dev)) => dev.connect(addr, port),
+            _ => Err(()),
+        };
+        if res.is_ok() {
+            sys::process::update_handle(handle, *file);
+            return 0;
         }
     }
     -1
@@ -154,10 +159,13 @@ pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {
 
 pub fn listen(handle: usize, port: u16) -> isize {
     if let Some(file) = sys::process::handle(handle) {
-        if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
-            if dev.listen(port).is_ok() {
-                return 0;
-            }
+        let res = match *file {
+            Resource::Device(Device::TcpSocket(mut dev)) => dev.listen(port),
+            Resource::Device(Device::UdpSocket(mut dev)) => dev.listen(port),
+            _ => Err(()),
+        };
+        if res.is_ok() {
+            return 0;
         }
     }
     -1
@@ -165,9 +173,11 @@ pub fn listen(handle: usize, port: u16) -> isize {
 
 pub fn accept(handle: usize) -> Result<IpAddress, ()> {
     if let Some(file) = sys::process::handle(handle) {
-        if let sys::fs::Resource::Device(Device::TcpSocket(mut dev)) = *file {
-            return dev.accept();
-        }
+        return match *file {
+            Resource::Device(Device::TcpSocket(mut dev)) => dev.accept(),
+            Resource::Device(Device::UdpSocket(mut dev)) => dev.accept(),
+            _ => Err(()),
+        };
     }
     Err(())
 }
