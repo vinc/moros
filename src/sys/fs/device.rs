@@ -7,7 +7,7 @@ use crate::sys::cmos::RTC;
 use crate::sys::console::Console;
 use crate::sys::random::Random;
 use crate::sys::clock::{Uptime, Realtime};
-use crate::sys::net::TcpSocket;
+use crate::sys::net::socket::tcp::TcpSocket;
 
 use alloc::vec;
 use alloc::vec::Vec;

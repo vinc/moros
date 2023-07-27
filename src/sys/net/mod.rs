@@ -1,36 +1,38 @@
+mod nic;
+pub mod socket;
+
 use crate::{sys, usr};
-use crate::api::fs::{FileIO, IO};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-use alloc::vec;
-use bit_field::BitField;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use lazy_static::lazy_static;
 use smoltcp::iface::Interface;
-use smoltcp::iface::SocketHandle;
-use smoltcp::iface::SocketSet;
 use smoltcp::phy::DeviceCapabilities;
-use smoltcp::socket::tcp;
-use smoltcp::time::Duration;
 use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
-use smoltcp::wire::IpAddress;
 use spin::Mutex;
-
-mod rtl8139;
-mod pcnet;
-
-lazy_static! {
-    pub static ref SOCKETS: Mutex<SocketSet<'static>> = Mutex::new(SocketSet::new(vec![]));
-}
 
 pub static NET: Mutex<Option<(Interface, EthernetDevice)>> = Mutex::new(None);
 
+#[repr(u8)]
+pub enum SocketStatus {
+    IsListening = 0,
+    IsActive = 1,
+    IsOpen = 2,
+    CanSend = 3,
+    MaySend = 4,
+    CanRecv = 5,
+    MayRecv = 6,
+}
+
+fn time() -> Instant {
+    Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64)
+}
+
 #[derive(Clone)]
 pub enum EthernetDevice {
-    RTL8139(rtl8139::Device),
-    PCNET(pcnet::Device),
+    RTL8139(nic::rtl8139::Device),
+    PCNET(nic::pcnet::Device),
     //E2000,
     //VirtIO,
 }
@@ -220,264 +222,6 @@ impl Stats {
     }
 }
 
-#[repr(u8)]
-pub enum SocketStatus {
-    IsListening = 0,
-    IsActive = 1,
-    IsOpen = 2,
-    CanSend = 3,
-    MaySend = 4,
-    CanRecv = 5,
-    MayRecv = 6,
-}
-
-fn tcp_socket_status(socket: &tcp::Socket) -> u8 {
-    let mut status = 0;
-    status.set_bit(SocketStatus::IsListening as usize, socket.is_listening());
-    status.set_bit(SocketStatus::IsActive as usize, socket.is_active());
-    status.set_bit(SocketStatus::IsOpen as usize, socket.is_open());
-    status.set_bit(SocketStatus::MaySend as usize, socket.may_send());
-    status.set_bit(SocketStatus::CanSend as usize, socket.can_send());
-    status.set_bit(SocketStatus::MayRecv as usize, socket.may_recv());
-    status.set_bit(SocketStatus::CanRecv as usize, socket.can_recv());
-    status
-}
-
-fn random_port() -> u16 {
-    49152 + sys::random::get_u16() % 16384
-}
-
-fn time() -> Instant {
-    Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64)
-}
-
-fn wait(duration: Duration) {
-    sys::time::sleep((duration.total_micros() as f64) / 1000000.0);
-}
-
-#[derive(Debug, Clone)]
-pub struct TcpSocket {
-    pub handle: SocketHandle,
-}
-
-impl TcpSocket {
-    pub fn new() -> Self {
-        let mut sockets = SOCKETS.lock();
-        let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
-        let tcp_tx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);
-        let tcp_socket = tcp::Socket::new(tcp_rx_buffer, tcp_tx_buffer);
-        let handle = sockets.add(tcp_socket);
-
-        Self { handle }
-    }
-
-    pub fn connect(&mut self, addr: IpAddress, port: u16) -> Result<(), ()> {
-        let mut connecting = false;
-        let timeout = 5.0;
-        let started = sys::clock::realtime();
-        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-            loop {
-                if sys::clock::realtime() - started > timeout {
-                    return Err(());
-                }
-                let mut sockets = SOCKETS.lock();
-                iface.poll(time(), device, &mut sockets);
-                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-
-                match socket.state() {
-                    tcp::State::Closed => {
-                        if connecting {
-                            return Err(());
-                        }
-                        let cx = iface.context();
-                        let dest = (addr, port);
-                        if socket.connect(cx, dest, random_port()).is_err() {
-                            return Err(());
-                        }
-                        connecting = true;
-                    }
-                    tcp::State::SynSent => {
-                    }
-                    tcp::State::Established => {
-                        break;
-                    }
-                    _ => {
-                        // Did something get sent before the connection closed?
-                        return if socket.can_recv() {
-                            Ok(())
-                        } else {
-                            Err(())
-                        };
-                    }
-                }
-
-                if let Some(duration) = iface.poll_delay(time(), &sockets) {
-                    wait(duration);
-                }
-                sys::time::halt();
-            }
-        }
-        Ok(())
-    }
-
-    pub fn listen(&mut self, port: u16) -> Result<(), ()> {
-        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-            let mut sockets = SOCKETS.lock();
-            iface.poll(time(), device, &mut sockets);
-            let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-
-            if socket.listen(port).is_err() {
-                return Err(());
-            }
-
-            if let Some(duration) = iface.poll_delay(time(), &sockets) {
-                wait(duration);
-            }
-            sys::time::halt();
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-
-    pub fn accept(&mut self) -> Result<IpAddress, ()> {
-        //let timeout = 5.0;
-        //let started = sys::clock::realtime();
-        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-            loop {
-                /*
-                if sys::clock::realtime() - started > timeout {
-                    return Err(());
-                }
-                */
-                let mut sockets = SOCKETS.lock();
-                iface.poll(time(), device, &mut sockets);
-                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-
-                if let Some(endpoint) = socket.remote_endpoint() {
-                    return Ok(endpoint.addr);
-                }
-
-                if let Some(duration) = iface.poll_delay(time(), &sockets) {
-                    wait(duration);
-                }
-                sys::time::halt();
-            }
-        } else {
-            Err(())
-        }
-    }
-}
-
-impl FileIO for TcpSocket {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let timeout = 5.0;
-        let started = sys::clock::realtime();
-        let mut bytes = 0;
-        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-            let mut sockets = SOCKETS.lock();
-            loop {
-                if sys::clock::realtime() - started > timeout {
-                    return Err(());
-                }
-                iface.poll(time(), device, &mut sockets);
-                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-
-                if buf.len() == 1 { // 1 byte status read
-                    buf[0] = tcp_socket_status(socket);
-                    return Ok(1);
-                }
-
-                if socket.can_recv() {
-                    bytes = socket.recv_slice(buf).map_err(|_| ())?;
-                    break;
-                }
-                if !socket.may_recv() {
-                    break;
-                }
-                if let Some(duration) = iface.poll_delay(time(), &sockets) {
-                    wait(duration);
-                }
-                sys::time::halt();
-            }
-            Ok(bytes)
-        } else {
-            Err(())
-        }
-    }
-
-    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        let timeout = 5.0;
-        let started = sys::clock::realtime();
-        let mut sent = false;
-        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-            let mut sockets = SOCKETS.lock();
-            loop {
-                if sys::clock::realtime() - started > timeout {
-                    return Err(());
-                }
-                iface.poll(time(), device, &mut sockets);
-                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-
-                if sent {
-                    break;
-                }
-                if socket.can_send() {
-                    if socket.send_slice(buf.as_ref()).is_err() {
-                        return Err(());
-                    }
-                    sent = true; // Break after next poll
-                }
-
-                if let Some(duration) = iface.poll_delay(time(), &sockets) {
-                    wait(duration);
-                }
-                sys::time::halt();
-            }
-            Ok(buf.len())
-        } else {
-            Err(())
-        }
-    }
-
-    fn close(&mut self) {
-        let mut closed = false;
-        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-            let mut sockets = SOCKETS.lock();
-            loop {
-                iface.poll(time(), device, &mut sockets);
-                let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-
-                if closed {
-                    break;
-                }
-                socket.close();
-                closed = true;
-
-                if let Some(duration) = iface.poll_delay(time(), &sockets) {
-                    wait(duration);
-                }
-                sys::time::halt();
-            }
-        }
-    }
-
-    fn poll(&mut self, event: IO) -> bool {
-        if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
-            let mut sockets = SOCKETS.lock();
-            iface.poll(time(), device, &mut sockets);
-            let socket = sockets.get_mut::<tcp::Socket>(self.handle);
-
-            match event {
-                IO::Read => socket.can_recv(),
-                IO::Write => socket.can_send(),
-            }
-        } else {
-            false
-        }
-    }
-}
-
 fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {
     if let Some(mut pci_device) = sys::pci::find_device(vendor_id, device_id) {
         pci_device.enable_bus_mastering();
@@ -500,9 +244,9 @@ pub fn init() {
         }
     };
     if let Some(io_base) = find_pci_io_base(0x10EC, 0x8139) {
-        add(EthernetDevice::RTL8139(rtl8139::Device::new(io_base)), "RTL8139");
+        add(EthernetDevice::RTL8139(nic::rtl8139::Device::new(io_base)), "RTL8139");
     }
     if let Some(io_base) = find_pci_io_base(0x1022, 0x2000) {
-        add(EthernetDevice::PCNET(pcnet::Device::new(io_base)), "PCNET");
+        add(EthernetDevice::PCNET(nic::pcnet::Device::new(io_base)), "PCNET");
     }
 }
