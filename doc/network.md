@@ -61,7 +61,7 @@ The `dhcp` command configures the network automatically:
 The `host` command performs DNS lookups:
 
     > host example.com                                                                                 
-    example.com has address 93.184.216.34
+    93.184.216.34
 
 
 ## TCP

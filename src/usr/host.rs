@@ -103,13 +103,7 @@ impl Message {
         self.header().get_bit(15)
     }
 
-    /*
-    pub fn is_query(&self) -> bool {
-        !self.is_response()
-    }
-    */
-
-    pub fn rcode(&self) -> ResponseCode {
+    pub fn code(&self) -> ResponseCode {
         match self.header().get_bits(11..15) {
             0 => ResponseCode::NoError,
             1 => ResponseCode::FormatError,
@@ -136,21 +130,15 @@ fn dns_address() -> Option<IpAddress> {
 pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let addr = dns_address().unwrap_or(IpAddress::v4(8, 8, 8, 8));
     let port = 53;
-
-    let qname = name;
-    let qtype = QueryType::A;
-    let qclass = QueryClass::IN;
-    let query = Message::query(qname, qtype, qclass);
+    let query = Message::query(name, QueryType::A, QueryClass::IN);
 
     let flags = OpenFlag::Device as usize;
     if let Some(handle) = syscall::open("/dev/net/udp", flags) {
         if syscall::connect(handle, addr, port).is_err() {
-            error!("Could not connect to {}:{}", addr, port);
             syscall::close(handle);
             return Err(ResponseCode::NetworkError)
         }
         if syscall::write(handle, &query.datagram).is_none() {
-            error!("Could not send query to {}:{}", addr, port);
             syscall::close(handle);
             return Err(ResponseCode::NetworkError)
         }
@@ -164,23 +152,21 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
                 let message = Message::from(&data);
                 if message.id() == query.id() && message.is_response() {
-                    return match message.rcode() {
+                    syscall::close(handle);
+                    return match message.code() {
                         ResponseCode::NoError => {
-                            // TODO: Parse the datagram instead of
-                            // extracting the last 4 bytes.
-                            //let rdata = message.answer().rdata();
+                            // TODO: Parse the datagram instead of extracting
+                            // the last 4 bytes
                             let n = message.datagram.len();
-                            let rdata = &message.datagram[(n - 4)..];
-
-                            Ok(IpAddress::from(Ipv4Address::from_bytes(rdata)))
+                            let data = &message.datagram[(n - 4)..];
+                            Ok(IpAddress::from(Ipv4Address::from_bytes(data)))
                         }
-                        rcode => {
-                            Err(rcode)
+                        code => {
+                            Err(code)
                         }
                     }
                 }
             } else {
-                error!("Could not read from {}:{}", addr, port);
                 break;
             }
         }
@@ -198,7 +184,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let domain = args[1];
     match resolve(domain) {
         Ok(addr) => {
-            println!("{} has address {}", domain, addr);
+            println!("{}", addr);
             Ok(())
         }
         Err(e) => {
