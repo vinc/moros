@@ -1,3 +1,6 @@
+mod nic;
+pub mod socket;
+
 use crate::{sys, usr};
 
 use alloc::sync::Arc;
@@ -9,15 +12,27 @@ use smoltcp::time::Instant;
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
 
-mod rtl8139;
-mod pcnet;
-
 pub static NET: Mutex<Option<(Interface, EthernetDevice)>> = Mutex::new(None);
+
+#[repr(u8)]
+pub enum SocketStatus {
+    IsListening = 0,
+    IsActive = 1,
+    IsOpen = 2,
+    CanSend = 3,
+    MaySend = 4,
+    CanRecv = 5,
+    MayRecv = 6,
+}
+
+fn time() -> Instant {
+    Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64)
+}
 
 #[derive(Clone)]
 pub enum EthernetDevice {
-    RTL8139(rtl8139::Device),
-    PCNET(pcnet::Device),
+    RTL8139(nic::rtl8139::Device),
+    PCNET(nic::pcnet::Device),
     //E2000,
     //VirtIO,
 }
@@ -223,16 +238,15 @@ pub fn init() {
             log!("NET {} MAC {}\n", name, mac);
 
             let config = smoltcp::iface::Config::new(mac.into());
-            let time = Instant::from_micros((sys::clock::realtime() * 1000000.0) as i64);
-            let iface = Interface::new(config, &mut device, time);
+            let iface = Interface::new(config, &mut device, time());
 
             *NET.lock() = Some((iface, device));
         }
     };
     if let Some(io_base) = find_pci_io_base(0x10EC, 0x8139) {
-        add(EthernetDevice::RTL8139(rtl8139::Device::new(io_base)), "RTL8139");
+        add(EthernetDevice::RTL8139(nic::rtl8139::Device::new(io_base)), "RTL8139");
     }
     if let Some(io_base) = find_pci_io_base(0x1022, 0x2000) {
-        add(EthernetDevice::PCNET(pcnet::Device::new(io_base)), "PCNET");
+        add(EthernetDevice::PCNET(nic::pcnet::Device::new(io_base)), "PCNET");
     }
 }

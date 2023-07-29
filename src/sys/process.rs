@@ -13,7 +13,7 @@ use object::{Object, ObjectSegment};
 use spin::RwLock;
 use x86_64::structures::idt::InterruptStackFrameValue;
 
-const MAX_FILE_HANDLES: usize = 64;
+const MAX_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
 const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
@@ -29,7 +29,7 @@ pub struct ProcessData {
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
-    file_handles: [Option<Box<Resource>>; MAX_FILE_HANDLES],
+    handles: [Option<Box<Resource>>; MAX_HANDLES],
 }
 
 impl ProcessData {
@@ -37,12 +37,12 @@ impl ProcessData {
         let env = BTreeMap::new();
         let dir = dir.to_string();
         let user = user.map(String::from);
-        let mut file_handles = [(); MAX_FILE_HANDLES].map(|_| None);
-        file_handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdin
-        file_handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdout
-        file_handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stderr
-        file_handles[3] = Some(Box::new(Resource::Device(Device::Null))); // stdnull
-        Self { env, dir, user, file_handles }
+        let mut handles = [(); MAX_HANDLES].map(|_| None);
+        handles[0] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdin
+        handles[1] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stdout
+        handles[2] = Some(Box::new(Resource::Device(Device::Console(Console::new())))); // stderr
+        handles[3] = Some(Box::new(Resource::Device(Device::Null))); // stdnull
+        Self { env, dir, user, handles }
     }
 }
 
@@ -96,43 +96,43 @@ pub fn set_user(user: &str) {
     proc.data.user = Some(user.into())
 }
 
-pub fn create_file_handle(file: Resource) -> Result<usize, ()> {
+pub fn create_handle(file: Resource) -> Result<usize, ()> {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-    let min = 4; // The first 4 file handles are reserved
-    let max = MAX_FILE_HANDLES;
+    let min = 4; // The first 4 handles are reserved
+    let max = MAX_HANDLES;
     for handle in min..max {
-        if proc.data.file_handles[handle].is_none() {
-            proc.data.file_handles[handle] = Some(Box::new(file));
+        if proc.data.handles[handle].is_none() {
+            proc.data.handles[handle] = Some(Box::new(file));
             return Ok(handle);
         }
     }
-    debug!("Could not create file handle");
+    debug!("Could not create handle");
     Err(())
 }
 
-pub fn update_file_handle(handle: usize, file: Resource) {
+pub fn update_handle(handle: usize, file: Resource) {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-    proc.data.file_handles[handle] = Some(Box::new(file));
+    proc.data.handles[handle] = Some(Box::new(file));
 }
 
-pub fn delete_file_handle(handle: usize) {
+pub fn delete_handle(handle: usize) {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-    proc.data.file_handles[handle] = None;
+    proc.data.handles[handle] = None;
 }
 
-pub fn file_handle(handle: usize) -> Option<Box<Resource>> {
+pub fn handle(handle: usize) -> Option<Box<Resource>> {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.data.file_handles[handle].clone()
+    proc.data.handles[handle].clone()
 }
 
-pub fn file_handles() -> Vec<Option<Box<Resource>>> {
+pub fn handles() -> Vec<Option<Box<Resource>>> {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.data.file_handles.to_vec()
+    proc.data.handles.to_vec()
 }
 
 pub fn code_addr() -> u64 {

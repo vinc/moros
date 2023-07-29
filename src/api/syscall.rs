@@ -1,7 +1,11 @@
+use crate::api::fs::IO;
 use crate::api::process::ExitCode;
 use crate::syscall;
 use crate::sys::syscall::number::*;
 use crate::sys::fs::FileInfo;
+
+use smoltcp::wire::IpAddress;
+use smoltcp::wire::Ipv4Address;
 
 pub fn exit(code: ExitCode) {
     unsafe { syscall!(EXIT, code as usize) };
@@ -104,6 +108,51 @@ pub fn reboot() {
 
 pub fn halt() {
     stop(0xdead);
+}
+
+pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {
+    let ptr = list.as_ptr() as usize;
+    let len = list.len();
+    let idx = unsafe { syscall!(POLL, ptr, len) } as isize;
+    if 0 <= idx && idx < len as isize {
+        Some(list[idx as usize])
+    } else {
+        None
+    }
+}
+
+pub fn connect(handle: usize, addr: IpAddress, port: u16) -> Result<(), ()> {
+    let buf = addr.as_bytes();
+    let ptr = buf.as_ptr() as usize;
+    let len = buf.len();
+    let res = unsafe { syscall!(CONNECT, handle, ptr, len, port) } as isize;
+    if res >= 0 {
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
+pub fn listen(handle: usize, port: u16) -> Result<(), ()> {
+    let res = unsafe { syscall!(LISTEN, handle, port) } as isize;
+    if res >= 0 {
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
+pub fn accept(handle: usize) -> Result<IpAddress, ()> {
+    let addr = IpAddress::v4(0, 0, 0, 0);
+    let buf = addr.as_bytes();
+    let ptr = buf.as_ptr() as usize;
+    let len = buf.len();
+    let res = unsafe { syscall!(ACCEPT, handle, ptr, len) } as isize;
+    if res >= 0 {
+        Ok(IpAddress::from(Ipv4Address::from_bytes(buf)))
+    } else {
+        Err(())
+    }
 }
 
 #[test_case]

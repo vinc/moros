@@ -61,14 +61,14 @@ The `dhcp` command configures the network automatically:
 The `host` command performs DNS lookups:
 
     > host example.com                                                                                 
-    example.com has address 93.184.216.34
+    93.184.216.34
 
 
 ## TCP
 
 The `tcp` command connects to TCP sockets:
 
-    > tcp time.nist.gov 13 --verbose
+    > tcp time.nist.gov:13 --verbose
     DEBUG: Connecting to 129.6.15.30:13
 
     58884 20-02-05 19:19:42 00 0 0  49.2 UTC(NIST) *
@@ -101,18 +101,16 @@ like the `netcat` command on Unix.
 
 For example the request made with `tcp` above is equivalent to this:
 
-    > socket time.nist.gov 13 --read-only
+    > socket time.nist.gov:13 --read-only
 
     59710 22-05-11 21:44:52 50 0 0 359.3 UTC(NIST) *
 
 And the request made with `http` is equivalent to that:
 
-    > socket moros.cc 80 --prompt
-    MOROS Socket v0.1.0
+    > socket moros.cc:80
+    GET /test.html HTTP/1.0
+    Host: moros.cc
 
-    > GET /test.html HTTP/1.0
-    > Host: moros.cc
-    > 
     HTTP/1.1 200 OK
     Server: nginx
     Date: Wed, 11 May 2022 21:46:34 GMT
@@ -136,27 +134,24 @@ And the request made with `http` is equivalent to that:
 
 Here's a connexion to a SMTP server to send a mail:
 
-    > socket 10.0.2.2 2500 --prompt
-    MOROS Socket v0.1.0
-
+    > socket 10.0.2.2:2500
     220 EventMachine SMTP Server
-    > EHLO moros.cc
+    HELO moros.cc
     250-Ok EventMachine SMTP Server
-    250-NO-SOLICITING
-    250 SIZE 20000000
-    > MAIL FROM:<vinc@moros.cc>
-    > RCPT TO:<alice@example.com>
+    MAIL FROM:<vinc@moros.cc>
     250 Ok
+    RCPT TO:<alice@example.com>
     250 Ok
-    > DATA
+    DATA
     354 Send it
-    > Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec
-    > diam vitae ex blandit malesuada nec a turpis.
-    > .
-    > QUIT
+    Subject: Test
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nec
+    diam vitae ex blandit malesuada nec a turpis.
+    .
     250 Message accepted
+    QUIT
     221 Ok
 
 Sending a file to a server:
 
-    > socket 10.0.2.2 1234 <= /tmp/alice.txt
+    > socket 10.0.2.2:1234 <= /tmp/alice.txt

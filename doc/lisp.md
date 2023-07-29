@@ -65,6 +65,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `let`
 - `string.join` (aliased to `str.join`), `lines`, `words`, `chars`
 - `regex.match?`
+- `socket.connect`, `socket.listen`, `socket.accept`
 
 ### File Library
 - `read`, `write`, `append`
@@ -199,3 +200,4 @@ language and reading from the filesystem.
 
 ### Unreleased
 - Add file, number, string, and regex namespaces
+- Add socket functions

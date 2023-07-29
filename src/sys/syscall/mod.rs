@@ -3,9 +3,11 @@ pub mod service;
 
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::FileInfo;
+use crate::sys::fs::{FileInfo, IO};
 
 use core::arch::asm;
+use smoltcp::wire::IpAddress;
+use smoltcp::wire::Ipv4Address;
 
 /*
  * Dispatching system calls
@@ -68,14 +70,45 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
             let path_ptr = sys::process::ptr_from_addr(arg1 as u64);
             let path_len = arg2;
             let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(path_ptr, path_len)) };
-
             let args_ptr = arg3;
             let args_len = arg4;
-
             service::spawn(path, args_ptr, args_len) as usize
         }
         number::STOP => {
-            service::stop(arg1)
+            let code = arg1;
+            service::stop(code)
+        }
+        number::POLL => {
+            let ptr = sys::process::ptr_from_addr(arg1 as u64) as *const (usize, IO);
+            let len = arg2;
+            let list = unsafe { core::slice::from_raw_parts(ptr, len) };
+            service::poll(list) as usize
+        }
+        number::CONNECT => {
+            let handle = arg1;
+            let buf_ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let buf_len = arg3;
+            let buf = unsafe { core::slice::from_raw_parts(buf_ptr, buf_len) };
+            let addr = IpAddress::from(Ipv4Address::from_bytes(buf));
+            let port = arg4 as u16;
+            service::connect(handle, addr, port) as usize
+        }
+        number::LISTEN => {
+            let handle = arg1;
+            let port = arg2 as u16;
+            service::listen(handle, port) as usize
+        }
+        number::ACCEPT => {
+            let handle = arg1;
+            let buf_ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let buf_len = arg3;
+            let buf = unsafe { core::slice::from_raw_parts_mut(buf_ptr, buf_len) };
+            if let Ok(addr) = service::accept(handle) {
+                buf[0..buf_len].clone_from_slice(&addr.as_bytes());
+                0
+            } else {
+                -1 as isize as usize
+            }
         }
         _ => {
             unimplemented!();
