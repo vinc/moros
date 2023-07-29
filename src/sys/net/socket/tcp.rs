@@ -39,7 +39,7 @@ impl TcpSocket {
             let tcp_header = 20;
             mtu - eth_header - ip_header - tcp_header
         } else {
-            0
+            1
         }
     }
 

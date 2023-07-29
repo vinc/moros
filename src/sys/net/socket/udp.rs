@@ -36,7 +36,7 @@ impl UdpSocket {
             let udp_header = 8;
             mtu - eth_header - ip_header - udp_header
         } else {
-            0
+            1
         }
     }
 
