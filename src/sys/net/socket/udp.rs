@@ -3,19 +3,14 @@ use crate::sys;
 use crate::api::fs::{FileIO, IO};
 use crate::sys::net::SocketStatus;
 
+use super::SOCKETS;
+use super::{random_port, wait};
+
 use alloc::vec;
 use bit_field::BitField;
-use lazy_static::lazy_static;
 use smoltcp::iface::SocketHandle;
-use smoltcp::iface::SocketSet;
 use smoltcp::socket::udp;
-use smoltcp::time::Duration;
 use smoltcp::wire::{IpAddress, IpEndpoint, IpListenEndpoint};
-use spin::Mutex;
-
-lazy_static! {
-    pub static ref SOCKETS: Mutex<SocketSet<'static>> = Mutex::new(SocketSet::new(vec![]));
-}
 
 fn udp_socket_status(socket: &udp::Socket) -> u8 {
     let mut status = 0;
@@ -23,14 +18,6 @@ fn udp_socket_status(socket: &udp::Socket) -> u8 {
     status.set_bit(SocketStatus::CanSend as usize, socket.can_send());
     status.set_bit(SocketStatus::CanRecv as usize, socket.can_recv());
     status
-}
-
-fn random_port() -> u16 {
-    49152 + sys::random::get_u16() % 16384
-}
-
-fn wait(duration: Duration) {
-    sys::time::sleep((duration.total_micros() as f64) / 1000000.0);
 }
 
 #[derive(Debug, Clone)]
