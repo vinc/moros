@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Add network syscalls ([#512](https://github.com/vinc/moros/pull/512))
+- Fix regex in shell redirection from ([#523](https://github.com/vinc/moros/pull/523))
+- Evaluate load argument in lisp ([#522](https://github.com/vinc/moros/pull/522))
+- Fix cursor movements on long lines in editor ([#521](https://github.com/vinc/moros/pull/521))
 - Fix CSI bug in editor ([#520](https://github.com/vinc/moros/pull/520))
 - Bump num-traits from 0.2.15 to 0.2.16 ([#517](https://github.com/vinc/moros/pull/517))
 - Fix read on fuse host driver ([#519](https://github.com/vinc/moros/pull/519))
