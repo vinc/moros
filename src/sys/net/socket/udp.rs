@@ -9,6 +9,7 @@ use super::{random_port, wait};
 use alloc::vec;
 use bit_field::BitField;
 use smoltcp::iface::SocketHandle;
+use smoltcp::phy::Device;
 use smoltcp::socket::udp;
 use smoltcp::wire::{IpAddress, IpEndpoint, IpListenEndpoint};
 
@@ -27,6 +28,18 @@ pub struct UdpSocket {
 }
 
 impl UdpSocket {
+    pub fn size() -> usize {
+        if let Some((_, ref mut device)) = *sys::net::NET.lock() {
+            let mtu = device.capabilities().max_transmission_unit;
+            let eth_header = 14;
+            let ip_header = 20;
+            let udp_header = 8;
+            mtu - eth_header - ip_header - udp_header
+        } else {
+            0
+        }
+    }
+
     pub fn new() -> Self {
         let mut sockets = SOCKETS.lock();
         let udp_rx_buffer = udp::PacketBuffer::new(vec![udp::PacketMetadata::EMPTY], vec![0; 1024]);

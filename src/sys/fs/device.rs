@@ -35,6 +35,8 @@ impl DeviceType {
             DeviceType::Uptime    => Uptime::size(),
             DeviceType::Realtime  => Realtime::size(),
             DeviceType::Console   => Console::size(),
+            DeviceType::TcpSocket => TcpSocket::size(),
+            DeviceType::UdpSocket => UdpSocket::size(),
             _                     => 1,
         };
         let mut res = vec![0; len];

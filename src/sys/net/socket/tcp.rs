@@ -9,6 +9,7 @@ use super::{random_port, wait};
 use alloc::vec;
 use bit_field::BitField;
 use smoltcp::iface::SocketHandle;
+use smoltcp::phy::Device;
 use smoltcp::socket::tcp;
 use smoltcp::wire::IpAddress;
 
@@ -30,6 +31,18 @@ pub struct TcpSocket {
 }
 
 impl TcpSocket {
+    pub fn size() -> usize {
+        if let Some((_, ref mut device)) = *sys::net::NET.lock() {
+            let mtu = device.capabilities().max_transmission_unit;
+            let eth_header = 14;
+            let ip_header = 20;
+            let tcp_header = 20;
+            mtu - eth_header - ip_header - tcp_header
+        } else {
+            0
+        }
+    }
+
     pub fn new() -> Self {
         let mut sockets = SOCKETS.lock();
         let tcp_rx_buffer = tcp::SocketBuffer::new(vec![0; 1024]);

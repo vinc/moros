@@ -2,6 +2,9 @@ use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
+use crate::sys::fs::OpenFlag;
+
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
 use core::str::{self, FromStr};
@@ -120,10 +123,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
-    use alloc::format;
-    use crate::sys::fs::OpenFlag;
+    let socket_path = "/dev/net/tcp";
+    let buf_len = if let Some(info) = syscall::info(socket_path) {
+        debug!("tcp buf len: {}", info.size());
+        info.size() as usize
+    } else {
+        error!("Could not open '{}'", socket_path);
+        return Err(ExitCode::Failure);
+    };
+
     let flags = OpenFlag::Device as usize;
-    if let Some(handle) = syscall::open("/dev/net/tcp", flags) {
+    if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             error!("Could not connect to {}:{}", addr, port);
             syscall::close(handle);
@@ -153,7 +163,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 syscall::close(handle);
                 return Err(ExitCode::Failure);
             }
-            let mut data = vec![0; 2048];
+            let mut data = vec![0; buf_len];
             if let Some(n) = syscall::read(handle, &mut data) {
                 if n == 0 {
                     break;

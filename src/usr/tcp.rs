@@ -58,8 +58,16 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     };
 
+    let socket_path = "/dev/net/tcp";
+    let buf_len = if let Some(info) = syscall::info(socket_path) {
+        info.size() as usize
+    } else {
+        error!("Could not open '{}'", socket_path);
+        return Err(ExitCode::Failure);
+    };
+
     let flags = OpenFlag::Device as usize;
-    if let Some(handle) = syscall::open("/dev/net/tcp", flags) {
+    if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             error!("Could not connect to {}:{}", addr, port);
             syscall::close(handle);
@@ -74,7 +82,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 syscall::close(handle);
                 return Err(ExitCode::Failure);
             }
-            let mut data = vec![0; 2048];
+            let mut data = vec![0; buf_len];
             if let Some(bytes) = syscall::read(handle, &mut data) {
                 if bytes == 0 {
                     break;

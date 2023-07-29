@@ -132,8 +132,16 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     let port = 53;
     let query = Message::query(name, QueryType::A, QueryClass::IN);
 
+    let socket_path = "/dev/net/udp";
+    let buf_len = if let Some(info) = syscall::info(socket_path) {
+        debug!("udp buf len: {}", info.size());
+        info.size() as usize
+    } else {
+        return Err(ResponseCode::NetworkError);
+    };
+
     let flags = OpenFlag::Device as usize;
-    if let Some(handle) = syscall::open("/dev/net/udp", flags) {
+    if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             syscall::close(handle);
             return Err(ResponseCode::NetworkError)
@@ -143,7 +151,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
             return Err(ResponseCode::NetworkError)
         }
         loop {
-            let mut data = vec![0; 2048];
+            let mut data = vec![0; buf_len];
             if let Some(bytes) = syscall::read(handle, &mut data) {
                 if bytes == 0 {
                     break;

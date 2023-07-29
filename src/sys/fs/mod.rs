@@ -77,10 +77,10 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
 
 pub fn delete(path: &str) -> Result<(), ()> {
     if let Some(info) = info(path) {
-        if info.is_file() {
-            return File::delete(path);
-        } else if info.is_dir() {
+        if info.is_dir() {
             return Dir::delete(path);
+        } else if info.is_file() || info.is_device() {
+            return File::delete(path);
         }
     }
     Err(())
