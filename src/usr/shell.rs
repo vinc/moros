@@ -406,7 +406,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             // read foo.txt [1]=>[3]
             is_fat_arrow = true;
             left_handle = 1;
-        } else if Regex::new("^+<=*$").is_match(args[i]) { // Redirections from
+        } else if Regex::new("^<=*$").is_match(args[i]) { // Redirections from
             // write bar.txt <== foo.txt
             // write bar.txt <= foo.txt
             // write bar.txt < foo.txt
