@@ -134,7 +134,6 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
 
     let socket_path = "/dev/net/udp";
     let buf_len = if let Some(info) = syscall::info(socket_path) {
-        debug!("udp buf len: {}", info.size());
         info.size() as usize
     } else {
         return Err(ResponseCode::NetworkError);
