@@ -1,20 +1,22 @@
 # Changelog
 
 ## Unreleased
-- Add network syscalls ([#512](https://github.com/vinc/moros/pull/512))
-- Fix regex in shell redirection from ([#523](https://github.com/vinc/moros/pull/523))
-- Evaluate load argument in lisp ([#522](https://github.com/vinc/moros/pull/522))
-- Fix cursor movements on long lines in editor ([#521](https://github.com/vinc/moros/pull/521))
-- Fix CSI bug in editor ([#520](https://github.com/vinc/moros/pull/520))
-- Bump num-traits from 0.2.15 to 0.2.16 ([#517](https://github.com/vinc/moros/pull/517))
-- Fix read on fuse host driver ([#519](https://github.com/vinc/moros/pull/519))
-- Fix BitmapBlock#next_free_addr after 512 allocated blocks ([#518](https://github.com/vinc/moros/pull/518))
-- Speed up VGA text mode ([#516](https://github.com/vinc/moros/pull/516))
+
+## 0.10.1 (2023-09-23)
 - Add PageUp and PageDown keys support ([#515](https://github.com/vinc/moros/pull/515))
+- Add namespaces to lisp ([#511](https://github.com/vinc/moros/pull/511))
+- Add network syscalls ([#512](https://github.com/vinc/moros/pull/512))
+- Evaluate load argument in lisp ([#522](https://github.com/vinc/moros/pull/522))
+- Speed up VGA text mode ([#516](https://github.com/vinc/moros/pull/516))
+- Fix BitmapBlock#next_free_addr after 512 allocated blocks ([#518](https://github.com/vinc/moros/pull/518))
+- Fix CSI bug in editor ([#520](https://github.com/vinc/moros/pull/520))
+- Fix cursor movements on long lines in editor ([#521](https://github.com/vinc/moros/pull/521))
+- Fix read on fuse host driver ([#519](https://github.com/vinc/moros/pull/519))
+- Fix regex in shell redirection from ([#523](https://github.com/vinc/moros/pull/523))
+- Update smoltcp from 0.9.1 to 0.10.0 ([#510](https://github.com/vinc/moros/pull/510))
+- Bump num-traits from 0.2.15 to 0.2.16 ([#517](https://github.com/vinc/moros/pull/517))
 - Bump pbkdf2 from 0.12.1 to 0.12.2 ([#513](https://github.com/vinc/moros/pull/513))
 - Bump uart_16550 from 0.2.18 to 0.2.19 ([#514](https://github.com/vinc/moros/pull/514))
-- Add namespaces to lisp ([#511](https://github.com/vinc/moros/pull/511))
-- Update smoltcp from 0.9.1 to 0.10.0 ([#510](https://github.com/vinc/moros/pull/510))
 
 ## 0.10.0 (2023-06-21)
 - Add cut/copy/paste to editor ([#456](https://github.com/vinc/moros/pull/456))

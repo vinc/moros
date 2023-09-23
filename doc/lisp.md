@@ -198,6 +198,8 @@ language and reading from the filesystem.
 - Add params to function representations
 - Add docstring to functions
 
-### Unreleased
+### 0.6.0 (2023-09-23)
 - Add file, number, string, and regex namespaces
 - Add socket functions
+
+### Unreleased
