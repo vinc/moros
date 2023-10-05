@@ -40,7 +40,7 @@ spin = "0.9.8"
 time = { version = "0.2.27", default-features = false }
 uart_16550 = "0.2.19"
 vte = "0.12.0"
-x86_64 = "0.14.10"
+x86_64 = "0.14.11"
 
 [package.metadata.bootimage]
 test-success-exit-code = 33 # (0x10 << 1) | 1
