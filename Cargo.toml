@@ -17,7 +17,7 @@ serial = []
 [dependencies]
 acpi = "4.1.0"
 aml = "0.16.4"
-base64 = { version = "0.13.1", default-features = false }
+base64 = { version = "0.21.4", default-features = false }
 bit_field = "0.10.2"
 bootloader = { version = "0.9.23", features = ["map_physical_memory"] }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
