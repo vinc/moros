@@ -200,9 +200,9 @@ operator!(Shl, shl);
 operator!(Shr, shr);
 
 fn parse_int(s: &str) -> Result<i64, ParseIntError> {
-    if s.starts_with("0x") {
+    if s.starts_with("0x") || s.starts_with("0X") {
         i64::from_str_radix(&s[2..], 16)
-    } else if s.starts_with("-0x") {
+    } else if s.starts_with("-0x") || s.starts_with("-0X") {
         i64::from_str_radix(&s[3..], 16).map(|n| -n)
     } else {
         i64::from_str_radix(s, 10)
@@ -210,9 +210,9 @@ fn parse_int(s: &str) -> Result<i64, ParseIntError> {
 }
 
 fn parse_float(s: &str) -> Result<BigInt, ParseBigIntError> {
-    if s.starts_with("0x") {
+    if s.starts_with("0x") || s.starts_with("0X") {
         BigInt::from_str_radix(&s[2..], 16)
-    } else if s.starts_with("-0x") {
+    } else if s.starts_with("-0x") || s.starts_with("-0X") {
         BigInt::from_str_radix(&s[3..], 16).map(|n| -n)
     } else {
         BigInt::from_str_radix(s, 10)
