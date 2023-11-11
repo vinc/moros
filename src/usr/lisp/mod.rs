@@ -339,6 +339,21 @@ fn test_lisp() {
         };
     }
 
+    // num
+    assert_eq!(eval!("6"), "6");
+    assert_eq!(eval!("16"), "16");
+    assert_eq!(eval!("0x6"), "6");
+    assert_eq!(eval!("0xF"), "15");
+    assert_eq!(eval!("0x10"), "16");
+    assert_eq!(eval!("1.5"), "1.5");
+
+    assert_eq!(eval!("-6"), "-6");
+    assert_eq!(eval!("-16"), "-16");
+    assert_eq!(eval!("-0x6"), "-6");
+    assert_eq!(eval!("-0xF"), "-15");
+    assert_eq!(eval!("-0x10"), "-16");
+    assert_eq!(eval!("-1.5"), "-1.5");
+
     // quote
     assert_eq!(eval!("(quote (1 2 3))"), "(1 2 3)");
     assert_eq!(eval!("'(1 2 3)"), "(1 2 3)");
@@ -500,6 +515,9 @@ fn test_lisp() {
     // bigint
     assert_eq!(eval!("9223372036854775807"),          "9223372036854775807");   // -> int
     assert_eq!(eval!("9223372036854775808"),          "9223372036854775808");   // -> bigint
+    assert_eq!(eval!("0x7fffffffffffffff"),           "9223372036854775807");   // -> int
+    assert_eq!(eval!("0x8000000000000000"),           "9223372036854775808");   // -> bigint
+    assert_eq!(eval!("0x800000000000000f"),           "9223372036854775823");   // -> bigint
     assert_eq!(eval!("(+ 9223372036854775807 0)"),    "9223372036854775807");   // -> int
     assert_eq!(eval!("(- 9223372036854775808 1)"),    "9223372036854775807");   // -> bigint
     assert_eq!(eval!("(+ 9223372036854775807 1)"),    "9223372036854775808");   // -> bigint
