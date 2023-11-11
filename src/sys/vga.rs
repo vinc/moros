@@ -179,12 +179,7 @@ impl Writer {
             self.writer[1] += 1;
         } else {
             for y in 1..BUFFER_HEIGHT {
-                for x in 0..BUFFER_WIDTH {
-                    unsafe {
-                        let c = core::ptr::read_volatile(&self.buffer.chars[y][x]);
-                        core::ptr::write_volatile(&mut self.buffer.chars[y - 1][x], c);
-                    }
-                }
+                self.buffer.chars[y - 1] = self.buffer.chars[y];
             }
             self.clear_row_after(0, BUFFER_HEIGHT - 1);
         }
@@ -196,11 +191,7 @@ impl Writer {
             ascii_code: b' ',
             color_code: self.color_code,
         };
-        for i in x..BUFFER_WIDTH {
-            unsafe {
-                core::ptr::write_volatile(&mut self.buffer.chars[y][i], c);
-            }
-        }
+        self.buffer.chars[y][x..BUFFER_WIDTH].fill(c);
     }
 
     fn clear_screen(&mut self) {

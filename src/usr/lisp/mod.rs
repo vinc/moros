@@ -92,9 +92,9 @@ impl PartialOrd for Exp {
 impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
-            Exp::Primitive(_) => "<function>".to_string(),
-            Exp::Function(_)  => "<function>".to_string(),
-            Exp::Macro(_)     => "<macro>".to_string(),
+            Exp::Primitive(_) => format!("(function args)"),
+            Exp::Function(f)  => format!("(function {})", f.params),
+            Exp::Macro(m)     => format!("(macro {})", m.params),
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
@@ -112,6 +112,7 @@ impl fmt::Display for Exp {
 pub struct Function {
     params: Exp,
     body: Exp,
+    doc: Option<String>,
 }
 
 #[derive(Debug)]
@@ -120,7 +121,7 @@ pub enum Err {
 }
 
 lazy_static! {
-    pub static ref FORMS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+    pub static ref FUNCTIONS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 }
 
 #[macro_export]
@@ -128,7 +129,7 @@ macro_rules! ensure_length_eq {
     ($list:expr, $count:expr) => {
         if $list.len() != $count {
             let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected {} expression{}", $count, plural)))
+            return expected!("{} expression{}", $count, plural);
         }
     };
 }
@@ -138,9 +139,45 @@ macro_rules! ensure_length_gt {
     ($list:expr, $count:expr) => {
         if $list.len() <= $count {
             let plural = if $count != 1 { "s" } else { "" };
-            return Err(Err::Reason(format!("Expected more than {} expression{}", $count, plural)))
+            return expected!("more than {} expression{}", $count, plural);
         }
     };
+}
+
+#[macro_export]
+macro_rules! ensure_string {
+    ($exp:expr) => {
+        match $exp {
+            Exp::Str(_) => {},
+            _ => return expected!("a string"),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! ensure_list {
+    ($exp:expr) => {
+        match $exp {
+            Exp::List(_) => {},
+            _ => return expected!("a list"),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! expected {
+    ($($arg:tt)*) => ({
+        use alloc::format;
+        Err(Err::Reason(format!("Expected {}", format_args!($($arg)*))))
+    });
+}
+
+#[macro_export]
+macro_rules! could_not {
+    ($($arg:tt)*) => ({
+        use alloc::format;
+        Err(Err::Reason(format!("Could not {}", format_args!($($arg)*))))
+    });
 }
 
 pub fn bytes(args: &[Exp]) -> Result<Vec<u8>, Err> {
@@ -158,21 +195,21 @@ pub fn numbers(args: &[Exp]) -> Result<Vec<Number>, Err> {
 pub fn string(exp: &Exp) -> Result<String, Err> {
     match exp {
         Exp::Str(s) => Ok(s.to_string()),
-        _ => Err(Err::Reason("Expected a string".to_string())),
+        _ => expected!("a string"),
     }
 }
 
 pub fn number(exp: &Exp) -> Result<Number, Err> {
     match exp {
         Exp::Num(num) => Ok(num.clone()),
-        _ => Err(Err::Reason("Expected a number".to_string())),
+        _ => expected!("a number"),
     }
 }
 
 pub fn float(exp: &Exp) -> Result<f64, Err> {
     match exp {
         Exp::Num(num) => Ok(num.into()),
-        _ => Err(Err::Reason("Expected a float".to_string())),
+        _ => expected!("a float"),
     }
 }
 
@@ -182,24 +219,19 @@ pub fn byte(exp: &Exp) -> Result<u8, Err> {
 
 // REPL
 
-fn parse_eval(exp: &str, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    let (_, exp) = parse(exp)?;
+fn parse_eval(input: &str, env: &mut Rc<RefCell<Env>>) -> Result<(String, Exp), Err> {
+    let (rest, exp) = parse(input)?;
     let exp = expand(&exp, env)?;
     let exp = eval(&exp, env)?;
-    Ok(exp)
-}
-
-fn strip_comments(s: &str) -> String {
-    // FIXME: This doesn't handle `#` inside a string
-    s.split('#').next().unwrap().into()
+    Ok((rest, exp))
 }
 
 fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
         if let Some(f) = last_word.strip_prefix('(') {
-            for form in &*FORMS.lock() {
-                if let Some(entry) = form.strip_prefix(f) {
+            for function in &*FUNCTIONS.lock() {
+                if let Some(entry) = function.strip_prefix(f) {
                     entries.push(entry.into());
                 }
             }
@@ -210,44 +242,39 @@ fn lisp_completer(line: &str) -> Vec<String> {
 
 fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_color = Style::color("Cyan");
-    let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
-    println!("MOROS Lisp v0.4.0\n");
+    println!("MOROS Lisp v0.6.0\n");
 
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
     prompt.history.load(history_file);
     prompt.completion.set(&lisp_completer);
 
-    while let Some(line) = prompt.input(&prompt_string) {
-        if line == "(quit)" {
+    while let Some(input) = prompt.input(&prompt_string) {
+        if input == "(quit)" {
             break;
         }
-        if line.is_empty() {
+        if input.is_empty() {
             println!();
             continue;
         }
-        match parse_eval(&line, env) {
-            Ok(res) => {
-                println!("{}\n", res);
+        match parse_eval(&input, env) {
+            Ok((_, exp)) => {
+                println!("{}\n", exp);
             }
             Err(e) => match e {
-                Err::Reason(msg) => println!("{}Error:{} {}\n", csi_error, csi_reset, msg),
+                Err::Reason(msg) => error!("{}\n", msg),
             },
         }
-        prompt.history.add(&line);
+        prompt.history.add(&input);
         prompt.history.save(history_file);
     }
     Ok(())
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let line_color = Style::color("Yellow");
-    let error_color = Style::color("LightRed");
-    let reset = Style::reset();
-
     let env = &mut default_env();
 
     // Store args in env
@@ -269,37 +296,25 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         if args[1] == "-h" || args[1] == "--help" {
             return help();
         }
-        let pathname = args[1];
-        if let Ok(code) = api::fs::read_to_string(pathname) {
-            let mut block = String::new();
-            let mut opened = 0;
-            let mut closed = 0;
-            for (i, line) in code.split('\n').enumerate() {
-                let line = strip_comments(line);
-                if !line.is_empty() {
-                    opened += line.matches('(').count();
-                    closed += line.matches(')').count();
-                    block.push_str(&line);
-                    if closed >= opened {
-                        if let Err(e) = parse_eval(&block, env) {
-                            match e {
-                                Err::Reason(msg) => {
-                                    eprintln!("{}Error:{} {}", error_color, reset, msg);
-                                    eprintln!();
-                                    eprintln!("  {}{}:{} {}", line_color, i, reset, line);
-                                    return Err(ExitCode::Failure);
-                                }
-                            }
+        let path = args[1];
+        if let Ok(mut input) = api::fs::read_to_string(path) {
+            loop {
+                match parse_eval(&input, env) {
+                    Ok((rest, _)) => {
+                        if rest.is_empty() {
+                            break;
                         }
-                        block.clear();
-                        opened = 0;
-                        closed = 0;
+                        input = rest;
+                    }
+                    Err(Err::Reason(msg)) => {
+                        error!("{}", msg);
+                        return Err(ExitCode::Failure);
                     }
                 }
             }
             Ok(())
         } else {
-            error!("File not found '{}'", pathname);
+            error!("Could not find file '{}'", path);
             Err(ExitCode::Failure)
         }
     }
@@ -320,7 +335,7 @@ fn test_lisp() {
 
     macro_rules! eval {
         ($e:expr) => {
-            format!("{}", parse_eval($e, env).unwrap())
+            format!("{}", parse_eval($e, env).unwrap().1)
         };
     }
 
@@ -430,8 +445,12 @@ fn test_lisp() {
     assert_eq!(eval!("(^ 2 4)"), "16");
     assert_eq!(eval!("(^ 2 4 2)"), "256"); // Left to right
 
-    // modulo
-    assert_eq!(eval!("(% 3 2)"), "1");
+    // remainder
+    assert_eq!(eval!("(rem 0 2)"), "0");
+    assert_eq!(eval!("(rem 1 2)"), "1");
+    assert_eq!(eval!("(rem 2 2)"), "0");
+    assert_eq!(eval!("(rem 3 2)"), "1");
+    assert_eq!(eval!("(rem -1 2)"), "-1");
 
     // comparisons
     assert_eq!(eval!("(< 6 4)"), "false");
@@ -454,7 +473,8 @@ fn test_lisp() {
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
     assert_eq!(eval!("(equal? \"foo\" \"foo\")"), "true");
     assert_eq!(eval!("(equal? \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(string.trim \"abc\n\")"), "\"abc\"");
+    assert_eq!(eval!("(string.split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");
@@ -491,9 +511,9 @@ fn test_lisp() {
     assert_eq!(eval!("(^ 2 128)"),   "340282366920938463463374607431768211456");   // -> bigint
     assert_eq!(eval!("(^ 2.0 128)"), "340282366920938500000000000000000000000.0"); // -> float
 
-    assert_eq!(eval!("(number-type 9223372036854775807)"),   "\"int\"");
-    assert_eq!(eval!("(number-type 9223372036854775808)"),   "\"bigint\"");
-    assert_eq!(eval!("(number-type 9223372036854776000.0)"), "\"float\"");
+    assert_eq!(eval!("(number.type 9223372036854775807)"),   "\"int\"");
+    assert_eq!(eval!("(number.type 9223372036854775808)"),   "\"bigint\"");
+    assert_eq!(eval!("(number.type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
     eval!("(variable x 'a)");
@@ -517,6 +537,12 @@ fn test_lisp() {
     assert_eq!(eval!("foo"), "10");
 
     // args
-    eval!("(variable list* (function args (append args '())))");
+    eval!("(variable list* (function args (concat args '())))");
     assert_eq!(eval!("(list* 1 2 3)"), "(1 2 3)");
+
+    // comments
+    assert_eq!(eval!("# comment"), "()");
+    assert_eq!(eval!("# comment\n# comment"), "()");
+    assert_eq!(eval!("(+ 1 2 3) # comment"), "6");
+    assert_eq!(eval!("(+ 1 2 3) # comment\n# comment"), "6");
 }

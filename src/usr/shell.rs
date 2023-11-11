@@ -7,6 +7,7 @@ use crate::api::regex::Regex;
 use crate::api::syscall;
 use crate::sys::fs::FileType;
 
+use core::sync::atomic::{fence, Ordering};
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::vec::Vec;
@@ -251,7 +252,7 @@ fn cmd_proc(args: &[&str]) -> Result<(), ExitCode> {
                     Ok(())
                 }
                 "files" => {
-                    for (i, handle) in sys::process::file_handles().iter().enumerate() {
+                    for (i, handle) in sys::process::handles().iter().enumerate() {
                         if let Some(resource) = handle {
                             println!("{}: {:?}", i, resource);
                         }
@@ -276,16 +277,16 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             Ok(())
         },
         2 => {
-            let mut pathname = fs::realpath(args[1]);
-            if pathname.len() > 1 {
-                pathname = pathname.trim_end_matches('/').into();
+            let mut path = fs::realpath(args[1]);
+            if path.len() > 1 {
+                path = path.trim_end_matches('/').into();
             }
-            if api::fs::is_dir(&pathname) {
-                sys::process::set_dir(&pathname);
+            if api::fs::is_dir(&path) {
+                sys::process::set_dir(&path);
                 config.env.insert("DIR".to_string(), sys::process::dir());
                 Ok(())
             } else {
-                error!("File not found '{}'", pathname);
+                error!("Could not find file '{}'", path);
                 Err(ExitCode::Failure)
             }
         },
@@ -300,8 +301,8 @@ fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} alias {}<key> <val>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
     config.aliases.insert(args[1].to_string(), args[2].to_string());
     Ok(())
@@ -312,12 +313,12 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} unalias {}<key>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
 
     if config.aliases.remove(&args[1].to_string()).is_none() {
-        error!("Error: could not unalias '{}'", args[1]);
+        error!("Could not unalias '{}'", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -329,8 +330,8 @@ fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} set {}<key> <val>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
 
     config.env.insert(args[1].to_string(), args[2].to_string());
@@ -342,12 +343,12 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         let csi_option = Style::color("LightCyan");
         let csi_title = Style::color("Yellow");
         let csi_reset = Style::reset();
-        println!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
-        return Err(ExitCode::Failure);
+        eprintln!("{}Usage:{} unset {}<key>{1}", csi_title, csi_reset, csi_option);
+        return Err(ExitCode::UsageError);
     }
 
     if config.env.remove(&args[1].to_string()).is_none() {
-        error!("Error: could not unset '{}'", args[1]);
+        error!("Could not unset '{}'", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -360,12 +361,9 @@ fn cmd_version(_args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
-    #[cfg(test)] // FIXME: tests with `print foo => /bar` are failing without that
-    sys::console::print_fmt(format_args!(""));
-
     let cmd = variables_expansion(cmd, config);
 
-    let mut args = split_args(&cmd.trim());
+    let mut args = split_args(cmd.trim());
 
     if args.is_empty() {
         return Ok(());
@@ -382,7 +380,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     let mut args: Vec<&str> = args.iter().map(String::as_str).collect();
 
     // Redirections
-    let mut restore_file_handles = false;
+    let mut restore_handles = false;
     let mut n = args.len();
     let mut i = 0;
     loop {
@@ -408,7 +406,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             // read foo.txt [1]=>[3]
             is_fat_arrow = true;
             left_handle = 1;
-        } else if Regex::new("^+<=*$").is_match(args[i]) { // Redirections from
+        } else if Regex::new("^<=*$").is_match(args[i]) { // Redirections from
             // write bar.txt <== foo.txt
             // write bar.txt <= foo.txt
             // write bar.txt < foo.txt
@@ -419,7 +417,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             continue;
         }
 
-        // Parse file handles
+        // Parse handles
         let mut num = String::new();
         for c in args[i].chars() {
             match c {
@@ -440,10 +438,10 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         }
 
         if is_fat_arrow { // Redirections
-            restore_file_handles = true;
+            restore_handles = true;
             if !num.is_empty() {
                 // if let Ok(right_handle) = num.parse() {}
-                println!("Redirecting to a file handle has not been implemented yet");
+                println!("Redirecting to a handle has not been implemented yet");
                 return Err(ExitCode::Failure);
             } else {
                 if i == n - 1 {
@@ -467,6 +465,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         }
     }
 
+    fence(Ordering::SeqCst);
     let res = match args[0] {
         ""         => Ok(()),
         "2048"     => usr::pow::main(&args),
@@ -539,7 +538,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
 
 
     // TODO: Remove this when redirections are done in spawned process
-    if restore_file_handles {
+    if restore_handles {
         for i in 0..3 {
             api::fs::reopen("/dev/console", i, false).ok();
         }
@@ -620,8 +619,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             config.env.insert((i + 1).to_string(), arg.to_string());
         }
 
-        let pathname = args[1];
-        if let Ok(contents) = api::fs::read_to_string(pathname) {
+        let path = args[1];
+        if let Ok(contents) = api::fs::read_to_string(path) {
             for line in contents.split('\n') {
                 if !line.is_empty() {
                     exec_with_config(line, &mut config).ok();
@@ -629,7 +628,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             Ok(())
         } else {
-            println!("File not found '{}'", pathname);
+            error!("Could not find file '{}'", path);
             Err(ExitCode::Failure)
         }
     }
@@ -661,7 +660,7 @@ fn test_shell() {
 
     // Redirect standard error explicitely
     exec("hex /nope 2=> /tmp/test3").ok();
-    assert!(api::fs::read_to_string("/tmp/test3").unwrap().contains("File not found '/nope'"));
+    assert!(api::fs::read_to_string("/tmp/test3").unwrap().contains("Could not find file '/nope'"));
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();

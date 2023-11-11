@@ -27,13 +27,16 @@ pub fn copy_files(verbose: bool) {
     copy_file("/bin/reboot", include_bytes!("../../dsk/bin/reboot"), verbose);
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
 
-    create_dir("/dev/clk", verbose); // Clocks
+    create_dir("/dev/clk", verbose); // Clock
     create_dev("/dev/clk/uptime", DeviceType::Uptime, verbose);
     create_dev("/dev/clk/realtime", DeviceType::Realtime, verbose);
     create_dev("/dev/rtc", DeviceType::RTC, verbose);
     create_dev("/dev/null", DeviceType::Null, verbose);
     create_dev("/dev/random", DeviceType::Random, verbose);
     create_dev("/dev/console", DeviceType::Console, verbose);
+    create_dir("/dev/net", verbose); // Network
+    create_dev("/dev/net/tcp", DeviceType::TcpSocket, verbose);
+    create_dev("/dev/net/udp", DeviceType::UdpSocket, verbose);
 
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
@@ -50,8 +53,9 @@ pub fn copy_files(verbose: bool) {
     copy_file("/ini/fonts/zap-vga-8x16.psf", include_bytes!("../../dsk/ini/fonts/zap-vga-8x16.psf"), verbose);
 
     create_dir("/lib/lisp", verbose);
-    copy_file("/lib/lisp/core.lsp", include_bytes!("../../dsk/lib/lisp/core.lsp"), verbose);
     copy_file("/lib/lisp/alias.lsp", include_bytes!("../../dsk/lib/lisp/alias.lsp"), verbose);
+    copy_file("/lib/lisp/core.lsp", include_bytes!("../../dsk/lib/lisp/core.lsp"), verbose);
+    copy_file("/lib/lisp/file.lsp", include_bytes!("../../dsk/lib/lisp/file.lsp"), verbose);
     //copy_file("/lib/lisp/legacy.lsp", include_bytes!("../../dsk/lib/lisp/legacy.lsp"), verbose);
 
     copy_file("/tmp/alice.txt", include_bytes!("../../dsk/tmp/alice.txt"), verbose);

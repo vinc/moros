@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::fs::FileIO;
+use crate::api::fs::{FileIO, IO};
 
 use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
@@ -22,8 +22,19 @@ impl FileIO for Random {
         }
         Ok(n)
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         unimplemented!();
+    }
+
+    fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => false,
+        }
     }
 }
 

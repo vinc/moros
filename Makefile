@@ -2,9 +2,8 @@
 .EXPORT_ALL_VARIABLES:
 
 setup:
-	curl https://sh.rustup.rs -sSf | sh -s -- -y
-	rustup install nightly
-	rustup default nightly
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain none
+	rustup show
 	cargo install bootimage
 
 # Compilation options
@@ -38,7 +37,7 @@ user-rust:
 		cargo rustc --release --bin {}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
-	#strip dsk/bin/*
+	strip dsk/bin/*
 
 bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
 img = disk.img

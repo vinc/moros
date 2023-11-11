@@ -1,9 +1,11 @@
 use super::{Err, Exp, Number};
+use crate::could_not;
 
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 
+use nom::Err::Error;
 use nom::IResult;
 use nom::branch::alt;
 use nom::bytes::complete::escaped_transform;
@@ -23,7 +25,7 @@ use nom::sequence::preceded;
 use nom::sequence::tuple;
 
 fn is_symbol_letter(c: char) -> bool {
-    let chars = "<>=-+*/%^?:";
+    let chars = "<>=-+*/%^?.";
     c.is_alphanumeric() || chars.contains(c)
 }
 
@@ -32,6 +34,8 @@ fn parse_str(input: &str) -> IResult<&str, Exp> {
         value("\\", tag("\\")),
         value("\"", tag("\"")),
         value("\n", tag("n")),
+        value("\r", tag("r")),
+        value("\t", tag("t")),
     )))), |inner| inner.unwrap_or("".to_string()));
     let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
     Ok((input, Exp::Str(s)))
@@ -91,15 +95,28 @@ fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
     Ok((input, Exp::List(list)))
 }
 
+fn parse_comment(input: &str) -> IResult<&str, &str> {
+    preceded(multispace0, preceded(char('#'), is_not("\n")))(input)
+}
+
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
+    let (input, _) = opt(many0(parse_comment))(input)?;
     delimited(multispace0, alt((
         parse_num, parse_bool, parse_str, parse_list, parse_quote, parse_quasiquote, parse_unquote_splice, parse_unquote, parse_splice, parse_sym
-    )), multispace0)(input)
+    )), alt((parse_comment, multispace0)))(input)
 }
 
 pub fn parse(input: &str)-> Result<(String, Exp), Err> {
     match parse_exp(input) {
         Ok((input, exp)) => Ok((input.to_string(), exp)),
-        Err(_) => Err(Err::Reason("Could not parse input".to_string())),
+        Err(Error(err)) => {
+            if err.input.is_empty() {
+                Ok(("".to_string(), Exp::List(vec![Exp::Sym("quote".to_string()), Exp::List(vec![])])))
+            } else {
+                let line = err.input.lines().next().unwrap();
+                could_not!("parse '{}'", line)
+            }
+        }
+        _ => could_not!("parse input"),
     }
 }

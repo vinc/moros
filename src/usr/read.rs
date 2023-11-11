@@ -6,6 +6,7 @@ use crate::api::syscall;
 use crate::api::process::ExitCode;
 
 use alloc::borrow::ToOwned;
+use alloc::format;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 
@@ -28,6 +29,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     // TODO: Create device drivers for `/net` hardcoded commands
     if path.starts_with("/net/") {
+        let csi_option = Style::color("LightCyan");
+        let csi_title = Style::color("Yellow");
+        let csi_reset = Style::reset();
         // Examples:
         // > read /net/http/example.com/articles
         // > read /net/http/example.com:8080/articles/index.html
@@ -35,18 +39,25 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         // > read /net/tcp/time.nist.gov:13
         let parts: Vec<_> = path.split('/').collect();
         if parts.len() < 4 {
-            eprintln!("Usage: read /net/http/<host>/<path>");
+            println!("{}Usage:{} read {}/net/<proto>/<host>[:<port>]/<path>{1}", csi_title, csi_reset, csi_option);
             Err(ExitCode::Failure)
         } else {
+            let host = parts[3];
             match parts[2] {
                 "tcp" => {
-                    let host = parts[3];
-                    usr::tcp::main(&["tcp", host])
+                    if host.contains(':') {
+                        usr::tcp::main(&["tcp", host])
+                    } else {
+                        error!("Missing port number");
+                        Err(ExitCode::Failure)
+                    }
                 }
                 "daytime" => {
-                    let host = parts[3];
-                    let port = "13";
-                    usr::tcp::main(&["tcp", host, port])
+                    if host.contains(':') {
+                        usr::tcp::main(&["tcp", host])
+                    } else {
+                        usr::tcp::main(&["tcp", &format!("{}:13", host)])
+                    }
                 }
                 "http" => {
                     let host = parts[3];
@@ -115,7 +126,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::Failure)
         }
     } else {
-        error!("File not found '{}'", path);
+        error!("Could not find file '{}'", path);
         Err(ExitCode::Failure)
     }
 }

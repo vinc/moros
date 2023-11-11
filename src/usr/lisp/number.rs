@@ -1,7 +1,7 @@
 use super::Err;
+use crate::could_not;
 
 use alloc::format;
-use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
 use core::fmt;
@@ -200,7 +200,7 @@ impl FromStr for Number {
     type Err = Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let err = Err(Err::Reason("Could not parse number".to_string()));
+        let err = could_not!("parse number");
         if s.is_empty() {
             return Ok(Number::Int(0));
         } else if s.contains('.') {
@@ -311,7 +311,7 @@ impl fmt::Display for Number {
                 }
                 loop {
                     v.push((n.clone() % BigInt::from(10)).to_u64().unwrap());
-                    n = n / BigInt::from(10);
+                    n /= BigInt::from(10);
                     if n == BigInt::from(0) {
                         break;
                     }

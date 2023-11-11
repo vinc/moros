@@ -1,11 +1,14 @@
 use crate::sys;
 use crate::api::process::ExitCode;
+use crate::api::fs::{FileIO, IO};
 use crate::sys::fs::FileInfo;
-use crate::sys::fs::FileIO;
+use crate::sys::fs::Resource;
+use crate::sys::fs::Device;
 use crate::sys::process::Process;
 
 use alloc::vec;
 use core::arch::asm;
+use smoltcp::wire::IpAddress;
 
 pub fn exit(code: ExitCode) -> ExitCode {
     sys::process::exit();
@@ -43,7 +46,7 @@ pub fn open(path: &str, flags: usize) -> isize {
         Err(_) => return -1,
     };
     if let Some(resource) = sys::fs::open(&path, flags) {
-        if let Ok(handle) = sys::process::create_file_handle(resource) {
+        if let Ok(handle) = sys::process::create_handle(resource) {
             return handle as isize;
         }
     }
@@ -51,17 +54,17 @@ pub fn open(path: &str, flags: usize) -> isize {
 }
 
 pub fn dup(old_handle: usize, new_handle: usize) -> isize {
-    if let Some(file) = sys::process::file_handle(old_handle) {
-        sys::process::update_file_handle(new_handle, *file);
+    if let Some(file) = sys::process::handle(old_handle) {
+        sys::process::update_handle(new_handle, *file);
         return new_handle as isize;
     }
     -1
 }
 
 pub fn read(handle: usize, buf: &mut [u8]) -> isize {
-    if let Some(mut file) = sys::process::file_handle(handle) {
+    if let Some(mut file) = sys::process::handle(handle) {
         if let Ok(bytes) = file.read(buf) {
-            sys::process::update_file_handle(handle, *file);
+            sys::process::update_handle(handle, *file);
             return bytes as isize;
         }
     }
@@ -69,9 +72,9 @@ pub fn read(handle: usize, buf: &mut [u8]) -> isize {
 }
 
 pub fn write(handle: usize, buf: &mut [u8]) -> isize {
-    if let Some(mut file) = sys::process::file_handle(handle) {
+    if let Some(mut file) = sys::process::handle(handle) {
         if let Ok(bytes) = file.write(buf) {
-            sys::process::update_file_handle(handle, *file);
+            sys::process::update_handle(handle, *file);
             return bytes as isize;
         }
     }
@@ -79,7 +82,10 @@ pub fn write(handle: usize, buf: &mut [u8]) -> isize {
 }
 
 pub fn close(handle: usize) {
-    sys::process::delete_file_handle(handle);
+    if let Some(mut file) = sys::process::handle(handle) {
+        file.close();
+        sys::process::delete_handle(handle);
+    }
 }
 
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
@@ -123,4 +129,55 @@ pub fn stop(code: usize) -> usize {
         }
     }
     0
+}
+
+pub fn poll(list: &[(usize, IO)]) -> isize {
+    for (i, (handle, event)) in list.iter().enumerate() {
+        if let Some(mut file) = sys::process::handle(*handle) {
+            if file.poll(*event) {
+                return i as isize;
+            }
+        }
+    }
+    -1
+}
+
+pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {
+    if let Some(mut file) = sys::process::handle(handle) {
+        let res = match *file {
+            Resource::Device(Device::TcpSocket(ref mut dev)) => dev.connect(addr, port),
+            Resource::Device(Device::UdpSocket(ref mut dev)) => dev.connect(addr, port),
+            _ => Err(()),
+        };
+        if res.is_ok() {
+            sys::process::update_handle(handle, *file);
+            return 0;
+        }
+    }
+    -1
+}
+
+pub fn listen(handle: usize, port: u16) -> isize {
+    if let Some(file) = sys::process::handle(handle) {
+        let res = match *file {
+            Resource::Device(Device::TcpSocket(mut dev)) => dev.listen(port),
+            Resource::Device(Device::UdpSocket(mut dev)) => dev.listen(port),
+            _ => Err(()),
+        };
+        if res.is_ok() {
+            return 0;
+        }
+    }
+    -1
+}
+
+pub fn accept(handle: usize) -> Result<IpAddress, ()> {
+    if let Some(file) = sys::process::handle(handle) {
+        return match *file {
+            Resource::Device(Device::TcpSocket(mut dev)) => dev.accept(),
+            Resource::Device(Device::UdpSocket(mut dev)) => dev.accept(),
+            _ => Err(()),
+        };
+    }
+    Err(())
 }

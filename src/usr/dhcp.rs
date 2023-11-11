@@ -7,7 +7,9 @@ use crate::api::syscall;
 use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use smoltcp::socket::{Dhcpv4Event, Dhcpv4Socket};
+use alloc::vec;
+use smoltcp::iface::SocketSet;
+use smoltcp::socket::dhcpv4;
 use smoltcp::time::Instant;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -22,9 +24,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }
 
-    if let Some(ref mut iface) = *sys::net::IFACE.lock() {
-        let dhcp_socket = Dhcpv4Socket::new();
-        let dhcp_handle = iface.add_socket(dhcp_socket);
+    if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
+        let dhcp_socket = dhcpv4::Socket::new();
+        let mut sockets = SocketSet::new(vec![]);
+        let dhcp_handle = sockets.add(dhcp_socket);
         if verbose {
             debug!("DHCP Discover transmitted");
         }
@@ -33,36 +36,31 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         loop {
             if clock::realtime() - started > timeout {
                 error!("Timeout reached");
-                iface.remove_socket(dhcp_handle);
                 return Err(ExitCode::Failure);
             }
             if sys::console::end_of_text() || sys::console::end_of_transmission() {
                 eprintln!();
-                iface.remove_socket(dhcp_handle);
                 return Err(ExitCode::Failure);
             }
 
-            let timestamp = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
-            if let Err(e) = iface.poll(timestamp) {
-                error!("Network Error: {}", e);
-            }
+            let time = Instant::from_micros((clock::realtime() * 1000000.0) as i64);
+            iface.poll(time, device, &mut sockets);
+            let event = sockets.get_mut::<dhcpv4::Socket>(dhcp_handle).poll();
 
-            let event = iface.get_socket::<Dhcpv4Socket>(dhcp_handle).poll();
             match event {
                 None => {}
-                Some(Dhcpv4Event::Configured(config)) => {
-                    dhcp_config = Some(config);
+                Some(dhcpv4::Event::Configured(config)) => {
+                    dhcp_config = Some((config.address, config.router, config.dns_servers));
                     if verbose {
                         debug!("DHCP Offer received");
                     }
-                    iface.remove_socket(dhcp_handle);
                     break;
                 }
-                Some(Dhcpv4Event::Deconfigured) => {
+                Some(dhcpv4::Event::Deconfigured) => {
                 }
             }
 
-            if let Some(wait_duration) = iface.poll_delay(timestamp) {
+            if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
                 syscall::sleep((wait_duration.total_micros() as f64) / 1000000.0);
             }
         }
@@ -71,19 +69,18 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::Failure);
     }
 
-    if let Some(config) = dhcp_config {
-        //debug!("{:#?}", config);
-        usr::shell::exec(&format!("net config ip {}", config.address)).ok();
+    if let Some((address, router, dns_servers)) = dhcp_config {
+        usr::shell::exec(&format!("net config ip {}", address)).ok();
         usr::shell::exec("net config ip").ok();
 
-        if let Some(router) = config.router {
+        if let Some(router) = router {
             usr::shell::exec(&format!("net config gw {}", router)).ok();
         } else {
             usr::shell::exec("net config gw 0.0.0.0").ok();
         }
         usr::shell::exec("net config gw").ok();
 
-        let dns: Vec<_> = config.dns_servers.iter().filter_map(|s| *s).map(|s| s.to_string()).collect();
+        let dns: Vec<_> = dns_servers.iter().map(|s| s.to_string()).collect();
         if !dns.is_empty() {
             usr::shell::exec(&format!("net config dns {}", dns.join(","))).ok();
         }

@@ -38,6 +38,7 @@ pub struct Editor {
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
+    highlighted: Vec<(usize, usize, char)>,
     config: EditorConfig,
 }
 
@@ -45,6 +46,7 @@ impl Editor {
     pub fn new(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
+        let highlighted = Vec::new();
         let clipboard = Vec::new();
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
@@ -62,7 +64,7 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { pathname, clipboard, lines, cursor, offset, config }
+        Self { pathname, clipboard, lines, cursor, offset, highlighted, config }
     }
 
     pub fn save(&mut self) -> Result<(), ExitCode> {
@@ -148,17 +150,133 @@ impl Editor {
         }
     }
 
+    fn match_chars(&mut self, opening: char, closing: char) {
+        let mut stack = Vec::new();
+        let ox = self.offset.x;
+        let oy = self.offset.y;
+        let cx = self.cursor.x;
+        let cy = self.cursor.y;
+        if let Some(cursor) = self.lines[oy + cy].chars().nth(ox + cx) {
+            if cursor == closing {
+                for (y, line) in self.lines.iter().enumerate() {
+                    for (x, c) in line.chars().enumerate() {
+                        if oy + cy == y && ox + cx == x { // Cursor position
+                            if let Some((x, y)) = stack.pop() {
+                                self.highlighted.push((cx, cy, closing));
+                                let is_col = ox <= x && x < ox + self.cols();
+                                let is_row = oy <= y && y < oy + self.rows();
+                                if is_col && is_row {
+                                    self.highlighted.push((x - ox, y - oy, opening));
+                                }
+                            }
+                            return;
+                        }
+                        if c == opening {
+                            stack.push((x, y));
+                        }
+                        if c == closing {
+                            stack.pop();
+                        }
+                    }
+                    if oy + cy == y {
+                        break;
+                    }
+                }
+            }
+            if cursor == opening {
+                for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
+                    for (x, c) in line.chars().enumerate() {
+                        if y == oy + cy && x <= ox + cx { // Skip chars before cursor
+                            continue;
+                        }
+                        if c == opening {
+                            stack.push((x, y));
+                        }
+                        if c == closing {
+                            if stack.pop().is_none() {
+                                self.highlighted.push((cx, cy, opening));
+                                let is_col = ox <= x && x < ox + self.cols();
+                                let is_row = oy <= y && y < oy + self.rows();
+                                if is_col && is_row {
+                                    self.highlighted.push((x - ox, y - oy, closing));
+                                }
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn print_highlighted(&mut self) {
+        self.match_chars('(', ')');
+        self.match_chars('{', '}');
+        self.match_chars('[', ']');
+        let color = Style::color("LightRed");
+        let reset = Style::reset();
+        for (x, y, c) in &self.highlighted {
+            if *x == self.cols() - 1 {
+                continue;
+            }
+            print!("\x1b[{};{}H", y + 1, x + 1);
+            print!("{}{}{}", color, c, reset);
+        }
+    }
+
+    fn clear_highlighted(&mut self) {
+        let reset = Style::reset();
+        for (x, y, c) in &self.highlighted {
+            if *x == self.cols() - 1 {
+                continue;
+            }
+            print!("\x1b[{};{}H", y + 1, x + 1);
+            print!("{}{}", reset, c);
+        }
+        self.highlighted.clear();
+    }
+
+    // Align cursor that is past the end of the line, to the end
+    // of the line.
+    //
+    // If the cursor is somewhere on the long line on the second
+    // screen in the following diagram, going down should move
+    // the cursor to the end of the short line and display the
+    // first screen instead of the second screen.
+    //
+    // +----------------------------+----------------------------+
+    // |                            |                            |
+    // | This is a loooooooooooooooo|oooooong line               |
+    // | This is a short line       |          ^                 |
+    // |                     ^      |                            |
+    // +----------------------------+----------------------------+
+    fn align_cursor(&mut self) {
+        let x = self.offset.x + self.cursor.x;
+        let y = self.offset.y + self.cursor.y;
+        let eol = self.lines[y].chars().count();
+        if x > eol {
+            let n = self.cols();
+            self.offset.x = (eol / n) * n;
+            self.cursor.x = eol % n;
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
         self.print_screen();
         self.print_editing_status();
+        self.print_highlighted();
         print!("\x1b[1;1H"); // Move cursor to the top of the screen
 
         let mut escape = false;
         let mut csi = false;
+        let mut csi_params = String::new();
         loop {
             let c = io::stdin().read_char().unwrap_or('\0');
             print!("\x1b[?25l"); // Disable cursor
+            self.clear_highlighted();
+            print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
+
             match c {
                 '\x1B' => { // ESC
                     escape = true;
@@ -166,6 +284,7 @@ impl Editor {
                 },
                 '[' if escape => {
                     csi = true;
+                    csi_params.clear();
                     continue;
                 },
                 '\0' => {
@@ -204,52 +323,70 @@ impl Editor {
                     self.offset.x = 0;
                     self.print_screen();
                 },
-                'A' if csi => { // Arrow up
+                '~' if csi && csi_params == "5" => { // Page Up
+                    let scroll = self.rows() - 1; // Keep one previous line on screen
+                    self.offset.y -= cmp::min(scroll, self.offset.y);
+                    self.print_screen();
+                },
+                '~' if csi && csi_params == "6" => { // Page Down
+                    let scroll = self.rows() - 1; // Keep one previous line on screen
+                    let remaining = cmp::max(self.lines.len(), 1) - self.offset.y - 1;
+                    self.offset.y += cmp::min(scroll, remaining);
+                    if self.cursor.y + scroll > remaining {
+                        self.cursor.y = 0;
+                    }
+                    self.print_screen();
+                },
+                'A' if csi => { // Arrow Up
                     if self.cursor.y > 0 {
                         self.cursor.y -= 1
                     } else if self.offset.y > 0 {
                         self.offset.y -= 1;
-                        self.print_screen();
                     }
-                    self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
+                    self.align_cursor();
+                    self.print_screen();
                 },
-                'B' if csi => { // Arrow down
+                'B' if csi => { // Arrow Down
                     let is_eof = self.offset.y + self.cursor.y == self.lines.len() - 1;
                     let is_bottom = self.cursor.y == self.rows() - 1;
                     if self.cursor.y < cmp::min(self.rows(), self.lines.len() - 1) {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.offset.y += 1;
-                                self.print_screen();
                             }
                         } else {
                             self.cursor.y += 1;
                         }
-                        self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
+                        self.align_cursor();
+                        self.print_screen();
                     }
                 },
-                'C' if csi => { // Arrow right
+                'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     if line.is_empty() || self.cursor.x + self.offset.x >= line.chars().count() {
                         print!("\x1b[?25h"); // Enable cursor
+                        escape = false;
+                        csi = false;
                         continue
                     } else if self.cursor.x == self.cols() - 1 {
-                        self.cursor.x = self.offset.x;
                         self.offset.x += self.cols();
+                        self.cursor.x -= self.cols() - 1;
                         self.print_screen();
                     } else {
                         self.cursor.x += 1;
                     }
                 },
-                'D' if csi => { // Arrow left
+                'D' if csi => { // Arrow Left
                     if self.cursor.x + self.offset.x == 0 {
                         print!("\x1b[?25h"); // Enable cursor
+                        escape = false;
+                        csi = false;
                         continue;
                     } else if self.cursor.x == 0 {
-                        self.cursor.x = self.offset.x - 1;
                         self.offset.x -= self.cols();
+                        self.cursor.x += self.cols() - 1;
+                        self.align_cursor();
                         self.print_screen();
-                        self.cursor.x = self.next_pos(self.cursor.x, self.cursor.y);
                     } else {
                         self.cursor.x -= 1;
                     }
@@ -335,6 +472,8 @@ impl Editor {
                     } else { // Remove newline from previous line
                         if self.cursor.y == 0 && self.offset.y == 0 {
                             print!("\x1b[?25h"); // Enable cursor
+                            escape = false;
+                            csi = false;
                             continue;
                         }
 
@@ -373,6 +512,10 @@ impl Editor {
                         print!("\x1b[2K\x1b[1G{}", line);
                     }
                 },
+                c if csi => {
+                    csi_params.push(c);
+                    continue;
+                },
                 c => {
                     if let Some(s) = self.render_char(c) {
                         let y = self.offset.y + self.cursor.y;
@@ -393,27 +536,14 @@ impl Editor {
                     }
                 },
             }
-            escape = false;
-            csi = false;
             self.print_editing_status();
+            self.print_highlighted();
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
             print!("\x1b[?25h"); // Enable cursor
+            escape = false;
+            csi = false;
         }
         Ok(())
-    }
-
-    // Move cursor past end of line to end of line or left of the screen
-    fn next_pos(&self, x: usize, y: usize) -> usize {
-        let eol = self.lines[self.offset.y + y].chars().count();
-        if eol <= self.offset.x + x {
-            if eol <= self.offset.x {
-                0
-            } else {
-                eol - 1
-            }
-        } else {
-            x
-        }
     }
 
     fn rows(&self) -> usize {

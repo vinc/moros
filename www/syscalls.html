@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>MOROS Syscalls</title>
-    <link rel="stylesheet" type="text/css" href="/moros.css">
+    <link rel="stylesheet" type="text/css" href="moros.css">
   </head>
   <body>
     <h1>MOROS Syscalls</h1>
@@ -65,6 +65,21 @@
     <h2>SLEEP (0xB)</h2>
 
     <pre><code class="rust">pub fn sleep(seconds: f64)
+</code></pre>
+
+    <h2>CONNECT (0xC)</h2>
+
+    <pre><code class="rust">pub fn connect(handle, usize, addr: &amp;str, port: u16) -&gt; isize
+</code></pre>
+
+    <h2>LISTEN (0xD)</h2>
+
+    <pre><code class="rust">pub fn listen(handle, usize, port: u16) -&gt; isize
+</code></pre>
+
+    <h2>ACCEPT (0xE)</h2>
+
+    <pre><code class="rust">pub fn accept(handle, usize, addr: &amp;str) -&gt; isize
 </code></pre>
   </body>
 </html>

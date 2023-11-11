@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>MOROS Lisp</title>
-    <link rel="stylesheet" type="text/css" href="/moros.css">
+    <link rel="stylesheet" type="text/css" href="moros.css">
   </head>
   <body>
     <h1>MOROS Lisp</h1>
@@ -25,11 +25,11 @@ of the Shell.</p>
     <h3>Built-in Operators</h3>
 
     <ul>
-    <li><code>quote</code> (with the <code>&#39;</code> syntax)</li>
-    <li><code>quasiquote</code> (with the <code>`</code>)</li>
-    <li><code>unquote</code> (with the <code>,</code> syntax)</li>
-    <li><code>unquote-splice</code> (with the <code>,@</code> syntax)</li>
-    <li><code>splice</code> (with the <code>@</code> syntax)</li>
+    <li><code>quote</code> (abbreviated with <code>&#39;</code>)</li>
+    <li><code>quasiquote</code> (abbreviated with <code>`</code>)</li>
+    <li><code>unquote</code> (abbreviated with <code>,</code>)</li>
+    <li><code>unquote-splice</code> (abbreviated with <code>,@</code>)</li>
+    <li><code>splice</code> (abbreviated with <code>@</code>)</li>
     <li><code>atom?</code></li>
     <li><code>equal?</code> (aliased to <code>eq?</code>)</li>
     <li><code>head</code></li>
@@ -46,30 +46,30 @@ of the Shell.</p>
     <li><code>define-function</code> (aliased to <code>def-fun</code>)</li>
     <li><code>define-macro</code> (aliased to <code>def-mac</code>)</li>
     <li><code>apply</code></li>
+    <li><code>do</code></li>
+    <li><code>doc</code></li>
     <li><code>eval</code></li>
     <li><code>expand</code></li>
-    <li><code>do</code></li>
     <li><code>load</code></li>
     </ul>
 
     <h3>Primitive Operators</h3>
 
     <ul>
-    <li><code>append</code></li>
-    <li><code>type</code>, <code>number-type</code> (aliased to <code>num-type</code>)</li>
+    <li><code>type</code>, <code>number.type</code> (aliased to <code>num.type</code>)</li>
     <li><code>string</code> (aliased to <code>str</code>)</li>
     <li><code>string-&gt;number</code> (aliased to to <code>str-&gt;num</code>)</li>
     <li><code>string-&gt;binary</code> and <code>binary-&gt;string</code> (aliased to <code>str-&gt;bin</code> and <code>bin-&gt;str</code>)</li>
     <li><code>number-&gt;binary</code> and <code>binary-&gt;number</code> (aliased to <code>num-&gt;bin</code> and <code>bin-&gt;num</code>)</li>
-    <li><code>regex-find</code></li>
+    <li><code>regex.find</code></li>
     <li><code>system</code></li>
-    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>%</code>, <code>^</code>, <code>abs</code></li>
+    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>abs</code>, <code>mod</code>, <code>rem</code> (aliased to <code>%</code>)</li>
     <li>Trigonometric functions: <code>acos</code>, <code>asin</code>, <code>atan</code>, <code>cos</code>, <code>sin</code>, <code>tan</code></li>
     <li>Comparisons: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>=</code></li>
-    <li>File IO: <code>read-file</code>, <code>read-file-binary</code>, <code>write-file-binary</code>, <code>append-file-binary</code></li>
-    <li>List: <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>), <code>min</code>, <code>max</code></li>
-    <li>String: <code>trim</code>, <code>split</code></li>
     <li>Enumerable: <code>length</code> (aliased to <code>len</code>), <code>nth</code>, <code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>slice</code></li>
+    <li>String: <code>string.trim</code> and <code>string.split</code> (aliased to <code>str.trim</code> and <code>str.split</code>)</li>
+    <li>List: <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>), <code>min</code>, <code>max</code></li>
+    <li>File: <code>file.size</code>, <code>file.open</code>, <code>file.close</code>, <code>file.read</code>, <code>file.write</code></li>
     </ul>
 
     <h3>Core Library</h3>
@@ -82,12 +82,19 @@ of the Shell.</p>
     <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>intersection</code></li>
     <li><code>not</code>, <code>and</code>, <code>or</code></li>
     <li><code>let</code></li>
-    <li><code>join-string</code> (aliased to <code>join-str</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
+    <li><code>string.join</code> (aliased to <code>str.join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
+    <li><code>regex.match?</code></li>
+    <li><code>socket.connect</code>, <code>socket.listen</code>, <code>socket.accept</code></li>
+    </ul>
+
+    <h3>File Library</h3>
+
+    <ul>
+    <li><code>read</code>, <code>write</code>, <code>append</code></li>
+    <li><code>read-binary</code>, <code>write-binary</code>, <code>append-binary</code></li>
     <li><code>read-line</code>, <code>read-char</code></li>
-    <li><code>p</code>, <code>print</code></li>
-    <li><code>write-file</code>, <code>append-file</code></li>
     <li><code>uptime</code>, <code>realtime</code></li>
-    <li><code>regex-match?</code></li>
+    <li><code>p</code>, <code>print</code></li>
     </ul>
 
     <h3>Compatibility Library</h3>
@@ -102,7 +109,7 @@ of the Shell.</p>
     <p>The interpreter can be invoked from the shell:</p>
 
     <pre><code>&gt; lisp
-MOROS Lisp v0.4.0
+MOROS Lisp v0.5.0
 
 &gt; (+ 1 2 3)
 6
@@ -153,10 +160,13 @@ with the following content:</p>
 (= i 10)                           # =&gt; true
 
 (def (map f ls)
+  &quot;Apply function to list&quot;
   (if (nil? ls) nil
     (cons
       (f (first ls))
       (map f (rest ls)))))
+
+(doc map)                          # =&gt; &quot;Apply function to list&quot;
 
 (var bar (quote (1 2 3)))
 (var bar &#39;(1 2 3))                 # Shortcut
@@ -189,19 +199,20 @@ language and reading from the filesystem.</p>
 
     <h3>0.3.0 (2022-12-12)</h3>
 
-    <p>Rewrite the evaluation code, add new functions and a core library.</p>
+    <ul>
+    <li>Rewrite the evaluation code</li>
+    <li>Add new functions</li>
+    <li>Add a core library</li>
+    </ul>
 
     <h3>0.3.1 (2022-06-06)</h3>
 
-    <p>Rewrite parts of the code and add new functions and examples.</p>
-
-    <h3>0.3.2 (2022-07-02)</h3>
-
     <ul>
-    <li>Add new functions</li>
+    <li>Rewrite parts of the code</li>
+    <li>Add new functions and examples</li>
     </ul>
 
-    <h3>0.3.2 (2022-08-25)</h3>
+    <h3>0.3.2 (2022-07-02)</h3>
 
     <ul>
     <li>Add new functions</li>
@@ -216,10 +227,22 @@ language and reading from the filesystem.</p>
     <li>Add macro support</li>
     </ul>
 
-    <h3>0.5.0 (unpublished)</h3>
+    <h3>0.5.0 (2023-06-21)</h3>
 
     <ul>
     <li>Rename or add aliases to many functions</li>
+    <li>Add full support for line and inline comments</li>
+    <li>Add params to function representations</li>
+    <li>Add docstring to functions</li>
     </ul>
+
+    <h3>0.6.0 (2023-09-23)</h3>
+
+    <ul>
+    <li>Add file, number, string, and regex namespaces</li>
+    <li>Add socket functions</li>
+    </ul>
+
+    <h3>Unreleased</h3>
   </body>
 </html>
