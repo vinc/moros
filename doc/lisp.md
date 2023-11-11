@@ -13,7 +13,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
 ### Literals
 - String: `"Hello, World!"`
-- Number: `2.5`, `-25`, `255`, `0xFF`, `0xDEAD_CODE`
+- Number: `2.5`, `-25`, `255`, `0xFF`, `0xDEAD_C0DE`
 
 ### Built-in Operators
 - `quote` (abbreviated with `'`)
