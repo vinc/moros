@@ -308,7 +308,7 @@ pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
     };
     match &args[0] {
         Exp::List(l) => {
-            let l: Vec<Exp> = l.iter().skip(a).cloned().take(b).collect();
+            let l: Vec<Exp> = l.iter().skip(a).take(b).cloned().collect();
             Ok(Exp::List(l))
         }
         Exp::Str(s) => {
@@ -413,7 +413,7 @@ pub fn lisp_file_size(args: &[Exp]) -> Result<Exp, Err> {
     let path = string(&args[0])?;
     match syscall::info(&path) {
         Some(info) => Ok(Exp::Num(Number::from(info.size() as usize))),
-        None => return could_not!("open file"),
+        None => could_not!("open file"),
     }
 }
 

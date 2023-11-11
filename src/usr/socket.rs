@@ -125,7 +125,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             if let Some((h, _)) = syscall::poll(&list) {
                 if h == stdin {
                     let line = io::stdin().read_line().replace("\n", "\r\n");
-                    syscall::write(handle, &line.as_bytes());
+                    syscall::write(handle, line.as_bytes());
                 } else {
                     let mut data = vec![0; buf_len];
                     if let Some(bytes) = syscall::read(handle, &mut data) {

@@ -104,7 +104,7 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
             let buf_len = arg3;
             let buf = unsafe { core::slice::from_raw_parts_mut(buf_ptr, buf_len) };
             if let Ok(addr) = service::accept(handle) {
-                buf[0..buf_len].clone_from_slice(&addr.as_bytes());
+                buf[0..buf_len].clone_from_slice(addr.as_bytes());
                 0
             } else {
                 -1 as isize as usize
