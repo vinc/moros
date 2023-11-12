@@ -153,7 +153,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             print!("{}", csi_reset);
         }
         let req = req.join("");
-        syscall::write(handle, &req.as_bytes());
+        syscall::write(handle, req.as_bytes());
 
         let mut response_state = ResponseState::Headers;
         loop {
