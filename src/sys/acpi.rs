@@ -8,28 +8,9 @@ use core::ptr::NonNull;
 use x86_64::PhysAddr;
 use x86_64::instructions::port::Port;
 
-#[allow(dead_code)]
-#[repr(u64)]
-enum FADT {
-    SciInterrupt     = 46, // u16,
-    SmiCmdPort       = 48, // u32,
-    AcpiEnable       = 52, // u8,
-    AcpiDisable      = 53, // u8,
-    S4biosReq        = 54, // u8,
-    PstateControl    = 55, // u8,
-    Pm1aEventBlock   = 56, // u32,
-    Pm1bEventBlock   = 60, // u32,
-    Pm1aControlBlock = 64, // u32,
-    Pm1bControlBlock = 68, // u32,
-}
-
 fn read_addr<T>(physical_address: usize) -> T where T: Copy {
     let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
     unsafe { *virtual_address.as_ptr::<T>() }
-}
-
-fn read_fadt<T>(address: usize, offset: FADT) -> T where T: Copy {
-    read_addr::<T>(address + offset as usize)
 }
 
 pub fn shutdown() {
@@ -42,47 +23,32 @@ pub fn shutdown() {
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {
-            //debug!("ACPI Found RDSP in BIOS");
-            for (sign, sdt) in acpi.sdts {
-                if sign.as_str() == "FACP" {
-                    //debug!("ACPI Found FACP at {:#x}", sdt.physical_address);
-
-                    /*
-                    // Enable ACPI
-                    let smi_cmd_port = read_fadt::<u16>(sdt.physical_address, FADT::SmiCmdPort);
-                    let acpi_enable = read_fadt::<u8>(sdt.physical_address, FADT::AcpiEnable);
-                    let mut port: Port<u8> = Port::new(smi_cmd_port);
-                    unsafe { port.write(acpi_enable); }
-                    sys::time::sleep(3.0);
-                    */
-
-                    pm1a_control_block = read_fadt::<u32>(sdt.physical_address, FADT::Pm1aControlBlock);
+            if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
+                if let Ok(block) = fadt.pm1a_control_block() {
+                    pm1a_control_block = block.address as u32;
                     //debug!("ACPI Found PM1a Control Block: {:#x}", pm1a_control_block);
                 }
             }
-            match &acpi.dsdt {
-                Some(dsdt) => {
-                    let address = sys::mem::phys_to_virt(PhysAddr::new(dsdt.address as u64));
-                    //debug!("ACPI Found DSDT at {:#x} {:#x}", dsdt.address, address);
-                    let table = unsafe { core::slice::from_raw_parts(address.as_ptr(), dsdt.length as usize) };
-                    if aml.parse_table(table).is_ok() {
-                        let name = AmlName::from_str("\\_S5").unwrap();
-                        if let Ok(AmlValue::Package(s5)) = aml.namespace.get_by_path(&name) {
-                            //debug!("ACPI Found \\_S5 in DSDT");
-                            if let AmlValue::Integer(value) = s5[0] {
-                                slp_typa = value as u16;
-                                //debug!("ACPI Found SLP_TYPa in \\_S5: {}", slp_typa);
-                            }
+            if let Ok(dsdt) = &acpi.dsdt() {
+                let address = sys::mem::phys_to_virt(PhysAddr::new(dsdt.address as u64));
+                //debug!("ACPI Found DSDT at {:#x} {:#x}", dsdt.address, address);
+                let table = unsafe { core::slice::from_raw_parts(address.as_ptr(), dsdt.length as usize) };
+                if aml.parse_table(table).is_ok() {
+                    let name = AmlName::from_str("\\_S5").unwrap();
+                    if let Ok(AmlValue::Package(s5)) = aml.namespace.get_by_path(&name) {
+                        //debug!("ACPI Found \\_S5 in DSDT");
+                        if let AmlValue::Integer(value) = s5[0] {
+                            slp_typa = value as u16;
+                            //debug!("ACPI Found SLP_TYPa in \\_S5: {}", slp_typa);
                         }
-                    } else {
-                        debug!("ACPI Failed to parse AML in DSDT");
-                        // FIXME: AML parsing works on QEMU and Bochs but not
-                        // on VirtualBox at the moment, so we use the following
-                        // hardcoded value:
-                        slp_typa = (5 & 7) << 10;
                     }
-                },
-                None => {},
+                } else {
+                    debug!("ACPI Failed to parse AML in DSDT");
+                    // FIXME: AML parsing works on QEMU and Bochs but not
+                    // on VirtualBox at the moment, so we use the following
+                    // hardcoded value:
+                    slp_typa = (5 & 7) << 10;
+                }
             }
         }
         Err(_e) => {
