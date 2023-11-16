@@ -113,7 +113,6 @@ extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, 
     //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
     let addr = Cr2::read().as_u64();
 
-    //let mut mapper = sys::mem::mapper();
     let page_table = unsafe { sys::process::page_table() };
     let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
     let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
