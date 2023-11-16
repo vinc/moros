@@ -169,7 +169,7 @@ macro_rules! wrap {
                 "push r11",
                 "mov rsi, rsp", // Arg #2: register list
                 "mov rdi, rsp", // Arg #1: interupt frame
-                "add rdi, 9 * 8",
+                "add rdi, 9 * 8", // 9 registers * 8 bytes
                 "call {}",
                 "pop r11",
                 "pop r10",

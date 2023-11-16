@@ -17,7 +17,6 @@ use x86_64::structures::paging::FrameAllocator;
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::structures::paging::PhysFrame;
 use x86_64::structures::paging::PageTable;
-use x86_64::structures::paging::{Mapper, Page, PageTableFlags, Size4KiB};
 
 const MAX_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
@@ -235,7 +234,7 @@ pub fn init_process_addr(addr: u64) {
 
 #[repr(align(8), C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Registers {
+pub struct Registers { // Saved scratch registers
     pub r11: usize,
     pub r10: usize,
     pub r9:  usize,
@@ -317,10 +316,11 @@ impl Process {
         let mut entry_point_addr = 0;
         let code_ptr = code_addr as *mut u8;
         let code_size = bin.len();
+        sys::allocator::alloc_pages(&mut mapper, code_addr, code_size).expect("proc mem alloc");
         if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
-                //sys::allocator::alloc_pages(&mut mapper, code_addr, code_size).expect("proc mem alloc");
                 entry_point_addr = obj.entry();
+                sys::allocator::alloc_pages(&mut mapper, code_addr + entry_point_addr, code_size).expect("proc mem alloc");
                 for segment in obj.segments() {
                     let addr = segment.address() as usize;
                     if let Ok(data) = segment.data() {
