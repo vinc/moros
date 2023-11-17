@@ -300,6 +300,7 @@ impl Process {
         let page_table = unsafe { sys::mem::create_page_table(page_table_frame) };
         let kernel_page_table = unsafe { sys::mem::active_page_table() };
 
+        // FIXME: for now we just copy everything
         for (user_page, kernel_page) in page_table.iter_mut().zip(kernel_page_table.iter()) {
             *user_page = kernel_page.clone();
         }
