@@ -5,9 +5,12 @@ use alloc::format;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
 use core::fmt;
+use core::num::ParseIntError;
 use core::ops::{Neg, Add, Div, Mul, Sub, Rem, Shl, Shr};
 use core::str::FromStr;
 use num_bigint::BigInt;
+use num_bigint::ParseBigIntError;
+use num_traits::Num;
 use num_traits::Zero;
 use num_traits::cast::ToPrimitive;
 
@@ -196,39 +199,46 @@ operator!(Rem, rem);
 operator!(Shl, shl);
 operator!(Shr, shr);
 
+fn parse_int(s: &str) -> Result<i64, ParseIntError> {
+    if s.starts_with("0x") || s.starts_with("0X") {
+        i64::from_str_radix(&s[2..], 16)
+    } else if s.starts_with("-0x") || s.starts_with("-0X") {
+        i64::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else {
+        i64::from_str_radix(s, 10)
+    }
+}
+
+fn parse_float(s: &str) -> Result<BigInt, ParseBigIntError> {
+    if s.starts_with("0x") || s.starts_with("0X") {
+        BigInt::from_str_radix(&s[2..], 16)
+    } else if s.starts_with("-0x") || s.starts_with("-0X") {
+        BigInt::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else {
+        BigInt::from_str_radix(s, 10)
+    }
+}
+
 impl FromStr for Number {
     type Err = Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let err = could_not!("parse number");
         if s.is_empty() {
-            return Ok(Number::Int(0));
+            Ok(Number::Int(0))
         } else if s.contains('.') {
             if let Ok(n) = s.parse() {
-                return Ok(Number::Float(n));
+                Ok(Number::Float(n))
+            } else {
+                err
             }
-        } else if let Ok(n) = s.parse() {
-            return Ok(Number::Int(n));
+        } else if let Ok(n) = parse_int(s) {
+            Ok(Number::Int(n))
+        } else if let Ok(n) = parse_float(s) {
+            Ok(Number::BigInt(n))
         } else {
-            let mut chars = s.chars().peekable();
-            let is_neg = chars.peek() == Some(&'-');
-            if is_neg {
-                chars.next().unwrap();
-            }
-            let mut res = BigInt::from(0);
-            for c in chars {
-                if !c.is_ascii_digit() {
-                    return err;
-                }
-                let d = c as u8 - b'0';
-                res = res * BigInt::from(10) + BigInt::from(d as u32);
-            }
-            res *= BigInt::from(if is_neg { -1 } else { 1 });
-            return Ok(Number::BigInt(res));
-        } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
-            return Ok(Number::BigInt(n));
-        } */
-        err
+            err
+        }
     }
 }
 
