@@ -5,6 +5,7 @@ macro_rules! entry_point {
         #[panic_handler]
         fn panic(_info: &core::panic::PanicInfo) -> ! {
             $crate::api::syscall::write(1, b"An exception occured!\n");
+            $crate::api::syscall::exit($crate::api::process::ExitCode::ExecError);
             loop {}
         }
 
