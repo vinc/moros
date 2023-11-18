@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use core::arch::asm;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
+use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
 use x86_64::structures::idt::InterruptStackFrameValue;
@@ -213,6 +214,24 @@ pub unsafe fn page_table() -> &'static mut PageTable {
     sys::mem::create_page_table(page_table_frame())
 }
 
+use core::alloc::Layout;
+use core::alloc::GlobalAlloc;
+
+static PROCESS_ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+pub unsafe fn alloc(layout: Layout) -> *mut u8 {
+    //let table = PROCESS_TABLE.read();
+    //let proc = &table[id()];
+    //proc.allocator.alloc(layout)
+    PROCESS_ALLOCATOR.alloc(layout)
+}
+
+pub unsafe fn free(ptr: *mut u8, layout: Layout) {
+    //let table = PROCESS_TABLE.read();
+    //let proc = &table[id()];
+    PROCESS_ALLOCATOR.dealloc(ptr, layout)
+}
+
 /************************
  * Userspace experiment *
  ************************/
@@ -259,6 +278,7 @@ pub struct Process {
     stack_frame: InterruptStackFrameValue,
     registers: Registers,
     data: ProcessData,
+    //allocator: LockedHeap,
 }
 
 impl Process {
@@ -279,6 +299,7 @@ impl Process {
             page_table_frame: Cr3::read().0,
             registers: Registers::default(),
             data: ProcessData::new("/", None),
+            //allocator: LockedHeap::empty(),
         }
     }
 
@@ -350,9 +371,11 @@ impl Process {
         let registers = parent.registers;
         let stack_frame = parent.stack_frame;
 
+        //let allocator = LockedHeap::empty();
+
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
         let proc = Process {
-            id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers
+            id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers //, allocator
         };
 
         let mut process_table = PROCESS_TABLE.write();
@@ -368,6 +391,7 @@ impl Process {
         let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
 
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
+        //debug!("user-args: {:#016x}", heap_addr);
         sys::allocator::alloc_pages(&mut mapper, heap_addr, 1).expect("proc heap alloc");
 
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
@@ -392,6 +416,12 @@ impl Process {
             s
         };
         let args_ptr = args.as_ptr() as u64;
+
+        let heap_addr = addr;
+        let heap_size = self.stack_addr - heap_addr;
+        //debug!("user-heap: {:#016x}", heap_addr);
+        //self.allocator.lock().init(heap_addr.as_mut_ptr(), heap_size as usize);
+        unsafe { PROCESS_ALLOCATOR.lock().init(heap_addr as *mut u8, heap_size as usize) };
 
         set_id(self.id); // Change PID
 

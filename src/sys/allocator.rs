@@ -13,10 +13,10 @@ use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
-pub const HEAP_START: u64 = 0x4444_4444_0000;
-
-#[global_allocator]
+#[cfg_attr(not(feature = "userspace"), global_allocator)]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
+pub const HEAP_START: u64 = 0x4444_4444_0000;
 
 fn max_memory() -> u64 {
     option_env!("MOROS_MEMORY").unwrap_or("32").parse::<u64>().unwrap() << 20 // MB

@@ -110,6 +110,18 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
                 -1 as isize as usize
             }
         }
+        number::ALLOC => {
+            let size = arg1;
+            let align = arg2;
+            service::alloc(size, align) as usize
+        }
+        number::FREE => {
+            let ptr = arg1 as *mut u8;
+            let size = arg2;
+            let align = arg3;
+            service::free(ptr, size, align);
+            0
+        }
         _ => {
             unimplemented!();
         }

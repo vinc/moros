@@ -155,6 +155,18 @@ pub fn accept(handle: usize) -> Result<IpAddress, ()> {
     }
 }
 
+pub fn alloc(size: usize, align: usize) -> *mut u8 {
+    unsafe {
+        syscall!(ALLOC, size, align) as *mut u8
+    }
+}
+
+pub fn free(ptr: *mut u8, size: usize, align: usize) {
+    unsafe {
+        syscall!(FREE, ptr, size, align);
+    }
+}
+
 #[test_case]
 fn test_file() {
     use crate::sys::fs::{mount_mem, format_mem, dismount, OpenFlag};

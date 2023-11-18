@@ -181,3 +181,22 @@ pub fn accept(handle: usize) -> Result<IpAddress, ()> {
     }
     Err(())
 }
+
+use core::alloc::Layout;
+
+pub fn alloc(size: usize, align: usize) -> *mut u8 {
+    if let Ok(layout) = Layout::from_size_align(size, align) {
+        let ptr = unsafe { sys::process::alloc(layout) };
+        debug!("syscall::alloc(size={}, align={}) -> ptr={:?}", size, align, ptr);
+        ptr
+    } else {
+        core::ptr::null_mut()
+    }
+}
+
+pub fn free(ptr: *mut u8, size: usize, align: usize) {
+    if let Ok(layout) = Layout::from_size_align(size, align) {
+        unsafe { sys::process::free(ptr, layout) };
+        debug!("syscall::free(ptr={:?}, size={}, align={})", ptr, size, align);
+    }
+}

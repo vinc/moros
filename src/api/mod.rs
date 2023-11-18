@@ -65,6 +65,7 @@ macro_rules! error {
     });
 }
 
+pub mod allocator;
 pub mod clock;
 pub mod console;
 pub mod font;
