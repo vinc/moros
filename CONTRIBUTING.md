@@ -29,12 +29,12 @@ appreciation, which we would also be very happy about:
 
 - Suggest your idea by [creating a new discussion](https://github.com/vinc/moros/discussions/new?category=ideas)
 - Be aware that MOROS is a personal hobby project with the goal of creating an
-  operating system that can fit in one standard human brain and inspiring other
-  to do the same.
+  simple operating system that can fit in one standard human brain and
+  inspiring others to do the same.
 - If you want an operating system that does more you might want to collaborate
   on a bigger project like [Redox](https://www.redox-os.org/) or
   [Serenity](https://serenityos.org/)
 
-## Do you have questions about the source code?
+## Do you have questions about the project?
 
 - Ask any question about how to use MOROS by [creating a new discussion](https://github.com/vinc/moros/discussions/new?category=q-a)
