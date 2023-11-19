@@ -39,7 +39,7 @@ This project started from the [seventh post][1] of the second edition of
 - Basic [lisp](doc/lisp.md) interpreter
 - Basic userspace for NASM and Rust programs
 - Some file and [network](doc/network.md) commands
-- Some games
+- Some [games](doc/games.md)
 
 
 ## Documentation
