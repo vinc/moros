@@ -89,8 +89,8 @@ pub fn copy_files(verbose: bool) {
 
     create_dir("/var/www", verbose);
     copy_file("/var/www/index.html", include_bytes!("../../dsk/var/www/index.html"), verbose);
-    copy_file("/var/www/moros.png", include_bytes!("../../dsk/var/www/moros.png"), verbose);
     copy_file("/var/www/moros.css", include_bytes!("../../dsk/var/www/moros.css"), verbose);
+    copy_file("/var/www/moros.png", include_bytes!("../../dsk/var/www/moros.png"), verbose);
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
