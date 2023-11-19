@@ -11,7 +11,9 @@
 
 - [x] Bochs
 
-## Desktop Computers
+## Computers
+
+### Desktops
 
 - [x] Homebuilt (2007)
   - [x] MB: Asus P5K
@@ -26,7 +28,7 @@
   - [x] CPU: Intel Celeron N3050
   - [ ] NIC: Realtek RTL8111HN
 
-## Laptop Computers
+### Laptops
 
 - [x] Dell Latitude E6400 (2008)
   - [x] CPU: Intel Core 2 Duo P8600

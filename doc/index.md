@@ -5,17 +5,15 @@
 MOROS is a hobby operating system written in Rust by
 [Vincent Ollivier](https://vinc.cc).
 
-It [targets](hardware.md) computers with a x86-64 architecture and a BIOS, so
-mostly from 2005 to 2020, but it also runs well on most emulators (Bochs, QEMU,
-and VirtualBox).
-
+It targets [computers](hardware.md#computers) with a x86-64 architecture and a
+BIOS, so mostly from 2005 to 2020, but it also runs well on most
+[emulators](hardware.md#emulators).
 
 ## Usage
 
 MOROS is open source, you can [build it](https://github.com/vinc/moros)
 or [download an image](https://github.com/vinc/moros/releases). Consult the
 [manual](manual.md) to learn how to use the system.
-
 
 ## Features
 
@@ -60,11 +58,9 @@ And finally it is quite customizable:
 
 ![light](light.png)
 
-
 ## Demo
 
 You can log in to a demo with the following command using the name of the
 system as a password for the guest account:
 
     $ ssh guest@try.moros.cc
-
