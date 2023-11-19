@@ -2,10 +2,12 @@
 
 ![screenshot](moros.png)
 
-MOROS is a hobby operating system written in Rust by [Vincent Ollivier](https://vinc.cc).
+MOROS is a hobby operating system written in Rust by
+[Vincent Ollivier](https://vinc.cc).
 
-It targets computers with a x86-64 architecture and a BIOS, so mostly from 2005
-to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).
+It [targets](hardware.md) computers with a x86-64 architecture and a BIOS, so
+mostly from 2005 to 2020, but it also runs well on most emulators (Bochs, QEMU,
+and VirtualBox).
 
 
 ## Usage
@@ -38,7 +40,8 @@ And a [text editor](editor.md):
 
 ![screenshot](edit.png)
 
-It has a [network stack](network.md) with two drivers for RTL8139 and PCNET cards:
+It has a [network stack](network.md) with two drivers for RTL8139 and PCNET
+cards:
 
 ![screenshot](network.png)
 
