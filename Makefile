@@ -100,4 +100,4 @@ website:
 
 clean:
 	cargo clean
-	rm -f www/*.html www/*.png
+	rm -f www/*.html www/images/*.png
