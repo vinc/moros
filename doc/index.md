@@ -17,7 +17,6 @@ or [download an image](https://github.com/vinc/moros/releases). Consult the
 [manual](manual.md) to learn how to use the system.
 
 
-
 ## Features
 
 Everything in MOROS is done from a command line interface and most programs are

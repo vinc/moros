@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Add process page table (#454)
+- Bump vte from 0.12.1 to 0.13.0 (#543)
+- Add more code examples to lisp (#542)
+- Add support for hexadecimal numbers in Lisp (#540)
+- Upgrade acpi crate to 5.0.0 (#538)
+- Run cargo clippy (#541)
+- Bump vte from 0.12.0 to 0.12.1 (#539)
+- Bump num-traits from 0.2.16 to 0.2.17 (#536)
+- Bump libm from 0.2.7 to 0.2.8 (#535)
+- Bump x86_64 from 0.14.10 to 0.14.11 (#531)
+- Bump vte from 0.11.1 to 0.12.0 (#532)
+- Bump sha2 from 0.10.7 to 0.10.8 (#533)
+
 ## 0.10.1 (2023-09-23)
 - Add PageUp and PageDown keys support ([#515](https://github.com/vinc/moros/pull/515))
 - Add namespaces to lisp ([#511](https://github.com/vinc/moros/pull/511))
