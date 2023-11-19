@@ -1,6 +1,6 @@
 # MOROS: Obscure Rust Operating System
 
-![screenshot](doc/moros.png)
+![screenshot](doc/images/moros.png)
 
 MOROS is a hobby operating system written in Rust by [Vincent Ollivier](https://vinc.cc).
 

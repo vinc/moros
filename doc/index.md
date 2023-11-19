@@ -1,6 +1,6 @@
 # MOROS: Obscure Rust Operating System
 
-![screenshot](moros.png)
+![screenshot](images/moros.png)
 
 MOROS is a hobby operating system written in Rust by
 [Vincent Ollivier](https://vinc.cc).
@@ -22,41 +22,41 @@ rather minimalist.
 
 It has a [shell](shell.md):
 
-![screenshot](shell.png)
+![screenshot](images/shell.png)
 
 With a few programs like `find` that use a [regex engine](regex.md) to find
 files or lines:
 
-![screenshot](find.png)
+![screenshot](images/find.png)
 
 It has a [calculator](calculator.md) and also a [lisp](lisp.md) interpreter:
 
-![screenshot](lisp.png)
+![screenshot](images/lisp.png)
 
 And a [text editor](editor.md):
 
-![screenshot](edit.png)
+![screenshot](images/edit.png)
 
 It has a [network stack](network.md) with two drivers for RTL8139 and PCNET
 cards:
 
-![screenshot](network.png)
+![screenshot](images/network.png)
 
-It has a chess game:
+It has a [chess game](games.md#chess):
 
-![chess](chess.png)
+![chess](images/chess.png)
 
-And the game of life:
+And the [game of life](games.md#conways-game-of-life):
 
-![life](life.png)
+![life](images/life.png)
 
-It even has 2048:
+It even has [2048](games.md#2048):
 
-![2048](2048.png)
+![2048](images/2048.png)
 
 And finally it is quite customizable:
 
-![light](light.png)
+![light](images/light.png)
 
 ## Demo
 
