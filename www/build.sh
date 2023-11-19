@@ -1,6 +1,9 @@
 set -e
 
-ln -fs ../doc/*.png .
+mkdir -p images
+for file in ../doc/images/*.png; do
+  ln -s "../$file" images/
+done
 
 echo "# MOROS" > ../doc/test.md
 
