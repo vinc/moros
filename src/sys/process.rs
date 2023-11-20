@@ -26,7 +26,7 @@ pub static PID: AtomicUsize = AtomicUsize::new(0);
 pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
 
 lazy_static! {
-    pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new(0))));
+    pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new())));
 }
 
 #[derive(Clone, Debug)]
@@ -275,7 +275,7 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new(id: usize) -> Self {
+    pub fn new() -> Self {
         let isf = InterruptStackFrameValue {
             instruction_pointer: VirtAddr::new(0),
             code_segment: 0,
@@ -284,7 +284,7 @@ impl Process {
             stack_segment: 0,
         };
         Self {
-            id,
+            id: 0,
             code_addr: 0,
             stack_addr: 0,
             entry_point_addr: 0,
