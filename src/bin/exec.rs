@@ -4,7 +4,7 @@
 extern crate alloc;
 
 use alloc::string::String;
-use alloc::vec;
+use alloc::vec::Vec;
 use moros::api::io;
 use moros::api::syscall;
 use moros::api::process;
@@ -20,7 +20,7 @@ fn main(_args: &[&str]) {
         if cmd == "quit" {
             syscall::exit(process::ExitCode::Success);
         } else {
-            let args = vec![];
+            let args: Vec<&str> = cmd.split(' ').collect();
             let mut path = String::from("/bin/");
             path.push_str(cmd);
             process::spawn(&path, &args);
