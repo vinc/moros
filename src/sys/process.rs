@@ -192,10 +192,10 @@ pub fn exit() {
     let page_table = unsafe { sys::mem::create_page_table(proc.page_table_frame) };
     let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
     let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
-
     sys::allocator::free_pages(&mut mapper, proc.code_addr, MAX_PROC_SIZE);
+
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
-    set_id(0); // FIXME: No process manager so we switch back to process 0
+    set_id(proc.parent_id);
 
     unsafe {
         let (_, flags) = Cr3::read();
@@ -264,6 +264,7 @@ const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 #[derive(Clone)]
 pub struct Process {
     id: usize,
+    parent_id: usize,
     code_addr: u64,
     stack_addr: u64,
     entry_point_addr: u64,
@@ -285,6 +286,7 @@ impl Process {
         };
         Self {
             id: 0,
+            parent_id: 0,
             code_addr: 0,
             stack_addr: 0,
             entry_point_addr: 0,
@@ -371,8 +373,9 @@ impl Process {
         let allocator = Arc::new(LockedHeap::empty());
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
+        let parent_id = parent.id;
         let proc = Process {
-            id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers, allocator
+            id, parent_id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers, allocator
         };
 
         let mut process_table = PROCESS_TABLE.write();
