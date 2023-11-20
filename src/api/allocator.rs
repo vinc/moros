@@ -14,5 +14,6 @@ unsafe impl GlobalAlloc for UserspaceAllocator{
     }
 }
 
+#[allow(dead_code)]
 #[cfg_attr(feature = "userspace", global_allocator)]
 static ALLOCATOR: UserspaceAllocator = UserspaceAllocator;

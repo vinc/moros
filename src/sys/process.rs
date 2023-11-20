@@ -219,7 +219,7 @@ pub unsafe fn alloc(layout: Layout) -> *mut u8 {
     proc.allocator.alloc(layout)
 }
 
-pub unsafe fn free(ptr: *mut u8, layout: Layout) {
+pub unsafe fn free(ptr: *mut u8, _layout: Layout) {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     let bottom = proc.allocator.lock().bottom();

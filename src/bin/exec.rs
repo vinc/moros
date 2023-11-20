@@ -23,7 +23,7 @@ fn main(_args: &[&str]) {
             let args: Vec<&str> = cmd.split(' ').collect();
             let mut path = String::from("/bin/");
             path.push_str(cmd);
-            process::spawn(&path, &args);
+            let _ = process::spawn(&path, &args);
         }
     }
 }
