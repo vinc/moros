@@ -222,7 +222,13 @@ pub unsafe fn alloc(layout: Layout) -> *mut u8 {
 pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.allocator.dealloc(ptr, layout)
+    let bottom = proc.allocator.lock().bottom();
+    let top = proc.allocator.lock().top();
+    if bottom <= ptr && ptr < top {
+        proc.allocator.dealloc(ptr, layout);
+    } else {
+        debug!("Could not free {:#?}", ptr);
+    }
 }
 
 /************************
