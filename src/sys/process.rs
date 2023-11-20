@@ -19,7 +19,7 @@ use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame};
 
 const MAX_HANDLES: usize = 64;
-const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
+const MAX_PROCS: usize = 4; // TODO: Update this when more than one process can run at once
 const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
 pub static PID: AtomicUsize = AtomicUsize::new(0);
