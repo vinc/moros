@@ -13,3 +13,5 @@ pub const POLL:     usize = 0xC;
 pub const CONNECT:  usize = 0xD;
 pub const LISTEN:   usize = 0xE;
 pub const ACCEPT:   usize = 0xF;
+pub const ALLOC:    usize = 0x10;
+pub const FREE:     usize = 0x11;

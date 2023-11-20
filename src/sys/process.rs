@@ -5,18 +5,18 @@ use crate::sys::console::Console;
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
+use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::alloc::{GlobalAlloc, Layout};
 use core::arch::asm;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
+use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use spin::RwLock;
-use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::FrameAllocator;
-use x86_64::structures::paging::OffsetPageTable;
-use x86_64::structures::paging::PhysFrame;
-use x86_64::structures::paging::PageTable;
+use x86_64::structures::idt::InterruptStackFrameValue;
+use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame};
 
 const MAX_HANDLES: usize = 64;
 const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
@@ -213,6 +213,18 @@ pub unsafe fn page_table() -> &'static mut PageTable {
     sys::mem::create_page_table(page_table_frame())
 }
 
+pub unsafe fn alloc(layout: Layout) -> *mut u8 {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.allocator.alloc(layout)
+}
+
+pub unsafe fn free(ptr: *mut u8, layout: Layout) {
+    let table = PROCESS_TABLE.read();
+    let proc = &table[id()];
+    proc.allocator.dealloc(ptr, layout)
+}
+
 /************************
  * Userspace experiment *
  ************************/
@@ -249,7 +261,7 @@ pub struct Registers { // Saved scratch registers
 const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
 const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Process {
     id: usize,
     code_addr: u64,
@@ -259,6 +271,7 @@ pub struct Process {
     stack_frame: InterruptStackFrameValue,
     registers: Registers,
     data: ProcessData,
+    allocator: Arc<LockedHeap>,
 }
 
 impl Process {
@@ -279,6 +292,7 @@ impl Process {
             page_table_frame: Cr3::read().0,
             registers: Registers::default(),
             data: ProcessData::new("/", None),
+            allocator: Arc::new(LockedHeap::empty()),
         }
     }
 
@@ -310,7 +324,7 @@ impl Process {
 
         let proc_size = MAX_PROC_SIZE as u64;
         let code_addr = CODE_ADDR.fetch_add(proc_size, Ordering::SeqCst);
-        let stack_addr = code_addr + proc_size;
+        let stack_addr = code_addr + proc_size - 4096;
         //debug!("code_addr:  {:#x}", code_addr);
         //debug!("stack_addr: {:#x}", stack_addr);
 
@@ -350,9 +364,11 @@ impl Process {
         let registers = parent.registers;
         let stack_frame = parent.stack_frame;
 
+        let allocator = Arc::new(LockedHeap::empty());
+
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
         let proc = Process {
-            id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers
+            id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers, allocator
         };
 
         let mut process_table = PROCESS_TABLE.write();
@@ -368,6 +384,7 @@ impl Process {
         let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
 
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
+        //debug!("user-args: {:#016x}", heap_addr);
         sys::allocator::alloc_pages(&mut mapper, heap_addr, 1).expect("proc heap alloc");
 
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
@@ -392,6 +409,11 @@ impl Process {
             s
         };
         let args_ptr = args.as_ptr() as u64;
+
+        let heap_addr = addr;
+        let heap_size = (self.stack_addr - heap_addr) / 2;
+        //debug!("user-heap: {:#016x}..{:#016x}", heap_addr, heap_addr + heap_size);
+        unsafe { self.allocator.lock().init(heap_addr as *mut u8, heap_size as usize) };
 
         set_id(self.id); // Change PID
 
