@@ -20,7 +20,8 @@ fn main(_args: &[&str]) {
         if cmd == "quit" {
             syscall::exit(process::ExitCode::Success);
         } else {
-            let args: Vec<&str> = cmd.split(' ').collect();
+            //let args: Vec<&str> = cmd.split(' ').collect();
+            let args = Vec::new();
             let mut path = String::from("/bin/");
             path.push_str(cmd);
             let _ = process::spawn(&path, &args);
