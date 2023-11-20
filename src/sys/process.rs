@@ -310,6 +310,10 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
+        if MAX_PID.load(Ordering::SeqCst) >= MAX_PROCS {
+            return Err(());
+        }
+
         let page_table_frame = sys::mem::frame_allocator().allocate_frame().expect("frame allocation failed");
         let page_table = unsafe { sys::mem::create_page_table(page_table_frame) };
         let kernel_page_table = unsafe { sys::mem::active_page_table() };
