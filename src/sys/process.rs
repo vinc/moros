@@ -411,8 +411,8 @@ impl Process {
         let args_ptr = args.as_ptr() as u64;
 
         let heap_addr = addr;
-        let heap_size = self.stack_addr - heap_addr;
-        //debug!("user-heap: {:#016x}", heap_addr);
+        let heap_size = (self.stack_addr - heap_addr) / 2;
+        //debug!("user-heap: {:#016x}..{:#016x}", heap_addr, heap_addr + heap_size);
         unsafe { self.allocator.lock().init(heap_addr as *mut u8, heap_size as usize) };
 
         set_id(self.id); // Change PID
