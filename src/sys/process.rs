@@ -224,7 +224,11 @@ pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let proc = &table[id()];
     let bottom = proc.allocator.lock().bottom();
     let top = proc.allocator.lock().top();
+    debug!("heap bottom: {:#?}", bottom);
+    debug!("ptr:         {:#?}", ptr);
+    debug!("heap top:    {:#?}", top);
     if bottom <= ptr && ptr < top {
+        // FIXME: panicked at 'Freed node aliases existing hole! Bad free?'
         proc.allocator.dealloc(ptr, layout);
     } else {
         debug!("Could not free {:#?}", ptr);
