@@ -324,7 +324,7 @@ impl Process {
 
         let proc_size = MAX_PROC_SIZE as u64;
         let code_addr = CODE_ADDR.fetch_add(proc_size, Ordering::SeqCst);
-        let stack_addr = code_addr + proc_size;
+        let stack_addr = code_addr + proc_size - 4096;
         //debug!("code_addr:  {:#x}", code_addr);
         //debug!("stack_addr: {:#x}", stack_addr);
 
