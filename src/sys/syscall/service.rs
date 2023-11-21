@@ -11,6 +11,7 @@ use core::arch::asm;
 use smoltcp::wire::IpAddress;
 
 pub fn exit(code: ExitCode) -> ExitCode {
+    //debug!("syscall::exit(code={})", code as usize);
     sys::process::exit();
     code
 }
@@ -89,6 +90,7 @@ pub fn close(handle: usize) {
 }
 
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
+    //debug!("syscall::spawn(path={}, args_ptr={:#x}, args_len={})", path, args_ptr, args_len);
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return ExitCode::OpenError,
