@@ -19,14 +19,14 @@ use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame};
 
 const MAX_HANDLES: usize = 64;
-const MAX_PROCS: usize = 2; // TODO: Update this when more than one process can run at once
+const MAX_PROCS: usize = 4; // TODO: Update this when more than one process can run at once
 const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
 pub static PID: AtomicUsize = AtomicUsize::new(0);
 pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
 
 lazy_static! {
-    pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new(0))));
+    pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new())));
 }
 
 #[derive(Clone, Debug)]
@@ -192,10 +192,10 @@ pub fn exit() {
     let page_table = unsafe { sys::mem::create_page_table(proc.page_table_frame) };
     let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
     let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
-
     sys::allocator::free_pages(&mut mapper, proc.code_addr, MAX_PROC_SIZE);
+
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
-    set_id(0); // FIXME: No process manager so we switch back to process 0
+    set_id(proc.parent_id);
 
     unsafe {
         let (_, flags) = Cr3::read();
@@ -219,10 +219,20 @@ pub unsafe fn alloc(layout: Layout) -> *mut u8 {
     proc.allocator.alloc(layout)
 }
 
-pub unsafe fn free(ptr: *mut u8, layout: Layout) {
+pub unsafe fn free(ptr: *mut u8, _layout: Layout) {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.allocator.dealloc(ptr, layout)
+    let bottom = proc.allocator.lock().bottom();
+    let top = proc.allocator.lock().top();
+    //debug!("heap bottom: {:#?}", bottom);
+    //debug!("ptr:         {:#?}", ptr);
+    //debug!("heap top:    {:#?}", top);
+    if bottom <= ptr && ptr < top {
+        // FIXME: panicked at 'Freed node aliases existing hole! Bad free?'
+        //proc.allocator.dealloc(ptr, layout);
+    } else {
+        //debug!("Could not free {:#?}", ptr);
+    }
 }
 
 /************************
@@ -264,6 +274,7 @@ const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 #[derive(Clone)]
 pub struct Process {
     id: usize,
+    parent_id: usize,
     code_addr: u64,
     stack_addr: u64,
     entry_point_addr: u64,
@@ -275,7 +286,7 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new(id: usize) -> Self {
+    pub fn new() -> Self {
         let isf = InterruptStackFrameValue {
             instruction_pointer: VirtAddr::new(0),
             code_segment: 0,
@@ -284,7 +295,8 @@ impl Process {
             stack_segment: 0,
         };
         Self {
-            id,
+            id: 0,
+            parent_id: 0,
             code_addr: 0,
             stack_addr: 0,
             entry_point_addr: 0,
@@ -310,6 +322,10 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
+        if MAX_PID.load(Ordering::SeqCst) >= MAX_PROCS {
+            return Err(());
+        }
+
         let page_table_frame = sys::mem::frame_allocator().allocate_frame().expect("frame allocation failed");
         let page_table = unsafe { sys::mem::create_page_table(page_table_frame) };
         let kernel_page_table = unsafe { sys::mem::active_page_table() };
@@ -367,8 +383,9 @@ impl Process {
         let allocator = Arc::new(LockedHeap::empty());
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
+        let parent_id = parent.id;
         let proc = Process {
-            id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers, allocator
+            id, parent_id, code_addr, stack_addr, entry_point_addr, page_table_frame, data, stack_frame, registers, allocator
         };
 
         let mut process_table = PROCESS_TABLE.write();
