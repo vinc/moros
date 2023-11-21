@@ -240,36 +240,6 @@ fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     cmd
 }
 
-fn cmd_proc(args: &[&str]) -> Result<(), ExitCode> {
-    match args.len() {
-        1 => {
-            Ok(())
-        },
-        2 => {
-            match args[1] {
-                "id" => {
-                    println!("{}", sys::process::id());
-                    Ok(())
-                }
-                "files" => {
-                    for (i, handle) in sys::process::handles().iter().enumerate() {
-                        if let Some(resource) = handle {
-                            println!("{}: {:?}", i, resource);
-                        }
-                    }
-                    Ok(())
-                }
-                _ => {
-                    Err(ExitCode::Failure)
-                }
-            }
-        },
-        _ => {
-            Err(ExitCode::Failure)
-        }
-    }
-}
-
 fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
@@ -499,7 +469,6 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "net"      => usr::net::main(&args),
         "pci"      => usr::pci::main(&args),
         "pi"       => usr::pi::main(&args),
-        "proc"     => cmd_proc(&args),
         "quit"     => Err(ExitCode::ShellExit),
         "read"     => usr::read::main(&args),
         "set"      => cmd_set(&args, config),
