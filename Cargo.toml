@@ -21,6 +21,7 @@ aml = "0.16.4"
 base64 = { version = "0.13.1", default-features = false }
 bit_field = "0.10.2"
 bootloader = { version = "0.9.23", features = ["map_physical_memory"] }
+iced-x86 = { version = "1.20.0", default-features = false, features = ["no_std", "decoder", "nasm"] }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 libm = "0.2.8"
 linked_list_allocator = "0.10.5"
