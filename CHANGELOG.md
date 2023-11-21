@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add basic userspace shell (#548)
+- Add basic userspace allocator (#544)
+- Improve documentation (#547)
 - Add process page table (#454)
 - Bump vte from 0.12.1 to 0.13.0 (#543)
 - Add more code examples to lisp (#542)
