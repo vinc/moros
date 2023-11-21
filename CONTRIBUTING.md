@@ -32,7 +32,7 @@ appreciation, which we would also be very happy about:
 - Please note that MOROS is a hobby project aimed at developing a simple
   operating system that can fit in one standard human brain, while also
   encouraging others to do the same.
-- You might instead prefer to collaborate on projects with a broader scope such
+- You might instead prefer to collaborate on a project with a broader scope such
   as [Redox](https://www.redox-os.org/) or [Serenity](https://serenityos.org/).
 
 ## Do you have questions about the project?
