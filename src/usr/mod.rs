@@ -1,3 +1,4 @@
+pub mod assembler;
 pub mod base64;
 pub mod beep;
 pub mod calc;

@@ -14,11 +14,11 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
-    "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "elf", "env",
-    "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
-    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
-    "time", "user", "vga", "write"
+const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
+    "2048", "asm", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "elf",
+    "env", "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
+    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp", "time",
+    "user", "vga", "write"
 ];
 
 struct Config {
@@ -440,6 +440,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         ""         => Ok(()),
         "2048"     => usr::pow::main(&args),
         "alias"    => cmd_alias(&args, config),
+        "asm"      => usr::assembler::main(&args),
         "base64"   => usr::base64::main(&args),
         "beep"     => usr::beep::main(&args),
         "calc"     => usr::calc::main(&args),
