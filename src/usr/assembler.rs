@@ -9,19 +9,20 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use alloc::vec;
 use core::num::ParseIntError;
+use core::iter;
 use iced_x86::code_asm::*;
 use nom::IResult;
-use nom::character::complete::alphanumeric1;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::sequence::delimited;
-use nom::sequence::terminated;
-use nom::combinator::recognize;
 use nom::character::complete::alpha1;
+use nom::character::complete::alphanumeric1;
 use nom::character::complete::multispace0;
+use nom::combinator::recognize;
+use nom::multi::separated_list0;
+use nom::sequence::delimited;
 use nom::sequence::preceded;
+use nom::sequence::terminated;
 use nom::sequence::tuple;
-use nom::combinator::opt;
 
 #[derive(Clone, Debug)]
 pub enum Exp {
@@ -54,8 +55,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 pub fn assemble(input: &str) -> Result<Vec<u8>, IcedError> {
     let mut a = CodeAssembler::new(64)?;
-    let _ = eax;
-    let _ = edi;
     let mut labels = BTreeMap::new();
     let mut buf = input;
     loop {
@@ -149,17 +148,15 @@ fn parse(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_instr(input: &str) -> IResult<&str, Exp> {
-    let (input, instr) = tuple((
-        preceded(multispace0, alpha1),
-        opt(preceded(multispace0, alt((alpha1, hex)))),
-        opt(preceded(tuple((tag(","), multispace0)), alt((alpha1, hex)))),
+    let (input, (code, args)) = tuple((
+        delimited(multispace0, alpha1, multispace0),
+        separated_list0(
+            terminated(tag(","), multispace0),
+            alt((alpha1, hex))
+        )
     ))(input)?;
-    let exp = match instr {
-        (arg1, None, None)             => Exp::Instr(vec![arg1.to_string()]),
-        (arg1, Some(arg2), None)       => Exp::Instr(vec![arg1.to_string(), arg2.to_string()]),
-        (arg1, Some(arg2), Some(arg3)) => Exp::Instr(vec![arg1.to_string(), arg2.to_string(), arg3.to_string()]),
-        _ => panic!()
-    };
+    let instr = iter::once(code).chain(args.iter().copied()).map(|s| s.to_string()).collect();
+    let exp = Exp::Instr(instr);
     Ok((input, exp))
 }
 
