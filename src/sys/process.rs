@@ -341,8 +341,8 @@ impl Process {
         let proc_size = MAX_PROC_SIZE as u64;
         let code_addr = CODE_ADDR.fetch_add(proc_size, Ordering::SeqCst);
         let stack_addr = code_addr + proc_size - 4096;
-        //debug!("code_addr:  {:#x}", code_addr);
-        //debug!("stack_addr: {:#x}", stack_addr);
+        //debug!("code_addr:  {:#X}", code_addr);
+        //debug!("stack_addr: {:#X}", stack_addr);
 
         let mut entry_point_addr = 0;
         let code_ptr = code_addr as *mut u8;
@@ -356,7 +356,7 @@ impl Process {
                     let addr = segment.address() as usize;
                     if let Ok(data) = segment.data() {
                         for (i, b) in data.iter().enumerate() {
-                            //debug!("code:       {:#x}", unsafe { code_ptr.add(addr + i) as usize });
+                            //debug!("code:       {:#X}", unsafe { code_ptr.add(addr + i) as usize });
                             unsafe { core::ptr::write(code_ptr.add(addr + i), *b) };
                         }
                     }
