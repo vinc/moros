@@ -401,7 +401,7 @@ impl Process {
         let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
 
         let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        //debug!("user-args: {:#016x}", heap_addr);
+        //debug!("user-args: {:#016X}", heap_addr);
         sys::allocator::alloc_pages(&mut mapper, heap_addr, 1).expect("proc heap alloc");
 
         let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
@@ -429,7 +429,7 @@ impl Process {
 
         let heap_addr = addr;
         let heap_size = (self.stack_addr - heap_addr) / 2;
-        //debug!("user-heap: {:#016x}..{:#016x}", heap_addr, heap_addr + heap_size);
+        //debug!("user-heap: {:#016X}..{:#016X}", heap_addr, heap_addr + heap_size);
         unsafe { self.allocator.lock().init(heap_addr as *mut u8, heap_size as usize) };
 
         set_id(self.id); // Change PID
