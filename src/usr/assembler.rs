@@ -3,6 +3,7 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 
+use alloc::collections::btree_map::BTreeMap;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
@@ -13,6 +14,7 @@ use nom::IResult;
 use nom::character::complete::alphanumeric1;
 use nom::branch::alt;
 use nom::bytes::complete::tag;
+use nom::sequence::delimited;
 use nom::sequence::terminated;
 use nom::combinator::recognize;
 use nom::character::complete::alpha1;
@@ -54,33 +56,77 @@ pub fn assemble(input: &str) -> Result<Vec<u8>, IcedError> {
     let mut a = CodeAssembler::new(64)?;
     let _ = eax;
     let _ = edi;
-    let mut main = a.create_label();
-    a.set_label(&mut main)?;
+    let mut labels = BTreeMap::new();
     let mut buf = input;
     loop {
         match parse(buf) {
             Ok((rem, exp)) => {
                 debug!("{:?}", exp);
                 match exp {
-                    Exp::Instr(ops) => {
-                        match ops[0].as_str() {
+                    Exp::Label(name) => {
+                        let label = a.create_label();
+                        labels.insert(name, label);
+                    }
+                    _ => {}
+                }
+                if rem.trim().is_empty() {
+                    break;
+                }
+                buf = rem;
+            }
+            Err(err) => {
+                debug!("Error: {:#?}", err);
+                break;
+            }
+        }
+    }
+    let mut buf = input;
+    loop {
+        match parse(buf) {
+            Ok((rem, exp)) => {
+                match exp {
+                    Exp::Label(name) => {
+                        if let Some(mut label) = labels.get_mut(&name) {
+                            a.set_label(&mut label)?;
+                        }
+                    }
+                    Exp::Instr(args) => {
+                        match args[0].as_str() {
                             "mov" => {
-                                let op = parse_u32(&ops[2]).unwrap();
-                                match ops[1].as_str() {
-                                    "eax" => { a.mov(eax, op)?; },
-                                    "edi" => { a.mov(edi, op)?; },
-                                    _ => {},
+                                if let Ok(reg) = parse_r32(&args[1]) {
+                                    if let Ok(num) = parse_u32(&args[2]) {
+                                        a.mov(reg, num)?;
+                                    } else if let Some(label) = labels.get(&args[2]) {
+                                        a.lea(reg, ptr(*label))?;
+                                    }
+                                } else if let Ok(reg) = parse_r64(&args[1]) {
+                                    if let Ok(num) = parse_u64(&args[2]) {
+                                        a.mov(reg, num)?;
+                                    } else if let Some(label) = labels.get(&args[2]) {
+                                        a.lea(reg, ptr(*label))?;
+                                    }
                                 }
                             }
                             "int" => {
-                                let op = parse_u32(&ops[1]).unwrap();
-                                a.int(op)?;
+                                if let Ok(num) = parse_u32(&args[1]) {
+                                    a.int(num)?;
+                                }
+                            }
+                            "db" => {
+                                let mut buf = Vec::new();
+                                for arg in args[1..].iter() {
+                                    if let Ok(num) = parse_u8(arg) {
+                                        buf.push(num);
+                                    }
+                                }
+                                debug!("buf: {:?}", buf);
+                                a.db(&buf)?;
                             }
                             _ => {
+                                error!("Invalid instruction '{}'\n", args[0]);
+                                break;
                             }
                         }
-                    }
-                    _ => {
                     }
                 }
                 if rem.trim().is_empty() {
@@ -110,38 +156,89 @@ fn parse_instr(input: &str) -> IResult<&str, Exp> {
         opt(preceded(tuple((tag(","), multispace0)), alt((alpha1, hex)))),
     ))(input)?;
     let exp = match instr {
-        (opcode, None, None)                     => Exp::Instr(vec![opcode.to_string()]),
-        (opcode, Some(operand1), None)           => Exp::Instr(vec![opcode.to_string(), operand1.to_string()]),
-        (opcode, Some(operand1), Some(operand2)) => Exp::Instr(vec![opcode.to_string(), operand1.to_string(), operand2.to_string()]),
+        (arg1, None, None)             => Exp::Instr(vec![arg1.to_string()]),
+        (arg1, Some(arg2), None)       => Exp::Instr(vec![arg1.to_string(), arg2.to_string()]),
+        (arg1, Some(arg2), Some(arg3)) => Exp::Instr(vec![arg1.to_string(), arg2.to_string(), arg3.to_string()]),
         _ => panic!()
     };
     Ok((input, exp))
 }
 
 fn parse_label(input: &str) -> IResult<&str, Exp> {
-    let (input, label) = terminated(
-        terminated(
-            alpha1,
-            tag(":")
-        ),
-        multispace0,
-    )(input)?;
+    let (input, label) = delimited(multispace0, terminated(alpha1, tag(":")), multispace0)(input)?;
     Ok((input, Exp::Label(label.to_string())))
 }
 
-fn hex(input: &str) -> IResult<&str, &str> {
-  recognize(preceded(
-    alt((tag("0x"), tag("0X"))),
-    alphanumeric1
-  ))(input)
+fn parse_u8(s: &str) -> Result<u8, ParseIntError> {
+    if s.starts_with("0x") {
+        u8::from_str_radix(&s[2..], 16)
+    } else {
+        u8::from_str_radix(s, 10)
+    }
 }
 
 fn parse_u32(s: &str) -> Result<u32, ParseIntError> {
-    if s.starts_with("0x") || s.starts_with("0X") {
+    if s.starts_with("0x") {
         u32::from_str_radix(&s[2..], 16)
     } else {
         u32::from_str_radix(s, 10)
     }
+}
+
+fn parse_u64(s: &str) -> Result<u64, ParseIntError> {
+    if s.starts_with("0x") {
+        u64::from_str_radix(&s[2..], 16)
+    } else {
+        u64::from_str_radix(s, 10)
+    }
+}
+
+fn parse_r32(name: &str) -> Result<AsmRegister32, ()> {
+    match name {
+        "eax" => Ok(eax),
+        "ebx" => Ok(ebx),
+        "ecx" => Ok(ecx),
+        "edx" => Ok(edx),
+        "edi" => Ok(edi),
+        "esi" => Ok(esi),
+        "ebp" => Ok(ebp),
+        "esp" => Ok(esp),
+        "r8d" => Ok(r8d),
+        "r9d" => Ok(r9d),
+        "r10d" => Ok(r10d),
+        "r11d" => Ok(r11d),
+        "r12d" => Ok(r12d),
+        "r13d" => Ok(r13d),
+        "r14d" => Ok(r14d),
+        "r15d" => Ok(r15d),
+        _ => Err(()),
+    }
+}
+
+fn parse_r64(name: &str) -> Result<AsmRegister64, ()> {
+    match name {
+        "rax" => Ok(rax),
+        "rbx" => Ok(rbx),
+        "rcx" => Ok(rcx),
+        "rdx" => Ok(rdx),
+        "rdi" => Ok(rdi),
+        "rsi" => Ok(rsi),
+        "rbp" => Ok(rbp),
+        "rsp" => Ok(rsp),
+        "r8" => Ok(r8),
+        "r9" => Ok(r9),
+        "r10" => Ok(r10),
+        "r11" => Ok(r11),
+        "r12" => Ok(r12),
+        "r13" => Ok(r13),
+        "r14" => Ok(r14),
+        "r15" => Ok(r15),
+        _ => Err(()),
+    }
+}
+
+fn hex(input: &str) -> IResult<&str, &str> {
+  recognize(preceded(alt((tag("0x"), tag("0X"))), alphanumeric1))(input)
 }
 
 fn help() {
