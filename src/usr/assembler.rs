@@ -119,7 +119,6 @@ pub fn assemble(input: &str) -> Result<Vec<u8>, IcedError> {
                                         buf.push(num);
                                     }
                                 }
-                                debug!("buf: {:?}", buf);
                                 a.db(&buf)?;
                             }
                             _ => {
