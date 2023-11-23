@@ -55,7 +55,7 @@ pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
 }
 
 pub fn alloc_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) -> Result<(), ()> {
-    //debug!("Alloc pages (addr={:#x}, size={})", addr, size);
+    //debug!("Alloc pages (addr={:#X}, size={})", addr, size);
     let mut frame_allocator = sys::mem::frame_allocator();
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
     let pages = {

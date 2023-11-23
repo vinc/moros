@@ -90,7 +90,7 @@ pub fn close(handle: usize) {
 }
 
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
-    //debug!("syscall::spawn(path={}, args_ptr={:#x}, args_len={})", path, args_ptr, args_len);
+    //debug!("syscall::spawn(path={}, args_ptr={:#X}, args_len={})", path, args_ptr, args_len);
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return ExitCode::OpenError,
@@ -127,7 +127,7 @@ pub fn stop(code: usize) -> usize {
             sys::acpi::shutdown();
         }
         _ => {
-            debug!("STOP SYSCALL: Invalid code '{:#x}' received", code);
+            debug!("STOP SYSCALL: Invalid code '{:#X}' received", code);
         }
     }
     0
