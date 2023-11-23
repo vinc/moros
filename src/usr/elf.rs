@@ -84,7 +84,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 println!(" {}", output);
                             }
                         } else {
-                            usr::hex::print_hex(data);
+                            usr::hex::print_hex_at(data, addr);
                         }
                     }
                 }
