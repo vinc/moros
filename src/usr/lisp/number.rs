@@ -209,7 +209,7 @@ fn parse_int(s: &str) -> Result<i64, ParseIntError> {
     }
 }
 
-fn parse_float(s: &str) -> Result<BigInt, ParseBigIntError> {
+fn parse_bigint(s: &str) -> Result<BigInt, ParseBigIntError> {
     if s.starts_with("0x") || s.starts_with("0X") {
         BigInt::from_str_radix(&s[2..], 16)
     } else if s.starts_with("-0x") || s.starts_with("-0X") {
@@ -234,7 +234,7 @@ impl FromStr for Number {
             }
         } else if let Ok(n) = parse_int(s) {
             Ok(Number::Int(n))
-        } else if let Ok(n) = parse_float(s) {
+        } else if let Ok(n) = parse_bigint(s) {
             Ok(Number::BigInt(n))
         } else {
             err
