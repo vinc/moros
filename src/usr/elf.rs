@@ -33,7 +33,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     println!();
                     println!("{}{}{} (addr: {:#x}, size: {}, align: {})", color, name, reset, addr, size, align);
                     if let Ok(data) = section.data() {
-                        usr::hex::print_hex(data);
+                        usr::hex::print_hex_at(data, addr);
                     }
                 }
             }
