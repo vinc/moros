@@ -347,6 +347,10 @@ fn test_lisp() {
     assert_eq!(eval!("0x10"), "16");
     assert_eq!(eval!("1.5"), "1.5");
     assert_eq!(eval!("0xff"), "255");
+    assert_eq!(eval!("0b0"), "0");
+    assert_eq!(eval!("0b1"), "1");
+    assert_eq!(eval!("0b10"), "2");
+    assert_eq!(eval!("0b11"), "3");
 
     assert_eq!(eval!("-6"), "-6");
     assert_eq!(eval!("-16"), "-16");
@@ -355,6 +359,7 @@ fn test_lisp() {
     assert_eq!(eval!("-0x10"), "-16");
     assert_eq!(eval!("-1.5"), "-1.5");
     assert_eq!(eval!("-0xff"), "-255");
+    assert_eq!(eval!("-0b11"), "-3");
 
     // quote
     assert_eq!(eval!("(quote (1 2 3))"), "(1 2 3)");

@@ -29,7 +29,7 @@ use nom::sequence::terminated;
 // https://docs.rs/nom/latest/nom/recipes/index.html#hexadecimal
 fn hexadecimal(input: &str) -> IResult<&str, &str> {
     preceded(
-        alt((tag("0x"))),
+        tag("0x"),
         recognize(
             many1(
                 terminated(one_of("0123456789abcdefABCDEF"), many0(char('_')))
@@ -43,6 +43,18 @@ fn decimal(input: &str) -> IResult<&str, &str> {
     recognize(
         many1(
             terminated(one_of("0123456789"), many0(char('_')))
+        )
+    )(input)
+}
+
+// https://docs.rs/nom/latest/nom/recipes/index.html#binary
+fn binary(input: &str) -> IResult<&str, &str> {
+    preceded(
+        tag("0b"),
+        recognize(
+            many1(
+                terminated(one_of("01"), many0(char('_')))
+            )
         )
     )(input)
 }
@@ -108,7 +120,7 @@ fn parse_sym(input: &str) -> IResult<&str, Exp> {
 fn parse_num(input: &str) -> IResult<&str, Exp> {
     let (input, num) = recognize(tuple((
         opt(alt((char('+'), char('-')))),
-        alt((float, hexadecimal, decimal))
+        alt((float, hexadecimal, binary, decimal))
     )))(input)?;
     Ok((input, Exp::Num(Number::from(num))))
 }

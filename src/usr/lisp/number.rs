@@ -204,16 +204,24 @@ fn parse_int(s: &str) -> Result<i64, ParseIntError> {
         i64::from_str_radix(&s[2..], 16)
     } else if s.starts_with("-0x") {
         i64::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else if s.starts_with("0b") {
+        i64::from_str_radix(&s[2..], 2)
+    } else if s.starts_with("-0b") {
+        i64::from_str_radix(&s[3..], 2).map(|n| -n)
     } else {
         i64::from_str_radix(s, 10)
     }
 }
 
 fn parse_bigint(s: &str) -> Result<BigInt, ParseBigIntError> {
-    if s.starts_with("0x") || s.starts_with("0X") {
+    if s.starts_with("0x") {
         BigInt::from_str_radix(&s[2..], 16)
-    } else if s.starts_with("-0x") || s.starts_with("-0X") {
+    } else if s.starts_with("-0x") {
         BigInt::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else if s.starts_with("0b") {
+        BigInt::from_str_radix(&s[2..], 2)
+    } else if s.starts_with("-0b") {
+        BigInt::from_str_radix(&s[3..], 2).map(|n| -n)
     } else {
         BigInt::from_str_radix(s, 10)
     }
