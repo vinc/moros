@@ -200,9 +200,9 @@ operator!(Shl, shl);
 operator!(Shr, shr);
 
 fn parse_int(s: &str) -> Result<i64, ParseIntError> {
-    if s.starts_with("0x") || s.starts_with("0X") {
+    if s.starts_with("0x") {
         i64::from_str_radix(&s[2..], 16)
-    } else if s.starts_with("-0x") || s.starts_with("-0X") {
+    } else if s.starts_with("-0x") {
         i64::from_str_radix(&s[3..], 16).map(|n| -n)
     } else {
         i64::from_str_radix(s, 10)

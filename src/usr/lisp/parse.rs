@@ -29,7 +29,7 @@ use nom::sequence::terminated;
 // https://docs.rs/nom/latest/nom/recipes/index.html#hexadecimal
 fn hexadecimal(input: &str) -> IResult<&str, &str> {
     preceded(
-        alt((tag("0x"), tag("0X"))),
+        alt((tag("0x"))),
         recognize(
             many1(
                 terminated(one_of("0123456789abcdefABCDEF"), many0(char('_')))
