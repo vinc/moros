@@ -26,12 +26,12 @@ pub fn shutdown() {
             if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
                 if let Ok(block) = fadt.pm1a_control_block() {
                     pm1a_control_block = block.address as u32;
-                    //debug!("ACPI Found PM1a Control Block: {:#x}", pm1a_control_block);
+                    //debug!("ACPI Found PM1a Control Block: {:#X}", pm1a_control_block);
                 }
             }
             if let Ok(dsdt) = &acpi.dsdt() {
                 let address = sys::mem::phys_to_virt(PhysAddr::new(dsdt.address as u64));
-                //debug!("ACPI Found DSDT at {:#x} {:#x}", dsdt.address, address);
+                //debug!("ACPI Found DSDT at {:#X} {:#X}", dsdt.address, address);
                 let table = unsafe { core::slice::from_raw_parts(address.as_ptr(), dsdt.length as usize) };
                 if aml.parse_table(table).is_ok() {
                     let name = AmlName::from_str("\\_S5").unwrap();
@@ -69,7 +69,7 @@ pub struct MorosAcpiHandler;
 impl AcpiHandler for MorosAcpiHandler {
     unsafe fn map_physical_region<T>(&self, physical_address: usize, size: usize) -> PhysicalMapping<Self, T> {
         let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(physical_address as u64));
-        //debug!("ACPI mapping phys {:#x} -> virt {:#x}", physical_address, virtual_address);
+        //debug!("ACPI mapping phys {:#X} -> virt {:#X}", physical_address, virtual_address);
         PhysicalMapping::new(physical_address, NonNull::new(virtual_address.as_mut_ptr()).unwrap(), size, size, Self)
     }
 

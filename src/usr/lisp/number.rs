@@ -200,20 +200,28 @@ operator!(Shl, shl);
 operator!(Shr, shr);
 
 fn parse_int(s: &str) -> Result<i64, ParseIntError> {
-    if s.starts_with("0x") || s.starts_with("0X") {
+    if s.starts_with("0x") {
         i64::from_str_radix(&s[2..], 16)
-    } else if s.starts_with("-0x") || s.starts_with("-0X") {
+    } else if s.starts_with("-0x") {
         i64::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else if s.starts_with("0b") {
+        i64::from_str_radix(&s[2..], 2)
+    } else if s.starts_with("-0b") {
+        i64::from_str_radix(&s[3..], 2).map(|n| -n)
     } else {
         i64::from_str_radix(s, 10)
     }
 }
 
-fn parse_float(s: &str) -> Result<BigInt, ParseBigIntError> {
-    if s.starts_with("0x") || s.starts_with("0X") {
+fn parse_bigint(s: &str) -> Result<BigInt, ParseBigIntError> {
+    if s.starts_with("0x") {
         BigInt::from_str_radix(&s[2..], 16)
-    } else if s.starts_with("-0x") || s.starts_with("-0X") {
+    } else if s.starts_with("-0x") {
         BigInt::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else if s.starts_with("0b") {
+        BigInt::from_str_radix(&s[2..], 2)
+    } else if s.starts_with("-0b") {
+        BigInt::from_str_radix(&s[3..], 2).map(|n| -n)
     } else {
         BigInt::from_str_radix(s, 10)
     }
@@ -234,7 +242,7 @@ impl FromStr for Number {
             }
         } else if let Ok(n) = parse_int(s) {
             Ok(Number::Int(n))
-        } else if let Ok(n) = parse_float(s) {
+        } else if let Ok(n) = parse_bigint(s) {
             Ok(Number::BigInt(n))
         } else {
             err
