@@ -62,7 +62,7 @@ pub fn delete(path: &str) -> isize
 pub fn stop(code: usize)
 ```
 
-The system will reboot with `0xcafe` and halt with `0xdead`.
+The system will reboot with `0xCAFE` and halt with `0xDEAD`.
 
 ## SLEEP (0xB)
 

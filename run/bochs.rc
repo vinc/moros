@@ -1,4 +1,4 @@
 megs: 32
-ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0: enabled=1, ioaddr1=0x1F0, ioaddr2=0x3F0, irq=14
 ata0-master: type=disk, path="../disk.img", mode=flat, cylinders=0, heads=0, spt=0
 boot: disk

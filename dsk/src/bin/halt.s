@@ -13,10 +13,10 @@ _start:
   mov rdx, len                ; size of string
   int 0x80
 
-  mov rax, 0xb                ; syscall number for SLEEP
+  mov rax, 0xB                ; syscall number for SLEEP
   mov rdi, __?float64?__(0.5) ; duration
   int 0x80
 
-  mov rax, 0xa                ; syscall number for STOP
-  mov rdi, 0xdead             ; halt code
+  mov rax, 0xA                ; syscall number for STOP
+  mov rdi, 0xDEAD             ; halt code
   int 0x80

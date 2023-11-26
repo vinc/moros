@@ -114,7 +114,7 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
 
 pub fn stop(code: usize) -> usize {
     match code {
-        0xcafe => { // Reboot
+        0xCAFE => { // Reboot
             unsafe {
                 asm!(
                     "xor rax, rax",
@@ -122,7 +122,7 @@ pub fn stop(code: usize) -> usize {
                 );
             }
         }
-        0xdead => { // Halt
+        0xDEAD => { // Halt
             sys::process::exit();
             sys::acpi::shutdown();
         }
