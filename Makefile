@@ -58,7 +58,6 @@ image: $(img)
 	cargo bootimage $(cargo-opts)
 	dd conv=notrunc if=$(bin) of=$(img)
 
-
 qemu-opts = -m $(memory) -drive file=$(img),format=raw \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
