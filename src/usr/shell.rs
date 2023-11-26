@@ -411,17 +411,17 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             restore_handles = true;
             if !num.is_empty() {
                 // if let Ok(right_handle) = num.parse() {}
-                println!("Redirecting to a handle has not been implemented yet");
+                error!("Redirecting to a handle has not been implemented yet");
                 return Err(ExitCode::Failure);
             } else {
                 if i == n - 1 {
-                    println!("Could not parse path for redirection");
+                    error!("Could not parse path for redirection");
                     return Err(ExitCode::Failure);
                 }
                 let path = args[i + 1];
                 let append_mode = head_count > 1;
                 if api::fs::reopen(path, left_handle, append_mode).is_err() {
-                    println!("Could not open path for redirection");
+                    error!("Could not open path for redirection");
                     return Err(ExitCode::Failure);
                 }
                 args.remove(i); // Remove path from args
@@ -430,7 +430,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             n -= 1;
             args.remove(i); // Remove redirection from args
         } else if is_thin_arrow {
-            println!("Piping has not been implemented yet");
+            error!("Piping has not been implemented yet");
             return Err(ExitCode::Failure);
         }
     }
