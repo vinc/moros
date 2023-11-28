@@ -14,11 +14,11 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
     "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "elf", "env",
-    "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
-    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
-    "time", "user", "vga", "write"
+    "goto", "hash", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
+    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp", "time",
+    "user", "vga", "write"
 ];
 
 struct Config {
@@ -454,6 +454,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "env"      => usr::env::main(&args),
         "find"     => usr::find::main(&args),
         "goto"     => cmd_change_dir(&args, config), // TODO: Remove this
+        "hash"     => usr::hash::main(&args),
         "help"     => usr::help::main(&args),
         "hex"      => usr::hex::main(&args),
         "host"     => usr::host::main(&args),
