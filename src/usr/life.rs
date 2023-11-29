@@ -232,8 +232,8 @@ fn usage() {
     println!("{}Usage:{} life {}<options> [<path>]{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-p{1},{0} --population <num>{1}   Set the seed population to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-i{1},{0} --interval <num>{1}     Set the seed interval to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-s{1},{0} --speed <num>{1}        Set the simulation speed to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-q{1},{0} --quiet{1}              Enable quiet mode", csi_option, csi_reset);
+    println!("  {0}-p{1}, {0}--population <num>{1}   Set the seed population to {0}<num>{1}", csi_option, csi_reset);
+    println!("  {0}-i{1}, {0}--interval <num>{1}     Set the seed interval to {0}<num>{1}", csi_option, csi_reset);
+    println!("  {0}-s{1}, {0}--speed <num>{1}        Set the simulation speed to {0}<num>{1}", csi_option, csi_reset);
+    println!("  {0}-q{1}, {0}--quiet{1}              Enable quiet mode", csi_option, csi_reset);
 }

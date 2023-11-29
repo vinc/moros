@@ -401,7 +401,7 @@ fn usage() {
     println!("{}Usage:{} httpd {}<options>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-d{1},{0} --dir <path>{1}       Set directory to {0}<path>{1}", csi_option, csi_reset);
-    println!("  {0}-p{1},{0} --port <number>{1}    Listen to port {0}<number>{1}", csi_option, csi_reset);
-    println!("  {0}-r{1},{0} --read-only{1}        Set read-only mode", csi_option, csi_reset);
+    println!("  {0}-d{1}, {0}--dir <path>{1}       Set directory to {0}<path>{1}", csi_option, csi_reset);
+    println!("  {0}-p{1}, {0}--port <number>{1}    Listen to port {0}<number>{1}", csi_option, csi_reset);
+    println!("  {0}-r{1}, {0}--read-only{1}        Set read-only mode", csi_option, csi_reset);
 }
