@@ -11,6 +11,7 @@ pub mod editor;
 pub mod elf;
 pub mod env;
 pub mod find;
+pub mod hash;
 pub mod help;
 pub mod hex;
 pub mod host;

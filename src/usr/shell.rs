@@ -14,11 +14,11 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 35] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
     "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit", "elf", "env",
-    "goto", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
-    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
-    "time", "user", "vga", "write"
+    "goto", "hash", "help", "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
+    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp", "time",
+    "user", "vga", "write"
 ];
 
 struct Config {
@@ -142,10 +142,10 @@ fn glob_to_regex(pattern: &str) -> String {
 fn glob(arg: &str) -> Vec<String> {
     let mut matches = Vec::new();
     if is_globbing(arg) {
-        let (dir, pattern) = if arg.contains('/') {
-            (fs::dirname(arg).to_string(), fs::filename(arg).to_string())
+        let (dir, pattern, show_dir) = if arg.contains('/') {
+            (fs::dirname(arg).to_string(), fs::filename(arg).to_string(), true)
         } else {
-            (sys::process::dir(), arg.to_string())
+            (sys::process::dir(), arg.to_string(), false)
         };
 
         let re = Regex::new(&glob_to_regex(&pattern));
@@ -155,7 +155,11 @@ fn glob(arg: &str) -> Vec<String> {
             for file in files {
                 let name = file.name();
                 if re.is_match(&name) {
-                    matches.push(format!("{}{}{}", dir, sep, name));
+                    if show_dir {
+                        matches.push(format!("{}{}{}", dir, sep, name));
+                    } else {
+                        matches.push(name);
+                    }
                 }
             }
         }
@@ -454,6 +458,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "env"      => usr::env::main(&args),
         "find"     => usr::find::main(&args),
         "goto"     => cmd_change_dir(&args, config), // TODO: Remove this
+        "hash"     => usr::hash::main(&args),
         "help"     => usr::help::main(&args),
         "hex"      => usr::hex::main(&args),
         "host"     => usr::host::main(&args),
