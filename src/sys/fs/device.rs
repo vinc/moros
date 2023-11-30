@@ -76,10 +76,14 @@ impl From<&[u8]> for Device {
             i if i == DeviceType::RTC as u8 => Device::RTC(RTC::new()),
             i if i == DeviceType::TcpSocket as u8 => Device::TcpSocket(TcpSocket::new()),
             i if i == DeviceType::UdpSocket as u8 => Device::UdpSocket(UdpSocket::new()),
-            i if i == DeviceType::Drive as u8 => {
+            i if i == DeviceType::Drive as u8 && buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
-                Device::Drive(Drive::open(bus, dsk).unwrap())
+                if let Some(drive) = Drive::open(bus, dsk) {
+                    Device::Drive(drive)
+                } else {
+                    Device::Null
+                }
             }
             _ => unimplemented!(),
         }
