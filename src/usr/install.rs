@@ -165,7 +165,16 @@ fn create_dir(pathname: &str, verbose: bool) {
 
 fn create_dev(pathname: &str, dev: DeviceType, verbose: bool) {
     if syscall::info(pathname).is_none() {
-        if let Some(handle) = fs::create_device(pathname, dev) {
+        let mut buf = dev.buf();
+        // NOTE: The first byte of `buf` contains the device type
+        match pathname {
+            "/dev/ata/0/0" => { buf[1] = 0; buf[2] = 0 },
+            "/dev/ata/0/1" => { buf[1] = 0; buf[2] = 1 },
+            "/dev/ata/1/0" => { buf[1] = 1; buf[2] = 0 },
+            "/dev/ata/1/1" => { buf[1] = 1; buf[2] = 1 },
+            _ => {},
+        }
+        if let Some(handle) = fs::create_device(pathname, &buf) {
             syscall::close(handle);
             if verbose {
                 println!("Created '{}'", pathname);

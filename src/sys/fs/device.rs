@@ -64,9 +64,9 @@ pub enum Device {
     Drive(Drive),
 }
 
-impl From<u8> for Device {
-    fn from(i: u8) -> Self {
-        match i {
+impl From<&[u8]> for Device {
+    fn from(buf: &[u8]) -> Self {
+        match buf[0] {
             i if i == DeviceType::Null as u8 => Device::Null,
             i if i == DeviceType::File as u8 => Device::File(File::new()),
             i if i == DeviceType::Console as u8 => Device::Console(Console::new()),
@@ -76,7 +76,11 @@ impl From<u8> for Device {
             i if i == DeviceType::RTC as u8 => Device::RTC(RTC::new()),
             i if i == DeviceType::TcpSocket as u8 => Device::TcpSocket(TcpSocket::new()),
             i if i == DeviceType::UdpSocket as u8 => Device::UdpSocket(UdpSocket::new()),
-            i if i == DeviceType::Drive as u8 => Device::Drive(Drive::new()),
+            i if i == DeviceType::Drive as u8 => {
+                let bus = buf[1];
+                let dsk = buf[2];
+                Device::Drive(Drive::open(bus, dsk).unwrap())
+            }
             _ => unimplemented!(),
         }
     }
@@ -104,11 +108,7 @@ impl Device {
                 if dir_entry.is_device() {
                     let block = LinkedBlock::read(dir_entry.addr());
                     let data = block.data();
-                    // TODO: Use the whole data instead of just the first byte
-                    // representing the device type with `Device::from(data)`
-                    // for example. That way we could use device specific
-                    // information contained in the device file.
-                    return Some(data[0].into());
+                    return Some(data.into());
                 }
             }
         }

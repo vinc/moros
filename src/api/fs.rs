@@ -95,10 +95,10 @@ pub fn open_device(path: &str) -> Option<usize> {
     syscall::open(path, flags)
 }
 
-pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
+pub fn create_device(path: &str, buf: &[u8]) -> Option<usize> {
     let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
     if let Some(handle) = syscall::open(path, flags) {
-        syscall::write(handle, &kind.buf());
+        syscall::write(handle, buf);
         return Some(handle);
     }
     None

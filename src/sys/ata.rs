@@ -301,10 +301,6 @@ impl Drive {
         BLOCK_SIZE
     }
 
-    pub fn new() -> Self {
-        Self::open(0, 0).unwrap()
-    }
-
     pub fn open(bus: u8, dsk: u8) -> Option<Self> {
         let mut buses = BUSES.lock();
         if let Ok(IdentifyResponse::Ata(res)) = buses[bus as usize].identify_drive(dsk) {
