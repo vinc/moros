@@ -3,6 +3,7 @@ use super::dir::Dir;
 use super::file::File;
 use super::block::LinkedBlock;
 
+use crate::sys::ata::Drive;
 use crate::sys::cmos::RTC;
 use crate::sys::console::Console;
 use crate::sys::random::Random;
@@ -25,6 +26,7 @@ pub enum DeviceType {
     RTC       = 6,
     TcpSocket = 7,
     UdpSocket = 8,
+    Drive     = 9,
 }
 
 // Used when creating a device
@@ -37,6 +39,7 @@ impl DeviceType {
             DeviceType::Console   => Console::size(),
             DeviceType::TcpSocket => TcpSocket::size(),
             DeviceType::UdpSocket => UdpSocket::size(),
+            DeviceType::Drive     => Drive::size(),
             _                     => 1,
         };
         let mut res = vec![0; len];
@@ -56,6 +59,7 @@ pub enum Device {
     RTC(RTC),
     TcpSocket(TcpSocket),
     UdpSocket(UdpSocket),
+    Drive(Drive),
 }
 
 impl From<u8> for Device {
@@ -70,6 +74,7 @@ impl From<u8> for Device {
             i if i == DeviceType::RTC as u8 => Device::RTC(RTC::new()),
             i if i == DeviceType::TcpSocket as u8 => Device::TcpSocket(TcpSocket::new()),
             i if i == DeviceType::UdpSocket as u8 => Device::UdpSocket(UdpSocket::new()),
+            i if i == DeviceType::Drive as u8 => Device::Drive(Drive::new()),
             _ => unimplemented!(),
         }
     }
@@ -119,6 +124,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.read(buf),
             Device::TcpSocket(io) => io.read(buf),
             Device::UdpSocket(io) => io.read(buf),
+            Device::Drive(io)     => io.read(buf),
         }
     }
 
@@ -133,6 +139,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.write(buf),
             Device::TcpSocket(io) => io.write(buf),
             Device::UdpSocket(io) => io.write(buf),
+            Device::Drive(io)     => io.write(buf),
         }
     }
 
@@ -147,6 +154,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.close(),
             Device::TcpSocket(io) => io.close(),
             Device::UdpSocket(io) => io.close(),
+            Device::Drive(io)     => io.close(),
         }
     }
 
@@ -161,6 +169,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.poll(event),
             Device::TcpSocket(io) => io.poll(event),
             Device::UdpSocket(io) => io.poll(event),
+            Device::Drive(io)     => io.poll(event),
         }
     }
 }

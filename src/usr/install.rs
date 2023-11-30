@@ -39,6 +39,10 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/net/tcp", DeviceType::TcpSocket, verbose);
     create_dev("/dev/net/udp", DeviceType::UdpSocket, verbose);
 
+    create_dir("/dev/ata", verbose); // Network
+    create_dir("/dev/ata/0", verbose); // Network
+    create_dev("/dev/ata/0/0", DeviceType::Drive, verbose);
+
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
     copy_file("/ini/shell.sh", include_bytes!("../../dsk/ini/shell.sh"), verbose);
