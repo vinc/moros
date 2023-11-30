@@ -29,8 +29,10 @@ pub enum DeviceType {
     Drive     = 9,
 }
 
-// Used when creating a device
 impl DeviceType {
+    // Return a buffer for the file representing the device in the filesystem.
+    // The first byte is the device type. The remaining bytes can be used to
+    // store specific device informations.
     pub fn buf(self) -> Vec<u8> {
         let len = match self {
             DeviceType::RTC       => RTC::size(),
@@ -43,7 +45,7 @@ impl DeviceType {
             _                     => 1,
         };
         let mut res = vec![0; len];
-        res[0] = self as u8;
+        res[0] = self as u8; // Device type
         res
     }
 }
@@ -102,6 +104,10 @@ impl Device {
                 if dir_entry.is_device() {
                     let block = LinkedBlock::read(dir_entry.addr());
                     let data = block.data();
+                    // TODO: Use the whole data instead of just the first byte
+                    // representing the device type with `Device::from(data)`
+                    // for example. That way we could use device specific
+                    // information contained in the device file.
                     return Some(data[0].into());
                 }
             }
