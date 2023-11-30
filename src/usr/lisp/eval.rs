@@ -136,7 +136,7 @@ fn eval_do_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
 fn eval_load_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&eval(&args[0], env)?)?;
-    let mut input = fs::read_to_string(&path).or(could_not!("find file '{}'", path))?;
+    let mut input = fs::read_to_string(&path).or(could_not!("read file '{}'", path))?;
     loop {
         let (rest, _) = parse_eval(&input, env)?;
         if rest.is_empty() {

@@ -314,7 +314,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             Ok(())
         } else {
-            error!("Could not find file '{}'", path);
+            error!("Could not read file '{}'", path);
             Err(ExitCode::Failure)
         }
     }

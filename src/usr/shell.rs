@@ -602,7 +602,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             Ok(())
         } else {
-            error!("Could not find file '{}'", path);
+            error!("Could not read file '{}'", path);
             Err(ExitCode::Failure)
         }
     }
@@ -634,7 +634,7 @@ fn test_shell() {
 
     // Redirect standard error explicitely
     exec("hex /nope 2=> /tmp/test3").ok();
-    assert!(api::fs::read_to_string("/tmp/test3").unwrap().contains("Could not find file '/nope'"));
+    assert!(api::fs::read_to_string("/tmp/test3").unwrap().contains("Could not read file '/nope'"));
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();
