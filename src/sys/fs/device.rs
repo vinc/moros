@@ -13,6 +13,8 @@ use crate::sys::net::socket::udp::UdpSocket;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use core::convert::TryFrom;
+use core::convert::TryInto;
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
@@ -64,28 +66,30 @@ pub enum Device {
     Drive(Drive),
 }
 
-impl From<&[u8]> for Device {
-    fn from(buf: &[u8]) -> Self {
-        match buf[0] {
-            i if i == DeviceType::Null as u8 => Device::Null,
-            i if i == DeviceType::File as u8 => Device::File(File::new()),
-            i if i == DeviceType::Console as u8 => Device::Console(Console::new()),
-            i if i == DeviceType::Random as u8 => Device::Random(Random::new()),
-            i if i == DeviceType::Uptime as u8 => Device::Uptime(Uptime::new()),
-            i if i == DeviceType::Realtime as u8 => Device::Realtime(Realtime::new()),
-            i if i == DeviceType::RTC as u8 => Device::RTC(RTC::new()),
-            i if i == DeviceType::TcpSocket as u8 => Device::TcpSocket(TcpSocket::new()),
-            i if i == DeviceType::UdpSocket as u8 => Device::UdpSocket(UdpSocket::new()),
-            i if i == DeviceType::Drive as u8 && buf.len() > 2 => {
+impl TryFrom<&[u8]> for Device {
+    type Error = ();
+
+    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+        match buf.get(0) {
+            Some(i) if *i == DeviceType::Null as u8 => Ok(Device::Null),
+            Some(i) if *i == DeviceType::File as u8 => Ok(Device::File(File::new())),
+            Some(i) if *i == DeviceType::Console as u8 => Ok(Device::Console(Console::new())),
+            Some(i) if *i == DeviceType::Random as u8 => Ok(Device::Random(Random::new())),
+            Some(i) if *i == DeviceType::Uptime as u8 => Ok(Device::Uptime(Uptime::new())),
+            Some(i) if *i == DeviceType::Realtime as u8 => Ok(Device::Realtime(Realtime::new())),
+            Some(i) if *i == DeviceType::RTC as u8 => Ok(Device::RTC(RTC::new())),
+            Some(i) if *i == DeviceType::TcpSocket as u8 => Ok(Device::TcpSocket(TcpSocket::new())),
+            Some(i) if *i == DeviceType::UdpSocket as u8 => Ok(Device::UdpSocket(UdpSocket::new())),
+            Some(i) if *i == DeviceType::Drive as u8 && buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
                 if let Some(drive) = Drive::open(bus, dsk) {
-                    Device::Drive(drive)
+                    Ok(Device::Drive(drive))
                 } else {
-                    Device::Null
+                    Err(())
                 }
             }
-            _ => unimplemented!(),
+            _ => Err(()),
         }
     }
 }
@@ -112,7 +116,7 @@ impl Device {
                 if dir_entry.is_device() {
                     let block = LinkedBlock::read(dir_entry.addr());
                     let data = block.data();
-                    return Some(data.into());
+                    return data.try_into().ok();
                 }
             }
         }
