@@ -28,6 +28,13 @@ pub fn copy_files(verbose: bool) {
     copy_file("/bin/reboot", include_bytes!("../../dsk/bin/reboot"), verbose);
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
 
+    create_dir("/dev/ata", verbose); // Drives
+    create_dir("/dev/ata/0", verbose);
+    create_dev("/dev/ata/0/0", DeviceType::Drive, verbose);
+    create_dev("/dev/ata/0/1", DeviceType::Drive, verbose);
+    create_dir("/dev/ata/1", verbose);
+    create_dev("/dev/ata/1/0", DeviceType::Drive, verbose);
+    create_dev("/dev/ata/1/1", DeviceType::Drive, verbose);
     create_dir("/dev/clk", verbose); // Clock
     create_dev("/dev/clk/uptime", DeviceType::Uptime, verbose);
     create_dev("/dev/clk/realtime", DeviceType::Realtime, verbose);
@@ -38,10 +45,6 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/net", verbose); // Network
     create_dev("/dev/net/tcp", DeviceType::TcpSocket, verbose);
     create_dev("/dev/net/udp", DeviceType::UdpSocket, verbose);
-
-    create_dir("/dev/ata", verbose); // Network
-    create_dir("/dev/ata/0", verbose); // Network
-    create_dev("/dev/ata/0/0", DeviceType::Drive, verbose);
 
     copy_file("/ini/banner.txt", include_bytes!("../../dsk/ini/banner.txt"), verbose);
     copy_file("/ini/boot.sh", include_bytes!("../../dsk/ini/boot.sh"), verbose);
