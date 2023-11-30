@@ -1,3 +1,6 @@
+:where(pre) {
+    all: revert;
+}
 html {
   display: grid;
   place-content: center;
@@ -12,6 +15,7 @@ body {
   background: #FBF1C7;
   color: #3C3836;
   font-size: 18px;
+  line-height: 1.5;
 }
 a {
   color: #8F3F71;
@@ -30,6 +34,7 @@ li code, p code {
 pre {
   background: #282828;
   padding: 1rem;
+  line-height: 1.1;
 }
 img {
   width: var(--img-width);
