@@ -31,6 +31,26 @@ pub enum DeviceType {
     Drive     = 9,
 }
 
+impl TryFrom<&[u8]> for DeviceType {
+    type Error = ();
+
+    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+        match buf.get(0) {
+            Some(i) if *i == DeviceType::Null      as u8 => Ok(DeviceType::Null),
+            Some(i) if *i == DeviceType::File      as u8 => Ok(DeviceType::File),
+            Some(i) if *i == DeviceType::Console   as u8 => Ok(DeviceType::Console),
+            Some(i) if *i == DeviceType::Random    as u8 => Ok(DeviceType::Random),
+            Some(i) if *i == DeviceType::Uptime    as u8 => Ok(DeviceType::Uptime),
+            Some(i) if *i == DeviceType::Realtime  as u8 => Ok(DeviceType::Realtime),
+            Some(i) if *i == DeviceType::RTC       as u8 => Ok(DeviceType::RTC),
+            Some(i) if *i == DeviceType::TcpSocket as u8 => Ok(DeviceType::TcpSocket),
+            Some(i) if *i == DeviceType::UdpSocket as u8 => Ok(DeviceType::UdpSocket),
+            Some(i) if *i == DeviceType::Drive     as u8 => Ok(DeviceType::Drive),
+            _ => Err(()),
+        }
+    }
+}
+
 impl DeviceType {
     // Return a buffer for the file representing the device in the filesystem.
     // The first byte is the device type. The remaining bytes can be used to
@@ -70,17 +90,17 @@ impl TryFrom<&[u8]> for Device {
     type Error = ();
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
-        match buf.get(0) {
-            Some(i) if *i == DeviceType::Null as u8 => Ok(Device::Null),
-            Some(i) if *i == DeviceType::File as u8 => Ok(Device::File(File::new())),
-            Some(i) if *i == DeviceType::Console as u8 => Ok(Device::Console(Console::new())),
-            Some(i) if *i == DeviceType::Random as u8 => Ok(Device::Random(Random::new())),
-            Some(i) if *i == DeviceType::Uptime as u8 => Ok(Device::Uptime(Uptime::new())),
-            Some(i) if *i == DeviceType::Realtime as u8 => Ok(Device::Realtime(Realtime::new())),
-            Some(i) if *i == DeviceType::RTC as u8 => Ok(Device::RTC(RTC::new())),
-            Some(i) if *i == DeviceType::TcpSocket as u8 => Ok(Device::TcpSocket(TcpSocket::new())),
-            Some(i) if *i == DeviceType::UdpSocket as u8 => Ok(Device::UdpSocket(UdpSocket::new())),
-            Some(i) if *i == DeviceType::Drive as u8 && buf.len() > 2 => {
+        match buf.try_into() {
+            Ok(DeviceType::Null)      => Ok(Device::Null),
+            Ok(DeviceType::File)      => Ok(Device::File(File::new())),
+            Ok(DeviceType::Console)   => Ok(Device::Console(Console::new())),
+            Ok(DeviceType::Random)    => Ok(Device::Random(Random::new())),
+            Ok(DeviceType::Uptime)    => Ok(Device::Uptime(Uptime::new())),
+            Ok(DeviceType::Realtime)  => Ok(Device::Realtime(Realtime::new())),
+            Ok(DeviceType::RTC)       => Ok(Device::RTC(RTC::new())),
+            Ok(DeviceType::TcpSocket) => Ok(Device::TcpSocket(TcpSocket::new())),
+            Ok(DeviceType::UdpSocket) => Ok(Device::UdpSocket(UdpSocket::new())),
+            Ok(DeviceType::Drive) if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
                 if let Some(drive) = Drive::open(bus, dsk) {
