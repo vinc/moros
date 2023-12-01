@@ -125,6 +125,7 @@
 
 # Short aliases
 
+(var sh shell)
 (var % rem)
 (var str string)
 (var str.split string.split)

@@ -45,7 +45,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("sin".to_string(),                Exp::Primitive(primitive::lisp_sin));
     data.insert("tan".to_string(),                Exp::Primitive(primitive::lisp_tan));
     data.insert("trunc".to_string(),              Exp::Primitive(primitive::lisp_trunc));
-    data.insert("system".to_string(),             Exp::Primitive(primitive::lisp_system));
+    data.insert("shell".to_string(),              Exp::Primitive(primitive::lisp_shell));
     data.insert("string".to_string(),             Exp::Primitive(primitive::lisp_string));
     data.insert("string->binary".to_string(),     Exp::Primitive(primitive::lisp_string_binary));
     data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_binary_string));

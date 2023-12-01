@@ -156,7 +156,7 @@ pub fn lisp_trunc(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(number(&args[0])?.trunc()))
 }
 
-pub fn lisp_system(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_shell(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let cmd = strings(args)?.join(" ");
     match shell::exec(&cmd) {
