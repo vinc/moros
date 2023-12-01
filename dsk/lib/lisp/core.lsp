@@ -61,29 +61,29 @@
   "Return elements found in both lists"
   (filter (fun (x) (contains? b x)) a))
 
-(def (reverse x)
+(def (reverse ls)
   "Reverse list"
-  (if (nil? x) x
-    (concat (reverse (tail x)) (cons (head x) '()))))
+  (if (nil? ls) ls
+    (concat (reverse (tail ls)) (cons (head ls) '()))))
 
-(def (contains? x lst)
+(def (contains? x ls)
   "Return true if the list contains the element"
-  (if (nil? lst) false
-    (if (eq? x (head lst)) true
-      (contains? c (tail lst)))))
+  (if (nil? ls) false
+    (if (eq? x (head ls)) true
+      (contains? c (tail ls)))))
 
 (def (range start stop)
   "Return a list of integers from start to stop excluded"
   (if (= start stop) nil
     (concat (list start) (range (+ start 1) stop))))
 
-(def (min lst)
+(def (min ls)
   "Return the minimum element of the list"
-  (head (sort lst)))
+  (head (sort ls)))
 
-(def (max lst)
+(def (max ls)
   "Return the maximum element of the list"
-  (head (reverse (sort lst))))
+  (head (reverse (sort ls))))
 
 (def (abs x)
   (if (> x 0) x (- x)))
@@ -110,18 +110,18 @@
   "Split text into a list of chars"
   (string.split text ""))
 
-(def (first lst)
-  (nth lst 0))
+(def (first ls)
+  (nth ls 0))
 
-(def (second lst)
-  (nth lst 1))
+(def (second ls)
+  (nth ls 1))
 
-(def (third lst)
-  (nth lst 2))
+(def (third ls)
+  (nth ls 2))
 
-(def (last lst)
-  (nth lst
-    (if (= (length lst) 0) 0 (- (length lst) 1))))
+(def (last ls)
+  (nth ls
+    (if (= (length ls) 0) 0 (- (length ls) 1))))
 
 # Short aliases
 
