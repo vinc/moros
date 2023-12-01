@@ -103,11 +103,11 @@ pub fn stop(code: usize) {
 }
 
 pub fn reboot() {
-    stop(0xcafe);
+    stop(0xCAFE);
 }
 
 pub fn halt() {
-    stop(0xdead);
+    stop(0xDEAD);
 }
 
 pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {

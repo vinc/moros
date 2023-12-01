@@ -146,7 +146,7 @@ fn help_usage() {
     println!("{}Usage:{} disk usage {}<options>{}", csi_title, csi_reset, csi_option, csi_reset);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-b{1},{0} --binary-size{1}   Use binary size", csi_option, csi_reset);
+    println!("  {0}-b{1}, {0}--binary-size{1}   Use binary size", csi_option, csi_reset);
 }
 
 fn help() {

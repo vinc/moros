@@ -58,7 +58,6 @@ image: $(img)
 	cargo bootimage $(cargo-opts)
 	dd conv=notrunc if=$(bin) of=$(img)
 
-
 qemu-opts = -m $(memory) -drive file=$(img),format=raw \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
@@ -93,7 +92,7 @@ qemu:
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
-		-m $(memory) -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+		-m $(memory) -display none -serial stdio -device isa-debug-exit,iobase=0xF4,iosize=0x04
 
 website:
 	cd www && sh build.sh

@@ -296,7 +296,7 @@ pub fn interrupt_handler() {
     printk!("RTL8139 interrupt!\n");
     if let Some(mut guard) = sys::net::IFACE.try_lock() {
         if let Some(ref mut iface) = *guard {
-            unsafe { iface.device_mut().ports.isr.write(0xffff) } // Clear the interrupt
+            unsafe { iface.device_mut().ports.isr.write(0xFFFF) } // Clear the interrupt
         }
     }
 }

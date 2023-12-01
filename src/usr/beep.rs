@@ -86,7 +86,7 @@ fn help() -> Result<(), ExitCode> {
     println!("{}Usage:{} beep {}<options>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-f{1},{0} --freq <hertz>{1}          Tone frequency", csi_option, csi_reset);
-    println!("  {0}-l{1},{0} --len <milliseconds>{1}    Tone length", csi_option, csi_reset);
+    println!("  {0}-f{1}, {0}--freq <hertz>{1}          Tone frequency", csi_option, csi_reset);
+    println!("  {0}-l{1}, {0}--len <milliseconds>{1}    Tone length", csi_option, csi_reset);
     Ok(())
 }
