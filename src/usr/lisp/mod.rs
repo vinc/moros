@@ -13,7 +13,7 @@ use eval::{eval, eval_variable_args};
 use expand::expand;
 use parse::parse;
 
-use crate::api;
+use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
@@ -275,7 +275,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
 }
 
 fn exec(env: &mut Rc<RefCell<Env>>, path: &str) -> Result<(), ExitCode> {
-    if let Ok(mut input) = api::fs::read_to_string(path) {
+    if let Ok(mut input) = fs::read_to_string(path) {
         loop {
             match parse_eval(&input, env) {
                 Ok((rest, _)) => {
@@ -314,7 +314,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if args.len() < 2 {
-        exec(env, "/ini/lisp.lsp")?;
+        let init = "/ini/lisp.lsp";
+        if fs::exists(init) {
+            exec(env, init)?;
+        }
         repl(env)
     } else {
         if args[1] == "-h" || args[1] == "--help" {
