@@ -274,6 +274,29 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     Ok(())
 }
 
+fn exec(env: &mut Rc<RefCell<Env>>, path: &str) -> Result<(), ExitCode> {
+    if let Ok(mut input) = api::fs::read_to_string(path) {
+        loop {
+            match parse_eval(&input, env) {
+                Ok((rest, _)) => {
+                    if rest.is_empty() {
+                        break;
+                    }
+                    input = rest;
+                }
+                Err(Err::Reason(msg)) => {
+                    error!("{}", msg);
+                    return Err(ExitCode::Failure);
+                }
+            }
+        }
+        Ok(())
+    } else {
+        error!("Could not find file '{}'", path);
+        Err(ExitCode::Failure)
+    }
+}
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let env = &mut default_env();
 
@@ -291,32 +314,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if args.len() < 2 {
+        exec(env, "/ini/lisp.lsp")?;
         repl(env)
     } else {
         if args[1] == "-h" || args[1] == "--help" {
             return help();
         }
-        let path = args[1];
-        if let Ok(mut input) = api::fs::read_to_string(path) {
-            loop {
-                match parse_eval(&input, env) {
-                    Ok((rest, _)) => {
-                        if rest.is_empty() {
-                            break;
-                        }
-                        input = rest;
-                    }
-                    Err(Err::Reason(msg)) => {
-                        error!("{}", msg);
-                        return Err(ExitCode::Failure);
-                    }
-                }
-            }
-            Ok(())
-        } else {
-            error!("Could not find file '{}'", path);
-            Err(ExitCode::Failure)
-        }
+        exec(env, args[1])
     }
 }
 
