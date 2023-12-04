@@ -54,17 +54,17 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `abs`, `mod`, `rem` (aliased to `%`)
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
+- Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`, `contains?`
 - String: `string.trim` and `string.split` (aliased to `str.trim` and `str.split`)
 - List: `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
 - File: `file.size`, `file.open`, `file.close`, `file.read`, `file.write`
 
 ### Core Library
-- `nil`, `nil?`, `list?`
+- `nil`, `nil?`, `list?`, `empty?`
 - `boolean?` (aliased to `bool?`), `string?` (aliased to `str?`), `symbol?` (aliased to `sym?`), `number?` (aliased to `num?`)
 - `function?` (aliased to `fun?`), `macro?` (aliased to `mac?`)
 - `first`, `second`, `third`, `rest`
-- `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `intersection`
+- `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `let`
 - `string.join` (aliased to `str.join`), `lines`, `words`, `chars`
