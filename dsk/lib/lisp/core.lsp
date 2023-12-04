@@ -66,12 +66,6 @@
   (if (nil? ls) ls
     (concat (reverse (tail ls)) (cons (head ls) '()))))
 
-(def (contains? x ls)
-  "Return true if the list contains the element"
-  (if (nil? ls) false
-    (if (eq? x (head ls)) true
-      (contains? c (tail ls)))))
-
 (def (range start stop)
   "Return a list of integers from start to stop excluded"
   (if (= start stop) nil
