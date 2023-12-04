@@ -62,6 +62,13 @@
       (cons (head ls) (filter f (tail ls)))
       (filter f (tail ls)))))
 
+(def (reject f ls)
+  "Reject the elements of the list with the function"
+  (if (nil? ls) nil
+    (if (not (f (head ls)))
+      (cons (head ls) (reject f (tail ls)))
+      (reject f (tail ls)))))
+
 (def (intersection a b)
   "Return elements found in both lists"
   (filter (fun (x) (contains? b x)) a))
