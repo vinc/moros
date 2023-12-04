@@ -35,6 +35,11 @@
 (def-mac (and x y)
   `(if ,x (if ,y true false) false))
 
+(def (empty? x)
+  (or
+    (equal? x nil)
+    (equal? x "")))
+
 (def-mac (let params values body)
   `((fun ,params ,body) ,@values))
 
