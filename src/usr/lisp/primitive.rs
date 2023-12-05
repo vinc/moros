@@ -9,6 +9,7 @@ use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
 use crate::usr::shell;
 
+use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
@@ -228,6 +229,7 @@ pub fn lisp_type(args: &[Exp]) -> Result<Exp, Err> {
         Exp::Function(_)  => "function",
         Exp::Macro(_)     => "macro",
         Exp::List(_)      => "list",
+        Exp::Dict(_)      => "dict",
         Exp::Bool(_)      => "boolean",
         Exp::Str(_)       => "string",
         Exp::Sym(_)       => "symbol",
@@ -278,28 +280,6 @@ pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
-pub fn lisp_nth(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let i = usize::try_from(number(&args[1])?)?;
-    match &args[0] {
-        Exp::List(l) => {
-            if let Some(e) = l.get(i) {
-                Ok(e.clone())
-            } else {
-                Ok(Exp::List(Vec::new()))
-            }
-        }
-        Exp::Str(s) => {
-            if let Some(c) = s.chars().nth(i) {
-                Ok(Exp::Str(c.to_string()))
-            } else {
-                Ok(Exp::Str("".to_string()))
-            }
-        }
-        _ => expected!("first argument to be a list or a string")
-    }
-}
-
 pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
     let (a, b) = match args.len() {
         2 => (usize::try_from(number(&args[1])?)?, 1),
@@ -339,8 +319,8 @@ pub fn lisp_length(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
+// TODO: This could also concat strings
 pub fn lisp_concat(args: &[Exp]) -> Result<Exp, Err> {
-    // TODO: This could also concat strings
     let mut res = vec![];
     for arg in args {
         if let Exp::List(list) = arg {
@@ -518,5 +498,77 @@ pub fn lisp_socket_accept(args: &[Exp]) -> Result<Exp, Err> {
         Ok(Exp::Str(format!("{}", addr)))
     } else {
         could_not!("accept connections")
+    }
+}
+
+pub fn lisp_dict(args: &[Exp]) -> Result<Exp, Err> {
+    let mut dict = BTreeMap::new();
+    for chunk in args.chunks(2) {
+        match chunk {
+            [k, v] => dict.insert(format!("{}", k), v.clone()),
+            [k] => dict.insert(format!("{}", k), Exp::List(vec![])),
+            _ => unreachable!(),
+        };
+    }
+    Ok(Exp::Dict(dict))
+}
+
+pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    match &args[0] {
+        Exp::Dict(dict) => {
+            let key = format!("{}", args[1]);
+            if let Some(val) = dict.get(&key) {
+               Ok(val.clone())
+            } else {
+               Ok(Exp::List(vec![]))
+            }
+        }
+        Exp::List(l) => {
+            let i = usize::try_from(number(&args[1])?)?;
+            if let Some(e) = l.get(i) {
+                Ok(e.clone())
+            } else {
+                Ok(Exp::List(Vec::new()))
+            }
+        }
+        Exp::Str(s) => {
+            let i = usize::try_from(number(&args[1])?)?;
+            if let Some(c) = s.chars().nth(i) {
+                Ok(Exp::Str(c.to_string()))
+            } else {
+                Ok(Exp::Str("".to_string()))
+            }
+        }
+        _ => expected!("first argument to be a dict, a list, or a string")
+    }
+}
+
+pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    match &args[0] {
+        Exp::Dict(dict) => {
+            ensure_length_eq!(args, 3);
+            let mut dict = dict.clone();
+            let key = format!("{}", args[1]);
+            let val = args[2].clone();
+            dict.insert(key, val);
+            Ok(Exp::Dict(dict))
+        }
+        Exp::List(list) => {
+            ensure_length_eq!(args, 2);
+            let mut list = list.clone();
+            let val = args[1].clone();
+            list.push(val);
+            Ok(Exp::List(list))
+        }
+        Exp::Str(s) => {
+            ensure_length_eq!(args, 2);
+            let mut s = s.clone();
+            let val = string(&args[1])?;
+            s.push_str(&val);
+            Ok(Exp::Str(s))
+        }
+        _ => expected!("first argument to be a dict, a list, or a string")
     }
 }

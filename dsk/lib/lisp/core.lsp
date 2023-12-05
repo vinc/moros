@@ -117,16 +117,16 @@
   (string.split text ""))
 
 (def (first ls)
-  (nth ls 0))
+  (get ls 0))
 
 (def (second ls)
-  (nth ls 1))
+  (get ls 1))
 
 (def (third ls)
-  (nth ls 2))
+  (get ls 2))
 
 (def (last ls)
-  (nth ls
+  (get ls
     (if (= (length ls) 0) 0 (- (length ls) 1))))
 
 # Short aliases

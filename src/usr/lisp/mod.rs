@@ -24,9 +24,11 @@ use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use alloc::collections::btree_map::BTreeMap;
 use alloc::vec;
 use core::cell::RefCell;
 use core::convert::TryInto;
+use core::cmp;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -52,6 +54,7 @@ pub enum Exp {
     Function(Box<Function>),
     Macro(Box<Function>),
     List(Vec<Exp>),
+    Dict(BTreeMap<String, Exp>),
     Bool(bool),
     Num(Number),
     Str(String),
@@ -64,6 +67,7 @@ impl PartialEq for Exp {
             (Exp::Function(a), Exp::Function(b)) => a == b,
             (Exp::Macro(a),    Exp::Macro(b))    => a == b,
             (Exp::List(a),     Exp::List(b))     => a == b,
+            (Exp::Dict(a),     Exp::Dict(b))     => a == b,
             (Exp::Bool(a),     Exp::Bool(b))     => a == b,
             (Exp::Num(a),      Exp::Num(b))      => a == b,
             (Exp::Str(a),      Exp::Str(b))      => a == b,
@@ -73,13 +77,13 @@ impl PartialEq for Exp {
     }
 }
 
-use core::cmp::Ordering;
 impl PartialOrd for Exp {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         match (self, other) {
             (Exp::Function(a), Exp::Function(b)) => a.partial_cmp(b),
             (Exp::Macro(a),    Exp::Macro(b))    => a.partial_cmp(b),
             (Exp::List(a),     Exp::List(b))     => a.partial_cmp(b),
+            (Exp::Dict(a),     Exp::Dict(b))     => a.partial_cmp(b),
             (Exp::Bool(a),     Exp::Bool(b))     => a.partial_cmp(b),
             (Exp::Num(a),      Exp::Num(b))      => a.partial_cmp(b),
             (Exp::Str(a),      Exp::Str(b))      => a.partial_cmp(b),
@@ -102,6 +106,10 @@ impl fmt::Display for Exp {
             Exp::List(list)   => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
+            },
+            Exp::Dict(dict)   => {
+                let xs: Vec<String> = dict.iter().map(|(k, v)| format!("{} {}", k, v)).collect();
+                format!("(dict {})", xs.join(" "))
             },
         };
         write!(f, "{}", out)
@@ -577,4 +585,23 @@ fn test_lisp() {
     assert_eq!(eval!("# comment\n# comment"), "()");
     assert_eq!(eval!("(+ 1 2 3) # comment"), "6");
     assert_eq!(eval!("(+ 1 2 3) # comment\n# comment"), "6");
+
+    // list
+    assert_eq!(eval!("(list 1 2 3)"), "(1 2 3)");
+
+    // dict
+    assert_eq!(eval!("(dict \"a\" 1 \"b\" 2 \"c\" 3)"), "(dict \"a\" 1 \"b\" 2 \"c\" 3)");
+
+    // get
+    assert_eq!(eval!("(get \"Hello\" 0)"), "\"H\"");
+    assert_eq!(eval!("(get \"Hello\" 6)"), "\"\"");
+    assert_eq!(eval!("(get (list 1 2 3) 0)"), "1");
+    assert_eq!(eval!("(get (list 1 2 3) 3)"), "()");
+    assert_eq!(eval!("(get (dict \"a\" 1 \"b\" 2 \"c\" 3) \"a\")"), "1");
+    assert_eq!(eval!("(get (dict \"a\" 1 \"b\" 2 \"c\" 3) \"d\")"), "()");
+
+    // put
+    assert_eq!(eval!("(put \"Hell\" \"o\")"), "\"Hello\"");
+    assert_eq!(eval!("(put (list 1 2) 3)"), "(1 2 3)");
+    assert_eq!(eval!("(put (dict \"a\" 1 \"b\" 2) \"c\" 3)"), "(dict \"a\" 1 \"b\" 2 \"c\" 3)");
 }

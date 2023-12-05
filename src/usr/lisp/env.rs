@@ -57,7 +57,6 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("list".to_string(),               Exp::Primitive(primitive::lisp_list));
     data.insert("sort".to_string(),               Exp::Primitive(primitive::lisp_sort));
     data.insert("unique".to_string(),             Exp::Primitive(primitive::lisp_unique));
-    data.insert("nth".to_string(),                Exp::Primitive(primitive::lisp_nth));
     data.insert("contains?".to_string(),          Exp::Primitive(primitive::lisp_contains));
     data.insert("slice".to_string(),              Exp::Primitive(primitive::lisp_slice));
     data.insert("chunks".to_string(),             Exp::Primitive(primitive::lisp_chunks));
@@ -74,9 +73,14 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("file.read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
     data.insert("file.write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
     data.insert("file.close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
+
     data.insert("socket.connect".to_string(),     Exp::Primitive(primitive::lisp_socket_connect));
     data.insert("socket.listen".to_string(),      Exp::Primitive(primitive::lisp_socket_listen));
     data.insert("socket.accept".to_string(),      Exp::Primitive(primitive::lisp_socket_accept));
+
+    data.insert("dict".to_string(),               Exp::Primitive(primitive::lisp_dict));
+    data.insert("get".to_string(),                Exp::Primitive(primitive::lisp_get));
+    data.insert("put".to_string(),                Exp::Primitive(primitive::lisp_put));
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();
