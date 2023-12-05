@@ -545,10 +545,9 @@ pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
 }
 
 pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_gt!(args, 0);
+    ensure_length_eq!(args, 3);
     match &args[0] {
         Exp::Dict(dict) => {
-            ensure_length_eq!(args, 3);
             let mut dict = dict.clone();
             let key = format!("{}", args[1]);
             let val = args[2].clone();
@@ -556,19 +555,39 @@ pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
             Ok(Exp::Dict(dict))
         }
         Exp::List(list) => {
-            ensure_length_eq!(args, 2);
+            let i = usize::try_from(number(&args[1])?)?;
+            let val = args[2].clone();
+            let mut list = list.clone();
+            list.insert(i, val);
+            Ok(Exp::List(list))
+        }
+        Exp::Str(s) => {
+            let i = usize::try_from(number(&args[1])?)?;
+            let v: Vec<char> = string(&args[2])?.chars().collect();
+            let mut s: Vec<char> = s.chars().collect();
+            s.splice(i..i, v);
+            let s: String = s.into_iter().collect();
+            Ok(Exp::Str(s))
+        }
+        _ => expected!("first argument to be a dict, a list, or a string")
+    }
+}
+
+pub fn lisp_push(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    match &args[0] {
+        Exp::List(list) => {
             let mut list = list.clone();
             let val = args[1].clone();
             list.push(val);
             Ok(Exp::List(list))
         }
         Exp::Str(s) => {
-            ensure_length_eq!(args, 2);
             let mut s = s.clone();
             let val = string(&args[1])?;
             s.push_str(&val);
             Ok(Exp::Str(s))
         }
-        _ => expected!("first argument to be a dict, a list, or a string")
+        _ => expected!("first argument to be a a list or a string")
     }
 }

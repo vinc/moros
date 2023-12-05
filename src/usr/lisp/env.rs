@@ -81,6 +81,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("dict".to_string(),               Exp::Primitive(primitive::lisp_dict));
     data.insert("get".to_string(),                Exp::Primitive(primitive::lisp_get));
     data.insert("put".to_string(),                Exp::Primitive(primitive::lisp_put));
+    data.insert("push".to_string(),               Exp::Primitive(primitive::lisp_push));
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();

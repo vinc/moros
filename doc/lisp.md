@@ -54,7 +54,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `abs`, `mod`, `rem` (aliased to `%`)
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Enumerable: `length` (aliased to `len`), `put`, `get`, `first`, `second`, `third`, `last`, `rest`, `slice`, `contains?`
+- Enumerable: `length` (aliased to `len`), `push`, `put`, `get`, `first`, `second`, `third`, `last`, `rest`, `slice`, `contains?`
 - String: `string.trim` and `string.split` (aliased to `str.trim` and `str.split`)
 - List: `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
 - Dict: `dict`
@@ -210,5 +210,5 @@ language and reading from the filesystem.
 ### Unreleased
 - Add hexadecimal number literals
 - Rename `nth` to `get`
-- Add `empty?`, `reject`, `put` functions
+- Add `empty?`, `reject`, `put`, and `push` functions
 - Add `dict` type
