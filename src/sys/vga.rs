@@ -4,6 +4,7 @@ use crate::api::vga::color;
 use crate::sys;
 
 use bit_field::BitField;
+use core::cmp;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
@@ -277,74 +278,62 @@ impl Perform for Writer {
     }
 
     fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
+        let n = params.iter().next().map_or(1, |param| param[0] as usize);
+
         match c {
             'm' => {
                 let mut fg = FG;
                 let mut bg = BG;
-                for param in params.iter() {
-                    match param[0] {
-                        0 => {
-                            fg = FG;
-                            bg = BG;
-                        },
-                        30..=37 | 90..=97 => {
-                            fg = color::from_ansi(param[0] as u8);
-                        },
-                        40..=47 | 100..=107 => {
-                            bg = color::from_ansi((param[0] as u8) - 10);
-                        },
-                        _ => {},
-                    }
+                match n {
+                    0 => {
+                        fg = FG;
+                        bg = BG;
+                    },
+                    30..=37 | 90..=97 => {
+                        fg = color::from_ansi(n as u8);
+                    },
+                    40..=47 | 100..=107 => {
+                        bg = color::from_ansi((n as u8) - 10);
+                    },
+                    _ => {},
                 }
                 self.set_color(fg, bg);
             },
             'A' => { // Cursor Up
-                let mut n = 1;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
-                // TODO: Don't go past edge
-                self.writer[1] -= n;
-                self.cursor[1] -= n;
+                self.writer[1] = cmp::max(self.writer[1] - n, 0);
+                self.cursor[1] = cmp::max(self.cursor[1] - n, 0);
             },
             'B' => { // Cursor Down
-                let mut n = 1;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
-                // TODO: Don't go past edge
-                self.writer[1] += n;
-                self.cursor[1] += n;
+                self.writer[1] = cmp::min(self.writer[1] + n, BUFFER_HEIGHT - 1);
+                self.cursor[1] = cmp::min(self.cursor[1] + n, BUFFER_HEIGHT - 1);
             },
             'C' => { // Cursor Forward
-                let mut n = 1;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
-                // TODO: Don't go past edge
-                self.writer[0] += n;
-                self.cursor[0] += n;
+                self.writer[0] = cmp::min(self.writer[0] + n, BUFFER_WIDTH - 1);
+                self.cursor[0] = cmp::min(self.cursor[0] + n, BUFFER_WIDTH - 1);
             },
             'D' => { // Cursor Backward
-                let mut n = 1;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
-                // TODO: Don't go past edge
-                self.writer[0] -= n;
-                self.cursor[0] -= n;
+                self.writer[0] = cmp::max(self.writer[0] - n, 0);
+                self.cursor[0] = cmp::max(self.cursor[0] - n, 0);
+            },
+            'E' => { // Cursor Next Line
+                self.writer[0] = 0; // TODO: What should we do at the last line?
+                self.cursor[0] = 0;
+                self.writer[1] = cmp::min(self.writer[1] + n, BUFFER_HEIGHT - 1);
+                self.cursor[1] = cmp::min(self.cursor[1] + n, BUFFER_HEIGHT - 1);
+            },
+            'F' => { // Cursor Previous Line
+                self.writer[0] = 0;
+                self.cursor[0] = 0;
+                self.writer[1] = cmp::max(self.writer[1] - n, 0);
+                self.cursor[1] = cmp::max(self.cursor[1] - n, 0);
             },
             'G' => { // Cursor Horizontal Absolute
-                let (_, y) = self.cursor_position();
-                let mut x = 1;
-                for param in params.iter() {
-                    x = param[0] as usize; // 1-indexed value
+                let x = n - 1; // 1-indexed value
+                let y = self.cursor_position().1;
+                if x < BUFFER_WIDTH {
+                    self.set_writer_position(x, y);
+                    self.set_cursor_position(x, y);
                 }
-                if x > BUFFER_WIDTH {
-                    return;
-                }
-                self.set_writer_position(x - 1, y);
-                self.set_cursor_position(x - 1, y);
             },
             'H' => { // Move cursor
                 let mut x = 1;
@@ -363,10 +352,6 @@ impl Perform for Writer {
                 self.set_cursor_position(x - 1, y - 1);
             },
             'J' => { // Erase in Display
-                let mut n = 0;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
                 match n {
                     // TODO: 0 and 1, from cursor to begining or to end of screen
                     2 => self.clear_screen(),
@@ -377,10 +362,6 @@ impl Perform for Writer {
             },
             'K' => { // Erase in Line
                 let (x, y) = self.cursor_position();
-                let mut n = 0;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
                 match n {
                     0 => self.clear_row_after(x, y),
                     1 => return, // TODO: self.clear_row_before(x, y),
@@ -391,21 +372,17 @@ impl Perform for Writer {
                 self.set_cursor_position(x, y);
             },
             'h' => { // Enable
-                for param in params.iter() {
-                    match param[0] {
-                        12 => self.enable_echo(),
-                        25 => self.enable_cursor(),
-                        _ => return,
-                    }
+                match n {
+                    12 => self.enable_echo(),
+                    25 => self.enable_cursor(),
+                    _ => return,
                 }
             },
             'l' => { // Disable
-                for param in params.iter() {
-                    match param[0] {
-                        12 => self.disable_echo(),
-                        25 => self.disable_cursor(),
-                        _ => return,
-                    }
+                match n {
+                    12 => self.disable_echo(),
+                    25 => self.disable_cursor(),
+                    _ => return,
                 }
             },
             _ => {},
