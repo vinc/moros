@@ -572,22 +572,3 @@ pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
         _ => expected!("first argument to be a dict, a list, or a string")
     }
 }
-
-pub fn lisp_push(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    match &args[0] {
-        Exp::List(list) => {
-            let mut list = list.clone();
-            let val = args[1].clone();
-            list.push(val);
-            Ok(Exp::List(list))
-        }
-        Exp::Str(s) => {
-            let mut s = s.clone();
-            let val = string(&args[1])?;
-            s.push_str(&val);
-            Ok(Exp::Str(s))
-        }
-        _ => expected!("first argument to be a a list or a string")
-    }
-}

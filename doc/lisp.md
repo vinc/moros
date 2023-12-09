@@ -54,7 +54,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `abs`, `mod`, `rem` (aliased to `%`)
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Enumerable: `length` (aliased to `len`), `push`, `put`, `get`, `first`, `second`, `third`, `last`, `rest`, `slice`, `contains?`
+- Enumerable: `length` (aliased to `len`), `put`, `get`, `first`, `second`, `third`, `last`, `rest`, `slice`, `contains?`
 - String: `string.trim` and `string.split` (aliased to `str.trim` and `str.split`)
 - List: `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
 - Dict: `dict`
@@ -64,7 +64,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `nil`, `nil?`, `list?`, `empty?`
 - `boolean?` (aliased to `bool?`), `string?` (aliased to `str?`), `symbol?` (aliased to `sym?`), `number?` (aliased to `num?`)
 - `function?` (aliased to `fun?`), `macro?` (aliased to `mac?`)
-- `first`, `second`, `third`, `rest`
+- `first`, `second`, `third`, `rest`, `push`
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `let`

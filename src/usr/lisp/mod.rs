@@ -604,8 +604,4 @@ fn test_lisp() {
     assert_eq!(eval!("(put (dict \"a\" 1 \"b\" 2) \"c\" 3)"), "(dict \"a\" 1 \"b\" 2 \"c\" 3)");
     assert_eq!(eval!("(put (list 1 3) 1 2)"), "(1 2 3)");
     assert_eq!(eval!("(put \"Heo\" 2 \"ll\")"), "\"Hello\"");
-
-    // push
-    assert_eq!(eval!("(push \"Hell\" \"o\")"), "\"Hello\"");
-    assert_eq!(eval!("(push (list 1 2) 3)"), "(1 2 3)");
 }

@@ -116,6 +116,10 @@
   "Split text into a list of chars"
   (string.split text ""))
 
+(def (push ls x)
+  "Push element to the end of the list"
+  (put ls (len ls) x))
+
 (def (first ls)
   (get ls 0))
 
