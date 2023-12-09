@@ -8,6 +8,7 @@ use crate::api::regex::Regex;
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
 use crate::usr::shell;
+use crate::usr::host;
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -570,5 +571,18 @@ pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
             Ok(Exp::Str(s))
         }
         _ => expected!("first argument to be a dict, a list, or a string")
+    }
+}
+
+pub fn lisp_host(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let hostname = string(&args[0])?;
+    match host::resolve(&hostname) {
+        Ok(addr) => {
+            Ok(Exp::Str(format!("{}", addr)))
+        }
+        Err(e) => {
+            could_not!("resolve host: {:?}", e)
+        }
     }
 }

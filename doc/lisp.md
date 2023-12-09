@@ -60,6 +60,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
 - Dict: `dict`
 - File: `file.size`, `file.open`, `file.close`, `file.read`, `file.write`
+- Net: `host`, `socket.connect`, `socket.listen`, `socket.accept`
 
 ### Core Library
 - `nil`, `nil?`, `list?`, `empty?`
@@ -72,7 +73,6 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `let`
 - `string.join` (aliased to `str.join`), `lines`, `words`, `chars`
 - `regex.match?`
-- `socket.connect`, `socket.listen`, `socket.accept`
 
 ### File Library
 - `read`, `write`, `append`
@@ -212,5 +212,5 @@ language and reading from the filesystem.
 ### Unreleased
 - Add binary and hexadecimal number literals
 - Rename `nth` to `get`
-- Add `empty?`, `reject`, `put`, and `push` functions
+- Add `empty?`, `reject`, `put`, `push`, and `host` functions`
 - Add `dict` type

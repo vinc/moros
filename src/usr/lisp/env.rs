@@ -78,6 +78,8 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("socket.listen".to_string(),      Exp::Primitive(primitive::lisp_socket_listen));
     data.insert("socket.accept".to_string(),      Exp::Primitive(primitive::lisp_socket_accept));
 
+    data.insert("host".to_string(),               Exp::Primitive(primitive::lisp_host));
+
     data.insert("dict".to_string(),               Exp::Primitive(primitive::lisp_dict));
     data.insert("get".to_string(),                Exp::Primitive(primitive::lisp_get));
     data.insert("put".to_string(),                Exp::Primitive(primitive::lisp_put));
