@@ -101,8 +101,9 @@
   "Join the elements of the list with the string"
   (reduce (fun (x y) (string x s y)) ls))
 
-(def (regex.match? pattern s)
-  (not (nil? (regex.find pattern str))))
+(def (regex.match? r s)
+  "Return true if the string match the pattern"
+  (not (nil? (regex.find r s))))
 
 (def (lines text)
   "Split text into a list of lines"
