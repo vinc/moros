@@ -12,8 +12,9 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - Number: `float`, `int`, `bigint`
 
 ### Literals
-- String: `"Hello, World!"`
 - Number: `2.5`, `-25`, `255`, `0xFF`, `0xDEAD_C0DE`, `0b101010`
+- String: `"Hello, World!"`
+- Escape: `\b`, `\e`, `\n`, `\r`, `\t`, `\"`, `\\`
 
 ### Built-in Operators
 - `quote` (abbreviated with `'`)
