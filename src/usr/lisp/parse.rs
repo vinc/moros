@@ -107,6 +107,7 @@ fn parse_str(input: &str) -> IResult<&str, Exp> {
         value("\n",   tag("n")),
         value("\r",   tag("r")),
         value("\t",   tag("t")),
+        value("\x08", tag("b")),
         value("\x1B", tag("e")),
     )))), |inner| inner.unwrap_or("".to_string()));
     let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
