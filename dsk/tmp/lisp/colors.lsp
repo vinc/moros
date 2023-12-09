@@ -1,9 +1,7 @@
 (load "/lib/lisp/core.lsp")
 
-(var esc (bin->str '(27)))
-
 (def (ansi-color x y)
-  (str esc "[" x ";" y "m"))
+  (str "\e[" x ";" y "m"))
 
 (def (fg c)
   (ansi-color c 40))
