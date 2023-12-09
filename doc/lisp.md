@@ -211,6 +211,7 @@ language and reading from the filesystem.
 
 ### Unreleased
 - Add binary and hexadecimal number literals
+- Test for truthiness (neither `false` nor `nil`) in conditions of `if` and `while`
 - Rename `nth` to `get`
 - Add `empty?`, `reject`, `put`, `push`, and `host` functions`
 - Add `dict` type
