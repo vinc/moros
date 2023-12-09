@@ -581,8 +581,8 @@ pub fn lisp_host(args: &[Exp]) -> Result<Exp, Err> {
         Ok(addr) => {
             Ok(Exp::Str(format!("{}", addr)))
         }
-        Err(e) => {
-            could_not!("resolve host: {:?}", e)
+        Err(_) => {
+            Ok(Exp::List(vec![]))
         }
     }
 }
