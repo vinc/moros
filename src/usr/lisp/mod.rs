@@ -61,6 +61,16 @@ pub enum Exp {
     Sym(String),
 }
 
+impl Exp {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Exp::Bool(b) => *b,
+            Exp::List(l) => !l.is_empty(),
+            _ => true,
+        }
+    }
+}
+
 impl PartialEq for Exp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -344,6 +354,14 @@ fn help() -> Result<(), ExitCode> {
 }
 
 #[test_case]
+fn test_exp() {
+    assert_eq!(Exp::Bool(true).is_truthy(), true);
+    assert_eq!(Exp::Bool(false).is_truthy(), false);
+    assert_eq!(Exp::Num(Number::Int(42)).is_truthy(), true);
+    assert_eq!(Exp::List(vec![]).is_truthy(), false);
+}
+
+#[test_case]
 fn test_lisp() {
     use core::f64::consts::PI;
     let env = &mut default_env();
@@ -426,6 +444,10 @@ fn test_lisp() {
     assert_eq!(eval!("(if (> 2 4) 1)"), "()");
     assert_eq!(eval!("(if (< 2 4) 1 2)"), "1");
     assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
+    assert_eq!(eval!("(if true 1 2)"), "1");
+    assert_eq!(eval!("(if false 1 2)"), "2");
+    assert_eq!(eval!("(if '() 1 2)"), "2");
+    assert_eq!(eval!("(if 42 1 2)"), "1");
 
     // while
     assert_eq!(eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");

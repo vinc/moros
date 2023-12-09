@@ -30,7 +30,7 @@
   (if x false true))
 
 (def-mac (or x y)
-  `(if ,x true (if ,y true false)))
+  `(if ,x ,x (if ,y ,y false)))
 
 (def-mac (and x y)
   `(if ,x (if ,y true false) false))
