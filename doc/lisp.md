@@ -44,19 +44,19 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `load`
 
 ### Primitive Operators
-- `type`, `number.type` (aliased to `num.type`)
+- `type`, `number.type` (aliased to `num.type`), `parse`
 - `string` (aliased to `str`)
 - `string->number` (aliased to to `str->num`)
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex.find`
 - `shell` (aliased to `sh')
-- Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `abs`, `mod`, `rem` (aliased to `%`)
+- Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `rem` (aliased to `%`), `trunc`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Enumerable: `length` (aliased to `len`), `put`, `get`, `first`, `second`, `third`, `last`, `rest`, `slice`, `contains?`
+- Enumerable: `length` (aliased to `len`), `put`, `get`, `slice`, `contains?`
 - String: `string.trim` and `string.split` (aliased to `str.trim` and `str.split`)
-- List: `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
+- List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
 - Dict: `dict`
 - File: `file.size`, `file.open`, `file.close`, `file.read`, `file.write`
 
@@ -64,7 +64,8 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `nil`, `nil?`, `list?`, `empty?`
 - `boolean?` (aliased to `bool?`), `string?` (aliased to `str?`), `symbol?` (aliased to `sym?`), `number?` (aliased to `num?`)
 - `function?` (aliased to `fun?`), `macro?` (aliased to `mac?`)
-- `first`, `second`, `third`, `rest`, `push`
+- `abs`, `mod`, `min`, `max`
+- `first`, `second`, `third`, `last`, `rest`, `push`
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `let`
