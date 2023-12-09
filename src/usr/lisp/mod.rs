@@ -447,7 +447,9 @@ fn test_lisp() {
     assert_eq!(eval!("(if true 1 2)"), "1");
     assert_eq!(eval!("(if false 1 2)"), "2");
     assert_eq!(eval!("(if '() 1 2)"), "2");
+    assert_eq!(eval!("(if 0 1 2)"), "1");
     assert_eq!(eval!("(if 42 1 2)"), "1");
+    assert_eq!(eval!("(if \"\" 1 2)"), "1");
 
     // while
     assert_eq!(eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
