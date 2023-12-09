@@ -1,6 +1,6 @@
 (load "/lib/lisp/core.lsp")
 
-(var addr (get args 0)) # Run `host pool.ntp.org` to get an address
+(var addr (or (host (head args)) (head args)))
 (var port 123)
 (var socket (socket.connect "udp" addr port))
 
