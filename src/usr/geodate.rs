@@ -1,13 +1,13 @@
-use crate::usr;
-use crate::api::syscall;
+use crate::api::process::ExitCode;
+use crate::api::clock;
 use alloc::format;
 
 use geodate::geodate;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() < 2 {
         eprintln!("Usage: geodate <longitude> [<timestamp>]");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::UsageError);
     }
 
     let format = "%h:%y:%m:%d:%c:%b";
@@ -15,11 +15,11 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     let timestamp = if args.len() == 3 {
         args[2].parse().expect("Could not parse timestamp")
     } else {
-        syscall::realtime()
+        clock::realtime()
     };
 
     let t = geodate::get_formatted_date(format, longitude, timestamp);
     println!("{}", t);
 
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
