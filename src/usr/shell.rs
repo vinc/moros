@@ -457,7 +457,7 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         "elf"      => usr::elf::main(&args),
         "env"      => usr::env::main(&args),
         "find"     => usr::find::main(&args),
-        "geodate"  => usr::geodate::main(&args),
+        //"geodate"  => usr::geodate::main(&args),
         "goto"     => cmd_change_dir(&args, config), // TODO: Remove this
         "hash"     => usr::hash::main(&args),
         "help"     => usr::help::main(&args),

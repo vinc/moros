@@ -25,6 +25,7 @@ pub fn copy_files(verbose: bool) {
     copy_file("/bin/halt", include_bytes!("../../dsk/bin/halt"), verbose);
     //copy_file("/bin/hello", include_bytes!("../../dsk/bin/hello"), verbose);
     copy_file("/bin/print", include_bytes!("../../dsk/bin/print"), verbose);
+    copy_file("/bin/geodate", include_bytes!("../../dsk/bin/geodate"), verbose);
     copy_file("/bin/reboot", include_bytes!("../../dsk/bin/reboot"), verbose);
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
 
