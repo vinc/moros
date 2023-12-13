@@ -18,7 +18,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         clock::realtime()
     };
 
-    let t = geodate::get_formatted_date(format, longitude, timestamp);
+    let t = geodate::get_formatted_date(format, timestamp as i64, longitude);
     println!("{}", t);
 
     Ok(())
