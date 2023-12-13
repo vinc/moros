@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MOROS Regular Expression Engine</title>
+    <link rel="stylesheet" type="text/css" href="moros.css">
+  </head>
+  <body>
+    <h1>MOROS Regular Expression Engine</h1>
+
+    <p>MOROS include a simplified regular expression engine with the following syntax:</p>
+
+    <ul>
+    <li><code>\</code> escape the following character to its literal meaning</li>
+    <li><code>^</code> matches the starting position within the string</li>
+    <li><code>$</code> matches the ending position within the string</li>
+    <li><code>*</code> matches the preceding element zero or more times</li>
+    <li><code>+</code> matches the preceding element one or more times</li>
+    <li><code>?</code> matches the preceding element zero or one time</li>
+    <li><code>.</code> matches any single character</li>
+    <li><code>\w</code> matches any alphanumeric character</li>
+    <li><code>\W</code> matches any non-alphanumeric character</li>
+    <li><code>\d</code> matches any numeric character</li>
+    <li><code>\D</code> matches any non-numeric character</li>
+    <li><code>\w</code> matches any whitespace character</li>
+    <li><code>\W</code> matches any whitespace character</li>
+    </ul>
+
+    <p>The engine is UTF-8 aware, so for example the unicode character <code>é</code> will be
+matched by <code>\w</code> even if it&#39;s not present in the ASCII table and has a size
+of two bytes.</p>
+  <footer><p><a href="/">MOROS</a></footer>
+  </body>
+</html>

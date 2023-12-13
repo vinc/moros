@@ -1,4 +1,4 @@
-use super::{dirname, filename, realpath, FileIO};
+use super::{dirname, filename, realpath, FileIO, IO};
 use super::dir::Dir;
 use super::block::LinkedBlock;
 use super::dir_entry::DirEntry;
@@ -84,7 +84,7 @@ impl File {
         let offset = match pos {
             SeekFrom::Start(i)   => i as i32,
             SeekFrom::Current(i) => i + self.offset as i32,
-            SeekFrom::End(i)     => i + self.size as i32 - 1,
+            SeekFrom::End(i)     => i + self.size as i32,
         };
         if offset < 0 || offset > self.size as i32 { // TODO: offset > size?
             return Err(())
@@ -198,6 +198,16 @@ impl FileIO for File {
             dir.update_entry(&self.name, self.size);
         }
         Ok(bytes)
+    }
+
+    fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => self.offset < self.size,
+            IO::Write => true,
+        }
     }
 }
 

@@ -1,5 +1,6 @@
-use crate::{sys, usr};
+use crate::sys;
 use crate::api::fs;
+use crate::api::process::ExitCode;
 use crate::api::regex::Regex;
 use crate::api::console::Style;
 
@@ -23,7 +24,7 @@ impl PrintingState {
 }
 
 // > find /tmp -name *.txt -line hello
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut path: &str = &sys::process::dir(); // TODO: use '.'
     let mut name = None;
     let mut line = None;
@@ -32,7 +33,8 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     while i < n {
         match args[i] {
             "-h" | "--help" => {
-                return help();
+                usage();
+                return Ok(());
             }
             "-n" | "--name" => {
                 if i + 1 < n {
@@ -40,18 +42,18 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
                     i += 1;
                 } else {
                     error!("Missing name");
-                    return usr::shell::ExitCode::CommandError;
+                    return Err(ExitCode::UsageError);
                 }
-            },
+            }
             "-l" | "--line" => {
                 if i + 1 < n {
                     line = Some(args[i + 1]);
                     i += 1;
                 } else {
                     error!("Missing line");
-                    return usr::shell::ExitCode::CommandError;
+                    return Err(ExitCode::UsageError);
                 }
-            },
+            }
             _ => path = args[i],
         }
         i += 1;
@@ -61,8 +63,14 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         path = path.trim_end_matches('/');
     }
 
-    if name.is_some() {
-        todo!();
+    if name.is_none() && line.is_none() {
+        usage();
+        return Err(ExitCode::UsageError);
+    }
+
+    if name.is_some() { // TODO
+        error!("`--name` is not implemented");
+        return Err(ExitCode::Failure);
     }
 
     let mut state = PrintingState::new();
@@ -70,7 +78,7 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
         print_matching_lines(path, pattern, &mut state);
     }
 
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
 fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
@@ -146,14 +154,13 @@ fn print_matching_lines_in_file(path: &str, pattern: &str, state: &mut PrintingS
     }
 }
 
-fn help() -> usr::shell::ExitCode {
+fn usage() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!("{}Usage:{} find {}<options> <path>{1}", csi_title, csi_reset, csi_option);
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-n{1},{0} --name <pattern>{1}    Find file name matching {0}<pattern>{1}", csi_option, csi_reset);
-    println!("  {0}-l{1},{0} --line <pattern>{1}    Find lines matching {0}<pattern>{1}", csi_option, csi_reset);
-    usr::shell::ExitCode::CommandSuccessful
+    println!("  {0}-n{1}, {0}--name \"<pattern>\"{1}    Find file name matching {0}<pattern>{1}", csi_option, csi_reset);
+    println!("  {0}-l{1}, {0}--line \"<pattern>\"{1}    Find lines matching {0}<pattern>{1}", csi_option, csi_reset);
 }

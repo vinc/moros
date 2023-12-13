@@ -1,4 +1,4 @@
-use super::{dirname, filename, realpath, FileIO};
+use super::{dirname, filename, realpath, FileIO, IO};
 use super::super_block::SuperBlock;
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
@@ -85,12 +85,7 @@ impl Dir {
     }
 
     pub fn find(&self, name: &str) -> Option<DirEntry> {
-        for entry in self.entries() {
-            if entry.name() == name {
-                return Some(entry);
-            }
-        }
-        None
+        self.entries().find(|entry| entry.name() == name)
     }
 
     // TODO: return a Result
@@ -244,8 +239,19 @@ impl FileIO for Dir {
         }
         Ok(i)
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         Err(())
+    }
+
+    fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => self.entry_index < self.entries().count() as u32,
+            IO::Write => true,
+        }
     }
 }
 

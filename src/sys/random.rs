@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::fs::FileIO;
+use crate::api::fs::{FileIO, IO};
 
 use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
@@ -22,8 +22,19 @@ impl FileIO for Random {
         }
         Ok(n)
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         unimplemented!();
+    }
+
+    fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => false,
+        }
     }
 }
 
@@ -40,8 +51,10 @@ pub fn get_u64() -> u64 {
         }
     } else {
         // FIXME: RDRAND instruction is not available on old CPUs
-        seed[0..8].clone_from_slice(&sys::clock::realtime().to_be_bytes());
-        seed[8..16].clone_from_slice(&sys::clock::uptime().to_be_bytes());
+        seed[0..8].clone_from_slice(&sys::time::ticks().to_be_bytes());
+        seed[8..16].clone_from_slice(&sys::clock::realtime().to_be_bytes());
+        seed[16..24].clone_from_slice(&sys::clock::uptime().to_be_bytes());
+        seed[24..32].clone_from_slice(&sys::time::ticks().to_be_bytes());
     }
     let mut rng = Hc128Rng::from_seed(seed);
     rng.next_u64()

@@ -1,4 +1,5 @@
 use crate::sys;
+
 use alloc::slice::SliceIndex;
 use alloc::sync::Arc;
 use alloc::vec;
@@ -7,21 +8,31 @@ use core::cmp;
 use core::ops::{Index, IndexMut};
 use linked_list_allocator::LockedHeap;
 use spin::Mutex;
+use x86_64::structures::paging::OffsetPageTable;
 use x86_64::structures::paging::mapper::MapToError;
 use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
 use x86_64::VirtAddr;
 
-pub const HEAP_START: usize = 0x4444_4444_0000;
-
-#[global_allocator]
+#[cfg_attr(not(feature = "userspace"), global_allocator)]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
-pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
-    // Use half of the memory for the heap, caped to 16 MB because the allocator is too slow
-    let heap_size = cmp::min(sys::mem::memory_size() / 2, 16 << 20);
+pub const HEAP_START: u64 = 0x4444_4444_0000;
+
+fn max_memory() -> u64 {
+    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<u64>().unwrap() << 20 // MB
+}
+
+pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
+    let mapper = sys::mem::mapper();
+    let mut frame_allocator = sys::mem::frame_allocator();
+
+    // Use half of the memory for the heap caped to 16MB by default because the
+    // allocator is slow.
+    let heap_size = cmp::min(sys::mem::memory_size(), max_memory()) / 2;
+    let heap_start = VirtAddr::new(HEAP_START);
+    sys::process::init_process_addr(HEAP_START + heap_size);
 
     let pages = {
-        let heap_start = VirtAddr::new(HEAP_START as u64);
         let heap_end = heap_start + heap_size - 1u64;
         let heap_start_page = Page::containing_address(heap_start);
         let heap_end_page = Page::containing_address(heap_end);
@@ -32,46 +43,54 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     for page in pages {
         let frame = frame_allocator.allocate_frame().ok_or(MapToError::FrameAllocationFailed)?;
         unsafe {
-            mapper.map_to(page, frame, flags, frame_allocator)?.flush();
+            mapper.map_to(page, frame, flags, &mut frame_allocator)?.flush();
         }
     }
 
     unsafe {
-        ALLOCATOR.lock().init(HEAP_START, heap_size as usize);
+        ALLOCATOR.lock().init(heap_start.as_mut_ptr(), heap_size as usize);
     }
 
     Ok(())
 }
 
-pub fn alloc_pages(addr: u64, size: u64) {
-    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
-    let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
+pub fn alloc_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) -> Result<(), ()> {
+    //debug!("Alloc pages (addr={:#X}, size={})", addr, size);
+    let mut frame_allocator = sys::mem::frame_allocator();
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
+        let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {
-        let frame = frame_allocator.allocate_frame().unwrap();
-        unsafe {
-            if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
-                mapping.flush();
-            } else {
-                debug!("Could not map {:?}", page);
+        //debug!("Alloc page {:?}", page);
+        if let Some(frame) = frame_allocator.allocate_frame() {
+            //debug!("Alloc frame {:?}", frame);
+            unsafe {
+                if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
+                    //debug!("Mapped {:?} to {:?}", page, frame);
+                    mapping.flush();
+                } else {
+                    debug!("Could not map {:?} to {:?}", page, frame);
+                    return Err(());
+                }
             }
+        } else {
+            debug!("Could not allocate frame for {:?}", page);
+            return Err(());
         }
     }
+    Ok(())
 }
 
 use x86_64::structures::paging::page::PageRangeInclusive;
 
 // TODO: Replace `free` by `dealloc`
-pub fn free_pages(addr: u64, size: u64) {
-    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
+pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + size - 1));
+        let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));
         Page::range_inclusive(start_page, end_page)
     };
     for page in pages {

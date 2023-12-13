@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MOROS Syscalls</title>
+    <link rel="stylesheet" type="text/css" href="moros.css">
+  </head>
+  <body>
+    <h1>MOROS Syscalls</h1>
+
+    <p>This list is unstable and subject to change between versions of MOROS.</p>
+
+    <h2>EXIT (0x1)</h2>
+
+    <pre><code class="rust">pub fn exit(code: usize) -&gt; usize
+</code></pre>
+
+    <h2>SPAWN (0x2)</h2>
+
+    <pre><code class="rust">pub fn spawn(path: &amp;str) -&gt; isize
+</code></pre>
+
+    <h2>READ (0x3)</h2>
+
+    <pre><code class="rust">pub fn read(handle: usize, buf: &amp;mut [u8]) -&gt; isize
+</code></pre>
+
+    <h2>WRITE (0x4)</h2>
+
+    <pre><code class="rust">pub fn write(handle: usize, buf: &amp;mut [u8]) -&gt; isize
+</code></pre>
+
+    <h2>OPEN (0x5)</h2>
+
+    <pre><code class="rust">pub fn open(path: &amp;str, flags: usize) -&gt; isize
+</code></pre>
+
+    <h2>CLOSE (0x6)</h2>
+
+    <pre><code class="rust">pub fn close(handle: usize)
+</code></pre>
+
+    <h2>INFO (0x7)</h2>
+
+    <pre><code class="rust">pub fn info(path: &amp;str, info: &amp;mut FileInfo) -&gt; isize
+</code></pre>
+
+    <h2>DUP (0x8)</h2>
+
+    <pre><code class="rust">pub fn dup(old_handle: usize, new_handle: usize) -&gt; isize
+</code></pre>
+
+    <h2>DELETE (0x9)</h2>
+
+    <pre><code class="rust">pub fn delete(path: &amp;str) -&gt; isize
+</code></pre>
+
+    <h2>STOP (0xA)</h2>
+
+    <pre><code class="rust">pub fn stop(code: usize)
+</code></pre>
+
+    <p>The system will reboot with <code>0xCAFE</code> and halt with <code>0xDEAD</code>.</p>
+
+    <h2>SLEEP (0xB)</h2>
+
+    <pre><code class="rust">pub fn sleep(seconds: f64)
+</code></pre>
+
+    <h2>POLL (0xC)</h2>
+
+    <pre><code class="rust">pub fn poll(list: &amp;[(usize, IO)]) -&gt; isize
+</code></pre>
+
+    <h2>CONNECT (0xD)</h2>
+
+    <pre><code class="rust">pub fn connect(handle, usize, addr: &amp;str, port: u16) -&gt; isize
+</code></pre>
+
+    <h2>LISTEN (0xE)</h2>
+
+    <pre><code class="rust">pub fn listen(handle, usize, port: u16) -&gt; isize
+</code></pre>
+
+    <h2>ACCEPT (0xF)</h2>
+
+    <pre><code class="rust">pub fn accept(handle, usize, addr: &amp;str) -&gt; isize
+</code></pre>
+
+    <h2>ALLOC (0x10)</h2>
+
+    <pre><code class="rust">pub fn alloc(size: usize, align: usize) -&gt; *mut u8
+</code></pre>
+
+    <h2>FREE (0x11)</h2>
+
+    <pre><code class="rust">pub fn free(ptr: *mut u8, size: usize, align: usize)
+</code></pre>
+  <footer><p><a href="/">MOROS</a></footer>
+  </body>
+</html>

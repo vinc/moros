@@ -1,0 +1,260 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MOROS Lisp</title>
+    <link rel="stylesheet" type="text/css" href="moros.css">
+  </head>
+  <body>
+    <h1>MOROS Lisp</h1>
+
+    <p>A minimalist Lisp interpreter is available in MOROS to extend the capabilities
+of the Shell.</p>
+
+    <p>MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!</p>
+
+    <h2>Overview</h2>
+
+    <h3>Types</h3>
+
+    <ul>
+    <li>Basics: <code>bool</code>, <code>list</code>, <code>symbol</code>, <code>string</code></li>
+    <li>Number: <code>float</code>, <code>int</code>, <code>bigint</code></li>
+    </ul>
+
+    <h3>Literals</h3>
+
+    <ul>
+    <li>String: <code>&quot;Hello, World!&quot;</code></li>
+    <li>Number: <code>2.5</code>, <code>-25</code>, <code>255</code>, <code>0xFF</code>, <code>0xDEAD_C0DE</code></li>
+    </ul>
+
+    <h3>Built-in Operators</h3>
+
+    <ul>
+    <li><code>quote</code> (abbreviated with <code>&#39;</code>)</li>
+    <li><code>quasiquote</code> (abbreviated with <code>`</code>)</li>
+    <li><code>unquote</code> (abbreviated with <code>,</code>)</li>
+    <li><code>unquote-splice</code> (abbreviated with <code>,@</code>)</li>
+    <li><code>splice</code> (abbreviated with <code>@</code>)</li>
+    <li><code>atom?</code></li>
+    <li><code>equal?</code> (aliased to <code>eq?</code>)</li>
+    <li><code>head</code></li>
+    <li><code>tail</code></li>
+    <li><code>cons</code></li>
+    <li><code>if</code></li>
+    <li><code>cond</code></li>
+    <li><code>while</code></li>
+    <li><code>variable</code> (aliased to <code>var</code>)</li>
+    <li><code>function</code> (aliased to <code>fun</code>)</li>
+    <li><code>macro</code> (aliased to <code>mac</code>)</li>
+    <li><code>set</code></li>
+    <li><code>define</code> (aliased to <code>def</code> and equivalent to <code>define-function</code>)</li>
+    <li><code>define-function</code> (aliased to <code>def-fun</code>)</li>
+    <li><code>define-macro</code> (aliased to <code>def-mac</code>)</li>
+    <li><code>apply</code></li>
+    <li><code>do</code></li>
+    <li><code>doc</code></li>
+    <li><code>eval</code></li>
+    <li><code>expand</code></li>
+    <li><code>load</code></li>
+    </ul>
+
+    <h3>Primitive Operators</h3>
+
+    <ul>
+    <li><code>type</code>, <code>number.type</code> (aliased to <code>num.type</code>)</li>
+    <li><code>string</code> (aliased to <code>str</code>)</li>
+    <li><code>string-&gt;number</code> (aliased to to <code>str-&gt;num</code>)</li>
+    <li><code>string-&gt;binary</code> and <code>binary-&gt;string</code> (aliased to <code>str-&gt;bin</code> and <code>bin-&gt;str</code>)</li>
+    <li><code>number-&gt;binary</code> and <code>binary-&gt;number</code> (aliased to <code>num-&gt;bin</code> and <code>bin-&gt;num</code>)</li>
+    <li><code>regex.find</code></li>
+    <li><code>system</code></li>
+    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>abs</code>, <code>mod</code>, <code>rem</code> (aliased to <code>%</code>)</li>
+    <li>Trigonometric functions: <code>acos</code>, <code>asin</code>, <code>atan</code>, <code>cos</code>, <code>sin</code>, <code>tan</code></li>
+    <li>Comparisons: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>=</code></li>
+    <li>Enumerable: <code>length</code> (aliased to <code>len</code>), <code>nth</code>, <code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>slice</code></li>
+    <li>String: <code>string.trim</code> and <code>string.split</code> (aliased to <code>str.trim</code> and <code>str.split</code>)</li>
+    <li>List: <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>), <code>min</code>, <code>max</code></li>
+    <li>File: <code>file.size</code>, <code>file.open</code>, <code>file.close</code>, <code>file.read</code>, <code>file.write</code></li>
+    </ul>
+
+    <h3>Core Library</h3>
+
+    <ul>
+    <li><code>nil</code>, <code>nil?</code>, <code>list?</code></li>
+    <li><code>boolean?</code> (aliased to <code>bool?</code>), <code>string?</code> (aliased to <code>str?</code>), <code>symbol?</code> (aliased to <code>sym?</code>), <code>number?</code> (aliased to <code>num?</code>)</li>
+    <li><code>function?</code> (aliased to <code>fun?</code>), <code>macro?</code> (aliased to <code>mac?</code>)</li>
+    <li><code>first</code>, <code>second</code>, <code>third</code>, <code>rest</code></li>
+    <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>intersection</code></li>
+    <li><code>not</code>, <code>and</code>, <code>or</code></li>
+    <li><code>let</code></li>
+    <li><code>string.join</code> (aliased to <code>str.join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
+    <li><code>regex.match?</code></li>
+    <li><code>socket.connect</code>, <code>socket.listen</code>, <code>socket.accept</code></li>
+    </ul>
+
+    <h3>File Library</h3>
+
+    <ul>
+    <li><code>read</code>, <code>write</code>, <code>append</code></li>
+    <li><code>read-binary</code>, <code>write-binary</code>, <code>append-binary</code></li>
+    <li><code>read-line</code>, <code>read-char</code></li>
+    <li><code>uptime</code>, <code>realtime</code></li>
+    <li><code>p</code>, <code>print</code></li>
+    </ul>
+
+    <h3>Compatibility Library</h3>
+
+    <ul>
+    <li><code>atom</code>, <code>eq</code>, <code>label</code>, <code>lambda</code>, <code>progn</code>, <code>begin</code></li>
+    <li><code>car</code>, <code>cdr</code>, <code>caar</code>, <code>cadr</code>, <code>cdar</code>, <code>cddr</code></li>
+    </ul>
+
+    <h2>Usage</h2>
+
+    <p>The interpreter can be invoked from the shell:</p>
+
+    <pre><code>&gt; lisp
+MOROS Lisp v0.5.0
+
+&gt; (+ 1 2 3)
+6
+
+&gt; (quit)
+</code></pre>
+
+    <p>And it can execute a file. For example a file located in <code>/tmp/lisp/fibonacci.lsp</code>
+with the following content:</p>
+
+    <pre><code class="lisp">(load &quot;/lib/lisp/core.lsp&quot;)
+
+(def (fibonacci n)
+  (if (&lt; n 2) n
+    (+ (fibonacci (- n 1)) (fibonacci (- n 2)))))
+
+(print
+  (if (nil? args) &quot;Usage: fibonacci &lt;num&gt;&quot;
+    (fibonacci (str-&gt;num (head args)))))
+</code></pre>
+
+    <p>Would produce the following output:</p>
+
+    <pre><code>&gt; lisp /tmp/lisp/fibonacci.lsp 20
+6755
+</code></pre>
+
+    <h2>Examples</h2>
+
+    <pre><code class="lisp">(load &quot;/lib/lisp/core.lsp&quot;)
+
+(print &quot;Hello, World!&quot;)
+
+(var foo 42)                       # Variable definition
+(set foo (+ 40 2))                 # Variable assignement
+
+(var double (fun (x) (* x 2)))     # Function definition
+(def (double x) (* x 2))           # Shortcut
+
+(double foo)                       # =&gt; 84
+
+(def-mac (++ x)                    # Macro definition
+  `(set ,x (+ ,x 1)))
+
+(var i 0)
+(while (&lt; i 10)
+  (++ i))
+(= i 10)                           # =&gt; true
+
+(def (map f ls)
+  &quot;Apply function to list&quot;
+  (if (nil? ls) nil
+    (cons
+      (f (first ls))
+      (map f (rest ls)))))
+
+(doc map)                          # =&gt; &quot;Apply function to list&quot;
+
+(var bar (quote (1 2 3)))
+(var bar &#39;(1 2 3))                 # Shortcut
+
+(map double bar)                   # =&gt; (2 4 6)
+
+(map (fun (x) (+ x 1)) &#39;(4 5 6))   # =&gt; (5 6 7)
+
+(var name &quot;Alice&quot;)
+
+(str &quot;Hello, &quot; name)               # =&gt; &quot;Hello, Alice&quot;
+
+(^ 2 64)                           # =&gt; 18446744073709551616
+</code></pre>
+
+    <h2>Changelog</h2>
+
+    <h3>0.1.0 (2021-07-21)</h3>
+
+    <p>MOROS Lisp started from <a href="https://github.com/stopachka/risp">Risp</a> and was
+extended to include the seven primitive operators and the two special forms of
+John McCarthy&#39;s paper &quot;Recursive Functions of Symbolic Expressions and Their
+Computation by Machine&quot; (1960) and &quot;The Roots of Lisp&quot; (2002) by Paul Graham.</p>
+
+    <h3>0.2.0 (2021-12-04)</h3>
+
+    <p>The whole implementation was refactored and the parser was rewritten to use
+    <a href="https://github.com/Geal/nom">Nom</a>. This allowed the addition of strings to the
+language and reading from the filesystem.</p>
+
+    <h3>0.3.0 (2022-12-12)</h3>
+
+    <ul>
+    <li>Rewrite the evaluation code</li>
+    <li>Add new functions</li>
+    <li>Add a core library</li>
+    </ul>
+
+    <h3>0.3.1 (2022-06-06)</h3>
+
+    <ul>
+    <li>Rewrite parts of the code</li>
+    <li>Add new functions and examples</li>
+    </ul>
+
+    <h3>0.3.2 (2022-07-02)</h3>
+
+    <ul>
+    <li>Add new functions</li>
+    </ul>
+
+    <h3>0.4.0 (2022-08-25)</h3>
+
+    <ul>
+    <li>Rewrite a lot of the code</li>
+    <li>Add integer and big integer support</li>
+    <li>Add tail call optimization (TCO)</li>
+    <li>Add macro support</li>
+    </ul>
+
+    <h3>0.5.0 (2023-06-21)</h3>
+
+    <ul>
+    <li>Rename or add aliases to many functions</li>
+    <li>Add full support for line and inline comments</li>
+    <li>Add params to function representations</li>
+    <li>Add docstring to functions</li>
+    </ul>
+
+    <h3>0.6.0 (2023-09-23)</h3>
+
+    <ul>
+    <li>Add file, number, string, and regex namespaces</li>
+    <li>Add socket functions</li>
+    </ul>
+
+    <h3>Unreleased</h3>
+
+    <ul>
+    <li>Add hexadecimal number literals</li>
+    </ul>
+  <footer><p><a href="/">MOROS</a></footer>
+  </body>
+</html>

@@ -244,7 +244,7 @@ impl Bus {
         match (self.lba1(), self.lba2()) {
             (0x00, 0x00) => Ok(IdentifyResponse::Ata([(); 256].map(|_| { self.read_data() }))),
             (0x14, 0xEB) => Ok(IdentifyResponse::Atapi),
-            (0x3C, 0x3C) => Ok(IdentifyResponse::Sata),
+            (0x3C, 0xC3) => Ok(IdentifyResponse::Sata),
             (_, _) => Err(()),
         }
     }

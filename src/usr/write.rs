@@ -1,10 +1,17 @@
-use crate::{api, usr};
+use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::process::ExitCode;
+use crate::api::syscall;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        return usr::shell::ExitCode::CommandError;
+        help();
+        return Err(ExitCode::UsageError);
     }
-
+    if args[1] == "-h" || args[1] == "--help" {
+        help();
+        return Ok(());
+    }
     let pathname = args[1];
 
     // The command `write /usr/alice/` with a trailing slash will create
@@ -12,16 +19,27 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     // create a file.
     let res = if pathname.ends_with('/') {
         let pathname = pathname.trim_end_matches('/');
-        api::fs::create_dir(pathname)
+        fs::create_dir(pathname)
     } else {
-        api::fs::create_file(pathname)
+        fs::create_file(pathname)
     };
 
     if let Some(handle) = res {
-        api::syscall::close(handle);
-        usr::shell::ExitCode::CommandSuccessful
+        syscall::close(handle);
+        Ok(())
     } else {
         error!("Could not write to '{}'", pathname);
-        usr::shell::ExitCode::CommandError
+        Err(ExitCode::Failure)
     }
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} write {}<path>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Paths:{}", csi_title, csi_reset);
+    println!("  {0}<dir>/{1}     Write directory", csi_option, csi_reset);
+    println!("  {0}<file>{1}     Write file", csi_option, csi_reset);
 }

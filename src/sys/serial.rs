@@ -87,6 +87,9 @@ pub fn init() {
 
 fn interrupt_handler() {
     let b = SERIAL.lock().read_byte();
+    if b == 0xFF { // Ignore invalid bytes
+        return;
+    }
     let c = match b as char {
         '\r' => '\n',
         '\x7F' => '\x08', // Delete => Backspace

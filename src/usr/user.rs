@@ -1,7 +1,9 @@
 use crate::{api, sys, usr};
+use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
 use crate::api::random;
+use crate::api::process::ExitCode;
 use crate::api::syscall;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -9,15 +11,23 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::str;
-use hmac::Hmac;
 use sha2::Sha256;
 
-const PASSWORDS: &str = "/ini/passwords.csv";
-const COMMANDS: [&str; 2] = ["create", "login"];
+const USERS: &str = "/ini/users.csv";
+const DISABLE_EMPTY_PASSWORD: bool = false;
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
-    if args.len() == 1 || !COMMANDS.contains(&args[1]) {
-        return usage();
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    match *args.get(1).unwrap_or(&"invalid") {
+        "create" => {},
+        "login" => {},
+        "-h" | "--help" => {
+            help();
+            return Ok(());
+        }
+        _ => {
+            help();
+            return Err(ExitCode::UsageError);
+        }
     }
 
     let username: String = if args.len() == 2 {
@@ -30,20 +40,15 @@ pub fn main(args: &[&str]) -> usr::shell::ExitCode {
     match args[1] {
         "create" => create(&username),
         "login" => login(&username),
-        _ => usage(),
+        _ => unreachable!(),
     }
 }
 
-fn usage() -> usr::shell::ExitCode {
-    eprintln!("Usage: user [{}] <username>", COMMANDS.join("|"));
-    usr::shell::ExitCode::CommandError
-}
-
 // TODO: Add max number of attempts
-pub fn login(username: &str) -> usr::shell::ExitCode {
-    if !fs::exists(PASSWORDS) {
-        error!("Could not read '{}'", PASSWORDS);
-        return usr::shell::ExitCode::CommandError;
+pub fn login(username: &str) -> Result<(), ExitCode> {
+    if !fs::exists(USERS) {
+        error!("Could not read '{}'", USERS);
+        return Err(ExitCode::Failure);
     }
 
     if username.is_empty() {
@@ -74,21 +79,22 @@ pub fn login(username: &str) -> usr::shell::ExitCode {
 
     let home = format!("/usr/{}", username);
     sys::process::set_user(username);
-    sys::process::set_env("HOME", &home);
     sys::process::set_dir(&home);
+    sys::process::set_env("USER", username);
+    sys::process::set_env("HOME", &home);
 
     // TODO: load shell
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
-pub fn create(username: &str) -> usr::shell::ExitCode {
+pub fn create(username: &str) -> Result<(), ExitCode> {
     if username.is_empty() {
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if hashed_password(username).is_some() {
         error!("Username exists");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     print!("Password: ");
@@ -97,8 +103,8 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
     print!("\x1b[12h"); // Enable echo
     println!();
 
-    if password.is_empty() {
-        return usr::shell::ExitCode::CommandError;
+    if password.is_empty() && DISABLE_EMPTY_PASSWORD {
+        return Err(ExitCode::Failure);
     }
 
     print!("Confirm: ");
@@ -109,12 +115,12 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
 
     if password != confirm {
         error!("Password confirmation failed");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     if save_hashed_password(username, &hash(&password)).is_err() {
         error!("Could not save user");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
     // Create home dir
@@ -122,10 +128,10 @@ pub fn create(username: &str) -> usr::shell::ExitCode {
         api::syscall::close(handle);
     } else {
         error!("Could not create home dir");
-        return usr::shell::ExitCode::CommandError;
+        return Err(ExitCode::Failure);
     }
 
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
 pub fn check(password: &str, hashed_password: &str) -> bool {
@@ -141,7 +147,7 @@ pub fn check(password: &str, hashed_password: &str) -> bool {
     let salt: [u8; 16] = decoded_field[0..16].try_into().unwrap();
 
     let mut hash = [0u8; 32];
-    pbkdf2::pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, c, &mut hash);
+    pbkdf2::pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, c, &mut hash);
     let encoded_hash = String::from_utf8(usr::base64::encode(&hash)).unwrap();
 
     encoded_hash == fields[3]
@@ -167,7 +173,7 @@ pub fn hash(password: &str) -> String {
     }
 
     // Hashing password with PBKDF2-HMAC-SHA256
-    pbkdf2::pbkdf2::<Hmac<Sha256>>(password.as_bytes(), &salt, c, &mut hash);
+    pbkdf2::pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, c, &mut hash);
 
     // Encoding in Base64 standard without padding
     let c = c.to_be_bytes();
@@ -183,8 +189,8 @@ pub fn hash(password: &str) -> String {
 
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
-    if let Ok(contents) = api::fs::read_to_string(PASSWORDS) {
-        for line in contents.split('\n') {
+    if let Ok(csv) = api::fs::read_to_string(USERS) {
+        for line in csv.split('\n') {
             let mut rows = line.split(',');
             if let Some(username) = rows.next() {
                 if let Some(hash) = rows.next() {
@@ -210,5 +216,16 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
         csv.push_str(&format!("{},{}\n", u, h));
     }
 
-    fs::write(PASSWORDS, csv.as_bytes())
+    fs::write(USERS, csv.as_bytes())
+}
+
+fn help() {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} user {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!();
+    println!("{}Commands:{}", csi_title, csi_reset);
+    println!("  {}create [<user>]{}    Create user", csi_option, csi_reset);
+    println!("  {}login [<user>]{}     Login user", csi_option, csi_reset);
 }

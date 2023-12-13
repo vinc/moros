@@ -16,7 +16,7 @@ pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
 pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
-pub use crate::api::fs::{dirname, filename, realpath, FileIO};
+pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
 pub use crate::sys::ata::BLOCK_SIZE;
 
 use dir_entry::DirEntry;
@@ -26,14 +26,17 @@ use alloc::string::{String, ToString};
 
 pub const VERSION: u8 = 1;
 
+// TODO: Move that to API
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum OpenFlag {
-    Read   = 1,
-    Write  = 2,
-    Create = 4,
-    Dir    = 8,
-    Device = 16,
+    Read     = 1,
+    Write    = 2,
+    Append   = 4,
+    Create   = 8,
+    Truncate = 16,
+    Dir      = 32,
+    Device   = 64,
 }
 
 impl OpenFlag {
@@ -58,10 +61,15 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
             res
         }.map(Resource::Device)
     } else {
-        let res = File::open(path);
+        let mut res = File::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             File::create(path)
         } else {
+            if OpenFlag::Append.is_set(flags) {
+                if let Some(ref mut file) = res {
+                    file.seek(SeekFrom::End(0)).ok();
+                }
+            }
             res
         }.map(Resource::File)
     }
@@ -69,10 +77,10 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
 
 pub fn delete(path: &str) -> Result<(), ()> {
     if let Some(info) = info(path) {
-        if info.is_file() {
-            return File::delete(path);
-        } else if info.is_dir() {
+        if info.is_dir() {
             return Dir::delete(path);
+        } else if info.is_file() || info.is_device() {
+            return File::delete(path);
         }
     }
     Err(())
@@ -113,6 +121,22 @@ impl FileIO for Resource {
             Resource::Dir(io) => io.write(buf),
             Resource::File(io) => io.write(buf),
             Resource::Device(io) => io.write(buf),
+        }
+    }
+
+    fn close(&mut self) {
+        match self {
+            Resource::Dir(io) => io.close(),
+            Resource::File(io) => io.close(),
+            Resource::Device(io) => io.close(),
+        }
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match self {
+            Resource::Dir(io) => io.poll(event),
+            Resource::File(io) => io.poll(event),
+            Resource::Device(io) => io.poll(event),
         }
     }
 }

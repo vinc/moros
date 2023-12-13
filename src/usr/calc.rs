@@ -1,4 +1,4 @@
-use crate::usr;
+use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::console::Style;
 
@@ -106,10 +106,9 @@ fn parse_eval(line: &str) -> Result<f64, String> {
     }
 }
 
-fn repl() -> usr::shell::ExitCode {
+fn repl() -> Result<(), ExitCode> {
     println!("MOROS Calc v0.1.0\n");
     let csi_color = Style::color("Cyan");
-    let csi_error = Style::color("LightRed");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -118,7 +117,7 @@ fn repl() -> usr::shell::ExitCode {
     prompt.history.load(history_file);
 
     while let Some(line) = prompt.input(&prompt_string) {
-        if line == "exit" || line == "quit" {
+        if line == "q" || line == "quit" {
             break;
         }
         if line.is_empty() {
@@ -131,7 +130,7 @@ fn repl() -> usr::shell::ExitCode {
                 println!("{}\n", res);
             }
             Err(msg) => {
-                println!("{}Error:{} {}\n", csi_error, csi_reset, msg);
+                error!("{}\n", msg);
                 continue;
             }
         }
@@ -139,24 +138,38 @@ fn repl() -> usr::shell::ExitCode {
         prompt.history.add(&line);
         prompt.history.save(history_file);
     }
-    usr::shell::ExitCode::CommandSuccessful
+    Ok(())
 }
 
-pub fn main(args: &[&str]) -> usr::shell::ExitCode {
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    for &arg in args {
+        match arg {
+            "-h" | "--help" => return help(),
+            _ => {},
+        }
+    }
     if args.len() == 1 {
         repl()
     } else {
         match parse_eval(&args[1..].join(" ")) {
             Ok(res) => {
                 println!("{}", res);
-                usr::shell::ExitCode::CommandSuccessful
+                Ok(())
             }
             Err(msg) => {
                 error!("{}", msg);
-                usr::shell::ExitCode::CommandError
+                Err(ExitCode::Failure)
             }
         }
     }
+}
+
+pub fn help() -> Result<(), ExitCode> {
+    let csi_option = Style::color("LightCyan");
+    let csi_title = Style::color("Yellow");
+    let csi_reset = Style::reset();
+    println!("{}Usage:{} calc {}[<exp>]{}", csi_title, csi_reset, csi_option, csi_reset);
+    Ok(())
 }
 
 #[test_case]

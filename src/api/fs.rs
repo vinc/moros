@@ -9,9 +9,14 @@ use alloc::vec;
 
 pub use crate::sys::fs::{FileInfo, DeviceType};
 
+#[derive(Clone, Copy)]
+pub enum IO { Read, Write }
+
 pub trait FileIO {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()>;
+    fn close(&mut self);
+    fn poll(&mut self, event: IO) -> bool;
 }
 
 pub fn dirname(pathname: &str) -> &str {
@@ -62,6 +67,11 @@ pub fn delete(path: &str) -> Result<(), ()> {
 
 pub fn open_file(path: &str) -> Option<usize> {
     let flags = 0;
+    syscall::open(path, flags)
+}
+
+pub fn append_file(path: &str) -> Option<usize> {
+    let flags = OpenFlag::Append as usize;
     syscall::open(path, flags)
 }
 
@@ -144,10 +154,31 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
     Err(())
 }
 
-pub fn reopen(path: &str, handle: usize) -> Result<usize, ()> {
+pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
     let res = if let Some(info) = syscall::info(path) {
         if info.is_device() {
             open_device(path)
+        } else {
+            append_file(path)
+        }
+    } else {
+        create_file(path)
+    };
+    if let Some(handle) = res {
+        if let Some(bytes) = syscall::write(handle, buf) {
+            syscall::close(handle);
+            return Ok(bytes);
+        }
+    }
+    Err(())
+}
+
+pub fn reopen(path: &str, handle: usize, append_mode: bool) -> Result<usize, ()> {
+    let res = if let Some(info) = syscall::info(path) {
+        if info.is_device() {
+            open_device(path)
+        } else if append_mode {
+            append_file(path)
         } else {
             open_file(path)
         }
