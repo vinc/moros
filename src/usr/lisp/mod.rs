@@ -112,7 +112,7 @@ impl fmt::Display for Exp {
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
-            Exp::Str(s)       => format!("{:?}", s),
+            Exp::Str(s)       => format!("{:?}", s).replace("\\u{8}", "\\b").replace("\\u{1b}", "\\e"),
             Exp::List(list)   => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
