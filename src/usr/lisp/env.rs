@@ -63,20 +63,20 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("length".to_string(),             Exp::Primitive(primitive::lisp_length));
     data.insert("concat".to_string(),             Exp::Primitive(primitive::lisp_concat));
 
-    data.insert("number.type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
-    data.insert("regex.find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
-    data.insert("string.split".to_string(),       Exp::Primitive(primitive::lisp_string_split));
-    data.insert("string.trim".to_string(),        Exp::Primitive(primitive::lisp_string_trim));
+    data.insert("number/type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
+    data.insert("regex/find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
+    data.insert("string/split".to_string(),       Exp::Primitive(primitive::lisp_string_split));
+    data.insert("string/trim".to_string(),        Exp::Primitive(primitive::lisp_string_trim));
 
-    data.insert("file.size".to_string(),          Exp::Primitive(primitive::lisp_file_size));
-    data.insert("file.open".to_string(),          Exp::Primitive(primitive::lisp_file_open));
-    data.insert("file.read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
-    data.insert("file.write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
-    data.insert("file.close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
+    data.insert("file/size".to_string(),          Exp::Primitive(primitive::lisp_file_size));
+    data.insert("file/open".to_string(),          Exp::Primitive(primitive::lisp_file_open));
+    data.insert("file/read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
+    data.insert("file/write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
+    data.insert("file/close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
 
-    data.insert("socket.connect".to_string(),     Exp::Primitive(primitive::lisp_socket_connect));
-    data.insert("socket.listen".to_string(),      Exp::Primitive(primitive::lisp_socket_listen));
-    data.insert("socket.accept".to_string(),      Exp::Primitive(primitive::lisp_socket_accept));
+    data.insert("socket/connect".to_string(),     Exp::Primitive(primitive::lisp_socket_connect));
+    data.insert("socket/listen".to_string(),      Exp::Primitive(primitive::lisp_socket_listen));
+    data.insert("socket/accept".to_string(),      Exp::Primitive(primitive::lisp_socket_accept));
 
     data.insert("host".to_string(),               Exp::Primitive(primitive::lisp_host));
 

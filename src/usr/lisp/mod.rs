@@ -534,8 +534,8 @@ fn test_lisp() {
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
     assert_eq!(eval!("(equal? \"foo\" \"foo\")"), "true");
     assert_eq!(eval!("(equal? \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(string.trim \"abc\n\")"), "\"abc\"");
-    assert_eq!(eval!("(string.split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(string/trim \"abc\n\")"), "\"abc\"");
+    assert_eq!(eval!("(string/split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");
@@ -575,9 +575,9 @@ fn test_lisp() {
     assert_eq!(eval!("(^ 2 128)"),   "340282366920938463463374607431768211456");   // -> bigint
     assert_eq!(eval!("(^ 2.0 128)"), "340282366920938500000000000000000000000.0"); // -> float
 
-    assert_eq!(eval!("(number.type 9223372036854775807)"),   "\"int\"");
-    assert_eq!(eval!("(number.type 9223372036854775808)"),   "\"bigint\"");
-    assert_eq!(eval!("(number.type 9223372036854776000.0)"), "\"float\"");
+    assert_eq!(eval!("(number/type 9223372036854775807)"),   "\"int\"");
+    assert_eq!(eval!("(number/type 9223372036854775808)"),   "\"bigint\"");
+    assert_eq!(eval!("(number/type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
     eval!("(variable x 'a)");

@@ -45,22 +45,22 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `load`
 
 ### Primitive Operators
-- `type`, `number.type` (aliased to `num.type`), `parse`
+- `type`, `number/type` (aliased to `num/type`), `parse`
 - `string` (aliased to `str`)
 - `string->number` (aliased to to `str->num`)
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
-- `regex.find`
+- `regex/find`
 - `shell` (aliased to `sh`)
 - Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `rem` (aliased to `%`), `trunc`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Enumerable: `length` (aliased to `len`), `put`, `get`, `slice`, `contains?`
-- String: `string.trim` and `string.split` (aliased to `str.trim` and `str.split`)
+- String: `string/trim` and `string/split` (aliased to `str/trim` and `str/split`)
 - List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
 - Dict: `dict`
-- File: `file.size`, `file.open`, `file.close`, `file.read`, `file.write`
-- Net: `host`, `socket.connect`, `socket.listen`, `socket.accept`
+- File: `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
+- Net: `host`, `socket/connect`, `socket/listen`, `socket/accept`
 
 ### Core Library
 - `nil`, `nil?`, `list?`, `empty?`
@@ -71,8 +71,8 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `let`
-- `string.join` (aliased to `str.join`), `lines`, `words`, `chars`
-- `regex.match?`
+- `string/join` (aliased to `str/join`), `lines`, `words`, `chars`
+- `regex/match?`
 
 ### File Library
 - `read`, `write`, `append`
@@ -215,3 +215,4 @@ language and reading from the filesystem.
 - Rename `nth` to `get`
 - Add `empty?`, `reject`, `put`, `push`, and `host` functions`
 - Add `dict` type
+- Use `/` instead of `.` as namespace separator
