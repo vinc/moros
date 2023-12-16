@@ -169,11 +169,36 @@ fn glob(arg: &str) -> Vec<String> {
     matches
 }
 
+pub fn parse_str(s: &str) -> String {
+    let mut res = String::new();
+    let mut is_escaped = false;
+    for c in s.chars() {
+        match c {
+            '\\' if !is_escaped => {
+                is_escaped = true;
+                continue;
+            }
+            _ if !is_escaped => res.push(c),
+            '\\' => res.push(c),
+            '"' => res.push(c),
+            'n' => res.push('\n'),
+            'r' => res.push('\r'),
+            't' => res.push('\t'),
+            'b' => res.push('\x08'),
+            'e' => res.push('\x1B'),
+            _ => {},
+        }
+        is_escaped = false;
+    }
+    res
+}
+
 pub fn split_args(cmd: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut i = 0;
     let mut n = cmd.len();
     let mut is_quote = false;
+    let mut is_escaped = false;
 
     for (j, c) in cmd.char_indices() {
         if c == '#' && !is_quote {
@@ -188,12 +213,17 @@ pub fn split_args(cmd: &str) -> Vec<String> {
                 }
             }
             i = j + 1;
-        } else if c == '"' {
+        } else if c == '"' && !is_escaped {
             is_quote = !is_quote;
             if !is_quote {
-                args.push(cmd[i..j].to_string());
+                args.push(parse_str(&cmd[i..j]));
             }
             i = j + 1;
+        }
+        if c == '\\' && !is_escaped {
+            is_escaped = true;
+        } else {
+            is_escaped = false;
         }
     }
 
