@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Improve lisp with Advent of Code 2023 (#556)
+- Improve system information (#553)
+- Add hash command (#554)
+- Improve binary support (#552)
 - Add basic userspace shell (#548)
 - Add basic userspace allocator (#544)
 - Improve documentation (#547)
