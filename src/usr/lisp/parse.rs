@@ -96,17 +96,19 @@ fn float(input: &str) -> IResult<&str, &str> {
 }
 
 fn is_symbol_letter(c: char) -> bool {
-    let chars = "<>=-+*/%^?.";
+    let chars = "$<>=-+*/%^?.";
     c.is_alphanumeric() || chars.contains(c)
 }
 
 fn parse_str(input: &str) -> IResult<&str, Exp> {
     let escaped = map(opt(escaped_transform(is_not("\\\""), '\\', alt((
-        value("\\", tag("\\")),
-        value("\"", tag("\"")),
-        value("\n", tag("n")),
-        value("\r", tag("r")),
-        value("\t", tag("t")),
+        value("\\",   tag("\\")),
+        value("\"",   tag("\"")),
+        value("\n",   tag("n")),
+        value("\r",   tag("r")),
+        value("\t",   tag("t")),
+        value("\x08", tag("b")),
+        value("\x1B", tag("e")),
     )))), |inner| inner.unwrap_or("".to_string()));
     let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
     Ok((input, Exp::Str(s)))

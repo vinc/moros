@@ -44,7 +44,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("sin".to_string(),                Exp::Primitive(primitive::lisp_sin));
     data.insert("tan".to_string(),                Exp::Primitive(primitive::lisp_tan));
     data.insert("trunc".to_string(),              Exp::Primitive(primitive::lisp_trunc));
-    data.insert("system".to_string(),             Exp::Primitive(primitive::lisp_system));
+    data.insert("shell".to_string(),              Exp::Primitive(primitive::lisp_shell));
     data.insert("string".to_string(),             Exp::Primitive(primitive::lisp_string));
     data.insert("string->binary".to_string(),     Exp::Primitive(primitive::lisp_string_binary));
     data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_binary_string));
@@ -56,26 +56,32 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("list".to_string(),               Exp::Primitive(primitive::lisp_list));
     data.insert("sort".to_string(),               Exp::Primitive(primitive::lisp_sort));
     data.insert("unique".to_string(),             Exp::Primitive(primitive::lisp_unique));
-    data.insert("nth".to_string(),                Exp::Primitive(primitive::lisp_nth));
     data.insert("contains?".to_string(),          Exp::Primitive(primitive::lisp_contains));
     data.insert("slice".to_string(),              Exp::Primitive(primitive::lisp_slice));
     data.insert("chunks".to_string(),             Exp::Primitive(primitive::lisp_chunks));
     data.insert("length".to_string(),             Exp::Primitive(primitive::lisp_length));
     data.insert("concat".to_string(),             Exp::Primitive(primitive::lisp_concat));
 
-    data.insert("number.type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
-    data.insert("regex.find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
-    data.insert("string.split".to_string(),       Exp::Primitive(primitive::lisp_string_split));
-    data.insert("string.trim".to_string(),        Exp::Primitive(primitive::lisp_string_trim));
+    data.insert("number/type".to_string(),        Exp::Primitive(primitive::lisp_number_type));
+    data.insert("regex/find".to_string(),         Exp::Primitive(primitive::lisp_regex_find));
+    data.insert("string/split".to_string(),       Exp::Primitive(primitive::lisp_string_split));
+    data.insert("string/trim".to_string(),        Exp::Primitive(primitive::lisp_string_trim));
 
-    data.insert("file.size".to_string(),          Exp::Primitive(primitive::lisp_file_size));
-    data.insert("file.open".to_string(),          Exp::Primitive(primitive::lisp_file_open));
-    data.insert("file.read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
-    data.insert("file.write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
-    data.insert("file.close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
-    data.insert("socket.connect".to_string(),     Exp::Primitive(primitive::lisp_socket_connect));
-    data.insert("socket.listen".to_string(),      Exp::Primitive(primitive::lisp_socket_listen));
-    data.insert("socket.accept".to_string(),      Exp::Primitive(primitive::lisp_socket_accept));
+    data.insert("file/size".to_string(),          Exp::Primitive(primitive::lisp_file_size));
+    data.insert("file/open".to_string(),          Exp::Primitive(primitive::lisp_file_open));
+    data.insert("file/read".to_string(),          Exp::Primitive(primitive::lisp_file_read));
+    data.insert("file/write".to_string(),         Exp::Primitive(primitive::lisp_file_write));
+    data.insert("file/close".to_string(),         Exp::Primitive(primitive::lisp_file_close));
+
+    data.insert("socket/connect".to_string(),     Exp::Primitive(primitive::lisp_socket_connect));
+    data.insert("socket/listen".to_string(),      Exp::Primitive(primitive::lisp_socket_listen));
+    data.insert("socket/accept".to_string(),      Exp::Primitive(primitive::lisp_socket_accept));
+
+    data.insert("host".to_string(),               Exp::Primitive(primitive::lisp_host));
+
+    data.insert("dict".to_string(),               Exp::Primitive(primitive::lisp_dict));
+    data.insert("get".to_string(),                Exp::Primitive(primitive::lisp_get));
+    data.insert("put".to_string(),                Exp::Primitive(primitive::lisp_put));
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().chain(BUILT_INS.map(String::from)).collect();

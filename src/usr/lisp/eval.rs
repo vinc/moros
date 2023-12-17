@@ -101,7 +101,7 @@ fn eval_while_args(args: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err>
     ensure_length_gt!(args, 1);
     let cond = &args[0];
     let mut res = Exp::List(vec![]);
-    while eval(cond, env)? == Exp::Bool(true) {
+    while eval(cond, env)?.is_truthy() {
         for arg in &args[1..] {
             res = eval(arg, env)?;
         }
@@ -212,7 +212,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "if" => {
                         ensure_length_gt!(args, 1);
-                        if eval(&args[0], env)? == Exp::Bool(true) { // consequent
+                        if eval(&args[0], env)?.is_truthy() { // consequent
                             exp_tmp = args[1].clone();
                         } else if args.len() > 2 { // alternate
                             exp_tmp = args[2].clone();

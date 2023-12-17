@@ -160,13 +160,19 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
                 let message = Message::from(&data);
                 if message.id() == query.id() && message.is_response() {
                     syscall::close(handle);
+                    //usr::hex::print_hex(&message.datagram);
                     return match message.code() {
                         ResponseCode::NoError => {
                             // TODO: Parse the datagram instead of extracting
                             // the last 4 bytes
                             let n = message.datagram.len();
                             let data = &message.datagram[(n - 4)..];
-                            Ok(IpAddress::from(Ipv4Address::from_bytes(data)))
+                            let ipv4 = Ipv4Address::from_bytes(data);
+                            if ipv4.is_unspecified() {
+                                Err(ResponseCode::NameError) // FIXME
+                            } else {
+                                Ok(IpAddress::from(ipv4))
+                            }
                         }
                         code => {
                             Err(code)

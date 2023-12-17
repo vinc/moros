@@ -13,7 +13,7 @@ use eval::{eval, eval_variable_args};
 use expand::expand;
 use parse::parse;
 
-use crate::api;
+use crate::api::fs;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
@@ -24,9 +24,11 @@ use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use alloc::collections::btree_map::BTreeMap;
 use alloc::vec;
 use core::cell::RefCell;
 use core::convert::TryInto;
+use core::cmp;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -52,10 +54,21 @@ pub enum Exp {
     Function(Box<Function>),
     Macro(Box<Function>),
     List(Vec<Exp>),
+    Dict(BTreeMap<String, Exp>),
     Bool(bool),
     Num(Number),
     Str(String),
     Sym(String),
+}
+
+impl Exp {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Exp::Bool(b) => *b,
+            Exp::List(l) => !l.is_empty(),
+            _ => true,
+        }
+    }
 }
 
 impl PartialEq for Exp {
@@ -64,6 +77,7 @@ impl PartialEq for Exp {
             (Exp::Function(a), Exp::Function(b)) => a == b,
             (Exp::Macro(a),    Exp::Macro(b))    => a == b,
             (Exp::List(a),     Exp::List(b))     => a == b,
+            (Exp::Dict(a),     Exp::Dict(b))     => a == b,
             (Exp::Bool(a),     Exp::Bool(b))     => a == b,
             (Exp::Num(a),      Exp::Num(b))      => a == b,
             (Exp::Str(a),      Exp::Str(b))      => a == b,
@@ -73,13 +87,13 @@ impl PartialEq for Exp {
     }
 }
 
-use core::cmp::Ordering;
 impl PartialOrd for Exp {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         match (self, other) {
             (Exp::Function(a), Exp::Function(b)) => a.partial_cmp(b),
             (Exp::Macro(a),    Exp::Macro(b))    => a.partial_cmp(b),
             (Exp::List(a),     Exp::List(b))     => a.partial_cmp(b),
+            (Exp::Dict(a),     Exp::Dict(b))     => a.partial_cmp(b),
             (Exp::Bool(a),     Exp::Bool(b))     => a.partial_cmp(b),
             (Exp::Num(a),      Exp::Num(b))      => a.partial_cmp(b),
             (Exp::Str(a),      Exp::Str(b))      => a.partial_cmp(b),
@@ -98,10 +112,14 @@ impl fmt::Display for Exp {
             Exp::Bool(a)      => a.to_string(),
             Exp::Num(n)       => n.to_string(),
             Exp::Sym(s)       => s.clone(),
-            Exp::Str(s)       => format!("{:?}", s),
+            Exp::Str(s)       => format!("{:?}", s).replace("\\u{8}", "\\b").replace("\\u{1b}", "\\e"),
             Exp::List(list)   => {
                 let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
+            },
+            Exp::Dict(dict)   => {
+                let xs: Vec<String> = dict.iter().map(|(k, v)| format!("{} {}", k, v)).collect();
+                format!("(dict {})", xs.join(" "))
             },
         };
         write!(f, "{}", out)
@@ -274,6 +292,29 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     Ok(())
 }
 
+fn exec(env: &mut Rc<RefCell<Env>>, path: &str) -> Result<(), ExitCode> {
+    if let Ok(mut input) = fs::read_to_string(path) {
+        loop {
+            match parse_eval(&input, env) {
+                Ok((rest, _)) => {
+                    if rest.is_empty() {
+                        break;
+                    }
+                    input = rest;
+                }
+                Err(Err::Reason(msg)) => {
+                    error!("{}", msg);
+                    return Err(ExitCode::Failure);
+                }
+            }
+        }
+        Ok(())
+    } else {
+        error!("Could not find file '{}'", path);
+        Err(ExitCode::Failure)
+    }
+}
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let env = &mut default_env();
 
@@ -291,32 +332,16 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if args.len() < 2 {
+        let init = "/ini/lisp.lsp";
+        if fs::exists(init) {
+            exec(env, init)?;
+        }
         repl(env)
     } else {
         if args[1] == "-h" || args[1] == "--help" {
             return help();
         }
-        let path = args[1];
-        if let Ok(mut input) = api::fs::read_to_string(path) {
-            loop {
-                match parse_eval(&input, env) {
-                    Ok((rest, _)) => {
-                        if rest.is_empty() {
-                            break;
-                        }
-                        input = rest;
-                    }
-                    Err(Err::Reason(msg)) => {
-                        error!("{}", msg);
-                        return Err(ExitCode::Failure);
-                    }
-                }
-            }
-            Ok(())
-        } else {
-            error!("Could not find file '{}'", path);
-            Err(ExitCode::Failure)
-        }
+        exec(env, args[1])
     }
 }
 
@@ -326,6 +351,14 @@ fn help() -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     println!("{}Usage:{} lisp {}[<file> [<args>]]{}", csi_title, csi_reset, csi_option, csi_reset);
     Ok(())
+}
+
+#[test_case]
+fn test_exp() {
+    assert_eq!(Exp::Bool(true).is_truthy(), true);
+    assert_eq!(Exp::Bool(false).is_truthy(), false);
+    assert_eq!(Exp::Num(Number::Int(42)).is_truthy(), true);
+    assert_eq!(Exp::List(vec![]).is_truthy(), false);
 }
 
 #[test_case]
@@ -411,6 +444,12 @@ fn test_lisp() {
     assert_eq!(eval!("(if (> 2 4) 1)"), "()");
     assert_eq!(eval!("(if (< 2 4) 1 2)"), "1");
     assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
+    assert_eq!(eval!("(if true 1 2)"), "1");
+    assert_eq!(eval!("(if false 1 2)"), "2");
+    assert_eq!(eval!("(if '() 1 2)"), "2");
+    assert_eq!(eval!("(if 0 1 2)"), "1");
+    assert_eq!(eval!("(if 42 1 2)"), "1");
+    assert_eq!(eval!("(if \"\" 1 2)"), "1");
 
     // while
     assert_eq!(eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
@@ -495,8 +534,8 @@ fn test_lisp() {
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
     assert_eq!(eval!("(equal? \"foo\" \"foo\")"), "true");
     assert_eq!(eval!("(equal? \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(string.trim \"abc\n\")"), "\"abc\"");
-    assert_eq!(eval!("(string.split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(string/trim \"abc\n\")"), "\"abc\"");
+    assert_eq!(eval!("(string/split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");
@@ -536,9 +575,9 @@ fn test_lisp() {
     assert_eq!(eval!("(^ 2 128)"),   "340282366920938463463374607431768211456");   // -> bigint
     assert_eq!(eval!("(^ 2.0 128)"), "340282366920938500000000000000000000000.0"); // -> float
 
-    assert_eq!(eval!("(number.type 9223372036854775807)"),   "\"int\"");
-    assert_eq!(eval!("(number.type 9223372036854775808)"),   "\"bigint\"");
-    assert_eq!(eval!("(number.type 9223372036854776000.0)"), "\"float\"");
+    assert_eq!(eval!("(number/type 9223372036854775807)"),   "\"int\"");
+    assert_eq!(eval!("(number/type 9223372036854775808)"),   "\"bigint\"");
+    assert_eq!(eval!("(number/type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
     eval!("(variable x 'a)");
@@ -570,4 +609,23 @@ fn test_lisp() {
     assert_eq!(eval!("# comment\n# comment"), "()");
     assert_eq!(eval!("(+ 1 2 3) # comment"), "6");
     assert_eq!(eval!("(+ 1 2 3) # comment\n# comment"), "6");
+
+    // list
+    assert_eq!(eval!("(list 1 2 3)"), "(1 2 3)");
+
+    // dict
+    assert_eq!(eval!("(dict \"a\" 1 \"b\" 2 \"c\" 3)"), "(dict \"a\" 1 \"b\" 2 \"c\" 3)");
+
+    // get
+    assert_eq!(eval!("(get \"Hello\" 0)"), "\"H\"");
+    assert_eq!(eval!("(get \"Hello\" 6)"), "\"\"");
+    assert_eq!(eval!("(get (list 1 2 3) 0)"), "1");
+    assert_eq!(eval!("(get (list 1 2 3) 3)"), "()");
+    assert_eq!(eval!("(get (dict \"a\" 1 \"b\" 2 \"c\" 3) \"a\")"), "1");
+    assert_eq!(eval!("(get (dict \"a\" 1 \"b\" 2 \"c\" 3) \"d\")"), "()");
+
+    // put
+    assert_eq!(eval!("(put (dict \"a\" 1 \"b\" 2) \"c\" 3)"), "(dict \"a\" 1 \"b\" 2 \"c\" 3)");
+    assert_eq!(eval!("(put (list 1 3) 1 2)"), "(1 2 3)");
+    assert_eq!(eval!("(put \"Heo\" 2 \"ll\")"), "\"Hello\"");
 }
