@@ -34,7 +34,6 @@ fn binary_size(size: usize) -> String {
 }
 
 fn decimal_size(size: usize) -> String {
-    let size = size;
     let n = PREFIXES.len();
     for i in 0..n {
         let prefix = PREFIXES[i];
