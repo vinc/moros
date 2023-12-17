@@ -11,7 +11,6 @@ use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use core::borrow::Borrow;
 use core::cell::RefCell;
 use core::f64::consts::PI;
 
@@ -99,7 +98,7 @@ pub fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
         Some(exp) => Ok(exp.clone()),
         None => {
             match &env.outer {
-                Some(outer_env) => env_get(key, outer_env.borrow()),
+                Some(outer_env) => env_get(key, outer_env),
                 None => could_not!("find symbol '{}'", key),
             }
         }
@@ -115,7 +114,7 @@ pub fn env_set(key: &str, val: Exp, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> 
         }
         None => {
             match &env.outer {
-                Some(outer_env) => env_set(key, val, outer_env.borrow()),
+                Some(outer_env) => env_set(key, val, outer_env),
                 None => could_not!("find symbol '{}'", key),
             }
         }
