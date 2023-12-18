@@ -310,6 +310,7 @@ macro_rules! try_from_number {
 }
 
 try_from_number!(usize, to_usize);
+try_from_number!(u32, to_u32);
 try_from_number!(u8, to_u8);
 
 impl fmt::Display for Number {

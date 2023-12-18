@@ -50,6 +50,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert("binary->string".to_string(),     Exp::Primitive(primitive::lisp_binary_string));
     data.insert("binary->number".to_string(),     Exp::Primitive(primitive::lisp_binary_number));
     data.insert("number->binary".to_string(),     Exp::Primitive(primitive::lisp_number_binary));
+    data.insert("number->string".to_string(),     Exp::Primitive(primitive::lisp_number_string));
     data.insert("string->number".to_string(),     Exp::Primitive(primitive::lisp_string_number));
     data.insert("type".to_string(),               Exp::Primitive(primitive::lisp_type));
     data.insert("parse".to_string(),              Exp::Primitive(primitive::lisp_parse));
