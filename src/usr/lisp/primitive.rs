@@ -20,6 +20,7 @@ use core::cmp::Ordering::Equal;
 use core::convert::TryFrom;
 use core::convert::TryInto;
 use core::str::FromStr;
+use num_bigint::BigInt;
 use smoltcp::wire::IpAddress;
 
 pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
@@ -214,6 +215,32 @@ pub fn lisp_number_binary(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let n = number(&args[0])?;
     Ok(Exp::List(n.to_be_bytes().iter().map(|b| Exp::Num(Number::from(*b))).collect()))
+}
+
+pub fn lisp_number_string(args: &[Exp]) -> Result<Exp, Err> {
+    let r = match args.len() {
+        2 => {
+            let r = number(&args[1])?.try_into()?; // TODO: Reject Number::Float
+            if !(2..37).contains(&r) {
+                return expected!("radix in the range 2..37");
+            }
+            r
+        }
+        _ => 10
+    };
+    let s = match number(&args[0])? {
+        Number::Int(n) if args.len() == 2 => {
+            BigInt::from(n).to_str_radix(r).to_uppercase()
+        }
+        Number::BigInt(n) if args.len() == 2 => {
+            n.to_str_radix(r).to_uppercase()
+        }
+        n => {
+            ensure_length_eq!(args, 1);
+            format!("{}", n)
+        }
+    };
+    Ok(Exp::Str(s))
 }
 
 pub fn lisp_string_number(args: &[Exp]) -> Result<Exp, Err> {

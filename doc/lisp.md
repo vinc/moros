@@ -47,7 +47,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 ### Primitive Operators
 - `type`, `number/type` (aliased to `num/type`), `parse`
 - `string` (aliased to `str`)
-- `string->number` (aliased to to `str->num`)
+- `string->number` and `number->string` (aliased to `str->num` and `num->str`)
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex/find`
@@ -216,3 +216,4 @@ language and reading from the filesystem.
 - Add `empty?`, `reject`, `put`, `push`, and `host` functions`
 - Add `dict` type
 - Use `/` instead of `.` as namespace separator
+- Add `number->string` (aliased to `num->str`) with an optional radix argument

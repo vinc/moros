@@ -146,6 +146,7 @@
 (var str->num string->number)
 (var str->bin string->binary)
 (var num->bin number->binary)
+(var num->str number->string)
 (var bin->str binary->string)
 (var bin->num binary->number)
 (var bool? boolean?)
