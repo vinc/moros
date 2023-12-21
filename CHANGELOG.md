@@ -2,7 +2,9 @@
 
 ## Unreleased
 
+- Add number->string function to lisp (#561)
 - Improve lisp with Advent of Code 2023 (#556)
+- Upgrade toolchain from 2023-05-01 to 2023-12-01 (#559)
 - Improve system information (#553)
 - Add hash command (#554)
 - Improve binary support (#552)
