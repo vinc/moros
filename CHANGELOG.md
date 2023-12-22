@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+## 0.10.2 (2023-12-22)
 - Add number->string function to lisp (#561)
 - Improve lisp with Advent of Code 2023 (#556)
 - Upgrade toolchain from 2023-05-01 to 2023-12-01 (#559)
