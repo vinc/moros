@@ -209,7 +209,7 @@ language and reading from the filesystem.
 - Add file, number, string, and regex namespaces
 - Add socket functions
 
-### Unreleased
+### 0.7.0 (2023-12-22)
 - Add binary and hexadecimal number literals
 - Test for truthiness (neither `false` nor `nil`) in conditions of `if` and `while`
 - Rename `nth` to `get`
@@ -217,3 +217,5 @@ language and reading from the filesystem.
 - Add `dict` type
 - Use `/` instead of `.` as namespace separator
 - Add `number->string` (aliased to `num->str`) with an optional radix argument
+
+### Unreleased

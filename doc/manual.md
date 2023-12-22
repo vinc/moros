@@ -5,7 +5,7 @@
 During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.
 
-    [0.250962] MOROS v0.10.1
+    [0.250962] MOROS v0.10.2
     [0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
     [0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
     [0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
