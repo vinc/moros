@@ -47,7 +47,7 @@ commands to test the system or `install` to setup the
 
     /
     > install
-    Welcome to MOROS v0.10.1 installation program!
+    Welcome to MOROS v0.10.2 installation program!
 
     Proceed? [y/N] y
 
