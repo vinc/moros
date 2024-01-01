@@ -200,6 +200,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "geodate"
+version = "0.4.0"
+source = "git+https://github.com/vinc/geodate#a548a21baf5b6e89a02a2346ee7b98e055e925f2"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -315,6 +323,7 @@ dependencies = [
  "base64",
  "bit_field",
  "bootloader",
+ "geodate",
  "lazy_static",
  "libm",
  "linked_list_allocator",
@@ -382,6 +391,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39e3200413f237f41ab11ad6d161bc7239c84dcb631773ccd7de3dfe4b5c267c"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
