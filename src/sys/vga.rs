@@ -410,6 +410,19 @@ impl Perform for Writer {
             _ => {},
         }
     }
+
+    fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
+        if params.len() == 1 {
+            let s = String::from_utf8_lossy(params[0]);
+            if s.len() == 8 && &s[0..1] == "P" {
+                let i = usize::from_str_radix(&s[1..2], 16).unwrap_or(0);
+                let r = u8::from_str_radix(&s[2..4], 16).unwrap_or(0);
+                let g = u8::from_str_radix(&s[4..6], 16).unwrap_or(0);
+                let b = u8::from_str_radix(&s[6..8], 16).unwrap_or(0);
+                self.set_palette(i, r, g, b);
+            }
+        }
+    }
 }
 
 impl fmt::Write for Writer {
