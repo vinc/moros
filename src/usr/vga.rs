@@ -34,12 +34,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if let Ok(csv) = fs::read_to_string(args[3]) {
                     if let Ok(palette) = palette::from_csv(&csv) {
                         sys::vga::set_palette(palette);
-                        // TODO: Instead of calling a kernel function we could
-                        // use the following ANSI OSC command to set a palette:
-                        //     for (i, r, g, b) in palette.colors {
-                        //         print!("\x1b]P{:x}{:x}{:x}{:x}", i, r, g, b);
-                        //     }
-                        // And "ESC]R" to reset a palette.
                         Ok(())
                     } else {
                         error!("Could not parse palette file");
