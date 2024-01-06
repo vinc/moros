@@ -4,6 +4,7 @@ use crate::api::fs;
 use crate::api::vga::palette;
 use crate::api::process::ExitCode;
 
+// TODO: Remove this command when everything can be done from userspace
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
