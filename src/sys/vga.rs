@@ -3,6 +3,7 @@ use crate::api::vga::{Color, Palette};
 use crate::api::vga::color;
 use crate::sys;
 
+use alloc::string::String;
 use bit_field::BitField;
 use core::fmt;
 use core::fmt::Write;
@@ -244,18 +245,16 @@ impl Writer {
         }
     }
 
-    pub fn set_palette(&mut self, palette: Palette) {
+    pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
         let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
-        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
-            if i < 16 {
-                let reg = color::from_index(i).to_vga_reg();
-                unsafe {
-                    addr.write(reg);
-                    data.write(vga_color(*r));
-                    data.write(vga_color(*g));
-                    data.write(vga_color(*b));
-                }
+        if i < 16 {
+            let reg = color::from_index(i).to_vga_reg();
+            unsafe {
+                addr.write(reg);
+                data.write(vga_color(r));
+                data.write(vga_color(g));
+                data.write(vga_color(b));
             }
         }
     }
@@ -469,7 +468,9 @@ pub fn set_font(font: &Font) {
 
 pub fn set_palette(palette: Palette) {
     interrupts::without_interrupts(|| {
-        WRITER.lock().set_palette(palette)
+        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
+            WRITER.lock().set_palette(i, *r, *g, *b);
+        }
     })
 }
 
