@@ -30,6 +30,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     Err(ExitCode::Failure)
                 }
             } else if args.len() == 4 && args[2] == "palette" {
+                warning!("Use ANSI OSC palette sequence");
                 if let Ok(csv) = fs::read_to_string(args[3]) {
                     if let Ok(palette) = palette::from_csv(&csv) {
                         sys::vga::set_palette(palette);
