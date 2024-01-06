@@ -46,8 +46,8 @@ pub fn copy_files(verbose: bool) {
     copy_file("/ini/version.txt", include_bytes!("../../dsk/ini/version.txt"), verbose);
 
     create_dir("/ini/palettes", verbose);
-    copy_file("/ini/palettes/gruvbox-dark.csv", include_bytes!("../../dsk/ini/palettes/gruvbox-dark.csv"), verbose);
-    copy_file("/ini/palettes/gruvbox-light.csv", include_bytes!("../../dsk/ini/palettes/gruvbox-light.csv"), verbose);
+    copy_file("/ini/palettes/gruvbox-dark.sh", include_bytes!("../../dsk/ini/palettes/gruvbox-dark.sh"), verbose);
+    copy_file("/ini/palettes/gruvbox-light.sh", include_bytes!("../../dsk/ini/palettes/gruvbox-light.sh"), verbose);
 
     create_dir("/ini/fonts", verbose);
     //copy_file("/ini/fonts/lat15-terminus-8x16.psf", include_bytes!("../../dsk/ini/fonts/lat15-terminus-8x16.psf"), verbose);
