@@ -66,6 +66,15 @@ macro_rules! error {
     });
 }
 
+#[macro_export]
+macro_rules! warning {
+    ($($arg:tt)*) => ({
+        let csi_color = $crate::api::console::Style::color("Yellow");
+        let csi_reset = $crate::api::console::Style::reset();
+        eprintln!("{}Warning:{} {}", csi_color, csi_reset, format_args!($($arg)*));
+    });
+}
+
 pub mod allocator;
 pub mod clock;
 pub mod console;

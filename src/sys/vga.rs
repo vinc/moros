@@ -3,7 +3,9 @@ use crate::api::vga::{Color, Palette};
 use crate::api::vga::color;
 use crate::sys;
 
+use alloc::string::String;
 use bit_field::BitField;
+use core::cmp;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
@@ -244,18 +246,16 @@ impl Writer {
         }
     }
 
-    pub fn set_palette(&mut self, palette: Palette) {
+    pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
         let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
-        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
-            if i < 16 {
-                let reg = color::from_index(i).to_vga_reg();
-                unsafe {
-                    addr.write(reg);
-                    data.write(vga_color(*r));
-                    data.write(vga_color(*g));
-                    data.write(vga_color(*b));
-                }
+        if i < 16 {
+            let reg = color::from_index(i).to_vga_reg();
+            unsafe {
+                addr.write(reg);
+                data.write(vga_color(r));
+                data.write(vga_color(g));
+                data.write(vga_color(b));
             }
         }
     }
@@ -303,36 +303,32 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[1] -= n;
-                self.cursor[1] -= n;
+                self.writer[1] = self.writer[1].saturating_sub(n);
+                self.cursor[1] = self.cursor[1].saturating_sub(n);
             },
             'B' => { // Cursor Down
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[1] += n;
-                self.cursor[1] += n;
+                self.writer[1] = cmp::min(self.writer[1] + n, BUFFER_HEIGHT - 1);
+                self.cursor[1] = cmp::min(self.cursor[1] + n, BUFFER_HEIGHT - 1);
             },
             'C' => { // Cursor Forward
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[0] += n;
-                self.cursor[0] += n;
+                self.writer[0] = cmp::min(self.writer[0] + n, BUFFER_WIDTH - 1);
+                self.cursor[0] = cmp::min(self.cursor[0] + n, BUFFER_WIDTH - 1);
             },
             'D' => { // Cursor Backward
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[0] -= n;
-                self.cursor[0] -= n;
+                self.writer[0] = self.writer[0].saturating_sub(n);
+                self.cursor[0] = self.cursor[0].saturating_sub(n);
             },
             'G' => { // Cursor Horizontal Absolute
                 let (_, y) = self.cursor_position();
@@ -411,6 +407,28 @@ impl Perform for Writer {
             _ => {},
         }
     }
+
+    fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
+        if params.len() == 1 {
+            let s = String::from_utf8_lossy(params[0]);
+            match s.chars().next() {
+                Some('P') if s.len() == 8 => {
+                    let i = usize::from_str_radix(&s[1..2], 16).unwrap_or(0);
+                    let r = u8::from_str_radix(&s[2..4], 16).unwrap_or(0);
+                    let g = u8::from_str_radix(&s[4..6], 16).unwrap_or(0);
+                    let b = u8::from_str_radix(&s[6..8], 16).unwrap_or(0);
+                    self.set_palette(i, r, g, b);
+                }
+                Some('R') => {
+                    let palette = Palette::default();
+                    for (i, (r, g, b)) in palette.colors.iter().enumerate() {
+                        self.set_palette(i, *r, *g, *b);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 impl fmt::Write for Writer {
@@ -467,9 +485,12 @@ pub fn set_font(font: &Font) {
     })
 }
 
+// TODO: Remove this
 pub fn set_palette(palette: Palette) {
     interrupts::without_interrupts(|| {
-        WRITER.lock().set_palette(palette)
+        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
+            WRITER.lock().set_palette(i, *r, *g, *b);
+        }
     })
 }
 
