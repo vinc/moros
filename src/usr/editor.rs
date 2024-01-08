@@ -1,7 +1,7 @@
-use crate::sys;
-use crate::api::{console, fs, io};
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
+use crate::api::{console, fs, io};
+use crate::sys;
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -56,7 +56,7 @@ impl Editor {
                 for line in contents.split('\n') {
                     lines.push(line.into());
                 }
-            },
+            }
             Err(_) => {
                 lines.push(String::new());
             }
@@ -64,7 +64,15 @@ impl Editor {
 
         let pathname = pathname.into();
 
-        Self { pathname, clipboard, lines, cursor, offset, highlighted, config }
+        Self {
+            pathname,
+            clipboard,
+            lines,
+            cursor,
+            offset,
+            highlighted,
+            config,
+        }
     }
 
     pub fn save(&mut self) -> Result<(), ExitCode> {
@@ -89,11 +97,15 @@ impl Editor {
     }
 
     fn print_status(&mut self, status: &str, background: &str) {
+        // Move cursor to the bottom of the screen
+        print!("\x1b[{};1H", self.rows() + 1);
+
         let color = Style::color("Black").with_background(background);
         let reset = Style::reset();
-        print!("\x1b[{};1H", self.rows() + 1); // Move cursor to the bottom of the screen
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-        print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1); // Move cursor back
+
+        // Move cursor back
+        print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
     }
 
     fn print_editing_status(&mut self) {
@@ -128,9 +140,14 @@ impl Editor {
 
     fn render_line(&self, y: usize) -> String {
         // Render line into a row of the screen, or an empty row when past eof
-        let line = if y < self.lines.len() { &self.lines[y] } else { "" };
+        let line = if y < self.lines.len() {
+            &self.lines[y]
+        } else {
+            ""
+        };
 
-        let mut row: Vec<char> = format!("{:cols$}", line, cols = self.offset.x).chars().collect();
+        let s = format!("{:cols$}", line, cols = self.offset.x);
+        let mut row: Vec<char> = s.chars().collect();
         let n = self.offset.x + self.cols();
         let after = if row.len() > n {
             row.truncate(n - 1);
@@ -144,9 +161,9 @@ impl Editor {
 
     fn render_char(&self, c: char) -> Option<String> {
         match c {
-            '\t'                          => Some(" ".repeat(self.config.tab_size)),
+            '\t' => Some(" ".repeat(self.config.tab_size)),
             c if console::is_printable(c) => Some(c.to_string()),
-            _                             => None,
+            _ => None,
         }
     }
 
@@ -160,13 +177,16 @@ impl Editor {
             if cursor == closing {
                 for (y, line) in self.lines.iter().enumerate() {
                     for (x, c) in line.chars().enumerate() {
-                        if oy + cy == y && ox + cx == x { // Cursor position
+                        if oy + cy == y && ox + cx == x {
+                            // Cursor position
                             if let Some((x, y)) = stack.pop() {
                                 self.highlighted.push((cx, cy, closing));
                                 let is_col = ox <= x && x < ox + self.cols();
                                 let is_row = oy <= y && y < oy + self.rows();
                                 if is_col && is_row {
-                                    self.highlighted.push((x - ox, y - oy, opening));
+                                    self.highlighted.push(
+                                        (x - ox, y - oy, opening)
+                                    );
                                 }
                             }
                             return;
@@ -186,7 +206,8 @@ impl Editor {
             if cursor == opening {
                 for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
                     for (x, c) in line.chars().enumerate() {
-                        if y == oy + cy && x <= ox + cx { // Skip chars before cursor
+                        if y == oy + cy && x <= ox + cx {
+                            // Skip chars before cursor
                             continue;
                         }
                         if c == opening {
@@ -198,7 +219,9 @@ impl Editor {
                                 let is_col = ox <= x && x < ox + self.cols();
                                 let is_row = oy <= y && y < oy + self.rows();
                                 if is_col && is_row {
-                                    self.highlighted.push((x - ox, y - oy, closing));
+                                    self.highlighted.push(
+                                        (x - ox, y - oy, closing)
+                                    );
                                 }
                                 return;
                             }
@@ -262,7 +285,7 @@ impl Editor {
     }
 
     pub fn run(&mut self) -> Result<(), ExitCode> {
-        print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
+        print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
         self.print_screen();
         self.print_editing_status();
         self.print_highlighted();
@@ -281,37 +304,38 @@ impl Editor {
                 '\x1B' => { // ESC
                     escape = true;
                     continue;
-                },
+                }
                 '[' if escape => {
                     csi = true;
                     csi_params.clear();
                     continue;
-                },
+                }
                 '\0' => {
                     continue;
                 }
                 '\x11' | '\x03' => { // Ctrl Q or Ctrl C
-                    // TODO: Warn if modifications have not been saved
-                    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
+                    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
                     break;
-                },
+                }
                 '\x17' => { // Ctrl W
                     self.save().ok();
                     print!("\x1b[?25h"); // Enable cursor
                     continue;
-                },
+                }
                 '\x18' => { // Ctrl X
                     let res = self.save();
-                    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
+                    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
                     return res;
-                },
+                }
                 '\n' => { // Newline
                     let y = self.offset.y + self.cursor.y;
                     let old_line = self.lines[y].clone();
                     let mut row: Vec<char> = old_line.chars().collect();
-                    let new_line = row.split_off(self.offset.x + self.cursor.x).into_iter().collect();
+                    let new_line = row.
+                        split_off(self.offset.x + self.cursor.x).
+                        into_iter().collect();
                     self.lines[y] = row.into_iter().collect();
                     self.lines.insert(y + 1, new_line);
                     if self.cursor.y == self.rows() - 1 {
@@ -322,21 +346,22 @@ impl Editor {
                     self.cursor.x = 0;
                     self.offset.x = 0;
                     self.print_screen();
-                },
+                }
                 '~' if csi && csi_params == "5" => { // Page Up
-                    let scroll = self.rows() - 1; // Keep one previous line on screen
+                    let scroll = self.rows() - 1; // Keep one line on screen
                     self.offset.y -= cmp::min(scroll, self.offset.y);
                     self.print_screen();
-                },
+                }
                 '~' if csi && csi_params == "6" => { // Page Down
-                    let scroll = self.rows() - 1; // Keep one previous line on screen
-                    let remaining = cmp::max(self.lines.len(), 1) - self.offset.y - 1;
+                    let scroll = self.rows() - 1; // Keep one line on screen
+                    let n = cmp::max(self.lines.len(), 1);
+                    let remaining = n - self.offset.y - 1;
                     self.offset.y += cmp::min(scroll, remaining);
                     if self.cursor.y + scroll > remaining {
                         self.cursor.y = 0;
                     }
                     self.print_screen();
-                },
+                }
                 'A' if csi => { // Arrow Up
                     if self.cursor.y > 0 {
                         self.cursor.y -= 1
@@ -345,11 +370,12 @@ impl Editor {
                     }
                     self.align_cursor();
                     self.print_screen();
-                },
+                }
                 'B' if csi => { // Arrow Down
-                    let is_eof = self.offset.y + self.cursor.y == self.lines.len() - 1;
+                    let n = self.lines.len() - 1;
+                    let is_eof = n == (self.offset.y + self.cursor.y);
                     let is_bottom = self.cursor.y == self.rows() - 1;
-                    if self.cursor.y < cmp::min(self.rows(), self.lines.len() - 1) {
+                    if self.cursor.y < cmp::min(self.rows(), n) {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.offset.y += 1;
@@ -360,14 +386,16 @@ impl Editor {
                         self.align_cursor();
                         self.print_screen();
                     }
-                },
+                }
                 'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
-                    if line.is_empty() || self.cursor.x + self.offset.x >= line.chars().count() {
+                    let x = self.cursor.x + self.offset.x;
+                    let n = line.chars().count();
+                    if line.is_empty() || x >= n {
                         print!("\x1b[?25h"); // Enable cursor
                         escape = false;
                         csi = false;
-                        continue
+                        continue;
                     } else if self.cursor.x == self.cols() - 1 {
                         self.offset.x += self.cols();
                         self.cursor.x -= self.cols() - 1;
@@ -375,7 +403,7 @@ impl Editor {
                     } else {
                         self.cursor.x += 1;
                     }
-                },
+                }
                 'D' if csi => { // Arrow Left
                     if self.cursor.x + self.offset.x == 0 {
                         print!("\x1b[?25h"); // Enable cursor
@@ -390,36 +418,37 @@ impl Editor {
                     } else {
                         self.cursor.x -= 1;
                     }
-                },
+                }
                 'Z' if csi => { // Backtab (Shift + Tab)
-                    // Do nothing
-                },
+                     // Do nothing
+                }
                 '\x14' => { // Ctrl T -> Go to top of file
                     self.cursor.x = 0;
                     self.cursor.y = 0;
                     self.offset.x = 0;
                     self.offset.y = 0;
                     self.print_screen();
-                },
+                }
                 '\x02' => { // Ctrl B -> Go to bottom of file
                     self.cursor.x = 0;
                     self.cursor.y = cmp::min(self.rows(), self.lines.len()) - 1;
                     self.offset.x = 0;
                     self.offset.y = self.lines.len() - 1 - self.cursor.y;
                     self.print_screen();
-                },
+                }
                 '\x01' => { // Ctrl A -> Go to beginning of line
                     self.cursor.x = 0;
                     self.offset.x = 0;
                     self.print_screen();
-                },
+                }
                 '\x05' => { // Ctrl E -> Go to end of line
-                    let n = self.lines[self.offset.y + self.cursor.y].chars().count();
+                    let line = &self.lines[self.offset.y + self.cursor.y];
+                    let n = line.chars().count();
                     let w = self.cols();
                     self.cursor.x = n % w;
                     self.offset.x = w * (n / w);
                     self.print_screen();
-                },
+                }
                 '\x04' => { // Ctrl D -> Delete (cut) line
                     let i = self.offset.y + self.cursor.y;
                     self.clipboard.push(self.lines.remove(i));
@@ -427,8 +456,8 @@ impl Editor {
                         self.lines.push(String::new());
                     }
 
+                    // Move cursor up to the previous line
                     if i >= self.lines.len() {
-                        // Move cursor up to the previous line
                         if self.cursor.y > 0 {
                             self.cursor.y -= 1;
                         } else if self.offset.y > 0 {
@@ -439,11 +468,11 @@ impl Editor {
                     self.offset.x = 0;
 
                     self.print_screen();
-                },
+                }
                 '\x19' => { // Ctrl Y -> Yank (copy) line
                     let i = self.offset.y + self.cursor.y;
                     self.clipboard.push(self.lines[i].clone());
-                },
+                }
                 '\x10' => { // Ctrl P -> Put (paste) line
                     let i = self.offset.y + self.cursor.y;
                     if let Some(line) = self.clipboard.pop() {
@@ -452,11 +481,12 @@ impl Editor {
                     self.cursor.x = 0;
                     self.offset.x = 0;
                     self.print_screen();
-                },
+                }
                 '\x08' => { // Backspace
                     let y = self.offset.y + self.cursor.y;
-                    if self.offset.x + self.cursor.x > 0 { // Remove char from line
-                        let mut row: Vec<char> = self.lines[y].chars().collect();
+                    if self.offset.x + self.cursor.x > 0 {
+                        // Remove char from line
+                        let mut row: Vec<_> = self.lines[y].chars().collect();
                         row.remove(self.offset.x + self.cursor.x - 1);
                         self.lines[y] = row.into_iter().collect();
 
@@ -469,7 +499,8 @@ impl Editor {
                             let line = self.render_line(y);
                             print!("\x1b[2K\x1b[1G{}", line);
                         }
-                    } else { // Remove newline from previous line
+                    } else {
+                        // Remove newline from previous line
                         if self.cursor.y == 0 && self.offset.y == 0 {
                             print!("\x1b[?25h"); // Enable cursor
                             escape = false;
@@ -496,30 +527,33 @@ impl Editor {
 
                         self.print_screen();
                     }
-                },
-                '\x7f' => { // Delete
+                }
+                '\x7f' => {
+                    // Delete
                     let y = self.offset.y + self.cursor.y;
                     let n = self.lines[y].chars().count();
-                    if self.offset.x + self.cursor.x >= n { // Remove newline from line
+                    if self.offset.x + self.cursor.x >= n {
+                        // Remove newline from line
                         if y + 1 < self.lines.len() {
                             let line = self.lines.remove(y + 1);
                             self.lines[y].push_str(&line);
                             self.print_screen();
                         }
-                    } else { // Remove char from line
+                    } else {
+                        // Remove char from line
                         self.lines[y].remove(self.offset.x + self.cursor.x);
                         let line = self.render_line(y);
                         print!("\x1b[2K\x1b[1G{}", line);
                     }
-                },
+                }
                 c if csi => {
                     csi_params.push(c);
                     continue;
-                },
+                }
                 c => {
                     if let Some(s) = self.render_char(c) {
                         let y = self.offset.y + self.cursor.y;
-                        let mut row: Vec<char> = self.lines[y].chars().collect();
+                        let mut row: Vec<_> = self.lines[y].chars().collect();
                         for c in s.chars() {
                             row.insert(self.offset.x + self.cursor.x, c);
                             self.cursor.x += 1;
@@ -530,11 +564,11 @@ impl Editor {
                             self.cursor.x -= self.cols();
                             self.print_screen();
                         } else {
-                            let line = self.render_line(self.offset.y + self.cursor.y);
+                            let line = self.render_line(y);
                             print!("\x1b[2K\x1b[1G{}", line);
                         }
                     }
-                },
+                }
             }
             self.print_editing_status();
             self.print_highlighted();
@@ -565,5 +599,8 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} edit {}<file>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} edit {}<file>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }

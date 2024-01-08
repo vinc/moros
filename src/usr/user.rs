@@ -1,10 +1,10 @@
-use crate::{api, sys, usr};
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
-use crate::api::random;
 use crate::api::process::ExitCode;
+use crate::api::random;
 use crate::api::syscall;
+use crate::{api, sys, usr};
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -18,8 +18,8 @@ const DISABLE_EMPTY_PASSWORD: bool = false;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match *args.get(1).unwrap_or(&"invalid") {
-        "create" => {},
-        "login" => {},
+        "create" => {}
+        "login" => {}
         "-h" | "--help" => {
             help();
             return Ok(());
@@ -69,12 +69,12 @@ pub fn login(username: &str) -> Result<(), ExitCode> {
                 syscall::sleep(1.0);
                 return main(&["user", "login"]);
             }
-        },
+        }
         None => {
             println!();
             syscall::sleep(1.0);
             return main(&["user", "login"]);
-        },
+        }
     }
 
     let home = format!("/usr/{}", username);
@@ -154,8 +154,9 @@ pub fn check(password: &str, hashed_password: &str) -> bool {
 }
 
 // Password hashing version 1 => PBKDF2-HMAC-SHA256 + BASE64
-// Fields: "<version>$<c>$<salt>$<hash>"
-// Example: "1$AAAQAA$PDkXP0I8O7SxNOxvUKmHHQ$BwIUWBxKs50BTpH6i4ImF3SZOxADv7dh4xtu3IKc3o8"
+// Fields: <version>$<c>$<salt>$<hash>
+// Example:
+// 1$AAAQAA$PDkXP0I8O7SxNOxvUKmHHQ$BwIUWBxKs50BTpH6i4ImF3SZOxADv7dh4xtu3IKc3o8
 pub fn hash(password: &str) -> String {
     let v = "1"; // Password hashing version
     let c = 4096u32; // Number of iterations
@@ -223,9 +224,18 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} user {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} user {}<command>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}create [<user>]{}    Create user", csi_option, csi_reset);
-    println!("  {}login [<user>]{}     Login user", csi_option, csi_reset);
+    println!(
+        "  {}create [<user>]{}    Create user",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {}login [<user>]{}     Login user",
+        csi_option, csi_reset
+    );
 }

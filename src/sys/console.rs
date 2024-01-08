@@ -11,6 +11,11 @@ pub static STDIN: Mutex<String> = Mutex::new(String::new());
 pub static ECHO: AtomicBool = AtomicBool::new(true);
 pub static RAW: AtomicBool = AtomicBool::new(false);
 
+pub const BS_KEY: char = '\x08'; // Backspace
+pub const EOT_KEY: char = '\x04'; // End of Transmission
+pub const ESC_KEY: char = '\x1B'; // Escape
+pub const ETX_KEY: char = '\x03'; // End of Text
+
 #[derive(Debug, Clone)]
 pub struct Console;
 
@@ -44,8 +49,7 @@ impl FileIO for Console {
         Ok(n)
     }
 
-    fn close(&mut self) {
-    }
+    fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
@@ -99,11 +103,6 @@ pub fn is_raw_enabled() -> bool {
     RAW.load(Ordering::SeqCst)
 }
 
-pub const ETX_KEY: char = '\x03'; // End of Text
-pub const EOT_KEY: char = '\x04'; // End of Transmission
-pub const BS_KEY:  char = '\x08'; // Backspace
-pub const ESC_KEY: char = '\x1B'; // Escape
-
 pub fn key_handle(key: char) {
     let mut stdin = STDIN.lock();
 
@@ -113,35 +112,41 @@ pub fn key_handle(key: char) {
             if is_echo_enabled() {
                 let n = match c {
                     ETX_KEY | EOT_KEY | ESC_KEY => 2,
-                    _ => if (c as u32) < 0xFF { 1 } else { c.len_utf8() },
+                    _ => {
+                        if (c as u32) < 0xFF {
+                            1
+                        } else {
+                            c.len_utf8()
+                        }
+                    }
                 };
                 print_fmt(format_args!("{}", BS_KEY.to_string().repeat(n)));
             }
         }
     } else {
-        let key = if (key as u32) < 0xFF { (key as u8) as char } else { key };
+        let key = if (key as u32) < 0xFF {
+            (key as u8) as char
+        } else {
+            key
+        };
         stdin.push(key);
         if is_echo_enabled() {
             match key {
                 ETX_KEY => print_fmt(format_args!("^C")),
                 EOT_KEY => print_fmt(format_args!("^D")),
                 ESC_KEY => print_fmt(format_args!("^[")),
-                _       => print_fmt(format_args!("{}", key)),
+                _ => print_fmt(format_args!("{}", key)),
             };
         }
     }
 }
 
 pub fn end_of_text() -> bool {
-    interrupts::without_interrupts(|| {
-        STDIN.lock().contains(ETX_KEY)
-    })
+    interrupts::without_interrupts(|| STDIN.lock().contains(ETX_KEY))
 }
 
 pub fn end_of_transmission() -> bool {
-    interrupts::without_interrupts(|| {
-        STDIN.lock().contains(EOT_KEY)
-    })
+    interrupts::without_interrupts(|| STDIN.lock().contains(EOT_KEY))
 }
 
 pub fn drain() {
@@ -182,9 +187,7 @@ pub fn read_line() -> String {
                     stdin.clear();
                     Some(line)
                 }
-                _ => {
-                    None
-                }
+                _ => None,
             }
         });
         if let Some(line) = res {

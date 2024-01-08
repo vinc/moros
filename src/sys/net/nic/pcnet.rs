@@ -1,6 +1,6 @@
 use crate::sys;
 use crate::sys::allocator::PhysBuf;
-use crate::sys::net::{EthernetDeviceIO, Config, Stats};
+use crate::sys::net::{Config, EthernetDeviceIO, Stats};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -26,14 +26,14 @@ const CSR0_IDON: usize = 8;
 //const CSR0_BABL: usize = 14;
 //const CSR0_ERR: usize = 0;
 
-const DE_ENP:  usize = 0;
-const DE_STP:  usize = 1;
+const DE_ENP: usize = 0;
+const DE_STP: usize = 1;
 //const DE_BUFF: usize = 2;
 //const DE_CRC:  usize = 3;
 //const DE_OFLO: usize = 4;
 //const DE_FRAM: usize = 5;
 //const DE_ERR:  usize = 6;
-const DE_OWN:  usize = 7;
+const DE_OWN: usize = 7;
 
 #[derive(Clone)]
 pub struct Ports {
@@ -218,7 +218,9 @@ impl Device {
         let addr = init_struct.addr();
         self.ports.write_csr_32(1, addr.get_bits(0..16) as u32);
         self.ports.write_csr_32(2, addr.get_bits(16..32) as u32);
-        assert!(self.ports.read_csr_32(0) == 0b000000100); // STOP
+
+        // STOP
+        debug_assert!(self.ports.read_csr_32(0) == 0b000000100);
 
         // self.ports.write_csr_32(4, 1 << 11); // Pad short ethernet packets
 
@@ -229,15 +231,23 @@ impl Device {
         while !self.ports.read_csr_32(0).get_bit(CSR0_IDON) {
             sys::time::halt();
         }
-        assert!(self.ports.read_csr_32(0) == 0b110000001); // IDON + INTR + INIT
+
+        // IDON + INTR + INIT
+        debug_assert!(self.ports.read_csr_32(0) == 0b110000001);
 
         // Start the card
         self.ports.write_csr_32(0, 1 << CSR0_STRT);
-        assert!(self.ports.read_csr_32(0) == 0b110110011); // IDON + INTR + RXON + TXON + STRT + INIT
+
+        // IDON + INTR + RXON + TXON + STRT + INIT
+        debug_assert!(self.ports.read_csr_32(0) == 0b110110011);
     }
 
     fn init_descriptor_entry(&mut self, i: usize, is_rx: bool) {
-        let des = if is_rx { &mut self.rx_des } else { &mut self.tx_des };
+        let des = if is_rx {
+            &mut self.rx_des
+        } else {
+            &mut self.tx_des
+        };
 
         // Set buffer address
         let addr = if is_rx {
@@ -277,47 +287,22 @@ impl EthernetDeviceIO for Device {
             let rmd1 = self.rx_des[rx_id * DE_LEN + 7];
             let end_of_packet = rmd1.get_bit(DE_ENP);
 
-            /*
-            let start_of_packet = rmd1.get_bit(DE_STP);
-            let error = rmd1.get_bit(DE_ERR);
-            let buffer_error = rmd1.get_bit(DE_BUFF);
-            let overflow_error = rmd1.get_bit(DE_OFLO) && !rmd1.get_bit(DE_ENP);
-            let crc_error = rmd1.get_bit(DE_CRC) && !rmd1.get_bit(DE_OFLO) && rmd1.get_bit(DE_ENP);
-            let framing_error = rmd1.get_bit(DE_FRAM) && !rmd1.get_bit(DE_OFLO) && rmd1.get_bit(DE_ENP);
-
-            if self.config.is_debug_enabled() {
-                printk!("Flags: ");
-                if start_of_packet {
-                    printk!("start_of_packet ");
-                }
-                if end_of_packet {
-                    printk!("end_of_packet ");
-                }
-                if error {
-                    if overflow_error {
-                        printk!("overflow_error ");
-                    }
-                    if framing_error {
-                        printk!("framing_error ");
-                    }
-                    if crc_error {
-                        printk!("crc_error ");
-                    }
-                }
-                printk!("\n");
-            }
-            */
-
             // Read packet size
             let packet_size = u16::from_le_bytes([
                 self.rx_des[rx_id * DE_LEN + 8],
-                self.rx_des[rx_id * DE_LEN + 9]
+                self.rx_des[rx_id * DE_LEN + 9],
             ]) as usize;
 
-            let n = if end_of_packet { packet_size } else { self.rx_buffers[rx_id].len() };
+            let n = if end_of_packet {
+                packet_size
+            } else {
+                self.rx_buffers[rx_id].len()
+            };
             packet.extend(&self.rx_buffers[rx_id][0..n]);
 
-            self.rx_des[rx_id * DE_LEN + 7].set_bit(DE_OWN, true); // Give back ownership
+            // Give back ownership
+            self.rx_des[rx_id * DE_LEN + 7].set_bit(DE_OWN, true);
+
             rx_id = (rx_id + 1) % RX_BUFFERS_COUNT;
             self.rx_id.store(rx_id, Ordering::Relaxed);
 
@@ -336,14 +321,18 @@ impl EthernetDeviceIO for Device {
     fn transmit_packet(&mut self, len: usize) {
         let tx_id = self.tx_id.load(Ordering::SeqCst);
 
-        self.tx_des[tx_id * DE_LEN + 7].set_bit(DE_STP, true); // Set start of packet
-        self.tx_des[tx_id * DE_LEN + 7].set_bit(DE_ENP, true); // Set end of packet
+        // Set start and end of packet
+        self.tx_des[tx_id * DE_LEN + 7].set_bit(DE_STP, true);
+        self.tx_des[tx_id * DE_LEN + 7].set_bit(DE_ENP, true);
+
         // Set buffer byte count (0..12 BCNT + 12..16 ONES)
         let bcnt = (0xF000 | (0x0FFF & (1 + !(len as u16)))).to_le_bytes();
         self.tx_des[tx_id * DE_LEN + 4] = bcnt[0];
         self.tx_des[tx_id * DE_LEN + 5] = bcnt[1];
+
         // Give back ownership to the card
         self.tx_des[tx_id * DE_LEN + 7].set_bit(DE_OWN, true);
+
         self.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::Relaxed);
 
         if !is_buffer_owner(&self.tx_des, tx_id) {

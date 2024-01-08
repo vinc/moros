@@ -3,7 +3,9 @@ use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
-use x86_64::structures::paging::{FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate};
+use x86_64::structures::paging::{
+    FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate,
+};
 use x86_64::{PhysAddr, VirtAddr};
 
 pub static mut PHYS_MEM_OFFSET: Option<u64> = None;
@@ -21,7 +23,12 @@ pub fn init(boot_info: &'static BootInfo) {
             let start_addr = region.range.start_addr();
             let end_addr = region.range.end_addr();
             memory_size += end_addr - start_addr;
-            log!("MEM [{:#016X}-{:#016X}] {:?}\n", start_addr, end_addr - 1, region.region_type);
+            log!(
+                "MEM [{:#016X}-{:#016X}] {:?}\n",
+                start_addr,
+                end_addr - 1,
+                region.region_type
+            );
         }
         log!("MEM {} KB\n", memory_size >> 10);
         MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
@@ -30,7 +37,12 @@ pub fn init(boot_info: &'static BootInfo) {
 
         unsafe { PHYS_MEM_OFFSET.replace(phys_mem_offset) };
         unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
-        unsafe { MAPPER.replace(OffsetPageTable::new(active_page_table(), VirtAddr::new(phys_mem_offset))) };
+        unsafe {
+            MAPPER.replace(OffsetPageTable::new(
+                active_page_table(),
+                VirtAddr::new(phys_mem_offset),
+            ))
+        };
 
         sys::allocator::init_heap().expect("heap initialization failed");
     });
@@ -69,7 +81,7 @@ pub unsafe fn create_page_table(frame: PhysFrame) -> &'static mut PageTable {
 }
 
 pub struct BootInfoFrameAllocator {
-    memory_map: &'static MemoryMap
+    memory_map: &'static MemoryMap,
 }
 
 impl BootInfoFrameAllocator {
@@ -79,20 +91,26 @@ impl BootInfoFrameAllocator {
 
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
         let regions = self.memory_map.iter();
-        let usable_regions = regions.filter(|r| r.region_type == MemoryRegionType::Usable);
-        let addr_ranges = usable_regions.map(|r| r.range.start_addr()..r.range.end_addr());
-        let frame_addresses = addr_ranges.flat_map(|r| r.step_by(4096));
-        frame_addresses.map(|addr| PhysFrame::containing_address(PhysAddr::new(addr)))
+        let usable_regions = regions.filter(|r|
+            r.region_type == MemoryRegionType::Usable
+        );
+        let addr_ranges = usable_regions.map(|r|
+            r.range.start_addr()..r.range.end_addr()
+        );
+        let frame_addresses = addr_ranges.flat_map(|r|
+            r.step_by(4096)
+        );
+        frame_addresses.map(|addr|
+            PhysFrame::containing_address(PhysAddr::new(addr))
+        )
     }
 }
 
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         let next = ALLOCATED_FRAMES.fetch_add(1, Ordering::SeqCst);
-        //debug!("Allocate frame {} / {}", next, self.usable_frames().count());
-
-        // FIXME: creating an iterator for each allocation is very slow if
-        // the heap is larger than a few megabytes.
+        // FIXME: When the heap is larger than a few megabytes,
+        // creating an iterator for each allocation become very slow.
         self.usable_frames().nth(next)
     }
 }

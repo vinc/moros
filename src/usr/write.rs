@@ -37,7 +37,10 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} write {}<path>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} write {}<path>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
     println!("  {0}<dir>/{1}     Write directory", csi_option, csi_reset);

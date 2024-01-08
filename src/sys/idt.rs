@@ -1,6 +1,6 @@
-use crate::{api, sys, hlt_loop};
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
+use crate::{api, hlt_loop, sys};
 
 use core::arch::asm;
 use lazy_static::lazy_static;
@@ -8,7 +8,10 @@ use spin::Mutex;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 use x86_64::registers::control::Cr2;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue, PageFaultErrorCode};
+use x86_64::structures::idt::{
+    InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue,
+    PageFaultErrorCode,
+};
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
 
@@ -24,10 +27,12 @@ fn interrupt_index(irq: u8) -> u8 {
     sys::pic::PIC_1_OFFSET + irq
 }
 
-fn default_irq_handler() {}
+fn default_handler() {}
 
 lazy_static! {
-    pub static ref IRQ_HANDLERS: Mutex<[fn(); 16]> = Mutex::new([default_irq_handler; 16]);
+    static ref IRQ_HANDLERS: Mutex<[fn(); 16]> = {
+        Mutex::new([default_handler; 16])
+    };
 
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
@@ -37,16 +42,17 @@ lazy_static! {
         unsafe {
             idt.double_fault.
                 set_handler_fn(double_fault_handler).
-                set_stack_index(sys::gdt::DOUBLE_FAULT_IST_INDEX);
+                set_stack_index(sys::gdt::DOUBLE_FAULT_IST);
             idt.page_fault.
                 set_handler_fn(page_fault_handler).
-                set_stack_index(sys::gdt::PAGE_FAULT_IST_INDEX);
+                set_stack_index(sys::gdt::PAGE_FAULT_IST);
             idt.general_protection_fault.
                 set_handler_fn(general_protection_fault_handler).
-                set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST_INDEX);
+                set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST);
+
+            let f = wrapped_syscall_handler as *mut fn();
             idt[0x80].
-                set_handler_fn(core::mem::transmute(wrapped_syscall_handler as *mut fn())).
-                //set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST_INDEX).
+                set_handler_fn(core::mem::transmute(f)).
                 set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
         idt[interrupt_index(0) as usize].set_handler_fn(irq0_handler);
@@ -71,10 +77,14 @@ lazy_static! {
 
 macro_rules! irq_handler {
     ($handler:ident, $irq:expr) => {
-        pub extern "x86-interrupt" fn $handler(_stack_frame: InterruptStackFrame) {
+        pub extern "x86-interrupt" fn $handler(_: InterruptStackFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
-            unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(interrupt_index($irq)); }
+            unsafe {
+                sys::pic::PICS.lock().notify_end_of_interrupt(
+                    interrupt_index($irq)
+                );
+            }
         }
     };
 }
@@ -102,25 +112,38 @@ extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
     panic!();
 }
 
-extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) -> ! {
+extern "x86-interrupt" fn double_fault_handler(
+    stack_frame: InterruptStackFrame,
+    error_code: u64,
+) -> ! {
     debug!("EXCEPTION: DOUBLE FAULT");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
 }
 
-extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode) {
+extern "x86-interrupt" fn page_fault_handler(
+    _stack_frame: InterruptStackFrame,
+    error_code: PageFaultErrorCode,
+) {
     //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
     let addr = Cr2::read().as_u64();
 
     let page_table = unsafe { sys::process::page_table() };
     let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
-    let mut mapper = unsafe { OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset)) };
+    let mut mapper = unsafe {
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
+    };
 
     if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
         let csi_color = api::console::Style::color("LightRed");
         let csi_reset = api::console::Style::reset();
-        printk!("{}Error:{} Could not allocate address {:#X}\n", csi_color, csi_reset, addr);
+        printk!(
+            "{}Error:{} Could not allocate address {:#X}\n",
+            csi_color,
+            csi_reset,
+            addr
+        );
         if error_code.contains(PageFaultErrorCode::USER_MODE) {
             api::syscall::exit(ExitCode::PageFaultError);
         } else {
@@ -129,21 +152,30 @@ extern "x86-interrupt" fn page_fault_handler(_stack_frame: InterruptStackFrame, 
     }
 }
 
-extern "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+extern "x86-interrupt" fn general_protection_fault_handler(
+    stack_frame: InterruptStackFrame,
+    error_code: u64,
+) {
     debug!("EXCEPTION: GENERAL PROTECTION FAULT");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
 }
 
-extern "x86-interrupt" fn stack_segment_fault_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+extern "x86-interrupt" fn stack_segment_fault_handler(
+    stack_frame: InterruptStackFrame,
+    error_code: u64,
+) {
     debug!("EXCEPTION: STACK SEGMENT FAULT");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
 }
 
-extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStackFrame, error_code: u64) {
+extern "x86-interrupt" fn segment_not_present_handler(
+    stack_frame: InterruptStackFrame,
+    error_code: u64,
+) {
     debug!("EXCEPTION: SEGMENT NOT PRESENT");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
@@ -151,7 +183,7 @@ extern "x86-interrupt" fn segment_not_present_handler(stack_frame: InterruptStac
 }
 
 // Naked function wrapper saving all scratch registers to the stack
-// See: https://os.phil-opp.com/returning-from-exceptions/#a-naked-wrapper-function
+// See: https://os.phil-opp.com/returning-from-exceptions/
 macro_rules! wrap {
     ($fn: ident => $w:ident) => {
         #[naked]
@@ -192,26 +224,36 @@ wrap!(syscall_handler => wrapped_syscall_handler);
 // NOTE: We can't use "x86-interrupt" for syscall_handler because we need to
 // return a result in the RAX register and it will be overwritten when the
 // context of the caller is restored.
-extern "sysv64" fn syscall_handler(stack_frame: &mut InterruptStackFrame, regs: &mut Registers) {
+extern "sysv64" fn syscall_handler(
+    stack_frame: &mut InterruptStackFrame,
+    regs: &mut Registers
+) {
+    let n = regs.rax;
+
     // The registers order follow the System V ABI convention
-    let n    = regs.rax;
     let arg1 = regs.rdi;
     let arg2 = regs.rsi;
     let arg3 = regs.rdx;
     let arg4 = regs.r8;
 
-    if n == sys::syscall::number::SPAWN { // Backup CPU context
+    // Backup CPU context before spawning
+    if n == sys::syscall::number::SPAWN {
         sys::process::set_stack_frame(**stack_frame);
         sys::process::set_registers(*regs);
     }
 
     let res = sys::syscall::dispatcher(n, arg1, arg2, arg3, arg4);
 
-    if n == sys::syscall::number::EXIT { // Restore CPU context
+    if n == sys::syscall::number::EXIT {
+        // Restore CPU context
         let sf = sys::process::stack_frame();
         unsafe {
+            // FIXME: the following line should replace the next ones
             //stack_frame.as_mut().write(sf);
-            core::ptr::write_volatile(stack_frame.as_mut().extract_inner() as *mut InterruptStackFrameValue, sf); // FIXME
+            let inner = stack_frame.as_mut().extract_inner();
+            let ptr = inner as *mut InterruptStackFrameValue;
+            core::ptr::write_volatile(ptr, sf);
+
             core::ptr::write_volatile(regs, sys::process::registers());
         }
     }

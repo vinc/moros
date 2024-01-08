@@ -1,5 +1,5 @@
-mod block;
 mod bitmap_block;
+mod block;
 mod block_device;
 mod device;
 mod dir;
@@ -10,14 +10,16 @@ mod super_block;
 
 use crate::sys;
 
+pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
+pub use crate::sys::ata::BLOCK_SIZE;
 pub use bitmap_block::BITMAP_SIZE;
+pub use block_device::{
+    dismount, format_ata, format_mem, is_mounted, mount_ata, mount_mem
+};
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
-pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
-pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
-pub use crate::sys::ata::BLOCK_SIZE;
 
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
@@ -52,14 +54,16 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
             Dir::create(path)
         } else {
             res
-        }.map(Resource::Dir)
+        }
+        .map(Resource::Dir)
     } else if OpenFlag::Device.is_set(flags) {
         let res = Device::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             Device::create(path)
         } else {
             res
-        }.map(Resource::Device)
+        }
+        .map(Resource::Device)
     } else {
         let mut res = File::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
@@ -71,7 +75,8 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
                 }
             }
             res
-        }.map(Resource::File)
+        }
+        .map(Resource::File)
     }
 }
 
@@ -149,10 +154,8 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
             } else {
                 Ok(path.to_string())
             }
-        },
-        None => {
-            Ok(path.to_string())
         }
+        None => Ok(path.to_string()),
     }
 }
 

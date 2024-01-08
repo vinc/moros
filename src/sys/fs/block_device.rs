@@ -61,12 +61,6 @@ impl MemBlockDevice {
         let dev = vec![[0; super::BLOCK_SIZE]; len];
         Self { dev }
     }
-
-    /*
-    pub fn len(&self) -> usize {
-        self.dev.len()
-    }
-    */
 }
 
 impl BlockDeviceIO for MemBlockDevice {
@@ -112,7 +106,7 @@ const ATA_CACHE_SIZE: usize = 1024;
 #[derive(Clone)]
 pub struct AtaBlockDevice {
     cache: [Option<(u32, Vec<u8>)>; ATA_CACHE_SIZE],
-    dev: sys::ata::Drive
+    dev: sys::ata::Drive,
 }
 
 impl AtaBlockDevice {

@@ -1,6 +1,6 @@
-use crate::sys;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
+use crate::sys;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
@@ -37,8 +37,14 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} keyboard {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} keyboard {}<command>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {0}set <layout>{1}    Set keyboard layout", csi_option, csi_reset);
+    println!(
+        "  {0}set <layout>{1}    Set keyboard layout",
+        csi_option, csi_reset
+    );
 }

@@ -3,22 +3,22 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Color {
-    Black = 0,
-    Blue = 1,
-    Green = 2,
-    Cyan = 3,
-    Red = 4,
-    Magenta = 5,
-    Brown = 6,
-    LightGray = 7,
-    DarkGray = 8,
-    LightBlue = 9,
-    LightGreen = 10,
-    LightCyan = 11,
-    LightRed = 12,
-    Pink = 13,
-    Yellow = 14,
-    White = 15,
+    Black      = 0x0,
+    Blue       = 0x1,
+    Green      = 0x2,
+    Cyan       = 0x3,
+    Red        = 0x4,
+    Magenta    = 0x5,
+    Brown      = 0x6,
+    LightGray  = 0x7,
+    DarkGray   = 0x8,
+    LightBlue  = 0x9,
+    LightGreen = 0xA,
+    LightCyan  = 0xB,
+    LightRed   = 0xC,
+    Pink       = 0xD,
+    Yellow     = 0xE,
+    White      = 0xF,
 }
 
 const COLORS: [Color; 16] = [
@@ -66,7 +66,7 @@ pub fn from_ansi(code: u8) -> Color {
         95 => Color::Pink,
         96 => Color::LightCyan,
         97 => Color::White,
-        _  => Color::Black, // Error
+        _ => Color::Black, // TODO: Error
     }
 }
 

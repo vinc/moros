@@ -51,9 +51,12 @@ pub fn print_hash(path: &str, full: bool) -> Result<(), ExitCode> {
                 let mut hasher = Sha256::new();
                 hasher.update(bytes);
                 let res = hasher.finalize();
-                let hex = res.iter().map(|byte|
-                    format!("{:02X}", byte)
-                ).take(n).collect::<Vec<String>>().join("");
+                let hex = res
+                    .iter()
+                    .map(|byte| format!("{:02X}", byte))
+                    .take(n)
+                    .collect::<Vec<String>>()
+                    .join("");
                 let pink = Style::color("Pink");
                 let reset = Style::reset();
                 println!("{}{}{} {}", pink, hex, reset, path);
@@ -76,8 +79,14 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} hash {}<file>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} hash {}<file>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-f{1}, {0}--full{1}     Show full hash", csi_option, csi_reset);
+    println!(
+        "  {0}-f{1}, {0}--full{1}     Show full hash",
+        csi_option, csi_reset
+    );
 }

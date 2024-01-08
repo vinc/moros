@@ -23,7 +23,9 @@ macro_rules! log {
             let uptime = $crate::sys::clock::uptime();
             let csi_color = $crate::api::console::Style::color("LightGreen");
             let csi_reset = $crate::api::console::Style::reset();
-            $crate::sys::console::print_fmt(format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset));
+            $crate::sys::console::print_fmt(
+                format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset)
+            );
             $crate::sys::console::print_fmt(format_args!($($arg)*));
             // TODO: Add newline
         }

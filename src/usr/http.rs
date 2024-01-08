@@ -1,8 +1,9 @@
-use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
+use crate::sys::console;
 use crate::sys::fs::OpenFlag;
+use crate::usr;
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -17,7 +18,10 @@ struct URL {
     pub path: String,
 }
 
-enum ResponseState { Headers, Body }
+enum ResponseState {
+    Headers,
+    Body,
+}
 
 impl URL {
     pub fn parse(url: &str) -> Option<Self> {
@@ -75,7 +79,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     error!("Invalid option '{}'", args[i]);
                     return Err(ExitCode::UsageError);
                 } else if host.is_empty() {
-                    host = args[i].trim_start_matches("http://").trim_start_matches("https://");
+                    host = args[i]
+                        .trim_start_matches("http://")
+                        .trim_start_matches("https://");
                 } else if path.is_empty() {
                     path = args[i];
                 } else {
@@ -103,9 +109,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let port = url.port;
     let addr = if url.host.ends_with(char::is_numeric) {
         match IpAddress::from_str(&url.host) {
-            Ok(ip_addr) => {
-                ip_addr
-            }
+            Ok(ip_addr) => ip_addr,
             Err(_) => {
                 error!("Invalid address format");
                 return Err(ExitCode::UsageError);
@@ -113,9 +117,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     } else {
         match usr::host::resolve(&url.host) {
-            Ok(ip_addr) => {
-                ip_addr
-            }
+            Ok(ip_addr) => ip_addr,
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
                 return Err(ExitCode::Failure);
@@ -157,7 +159,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
         let mut response_state = ResponseState::Headers;
         loop {
-            if sys::console::end_of_text() || sys::console::end_of_transmission() {
+            if console::end_of_text() || console::end_of_transmission() {
                 eprintln!();
                 syscall::close(handle);
                 return Err(ExitCode::Failure);
@@ -179,7 +181,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 }
                                 j += 1;
                             }
-                            let line = String::from_utf8_lossy(&data[i..j]); // TODO: check i == j
+                            // TODO: check i == j
+                            let line = String::from_utf8_lossy(&data[i..j]);
                             if is_verbose {
                                 if i == 0 {
                                     print!("{}", csi_verbose);
@@ -195,8 +198,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             i = j + 1;
                         }
                         ResponseState::Body => {
-                            // NOTE: The buffer may not be convertible to a UTF-8 string
-                            // so we write it to STDOUT directly instead of using print.
+                            // NOTE: The buffer may not be convertible to a
+                            // UTF-8 string so we write it to STDOUT directly
+                            // instead of using print.
                             syscall::write(1, &data[i..n]);
                             break;
                         }
@@ -219,10 +223,19 @@ fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} http {}<options> <url>{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} http {}<options> <url>{1}",
+        csi_title, csi_reset, csi_option
+    );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-v{1}, {0}--verbose{1}              Increase verbosity", csi_option, csi_reset);
-    println!("  {0}-t{1}, {0}--timeout <seconds>{1}    Request timeout", csi_option, csi_reset);
+    println!(
+        "  {0}-v{1}, {0}--verbose{1}              Increase verbosity",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-t{1}, {0}--timeout <seconds>{1}    Request timeout",
+        csi_option, csi_reset
+    );
     Ok(())
 }

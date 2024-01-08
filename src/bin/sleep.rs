@@ -1,8 +1,8 @@
 #![no_std]
 #![no_main]
 
-use moros::api::syscall;
 use moros::api::process::ExitCode;
+use moros::api::syscall;
 use moros::entry_point;
 
 entry_point!(main);
