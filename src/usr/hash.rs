@@ -36,9 +36,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     paths.sort();
     for path in paths {
-        if let Err(code) = print_hash(path, full) {
-            return Err(code);
-        }
+        print_hash(path, full)?;
     }
     Ok(())
 }
@@ -51,12 +49,9 @@ pub fn print_hash(path: &str, full: bool) -> Result<(), ExitCode> {
                 let mut hasher = Sha256::new();
                 hasher.update(bytes);
                 let res = hasher.finalize();
-                let hex = res
-                    .iter()
-                    .map(|byte| format!("{:02X}", byte))
-                    .take(n)
-                    .collect::<Vec<String>>()
-                    .join("");
+                let hex = res.iter().map(|byte|
+                    format!("{:02X}", byte)
+                ).take(n).collect::<Vec<String>>().join("");
                 let pink = Style::color("Pink");
                 let reset = Style::reset();
                 println!("{}{}{} {}", pink, hex, reset, path);
