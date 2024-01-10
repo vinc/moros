@@ -118,15 +118,17 @@ impl Response {
 
     pub fn end(&mut self) {
         self.size = self.body.len();
-        self.headers
-            .insert("Content-Length".to_string(), self.size.to_string());
+        self.headers.insert(
+            "Content-Length".to_string(),
+            self.size.to_string()
+        );
         self.headers.insert(
             "Connection".to_string(),
             if self.is_persistent() {
                 "keep-alive".to_string()
             } else {
                 "close".to_string()
-            },
+            }
         );
         self.headers.insert(
             "Content-Type".to_string(),
@@ -134,18 +136,20 @@ impl Response {
                 format!("{}; charset=utf-8", self.mime)
             } else {
                 format!("{}", self.mime)
-            },
+            }
         );
         self.write();
     }
 
     fn write(&mut self) {
         self.buf.clear();
-        self.buf
-            .extend_from_slice(format!("{}\r\n", self.status()).as_bytes());
+        self.buf.extend_from_slice(
+            format!("{}\r\n", self.status()).as_bytes()
+        );
         for (key, val) in &self.headers {
-            self.buf
-                .extend_from_slice(format!("{}: {}\r\n", key, val).as_bytes());
+            self.buf.extend_from_slice(
+                format!("{}: {}\r\n", key, val).as_bytes()
+            );
         }
         self.buf.extend_from_slice(b"\r\n");
         self.buf.extend_from_slice(&self.body);
@@ -211,8 +215,7 @@ fn get(req: &Request, res: &mut Response) {
         for autocomplete in
             &["", "/index.html", "/index.htm", "/index.txt"]
         {
-            let real_path =
-                format!("{}{}", res.real_path, autocomplete);
+            let real_path = format!("{}{}", res.real_path, autocomplete);
             if fs::is_dir(&real_path) {
                 continue;
             }
@@ -222,9 +225,8 @@ fn get(req: &Request, res: &mut Response) {
                 let tmp;
                 res.body.extend_from_slice(
                     if res.mime.starts_with("text/") {
-                        tmp = String::from_utf8_lossy(&buf)
-                            .to_string()
-                            .replace("\n", "\r\n");
+                        tmp = String::from_utf8_lossy(&buf).to_string().
+                            replace("\n", "\r\n");
                         tmp.as_bytes()
                     } else {
                         &buf
@@ -239,13 +241,11 @@ fn get(req: &Request, res: &mut Response) {
                 res.code = 200;
                 res.mime = "text/html".to_string();
                 res.body.extend_from_slice(
-                    format!("<h1>Index of {}</h1>\r\n", req.path)
-                        .as_bytes(),
+                    format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes()
                 );
                 files.sort_by_key(|f| f.name());
                 for file in files {
-                    let path =
-                        format!("{}{}", req.path, file.name());
+                    let path = format!("{}{}", req.path, file.name());
                     let link = format!(
                         "<li><a href=\"{}\">{}</a></li>\n",
                         path,
@@ -465,8 +465,7 @@ fn content_type(path: &str) -> String {
         "sh"           => "application/x-sh",
         "txt"          => "text/plain",
         _              => "application/octet-stream",
-    }
-    .to_string()
+    }.to_string()
 }
 
 fn usage() {

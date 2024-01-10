@@ -78,10 +78,7 @@ impl Perform for Serial {
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {
-        SERIAL
-            .lock()
-            .write_fmt(args)
-            .expect("Could not print to serial");
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial");
     })
 }
 

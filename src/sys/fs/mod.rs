@@ -54,16 +54,14 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
             Dir::create(path)
         } else {
             res
-        }
-        .map(Resource::Dir)
+        }.map(Resource::Dir)
     } else if OpenFlag::Device.is_set(flags) {
         let res = Device::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
             Device::create(path)
         } else {
             res
-        }
-        .map(Resource::Device)
+        }.map(Resource::Device)
     } else {
         let mut res = File::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
@@ -75,8 +73,7 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
                 }
             }
             res
-        }
-        .map(Resource::File)
+        }.map(Resource::File)
     }
 }
 

@@ -321,9 +321,7 @@ fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         );
         return Err(ExitCode::UsageError);
     }
-    config
-        .aliases
-        .insert(args[1].to_string(), args[2].to_string());
+    config.aliases.insert(args[1].to_string(), args[2].to_string());
     Ok(())
 }
 

@@ -34,12 +34,8 @@ fn parse_disk_path(pathname: &str) -> Result<(u8, u8), String> {
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
         return Err(format!("Could not find disk at '{}'", pathname));
     }
-    let bus = path[3]
-        .parse()
-        .or(Err("Could not parse <bus>".to_string()))?;
-    let dsk = path[4]
-        .parse()
-        .or(Err("Could not parse <dsk>".to_string()))?;
+    let bus = path[3].parse().or(Err("Could not parse <bus>".to_string()))?;
+    let dsk = path[4].parse().or(Err("Could not parse <dsk>".to_string()))?;
     Ok((bus, dsk))
 }
 
@@ -129,9 +125,9 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
     let size = sys::fs::disk_size();
     let used = sys::fs::disk_used();
     let free = size - used;
-    let width = [size, used, free]
-        .iter()
-        .fold(0, |acc, num| core::cmp::max(acc, unit.format(*num).len()));
+    let width = [size, used, free].iter().fold(0, |acc, num|
+        core::cmp::max(acc, unit.format(*num).len())
+    );
     let color = Style::color("LightCyan");
     let reset = Style::reset();
     println!(

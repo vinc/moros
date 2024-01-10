@@ -79,9 +79,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     error!("Invalid option '{}'", args[i]);
                     return Err(ExitCode::UsageError);
                 } else if host.is_empty() {
-                    host = args[i]
-                        .trim_start_matches("http://")
-                        .trim_start_matches("https://");
+                    host = args[i].
+                        trim_start_matches("http://").
+                        trim_start_matches("https://");
                 } else if path.is_empty() {
                     path = args[i];
                 } else {

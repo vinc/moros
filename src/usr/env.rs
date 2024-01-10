@@ -15,11 +15,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
     match n {
         1 => {
-            let width = sys::process::envs()
-                .keys()
-                .map(|k| k.len())
-                .max()
-                .unwrap_or(0);
+            let width = sys::process::envs().keys().map(|k|
+                k.len()
+            ).max().unwrap_or(0);
             for (key, val) in sys::process::envs() {
                 println!("{:width$} \"{}\"", key, val, width = width);
             }

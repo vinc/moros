@@ -150,9 +150,7 @@ pub fn end_of_transmission() -> bool {
 }
 
 pub fn drain() {
-    interrupts::without_interrupts(|| {
-        STDIN.lock().clear();
-    })
+    interrupts::without_interrupts(|| STDIN.lock().clear())
 }
 
 pub fn read_char() -> char {

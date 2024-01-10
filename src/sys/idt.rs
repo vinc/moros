@@ -140,9 +140,7 @@ extern "x86-interrupt" fn page_fault_handler(
         let csi_reset = api::console::Style::reset();
         printk!(
             "{}Error:{} Could not allocate address {:#X}\n",
-            csi_color,
-            csi_reset,
-            addr
+            csi_color, csi_reset, addr
         );
         if error_code.contains(PageFaultErrorCode::USER_MODE) {
             api::syscall::exit(ExitCode::PageFaultError);
@@ -236,7 +234,7 @@ extern "sysv64" fn syscall_handler(
     let arg3 = regs.rdx;
     let arg4 = regs.r8;
 
-    // Backup CPU context before spawning
+    // Backup CPU context before spawning a process
     if n == sys::syscall::number::SPAWN {
         sys::process::set_stack_frame(**stack_frame);
         sys::process::set_registers(*regs);
@@ -244,8 +242,8 @@ extern "sysv64" fn syscall_handler(
 
     let res = sys::syscall::dispatcher(n, arg1, arg2, arg3, arg4);
 
+    // Restore CPU context before exiting a process
     if n == sys::syscall::number::EXIT {
-        // Restore CPU context
         let sf = sys::process::stack_frame();
         unsafe {
             // FIXME: the following line should replace the next ones
