@@ -452,9 +452,9 @@ impl fmt::Write for Writer {
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().write_fmt(args).expect("Could not print to VGA");
-    });
+    interrupts::without_interrupts(||
+        WRITER.lock().write_fmt(args).expect("Could not print to VGA")
+    )
 }
 
 pub fn cols() -> usize {

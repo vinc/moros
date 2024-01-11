@@ -52,8 +52,7 @@ impl fmt::Write for Serial {
 impl Perform for Serial {
     fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
         match c {
-            'h' => {
-                // Enable
+            'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
                         12 => sys::console::enable_echo(),
@@ -61,8 +60,7 @@ impl Perform for Serial {
                     }
                 }
             }
-            'l' => {
-                // Disable
+            'l' => { // Disable
                 for param in params.iter() {
                     match param[0] {
                         12 => sys::console::disable_echo(),
@@ -77,9 +75,9 @@ impl Perform for Serial {
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(|| {
-        SERIAL.lock().write_fmt(args).expect("Could not print to serial");
-    })
+    interrupts::without_interrupts(||
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
+    )
 }
 
 pub fn init() {
@@ -89,8 +87,7 @@ pub fn init() {
 
 fn interrupt_handler() {
     let b = SERIAL.lock().read_byte();
-    if b == 0xFF {
-        // Ignore invalid bytes
+    if b == 0xFF { // Ignore invalid bytes
         return;
     }
     let c = match b as char {
