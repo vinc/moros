@@ -1,8 +1,8 @@
 use crate::api::fs::IO;
 use crate::api::process::ExitCode;
-use crate::syscall;
-use crate::sys::syscall::number::*;
 use crate::sys::fs::FileInfo;
+use crate::sys::syscall::number::*;
+use crate::syscall;
 
 use smoltcp::wire::IpAddress;
 use smoltcp::wire::Ipv4Address;
@@ -90,7 +90,9 @@ pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     let args_ptr = args.as_ptr() as usize;
     let path_len = path.len();
     let args_len = args.len();
-    let res = unsafe { syscall!(SPAWN, path_ptr, path_len, args_ptr, args_len) };
+    let res = unsafe {
+        syscall!(SPAWN, path_ptr, path_len, args_ptr, args_len)
+    };
     if res == 0 {
         Ok(())
     } else {
@@ -156,9 +158,7 @@ pub fn accept(handle: usize) -> Result<IpAddress, ()> {
 }
 
 pub fn alloc(size: usize, align: usize) -> *mut u8 {
-    unsafe {
-        syscall!(ALLOC, size, align) as *mut u8
-    }
+    unsafe { syscall!(ALLOC, size, align) as *mut u8 }
 }
 
 pub fn free(ptr: *mut u8, size: usize, align: usize) {
@@ -169,7 +169,7 @@ pub fn free(ptr: *mut u8, size: usize, align: usize) {
 
 #[test_case]
 fn test_file() {
-    use crate::sys::fs::{mount_mem, format_mem, dismount, OpenFlag};
+    use crate::sys::fs::{dismount, format_mem, mount_mem, OpenFlag};
     use alloc::vec;
     mount_mem();
     format_mem();

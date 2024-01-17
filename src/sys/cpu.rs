@@ -11,8 +11,8 @@ pub fn init() {
         log!("CPU {}\n", processor_brand_string.as_str().trim());
     }
 
-    if let Some(processor_frequency_info) = cpuid.get_processor_frequency_info() {
-        let processor_base_frequency = processor_frequency_info.processor_base_frequency();
-        log!("CPU {} MHz\n", processor_base_frequency);
+    if let Some(info) = cpuid.get_processor_frequency_info() {
+        let frequency = info.processor_base_frequency();
+        log!("CPU {} MHz\n", frequency);
     }
 }

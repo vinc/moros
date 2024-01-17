@@ -78,23 +78,18 @@ impl TcpSocket {
                         }
                         connecting = true;
                     }
-                    tcp::State::SynSent => {
-                    }
+                    tcp::State::SynSent => {}
                     tcp::State::Established => {
                         break;
                     }
                     _ => {
                         // Did something get sent before the connection closed?
-                        return if socket.can_recv() {
-                            Ok(())
-                        } else {
-                            Err(())
-                        };
+                        return if socket.can_recv() { Ok(()) } else { Err(()) };
                     }
                 }
 
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }
@@ -112,8 +107,8 @@ impl TcpSocket {
                 return Err(());
             }
 
-            if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                wait(duration);
+            if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                wait(d);
             }
             sys::time::halt();
             Ok(())
@@ -133,8 +128,8 @@ impl TcpSocket {
                     return Ok(endpoint.addr);
                 }
 
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }
@@ -158,7 +153,8 @@ impl FileIO for TcpSocket {
                 iface.poll(sys::net::time(), device, &mut sockets);
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
 
-                if buf.len() == 1 { // 1 byte status read
+                if buf.len() == 1 {
+                    // 1 byte status read
                     buf[0] = tcp_socket_status(socket);
                     return Ok(1);
                 }
@@ -170,8 +166,8 @@ impl FileIO for TcpSocket {
                 if !socket.may_recv() {
                     break;
                 }
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }
@@ -204,8 +200,8 @@ impl FileIO for TcpSocket {
                     sent = true; // Break after next poll
                 }
 
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }
@@ -229,8 +225,8 @@ impl FileIO for TcpSocket {
                 socket.close();
                 closed = true;
 
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }

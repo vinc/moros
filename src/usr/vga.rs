@@ -1,8 +1,8 @@
-use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::fs;
-use crate::api::vga::palette;
 use crate::api::process::ExitCode;
+use crate::api::vga::palette;
+use crate::{api, sys};
 
 // TODO: Remove this command when everything can be done from userspace
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -60,9 +60,18 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} vga {}<command>{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} vga {}<command>{1}",
+        csi_title, csi_reset, csi_option
+    );
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}set font <file>{}       Set VGA font", csi_option, csi_reset);
-    println!("  {}set palette <file>{}    Set VGA color palette", csi_option, csi_reset);
+    println!(
+        "  {}set font <file>{}       Set VGA font",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {}set palette <file>{}    Set VGA color palette",
+        csi_option, csi_reset
+    );
 }

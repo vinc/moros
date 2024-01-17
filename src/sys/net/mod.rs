@@ -93,7 +93,10 @@ impl<'a> smoltcp::phy::Device for EthernetDevice {
         caps
     }
 
-    fn receive(&mut self, _instant: smoltcp::time::Instant) -> Option<(Self::RxToken<'a>, Self::TxToken<'a>)> {
+    fn receive(
+        &mut self,
+        _instant: smoltcp::time::Instant,
+    ) -> Option<(Self::RxToken<'a>, Self::TxToken<'a>)> {
         if let Some(buffer) = self.receive_packet() {
             if self.config().is_debug_enabled() {
                 debug!("NET Packet Received");
@@ -101,15 +104,22 @@ impl<'a> smoltcp::phy::Device for EthernetDevice {
             }
             self.stats().rx_add(buffer.len() as u64);
             let rx = RxToken { buffer };
-            let tx = TxToken { device: self.clone() };
+            let tx = TxToken {
+                device: self.clone(),
+            };
             Some((rx, tx))
         } else {
             None
         }
     }
 
-    fn transmit(&mut self, _instant: smoltcp::time::Instant) -> Option<Self::TxToken<'a>> {
-        let tx = TxToken { device: self.clone() };
+    fn transmit(
+        &mut self,
+        _instant: smoltcp::time::Instant
+    ) -> Option<Self::TxToken<'a>> {
+        let tx = TxToken {
+            device: self.clone(),
+        };
         Some(tx)
     }
 }
@@ -120,7 +130,10 @@ pub struct RxToken {
 }
 
 impl smoltcp::phy::RxToken for RxToken {
-     fn consume<R, F>(mut self, f: F) -> R where F: FnOnce(&mut [u8]) -> R {
+    fn consume<R, F>(mut self, f: F) -> R
+    where
+        F: FnOnce(&mut [u8]) -> R,
+    {
         f(&mut self.buffer)
     }
 }
@@ -130,7 +143,10 @@ pub struct TxToken {
     device: EthernetDevice,
 }
 impl smoltcp::phy::TxToken for TxToken {
-    fn consume<R, F>(mut self, len: usize, f: F) -> R where F: FnOnce(&mut [u8]) -> R {
+    fn consume<R, F>(mut self, len: usize, f: F) -> R
+    where
+        F: FnOnce(&mut [u8]) -> R,
+    {
         let config = self.device.config();
         let buf = self.device.next_tx_buffer(len);
         if config.is_debug_enabled() {
@@ -244,9 +260,15 @@ pub fn init() {
         }
     };
     if let Some(io_base) = find_pci_io_base(0x10EC, 0x8139) {
-        add(EthernetDevice::RTL8139(nic::rtl8139::Device::new(io_base)), "RTL8139");
+        add(
+            EthernetDevice::RTL8139(nic::rtl8139::Device::new(io_base)),
+            "RTL8139",
+        );
     }
     if let Some(io_base) = find_pci_io_base(0x1022, 0x2000) {
-        add(EthernetDevice::PCNET(nic::pcnet::Device::new(io_base)), "PCNET");
+        add(
+            EthernetDevice::PCNET(nic::pcnet::Device::new(io_base)),
+            "PCNET",
+        );
     }
 }

@@ -42,13 +42,20 @@ impl UdpSocket {
 
     pub fn new() -> Self {
         let mut sockets = SOCKETS.lock();
-        let udp_rx_buffer = udp::PacketBuffer::new(vec![udp::PacketMetadata::EMPTY], vec![0; 1024]);
-        let udp_tx_buffer = udp::PacketBuffer::new(vec![udp::PacketMetadata::EMPTY], vec![0; 1024]);
+        let udp_rx_buffer = udp::PacketBuffer::new(
+            vec![udp::PacketMetadata::EMPTY], vec![0; 1024]
+        );
+        let udp_tx_buffer = udp::PacketBuffer::new(
+            vec![udp::PacketMetadata::EMPTY], vec![0; 1024]
+        );
         let udp_socket = udp::Socket::new(udp_rx_buffer, udp_tx_buffer);
         let handle = sockets.add(udp_socket);
         let remote_endpoint = None;
 
-        Self { handle, remote_endpoint }
+        Self {
+            handle,
+            remote_endpoint,
+        }
     }
 
     pub fn connect(&mut self, addr: IpAddress, port: u16) -> Result<(), ()> {
@@ -62,15 +69,15 @@ impl UdpSocket {
                 let mut sockets = SOCKETS.lock();
                 iface.poll(sys::net::time(), device, &mut sockets);
                 let socket = sockets.get_mut::<udp::Socket>(self.handle);
-        
+
                 if !socket.is_open() {
                     let local_endpoint = IpListenEndpoint::from(random_port());
                     socket.bind(local_endpoint).unwrap();
                     break;
                 }
 
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }
@@ -102,7 +109,8 @@ impl FileIO for UdpSocket {
                 iface.poll(sys::net::time(), device, &mut sockets);
                 let socket = sockets.get_mut::<udp::Socket>(self.handle);
 
-                if buf.len() == 1 { // 1 byte status read
+                if buf.len() == 1 {
+                    // 1 byte status read
                     buf[0] = udp_socket_status(socket);
                     return Ok(1);
                 }
@@ -111,8 +119,8 @@ impl FileIO for UdpSocket {
                     (bytes, _) = socket.recv_slice(buf).map_err(|_| ())?;
                     break;
                 }
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }
@@ -139,8 +147,8 @@ impl FileIO for UdpSocket {
                     break;
                 }
                 if socket.can_send() {
-                    if let Some(remote_endpoint) = self.remote_endpoint {
-                        if socket.send_slice(buf.as_ref(), remote_endpoint).is_err() {
+                    if let Some(endpoint) = self.remote_endpoint {
+                        if socket.send_slice(buf.as_ref(), endpoint).is_err() {
                             return Err(());
                         }
                     } else {
@@ -149,8 +157,8 @@ impl FileIO for UdpSocket {
                     sent = true; // Break after next poll
                 }
 
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }
@@ -174,8 +182,8 @@ impl FileIO for UdpSocket {
                 socket.close();
                 closed = true;
 
-                if let Some(duration) = iface.poll_delay(sys::net::time(), &sockets) {
-                    wait(duration);
+                if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
+                    wait(d);
                 }
                 sys::time::halt();
             }

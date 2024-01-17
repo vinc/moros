@@ -1,14 +1,16 @@
 use lazy_static::lazy_static;
-use x86_64::VirtAddr;
-use x86_64::instructions::segmentation::{CS, DS, Segment};
+use x86_64::instructions::segmentation::{Segment, CS, DS};
 use x86_64::instructions::tables::load_tss;
-use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
+use x86_64::structures::gdt::{
+    Descriptor, GlobalDescriptorTable, SegmentSelector
+};
 use x86_64::structures::tss::TaskStateSegment;
+use x86_64::VirtAddr;
 
 const STACK_SIZE: usize = 1024 * 8;
-pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
-pub const PAGE_FAULT_IST_INDEX: u16 = 1;
-pub const GENERAL_PROTECTION_FAULT_IST_INDEX: u16 = 2;
+pub const DOUBLE_FAULT_IST: u16 = 0;
+pub const PAGE_FAULT_IST: u16 = 1;
+pub const GENERAL_PROTECTION_FAULT_IST: u16 = 2;
 
 lazy_static! {
     static ref TSS: TaskStateSegment = {
@@ -17,15 +19,15 @@ lazy_static! {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
             VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
         };
-        tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
+        tss.interrupt_stack_table[DOUBLE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
             VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
         };
-        tss.interrupt_stack_table[PAGE_FAULT_IST_INDEX as usize] = {
+        tss.interrupt_stack_table[PAGE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
             VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
         };
-        tss.interrupt_stack_table[GENERAL_PROTECTION_FAULT_IST_INDEX as usize] = {
+        tss.interrupt_stack_table[GENERAL_PROTECTION_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
             VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
         };
@@ -43,7 +45,16 @@ lazy_static! {
         let user_code = gdt.add_entry(Descriptor::user_code_segment());
         let user_data = gdt.add_entry(Descriptor::user_data_segment());
 
-        (gdt, Selectors { tss, code, data, user_code, user_data })
+        (
+            gdt,
+            Selectors {
+                tss,
+                code,
+                data,
+                user_code,
+                user_data,
+            },
+        )
     };
 }
 

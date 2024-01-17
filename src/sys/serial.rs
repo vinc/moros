@@ -14,13 +14,13 @@ lazy_static! {
 }
 
 pub struct Serial {
-    port: SerialPort
+    port: SerialPort,
 }
 
 impl Serial {
     fn new(addr: u16) -> Self {
         Self {
-            port: unsafe { SerialPort::new(addr) }
+            port: unsafe { SerialPort::new(addr) },
         }
     }
 
@@ -59,7 +59,7 @@ impl Perform for Serial {
                         _ => return,
                     }
                 }
-            },
+            }
             'l' => { // Disable
                 for param in params.iter() {
                     match param[0] {
@@ -67,17 +67,17 @@ impl Perform for Serial {
                         _ => return,
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(|| {
-        SERIAL.lock().write_fmt(args).expect("Could not print to serial");
-    })
+    interrupts::without_interrupts(||
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
+    )
 }
 
 pub fn init() {

@@ -36,9 +36,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     paths.sort();
     for path in paths {
-        if let Err(code) = print_hash(path, full) {
-            return Err(code);
-        }
+        print_hash(path, full)?;
     }
     Ok(())
 }
@@ -76,8 +74,14 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} hash {}<file>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} hash {}<file>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-f{1}, {0}--full{1}     Show full hash", csi_option, csi_reset);
+    println!(
+        "  {0}-f{1}, {0}--full{1}     Show full hash",
+        csi_option, csi_reset
+    );
 }

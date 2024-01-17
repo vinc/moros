@@ -2,7 +2,6 @@ use crate::api::{console, fs, io};
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::cmp;
 use vte::{Params, Parser, Perform};
 
 pub struct Prompt {
@@ -36,20 +35,20 @@ impl Prompt {
                     self.update_completion();
                     println!();
                     return Some(String::new());
-                },
+                }
                 console::EOT_KEY => { // End of Transmission (^D)
                     self.update_completion();
                     println!();
                     return None;
-                },
+                }
                 '\n' => { // New Line
                     self.update_completion();
                     self.update_history();
                     println!();
                     return Some(self.line.iter().collect());
-                },
+                }
                 c => {
-                   for b in c.to_string().as_bytes() {
+                    for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
                     }
                 }
@@ -91,16 +90,16 @@ impl Prompt {
                 } else {
                     (bs, 0)
                 }
-            },
+            }
             None => {
                 let line: String = self.line.iter().collect();
                 self.completion.entries = (self.completion.completer)(&line);
                 if !self.completion.entries.is_empty() {
                     (0, 0)
                 } else {
-                    return
+                    return;
                 }
-            },
+            }
         };
         let erase = "\x08".repeat(bs);
         let complete = &self.completion.entries[pos];
@@ -123,16 +122,16 @@ impl Prompt {
                 } else {
                     (bs, pos - 1)
                 }
-            },
+            }
             None => {
                 let line: String = self.line.iter().collect();
                 self.completion.entries = (self.completion.completer)(&line);
                 if !self.completion.entries.is_empty() {
                     (0, 0)
                 } else {
-                    return
+                    return;
                 }
-            },
+            }
         };
         let erase = "\x08".repeat(bs);
         let complete = &self.completion.entries[pos];
@@ -147,8 +146,12 @@ impl Prompt {
             return;
         }
         let (bs, i) = match self.history.pos {
-            Some(i) => (self.history.entries[i].chars().count(), cmp::max(i, 1) - 1),
-            None => (self.line.len(), n - 1),
+            Some(i) => {
+                (self.history.entries[i].chars().count(), i.saturating_sub(1))
+            }
+            None => {
+                (self.line.len(), n - 1)
+            }
         };
         let line = &self.history.entries[i];
         let blank = ' '.to_string().repeat((self.offset + bs) - self.cursor);
@@ -245,7 +248,7 @@ impl Perform for Prompt {
         match c {
             '\x08' => self.handle_backspace_key(),
             '\t' => self.handle_tab_key(),
-            _ => {},
+            _ => {}
         }
     }
 
@@ -256,7 +259,7 @@ impl Perform for Prompt {
         }
     }
 
-    fn csi_dispatch(&mut self, params: &Params, _intermediates: &[u8], _ignore: bool, c: char) {
+    fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
         match c {
             'A' => self.handle_up_key(),
             'B' => self.handle_down_key(),
@@ -269,8 +272,8 @@ impl Perform for Prompt {
                         self.handle_delete_key();
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }

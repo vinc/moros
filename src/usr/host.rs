@@ -1,9 +1,9 @@
-use crate::usr;
 use crate::api::console::Style;
-use crate::sys::fs::OpenFlag;
 use crate::api::process::ExitCode;
 use crate::api::random;
 use crate::api::syscall;
+use crate::sys::fs::OpenFlag;
+use crate::usr;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -143,11 +143,11 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             syscall::close(handle);
-            return Err(ResponseCode::NetworkError)
+            return Err(ResponseCode::NetworkError);
         }
         if syscall::write(handle, &query.datagram).is_none() {
             syscall::close(handle);
-            return Err(ResponseCode::NetworkError)
+            return Err(ResponseCode::NetworkError);
         }
         loop {
             let mut data = vec![0; buf_len];
@@ -174,10 +174,8 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
                                 Ok(IpAddress::from(ipv4))
                             }
                         }
-                        code => {
-                            Err(code)
-                        }
-                    }
+                        code => Err(code),
+                    };
                 }
             } else {
                 break;
@@ -211,5 +209,8 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} host {}<domain>{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} host {}<domain>{1}",
+        csi_title, csi_reset, csi_option
+    );
 }
