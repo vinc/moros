@@ -357,7 +357,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             return help();
         }
         let path = args[1];
-        if let Ok(mut input) = api::fs::read_to_string(path) {
+        if let Ok(mut input) = fs::read_to_string(path) {
             loop {
                 match parse_eval(&input, env) {
                     Ok((rest, _)) => {
