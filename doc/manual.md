@@ -5,7 +5,7 @@
 During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.
 
-    [0.250962] MOROS v0.10.1
+    [0.250962] MOROS v0.10.2
     [0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
     [0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
     [0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
@@ -47,7 +47,7 @@ commands to test the system or `install` to setup the
 
     /
     > install
-    Welcome to MOROS v0.10.1 installation program!
+    Welcome to MOROS v0.10.2 installation program!
 
     Proceed? [y/N] y
 
@@ -136,8 +136,8 @@ You can then use `^D` (a key combination of `CTRL` and `D`) to quit the
 diskless mode and let MOROS run the bootscript `/ini/boot.sh` to login and use
 the shell.
 
-If no disks were detected or if you prefer not to use them you can mount the
-system in memory to use a virtual disk with `memory format` before `install`.
+If no disks were detected or if you prefer not to use any you can mount the
+system in memory and use a virtual disk with `memory format` before `install`.
 
 ## Shell
 
@@ -225,7 +225,7 @@ You can edit a file with the `edit` command that will run the text editor.
 Use `^W` (a key combination of `CTRL` and `W`) inside the editor to write the
 content to the file and `^Q` to quit the editor and go back to the shell.
 
-The help command has a subcommand `help edit` to list the editor commands:
+The `help` command has a subcommand `help edit` to list the editor commands:
 
     > help edit
     MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
@@ -333,7 +333,13 @@ with `dhcp`:
     gw:  10.0.2.2
     dns: 10.0.2.3
 
-A few tools are available like the `http` command:
+A few tools are available like the generalist `socket` command that be used to
+send and receive TCP packets:
+
+    > socket 10.0.2.2:1234
+    Hello, World!
+
+Or the more specialized `http` command to request a document from a web server:
 
     > http moros.cc /test.html
     <!doctype html>

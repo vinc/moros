@@ -6,8 +6,8 @@ extern crate alloc;
 use alloc::string::String;
 use alloc::vec::Vec;
 use moros::api::io;
-use moros::api::syscall;
 use moros::api::process;
+use moros::api::syscall;
 use moros::entry_point;
 
 entry_point!(main);

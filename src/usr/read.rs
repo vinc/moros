@@ -1,9 +1,9 @@
-use crate::{api, sys, usr};
-use crate::api::console;
 use crate::api::console::Style;
 use crate::api::fs;
-use crate::api::syscall;
 use crate::api::process::ExitCode;
+use crate::api::syscall;
+use crate::sys::console;
+use crate::{api, usr};
 
 use alloc::borrow::ToOwned;
 use alloc::format;
@@ -39,7 +39,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         // > read /net/tcp/time.nist.gov:13
         let parts: Vec<_> = path.split('/').collect();
         if parts.len() < 4 {
-            println!("{}Usage:{} read {}/net/<proto>/<host>[:<port>]/<path>{1}", csi_title, csi_reset, csi_option);
+            println!(
+                "{}Usage:{} read {}/net/<proto>/<host>[:<port>]/<path>{1}",
+                csi_title, csi_reset, csi_option
+            );
             Err(ExitCode::Failure)
         } else {
             let host = parts[3];
@@ -92,18 +95,18 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             let is_float_device = n == 8;
             let is_block_device = n > 8;
             loop {
-                if sys::console::end_of_text() || sys::console::end_of_transmission() {
+                if console::end_of_text() || console::end_of_transmission() {
                     println!();
                     return Ok(());
                 }
                 if let Ok(bytes) = fs::read_to_bytes(path) {
                     if is_char_device && bytes.len() == 1 {
                         match bytes[0] as char {
-                            console::ETX_KEY => {
+                            api::console::ETX_KEY => {
                                 println!("^C");
                                 return Ok(());
                             }
-                            console::EOT_KEY => {
+                            api::console::EOT_KEY => {
                                 println!("^D");
                                 return Ok(());
                             }
@@ -111,7 +114,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         }
                     }
                     if is_float_device && bytes.len() == 8 {
-                        println!("{:.6}", f64::from_be_bytes(bytes[0..8].try_into().unwrap()));
+                        let f = f64::from_be_bytes(bytes[0..8].try_into().
+                            unwrap());
+                        println!("{:.6}", f);
                         return Ok(());
                     }
                     for b in bytes {
@@ -140,7 +145,10 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} read {}<path>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} read {}<path>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
     println!("  {0}<dir>/{1}     Read directory", csi_option, csi_reset);

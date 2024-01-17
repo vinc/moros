@@ -1,15 +1,15 @@
-use super::{dirname, filename, realpath, FileIO, IO};
+use super::block::LinkedBlock;
 use super::dir::Dir;
 use super::file::File;
-use super::block::LinkedBlock;
+use super::{dirname, filename, realpath, FileIO, IO};
 
 use crate::sys::ata::Drive;
+use crate::sys::clock::{Realtime, Uptime};
 use crate::sys::cmos::RTC;
 use crate::sys::console::Console;
-use crate::sys::random::Random;
-use crate::sys::clock::{Uptime, Realtime};
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
+use crate::sys::random::Random;
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -91,15 +91,33 @@ impl TryFrom<&[u8]> for Device {
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
         match buf.try_into() {
-            Ok(DeviceType::Null)      => Ok(Device::Null),
-            Ok(DeviceType::File)      => Ok(Device::File(File::new())),
-            Ok(DeviceType::Console)   => Ok(Device::Console(Console::new())),
-            Ok(DeviceType::Random)    => Ok(Device::Random(Random::new())),
-            Ok(DeviceType::Uptime)    => Ok(Device::Uptime(Uptime::new())),
-            Ok(DeviceType::Realtime)  => Ok(Device::Realtime(Realtime::new())),
-            Ok(DeviceType::RTC)       => Ok(Device::RTC(RTC::new())),
-            Ok(DeviceType::TcpSocket) => Ok(Device::TcpSocket(TcpSocket::new())),
-            Ok(DeviceType::UdpSocket) => Ok(Device::UdpSocket(UdpSocket::new())),
+            Ok(DeviceType::Null) => {
+                Ok(Device::Null)
+            }
+            Ok(DeviceType::File) => {
+                Ok(Device::File(File::new()))
+            }
+            Ok(DeviceType::Console) => {
+                Ok(Device::Console(Console::new()))
+            }
+            Ok(DeviceType::Random) => {
+                Ok(Device::Random(Random::new()))
+            }
+            Ok(DeviceType::Uptime) => {
+                Ok(Device::Uptime(Uptime::new()))
+            }
+            Ok(DeviceType::Realtime) => {
+                Ok(Device::Realtime(Realtime::new()))
+            }
+            Ok(DeviceType::RTC) => {
+                Ok(Device::RTC(RTC::new()))
+            }
+            Ok(DeviceType::TcpSocket) => {
+                Ok(Device::TcpSocket(TcpSocket::new()))
+            }
+            Ok(DeviceType::UdpSocket) => {
+                Ok(Device::UdpSocket(UdpSocket::new()))
+            }
             Ok(DeviceType::Drive) if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -121,7 +139,7 @@ impl Device {
         let filename = filename(&pathname);
         if let Some(mut dir) = Dir::open(dirname) {
             if let Some(dir_entry) = dir.create_device(filename) {
-                return Some(Device::File(dir_entry.into()))
+                return Some(Device::File(dir_entry.into()));
             }
         }
         None
@@ -179,7 +197,7 @@ impl FileIO for Device {
 
     fn close(&mut self) {
         match self {
-            Device::Null          => {},
+            Device::Null          => {}
             Device::File(io)      => io.close(),
             Device::Console(io)   => io.close(),
             Device::Random(io)    => io.close(),

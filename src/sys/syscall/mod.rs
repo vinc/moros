@@ -3,21 +3,28 @@ pub mod service;
 
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::{FileInfo, IO};
+use crate::sys::fs::FileInfo;
 
 use core::arch::asm;
 use smoltcp::wire::IpAddress;
 use smoltcp::wire::Ipv4Address;
 
-/*
- * Dispatching system calls
- */
+fn utf8_from_raw_parts(ptr: *mut u8, len: usize) -> &'static str {
+    unsafe {
+        let slice = core::slice::from_raw_parts(ptr, len);
+        core::str::from_utf8_unchecked(slice)
+    }
+}
 
-pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) -> usize {
+pub fn dispatcher(
+    n: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize
+) -> usize {
     match n {
-        number::EXIT => {
-            service::exit(ExitCode::from(arg1)) as usize
-        }
+        number::EXIT => service::exit(ExitCode::from(arg1)) as usize,
         number::SLEEP => {
             service::sleep(f64::from_bits(arg1 as u64));
             0
@@ -25,35 +32,39 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
         number::DELETE => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
-            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
+            let path = utf8_from_raw_parts(ptr, len);
             service::delete(path) as usize
         }
         number::INFO => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
-            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
+            let path = utf8_from_raw_parts(ptr, len);
             let info = unsafe { &mut *(arg3 as *mut FileInfo) };
             service::info(path, info) as usize
         }
         number::OPEN => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
+            let path = utf8_from_raw_parts(ptr, len);
             let flags = arg3;
-            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(ptr, len)) };
             service::open(path, flags) as usize
         }
         number::READ => {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
-            let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
+            let buf = unsafe {
+                core::slice::from_raw_parts_mut(ptr, len)
+            };
             service::read(handle, buf) as usize
         }
         number::WRITE => {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
-            let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) }; // TODO: Remove mut
+            let buf = unsafe {
+                core::slice::from_raw_parts_mut(ptr, len) // TODO: Remove mut
+            };
             service::write(handle, buf) as usize
         }
         number::CLOSE => {
@@ -69,7 +80,7 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
         number::SPAWN => {
             let path_ptr = sys::process::ptr_from_addr(arg1 as u64);
             let path_len = arg2;
-            let path = unsafe { core::str::from_utf8_unchecked(core::slice::from_raw_parts(path_ptr, path_len)) };
+            let path = utf8_from_raw_parts(path_ptr, path_len);
             let args_ptr = arg3;
             let args_len = arg4;
             service::spawn(path, args_ptr, args_len) as usize
@@ -79,16 +90,16 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
             service::stop(code)
         }
         number::POLL => {
-            let ptr = sys::process::ptr_from_addr(arg1 as u64) as *const (usize, IO);
+            let ptr = sys::process::ptr_from_addr(arg1 as u64) as *const _;
             let len = arg2;
             let list = unsafe { core::slice::from_raw_parts(ptr, len) };
             service::poll(list) as usize
         }
         number::CONNECT => {
             let handle = arg1;
-            let buf_ptr = sys::process::ptr_from_addr(arg2 as u64);
-            let buf_len = arg3;
-            let buf = unsafe { core::slice::from_raw_parts(buf_ptr, buf_len) };
+            let ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let len = arg3;
+            let buf = unsafe { core::slice::from_raw_parts(ptr, len) };
             let addr = IpAddress::from(Ipv4Address::from_bytes(buf));
             let port = arg4 as u16;
             service::connect(handle, addr, port) as usize
@@ -100,11 +111,11 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
         }
         number::ACCEPT => {
             let handle = arg1;
-            let buf_ptr = sys::process::ptr_from_addr(arg2 as u64);
-            let buf_len = arg3;
-            let buf = unsafe { core::slice::from_raw_parts_mut(buf_ptr, buf_len) };
+            let ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let len = arg3;
+            let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
             if let Ok(addr) = service::accept(handle) {
-                buf[0..buf_len].clone_from_slice(addr.as_bytes());
+                buf[0..len].clone_from_slice(addr.as_bytes());
                 0
             } else {
                 -1 as isize as usize
@@ -127,10 +138,6 @@ pub fn dispatcher(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) 
         }
     }
 }
-
-/*
- * Sending system calls
- */
 
 #[doc(hidden)]
 pub unsafe fn syscall0(n: usize) -> usize {
@@ -165,7 +172,12 @@ pub unsafe fn syscall2(n: usize, arg1: usize, arg2: usize) -> usize {
 }
 
 #[doc(hidden)]
-pub unsafe fn syscall3(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize {
+pub unsafe fn syscall3(
+    n: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize
+) -> usize {
     let res: usize;
     asm!(
         "int 0x80", in("rax") n,
@@ -176,7 +188,13 @@ pub unsafe fn syscall3(n: usize, arg1: usize, arg2: usize, arg3: usize) -> usize
 }
 
 #[doc(hidden)]
-pub unsafe fn syscall4(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize) -> usize {
+pub unsafe fn syscall4(
+    n: usize,
+    arg1: usize,
+    arg2: usize,
+    arg3: usize,
+    arg4: usize
+) -> usize {
     let res: usize;
     asm!(
         "int 0x80", in("rax") n,
@@ -188,19 +206,30 @@ pub unsafe fn syscall4(n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: us
 
 #[macro_export]
 macro_rules! syscall {
-    ($n:expr) => (
-        $crate::sys::syscall::syscall0(
-            $n as usize));
-    ($n:expr, $a1:expr) => (
-        $crate::sys::syscall::syscall1(
-            $n as usize, $a1 as usize));
-    ($n:expr, $a1:expr, $a2:expr) => (
-        $crate::sys::syscall::syscall2(
-            $n as usize, $a1 as usize, $a2 as usize));
-    ($n:expr, $a1:expr, $a2:expr, $a3:expr) => (
+    ($n:expr) => {
+        $crate::sys::syscall::syscall0($n as usize)
+    };
+    ($n:expr, $a1:expr) => {
+        $crate::sys::syscall::syscall1($n as usize, $a1 as usize)
+    };
+    ($n:expr, $a1:expr, $a2:expr) => {
+        $crate::sys::syscall::syscall2($n as usize, $a1 as usize, $a2 as usize)
+    };
+    ($n:expr, $a1:expr, $a2:expr, $a3:expr) => {
         $crate::sys::syscall::syscall3(
-            $n as usize, $a1 as usize, $a2 as usize, $a3 as usize));
-    ($n:expr, $a1:expr, $a2:expr, $a3:expr, $a4:expr) => (
+            $n as usize,
+            $a1 as usize,
+            $a2 as usize,
+            $a3 as usize,
+        )
+    };
+    ($n:expr, $a1:expr, $a2:expr, $a3:expr, $a4:expr) => {
         $crate::sys::syscall::syscall4(
-            $n as usize, $a1 as usize, $a2 as usize, $a3 as usize, $a4 as usize));
+            $n as usize,
+            $a1 as usize,
+            $a2 as usize,
+            $a3 as usize,
+            $a4 as usize,
+        )
+    };
 }

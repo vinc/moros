@@ -1,16 +1,19 @@
+use crate::api::syscall;
 use crate::sys;
 use crate::sys::fs::OpenFlag;
-use crate::api::syscall;
 
 use alloc::format;
 use alloc::string::{String, ToString};
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 
-pub use crate::sys::fs::{FileInfo, DeviceType};
+pub use crate::sys::fs::{DeviceType, FileInfo};
 
 #[derive(Clone, Copy)]
-pub enum IO { Read, Write }
+pub enum IO {
+    Read,
+    Write,
+}
 
 pub trait FileIO {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
@@ -106,7 +109,11 @@ pub fn create_device(path: &str, buf: &[u8]) -> Option<usize> {
 
 pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {
     if let Some(info) = syscall::info(path) {
-        let res = if info.is_device() { open_device(path) } else { open_file(path) };
+        let res = if info.is_device() {
+            open_device(path)
+        } else {
+            open_file(path)
+        };
         if let Some(handle) = res {
             if let Some(bytes) = syscall::read(handle, buf) {
                 syscall::close(handle);
@@ -173,11 +180,11 @@ pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
     Err(())
 }
 
-pub fn reopen(path: &str, handle: usize, append_mode: bool) -> Result<usize, ()> {
+pub fn reopen(path: &str, handle: usize, append: bool) -> Result<usize, ()> {
     let res = if let Some(info) = syscall::info(path) {
         if info.is_device() {
             open_device(path)
-        } else if append_mode {
+        } else if append {
             append_file(path)
         } else {
             open_file(path)
@@ -218,7 +225,7 @@ pub fn read_dir(path: &str) -> Result<Vec<FileInfo>, ()> {
 
 #[test_case]
 fn test_file() {
-    use crate::sys::fs::{mount_mem, format_mem, dismount};
+    use crate::sys::fs::{dismount, format_mem, mount_mem};
     mount_mem();
     format_mem();
 

@@ -1,5 +1,5 @@
-use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 
 use alloc::format;
@@ -17,7 +17,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(());
     }
     let pathname = args[1];
-    if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
+    if let Ok(buf) = fs::read_to_bytes(pathname) {
+        // TODO: read chunks
         print_hex(&buf);
         Ok(())
     } else {
@@ -61,5 +62,8 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} hex {}<file>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} hex {}<file>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }

@@ -1,7 +1,7 @@
 use crate::sys;
 use core::fmt;
 
-pub use crate::sys::console::{ETX_KEY, EOT_KEY};
+pub use crate::sys::console::{EOT_KEY, ETX_KEY};
 
 #[derive(Clone, Copy)]
 pub struct Style {
@@ -11,23 +11,38 @@ pub struct Style {
 
 impl Style {
     pub fn reset() -> Self {
-        Self { foreground: None, background: None }
+        Self {
+            foreground: None,
+            background: None,
+        }
     }
 
     pub fn foreground(name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: None }
+        Self {
+            foreground: color_to_fg(name),
+            background: None,
+        }
     }
 
     pub fn with_foreground(self, name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: self.background }
+        Self {
+            foreground: color_to_fg(name),
+            background: self.background,
+        }
     }
 
     pub fn background(name: &str) -> Self {
-        Self { foreground: None, background: color_to_bg(name) }
+        Self {
+            foreground: None,
+            background: color_to_bg(name),
+        }
     }
 
     pub fn with_background(self, name: &str) -> Self {
-        Self { foreground: self.foreground, background: color_to_bg(name) }
+        Self {
+            foreground: self.foreground,
+            background: color_to_bg(name),
+        }
     }
 
     pub fn color(name: &str) -> Self {

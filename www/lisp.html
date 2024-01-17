@@ -25,8 +25,9 @@ of the Shell.</p>
     <h3>Literals</h3>
 
     <ul>
+    <li>Number: <code>2.5</code>, <code>-25</code>, <code>255</code>, <code>0xFF</code>, <code>0xDEAD_C0DE</code>, <code>0b101010</code></li>
     <li>String: <code>&quot;Hello, World!&quot;</code></li>
-    <li>Number: <code>2.5</code>, <code>-25</code>, <code>255</code>, <code>0xFF</code>, <code>0xDEAD_C0DE</code></li>
+    <li>Escape: <code>\b</code>, <code>\e</code>, <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\&quot;</code>, <code>\\</code></li>
     </ul>
 
     <h3>Built-in Operators</h3>
@@ -63,35 +64,37 @@ of the Shell.</p>
     <h3>Primitive Operators</h3>
 
     <ul>
-    <li><code>type</code>, <code>number.type</code> (aliased to <code>num.type</code>)</li>
+    <li><code>type</code>, <code>number/type</code> (aliased to <code>num/type</code>), <code>parse</code></li>
     <li><code>string</code> (aliased to <code>str</code>)</li>
-    <li><code>string-&gt;number</code> (aliased to to <code>str-&gt;num</code>)</li>
+    <li><code>string-&gt;number</code> and <code>number-&gt;string</code> (aliased to <code>str-&gt;num</code> and <code>num-&gt;str</code>)</li>
     <li><code>string-&gt;binary</code> and <code>binary-&gt;string</code> (aliased to <code>str-&gt;bin</code> and <code>bin-&gt;str</code>)</li>
     <li><code>number-&gt;binary</code> and <code>binary-&gt;number</code> (aliased to <code>num-&gt;bin</code> and <code>bin-&gt;num</code>)</li>
-    <li><code>regex.find</code></li>
-    <li><code>system</code></li>
-    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>abs</code>, <code>mod</code>, <code>rem</code> (aliased to <code>%</code>)</li>
+    <li><code>regex/find</code></li>
+    <li><code>shell</code> (aliased to <code>sh</code>)</li>
+    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>rem</code> (aliased to <code>%</code>), <code>trunc</code></li>
     <li>Trigonometric functions: <code>acos</code>, <code>asin</code>, <code>atan</code>, <code>cos</code>, <code>sin</code>, <code>tan</code></li>
     <li>Comparisons: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>=</code></li>
-    <li>Enumerable: <code>length</code> (aliased to <code>len</code>), <code>nth</code>, <code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>slice</code></li>
-    <li>String: <code>string.trim</code> and <code>string.split</code> (aliased to <code>str.trim</code> and <code>str.split</code>)</li>
-    <li>List: <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>), <code>min</code>, <code>max</code></li>
-    <li>File: <code>file.size</code>, <code>file.open</code>, <code>file.close</code>, <code>file.read</code>, <code>file.write</code></li>
+    <li>Enumerable: <code>length</code> (aliased to <code>len</code>), <code>put</code>, <code>get</code>, <code>slice</code>, <code>contains?</code></li>
+    <li>String: <code>string/trim</code> and <code>string/split</code> (aliased to <code>str/trim</code> and <code>str/split</code>)</li>
+    <li>List: <code>list</code>, <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>)</li>
+    <li>Dict: <code>dict</code></li>
+    <li>File: <code>file/size</code>, <code>file/open</code>, <code>file/close</code>, <code>file/read</code>, <code>file/write</code></li>
+    <li>Net: <code>host</code>, <code>socket/connect</code>, <code>socket/listen</code>, <code>socket/accept</code></li>
     </ul>
 
     <h3>Core Library</h3>
 
     <ul>
-    <li><code>nil</code>, <code>nil?</code>, <code>list?</code></li>
+    <li><code>nil</code>, <code>nil?</code>, <code>list?</code>, <code>empty?</code></li>
     <li><code>boolean?</code> (aliased to <code>bool?</code>), <code>string?</code> (aliased to <code>str?</code>), <code>symbol?</code> (aliased to <code>sym?</code>), <code>number?</code> (aliased to <code>num?</code>)</li>
     <li><code>function?</code> (aliased to <code>fun?</code>), <code>macro?</code> (aliased to <code>mac?</code>)</li>
-    <li><code>first</code>, <code>second</code>, <code>third</code>, <code>rest</code></li>
-    <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>intersection</code></li>
+    <li><code>abs</code>, <code>mod</code>, <code>min</code>, <code>max</code></li>
+    <li><code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>push</code></li>
+    <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>reject</code>, <code>intersection</code></li>
     <li><code>not</code>, <code>and</code>, <code>or</code></li>
     <li><code>let</code></li>
-    <li><code>string.join</code> (aliased to <code>str.join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
-    <li><code>regex.match?</code></li>
-    <li><code>socket.connect</code>, <code>socket.listen</code>, <code>socket.accept</code></li>
+    <li><code>string/join</code> (aliased to <code>str/join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
+    <li><code>regex/match?</code></li>
     </ul>
 
     <h3>File Library</h3>
@@ -250,10 +253,19 @@ language and reading from the filesystem.</p>
     <li>Add socket functions</li>
     </ul>
 
-    <h3>Unreleased</h3>
+    <h3>0.7.0 (2023-12-22)</h3>
 
     <ul>
-    <li>Add hexadecimal number literals</li>
+    <li>Add binary and hexadecimal number literals</li>
+    <li>Test for truthiness (neither <code>false</code> nor <code>nil</code>) in conditions of <code>if</code> and <code>while</code></li>
+    <li>Rename <code>nth</code> to <code>get</code></li>
+    <li>Add <code>empty?</code>, <code>reject</code>, <code>put</code>, <code>push</code>, and <code>host</code> functions`</li>
+    <li>Add <code>dict</code> type</li>
+    <li>Use <code>/</code> instead of <code>.</code> as namespace separator</li>
+    <li>Add <code>number-&gt;string</code> (aliased to <code>num-&gt;str</code>) with an optional radix argument</li>
     </ul>
+
+    <h3>Unreleased</h3>
+  <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

@@ -5,32 +5,36 @@ mod number;
 mod parse;
 mod primitive;
 
-pub use number::Number;
 pub use env::Env;
+pub use number::Number;
 
 use env::default_env;
 use eval::{eval, eval_variable_args};
 use expand::expand;
 use parse::parse;
 
-use crate::api;
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
 use alloc::boxed::Box;
+use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 use core::cell::RefCell;
+use core::cmp;
 use core::convert::TryInto;
 use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
+// MOROS Lisp is a lisp-1 like Scheme and Clojure
+//
 // Eval & Env adapted from Risp
 // Copyright 2019 Stepan Parunashvili
 // https://github.com/stopachka/risp
@@ -38,11 +42,16 @@ use spin::Mutex;
 // Parser rewritten from scratch using Nom
 // https://github.com/geal/nom
 //
-// See "Recursive Functions of Symic Expressions and Their Computation by Machine" by John McCarthy (1960)
-// And "The Roots of Lisp" by Paul Graham (2002)
+// References:
 //
-// MOROS Lisp is a lisp-1 like Scheme and Clojure
-// See "Technical Issues of Separation in Function Cells and Value Cells" by Richard P. Gabriel (1982)
+// "Recursive Functions of Symic Expressions and Their Computation by Machine"
+// by John McCarthy (1960)
+//
+// "The Roots of Lisp"
+// by Paul Graham (2002)
+//
+// "Technical Issues of Separation in Function Cells and Value Cells"
+// by Richard P. Gabriel (1982)
 
 // Types
 
@@ -52,38 +61,50 @@ pub enum Exp {
     Function(Box<Function>),
     Macro(Box<Function>),
     List(Vec<Exp>),
+    Dict(BTreeMap<String, Exp>),
     Bool(bool),
     Num(Number),
     Str(String),
     Sym(String),
 }
 
+impl Exp {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Exp::Bool(b) => *b,
+            Exp::List(l) => !l.is_empty(),
+            _ => true,
+        }
+    }
+}
+
 impl PartialEq for Exp {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Exp::Function(a), Exp::Function(b)) => a == b,
-            (Exp::Macro(a),    Exp::Macro(b))    => a == b,
-            (Exp::List(a),     Exp::List(b))     => a == b,
-            (Exp::Bool(a),     Exp::Bool(b))     => a == b,
-            (Exp::Num(a),      Exp::Num(b))      => a == b,
-            (Exp::Str(a),      Exp::Str(b))      => a == b,
-            (Exp::Sym(a),      Exp::Sym(b))      => a == b,
+            (Exp::Macro(a), Exp::Macro(b)) => a == b,
+            (Exp::List(a), Exp::List(b)) => a == b,
+            (Exp::Dict(a), Exp::Dict(b)) => a == b,
+            (Exp::Bool(a), Exp::Bool(b)) => a == b,
+            (Exp::Num(a), Exp::Num(b)) => a == b,
+            (Exp::Str(a), Exp::Str(b)) => a == b,
+            (Exp::Sym(a), Exp::Sym(b)) => a == b,
             _ => false,
         }
     }
 }
 
-use core::cmp::Ordering;
 impl PartialOrd for Exp {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         match (self, other) {
             (Exp::Function(a), Exp::Function(b)) => a.partial_cmp(b),
-            (Exp::Macro(a),    Exp::Macro(b))    => a.partial_cmp(b),
-            (Exp::List(a),     Exp::List(b))     => a.partial_cmp(b),
-            (Exp::Bool(a),     Exp::Bool(b))     => a.partial_cmp(b),
-            (Exp::Num(a),      Exp::Num(b))      => a.partial_cmp(b),
-            (Exp::Str(a),      Exp::Str(b))      => a.partial_cmp(b),
-            (Exp::Sym(a),      Exp::Sym(b))      => a.partial_cmp(b),
+            (Exp::Macro(a), Exp::Macro(b)) => a.partial_cmp(b),
+            (Exp::List(a), Exp::List(b)) => a.partial_cmp(b),
+            (Exp::Dict(a), Exp::Dict(b)) => a.partial_cmp(b),
+            (Exp::Bool(a), Exp::Bool(b)) => a.partial_cmp(b),
+            (Exp::Num(a), Exp::Num(b)) => a.partial_cmp(b),
+            (Exp::Str(a), Exp::Str(b)) => a.partial_cmp(b),
+            (Exp::Sym(a), Exp::Sym(b)) => a.partial_cmp(b),
             _ => None,
         }
     }
@@ -93,16 +114,25 @@ impl fmt::Display for Exp {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let out = match self {
             Exp::Primitive(_) => format!("(function args)"),
-            Exp::Function(f)  => format!("(function {})", f.params),
-            Exp::Macro(m)     => format!("(macro {})", m.params),
-            Exp::Bool(a)      => a.to_string(),
-            Exp::Num(n)       => n.to_string(),
-            Exp::Sym(s)       => s.clone(),
-            Exp::Str(s)       => format!("{:?}", s),
-            Exp::List(list)   => {
-                let xs: Vec<String> = list.iter().map(|x| x.to_string()).collect();
+            Exp::Function(f) => format!("(function {})", f.params),
+            Exp::Macro(m) => format!("(macro {})", m.params),
+            Exp::Bool(a) => a.to_string(),
+            Exp::Num(n) => n.to_string(),
+            Exp::Sym(s) => s.clone(),
+            Exp::Str(s) => {
+                format!("{:?}", s).
+                    replace("\\u{8}", "\\b").replace("\\u{1b}", "\\e")
+            }
+            Exp::List(list) => {
+                let xs: Vec<_> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))
-            },
+            }
+            Exp::Dict(dict) => {
+                let xs: Vec<_> = dict.iter().map(|(k, v)|
+                    format!("{} {}", k, v)
+                ).collect();
+                format!("(dict {})", xs.join(" "))
+            }
         };
         write!(f, "{}", out)
     }
@@ -148,7 +178,7 @@ macro_rules! ensure_length_gt {
 macro_rules! ensure_string {
     ($exp:expr) => {
         match $exp {
-            Exp::Str(_) => {},
+            Exp::Str(_) => {}
             _ => return expected!("a string"),
         }
     };
@@ -158,7 +188,7 @@ macro_rules! ensure_string {
 macro_rules! ensure_list {
     ($exp:expr) => {
         match $exp {
-            Exp::List(_) => {},
+            Exp::List(_) => {}
             _ => return expected!("a list"),
         }
     };
@@ -219,7 +249,10 @@ pub fn byte(exp: &Exp) -> Result<u8, Err> {
 
 // REPL
 
-fn parse_eval(input: &str, env: &mut Rc<RefCell<Env>>) -> Result<(String, Exp), Err> {
+fn parse_eval(
+    input: &str,
+    env: &mut Rc<RefCell<Env>>
+) -> Result<(String, Exp), Err> {
     let (rest, exp) = parse(input)?;
     let exp = expand(&exp, env)?;
     let exp = eval(&exp, env)?;
@@ -245,7 +278,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
-    println!("MOROS Lisp v0.6.0\n");
+    println!("MOROS Lisp v0.7.0\n");
 
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";
@@ -274,6 +307,29 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     Ok(())
 }
 
+fn exec(env: &mut Rc<RefCell<Env>>, path: &str) -> Result<(), ExitCode> {
+    if let Ok(mut input) = fs::read_to_string(path) {
+        loop {
+            match parse_eval(&input, env) {
+                Ok((rest, _)) => {
+                    if rest.is_empty() {
+                        break;
+                    }
+                    input = rest;
+                }
+                Err(Err::Reason(msg)) => {
+                    error!("{}", msg);
+                    return Err(ExitCode::Failure);
+                }
+            }
+        }
+        Ok(())
+    } else {
+        error!("Could not find file '{}'", path);
+        Err(ExitCode::Failure)
+    }
+}
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let env = &mut default_env();
 
@@ -291,6 +347,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if args.len() < 2 {
+        let init = "/ini/lisp.lsp";
+        if fs::exists(init) {
+            exec(env, init)?;
+        }
         repl(env)
     } else {
         if args[1] == "-h" || args[1] == "--help" {
@@ -324,8 +384,19 @@ fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} lisp {}[<file> [<args>]]{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} lisp {}[<file> [<args>]]{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     Ok(())
+}
+
+#[test_case]
+fn test_exp() {
+    assert_eq!(Exp::Bool(true).is_truthy(), true);
+    assert_eq!(Exp::Bool(false).is_truthy(), false);
+    assert_eq!(Exp::Num(Number::Int(42)).is_truthy(), true);
+    assert_eq!(Exp::List(vec![]).is_truthy(), false);
 }
 
 #[test_case]
@@ -398,7 +469,10 @@ fn test_lisp() {
 
     // cons
     assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
-    assert_eq!(eval!("(cons (quote 1) (cons (quote 2) (cons (quote 3) (quote ()))))"), "(1 2 3)");
+    assert_eq!(
+        eval!("(cons (quote 1) (cons (quote 2) (cons (quote 3) (quote ()))))"),
+        "(1 2 3)"
+    );
 
     // cond
     assert_eq!(eval!("(cond ((< 2 4) 1))"), "1");
@@ -411,16 +485,26 @@ fn test_lisp() {
     assert_eq!(eval!("(if (> 2 4) 1)"), "()");
     assert_eq!(eval!("(if (< 2 4) 1 2)"), "1");
     assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
+    assert_eq!(eval!("(if true 1 2)"), "1");
+    assert_eq!(eval!("(if false 1 2)"), "2");
+    assert_eq!(eval!("(if '() 1 2)"), "2");
+    assert_eq!(eval!("(if 0 1 2)"), "1");
+    assert_eq!(eval!("(if 42 1 2)"), "1");
+    assert_eq!(eval!("(if \"\" 1 2)"), "1");
 
     // while
-    assert_eq!(eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"), "5");
+    assert_eq!(
+        eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"),
+        "5"
+    );
 
     // variable
     eval!("(variable a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");
     eval!("(variable add-one (function (b) (+ b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
-    eval!("(variable fibonacci (function (n) (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
+    eval!("(variable fibonacci (function (n) \
+             (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
     assert_eq!(eval!("(fibonacci 6)"), "8");
 
     // function
@@ -486,7 +570,10 @@ fn test_lisp() {
 
     // number
     assert_eq!(eval!("(binary->number (number->binary 42) \"int\")"), "42");
-    assert_eq!(eval!("(binary->number (number->binary 42.0) \"float\")"), "42.0");
+    assert_eq!(
+        eval!("(binary->number (number->binary 42.0) \"float\")"),
+        "42.0"
+    );
 
     // string
     assert_eq!(eval!("(parse \"9.75\")"), "9.75");
@@ -495,8 +582,11 @@ fn test_lisp() {
     assert_eq!(eval!("(string \"foo \" 3)"), "\"foo 3\"");
     assert_eq!(eval!("(equal? \"foo\" \"foo\")"), "true");
     assert_eq!(eval!("(equal? \"foo\" \"bar\")"), "false");
-    assert_eq!(eval!("(string.trim \"abc\n\")"), "\"abc\"");
-    assert_eq!(eval!("(string.split \"a\nb\nc\" \"\n\")"), "(\"a\" \"b\" \"c\")");
+    assert_eq!(eval!("(string/trim \"abc\n\")"), "\"abc\"");
+    assert_eq!(
+        eval!("(string/split \"a\nb\nc\" \"\n\")"),
+        "(\"a\" \"b\" \"c\")"
+    );
 
     // apply
     assert_eq!(eval!("(apply + '(1 2 3))"), "6");
@@ -520,25 +610,67 @@ fn test_lisp() {
     assert_eq!(eval!("(list 1 2 (+ 1 2))"), "(1 2 3)");
 
     // bigint
-    assert_eq!(eval!("9223372036854775807"),          "9223372036854775807");   // -> int
-    assert_eq!(eval!("9223372036854775808"),          "9223372036854775808");   // -> bigint
-    assert_eq!(eval!("0x7fffffffffffffff"),           "9223372036854775807");   // -> int
-    assert_eq!(eval!("0x8000000000000000"),           "9223372036854775808");   // -> bigint
-    assert_eq!(eval!("0x800000000000000f"),           "9223372036854775823");   // -> bigint
-    assert_eq!(eval!("(+ 9223372036854775807 0)"),    "9223372036854775807");   // -> int
-    assert_eq!(eval!("(- 9223372036854775808 1)"),    "9223372036854775807");   // -> bigint
-    assert_eq!(eval!("(+ 9223372036854775807 1)"),    "9223372036854775808");   // -> bigint
-    assert_eq!(eval!("(+ 9223372036854775807 1.0)"),  "9223372036854776000.0"); // -> float
-    assert_eq!(eval!("(+ 9223372036854775807 10)"),   "9223372036854775817");   // -> bigint
-    assert_eq!(eval!("(* 9223372036854775807 10)"),  "92233720368547758070");   // -> bigint
+    assert_eq!(
+        eval!("9223372036854775807"),
+        "9223372036854775807" // -> int
+    );
+    assert_eq!(
+        eval!("9223372036854775808"),
+        "9223372036854775808" // -> bigint
+    );
+    assert_eq!(
+        eval!("0x7fffffffffffffff"),
+        "9223372036854775807" // -> int
+    );
+    assert_eq!(
+        eval!("0x8000000000000000"),
+        "9223372036854775808" // -> bigint
+    );
+    assert_eq!(
+        eval!("0x800000000000000f"),
+        "9223372036854775823" // -> bigint
+    );
+    assert_eq!(
+        eval!("(+ 9223372036854775807 0)"),
+        "9223372036854775807" // -> int
+    );
+    assert_eq!(
+        eval!("(- 9223372036854775808 1)"),
+        "9223372036854775807" // -> bigint
+    );
+    assert_eq!(
+        eval!("(+ 9223372036854775807 1)"),
+        "9223372036854775808" // -> bigint
+    );
+    assert_eq!(
+        eval!("(+ 9223372036854775807 1.0)"),
+        "9223372036854776000.0" // -> float
+    );
+    assert_eq!(
+        eval!("(+ 9223372036854775807 10)"),
+        "9223372036854775817" // -> bigint
+    );
+    assert_eq!(
+        eval!("(* 9223372036854775807 10)"),
+        "92233720368547758070" // -> bigint
+    );
 
-    assert_eq!(eval!("(^ 2 16)"),                                      "65536");   // -> int
-    assert_eq!(eval!("(^ 2 128)"),   "340282366920938463463374607431768211456");   // -> bigint
-    assert_eq!(eval!("(^ 2.0 128)"), "340282366920938500000000000000000000000.0"); // -> float
+    assert_eq!(
+        eval!("(^ 2 16)"),
+        "65536" // -> int
+    );
+    assert_eq!(
+        eval!("(^ 2 128)"),
+        "340282366920938463463374607431768211456" // -> bigint
+    );
+    assert_eq!(
+        eval!("(^ 2.0 128)"),
+        "340282366920938500000000000000000000000.0" // -> float
+    );
 
-    assert_eq!(eval!("(number.type 9223372036854775807)"),   "\"int\"");
-    assert_eq!(eval!("(number.type 9223372036854775808)"),   "\"bigint\"");
-    assert_eq!(eval!("(number.type 9223372036854776000.0)"), "\"float\"");
+    assert_eq!(eval!("(number/type 9223372036854775807)"), "\"int\"");
+    assert_eq!(eval!("(number/type 9223372036854775808)"), "\"bigint\"");
+    assert_eq!(eval!("(number/type 9223372036854776000.0)"), "\"float\"");
 
     // quasiquote
     eval!("(variable x 'a)");
@@ -570,4 +702,29 @@ fn test_lisp() {
     assert_eq!(eval!("# comment\n# comment"), "()");
     assert_eq!(eval!("(+ 1 2 3) # comment"), "6");
     assert_eq!(eval!("(+ 1 2 3) # comment\n# comment"), "6");
+
+    // list
+    assert_eq!(eval!("(list 1 2 3)"), "(1 2 3)");
+
+    // dict
+    assert_eq!(
+        eval!("(dict \"a\" 1 \"b\" 2 \"c\" 3)"),
+        "(dict \"a\" 1 \"b\" 2 \"c\" 3)"
+    );
+
+    // get
+    assert_eq!(eval!("(get \"Hello\" 0)"), "\"H\"");
+    assert_eq!(eval!("(get \"Hello\" 6)"), "\"\"");
+    assert_eq!(eval!("(get (list 1 2 3) 0)"), "1");
+    assert_eq!(eval!("(get (list 1 2 3) 3)"), "()");
+    assert_eq!(eval!("(get (dict \"a\" 1 \"b\" 2 \"c\" 3) \"a\")"), "1");
+    assert_eq!(eval!("(get (dict \"a\" 1 \"b\" 2 \"c\" 3) \"d\")"), "()");
+
+    // put
+    assert_eq!(
+        eval!("(put (dict \"a\" 1 \"b\" 2) \"c\" 3)"),
+        "(dict \"a\" 1 \"b\" 2 \"c\" 3)"
+    );
+    assert_eq!(eval!("(put (list 1 3) 1 2)"), "(1 2 3)");
+    assert_eq!(eval!("(put \"Heo\" 2 \"ll\")"), "\"Hello\"");
 }

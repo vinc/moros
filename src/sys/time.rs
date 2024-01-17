@@ -1,7 +1,7 @@
 use crate::sys;
 use crate::sys::cmos::CMOS;
 use core::hint::spin_loop;
-use core::sync::atomic::{AtomicUsize, AtomicU64, Ordering};
+use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 

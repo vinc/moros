@@ -11,15 +11,17 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
-// See "Information Technology - AT Attachment with Packet Interface Extension (ATA/ATAPI-4)" (1998)
+// Information Technology
+// AT Attachment with Packet Interface Extension (ATA/ATAPI-4)
+// (1998)
 
 pub const BLOCK_SIZE: usize = 512;
 
 #[repr(u16)]
 #[derive(Debug, Clone, Copy)]
 enum Command {
-    Read = 0x20,
-    Write = 0x30,
+    Read     = 0x20,
+    Write    = 0x30,
     Identify = 0xEC,
 }
 
@@ -69,8 +71,8 @@ pub struct Bus {
 impl Bus {
     pub fn new(id: u8, io_base: u16, ctrl_base: u16, irq: u8) -> Self {
         Self {
-            id, irq,
-
+            id,
+            irq,
             data_register: Port::new(io_base + 0),
             error_register: PortReadOnly::new(io_base + 1),
             features_register: PortWriteOnly::new(io_base + 1),
@@ -81,7 +83,6 @@ impl Bus {
             drive_register: Port::new(io_base + 6),
             status_register: PortReadOnly::new(io_base + 7),
             command_register: PortWriteOnly::new(io_base + 7),
-
             alternate_status_register: PortReadOnly::new(ctrl_base + 0),
             control_register: PortWriteOnly::new(ctrl_base + 0),
             drive_blockess_register: PortReadOnly::new(ctrl_base + 1),
@@ -131,7 +132,10 @@ impl Bus {
         let start = sys::clock::uptime();
         while self.status().get_bit(bit as usize) != val {
             if sys::clock::uptime() - start > 1.0 {
-                debug!("ATA hanged while polling {:?} bit in status register", bit);
+                debug!(
+                    "ATA hanged while polling {:?} bit in status register",
+                    bit
+                );
                 self.debug();
                 return Err(());
             }
@@ -155,7 +159,11 @@ impl Bus {
         Ok(())
     }
 
-    fn write_command_params(&mut self, drive: u8, block: u32) -> Result<(), ()> {
+    fn write_command_params(
+        &mut self,
+        drive: u8,
+        block: u32
+    ) -> Result<(), ()> {
         let lba = true;
         let mut bytes = block.to_le_bytes();
         bytes[3].set_bit(4, drive > 0);
@@ -196,7 +204,12 @@ impl Bus {
         Ok(())
     }
 
-    fn read(&mut self, drive: u8, block: u32, buf: &mut [u8]) -> Result<(), ()> {
+    fn read(
+        &mut self,
+        drive: u8,
+        block: u32,
+        buf: &mut [u8]
+    ) -> Result<(), ()> {
         debug_assert!(buf.len() == BLOCK_SIZE);
         self.setup_pio(drive, block)?;
         self.write_command(Command::Read)?;
@@ -244,7 +257,9 @@ impl Bus {
             }
         }
         match (self.lba1(), self.lba2()) {
-            (0x00, 0x00) => Ok(IdentifyResponse::Ata([(); 256].map(|_| { self.read_data() }))),
+            (0x00, 0x00) => {
+                Ok(IdentifyResponse::Ata([(); 256].map(|_| self.read_data())))
+            }
             (0x14, 0xEB) => Ok(IdentifyResponse::Atapi),
             (0x3C, 0xC3) => Ok(IdentifyResponse::Sata),
             (_, _) => Err(()),
@@ -255,17 +270,23 @@ impl Bus {
     fn reset(&mut self) {
         unsafe {
             self.control_register.write(4); // Set SRST bit
-            self.wait(5);                   // Wait at least 5 ns
+            self.wait(5); // Wait at least 5 ns
             self.control_register.write(0); // Then clear it
-            self.wait(2000);                // Wait at least 2 ms
+            self.wait(2000); // Wait at least 2 ms
         }
     }
 
     #[allow(dead_code)]
     fn debug(&mut self) {
         unsafe {
-            debug!("ATA status register: 0b{:08b} <BSY|DRDY|#|#|DRQ|#|#|ERR>", self.alternate_status_register.read());
-            debug!("ATA error register:  0b{:08b} <#|#|#|#|#|ABRT|#|#>", self.error_register.read());
+            debug!(
+                "ATA status register: 0b{:08b} <BSY|DRDY|#|#|DRQ|#|#|ERR>",
+                self.alternate_status_register.read()
+            );
+            debug!(
+                "ATA error register:  0b{:08b} <#|#|#|#|#|ABRT|#|#>",
+                self.error_register.read()
+            );
         }
     }
 }
@@ -303,13 +324,24 @@ impl Drive {
 
     pub fn open(bus: u8, dsk: u8) -> Option<Self> {
         let mut buses = BUSES.lock();
-        if let Ok(IdentifyResponse::Ata(res)) = buses[bus as usize].identify_drive(dsk) {
+        let res = buses[bus as usize].identify_drive(dsk);
+        if let Ok(IdentifyResponse::Ata(res)) = res {
             let buf = res.map(u16::to_be_bytes).concat();
-            let serial = String::from_utf8_lossy(&buf[20..40]).trim().into();
             let model = String::from_utf8_lossy(&buf[54..94]).trim().into();
-            let block_count = u32::from_be_bytes(buf[120..124].try_into().unwrap()).rotate_left(16);
+            let serial = String::from_utf8_lossy(&buf[20..40]).trim().into();
+            let block_count = u32::from_be_bytes(
+                buf[120..124].try_into().unwrap()
+            ).rotate_left(16);
             let block_index = 0;
-            Some(Self { bus, dsk, model, serial, block_count, block_index })
+
+            Some(Self {
+                bus,
+                dsk,
+                model,
+                serial,
+                block_count,
+                block_index,
+            })
         } else {
             None
         }

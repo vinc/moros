@@ -14,7 +14,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 help();
                 return Ok(());
             }
-            _ => continue
+            _ => continue,
         }
     }
 
@@ -38,5 +38,8 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} copy {}<src> <dst>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} copy {}<src> <dst>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }

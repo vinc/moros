@@ -1,10 +1,10 @@
-use super::{dirname, filename, realpath, FileIO, IO};
-use super::super_block::SuperBlock;
+use super::bitmap_block::BitmapBlock;
+use super::block::LinkedBlock;
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
-use super::bitmap_block::BitmapBlock;
+use super::super_block::SuperBlock;
 use super::FileType;
-use super::block::LinkedBlock;
+use super::{dirname, filename, realpath, FileIO, IO};
 use crate::sys;
 
 use alloc::boxed::Box;
@@ -22,7 +22,13 @@ pub struct Dir {
 
 impl From<DirEntry> for Dir {
     fn from(entry: DirEntry) -> Self {
-        Self { parent: Some(Box::new(entry.dir())), name: entry.name(), addr: entry.addr(), size: entry.size(), entry_index: 0 }
+        Self {
+            parent: Some(Box::new(entry.dir())),
+            name: entry.name(),
+            addr: entry.addr(),
+            size: entry.size(),
+            entry_index: 0,
+        }
     }
 }
 
@@ -30,7 +36,13 @@ impl Dir {
     pub fn root() -> Self {
         let name = String::new();
         let addr = SuperBlock::read().data_area();
-        let mut root = Self { parent: None, name, addr, size: 0, entry_index: 0 };
+        let mut root = Self {
+            parent: None,
+            name,
+            addr,
+            size: 0,
+            entry_index: 0,
+        };
         root.update_size();
         root
     }
@@ -71,10 +83,8 @@ impl Dir {
                     } else {
                         return None;
                     }
-                },
-                None => {
-                    return None
-                },
+                }
+                None => return None,
             }
         }
         Some(dir)
@@ -110,7 +120,8 @@ impl Dir {
         let mut entries = self.entries();
         while entries.next().is_some() {}
 
-        // Allocate a new block for the dir if no space left for adding the new entry
+        // Allocate a new block for the dir if no space left for adding
+        // the new entry.
         let space_left = entries.block.data().len() - entries.block_offset();
         let entry_len = DirEntry::empty_len() + name.len();
         if entry_len > space_left {
@@ -119,7 +130,7 @@ impl Dir {
                 Some(new_block) => {
                     entries.block = new_block;
                     entries.block_offset = 0;
-                },
+                }
             }
         }
 
@@ -144,7 +155,14 @@ impl Dir {
         entries.block.write();
         self.update_size();
 
-        Some(DirEntry::new(self.clone(), kind, entry_addr, entry_size, entry_time, &entry_name))
+        Some(DirEntry::new(
+            self.clone(),
+            kind,
+            entry_addr,
+            entry_size,
+            entry_time,
+            &entry_name,
+        ))
     }
 
     // Deleting an entry is done by setting the entry address to 0
@@ -244,8 +262,7 @@ impl FileIO for Dir {
         Err(())
     }
 
-    fn close(&mut self) {
-    }
+    fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
@@ -255,7 +272,8 @@ impl FileIO for Dir {
     }
 }
 
-// Truncate to the given number of bytes at most while respecting char boundaries
+// Truncate to the given number of bytes at most
+// while respecting char boundaries.
 fn truncate(s: &str, max: usize) -> String {
     s.char_indices().take_while(|(i, _)| *i <= max).map(|(_, c)| c).collect()
 }

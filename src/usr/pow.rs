@@ -1,11 +1,11 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
-use crate::api::{io, random, console};
+use crate::api::{console, io, random};
 
-use core::fmt;
 use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use core::fmt;
 use vte::{Params, Parser, Perform};
 
 struct Game {
@@ -37,7 +37,7 @@ impl Game {
             match c {
                 'q' | console::ETX_KEY | console::EOT_KEY => {
                     return;
-                },
+                }
                 c => {
                     for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
@@ -131,18 +131,18 @@ impl fmt::Display for Game {
                     write!(f, "      |")?;
                 } else {
                     let color = match v {
-                        2    => Style::color("LightGray"),
-                        4    => Style::color("LightBlue"),
-                        8    => Style::color("LightCyan"),
-                        16   => Style::color("LightGreen"),
-                        32   => Style::color("Yellow"),
-                        64   => Style::color("LightRed"),
-                        128  => Style::color("Pink"),
-                        256  => Style::color("Magenta"),
-                        512  => Style::color("Pink"),
+                        2 => Style::color("LightGray"),
+                        4 => Style::color("LightBlue"),
+                        8 => Style::color("LightCyan"),
+                        16 => Style::color("LightGreen"),
+                        32 => Style::color("Yellow"),
+                        64 => Style::color("LightRed"),
+                        128 => Style::color("Pink"),
+                        256 => Style::color("Magenta"),
+                        512 => Style::color("Pink"),
                         1024 => Style::color("Red"),
                         2048 => Style::color("Brown"),
-                        _    => Style::color("White"),
+                        _ => Style::color("White"),
                     };
                     write!(f, " {}{:^5}{}|", color, v, reset)?;
                 }
@@ -154,13 +154,13 @@ impl fmt::Display for Game {
 }
 
 impl Perform for Game {
-    fn csi_dispatch(&mut self, _params: &Params, _intermediates: &[u8], _ignore: bool, c: char) {
+    fn csi_dispatch(&mut self, _: &Params, _: &[u8], _: bool, c: char) {
         match c {
             'A' => self.handle_up_key(),
             'B' => self.handle_down_key(),
             'C' => self.handle_forward_key(),
             'D' => self.handle_backward_key(),
-            _ => {},
+            _ => {}
         }
     }
 }

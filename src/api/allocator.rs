@@ -4,7 +4,7 @@ use core::alloc::{GlobalAlloc, Layout};
 
 pub struct UserspaceAllocator;
 
-unsafe impl GlobalAlloc for UserspaceAllocator{
+unsafe impl GlobalAlloc for UserspaceAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         syscall::alloc(layout.size(), layout.align())
     }

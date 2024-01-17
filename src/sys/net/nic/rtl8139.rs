@@ -1,5 +1,5 @@
 use crate::sys::allocator::PhysBuf;
-use crate::sys::net::{EthernetDeviceIO, Config, Stats};
+use crate::sys::net::{Config, EthernetDeviceIO, Stats};
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -24,9 +24,9 @@ const TX_BUFFER_LEN: usize = 2048;
 const TX_BUFFERS_COUNT: usize = 4;
 const ROK: u16 = 0x01;
 
-const CR_RST:  u8 = 1 << 4; // Reset
-const CR_RE:   u8 = 1 << 3; // Receiver Enable
-const CR_TE:   u8 = 1 << 2; // Transmitter Enable
+const CR_RST: u8 = 1 << 4; // Reset
+const CR_RE: u8 = 1 << 3; // Receiver Enable
+const CR_TE: u8 = 1 << 2; // Transmitter Enable
 const CR_BUFE: u8 = 1 << 0; // Buffer Empty
 
 // Rx Buffer Length
@@ -38,10 +38,10 @@ const RCR_RBLEN: u32 = (RX_BUFFER_IDX << 11) as u32;
 // of the buffer. So the buffer must have an additionnal 1500 bytes.
 const RCR_WRAP: u32 = 1 << 7;
 
-const RCR_AB:   u32 = 1 << 3; // Accept Broadcast packets
-const RCR_AM:   u32 = 1 << 2; // Accept Multicast packets
-const RCR_APM:  u32 = 1 << 1; // Accept Physical Match packets
-const RCR_AAP:  u32 = 1 << 0; // Accept All Packets
+const RCR_AB: u32 = 1 << 3; // Accept Broadcast packets
+const RCR_AM: u32 = 1 << 2; // Accept Multicast packets
+const RCR_APM: u32 = 1 << 1; // Accept Physical Match packets
+const RCR_AAP: u32 = 1 << 0; // Accept All Packets
 
 // Interframe Gap Time
 const TCR_IFG: u32 = 3 << 24;
@@ -68,23 +68,46 @@ const TCR_MXDMA2: u32 = 1 << 10;
 //const OWC: u32 = 1 << 29; // Out of Window Collision
 //const CDH: u32 = 1 << 28; // CD Heart Beat
 const TOK: u32 = 1 << 15; // Transmit OK
-//const TUN: u32 = 1 << 14; // Transmit FIFO Underrun
+                          //const TUN: u32 = 1 << 14; // Transmit FIFO Underrun
 const OWN: u32 = 1 << 13; // DMA operation completed
 
 #[derive(Clone)]
 pub struct Ports {
-    pub mac: [Port<u8>; 6],                      // ID Registers (IDR0 ... IDR5)
-    pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT],  // Transmit Status of Descriptors (TSD0 .. TSD3)
-    pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT], // Transmit Start Address of Descriptor0 (TSAD0 .. TSAD3)
-    pub config1: Port<u8>,                       // Configuration Register 1 (CONFIG1)
-    pub rx_addr: Port<u32>,                      // Receive (Rx) Buffer Start Address (RBSTART)
-    pub capr: Port<u16>,                         // Current Address of Packet Read (CAPR)
-    pub cba: Port<u16>,                          // Current Buffer Address (CBA)
-    pub cmd: Port<u8>,                           // Command Register (CR)
-    pub imr: Port<u16>,                          // Interrupt Mask Register (IMR)
-    pub isr: Port<u16>,                          // Interrupt Status Register (ISR)
-    pub tx_config: Port<u32>,                    // Transmit (Tx) Configuration Register (TCR)
-    pub rx_config: Port<u32>,                    // Receive (Rx) Configuration Register (RCR)
+    // ID Registers (IDR0 ... IDR5)
+    pub mac: [Port<u8>; 6],
+
+    // Transmit Status of Descriptors (TSD0 .. TSD3)
+    pub tx_cmds: [Port<u32>; TX_BUFFERS_COUNT],
+
+    // Transmit Start Address of Descriptor0 (TSAD0 .. TSAD3)
+    pub tx_addrs: [Port<u32>; TX_BUFFERS_COUNT],
+
+    // Configuration Register 1 (CONFIG1)
+    pub config1: Port<u8>,
+
+    // Receive (Rx) Buffer Start Address (RBSTART)
+    pub rx_addr: Port<u32>,
+
+    // Current Address of Packet Read (CAPR)
+    pub capr: Port<u16>,
+
+    // Current Buffer Address (CBA)
+    pub cba: Port<u16>,
+
+    // Command Register (CR)
+    pub cmd: Port<u8>,
+
+    // Interrupt Mask Register (IMR)
+    pub imr: Port<u16>,
+
+    // Interrupt Status Register (ISR)
+    pub isr: Port<u16>,
+
+    // Transmit (Tx) Configuration Register (TCR)
+    pub tx_config: Port<u32>,
+
+    // Receive (Rx) Configuration Register (RCR)
+    pub rx_config: Port<u32>,
 }
 
 impl Ports {
@@ -159,7 +182,9 @@ impl Device {
             rx_buffer: PhysBuf::new(RX_BUFFER_LEN + RX_BUFFER_PAD + MTU),
 
             rx_offset: 0,
-            tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(TX_BUFFER_LEN)),
+            tx_buffers: [(); TX_BUFFERS_COUNT].map(|_|
+                PhysBuf::new(TX_BUFFER_LEN)
+            ),
 
             // Before a transmission begin the id is incremented,
             // so the first transimission will start at 0.
@@ -206,10 +231,12 @@ impl Device {
         }
 
         // Configure receive buffer (RCR)
-        unsafe { self.ports.rx_config.write(RCR_RBLEN | RCR_WRAP | RCR_AB | RCR_AM | RCR_APM | RCR_AAP) }
+        let flags = RCR_RBLEN | RCR_WRAP | RCR_AB | RCR_AM | RCR_APM | RCR_AAP;
+        unsafe { self.ports.rx_config.write(flags) }
 
         // Configure transmit buffer (TCR)
-        unsafe { self.ports.tx_config.write(TCR_IFG | TCR_MXDMA1 | TCR_MXDMA2); }
+        let flags = TCR_IFG | TCR_MXDMA1 | TCR_MXDMA2;
+        unsafe { self.ports.tx_config.write(flags) }
     }
 }
 
@@ -233,27 +260,31 @@ impl EthernetDeviceIO for Device {
             return None;
         }
 
-        //let isr = unsafe { self.ports.isr.read() };
         let cba = unsafe { self.ports.cba.read() };
+
         // CAPR starts at 65520 and with the pad it overflows to 0
         let capr = unsafe { self.ports.capr.read() };
         let offset = ((capr as usize) + RX_BUFFER_PAD) % (1 << 16);
-        let header = u16::from_le_bytes(self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap());
+
+        let header = u16::from_le_bytes(
+            self.rx_buffer[(offset + 0)..(offset + 2)].try_into().unwrap(),
+        );
+
         if header & ROK != ROK {
-            unsafe { self.ports.capr.write((((cba as usize) % RX_BUFFER_LEN) - RX_BUFFER_PAD) as u16) };
+            let capr = ((cba as usize) % RX_BUFFER_LEN) - RX_BUFFER_PAD;
+            unsafe { self.ports.capr.write(capr as u16) }
             return None;
         }
 
-        let n = u16::from_le_bytes(self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap()) as usize;
-        //let crc = u32::from_le_bytes(self.rx_buffer[(offset + n)..(offset + n + 4)].try_into().unwrap());
+        let n = u16::from_le_bytes(
+            self.rx_buffer[(offset + 2)..(offset + 4)].try_into().unwrap()
+        ) as usize;
 
         // Update buffer read pointer
         self.rx_offset = (offset + n + 4 + 3) & !3;
-        unsafe {
-            self.ports.capr.write(((self.rx_offset % RX_BUFFER_LEN) - RX_BUFFER_PAD) as u16);
-        }
+        let capr = (self.rx_offset % RX_BUFFER_LEN) - RX_BUFFER_PAD;
+        unsafe { self.ports.capr.write(capr as u16) }
 
-        //unsafe { self.ports.isr.write(0x1); }
         Some(self.rx_buffer[(offset + 4)..(offset + n)].to_vec())
     }
 
@@ -296,7 +327,8 @@ pub fn interrupt_handler() {
     printk!("RTL8139 interrupt!\n");
     if let Some(mut guard) = sys::net::IFACE.try_lock() {
         if let Some(ref mut iface) = *guard {
-            unsafe { iface.device_mut().ports.isr.write(0xffff) } // Clear the interrupt
+            // Clear the interrupt
+            unsafe { iface.device_mut().ports.isr.write(0xFFFF) }
         }
     }
 }

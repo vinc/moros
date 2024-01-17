@@ -30,7 +30,9 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::keyboard::init();
     sys::time::init();
 
-    log!("MOROS v{}\n", option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION")));
+    let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
+    log!("MOROS v{}\n", v);
+
     sys::mem::init(boot_info);
     sys::cpu::init();
     sys::pci::init(); // Require MEM
@@ -44,7 +46,12 @@ pub fn init(boot_info: &'static BootInfo) {
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     let csi_color = api::console::Style::color("LightRed");
     let csi_reset = api::console::Style::reset();
-    printk!("{}Error:{} Could not allocate {} bytes\n", csi_color, csi_reset, layout.size());
+    printk!(
+        "{}Error:{} Could not allocate {} bytes\n",
+        csi_color,
+        csi_reset,
+        layout.size()
+    );
     hlt_loop();
 }
 
@@ -71,7 +78,6 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     exit_qemu(QemuExitCode::Success);
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum QemuExitCode {
@@ -83,7 +89,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     use x86_64::instructions::port::Port;
 
     unsafe {
-        let mut port = Port::new(0xf4);
+        let mut port = Port::new(0xF4);
         port.write(exit_code as u32);
     }
 }

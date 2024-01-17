@@ -1,17 +1,17 @@
-use crate::sys;
-use crate::api::process::ExitCode;
 use crate::api::fs::{FileIO, IO};
+use crate::api::process::ExitCode;
+use crate::sys;
+use crate::sys::fs::Device;
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::Resource;
-use crate::sys::fs::Device;
 use crate::sys::process::Process;
 
 use alloc::vec;
+use core::alloc::Layout;
 use core::arch::asm;
 use smoltcp::wire::IpAddress;
 
 pub fn exit(code: ExitCode) -> ExitCode {
-    //debug!("syscall::exit(code={})", code as usize);
     sys::process::exit();
     code
 }
@@ -90,7 +90,6 @@ pub fn close(handle: usize) {
 }
 
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
-    //debug!("syscall::spawn(path={}, args_ptr={:#X}, args_len={})", path, args_ptr, args_len);
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return ExitCode::OpenError,
@@ -114,15 +113,12 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
 
 pub fn stop(code: usize) -> usize {
     match code {
-        0xcafe => { // Reboot
+        0xCAFE => { // Reboot
             unsafe {
-                asm!(
-                    "xor rax, rax",
-                    "mov cr3, rax"
-                );
+                asm!("xor rax, rax", "mov cr3, rax");
             }
         }
-        0xdead => { // Halt
+        0xDEAD => { // Halt
             sys::process::exit();
             sys::acpi::shutdown();
         }
@@ -147,8 +143,12 @@ pub fn poll(list: &[(usize, IO)]) -> isize {
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> isize {
     if let Some(mut file) = sys::process::handle(handle) {
         let res = match *file {
-            Resource::Device(Device::TcpSocket(ref mut dev)) => dev.connect(addr, port),
-            Resource::Device(Device::UdpSocket(ref mut dev)) => dev.connect(addr, port),
+            Resource::Device(Device::TcpSocket(ref mut dev)) => {
+                dev.connect(addr, port)
+            }
+            Resource::Device(Device::UdpSocket(ref mut dev)) => {
+                dev.connect(addr, port)
+            }
             _ => Err(()),
         };
         if res.is_ok() {
@@ -184,13 +184,9 @@ pub fn accept(handle: usize) -> Result<IpAddress, ()> {
     Err(())
 }
 
-use core::alloc::Layout;
-
 pub fn alloc(size: usize, align: usize) -> *mut u8 {
     if let Ok(layout) = Layout::from_size_align(size, align) {
-        let ptr = unsafe { sys::process::alloc(layout) };
-        //debug!("syscall::alloc(size={}, align={}) -> ptr={:?}", size, align, ptr);
-        ptr
+        unsafe { sys::process::alloc(layout) }
     } else {
         core::ptr::null_mut()
     }
@@ -198,7 +194,6 @@ pub fn alloc(size: usize, align: usize) -> *mut u8 {
 
 pub fn free(ptr: *mut u8, size: usize, align: usize) {
     if let Ok(layout) = Layout::from_size_align(size, align) {
-        //debug!("syscall::free(ptr={:?}, size={}, align={})", ptr, size, align);
         unsafe { sys::process::free(ptr, layout) };
     }
 }

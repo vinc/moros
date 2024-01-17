@@ -1,8 +1,11 @@
-use crate::sys;
 use crate::api::syscall;
+use crate::sys;
 
 use core::sync::atomic::{AtomicBool, Ordering};
-use pc_keyboard::{layouts, DecodedKey, Error, HandleControl, KeyState, KeyCode, KeyEvent, Keyboard, ScancodeSet1};
+use pc_keyboard::{
+    layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, KeyState,
+    Keyboard, ScancodeSet1,
+};
 use spin::Mutex;
 use x86_64::instructions::port::Port;
 
@@ -21,25 +24,31 @@ pub enum KeyboardLayout {
 impl KeyboardLayout {
     fn add_byte(&mut self, scancode: u8) -> Result<Option<KeyEvent>, Error> {
         match self {
-            KeyboardLayout::Azerty(keyboard) => keyboard.add_byte(scancode),
-            KeyboardLayout::Dvorak(keyboard) => keyboard.add_byte(scancode),
-            KeyboardLayout::Qwerty(keyboard) => keyboard.add_byte(scancode),
+            KeyboardLayout::Azerty(kb) => kb.add_byte(scancode),
+            KeyboardLayout::Dvorak(kb) => kb.add_byte(scancode),
+            KeyboardLayout::Qwerty(kb) => kb.add_byte(scancode),
         }
     }
 
     fn process_keyevent(&mut self, event: KeyEvent) -> Option<DecodedKey> {
         match self {
-            KeyboardLayout::Azerty(keyboard) => keyboard.process_keyevent(event),
-            KeyboardLayout::Dvorak(keyboard) => keyboard.process_keyevent(event),
-            KeyboardLayout::Qwerty(keyboard) => keyboard.process_keyevent(event),
+            KeyboardLayout::Azerty(kb) => kb.process_keyevent(event),
+            KeyboardLayout::Dvorak(kb) => kb.process_keyevent(event),
+            KeyboardLayout::Qwerty(kb) => kb.process_keyevent(event),
         }
     }
 
     fn from(name: &str) -> Option<Self> {
         match name {
-            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(HandleControl::MapLettersToUnicode))),
-            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(HandleControl::MapLettersToUnicode))),
-            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(HandleControl::MapLettersToUnicode))),
+            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(
+                HandleControl::MapLettersToUnicode,
+            ))),
+            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(
+                HandleControl::MapLettersToUnicode,
+            ))),
+            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(
+                HandleControl::MapLettersToUnicode,
+            ))),
             _ => None,
         }
     }
@@ -82,9 +91,15 @@ fn interrupt_handler() {
         if let Ok(Some(event)) = keyboard.add_byte(scancode) {
             let ord = Ordering::Relaxed;
             match event.code {
-                KeyCode::AltLeft | KeyCode::AltRight => ALT.store(event.state == KeyState::Down, ord),
-                KeyCode::ShiftLeft | KeyCode::ShiftRight => SHIFT.store(event.state == KeyState::Down, ord),
-                KeyCode::ControlLeft | KeyCode::ControlRight => CTRL.store(event.state == KeyState::Down, ord),
+                KeyCode::AltLeft | KeyCode::AltRight => {
+                    ALT.store(event.state == KeyState::Down, ord)
+                }
+                KeyCode::ShiftLeft | KeyCode::ShiftRight => {
+                    SHIFT.store(event.state == KeyState::Down, ord)
+                }
+                KeyCode::ControlLeft | KeyCode::ControlRight => {
+                    CTRL.store(event.state == KeyState::Down, ord)
+                }
                 _ => {}
             }
             let is_alt = ALT.load(ord);
@@ -92,16 +107,24 @@ fn interrupt_handler() {
             let is_shift = SHIFT.load(ord);
             if let Some(key) = keyboard.process_keyevent(event) {
                 match key {
-                    DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => syscall::reboot(), // Ctrl-Alt-Del
-                    DecodedKey::RawKey(KeyCode::PageUp)     => send_csi("5~"),
-                    DecodedKey::RawKey(KeyCode::PageDown)   => send_csi("6~"),
-                    DecodedKey::RawKey(KeyCode::ArrowUp)    => send_csi("A"),
-                    DecodedKey::RawKey(KeyCode::ArrowDown)  => send_csi("B"),
+                    // Ctrl-Alt-Del
+                    DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => {
+                        syscall::reboot()
+                    }
+
+                    DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
+                    DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),
+                    DecodedKey::RawKey(KeyCode::ArrowUp) => send_csi("A"),
+                    DecodedKey::RawKey(KeyCode::ArrowDown) => send_csi("B"),
                     DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi("C"),
-                    DecodedKey::RawKey(KeyCode::ArrowLeft)  => send_csi("D"),
-                    DecodedKey::Unicode('\t') if is_shift   => send_csi("Z"), // Convert Shift-Tab into Backtab
-                    DecodedKey::Unicode(c)                  => send_key(c),
-                    _ => {},
+                    DecodedKey::RawKey(KeyCode::ArrowLeft) => send_csi("D"),
+
+                    // Convert Shift-Tab into Backtab
+                    DecodedKey::Unicode('\t') if is_shift => send_csi("Z"),
+
+                    DecodedKey::Unicode(c) => send_key(c),
+
+                    _ => {}
                 };
             }
         }

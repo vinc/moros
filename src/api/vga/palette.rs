@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 use core::convert::TryInto;
 
+// TODO: Move this to kernel after removing the `vga set palette` command
 pub struct Palette {
-    pub colors: [(u8, u8, u8); 16]
+    pub colors: [(u8, u8, u8); 16],
 }
 
 impl Palette {
@@ -25,11 +26,12 @@ impl Palette {
                 (0xFF, 0x00, 0xFF), // Pink (Light Magenta)
                 (0xFF, 0xFF, 0x00), // Yellow (Light Yellow)
                 (0xFF, 0xFF, 0xFF), // White
-            ]
+            ],
         }
     }
 }
 
+// TODO: Remove this
 pub fn from_csv(s: &str) -> Result<Palette, ()> {
     let colors: Vec<_> = s.split('\n').filter_map(|line| {
         let line = line.split('#').next().unwrap(); // Remove comments
