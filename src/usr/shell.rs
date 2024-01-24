@@ -497,7 +497,20 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     }
 
     fence(Ordering::SeqCst);
-    let res = match args[0] {
+    let res = dispatch(&args, config);
+
+    // TODO: Remove this when redirections are done in spawned process
+    if restore_handles {
+        for i in 0..3 {
+            api::fs::reopen("/dev/console", i, false).ok();
+        }
+    }
+
+    res
+}
+
+fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    match args[0] {
         ""         => Ok(()),
         "2048"     => usr::pow::main(&args),
         "alias"    => cmd_alias(&args, config),
@@ -556,26 +569,31 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
                     config.env.insert("DIR".to_string(), sys::process::dir());
                     Ok(())
                 }
-                Some(FileType::File) => spawn(&path, &args),
+                Some(FileType::File) => spawn(&path, &args, config),
                 _ => {
                     let path = format!("/bin/{}", args[0]);
-                    spawn(&path, &args)
+                    spawn(&path, &args, config)
                 }
             }
         }
-    };
+    }
+}
 
-    // TODO: Remove this when redirections are done in spawned process
-    if restore_handles {
-        for i in 0..3 {
-            api::fs::reopen("/dev/console", i, false).ok();
+fn spawn(path: &str, args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    // Script
+    if let Ok(contents) = fs::read_to_string(path) {
+        if contents.starts_with("#!") {
+            if let Some(line) = contents.lines().next() {
+                let mut new_args = Vec::with_capacity(args.len() + 1);
+                new_args.push(&line[2..]);
+                new_args.push(path);
+                new_args.extend(&args[1..]);
+                return dispatch(&new_args, config);
+            }
         }
     }
 
-    res
-}
-
-fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
+    // Binary
     match api::process::spawn(path, args) {
         Err(ExitCode::ExecError) => {
             error!("Could not execute '{}'", args[0]);
