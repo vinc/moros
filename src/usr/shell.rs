@@ -585,7 +585,7 @@ fn spawn(path: &str, args: &[&str], config: &mut Config) -> Result<(), ExitCode>
         if contents.starts_with("#!") {
             if let Some(line) = contents.lines().next() {
                 let mut new_args = Vec::with_capacity(args.len() + 1);
-                new_args.push(&line[2..]);
+                new_args.push(line[2..].trim());
                 new_args.push(path);
                 new_args.extend(&args[1..]);
                 return dispatch(&new_args, config);
