@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- Add hashbang support to execute scripts (#570)
+- Refactor everything to stay below 80 chars per line (#567)
+- Add ANSI OSC color palette support (#566)
+- Bump uart_16550 from 0.2.19 to 0.3.0 (#524)
+- Bump object from 0.32.1 to 0.32.2 (#564)
+- Bump smoltcp from 0.10.0 to 0.11.0 (#565)
+- Add escape sequences to shell (#558)
 
 ## 0.10.2 (2023-12-22)
 - Add basic userspace allocator ([#544](https://github.com/vinc/moros/pull/544))
