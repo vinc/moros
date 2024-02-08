@@ -7,7 +7,7 @@ use x86_64::structures::gdt::{
 use x86_64::structures::tss::TaskStateSegment;
 use x86_64::VirtAddr;
 
-const STACK_SIZE: usize = 1024 * 8;
+const STACK_SIZE: usize = 1024 * 8 * 16;
 pub const DOUBLE_FAULT_IST: u16 = 0;
 pub const PAGE_FAULT_IST: u16 = 1;
 pub const GENERAL_PROTECTION_FAULT_IST: u16 = 2;
