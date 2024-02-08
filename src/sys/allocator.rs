@@ -83,6 +83,9 @@ pub fn alloc_pages(
                 mapping.flush();
             } else {
                 debug!("Could not map {:?} to {:?}", page, frame);
+                if let Ok(old_frame) = mapper.translate_page(page) {
+                    debug!("Aleardy mapped to {:?}", old_frame);
+                }
                 return Err(());
             }
         } else {
