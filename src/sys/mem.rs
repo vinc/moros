@@ -57,7 +57,9 @@ pub fn memory_size() -> u64 {
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
-    let phys_mem_offset = unsafe { PHYS_MEM_OFFSET.unwrap() };
+    let phys_mem_offset = unsafe {
+        PHYS_MEM_OFFSET.unwrap()
+    };
     VirtAddr::new(addr.as_u64() + phys_mem_offset)
 }
 
