@@ -19,8 +19,6 @@ pub fn shutdown() {
     let slp_len = 1 << 13;
 
     log!("ACPI Shutdown\n");
-    let handler = Box::new(MorosAmlHandler);
-    let mut aml = AmlContext::new(handler, DebugVerbosity::None);
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {
@@ -36,6 +34,8 @@ pub fn shutdown() {
                 let table = unsafe {
                     core::slice::from_raw_parts(ptr , dsdt.length as usize)
                 };
+                let handler = Box::new(MorosAmlHandler);
+                let mut aml = AmlContext::new(handler, DebugVerbosity::None);
                 if aml.parse_table(table).is_ok() {
                     let name = AmlName::from_str("\\_S5").unwrap();
                     let res = aml.namespace.get_by_path(&name);
@@ -45,21 +45,22 @@ pub fn shutdown() {
                         }
                     }
                 } else {
-                    debug!("ACPI Failed to parse AML in DSDT");
+                    debug!("ACPI: Could not parse AML in DSDT");
                     // FIXME: AML parsing works on QEMU and Bochs but not
                     // on VirtualBox at the moment, so we use the following
                     // hardcoded value:
                     slp_typa = (5 & 7) << 10;
                 }
+            } else {
+                debug!("ACPI: Could not find DSDT in BIOS");
             }
         }
         Err(_e) => {
-            debug!("ACPI Could not find RDSP in BIOS\n");
+            debug!("ACPI: Could not find RDSP in BIOS");
         }
     };
 
     let mut port: Port<u16> = Port::new(pm1a_control_block as u16);
-    //debug!("ACPI shutdown");
     unsafe {
         port.write(slp_typa | slp_len);
     }
