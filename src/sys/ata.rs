@@ -15,6 +15,8 @@ use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
 pub const BLOCK_SIZE: usize = 512;
 
+pub static LAST_SELECTED: Mutex<Option<(u8, u8)>> = Mutex::new(None);
+
 #[repr(u16)]
 #[derive(Debug, Clone, Copy)]
 enum Command {
@@ -49,6 +51,7 @@ enum Status {
 pub struct Bus {
     id: u8,
     irq: u8,
+    last_selected_drive: Option<u8>,
 
     data_register: Port<u16>,
     error_register: PortReadOnly<u8>,
@@ -71,6 +74,7 @@ impl Bus {
         Self {
             id,
             irq,
+            last_selected_drive: None,
             data_register: Port::new(io_base + 0),
             error_register: PortReadOnly::new(io_base + 1),
             features_register: PortWriteOnly::new(io_base + 1),
@@ -145,6 +149,11 @@ impl Bus {
     fn select_drive(&mut self, drive: u8) -> Result<(), ()> {
         self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, false)?;
+        if *LAST_SELECTED.lock() == Some((self.id, drive)) {
+            return Ok(());
+        } else {
+            *LAST_SELECTED.lock() = Some((self.id, drive));
+        }
         unsafe {
             // Bit 4 => DEV
             // Bit 5 => 1
