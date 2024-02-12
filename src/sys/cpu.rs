@@ -13,6 +13,8 @@ pub fn init() {
 
     if let Some(info) = cpuid.get_processor_frequency_info() {
         let frequency = info.processor_base_frequency();
-        log!("CPU {} MHz", frequency);
+        if frequency > 0 {
+            log!("CPU {} MHz", frequency);
+        }
     }
 }
