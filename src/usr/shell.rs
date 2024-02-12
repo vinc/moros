@@ -381,7 +381,12 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn cmd_version(_args: &[&str]) -> Result<(), ExitCode> {
+fn cmd_logs() -> Result<(), ExitCode> {
+    print!("{}", sys::log::read());
+    Ok(())
+}
+
+fn cmd_version() -> Result<(), ExitCode> {
     println!(
         "MOROS v{}",
         option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"))
@@ -539,6 +544,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "life"     => usr::life::main(&args),
         "lisp"     => usr::lisp::main(&args),
         "list"     => usr::list::main(&args),
+        "logs"     => cmd_logs(),
         "memory"   => usr::memory::main(&args),
         "move"     => usr::r#move::main(&args),
         "net"      => usr::net::main(&args),
@@ -553,7 +559,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "time"     => usr::time::main(&args),
         "unalias"  => cmd_unalias(&args, config),
         "unset"    => cmd_unset(&args, config),
-        "version"  => cmd_version(&args),
+        "version"  => cmd_version(),
         "user"     => usr::user::main(&args),
         "vga"      => usr::vga::main(&args),
         "write"    => usr::write::main(&args),
