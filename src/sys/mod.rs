@@ -43,6 +43,7 @@ pub mod fs;
 pub mod gdt;
 pub mod idt;
 pub mod keyboard;
+pub mod log;
 pub mod mem;
 pub mod net;
 pub mod pci;
