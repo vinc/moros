@@ -18,7 +18,7 @@ pub fn shutdown() {
     let mut slp_typa = 0;
     let slp_len = 1 << 13;
 
-    log!("ACPI Shutdown\n");
+    log!("ACPI Shutdown");
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {

@@ -128,12 +128,8 @@ fn add_device(bus: u8, device: u8, function: u8) {
     let config = DeviceConfig::new(bus, device, function);
     PCI_DEVICES.lock().push(config);
     log!(
-        "PCI {:04X}:{:02X}:{:02X} [{:04X}:{:04X}]\n",
-        bus,
-        device,
-        function,
-        config.vendor_id,
-        config.device_id
+        "PCI {:04X}:{:02X}:{:02X} [{:04X}:{:04X}]",
+        bus, device, function, config.vendor_id, config.device_id
     );
 }
 

@@ -24,13 +24,13 @@ macro_rules! log {
             let csi_color = $crate::api::console::Style::color("LightGreen");
             let csi_reset = $crate::api::console::Style::reset();
             $crate::sys::console::print_fmt(format_args!(
-                "{}[{:.6}]{} {}", // TODO: Add newline
+                "{}[{:.6}]{} {}\n",
                 csi_color, uptime, csi_reset, format_args!($($arg)*)
             ));
 
             let realtime = $crate::sys::clock::realtime();
             $crate::sys::log::write_fmt(format_args!(
-                "[{:.6}] {}",
+                "[{:.6}] {}\n",
                 realtime, format_args!($($arg)*)
             ));
         }
