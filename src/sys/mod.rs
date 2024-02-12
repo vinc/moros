@@ -28,6 +28,12 @@ macro_rules! log {
             );
             $crate::sys::console::print_fmt(format_args!($($arg)*));
             // TODO: Add newline
+
+            let realtime = $crate::sys::clock::realtime();
+            $crate::sys::log::write_fmt(format_args!(
+                "[{:.6}] {}",
+                realtime, format_args!($($arg)*)
+            ));
         }
     });
 }
