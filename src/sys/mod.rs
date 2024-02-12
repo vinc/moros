@@ -10,9 +10,9 @@ macro_rules! debug {
     ($($arg:tt)*) => ({
         let csi_color = $crate::api::console::Style::color("LightBlue");
         let csi_reset = $crate::api::console::Style::reset();
-        $crate::sys::console::print_fmt(format_args!("{}DEBUG: ", csi_color));
-        $crate::sys::console::print_fmt(format_args!($($arg)*));
-        $crate::sys::console::print_fmt(format_args!("{}\n", csi_reset));
+        $crate::sys::console::print_fmt(format_args!(
+            "{}DEBUG: {}{}\n", csi_color, format_args!($($arg)*), csi_reset
+        ));
     });
 }
 
@@ -23,11 +23,10 @@ macro_rules! log {
             let uptime = $crate::sys::clock::uptime();
             let csi_color = $crate::api::console::Style::color("LightGreen");
             let csi_reset = $crate::api::console::Style::reset();
-            $crate::sys::console::print_fmt(
-                format_args!("{}[{:.6}]{} ", csi_color, uptime, csi_reset)
-            );
-            $crate::sys::console::print_fmt(format_args!($($arg)*));
-            // TODO: Add newline
+            $crate::sys::console::print_fmt(format_args!(
+                "{}[{:.6}]{} {}", // TODO: Add newline
+                csi_color, uptime, csi_reset, format_args!($($arg)*)
+            ));
 
             let realtime = $crate::sys::clock::realtime();
             $crate::sys::log::write_fmt(format_args!(
