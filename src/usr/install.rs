@@ -248,6 +248,8 @@ pub fn copy_files(verbose: bool) {
         verbose,
     );
 
+    create_dir("/var/log", verbose);
+
     create_dir("/var/www", verbose);
     copy_file(
         "/var/www/index.html",
