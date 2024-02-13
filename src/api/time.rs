@@ -16,7 +16,11 @@ pub fn now_utc() -> OffsetDateTime {
 }
 
 pub fn from_timestamp(ts: i64) -> OffsetDateTime {
-    OffsetDateTime::from_unix_timestamp(ts).to_offset(offset())
+    from_timestamp_utc(ts).to_offset(offset())
+}
+
+pub fn from_timestamp_utc(ts: i64) -> OffsetDateTime {
+    OffsetDateTime::from_unix_timestamp(ts)
 }
 
 fn offset() -> UtcOffset {
