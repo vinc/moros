@@ -469,6 +469,12 @@ pub fn lisp_file_size(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
+pub fn lisp_file_exists(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let path = string(&args[0])?;
+    Ok(Exp::Bool(syscall::info(&path).is_some()))
+}
+
 pub fn lisp_file_open(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let path = string(&args[0])?;
