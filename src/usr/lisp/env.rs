@@ -243,6 +243,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         "put".to_string(),
         Exp::Primitive(primitive::lisp_put),
     );
+    data.insert(
+        "date".to_string(),
+        Exp::Primitive(primitive::lisp_date),
+    );
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().

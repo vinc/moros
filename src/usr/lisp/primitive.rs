@@ -3,6 +3,7 @@ use super::{bytes, numbers, strings};
 use super::{float, number, string};
 use super::{Err, Exp, Number};
 
+use crate::api;
 use crate::api::regex::Regex;
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
@@ -653,4 +654,12 @@ pub fn lisp_host(args: &[Exp]) -> Result<Exp, Err> {
         Ok(addr) => Ok(Exp::Str(format!("{}", addr))),
         Err(_) => Ok(Exp::List(vec![])),
     }
+}
+
+pub fn lisp_date(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let ts = usize::try_from(number(&args[0])?)? as i64;
+    let fmt = api::clock::DATE_TIME;
+    let date = api::time::from_timestamp_utc(ts).format(fmt);
+    Ok(Exp::Str(date))
 }
