@@ -33,7 +33,9 @@ pub fn print_hex(buf: &[u8]) {
 }
 
 pub fn print_hex_at(buf: &[u8], offset: usize) {
+    let null = 0 as char;
     let cyan = Style::color("LightCyan");
+    let gray = Style::color("DarkGray");
     let pink = Style::color("Pink");
     let reset = Style::reset();
 
@@ -46,15 +48,17 @@ pub fn print_hex_at(buf: &[u8], offset: usize) {
             ).collect::<Vec<String>>().join("")
         ).collect::<Vec<String>>().join(" ");
 
-        let ascii: String = chunk.iter().map(|byte|
+        let ascii: String = chunk.into_iter().map(|byte|
             if *byte >= 32 && *byte <= 126 {
                 *byte as char
             } else {
-                '.'
+                null
             }
         ).collect();
 
-        println!("{}{:08X}: {}{:40}{}{}", cyan, addr, pink, hex, reset, ascii);
+        let text = ascii.replace(null, &format!("{}.{}", gray, reset));
+
+        println!("{}{:08X}: {}{:40}{}{}", cyan, addr, pink, hex, reset, text);
     }
 }
 
