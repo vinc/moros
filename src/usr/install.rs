@@ -24,6 +24,7 @@ pub fn copy_files(verbose: bool) {
     //copy_file("/bin/exec", include_bytes!("../../dsk/bin/exec"), verbose);
     copy_file("/bin/halt", include_bytes!("../../dsk/bin/halt"), verbose);
     //copy_file("/bin/hello", include_bytes!("../../dsk/bin/hello"), verbose);
+    copy_file("/bin/ntp", include_bytes!("../../dsk/bin/ntp"), verbose);
     copy_file("/bin/print", include_bytes!("../../dsk/bin/print"), verbose);
     copy_file(
         "/bin/reboot",
@@ -166,11 +167,6 @@ pub fn copy_files(verbose: bool) {
     copy_file(
         "/tmp/lisp/geotime.lsp",
         include_bytes!("../../dsk/tmp/lisp/geotime.lsp"),
-        verbose,
-    );
-    copy_file(
-        "/tmp/lisp/ntp.lsp",
-        include_bytes!("../../dsk/tmp/lisp/ntp.lsp"),
         verbose,
     );
     copy_file(

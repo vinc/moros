@@ -200,6 +200,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_file_size),
     );
     data.insert(
+        "file/exists?".to_string(),
+        Exp::Primitive(primitive::lisp_file_exists),
+    );
+    data.insert(
         "file/open".to_string(),
         Exp::Primitive(primitive::lisp_file_open),
     );
@@ -242,6 +246,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert(
         "put".to_string(),
         Exp::Primitive(primitive::lisp_put),
+    );
+    data.insert(
+        "date".to_string(),
+        Exp::Primitive(primitive::lisp_date),
     );
 
     // Setup autocompletion
