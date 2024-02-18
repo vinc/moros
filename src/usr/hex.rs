@@ -48,7 +48,7 @@ pub fn print_hex_at(buf: &[u8], offset: usize) {
             ).collect::<Vec<String>>().join("")
         ).collect::<Vec<String>>().join(" ");
 
-        let ascii: String = chunk.into_iter().map(|byte|
+        let ascii: String = chunk.iter().map(|byte|
             if *byte >= 32 && *byte <= 126 {
                 *byte as char
             } else {
