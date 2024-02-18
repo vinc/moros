@@ -419,7 +419,7 @@ pub fn lisp_regex_find(args: &[Exp]) -> Result<Exp, Err> {
         (Exp::Str(regex), Exp::Str(s)) => {
             let res = Regex::new(regex).find(s).map(|(a, b)|
                 vec![Exp::Num(Number::from(a)), Exp::Num(Number::from(b))]
-            ).unwrap_or(vec![]);
+            ).unwrap_or_default();
             Ok(Exp::List(res))
         }
         _ => expected!("arguments to be a regex and a string"),
