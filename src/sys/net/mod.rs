@@ -251,7 +251,7 @@ fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {
 pub fn init() {
     let add = |mut device: EthernetDevice, name| {
         if let Some(mac) = device.config().mac() {
-            log!("NET {} MAC {}\n", name, mac);
+            log!("NET {} MAC {}", name, mac);
 
             let config = smoltcp::iface::Config::new(mac.into());
             let iface = Interface::new(config, &mut device, time());

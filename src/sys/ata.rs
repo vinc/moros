@@ -312,7 +312,7 @@ pub fn init() {
     }
 
     for drive in list() {
-        log!("ATA {}:{} {}\n", drive.bus, drive.dsk, drive);
+        log!("ATA {}:{} {}", drive.bus, drive.dsk, drive);
     }
 }
 

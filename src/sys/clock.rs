@@ -139,7 +139,7 @@ pub fn init() {
     );
     let dt = OffsetDateTime::from_unix_timestamp(s as i64) + ns;
     let rtc = dt.format(DATE_TIME_ZONE);
-    log!("RTC {}\n", rtc);
+    log!("RTC {}", rtc);
 }
 
 #[test_case]
