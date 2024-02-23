@@ -34,6 +34,7 @@ pub fn init(boot_info: &'static BootInfo) {
     log!("MOROS v{}", v);
 
     sys::mem::init(boot_info);
+    sys::acpi::init(); // Require MEM
     sys::cpu::init();
     sys::pci::init(); // Require MEM
     sys::net::init(); // Require PCI
