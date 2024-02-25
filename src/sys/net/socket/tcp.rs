@@ -118,8 +118,13 @@ impl TcpSocket {
     }
 
     pub fn accept(&mut self) -> Result<IpAddress, ()> {
+        let timeout = 5.0;
+        let started = sys::clock::realtime();
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             loop {
+                if sys::clock::realtime() - started > timeout {
+                    return Err(());
+                }
                 let mut sockets = SOCKETS.lock();
                 iface.poll(sys::net::time(), device, &mut sockets);
                 let socket = sockets.get_mut::<tcp::Socket>(self.handle);
