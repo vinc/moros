@@ -1,8 +1,8 @@
+use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::random;
-use crate::sys;
 use crate::sys::console;
 
 use alloc::collections::BTreeSet;
@@ -13,8 +13,8 @@ use alloc::vec::Vec;
 use core::fmt;
 
 struct Game {
-    cols: i64,
-    rows: i64,
+    cols: usize,
+    rows: usize,
     grid: BTreeSet<(i64, i64)>,
     step: usize,
     speed: f64,
@@ -24,7 +24,7 @@ struct Game {
 }
 
 impl Game {
-    pub fn new(cols: i64, rows: i64) -> Self {
+    pub fn new(cols: usize, rows: usize) -> Self {
         Self {
             cols,
             rows,
@@ -74,7 +74,7 @@ impl Game {
             let mut cells_to_remove = vec![];
             for x in 0..self.cols {
                 for y in 0..self.rows {
-                    let cell = (x, y);
+                    let cell = (x as i64, y as i64);
                     let n = neighboors(&cell).iter().fold(0, |s, c|
                         s + self.grid.contains(c) as u8
                     );
@@ -144,7 +144,7 @@ impl fmt::Display for Game {
         let mut out = String::new();
         for y in 0..self.rows {
             for x in 0..self.cols {
-                out.push(if self.grid.contains(&(x, y)) {
+                out.push(if self.grid.contains(&(x as i64, y as i64)) {
                     '#'
                 } else {
                     ' '
@@ -170,7 +170,7 @@ impl fmt::Display for Game {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut game = Game::new(80, 24);
+    let mut game = Game::new(api::console::cols(), api::console::rows() - 1);
     let mut i = 0;
     let n = args.len();
     while i < n {

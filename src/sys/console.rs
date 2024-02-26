@@ -59,22 +59,6 @@ impl FileIO for Console {
     }
 }
 
-pub fn cols() -> usize {
-    if cfg!(feature = "video") {
-        sys::vga::cols()
-    } else {
-        80
-    }
-}
-
-pub fn rows() -> usize {
-    if cfg!(feature = "video") {
-        sys::vga::rows()
-    } else {
-        25
-    }
-}
-
 pub fn has_cursor() -> bool {
     cfg!(feature = "video")
 }

@@ -1,7 +1,7 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::{console, fs, io};
-use crate::sys;
+use crate::api;
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -581,11 +581,11 @@ impl Editor {
     }
 
     fn rows(&self) -> usize {
-        sys::console::rows() - 1 // Leave out one line for status line
+        api::console::rows() - 1 // Leave out one line for status line
     }
 
     fn cols(&self) -> usize {
-        sys::console::cols()
+        api::console::cols()
     }
 }
 

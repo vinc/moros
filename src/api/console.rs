@@ -1,4 +1,6 @@
 use crate::sys;
+
+use alloc::string::ToString;
 use core::fmt;
 
 pub use crate::sys::console::{EOT_KEY, ETX_KEY};
@@ -104,4 +106,16 @@ pub fn is_printable(c: char) -> bool {
     } else {
         true // TODO
     }
+}
+
+// The size of the screen in VGA Text Mode is 80x25
+
+pub fn cols() -> usize {
+    let n = 80; // chars
+    sys::process::env("COLS").unwrap_or(n.to_string()).parse().unwrap_or(n)
+}
+
+pub fn rows() -> usize {
+    let n = 25; // lines
+    sys::process::env("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)
 }
