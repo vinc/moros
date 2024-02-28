@@ -457,14 +457,6 @@ pub fn print_fmt(args: fmt::Arguments) {
     )
 }
 
-pub fn cols() -> usize {
-    BUFFER_WIDTH
-}
-
-pub fn rows() -> usize {
-    BUFFER_HEIGHT
-}
-
 pub fn color() -> (Color, Color) {
     interrupts::without_interrupts(||
         WRITER.lock().color()
