@@ -8,25 +8,19 @@ use core::ptr::NonNull;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
-fn read_addr<T>(addr: usize) -> T where T: Copy {
-    let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(addr as u64));
-    unsafe { *virtual_address.as_ptr::<T>() }
-}
+static mut PM1A_CNT_BLK: u32 = 0;
+static mut SLP_TYPA: u16 = 0;
+static SLP_LEN: u16 = 1 << 13;
 
-pub fn shutdown() {
-    let mut pm1a_control_block = 0;
-    let mut slp_typa = 0;
-    let slp_len = 1 << 13;
-
-    log!("ACPI Shutdown\n");
-    let handler = Box::new(MorosAmlHandler);
-    let mut aml = AmlContext::new(handler, DebugVerbosity::None);
+pub fn init() {
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {
             if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
                 if let Ok(block) = fadt.pm1a_control_block() {
-                    pm1a_control_block = block.address as u32;
+                    unsafe {
+                        PM1A_CNT_BLK = block.address as u32;
+                    }
                 }
             }
             if let Ok(dsdt) = &acpi.dsdt() {
@@ -36,32 +30,42 @@ pub fn shutdown() {
                 let table = unsafe {
                     core::slice::from_raw_parts(ptr , dsdt.length as usize)
                 };
+                let handler = Box::new(MorosAmlHandler);
+                let mut aml = AmlContext::new(handler, DebugVerbosity::None);
                 if aml.parse_table(table).is_ok() {
                     let name = AmlName::from_str("\\_S5").unwrap();
                     let res = aml.namespace.get_by_path(&name);
                     if let Ok(AmlValue::Package(s5)) = res {
                         if let AmlValue::Integer(value) = s5[0] {
-                            slp_typa = value as u16;
+                            unsafe {
+                                SLP_TYPA = value as u16;
+                            }
                         }
                     }
                 } else {
-                    debug!("ACPI Failed to parse AML in DSDT");
+                    debug!("ACPI: Could not parse AML in DSDT");
                     // FIXME: AML parsing works on QEMU and Bochs but not
                     // on VirtualBox at the moment, so we use the following
                     // hardcoded value:
-                    slp_typa = (5 & 7) << 10;
+                    unsafe {
+                        SLP_TYPA = (5 & 7) << 10;
+                    }
                 }
+            } else {
+                debug!("ACPI: Could not find DSDT in BIOS");
             }
         }
         Err(_e) => {
-            debug!("ACPI Could not find RDSP in BIOS\n");
+            debug!("ACPI: Could not find RDSP in BIOS");
         }
     };
+}
 
-    let mut port: Port<u16> = Port::new(pm1a_control_block as u16);
-    //debug!("ACPI shutdown");
+pub fn shutdown() {
+    log!("ACPI Shutdown");
     unsafe {
-        port.write(slp_typa | slp_len);
+        let mut port: Port<u16> = Port::new(PM1A_CNT_BLK as u16);
+        port.write(SLP_TYPA | SLP_LEN);
     }
 }
 
@@ -147,4 +151,9 @@ impl Handler for MorosAmlHandler {
     fn write_pci_u32(&self, _: u16, _: u8, _: u8, _: u8, _: u16, _: u32) {
         unimplemented!()
     }
+}
+
+fn read_addr<T>(addr: usize) -> T where T: Copy {
+    let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(addr as u64));
+    unsafe { *virtual_address.as_ptr::<T>() }
 }

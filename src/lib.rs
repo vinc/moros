@@ -31,9 +31,10 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::time::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
-    log!("MOROS v{}\n", v);
+    log!("MOROS v{}", v);
 
     sys::mem::init(boot_info);
+    sys::acpi::init(); // Require MEM
     sys::cpu::init();
     sys::pci::init(); // Require MEM
     sys::net::init(); // Require PCI

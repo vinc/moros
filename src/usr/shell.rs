@@ -381,7 +381,12 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn cmd_version(_args: &[&str]) -> Result<(), ExitCode> {
+fn cmd_logs() -> Result<(), ExitCode> {
+    print!("{}", sys::log::read());
+    Ok(())
+}
+
+fn cmd_version() -> Result<(), ExitCode> {
     println!(
         "MOROS v{}",
         option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"))
@@ -497,53 +502,67 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     }
 
     fence(Ordering::SeqCst);
-    let res = match args[0] {
+    let res = dispatch(&args, config);
+
+    // TODO: Remove this when redirections are done in spawned process
+    if restore_handles {
+        for i in 0..3 {
+            api::fs::reopen("/dev/console", i, false).ok();
+        }
+    }
+
+    res
+}
+
+fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    match args[0] {
         ""         => Ok(()),
-        "2048"     => usr::pow::main(&args),
-        "alias"    => cmd_alias(&args, config),
-        "base64"   => usr::base64::main(&args),
-        "beep"     => usr::beep::main(&args),
-        "calc"     => usr::calc::main(&args),
-        "chess"    => usr::chess::main(&args),
-        "copy"     => usr::copy::main(&args),
-        "date"     => usr::date::main(&args),
-        "delete"   => usr::delete::main(&args),
-        "dhcp"     => usr::dhcp::main(&args),
-        "disk"     => usr::disk::main(&args),
-        "edit"     => usr::editor::main(&args),
-        "elf"      => usr::elf::main(&args),
-        "env"      => usr::env::main(&args),
-        "find"     => usr::find::main(&args),
-        "goto"     => cmd_change_dir(&args, config), // TODO: Remove this
-        "hash"     => usr::hash::main(&args),
-        "help"     => usr::help::main(&args),
-        "hex"      => usr::hex::main(&args),
-        "host"     => usr::host::main(&args),
-        "http"     => usr::http::main(&args),
-        "httpd"    => usr::httpd::main(&args),
-        "install"  => usr::install::main(&args),
-        "keyboard" => usr::keyboard::main(&args),
-        "life"     => usr::life::main(&args),
-        "lisp"     => usr::lisp::main(&args),
-        "list"     => usr::list::main(&args),
-        "memory"   => usr::memory::main(&args),
-        "move"     => usr::r#move::main(&args),
-        "net"      => usr::net::main(&args),
-        "pci"      => usr::pci::main(&args),
-        "pi"       => usr::pi::main(&args),
+        "2048"     => usr::pow::main(args),
+        "alias"    => cmd_alias(args, config),
+        "base64"   => usr::base64::main(args),
+        "beep"     => usr::beep::main(args),
+        "calc"     => usr::calc::main(args),
+        "chess"    => usr::chess::main(args),
+        "copy"     => usr::copy::main(args),
+        "date"     => usr::date::main(args),
+        "delete"   => usr::delete::main(args),
+        "dhcp"     => usr::dhcp::main(args),
+        "disk"     => usr::disk::main(args),
+        "edit"     => usr::editor::main(args),
+        "elf"      => usr::elf::main(args),
+        "env"      => usr::env::main(args),
+        "find"     => usr::find::main(args),
+        "goto"     => cmd_change_dir(args, config), // TODO: Remove this
+        "hash"     => usr::hash::main(args),
+        "help"     => usr::help::main(args),
+        "hex"      => usr::hex::main(args),
+        "host"     => usr::host::main(args),
+        "http"     => usr::http::main(args),
+        "httpd"    => usr::httpd::main(args),
+        "install"  => usr::install::main(args),
+        "keyboard" => usr::keyboard::main(args),
+        "life"     => usr::life::main(args),
+        "lisp"     => usr::lisp::main(args),
+        "list"     => usr::list::main(args),
+        "logs"     => cmd_logs(),
+        "memory"   => usr::memory::main(args),
+        "move"     => usr::r#move::main(args),
+        "net"      => usr::net::main(args),
+        "pci"      => usr::pci::main(args),
+        "pi"       => usr::pi::main(args),
         "quit"     => Err(ExitCode::ShellExit),
-        "read"     => usr::read::main(&args),
-        "set"      => cmd_set(&args, config),
-        "shell"    => usr::shell::main(&args),
-        "socket"   => usr::socket::main(&args),
-        "tcp"      => usr::tcp::main(&args),
-        "time"     => usr::time::main(&args),
-        "unalias"  => cmd_unalias(&args, config),
-        "unset"    => cmd_unset(&args, config),
-        "version"  => cmd_version(&args),
-        "user"     => usr::user::main(&args),
-        "vga"      => usr::vga::main(&args),
-        "write"    => usr::write::main(&args),
+        "read"     => usr::read::main(args),
+        "set"      => cmd_set(args, config),
+        "shell"    => usr::shell::main(args),
+        "socket"   => usr::socket::main(args),
+        "tcp"      => usr::tcp::main(args),
+        "time"     => usr::time::main(args),
+        "unalias"  => cmd_unalias(args, config),
+        "unset"    => cmd_unset(args, config),
+        "version"  => cmd_version(),
+        "user"     => usr::user::main(args),
+        "vga"      => usr::vga::main(args),
+        "write"    => usr::write::main(args),
         "panic"    => panic!("{}", args[1..].join(" ")),
         _ => {
             let mut path = fs::realpath(args[0]);
@@ -556,26 +575,31 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
                     config.env.insert("DIR".to_string(), sys::process::dir());
                     Ok(())
                 }
-                Some(FileType::File) => spawn(&path, &args),
+                Some(FileType::File) => spawn(&path, args, config),
                 _ => {
                     let path = format!("/bin/{}", args[0]);
-                    spawn(&path, &args)
+                    spawn(&path, args, config)
                 }
             }
         }
-    };
+    }
+}
 
-    // TODO: Remove this when redirections are done in spawned process
-    if restore_handles {
-        for i in 0..3 {
-            api::fs::reopen("/dev/console", i, false).ok();
+fn spawn(path: &str, args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    // Script
+    if let Ok(contents) = fs::read_to_string(path) {
+        if contents.starts_with("#!") {
+            if let Some(line) = contents.lines().next() {
+                let mut new_args = Vec::with_capacity(args.len() + 1);
+                new_args.push(line[2..].trim());
+                new_args.push(path);
+                new_args.extend(&args[1..]);
+                return dispatch(&new_args, config);
+            }
         }
     }
 
-    res
-}
-
-fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
+    // Binary
     match api::process::spawn(path, args) {
         Err(ExitCode::ExecError) => {
             error!("Could not execute '{}'", args[0]);

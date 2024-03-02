@@ -1,3 +1,4 @@
+use crate::sys;
 use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
 use crate::api::fs::{FileIO, IO};
 
@@ -57,10 +58,12 @@ impl RTC {
 impl FileIO for RTC {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         self.sync();
-        let date = Date::try_from_ymd(self.year.into(), self.month, self.day).
-            map_err(|_| ())?;
-        let date_time = date.try_with_hms(self.hour, self.minute, self.second).
-            map_err(|_| ())?;
+        let date = Date::try_from_ymd(
+            self.year.into(), self.month, self.day
+        ).map_err(|_| ())?;
+        let date_time = date.try_with_hms(
+            self.hour, self.minute, self.second
+        ).map_err(|_| ())?;
         let out = date_time.format(DATE_TIME);
         buf.copy_from_slice(out.as_bytes());
         Ok(out.len())
@@ -83,6 +86,7 @@ impl FileIO for RTC {
             return Err(());
         }
         CMOS::new().update_rtc(self);
+        sys::clock::init();
         Ok(buf.len())
     }
 

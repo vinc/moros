@@ -3,6 +3,7 @@ use super::{bytes, numbers, strings};
 use super::{float, number, string};
 use super::{Err, Exp, Number};
 
+use crate::api;
 use crate::api::regex::Regex;
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
@@ -419,7 +420,7 @@ pub fn lisp_regex_find(args: &[Exp]) -> Result<Exp, Err> {
         (Exp::Str(regex), Exp::Str(s)) => {
             let res = Regex::new(regex).find(s).map(|(a, b)|
                 vec![Exp::Num(Number::from(a)), Exp::Num(Number::from(b))]
-            ).unwrap_or(vec![]);
+            ).unwrap_or_default();
             Ok(Exp::List(res))
         }
         _ => expected!("arguments to be a regex and a string"),
@@ -466,6 +467,12 @@ pub fn lisp_file_size(args: &[Exp]) -> Result<Exp, Err> {
         Some(info) => Ok(Exp::Num(Number::from(info.size() as usize))),
         None => could_not!("open file"),
     }
+}
+
+pub fn lisp_file_exists(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let path = string(&args[0])?;
+    Ok(Exp::Bool(syscall::info(&path).is_some()))
 }
 
 pub fn lisp_file_open(args: &[Exp]) -> Result<Exp, Err> {
@@ -653,4 +660,12 @@ pub fn lisp_host(args: &[Exp]) -> Result<Exp, Err> {
         Ok(addr) => Ok(Exp::Str(format!("{}", addr))),
         Err(_) => Ok(Exp::List(vec![])),
     }
+}
+
+pub fn lisp_date(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let ts = usize::try_from(number(&args[0])?)? as i64;
+    let fmt = api::clock::DATE_TIME;
+    let date = api::time::from_timestamp_utc(ts).format(fmt);
+    Ok(Exp::Str(date))
 }

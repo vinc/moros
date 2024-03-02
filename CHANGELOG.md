@@ -1,6 +1,24 @@
 # Changelog
 
 ## Unreleased
+- Skip ATA drive selection when not needed (#576)
+- Initialize ACPI module at boot time (#583)
+- Display non printable ascii chars with a dark dot (#580)
+- Add time synchronisation with NTP (#579)
+- Run clippy (#581)
+- Add kernel log to buffer in memory (#578)
+- Bump x86_64 from 0.14.11 to 0.14.12 (#577)
+- Fix socket status reading (#575)
+- Bump num-traits from 0.2.17 to 0.2.18 (#572)
+- Fix random memory issues (#573)
+- Bump bootloader from 0.9.23 to 0.9.24 (#571)
+- Add hashbang support to execute scripts (#570)
+- Refactor everything to stay below 80 chars per line (#567)
+- Add ANSI OSC color palette support (#566)
+- Bump uart_16550 from 0.2.19 to 0.3.0 (#524)
+- Bump object from 0.32.1 to 0.32.2 (#564)
+- Bump smoltcp from 0.10.0 to 0.11.0 (#565)
+- Add escape sequences to shell (#558)
 
 ## 0.10.2 (2023-12-22)
 - Add basic userspace allocator ([#544](https://github.com/vinc/moros/pull/544))

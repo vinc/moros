@@ -24,13 +24,11 @@ pub fn init(boot_info: &'static BootInfo) {
             let end_addr = region.range.end_addr();
             memory_size += end_addr - start_addr;
             log!(
-                "MEM [{:#016X}-{:#016X}] {:?}\n",
-                start_addr,
-                end_addr - 1,
-                region.region_type
+                "MEM [{:#016X}-{:#016X}] {:?}",
+                start_addr, end_addr - 1, region.region_type
             );
         }
-        log!("MEM {} KB\n", memory_size >> 10);
+        log!("MEM {} KB", memory_size >> 10);
         MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
 
         let phys_mem_offset = boot_info.physical_memory_offset;
@@ -57,7 +55,9 @@ pub fn memory_size() -> u64 {
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
-    let phys_mem_offset = unsafe { PHYS_MEM_OFFSET.unwrap() };
+    let phys_mem_offset = unsafe {
+        PHYS_MEM_OFFSET.unwrap()
+    };
     VirtAddr::new(addr.as_u64() + phys_mem_offset)
 }
 

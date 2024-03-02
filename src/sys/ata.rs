@@ -17,6 +17,9 @@ use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
 pub const BLOCK_SIZE: usize = 512;
 
+// Keep track of the last selected bus and drive pair to speed up operations
+pub static LAST_SELECTED: Mutex<Option<(u8, u8)>> = Mutex::new(None);
+
 #[repr(u16)]
 #[derive(Debug, Clone, Copy)]
 enum Command {
@@ -147,6 +150,14 @@ impl Bus {
     fn select_drive(&mut self, drive: u8) -> Result<(), ()> {
         self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, false)?;
+
+        // Skip the rest if this drive was already selected
+        if *LAST_SELECTED.lock() == Some((self.id, drive)) {
+            return Ok(());
+        } else {
+            *LAST_SELECTED.lock() = Some((self.id, drive));
+        }
+
         unsafe {
             // Bit 4 => DEV
             // Bit 5 => 1
@@ -303,7 +314,7 @@ pub fn init() {
     }
 
     for drive in list() {
-        log!("ATA {}:{} {}\n", drive.bus, drive.dsk, drive);
+        log!("ATA {}:{} {}", drive.bus, drive.dsk, drive);
     }
 }
 

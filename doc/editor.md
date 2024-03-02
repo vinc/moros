@@ -10,6 +10,6 @@
 - `CTRL` + `E` to move cursor to enf of line
 - `CTRL` + `T` to move cursor to begining of file
 - `CTRL` + `B` to move cursor to enf of file
-- `CTRL` + `d` to cut (delete) a line
-- `CTRL` + `y` to copy (yank) a line
-- `CTRL` + `p` to paste (put) a line
+- `CTRL` + `D` to cut (delete) a line
+- `CTRL` + `Y` to copy (yank) a line
+- `CTRL` + `P` to paste (put) a line

@@ -132,10 +132,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 syscall::sleep(0.01);
                 if connected {
                     let mut data = vec![0; 1]; // 1 byte status read
-                    let status = SocketStatus::MayRecv as usize;
-                    let may_recv = data[0].get_bit(status);
                     match syscall::read(handle, &mut data) {
-                        Some(1) if !may_recv => break, // recv closed
+                        Some(1) if is_closed(data[0]) => break,
                         _ => continue,
                     }
                 }
@@ -146,6 +144,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     } else {
         Err(ExitCode::Failure)
     }
+}
+
+fn is_closed(status: u8) -> bool {
+    !status.get_bit(SocketStatus::MayRecv as usize)
 }
 
 fn help() {

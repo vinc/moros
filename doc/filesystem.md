@@ -116,8 +116,8 @@ Structure:
 
 ### File
 
-The first block of a contains the address of the next block where its contents
-is stored and the beginning of its contents in the rest of the block.
+The first block of a file contains the address of the next block where its
+contents is stored and the beginning of its contents in the rest of the block.
 
 If all contents can fit into one block the address of the next block will be
 empty.
