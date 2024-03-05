@@ -127,7 +127,7 @@ extern "x86-interrupt" fn page_fault_handler(
     error_code: PageFaultErrorCode,
 ) {
     //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
-    let addr = Cr2::read().as_u64();
+    let addr = Cr2::read().unwrap().as_u64();
 
     let page_table = unsafe { sys::process::page_table() };
     let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
