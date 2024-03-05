@@ -213,13 +213,13 @@ pub fn set_registers(regs: Registers) {
 pub fn stack_frame() -> InterruptStackFrameValue {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.stack_frame
+    proc.stack_frame.unwrap()
 }
 
 pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-    proc.stack_frame = stack_frame;
+    proc.stack_frame = Some(stack_frame);
 }
 
 pub fn exit() {
@@ -286,7 +286,7 @@ pub struct Process {
     stack_addr: u64,
     entry_point_addr: u64,
     page_table_frame: PhysFrame,
-    stack_frame: InterruptStackFrameValue,
+    stack_frame: Option<InterruptStackFrameValue>,
     registers: Registers,
     data: ProcessData,
     allocator: Arc<LockedHeap>,
@@ -294,20 +294,13 @@ pub struct Process {
 
 impl Process {
     pub fn new() -> Self {
-        let isf = InterruptStackFrameValue {
-            instruction_pointer: VirtAddr::new(0),
-            code_segment: 0,
-            cpu_flags: 0,
-            stack_pointer: VirtAddr::new(0),
-            stack_segment: 0,
-        };
         Self {
             id: 0,
             parent_id: 0,
             code_addr: 0,
             stack_addr: 0,
             entry_point_addr: 0,
-            stack_frame: isf,
+            stack_frame: None,
             page_table_frame: Cr3::read().0,
             registers: Registers::default(),
             data: ProcessData::new("/", None),
