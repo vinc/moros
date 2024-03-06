@@ -24,7 +24,7 @@ This project started from the [seventh post][1] of the second edition of
 - Serial output (using [uart_16550][8])
 - Paging
 - Heap allocation (using [linked_list_allocator][9])
-- ACPI shutdown (using [acpi][10]) and [aml][11])
+- ACPI shutdown (using [acpi][10] and [aml][11])
 - RTC clock
 - PCI devices
 - ATA PIO mode
