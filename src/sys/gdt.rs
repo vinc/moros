@@ -17,19 +17,19 @@ lazy_static! {
         let mut tss = TaskStateSegment::new();
         tss.privilege_stack_table[0] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
         tss.interrupt_stack_table[DOUBLE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
         tss.interrupt_stack_table[PAGE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
         tss.interrupt_stack_table[GENERAL_PROTECTION_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
         tss
     };
@@ -39,11 +39,11 @@ lazy_static! {
     pub static ref GDT: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
 
-        let tss = gdt.add_entry(Descriptor::tss_segment(&TSS));
-        let code = gdt.add_entry(Descriptor::kernel_code_segment());
-        let data = gdt.add_entry(Descriptor::kernel_data_segment());
-        let user_code = gdt.add_entry(Descriptor::user_code_segment());
-        let user_data = gdt.add_entry(Descriptor::user_data_segment());
+        let tss = gdt.append(Descriptor::tss_segment(&TSS));
+        let code = gdt.append(Descriptor::kernel_code_segment());
+        let data = gdt.append(Descriptor::kernel_data_segment());
+        let user_code = gdt.append(Descriptor::user_code_segment());
+        let user_data = gdt.append(Descriptor::user_data_segment());
 
         (
             gdt,
