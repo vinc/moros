@@ -63,7 +63,7 @@ fn shell_completer(line: &str) -> Vec<String> {
     let i = args.len() - 1;
 
     // Autocomplete command
-    if i == 2 && !args[i].starts_with('/') && !args[i].starts_with('~') {
+    if i == 0 && !args[i].starts_with('/') && !args[i].starts_with('~') {
         for cmd in autocomplete_commands() {
             if let Some(entry) = cmd.strip_prefix(&args[i]) {
                 entries.push(entry.into());
