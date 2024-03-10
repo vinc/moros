@@ -257,7 +257,11 @@ file:
     > date
     2023-03-21 10:00:00 +0000
 
-You can also set the `TZ` environment variable to use your preferred timezone:
+There is also a `ntp` script to synchronize the clock over the network:
+
+    > ntp => /dev/rtc
+
+You can set the `TZ` environment variable to use your preferred timezone:
 
     > calc "2 * 60 * 60"
     7200
