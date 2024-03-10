@@ -265,11 +265,7 @@ file:
     > date
     2023-03-21 10:00:00 +0000
 
-There is also a `ntp` script to synchronize the clock over the network:
-
-    > ntp => /dev/rtc
-
-You can set the `TZ` environment variable to use your preferred timezone:
+You can also set the `TZ` environment variable to use your preferred timezone:
 
     > calc "2 * 60 * 60"
     7200
@@ -365,3 +361,10 @@ Or the more specialized `http` command to request a document from a web server:
         <h1>MOROS</h1>
       </body>
     </html>
+
+There is also a `ntp` script to synchronize the clock over the network:
+
+    > ntp
+    2023-03-21 10:00:00
+
+    > ntp => /dev/rtc

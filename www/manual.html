@@ -286,12 +286,7 @@ file:</p>
 2023-03-21 10:00:00 +0000
 </code></pre>
 
-    <p>There is also a <code>ntp</code> script to synchronize the clock over the network:</p>
-
-    <pre><code>&gt; ntp =&gt; /dev/rtc
-</code></pre>
-
-    <p>You can set the <code>TZ</code> environment variable to use your preferred timezone:</p>
+    <p>You can also set the <code>TZ</code> environment variable to use your preferred timezone:</p>
 
     <pre><code>&gt; calc &quot;2 * 60 * 60&quot;
 7200
@@ -395,6 +390,14 @@ Hello, World!
     &lt;h1&gt;MOROS&lt;/h1&gt;
   &lt;/body&gt;
 &lt;/html&gt;
+</code></pre>
+
+    <p>There is also a <code>ntp</code> script to synchronize the clock over the network:</p>
+
+    <pre><code>&gt; ntp
+2023-03-21 10:00:00
+
+&gt; ntp =&gt; /dev/rtc
 </code></pre>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
