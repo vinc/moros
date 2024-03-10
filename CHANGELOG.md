@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Fix shell autocomplete (#591)
+- Update x86_64 crate from 0.14.12 to 0.15.0 (#590)
+- Bump object from 0.32.2 to 0.33.0 (#589)
+- Add env vars to customize screen size (#585)
+- Bump bootloader from 0.9.24 to 0.9.28 (#586)
+- Add timeout to socket accept (#584)
 - Skip ATA drive selection when not needed (#576)
 - Initialize ACPI module at boot time (#583)
 - Display non printable ascii chars with a dark dot (#580)
