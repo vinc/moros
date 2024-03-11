@@ -33,6 +33,13 @@ pub fn copy_files(verbose: bool) {
     );
     copy_file("/bin/sleep", include_bytes!("../../dsk/bin/sleep"), verbose);
 
+    create_dir("/dev/ata", verbose); // Drives
+    create_dir("/dev/ata/0", verbose);
+    create_dev("/dev/ata/0/0", DeviceType::Drive, verbose);
+    create_dev("/dev/ata/0/1", DeviceType::Drive, verbose);
+    create_dir("/dev/ata/1", verbose);
+    create_dev("/dev/ata/1/0", DeviceType::Drive, verbose);
+    create_dev("/dev/ata/1/1", DeviceType::Drive, verbose);
     create_dir("/dev/clk", verbose); // Clock
     create_dev("/dev/clk/uptime", DeviceType::Uptime, verbose);
     create_dev("/dev/clk/realtime", DeviceType::Realtime, verbose);
@@ -336,7 +343,16 @@ fn create_dir(pathname: &str, verbose: bool) {
 
 fn create_dev(pathname: &str, dev: DeviceType, verbose: bool) {
     if syscall::info(pathname).is_none() {
-        if let Some(handle) = fs::create_device(pathname, dev) {
+        let mut buf = dev.buf();
+        // NOTE: The first byte of `buf` contains the device type
+        match pathname {
+            "/dev/ata/0/0" => { buf[1] = 0; buf[2] = 0 },
+            "/dev/ata/0/1" => { buf[1] = 0; buf[2] = 1 },
+            "/dev/ata/1/0" => { buf[1] = 1; buf[2] = 0 },
+            "/dev/ata/1/1" => { buf[1] = 1; buf[2] = 1 },
+            _ => {},
+        }
+        if let Some(handle) = fs::create_device(pathname, &buf) {
             syscall::close(handle);
             if verbose {
                 println!("Created '{}'", pathname);

@@ -181,13 +181,15 @@ fn help() {
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
     println!(
-        "  {}list{}             List detected disks",
-        csi_option, csi_reset
+        "  {}erase <path>{}    Erase disk", csi_option, csi_reset
     );
     println!(
-        "  {}usage{}            List disk usage",
-        csi_option, csi_reset
+        "  {}format <path>{}   Format disk", csi_option, csi_reset
     );
-    println!("  {}format <path>{}    Format disk", csi_option, csi_reset);
-    println!("  {}erase <path>{}     Erase disk", csi_option, csi_reset);
+    println!(
+        "  {}list{}            List detected disks", csi_option, csi_reset
+    );
+    println!(
+        "  {}usage{}           List disk usage", csi_option, csi_reset
+    );
 }

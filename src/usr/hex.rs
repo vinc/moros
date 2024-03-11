@@ -22,7 +22,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         print_hex(&buf);
         Ok(())
     } else {
-        error!("Could not find file '{}'", pathname);
+        error!("Could not read file '{}'", pathname);
         Err(ExitCode::Failure)
     }
 }

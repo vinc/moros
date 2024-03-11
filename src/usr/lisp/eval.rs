@@ -176,7 +176,7 @@ fn eval_load_args(
     ensure_length_eq!(args, 1);
     let path = string(&eval(&args[0], env)?)?;
     let mut input = fs::read_to_string(&path).
-        or(could_not!("find file '{}'", path))?;
+        or(could_not!("read file '{}'", path))?;
     loop {
         let (rest, _) = parse_eval(&input, env)?;
         if rest.is_empty() {

@@ -1,4 +1,6 @@
 use crate::sys;
+use crate::api::fs::{FileIO, IO};
+
 use alloc::string::String;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -316,33 +318,40 @@ pub fn init() {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Drive {
     pub bus: u8,
     pub dsk: u8,
-    blocks: u32,
     model: String,
     serial: String,
+    block_count: u32,
+    block_index: u32,
 }
 
 impl Drive {
+    pub fn size() -> usize {
+        BLOCK_SIZE
+    }
+
     pub fn open(bus: u8, dsk: u8) -> Option<Self> {
         let mut buses = BUSES.lock();
         let res = buses[bus as usize].identify_drive(dsk);
         if let Ok(IdentifyResponse::Ata(res)) = res {
             let buf = res.map(u16::to_be_bytes).concat();
-            let serial = String::from_utf8_lossy(&buf[20..40]).trim().into();
             let model = String::from_utf8_lossy(&buf[54..94]).trim().into();
-
-            let blocks = u32::from_be_bytes(buf[120..124].try_into().unwrap()).
-                rotate_left(16);
+            let serial = String::from_utf8_lossy(&buf[20..40]).trim().into();
+            let block_count = u32::from_be_bytes(
+                buf[120..124].try_into().unwrap()
+            ).rotate_left(16);
+            let block_index = 0;
 
             Some(Self {
                 bus,
                 dsk,
                 model,
                 serial,
-                blocks,
+                block_count,
+                block_index,
             })
         } else {
             None
@@ -354,7 +363,7 @@ impl Drive {
     }
 
     pub fn block_count(&self) -> u32 {
-        self.blocks
+        self.block_count
     }
 
     fn humanized_size(&self) -> (usize, String) {
@@ -365,6 +374,34 @@ impl Drive {
             (bytes >> 20, String::from("MB"))
         } else {
             (bytes >> 30, String::from("GB"))
+        }
+    }
+}
+
+impl FileIO for Drive {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        if self.block_index == self.block_count {
+            return Ok(0);
+        }
+
+        let mut buses = BUSES.lock();
+        let _ = buses[self.bus as usize].read(self.dsk, self.block_index, buf);
+        let n = buf.len();
+        self.block_index += 1;
+        Ok(n)
+    }
+
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        unimplemented!();
+    }
+
+    fn close(&mut self) {
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => false,
         }
     }
 }
