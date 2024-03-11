@@ -1,10 +1,15 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
+use crate::api::syscall;
 use crate::api::unit::SizeUnit;
 use crate::sys;
 
+use core::num::ParseIntError;
+use x86_64::PhysAddr;
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match *args.get(1).unwrap_or(&"") {
+        "d" | "dump" => dump(&args[2..]),
         "u" | "usage" => usage(&args[2..]),
         "f" | "format" => {
             sys::fs::mount_mem();
@@ -22,6 +27,29 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::UsageError)
         }
     }
+}
+
+fn parse_usize(s: &str) -> Result<usize, ParseIntError> {
+    if s.starts_with("0x") {
+        usize::from_str_radix(&s[2..], 16)
+    } else {
+        usize::from_str_radix(s, 10)
+    }
+}
+
+fn dump(args: &[&str]) -> Result<(), ExitCode> {
+    if args.len() != 2 {
+        return Err(ExitCode::UsageError);
+    }
+    let addr = parse_usize(args[0]).unwrap();
+    let size = parse_usize(args[1]).unwrap();
+    let phys_addr = PhysAddr::new(addr as u64);
+    let virt_addr = sys::mem::phys_to_virt(phys_addr);
+    let buf = unsafe {
+        core::slice::from_raw_parts(virt_addr.as_ptr(), size)
+    };
+    syscall::write(1, buf);
+    Ok(())
 }
 
 fn usage(args: &[&str]) -> Result<(), ExitCode> {
@@ -102,6 +130,13 @@ fn help() {
     );
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}usage{}     List memory usage", csi_option, csi_reset);
-    println!("  {}format{}    Format RAM disk", csi_option, csi_reset);
+    println!(
+        "  {}dump <addr> <size>{}   Dump memory", csi_option, csi_reset
+    );
+    println!(
+        "  {}format{}               Format RAM disk", csi_option, csi_reset
+    );
+    println!(
+        "  {}usage{}                List memory usage", csi_option, csi_reset
+    );
 }

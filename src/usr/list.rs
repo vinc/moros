@@ -113,19 +113,23 @@ fn help() -> Result<(), ExitCode> {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-a{1}, {0}--all{1}     Show dot files",
+        "  {0}-b{1}, {0}--binary-size{1}   Use binary size",
         csi_option, csi_reset
     );
     println!(
-        "  {0}-n{1}, {0}--name{1}    Sort by name",
+        "  {0}-a{1}, {0}--all{1}           Show dot files",
         csi_option, csi_reset
     );
     println!(
-        "  {0}-s{1}, {0}--size{1}    Sort by size",
+        "  {0}-n{1}, {0}--name{1}          Sort by name",
         csi_option, csi_reset
     );
     println!(
-        "  {0}-t{1}, {0}--time{1}    Sort by time",
+        "  {0}-s{1}, {0}--size{1}          Sort by size",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-t{1}, {0}--time{1}          Sort by time",
         csi_option, csi_reset
     );
     Ok(())
