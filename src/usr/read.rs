@@ -85,10 +85,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         } else if info.is_dir() {
             usr::list::main(args)
         } else if info.is_device() {
-            // TODO: Improve device file usage
-            let is_char_device = info.size() == 4;
-            let is_float_device = info.size() == 8;
-            let is_eof_device = info.size() > 8;
+            // TODO: Add a way to read the device file to get its type directly
+            // instead of relying on the various device file sizes. We could
+            // maybe allow `sys::fs::file::File::open()` to open a Device file
+            // as a regular file and read the type in the first byte of the
+            // file.
+            let n = info.size();
+            let is_char_device = n == 4;
+            let is_float_device = n == 8;
+            let is_block_device = n > 8;
             loop {
                 if console::end_of_text() || console::end_of_transmission() {
                     println!();
@@ -117,7 +122,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     for b in bytes {
                         print!("{}", b as char);
                     }
-                    if is_eof_device {
+                    if is_block_device {
                         println!();
                         return Ok(());
                     }

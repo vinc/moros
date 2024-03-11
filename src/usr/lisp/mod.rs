@@ -356,7 +356,27 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         if args[1] == "-h" || args[1] == "--help" {
             return help();
         }
-        exec(env, args[1])
+        let path = args[1];
+        if let Ok(mut input) = fs::read_to_string(path) {
+            loop {
+                match parse_eval(&input, env) {
+                    Ok((rest, _)) => {
+                        if rest.is_empty() {
+                            break;
+                        }
+                        input = rest;
+                    }
+                    Err(Err::Reason(msg)) => {
+                        error!("{}", msg);
+                        return Err(ExitCode::Failure);
+                    }
+                }
+            }
+            Ok(())
+        } else {
+            error!("Could not read file '{}'", path);
+            Err(ExitCode::Failure)
+        }
     }
 }
 
