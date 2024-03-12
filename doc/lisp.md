@@ -9,14 +9,19 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
 ### Types
 - Basics: `bool`, `list`, `symbol`, `string`
-- Numbers: `float`, `int`, `bigint`
+- Number: `float`, `int`, `bigint`
+
+### Literals
+- Number: `2.5`, `-25`, `255`, `0xFF`, `0xDEAD_C0DE`, `0b101010`
+- String: `"Hello, World!"`
+- Escape: `\b`, `\e`, `\n`, `\r`, `\t`, `\"`, `\\`
 
 ### Built-in Operators
-- `quote` (with the `'` syntax)
-- `quasiquote` (with the `` ` ``)
-- `unquote` (with the `,` syntax)
-- `unquote-splice` (with the `,@` syntax)
-- `splice` (with the `@` syntax)
+- `quote` (abbreviated with `'`)
+- `quasiquote` (abbreviated with `` ` ``)
+- `unquote` (abbreviated with `,`)
+- `unquote-splice` (abbreviated with `,@`)
+- `splice` (abbreviated with `@`)
 - `atom?`
 - `equal?` (aliased to `eq?`)
 - `head`
@@ -33,42 +38,48 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `define-function` (aliased to `def-fun`)
 - `define-macro` (aliased to `def-mac`)
 - `apply`
+- `do`
+- `doc`
 - `eval`
 - `expand`
-- `do`
 - `load`
 
 ### Primitive Operators
-- `append`
-- `type`, `number-type` (aliased to `num-type`)
+- `type`, `number/type` (aliased to `num/type`), `parse`
 - `string` (aliased to `str`)
-- `string->number` (aliased to to `str->num`)
+- `string->number` and `number->string` (aliased to `str->num` and `num->str`)
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
-- `regex-find`
-- `system`
-- Arithmetic operations: `+`, `-`, `*`, `/`, `%`, `^`, `abs`
+- `regex/find`
+- `shell` (aliased to `sh`)
+- Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `rem` (aliased to `%`), `trunc`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- File IO: `read-file`, `read-file-binary`, `write-file-binary`, `append-file-binary`
-- List: `chunks`, `sort`, `unique` (aliased to `uniq`), `min`, `max`
-- String: `trim`, `split`
-- Enumerable: `length` (aliased to `len`), `nth`, `first`, `second`, `third`, `last`, `rest`, `slice`
+- Enumerable: `length` (aliased to `len`), `put`, `get`, `slice`, `contains?`
+- String: `string/trim` and `string/split` (aliased to `str/trim` and `str/split`)
+- List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
+- Dict: `dict`
+- File: `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
+- Net: `host`, `socket/connect`, `socket/listen`, `socket/accept`
 
 ### Core Library
-- `nil`, `nil?`, `list?`
+- `nil`, `nil?`, `list?`, `empty?`
 - `boolean?` (aliased to `bool?`), `string?` (aliased to `str?`), `symbol?` (aliased to `sym?`), `number?` (aliased to `num?`)
 - `function?` (aliased to `fun?`), `macro?` (aliased to `mac?`)
-- `first`, `second`, `third`, `rest`
-- `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `intersection`
+- `abs`, `mod`, `min`, `max`
+- `first`, `second`, `third`, `last`, `rest`, `push`
+- `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `let`
-- `join-string` (aliased to `join-str`), `lines`, `words`, `chars`
+- `string/join` (aliased to `str/join`), `lines`, `words`, `chars`
+- `regex/match?`
+
+### File Library
+- `read`, `write`, `append`
+- `read-binary`, `write-binary`, `append-binary`
 - `read-line`, `read-char`
-- `p`, `print`
-- `write-file`, `append-file`
 - `uptime`, `realtime`
-- `regex-match?`
+- `p`, `print`
 
 ### Compatibility Library
 
@@ -81,7 +92,7 @@ The interpreter can be invoked from the shell:
 
 ```
 > lisp
-MOROS Lisp v0.4.0
+MOROS Lisp v0.5.0
 
 > (+ 1 2 3)
 6
@@ -135,10 +146,13 @@ Would produce the following output:
 (= i 10)                           # => true
 
 (def (map f ls)
+  "Apply function to list"
   (if (nil? ls) nil
     (cons
       (f (first ls))
       (map f (rest ls)))))
+
+(doc map)                          # => "Apply function to list"
 
 (var bar (quote (1 2 3)))
 (var bar '(1 2 3))                 # Shortcut
@@ -168,15 +182,15 @@ The whole implementation was refactored and the parser was rewritten to use
 language and reading from the filesystem.
 
 ### 0.3.0 (2022-12-12)
-Rewrite the evaluation code, add new functions and a core library.
+- Rewrite the evaluation code
+- Add new functions
+- Add a core library
 
 ### 0.3.1 (2022-06-06)
-Rewrite parts of the code and add new functions and examples.
+- Rewrite parts of the code
+- Add new functions and examples
 
 ### 0.3.2 (2022-07-02)
-- Add new functions
-
-### 0.3.2 (2022-08-25)
 - Add new functions
 
 ### 0.4.0 (2022-08-25)
@@ -185,5 +199,23 @@ Rewrite parts of the code and add new functions and examples.
 - Add tail call optimization (TCO)
 - Add macro support
 
-### 0.5.0 (unpublished)
+### 0.5.0 (2023-06-21)
 - Rename or add aliases to many functions
+- Add full support for line and inline comments
+- Add params to function representations
+- Add docstring to functions
+
+### 0.6.0 (2023-09-23)
+- Add file, number, string, and regex namespaces
+- Add socket functions
+
+### 0.7.0 (2023-12-22)
+- Add binary and hexadecimal number literals
+- Test for truthiness (neither `false` nor `nil`) in conditions of `if` and `while`
+- Rename `nth` to `get`
+- Add `empty?`, `reject`, `put`, `push`, and `host` functions`
+- Add `dict` type
+- Use `/` instead of `.` as namespace separator
+- Add `number->string` (aliased to `num->str`) with an optional radix argument
+
+### Unreleased

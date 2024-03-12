@@ -8,22 +8,28 @@ use core::cmp;
 use core::ops::{Index, IndexMut};
 use linked_list_allocator::LockedHeap;
 use spin::Mutex;
-use x86_64::structures::paging::mapper::MapToError;
-use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB};
+use x86_64::structures::paging::{
+    mapper::MapToError, page::PageRangeInclusive,
+    FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, Size4KiB,
+};
 use x86_64::VirtAddr;
+
+#[cfg_attr(not(feature = "userspace"), global_allocator)]
+static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub const HEAP_START: u64 = 0x4444_4444_0000;
 
-#[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
-
 fn max_memory() -> u64 {
-    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<u64>().unwrap() << 20 // MB
+    // Default to 32 MB
+    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<u64>().unwrap() << 20
 }
 
-pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl FrameAllocator<Size4KiB>) -> Result<(), MapToError<Size4KiB>> {
-    // Use half of the memory for the heap caped to 16MB by default because the
-    // allocator is slow.
+pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
+    let mapper = sys::mem::mapper();
+    let mut frame_allocator = sys::mem::frame_allocator();
+
+    // Use half of the memory for the heap caped to 16 MB by default
+    // because the allocator is slow.
     let heap_size = cmp::min(sys::mem::memory_size(), max_memory()) / 2;
     let heap_start = VirtAddr::new(HEAP_START);
     sys::process::init_process_addr(HEAP_START + heap_size);
@@ -36,10 +42,12 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     };
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+
     for page in pages {
-        let frame = frame_allocator.allocate_frame().ok_or(MapToError::FrameAllocationFailed)?;
+        let err = MapToError::FrameAllocationFailed;
+        let frame = frame_allocator.allocate_frame().ok_or(err)?;
         unsafe {
-            mapper.map_to(page, frame, flags, frame_allocator)?.flush();
+            mapper.map_to(page, frame, flags, &mut frame_allocator)?.flush();
         }
     }
 
@@ -50,49 +58,57 @@ pub fn init_heap(mapper: &mut impl Mapper<Size4KiB>, frame_allocator: &mut impl 
     Ok(())
 }
 
-pub fn alloc_pages(addr: u64, size: usize) -> Result<(), ()> {
-    //debug!("Alloc pages (addr={:#x}, size={})", addr, size);
-    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
-    let mut frame_allocator = unsafe { sys::mem::BootInfoFrameAllocator::init(sys::mem::MEMORY_MAP.unwrap()) };
-    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::USER_ACCESSIBLE;
+pub fn alloc_pages(
+    mapper: &mut OffsetPageTable, addr: u64, size: usize
+) -> Result<(), ()> {
+    let size = size.saturating_sub(1) as u64;
+    let mut frame_allocator = sys::mem::frame_allocator();
+
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size));
         Page::range_inclusive(start_page, end_page)
     };
+
+    let flags = PageTableFlags::PRESENT
+              | PageTableFlags::WRITABLE
+              | PageTableFlags::USER_ACCESSIBLE;
+
     for page in pages {
-        //debug!("Alloc page {:?}", page);
         if let Some(frame) = frame_allocator.allocate_frame() {
-            //debug!("Alloc frame {:?}", frame);
-            unsafe {
-                if let Ok(mapping) = mapper.map_to(page, frame, flags, &mut frame_allocator) {
-                    //debug!("Mapped {:?} to {:?}", page, frame);
-                    mapping.flush();
-                } else {
-                    debug!("Could not map {:?} to {:?}", page, frame);
-                    return Err(());
+            let res = unsafe {
+                mapper.map_to(page, frame, flags, &mut frame_allocator)
+            };
+            if let Ok(mapping) = res {
+                mapping.flush();
+            } else {
+                debug!("Could not map {:?} to {:?}", page, frame);
+                if let Ok(old_frame) = mapper.translate_page(page) {
+                    debug!("Aleardy mapped to {:?}", old_frame);
                 }
+                return Err(());
             }
         } else {
             debug!("Could not allocate frame for {:?}", page);
             return Err(());
         }
     }
+
     Ok(())
 }
 
-use x86_64::structures::paging::page::PageRangeInclusive;
-
 // TODO: Replace `free` by `dealloc`
-pub fn free_pages(addr: u64, size: usize) {
-    let mut mapper = unsafe { sys::mem::mapper(VirtAddr::new(sys::mem::PHYS_MEM_OFFSET)) };
+pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
+    let size = size.saturating_sub(1) as u64;
+
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
-        let end_page = Page::containing_address(VirtAddr::new(addr + (size as u64) - 1));
+        let end_page = Page::containing_address(VirtAddr::new(addr + size));
         Page::range_inclusive(start_page, end_page)
     };
+
     for page in pages {
-        if let Ok((_frame, mapping)) = mapper.unmap(page) {
+        if let Ok((_, mapping)) = mapper.unmap(page) {
             mapping.flush();
         } else {
             //debug!("Could not unmap {:?}", page);
@@ -115,7 +131,9 @@ impl PhysBuf {
         let buffer_len = vec.len() - 1;
         let memory_len = phys_addr(&vec[buffer_len]) - phys_addr(&vec[0]);
         if buffer_len == memory_len as usize {
-            Self { buf: Arc::new(Mutex::new(vec)) }
+            Self {
+                buf: Arc::new(Mutex::new(vec)),
+            }
         } else {
             Self::from(vec.clone()) // Clone vec and try again
         }
@@ -160,7 +178,9 @@ impl core::ops::Deref for PhysBuf {
 impl core::ops::DerefMut for PhysBuf {
     fn deref_mut(&mut self) -> &mut [u8] {
         let mut vec = self.buf.lock();
-        unsafe { alloc::slice::from_raw_parts_mut(vec.as_mut_ptr(), vec.len()) }
+        unsafe {
+            alloc::slice::from_raw_parts_mut(vec.as_mut_ptr(), vec.len())
+        }
     }
 }
 

@@ -21,7 +21,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if let Ok(buf) = fs::read_to_bytes(pathname) {
         let bin = buf.as_slice();
         if let Ok(obj) = object::File::parse(bin) {
-            println!("ELF entry address: {:#x}", obj.entry());
+            println!("ELF entry address: {:#X}", obj.entry());
             for section in obj.sections() {
                 if let Ok(name) = section.name() {
                     if name.is_empty() {
@@ -31,9 +31,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     let size = section.size();
                     let align = section.align();
                     println!();
-                    println!("{}{}{} (addr: {:#x}, size: {}, align: {})", color, name, reset, addr, size, align);
+                    println!(
+                        "{}{}{} (addr: {:#X}, size: {}, align: {})",
+                        color, name, reset, addr, size, align
+                    );
                     if let Ok(data) = section.data() {
-                        usr::hex::print_hex(data);
+                        usr::hex::print_hex_at(data, addr);
                     }
                 }
             }
@@ -43,7 +46,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::Failure)
         }
     } else {
-        error!("File not found '{}'", pathname);
+        error!("Could not read file '{}'", pathname);
         Err(ExitCode::Failure)
     }
 }
@@ -52,5 +55,8 @@ fn help() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} elf {}<binary>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} elf {}<binary>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }

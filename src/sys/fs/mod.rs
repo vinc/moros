@@ -1,5 +1,5 @@
-mod block;
 mod bitmap_block;
+mod block;
 mod block_device;
 mod device;
 mod dir;
@@ -10,14 +10,16 @@ mod super_block;
 
 use crate::sys;
 
+pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
+pub use crate::sys::ata::BLOCK_SIZE;
 pub use bitmap_block::BITMAP_SIZE;
+pub use block_device::{
+    dismount, format_ata, format_mem, is_mounted, mount_ata, mount_mem
+};
 pub use device::{Device, DeviceType};
 pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
-pub use block_device::{format_ata, format_mem, is_mounted, mount_ata, mount_mem, dismount};
-pub use crate::api::fs::{dirname, filename, realpath, FileIO};
-pub use crate::sys::ata::BLOCK_SIZE;
 
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
@@ -26,6 +28,7 @@ use alloc::string::{String, ToString};
 
 pub const VERSION: u8 = 1;
 
+// TODO: Move that to API
 #[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum OpenFlag {
@@ -76,10 +79,10 @@ pub fn open(path: &str, flags: usize) -> Option<Resource> {
 
 pub fn delete(path: &str) -> Result<(), ()> {
     if let Some(info) = info(path) {
-        if info.is_file() {
-            return File::delete(path);
-        } else if info.is_dir() {
+        if info.is_dir() {
             return Dir::delete(path);
+        } else if info.is_file() || info.is_device() {
+            return File::delete(path);
         }
     }
     Err(())
@@ -122,6 +125,22 @@ impl FileIO for Resource {
             Resource::Device(io) => io.write(buf),
         }
     }
+
+    fn close(&mut self) {
+        match self {
+            Resource::Dir(io) => io.close(),
+            Resource::File(io) => io.close(),
+            Resource::Device(io) => io.close(),
+        }
+    }
+
+    fn poll(&mut self, event: IO) -> bool {
+        match self {
+            Resource::Dir(io) => io.poll(event),
+            Resource::File(io) => io.poll(event),
+            Resource::Device(io) => io.poll(event),
+        }
+    }
 }
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
@@ -132,10 +151,8 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
             } else {
                 Ok(path.to_string())
             }
-        },
-        None => {
-            Ok(path.to_string())
         }
+        None => Ok(path.to_string()),
     }
 }
 
@@ -155,7 +172,7 @@ pub fn init() {
     for bus in 0..2 {
         for dsk in 0..2 {
             if SuperBlock::check_ata(bus, dsk) {
-                log!("MFS Superblock found in ATA {}:{}\n", bus, dsk);
+                log!("MFS Superblock found in ATA {}:{}", bus, dsk);
                 mount_ata(bus, dsk);
                 return;
             }

@@ -1,9 +1,11 @@
 use crate::api::font::Font;
-use crate::api::vga::{Color, Palette};
 use crate::api::vga::color;
+use crate::api::vga::{Color, Palette};
 use crate::sys;
 
+use alloc::string::String;
 use bit_field::BitField;
+use core::cmp;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
@@ -12,18 +14,15 @@ use vte::{Params, Parser, Perform};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
-// See https://web.stanford.edu/class/cs140/projects/pintos/specs/freevga/vga/vga.htm
-// And https://01.org/sites/default/files/documentation/snb_ihd_os_vol3_part1_0.pdf
-
-const ATTR_ADDR_DATA_REG:      u16 = 0x3C0;
-const ATTR_DATA_READ_REG:      u16 = 0x3C1;
-const SEQUENCER_ADDR_REG:      u16 = 0x3C4;
+const ATTR_ADDR_DATA_REG: u16 = 0x3C0;
+const ATTR_DATA_READ_REG: u16 = 0x3C1;
+const SEQUENCER_ADDR_REG: u16 = 0x3C4;
 const DAC_ADDR_WRITE_MODE_REG: u16 = 0x3C8;
-const DAC_DATA_REG:            u16 = 0x3C9;
-const GRAPHICS_ADDR_REG:       u16 = 0x3CE;
-const CRTC_ADDR_REG:           u16 = 0x3D4;
-const CRTC_DATA_REG:           u16 = 0x3D5;
-const INPUT_STATUS_REG:        u16 = 0x3DA;
+const DAC_DATA_REG: u16 = 0x3C9;
+const GRAPHICS_ADDR_REG: u16 = 0x3CE;
+const CRTC_ADDR_REG: u16 = 0x3D4;
+const CRTC_DATA_REG: u16 = 0x3D5;
+const INPUT_STATUS_REG: u16 = 0x3DA;
 
 const FG: Color = Color::LightGray;
 const BG: Color = Color::Black;
@@ -137,12 +136,14 @@ impl Writer {
 
     fn write_byte(&mut self, byte: u8) {
         match byte {
-            0x0A => { // Newline
+            0x0A => {
+                // Newline
                 self.new_line();
-            },
+            }
             0x0D => { // Carriage Return
-            },
-            0x08 => { // Backspace
+            }
+            0x08 => {
+                // Backspace
                 if self.writer[0] > 0 {
                     self.writer[0] -= 1;
                     let c = ScreenChar {
@@ -151,11 +152,10 @@ impl Writer {
                     };
                     let x = self.writer[0];
                     let y = self.writer[1];
-                    unsafe {
-                        core::ptr::write_volatile(&mut self.buffer.chars[y][x], c);
-                    }
+                    let ptr = &mut self.buffer.chars[y][x];
+                    unsafe { core::ptr::write_volatile(ptr, c); }
                 }
-            },
+            }
             byte => {
                 if self.writer[0] >= BUFFER_WIDTH {
                     self.new_line();
@@ -163,12 +163,18 @@ impl Writer {
 
                 let x = self.writer[0];
                 let y = self.writer[1];
-                let ascii_code = if is_printable(byte) { byte } else { UNPRINTABLE };
+                let ascii_code = if is_printable(byte) {
+                    byte
+                } else {
+                    UNPRINTABLE
+                };
                 let color_code = self.color_code;
-                let c = ScreenChar { ascii_code, color_code };
-                unsafe {
-                    core::ptr::write_volatile(&mut self.buffer.chars[y][x], c);
-                }
+                let c = ScreenChar {
+                    ascii_code,
+                    color_code,
+                };
+                let ptr = &mut self.buffer.chars[y][x];
+                unsafe { core::ptr::write_volatile(ptr, c); }
                 self.writer[0] += 1;
             }
         }
@@ -179,12 +185,7 @@ impl Writer {
             self.writer[1] += 1;
         } else {
             for y in 1..BUFFER_HEIGHT {
-                for x in 0..BUFFER_WIDTH {
-                    unsafe {
-                        let c = core::ptr::read_volatile(&self.buffer.chars[y][x]);
-                        core::ptr::write_volatile(&mut self.buffer.chars[y - 1][x], c);
-                    }
-                }
+                self.buffer.chars[y - 1] = self.buffer.chars[y];
             }
             self.clear_row_after(0, BUFFER_HEIGHT - 1);
         }
@@ -196,11 +197,7 @@ impl Writer {
             ascii_code: b' ',
             color_code: self.color_code,
         };
-        for i in x..BUFFER_WIDTH {
-            unsafe {
-                core::ptr::write_volatile(&mut self.buffer.chars[y][i], c);
-            }
-        }
+        self.buffer.chars[y][x..BUFFER_WIDTH].fill(c);
     }
 
     fn clear_screen(&mut self) {
@@ -239,7 +236,8 @@ impl Writer {
                 for j in 0..font.height as usize {
                     let vga_offset = j + i * 32 as usize;
                     let fnt_offset = j + i * font.height as usize;
-                    buffer.add(vga_offset).write_volatile(font.data[fnt_offset]);
+                    let ptr = buffer.add(vga_offset);
+                    ptr.write_volatile(font.data[fnt_offset]);
                 }
             }
 
@@ -253,18 +251,16 @@ impl Writer {
         }
     }
 
-    pub fn set_palette(&mut self, palette: Palette) {
+    pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
         let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
-        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
-            if i < 16 {
-                let reg = color::from_index(i).to_vga_reg();
-                unsafe {
-                    addr.write(reg);
-                    data.write(vga_color(*r));
-                    data.write(vga_color(*g));
-                    data.write(vga_color(*b));
-                }
+        if i < 16 {
+            let reg = color::from_index(i).to_vga_reg();
+            unsafe {
+                addr.write(reg);
+                data.write(vga_color(r));
+                data.write(vga_color(g));
+                data.write(vga_color(b));
             }
         }
     }
@@ -295,54 +291,52 @@ impl Perform for Writer {
                         0 => {
                             fg = FG;
                             bg = BG;
-                        },
+                        }
                         30..=37 | 90..=97 => {
                             fg = color::from_ansi(param[0] as u8);
-                        },
+                        }
                         40..=47 | 100..=107 => {
                             bg = color::from_ansi((param[0] as u8) - 10);
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
                 }
                 self.set_color(fg, bg);
-            },
+            }
             'A' => { // Cursor Up
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[1] -= n;
-                self.cursor[1] -= n;
-            },
+                self.writer[1] = self.writer[1].saturating_sub(n);
+                self.cursor[1] = self.cursor[1].saturating_sub(n);
+            }
             'B' => { // Cursor Down
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[1] += n;
-                self.cursor[1] += n;
-            },
+                let height = BUFFER_HEIGHT - 1;
+                self.writer[1] = cmp::min(self.writer[1] + n, height);
+                self.cursor[1] = cmp::min(self.cursor[1] + n, height);
+            }
             'C' => { // Cursor Forward
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[0] += n;
-                self.cursor[0] += n;
-            },
+                let width = BUFFER_WIDTH - 1;
+                self.writer[0] = cmp::min(self.writer[0] + n, width);
+                self.cursor[0] = cmp::min(self.cursor[0] + n, width);
+            }
             'D' => { // Cursor Backward
                 let mut n = 1;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                // TODO: Don't go past edge
-                self.writer[0] -= n;
-                self.cursor[0] -= n;
-            },
+                self.writer[0] = self.writer[0].saturating_sub(n);
+                self.cursor[0] = self.cursor[0].saturating_sub(n);
+            }
             'G' => { // Cursor Horizontal Absolute
                 let (_, y) = self.cursor_position();
                 let mut x = 1;
@@ -354,7 +348,7 @@ impl Perform for Writer {
                 }
                 self.set_writer_position(x - 1, y);
                 self.set_cursor_position(x - 1, y);
-            },
+            }
             'H' => { // Move cursor
                 let mut x = 1;
                 let mut y = 1;
@@ -370,20 +364,20 @@ impl Perform for Writer {
                 }
                 self.set_writer_position(x - 1, y - 1);
                 self.set_cursor_position(x - 1, y - 1);
-            },
+            }
             'J' => { // Erase in Display
                 let mut n = 0;
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
                 match n {
-                    // TODO: 0 and 1, from cursor to begining or to end of screen
+                    // TODO: 0 and 1, cursor to begining or to end of screen
                     2 => self.clear_screen(),
                     _ => return,
                 }
                 self.set_writer_position(0, 0);
                 self.set_cursor_position(0, 0);
-            },
+            }
             'K' => { // Erase in Line
                 let (x, y) = self.cursor_position();
                 let mut n = 0;
@@ -398,7 +392,7 @@ impl Perform for Writer {
                 }
                 self.set_writer_position(x, y);
                 self.set_cursor_position(x, y);
-            },
+            }
             'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
@@ -407,7 +401,7 @@ impl Perform for Writer {
                         _ => return,
                     }
                 }
-            },
+            }
             'l' => { // Disable
                 for param in params.iter() {
                     match param[0] {
@@ -416,8 +410,30 @@ impl Perform for Writer {
                         _ => return,
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
+        }
+    }
+
+    fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
+        if params.len() == 1 {
+            let s = String::from_utf8_lossy(params[0]);
+            match s.chars().next() {
+                Some('P') if s.len() == 8 => {
+                    let i = usize::from_str_radix(&s[1..2], 16).unwrap_or(0);
+                    let r = u8::from_str_radix(&s[2..4], 16).unwrap_or(0);
+                    let g = u8::from_str_radix(&s[4..6], 16).unwrap_or(0);
+                    let b = u8::from_str_radix(&s[6..8], 16).unwrap_or(0);
+                    self.set_palette(i, r, g, b);
+                }
+                Some('R') => {
+                    let palette = Palette::default();
+                    for (i, (r, g, b)) in palette.colors.iter().enumerate() {
+                        self.set_palette(i, *r, *g, *b);
+                    }
+                }
+                _ => {}
+            }
         }
     }
 }
@@ -436,29 +452,21 @@ impl fmt::Write for Writer {
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().write_fmt(args).expect("Could not print to VGA");
-    });
-}
-
-pub fn cols() -> usize {
-    BUFFER_WIDTH
-}
-
-pub fn rows() -> usize {
-    BUFFER_HEIGHT
+    interrupts::without_interrupts(||
+        WRITER.lock().write_fmt(args).expect("Could not print to VGA")
+    )
 }
 
 pub fn color() -> (Color, Color) {
-    interrupts::without_interrupts(|| {
+    interrupts::without_interrupts(||
         WRITER.lock().color()
-    })
+    )
 }
 
 pub fn set_color(foreground: Color, background: Color) {
-    interrupts::without_interrupts(|| {
+    interrupts::without_interrupts(||
         WRITER.lock().set_color(foreground, background)
-    })
+    )
 }
 
 // ASCII Printable
@@ -471,15 +479,18 @@ pub fn is_printable(c: u8) -> bool {
 }
 
 pub fn set_font(font: &Font) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().set_font(font);
-    })
+    interrupts::without_interrupts(||
+        WRITER.lock().set_font(font)
+    )
 }
 
+// TODO: Remove this
 pub fn set_palette(palette: Palette) {
-    interrupts::without_interrupts(|| {
-        WRITER.lock().set_palette(palette)
-    })
+    interrupts::without_interrupts(||
+        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
+            WRITER.lock().set_palette(i, *r, *g, *b)
+        }
+    )
 }
 
 // 0x00 -> top

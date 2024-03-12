@@ -30,122 +30,133 @@
   (if x false true))
 
 (def-mac (or x y)
-  `(if ,x true (if ,y true false)))
+  `(if ,x ,x (if ,y ,y false)))
 
 (def-mac (and x y)
   `(if ,x (if ,y true false) false))
+
+(def (empty? x)
+  (or
+    (equal? x nil)
+    (equal? x "")))
 
 (def-mac (let params values body)
   `((fun ,params ,body) ,@values))
 
 (def (reduce f ls)
+  "Reduce the elements of the list with the function"
   (if (nil? (tail ls)) (head ls)
     (f (head ls) (reduce f (tail ls)))))
 
 (def (map f ls)
+  "Apply the function to the elements of the list"
   (if (nil? ls) nil
     (cons
       (f (head ls))
       (map f (tail ls)))))
 
 (def (filter f ls)
+  "Filter the elements of the list with the function"
   (if (nil? ls) nil
     (if (f (head ls))
       (cons (head ls) (filter f (tail ls)))
       (filter f (tail ls)))))
 
+(def (reject f ls)
+  "Reject the elements of the list with the function"
+  (if (nil? ls) nil
+    (if (not (f (head ls)))
+      (cons (head ls) (reject f (tail ls)))
+      (reject f (tail ls)))))
+
 (def (intersection a b)
+  "Return elements found in both lists"
   (filter (fun (x) (contains? b x)) a))
 
-(def (reverse x)
-  (if (nil? x) x
-    (append (reverse (tail x)) (cons (head x) '()))))
+(def (reverse ls)
+  "Reverse list"
+  (if (nil? ls) ls
+    (concat (reverse (tail ls)) (cons (head ls) '()))))
 
-(def (range i n)
-  (if (= i n) nil
-    (append (list i) (range (+ i 1) n))))
+(def (range start stop)
+  "Return a list of integers from start to stop excluded"
+  (if (= start stop) nil
+    (concat (list start) (range (+ start 1) stop))))
 
-(def (min lst)
-  (head (sort lst)))
+(def (min ls)
+  "Return the minimum element of the list"
+  (head (sort ls)))
 
-(def (max lst)
-  (head (reverse (sort lst))))
+(def (max ls)
+  "Return the maximum element of the list"
+  (head (reverse (sort ls))))
 
 (def (abs x)
   (if (> x 0) x (- x)))
 
-(def (join-string ls s)
+(def (mod a b)
+  (rem (+ (rem a b) b) b))
+
+(def (string/join ls s)
+  "Join the elements of the list with the string"
   (reduce (fun (x y) (string x s y)) ls))
 
-(def (read-line)
-  (binary->string (reverse (tail (reverse (read-file-binary "/dev/console" 256))))))
+(def (regex/match? r s)
+  "Return true if the string match the pattern"
+  (not (nil? (regex/find r s))))
 
-(def (read-char)
-  (binary->string (read-file-binary "/dev/console" 4)))
+(def (lines text)
+  "Split text into a list of lines"
+  (string/split (string/trim text) "\n"))
 
-(def (p exp)
-  (do
-    (append-file-binary "/dev/console" (string->binary (string exp)))
-    '()))
+(def (words text)
+  "Split text into a list of words"
+  (string/split text " "))
 
-(def (print exp)
-  (p (string exp "\n")))
+(def (chars text)
+  "Split text into a list of chars"
+  (string/split text ""))
 
-(def (uptime)
-  (binary->number (read-file-binary "/dev/clk/uptime" 8) "float"))
+(def (push ls x)
+  "Push element to the end of the list"
+  (put ls (len ls) x))
 
-(def (realtime)
-  (binary->number (read-file-binary "/dev/clk/realtime" 8) "float"))
+(def (first ls)
+  (get ls 0))
 
-(def (write-file path s)
-  (write-file-binary path (string->binary s)))
+(def (second ls)
+  (get ls 1))
 
-(def (append-file path s)
-  (append-file-binary path (string->binary s)))
+(def (third ls)
+  (get ls 2))
 
-(def (regex-match? pattern s)
-  (not (nil? (regex-find pattern str))))
+(def (last ls)
+  (get ls
+    (if (= (length ls) 0) 0 (- (length ls) 1))))
 
-(def (lines contents)
-  (split (trim contents) "\n"))
+# Short aliases
 
-(def (words contents)
-  (split contents " "))
-
-(def (chars contents)
-  (split contents ""))
-
-(def (first lst)
-  (nth lst 0))
-
-(def (second lst)
-  (nth lst 1))
-
-(def (third lst)
-  (nth lst 2))
-
-(def (last lst)
-  (nth lst
-    (if (= (length lst) 0) 0 (- (length lst) 1))))
-
+(var sh shell)
+(var % rem)
 (var str string)
-(var num-type number-type)
-(var join-str join-string)
-
+(var str/split string/split)
+(var str/join string/join)
+(var str/trim string/trim)
+(var num/type number/type)
 (var str->num string->number)
 (var str->bin string->binary)
 (var num->bin number->binary)
+(var num->str number->string)
 (var bin->str binary->string)
 (var bin->num binary->number)
-
 (var bool? boolean?)
 (var str? string?)
 (var sym? symbol?)
 (var num? number?)
-
 (var fun? function?)
 (var mac? macro?)
-
 (var len length)
 (var rev reverse)
 (var uniq unique)
+
+(load "/lib/lisp/file.lsp")

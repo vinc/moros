@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>MOROS Shell</title>
-    <link rel="stylesheet" type="text/css" href="/moros.css">
+    <link rel="stylesheet" type="text/css" href="moros.css">
   </head>
   <body>
     <h1>MOROS Shell</h1>
@@ -119,17 +119,17 @@ file while the standard error is kept:</p>
 </code></pre>
 
     <p>The standard output is implied as the source of a redirection, but it is
-possible to explicitly redirect a file handle to another (TODO):</p>
+possible to explicitly redirect a handle to another (TODO):</p>
 
     <pre><code>&gt; time read foo.txt [1]=&gt;[3]
 </code></pre>
 
-    <p>Or to redirect a file handle to a file:</p>
+    <p>Or to redirect a handle to a file:</p>
 
     <pre><code>&gt; time read foo.txt [1]=&gt; bar.txt
 </code></pre>
 
-    <p>Or to pipe a file handle to another command:</p>
+    <p>Or to pipe a handle to another command:</p>
 
     <pre><code>&gt; time read foo.txt [1]-&gt; write bar.txt
 </code></pre>
@@ -150,7 +150,7 @@ swapped and the standard input is implied (TODO):</p>
     <pre><code>&gt; write &lt;= req.txt =&gt; /net/http/moros.cc -&gt; find --line href -&gt; sort
 </code></pre>
 
-    <p>NOTE: The following file handles are available when a process is created:</p>
+    <p>NOTE: The following handles are available when a process is created:</p>
 
     <ul>
     <li><code>stdin(0)</code></li>
@@ -238,5 +238,6 @@ by files matching the pattern.</p>
 
     <p>The tilde character <code>~</code> is a shortcut to <code>$HOME</code> so <code>~/test</code> will be expanded
 to <code>$HOME/test</code> by the shell.</p>
+  <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

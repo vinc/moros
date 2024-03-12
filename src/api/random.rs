@@ -1,5 +1,5 @@
-use crate::api::syscall;
 use crate::api::fs;
+use crate::api::syscall;
 
 pub fn get_u64() -> u64 {
     let mut buf = [0; 8];

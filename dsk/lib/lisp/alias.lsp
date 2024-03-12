@@ -21,3 +21,6 @@
 
 (var rest
   (macro args `(tail ,@args)))
+
+(var help
+  (macro args `(doc ,@args)))

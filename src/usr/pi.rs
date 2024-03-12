@@ -1,5 +1,5 @@
-use crate::{usr, sys};
 use crate::api::process::ExitCode;
+use crate::{sys, usr};
 
 use alloc::format;
 use num_bigint::BigInt;
@@ -33,7 +33,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             match digits {
                 Some(0) => break,
                 Some(i) => digits = Some(i - 1),
-                None => {},
+                None => {}
             }
 
             let nr = (&r - &n * &t) * 10;

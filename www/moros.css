@@ -1,22 +1,63 @@
+:where(pre) {
+    all: revert;
+}
 html {
   display: grid;
   place-content: center;
+
+  --shadow-color: 49deg 36% 46%;
+  --img-width: 720px;
 }
 body {
   font-family: sans-serif;
-  max-width: 720px;
+  max-width: var(--img-width);
   margin: 1rem;
-  color: #111;
+  background: #FBF1C7;
+  color: #3C3836;
   font-size: 18px;
+  line-height: 1.5;
 }
-li code,
-p code {
-  background: #eee;
-  padding: 0.125rem;
+a {
+  color: #8F3F71;
+}
+a:hover, a:active {
+  color: #B17286;
+}
+li code, p code, pre {
+  color: #EBDBB2;
   border-radius: 0.25rem;
+}
+li code, p code {
+  background: #7C6F64;
+  padding: 0.125rem;
 }
 pre {
-  background: #eee;
+  background: #282828;
   padding: 1rem;
-  border-radius: 0.25rem;
+  line-height: 1.1;
+}
+img {
+  width: var(--img-width);
+  margin-left: calc(-16px - 2px);
+  margin-bottom: 1em;
+  border: solid 16px #D5C4A1;
+  border-radius: 16px;
+  box-shadow:
+    0.2px 0.2px 0.4px hsl(var(--shadow-color) / 0.14),
+    0.9px 0.9px 1.6px -0.2px hsl(var(--shadow-color) / 0.16),
+    1.7px 1.6px 3px -0.4px hsl(var(--shadow-color) / 0.19),
+    2.5px 2.5px 4.5px -0.6px hsl(var(--shadow-color) / 0.21),
+    3.8px 3.7px 6.8px -0.9px hsl(var(--shadow-color) / 0.23),
+    5.6px 5.4px 9.9px -1.1px hsl(var(--shadow-color) / 0.25),
+    8.1px 7.9px 14.4px -1.3px hsl(var(--shadow-color) / 0.28),
+    11.6px 11.4px 20.7px -1.5px hsl(var(--shadow-color) / 0.3);
+  outline: solid 2px #28282828;
+  outline-offset: 1px;
+  background: #28282878;
+  padding: 2px;
+}
+
+footer {
+  margin-top: 2em;
+  text-align: center;
 }

@@ -1,7 +1,11 @@
+use crate::api::fs::IO;
 use crate::api::process::ExitCode;
-use crate::syscall;
-use crate::sys::syscall::number::*;
 use crate::sys::fs::FileInfo;
+use crate::sys::syscall::number::*;
+use crate::syscall;
+
+use smoltcp::wire::IpAddress;
+use smoltcp::wire::Ipv4Address;
 
 pub fn exit(code: ExitCode) {
     unsafe { syscall!(EXIT, code as usize) };
@@ -86,7 +90,9 @@ pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     let args_ptr = args.as_ptr() as usize;
     let path_len = path.len();
     let args_len = args.len();
-    let res = unsafe { syscall!(SPAWN, path_ptr, path_len, args_ptr, args_len) };
+    let res = unsafe {
+        syscall!(SPAWN, path_ptr, path_len, args_ptr, args_len)
+    };
     if res == 0 {
         Ok(())
     } else {
@@ -99,16 +105,71 @@ pub fn stop(code: usize) {
 }
 
 pub fn reboot() {
-    stop(0xcafe);
+    stop(0xCAFE);
 }
 
 pub fn halt() {
-    stop(0xdead);
+    stop(0xDEAD);
+}
+
+pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {
+    let ptr = list.as_ptr() as usize;
+    let len = list.len();
+    let idx = unsafe { syscall!(POLL, ptr, len) } as isize;
+    if 0 <= idx && idx < len as isize {
+        Some(list[idx as usize])
+    } else {
+        None
+    }
+}
+
+pub fn connect(handle: usize, addr: IpAddress, port: u16) -> Result<(), ()> {
+    let buf = addr.as_bytes();
+    let ptr = buf.as_ptr() as usize;
+    let len = buf.len();
+    let res = unsafe { syscall!(CONNECT, handle, ptr, len, port) } as isize;
+    if res >= 0 {
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
+pub fn listen(handle: usize, port: u16) -> Result<(), ()> {
+    let res = unsafe { syscall!(LISTEN, handle, port) } as isize;
+    if res >= 0 {
+        Ok(())
+    } else {
+        Err(())
+    }
+}
+
+pub fn accept(handle: usize) -> Result<IpAddress, ()> {
+    let addr = IpAddress::v4(0, 0, 0, 0);
+    let buf = addr.as_bytes();
+    let ptr = buf.as_ptr() as usize;
+    let len = buf.len();
+    let res = unsafe { syscall!(ACCEPT, handle, ptr, len) } as isize;
+    if res >= 0 {
+        Ok(IpAddress::from(Ipv4Address::from_bytes(buf)))
+    } else {
+        Err(())
+    }
+}
+
+pub fn alloc(size: usize, align: usize) -> *mut u8 {
+    unsafe { syscall!(ALLOC, size, align) as *mut u8 }
+}
+
+pub fn free(ptr: *mut u8, size: usize, align: usize) {
+    unsafe {
+        syscall!(FREE, ptr, size, align);
+    }
 }
 
 #[test_case]
 fn test_file() {
-    use crate::sys::fs::{mount_mem, format_mem, dismount, OpenFlag};
+    use crate::sys::fs::{dismount, format_mem, mount_mem, OpenFlag};
     use alloc::vec;
     mount_mem();
     format_mem();

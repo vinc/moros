@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>MOROS Manual</title>
-    <link rel="stylesheet" type="text/css" href="/moros.css">
+    <link rel="stylesheet" type="text/css" href="moros.css">
   </head>
   <body>
     <h1>MOROS Manual</h1>
@@ -13,7 +13,7 @@
     <p>During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.</p>
 
-    <pre><code>[0.250962] MOROS v0.9.0
+    <pre><code>[0.250962] MOROS v0.10.2
 [0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
 [0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
 [0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
@@ -56,7 +56,7 @@ Running console in diskless mode
 
 /
 &gt; install
-Welcome to MOROS v0.9.0 installation program!
+Welcome to MOROS v0.10.2 installation program!
 
 Proceed? [y/N] y
 
@@ -146,8 +146,8 @@ Quit the console or reboot to apply changes
 diskless mode and let MOROS run the bootscript <code>/ini/boot.sh</code> to login and use
 the shell.</p>
 
-    <p>If no disks were detected or if you prefer not to use them you can mount the
-system in memory to use a virtual disk with <code>memory format</code> before <code>install</code>.</p>
+    <p>If no disks were detected or if you prefer not to use any you can mount the
+system in memory and use a virtual disk with <code>memory format</code> before <code>install</code>.</p>
 
     <h2>Shell</h2>
 
@@ -243,7 +243,7 @@ Hello, World!
     <p>Use <code>^W</code> (a key combination of <code>CTRL</code> and <code>W</code>) inside the editor to write the
 content to the file and <code>^Q</code> to quit the editor and go back to the shell.</p>
 
-    <p>The help command has a subcommand <code>help edit</code> to list the editor commands:</p>
+    <p>The <code>help</code> command has a subcommand <code>help edit</code> to list the editor commands:</p>
 
     <pre><code>&gt; help edit
 MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
@@ -361,7 +361,14 @@ gw:  10.0.2.2
 dns: 10.0.2.3
 </code></pre>
 
-    <p>A few tools are available like the <code>http</code> command:</p>
+    <p>A few tools are available like the generalist <code>socket</code> command that be used to
+send and receive TCP packets:</p>
+
+    <pre><code>&gt; socket 10.0.2.2:1234
+Hello, World!
+</code></pre>
+
+    <p>Or the more specialized <code>http</code> command to request a document from a web server:</p>
 
     <pre><code>&gt; http moros.cc /test.html
 &lt;!doctype html&gt;
@@ -376,5 +383,6 @@ dns: 10.0.2.3
   &lt;/body&gt;
 &lt;/html&gt;
 </code></pre>
+  <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

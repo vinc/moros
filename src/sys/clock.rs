@@ -1,11 +1,13 @@
 use crate::api::clock::DATE_TIME_ZONE;
+use crate::api::fs::{FileIO, IO};
 use crate::sys;
 use crate::sys::cmos::CMOS;
-use crate::sys::fs::FileIO;
 
-use time::{OffsetDateTime, Duration};
+use time::{Duration, OffsetDateTime};
 
-const DAYS_BEFORE_MONTH: [u64; 13] = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
+const DAYS_BEFORE_MONTH: [u64; 13] = [
+    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
+];
 
 #[derive(Debug, Clone)]
 pub struct Uptime;
@@ -31,8 +33,18 @@ impl FileIO for Uptime {
             Err(())
         }
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         unimplemented!();
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => false,
+        }
     }
 }
 
@@ -65,8 +77,18 @@ impl FileIO for Realtime {
             Err(())
         }
     }
+
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
         unimplemented!();
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => true,
+            IO::Write => false,
+        }
     }
 }
 
@@ -74,23 +96,23 @@ impl FileIO for Realtime {
 pub fn realtime() -> f64 {
     let rtc = CMOS::new().rtc(); // Assuming GMT
 
-    let timestamp = 86400 * days_before_year(rtc.year as u64)
-                  + 86400 * days_before_month(rtc.year as u64, rtc.month as u64)
-                  + 86400 * (rtc.day - 1) as u64
-                  +  3600 * rtc.hour as u64
-                  +    60 * rtc.minute as u64
-                  +         rtc.second as u64;
+    let ts = 86400 * days_before_year(rtc.year as u64)
+           + 86400 * days_before_month(rtc.year as u64, rtc.month as u64)
+           + 86400 * (rtc.day - 1) as u64
+           + 3600 * rtc.hour as u64
+           + 60 * rtc.minute as u64
+           + rtc.second as u64;
 
     let fract = sys::time::time_between_ticks()
               * (sys::time::ticks() - sys::time::last_rtc_update()) as f64;
 
-    (timestamp as f64) + fract
+    (ts as f64) + fract
 }
 
 fn days_before_year(year: u64) -> u64 {
-    (1970..year).fold(0, |days, y| {
+    (1970..year).fold(0, |days, y|
         days + if is_leap_year(y) { 366 } else { 365 }
-    })
+    )
 }
 
 fn days_before_month(year: u64, month: u64) -> u64 {
@@ -112,10 +134,12 @@ fn is_leap_year(year: u64) -> bool {
 
 pub fn init() {
     let s = realtime();
-    let ns = Duration::nanoseconds(libm::floor(1e9 * (s - libm::floor(s))) as i64);
+    let ns = Duration::nanoseconds(
+        libm::floor(1e9 * (s - libm::floor(s))) as i64
+    );
     let dt = OffsetDateTime::from_unix_timestamp(s as i64) + ns;
     let rtc = dt.format(DATE_TIME_ZONE);
-    log!("RTC {}\n", rtc);
+    log!("RTC {}", rtc);
 }
 
 #[test_case]

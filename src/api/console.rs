@@ -1,7 +1,9 @@
 use crate::sys;
+
+use alloc::string::ToString;
 use core::fmt;
 
-pub use crate::sys::console::{ETX_KEY, EOT_KEY};
+pub use crate::sys::console::{EOT_KEY, ETX_KEY};
 
 #[derive(Clone, Copy)]
 pub struct Style {
@@ -11,23 +13,38 @@ pub struct Style {
 
 impl Style {
     pub fn reset() -> Self {
-        Self { foreground: None, background: None }
+        Self {
+            foreground: None,
+            background: None,
+        }
     }
 
     pub fn foreground(name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: None }
+        Self {
+            foreground: color_to_fg(name),
+            background: None,
+        }
     }
 
     pub fn with_foreground(self, name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: self.background }
+        Self {
+            foreground: color_to_fg(name),
+            background: self.background,
+        }
     }
 
     pub fn background(name: &str) -> Self {
-        Self { foreground: None, background: color_to_bg(name) }
+        Self {
+            foreground: None,
+            background: color_to_bg(name),
+        }
     }
 
     pub fn with_background(self, name: &str) -> Self {
-        Self { foreground: self.foreground, background: color_to_bg(name) }
+        Self {
+            foreground: self.foreground,
+            background: color_to_bg(name),
+        }
     }
 
     pub fn color(name: &str) -> Self {
@@ -89,4 +106,16 @@ pub fn is_printable(c: char) -> bool {
     } else {
         true // TODO
     }
+}
+
+// The size of the screen in VGA Text Mode is 80x25
+
+pub fn cols() -> usize {
+    let n = 80; // chars
+    sys::process::env("COLS").unwrap_or(n.to_string()).parse().unwrap_or(n)
+}
+
+pub fn rows() -> usize {
+    let n = 25; // lines
+    sys::process::env("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)
 }

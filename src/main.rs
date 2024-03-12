@@ -5,7 +5,7 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use moros::{sys, usr, print, println, debug, hlt_loop};
+use moros::{debug, hlt_loop, print, println, sys, usr};
 
 entry_point!(main);
 

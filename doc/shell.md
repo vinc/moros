@@ -100,15 +100,15 @@ file while the standard error is kept:
     > time read foo.txt => /dev/null
 
 The standard output is implied as the source of a redirection, but it is
-possible to explicitly redirect a file handle to another (TODO):
+possible to explicitly redirect a handle to another (TODO):
 
     > time read foo.txt [1]=>[3]
 
-Or to redirect a file handle to a file:
+Or to redirect a handle to a file:
 
     > time read foo.txt [1]=> bar.txt
 
-Or to pipe a file handle to another command:
+Or to pipe a handle to another command:
 
     > time read foo.txt [1]-> write bar.txt
 
@@ -125,7 +125,7 @@ Redirections should be declared before piping (TODO):
 
     > write <= req.txt => /net/http/moros.cc -> find --line href -> sort
 
-NOTE: The following file handles are available when a process is created:
+NOTE: The following handles are available when a process is created:
 
 - `stdin(0)`
 - `stdout(1)`

@@ -1,33 +1,35 @@
 use lazy_static::lazy_static;
-use x86_64::VirtAddr;
-use x86_64::instructions::segmentation::{CS, DS, Segment};
+use x86_64::instructions::segmentation::{Segment, CS, DS};
 use x86_64::instructions::tables::load_tss;
-use x86_64::structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector};
+use x86_64::structures::gdt::{
+    Descriptor, GlobalDescriptorTable, SegmentSelector
+};
 use x86_64::structures::tss::TaskStateSegment;
+use x86_64::VirtAddr;
 
-const STACK_SIZE: usize = 1024 * 8;
-pub const DOUBLE_FAULT_IST_INDEX: u16 = 0;
-pub const PAGE_FAULT_IST_INDEX: u16 = 1;
-pub const GENERAL_PROTECTION_FAULT_IST_INDEX: u16 = 2;
+const STACK_SIZE: usize = 1024 * 8 * 16;
+pub const DOUBLE_FAULT_IST: u16 = 0;
+pub const PAGE_FAULT_IST: u16 = 1;
+pub const GENERAL_PROTECTION_FAULT_IST: u16 = 2;
 
 lazy_static! {
     static ref TSS: TaskStateSegment = {
         let mut tss = TaskStateSegment::new();
         tss.privilege_stack_table[0] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
-        tss.interrupt_stack_table[DOUBLE_FAULT_IST_INDEX as usize] = {
+        tss.interrupt_stack_table[DOUBLE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
-        tss.interrupt_stack_table[PAGE_FAULT_IST_INDEX as usize] = {
+        tss.interrupt_stack_table[PAGE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
-        tss.interrupt_stack_table[GENERAL_PROTECTION_FAULT_IST_INDEX as usize] = {
+        tss.interrupt_stack_table[GENERAL_PROTECTION_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE
+            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
         };
         tss
     };
@@ -37,13 +39,22 @@ lazy_static! {
     pub static ref GDT: (GlobalDescriptorTable, Selectors) = {
         let mut gdt = GlobalDescriptorTable::new();
 
-        let tss = gdt.add_entry(Descriptor::tss_segment(&TSS));
-        let code = gdt.add_entry(Descriptor::kernel_code_segment());
-        let data = gdt.add_entry(Descriptor::kernel_data_segment());
-        let user_code = gdt.add_entry(Descriptor::user_code_segment());
-        let user_data = gdt.add_entry(Descriptor::user_data_segment());
+        let tss = gdt.append(Descriptor::tss_segment(&TSS));
+        let code = gdt.append(Descriptor::kernel_code_segment());
+        let data = gdt.append(Descriptor::kernel_data_segment());
+        let user_code = gdt.append(Descriptor::user_code_segment());
+        let user_data = gdt.append(Descriptor::user_data_segment());
 
-        (gdt, Selectors { tss, code, data, user_code, user_data })
+        (
+            gdt,
+            Selectors {
+                tss,
+                code,
+                data,
+                user_code,
+                user_data,
+            },
+        )
     };
 }
 

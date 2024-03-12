@@ -62,10 +62,46 @@ pub fn delete(path: &str) -> isize
 pub fn stop(code: usize)
 ```
 
-The system will reboot with `0xcafe` and halt with `0xdead`.
+The system will reboot with `0xCAFE` and halt with `0xDEAD`.
 
 ## SLEEP (0xB)
 
 ```rust
 pub fn sleep(seconds: f64)
+```
+
+## POLL (0xC)
+
+```rust
+pub fn poll(list: &[(usize, IO)]) -> isize
+```
+
+## CONNECT (0xD)
+
+```rust
+pub fn connect(handle, usize, addr: &str, port: u16) -> isize
+```
+
+## LISTEN (0xE)
+
+```rust
+pub fn listen(handle, usize, port: u16) -> isize
+```
+
+## ACCEPT (0xF)
+
+```rust
+pub fn accept(handle, usize, addr: &str) -> isize
+```
+
+## ALLOC (0x10)
+
+```rust
+pub fn alloc(size: usize, align: usize) -> *mut u8
+```
+
+## FREE (0x11)
+
+```rust
+pub fn free(ptr: *mut u8, size: usize, align: usize)
 ```

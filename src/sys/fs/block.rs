@@ -1,5 +1,6 @@
 use super::bitmap_block::BitmapBlock;
 use super::block_device::BlockDeviceIO;
+use super::block_device::BLOCK_DEVICE;
 
 use core::convert::TryInto;
 
@@ -22,9 +23,7 @@ impl Block {
 
     pub fn alloc() -> Option<Self> {
         match BitmapBlock::next_free_addr() {
-            None => {
-                None
-            }
+            None => None,
             Some(addr) => {
                 BitmapBlock::alloc(addr);
 
@@ -42,18 +41,18 @@ impl Block {
 
     pub fn read(addr: u32) -> Self {
         let mut buf = [0; super::BLOCK_SIZE];
-        if let Some(ref mut block_device) = *super::block_device::BLOCK_DEVICE.lock() {
+        if let Some(ref mut block_device) = *BLOCK_DEVICE.lock() {
             if block_device.read(addr, &mut buf).is_err() {
-                debug!("MFS: could not read block {:#x}", addr);
+                debug!("MFS: could not read block {:#X}", addr);
             }
         }
         Self { addr, buf }
     }
 
     pub fn write(&self) {
-        if let Some(ref mut block_device) = *super::block_device::BLOCK_DEVICE.lock() {
+        if let Some(ref mut block_device) = *BLOCK_DEVICE.lock() {
             if block_device.write(self.addr, &self.buf).is_err() {
-                debug!("MFS: could not write block {:#x}", self.addr);
+                debug!("MFS: could not write block {:#X}", self.addr);
             }
         }
     }
@@ -78,12 +77,14 @@ impl Block {
 }
 
 pub struct LinkedBlock {
-    block: Block
+    block: Block,
 }
 
 impl LinkedBlock {
     pub fn new(addr: u32) -> Self {
-        Self { block: Block::new(addr) }
+        Self {
+            block: Block::new(addr),
+        }
     }
 
     pub fn alloc() -> Option<Self> {
@@ -91,7 +92,9 @@ impl LinkedBlock {
     }
 
     pub fn read(addr: u32) -> Self {
-        Self { block: Block::read(addr) }
+        Self {
+            block: Block::read(addr),
+        }
     }
 
     pub fn write(&self) {

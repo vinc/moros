@@ -8,7 +8,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() > 2 {
         return Err(ExitCode::UsageError);
     }
-    let format = if args.len() > 1 { args[1] } else { DATE_TIME_ZONE };
+    let format = if args.len() > 1 {
+        args[1]
+    } else {
+        DATE_TIME_ZONE
+    };
     if format == "-h" || format == "--help" {
         return help();
     }
@@ -28,6 +32,9 @@ fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} date {}[<format>]{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} date {}[<format>]{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     Ok(())
 }

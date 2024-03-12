@@ -1,15 +1,18 @@
 use super::Err;
+use crate::could_not;
 
 use alloc::format;
-use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::convert::TryFrom;
 use core::fmt;
-use core::ops::{Neg, Add, Div, Mul, Sub, Rem, Shl, Shr};
+use core::num::ParseIntError;
+use core::ops::{Add, Div, Mul, Neg, Rem, Shl, Shr, Sub};
 use core::str::FromStr;
 use num_bigint::BigInt;
-use num_traits::Zero;
+use num_bigint::ParseBigIntError;
 use num_traits::cast::ToPrimitive;
+use num_traits::Num;
+use num_traits::Zero;
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum Number {
@@ -23,16 +26,22 @@ macro_rules! trigonometric_method {
         pub fn $op(&self) -> Number {
             Number::Float(libm::$op(self.into()))
         }
-    }
+    };
 }
 
 macro_rules! arithmetic_method {
     ($op:ident, $checked_op:ident) => {
         pub fn $op(self, other: Number) -> Number {
             match (self, other) {
-                (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.$op(b)),
-                (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.$op(b)),
-                (Number::Int(a), Number::BigInt(b)) => Number::BigInt(a.$op(b)),
+                (Number::BigInt(a), Number::BigInt(b)) => {
+                    Number::BigInt(a.$op(b))
+                }
+                (Number::BigInt(a), Number::Int(b)) => {
+                    Number::BigInt(a.$op(b))
+                }
+                (Number::Int(a), Number::BigInt(b)) => {
+                    Number::BigInt(a.$op(b))
+                }
                 (Number::Int(a), Number::Int(b)) => {
                     if let Some(r) = a.$checked_op(b) {
                         Number::Int(r)
@@ -40,13 +49,21 @@ macro_rules! arithmetic_method {
                         Number::BigInt(BigInt::from(a).$op(BigInt::from(b)))
                     }
                 }
-                (Number::Int(a), Number::Float(b)) => Number::Float((a as f64).$op(b)),
-                (Number::Float(a), Number::Int(b)) => Number::Float(a.$op(b as f64)),
-                (Number::Float(a), Number::Float(b)) => Number::Float(a.$op(b)),
-                _ => Number::Float(f64::NAN), // TODO
+                (Number::Int(a), Number::Float(b)) => {
+                    Number::Float((a as f64).$op(b))
+                }
+                (Number::Float(a), Number::Int(b)) => {
+                    Number::Float(a.$op(b as f64))
+                }
+                (Number::Float(a), Number::Float(b)) => {
+                    Number::Float(a.$op(b))
+                }
+                _ => {
+                    Number::Float(f64::NAN) // TODO
+                }
             }
         }
-    }
+    };
 }
 
 impl Number {
@@ -65,9 +82,15 @@ impl Number {
     // NOTE: Rem use `libm::fmod` for `f64` instead of `rem`
     pub fn rem(self, other: Number) -> Number {
         match (self, other) {
-            (Number::BigInt(a), Number::BigInt(b)) => Number::BigInt(a.rem(b)),
-            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.rem(b)),
-            (Number::Int(a), Number::BigInt(b)) => Number::BigInt(a.rem(b)),
+            (Number::BigInt(a), Number::BigInt(b)) => {
+                Number::BigInt(a.rem(b))
+            }
+            (Number::BigInt(a), Number::Int(b)) => {
+                Number::BigInt(a.rem(b))
+            }
+            (Number::Int(a), Number::BigInt(b)) => {
+                Number::BigInt(a.rem(b))
+            }
             (Number::Int(a), Number::Int(b)) => {
                 if let Some(r) = a.checked_rem(b) {
                     Number::Int(r)
@@ -75,10 +98,18 @@ impl Number {
                     Number::BigInt(BigInt::from(a).rem(BigInt::from(b)))
                 }
             }
-            (Number::Int(a), Number::Float(b)) => Number::Float(libm::fmod(a as f64, b)),
-            (Number::Float(a), Number::Int(b)) => Number::Float(libm::fmod(a, b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(libm::fmod(a, b)),
-            _ => Number::Float(f64::NAN), // TODO
+            (Number::Int(a), Number::Float(b)) => {
+                Number::Float(libm::fmod(a as f64, b))
+            }
+            (Number::Float(a), Number::Int(b)) => {
+                Number::Float(libm::fmod(a, b as f64))
+            }
+            (Number::Float(a), Number::Float(b)) => {
+                Number::Float(libm::fmod(a, b))
+            }
+            _ => {
+                Number::Float(f64::NAN) // TODO
+            }
         }
     }
 
@@ -86,9 +117,15 @@ impl Number {
         let bmax = BigInt::from(u32::MAX);
         let imax = u32::MAX as i64;
         match (self, other) {
-            (_, Number::BigInt(b)) if *b > bmax => Number::Float(f64::INFINITY),
-            (_, Number::Int(b)) if *b > imax => Number::Float(f64::INFINITY),
-            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.pow(*b as u32)),
+            (_, Number::BigInt(b)) if *b > bmax => {
+                Number::Float(f64::INFINITY)
+            }
+            (_, Number::Int(b)) if *b > imax => {
+                Number::Float(f64::INFINITY)
+            }
+            (Number::BigInt(a), Number::Int(b)) => {
+                Number::BigInt(a.pow(*b as u32))
+            }
             (Number::Int(a), Number::Int(b)) => {
                 if let Some(r) = a.checked_pow(*b as u32) {
                     Number::Int(r)
@@ -96,16 +133,26 @@ impl Number {
                     Number::BigInt(BigInt::from(*a)).pow(other)
                 }
             }
-            (Number::Int(a), Number::Float(b)) => Number::Float(libm::pow(*a as f64, *b)),
-            (Number::Float(a), Number::Int(b)) => Number::Float(libm::pow(*a, *b as f64)),
-            (Number::Float(a), Number::Float(b)) => Number::Float(libm::pow(*a, *b)),
-            _ => Number::Float(f64::NAN), // TODO
+            (Number::Int(a), Number::Float(b)) => {
+                Number::Float(libm::pow(*a as f64, *b))
+            }
+            (Number::Float(a), Number::Int(b)) => {
+                Number::Float(libm::pow(*a, *b as f64))
+            }
+            (Number::Float(a), Number::Float(b)) => {
+                Number::Float(libm::pow(*a, *b))
+            }
+            _ => {
+                Number::Float(f64::NAN) // TODO
+            }
         }
     }
 
     pub fn neg(self) -> Number {
         match self {
-            Number::BigInt(a) => Number::BigInt(-a),
+            Number::BigInt(a) => {
+                Number::BigInt(-a)
+            }
             Number::Int(a) => {
                 if let Some(r) = a.checked_neg() {
                     Number::Int(r)
@@ -113,7 +160,9 @@ impl Number {
                     Number::BigInt(-BigInt::from(a))
                 }
             }
-            Number::Float(a) => Number::Float(-a),
+            Number::Float(a) => {
+                Number::Float(-a)
+            }
         }
     }
 
@@ -127,7 +176,9 @@ impl Number {
 
     pub fn shl(self, other: Number) -> Number {
         match (self, other) {
-            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.shl(b)),
+            (Number::BigInt(a), Number::Int(b)) => {
+                Number::BigInt(a.shl(b))
+            }
             (Number::Int(a), Number::Int(b)) => {
                 if let Some(r) = a.checked_shl(b as u32) {
                     Number::Int(r)
@@ -135,13 +186,17 @@ impl Number {
                     Number::BigInt(BigInt::from(a).shl(b))
                 }
             }
-            _ => Number::Float(f64::NAN), // TODO
+            _ => {
+                Number::Float(f64::NAN) // TODO
+            }
         }
     }
 
     pub fn shr(self, other: Number) -> Number {
         match (self, other) {
-            (Number::BigInt(a), Number::Int(b)) => Number::BigInt(a.shr(b)),
+            (Number::BigInt(a), Number::Int(b)) => {
+                Number::BigInt(a.shr(b))
+            }
             (Number::Int(a), Number::Int(b)) => {
                 if let Some(r) = a.checked_shr(b as u32) {
                     Number::Int(r)
@@ -149,7 +204,9 @@ impl Number {
                     Number::BigInt(BigInt::from(a).shr(b))
                 }
             }
-            _ => Number::Float(f64::NAN), // TODO
+            _ => {
+                Number::Float(f64::NAN) // TODO
+            }
         }
     }
 
@@ -185,7 +242,7 @@ macro_rules! operator {
                 self.$op(other)
             }
         }
-    }
+    };
 }
 
 operator!(Add, add);
@@ -196,39 +253,54 @@ operator!(Rem, rem);
 operator!(Shl, shl);
 operator!(Shr, shr);
 
+fn parse_int(s: &str) -> Result<i64, ParseIntError> {
+    if s.starts_with("0x") {
+        i64::from_str_radix(&s[2..], 16)
+    } else if s.starts_with("-0x") {
+        i64::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else if s.starts_with("0b") {
+        i64::from_str_radix(&s[2..], 2)
+    } else if s.starts_with("-0b") {
+        i64::from_str_radix(&s[3..], 2).map(|n| -n)
+    } else {
+        i64::from_str_radix(s, 10)
+    }
+}
+
+fn parse_bigint(s: &str) -> Result<BigInt, ParseBigIntError> {
+    if s.starts_with("0x") {
+        BigInt::from_str_radix(&s[2..], 16)
+    } else if s.starts_with("-0x") {
+        BigInt::from_str_radix(&s[3..], 16).map(|n| -n)
+    } else if s.starts_with("0b") {
+        BigInt::from_str_radix(&s[2..], 2)
+    } else if s.starts_with("-0b") {
+        BigInt::from_str_radix(&s[3..], 2).map(|n| -n)
+    } else {
+        BigInt::from_str_radix(s, 10)
+    }
+}
+
 impl FromStr for Number {
     type Err = Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let err = Err(Err::Reason("Could not parse number".to_string()));
+        let err = could_not!("parse number");
         if s.is_empty() {
-            return Ok(Number::Int(0));
+            Ok(Number::Int(0))
         } else if s.contains('.') {
             if let Ok(n) = s.parse() {
-                return Ok(Number::Float(n));
+                Ok(Number::Float(n))
+            } else {
+                err
             }
-        } else if let Ok(n) = s.parse() {
-            return Ok(Number::Int(n));
+        } else if let Ok(n) = parse_int(s) {
+            Ok(Number::Int(n))
+        } else if let Ok(n) = parse_bigint(s) {
+            Ok(Number::BigInt(n))
         } else {
-            let mut chars = s.chars().peekable();
-            let is_neg = chars.peek() == Some(&'-');
-            if is_neg {
-                chars.next().unwrap();
-            }
-            let mut res = BigInt::from(0);
-            for c in chars {
-                if !c.is_ascii_digit() {
-                    return err;
-                }
-                let d = c as u8 - b'0';
-                res = res * BigInt::from(10) + BigInt::from(d as u32);
-            }
-            res *= BigInt::from(if is_neg { -1 } else { 1 });
-            return Ok(Number::BigInt(res));
-        } /* else if let Ok(n) = s.parse() { // FIXME: rust-lld: error: undefined symbol: fmod
-            return Ok(Number::BigInt(n));
-        } */
-        err
+            err
+        }
     }
 }
 
@@ -267,8 +339,8 @@ impl From<usize> for Number {
 impl From<&Number> for f64 {
     fn from(num: &Number) -> f64 {
         match num {
-            Number::Float(n)  => *n,
-            Number::Int(n)    => *n as f64,
+            Number::Float(n) => *n,
+            Number::Int(n) => *n as f64,
             Number::BigInt(n) => n.to_f64().unwrap_or(f64::NAN),
         }
     }
@@ -280,29 +352,34 @@ macro_rules! try_from_number {
             type Error = Err;
 
             fn try_from(num: Number) -> Result<Self, Self::Error> {
-                let err = Err::Reason(format!("Expected an integer between 0 and {}", $int::MAX));
+                let err = Err::Reason(
+                    format!("Expected an integer between 0 and {}", $int::MAX)
+                );
                 match num {
-                    Number::Float(n)  => $int::try_from(n as i64).or(Err(err)),
-                    Number::Int(n)    => $int::try_from(n).or(Err(err)),
+                    Number::Float(n) => $int::try_from(n as i64).or(Err(err)),
+                    Number::Int(n) => $int::try_from(n).or(Err(err)),
                     Number::BigInt(n) => n.$to_int().ok_or(err),
                 }
             }
         }
-    }
+    };
 }
 
 try_from_number!(usize, to_usize);
+try_from_number!(u32, to_u32);
 try_from_number!(u8, to_u8);
 
 impl fmt::Display for Number {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        //write!(f, "{}", self), // FIXME: alloc error
+        // FIXME: alloc error
+        // write!(f, "{}", self)
         match self {
             Number::Int(n) => {
                 write!(f, "{}", n)
             }
             Number::BigInt(n) => {
-                //write!(f, "{}", n), // FIXME: rust-lld: error: undefined symbol: fmod
+                // FIXME: rust-lld: error: undefined symbol: fmod
+                // write!(f, "{}", n)
                 let mut v = Vec::new();
                 let mut n = n.clone();
                 if n < BigInt::from(0) {
@@ -311,7 +388,7 @@ impl fmt::Display for Number {
                 }
                 loop {
                     v.push((n.clone() % BigInt::from(10)).to_u64().unwrap());
-                    n = n / BigInt::from(10);
+                    n /= BigInt::from(10);
                     if n == BigInt::from(0) {
                         break;
                     }

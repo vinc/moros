@@ -2,9 +2,8 @@
 .EXPORT_ALL_VARIABLES:
 
 setup:
-	curl https://sh.rustup.rs -sSf | sh -s -- -y
-	rustup install nightly
-	rustup default nightly
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain none
+	rustup show
 	cargo install bootimage
 
 # Compilation options
@@ -35,10 +34,11 @@ user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
-		cargo rustc --release --bin {}
+		cargo rustc --no-default-features --features userspace --release --bin {}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
-	#strip dsk/bin/*
+	basename -s .rs src/bin/*.rs | xargs -I {} \
+		strip dsk/bin/{}
 
 bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
 img = disk.img
@@ -58,7 +58,6 @@ image: $(img)
 	env | grep MOROS
 	cargo bootimage $(cargo-opts)
 	dd conv=notrunc if=$(bin) of=$(img)
-
 
 qemu-opts = -m $(memory) -drive file=$(img),format=raw \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
@@ -94,11 +93,11 @@ qemu:
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
-		-m $(memory) -display none -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04
+		-m $(memory) -display none -serial stdio -device isa-debug-exit,iobase=0xF4,iosize=0x04
 
 website:
 	cd www && sh build.sh
 
 clean:
 	cargo clean
-	rm -f www/*.html www/*.png
+	rm -f www/*.html www/images/*.png

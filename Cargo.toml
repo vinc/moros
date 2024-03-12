@@ -1,7 +1,7 @@
 [package]
 name = "moros"
 description = "MOROS: Obscure Rust Operating System"
-version = "0.9.0"
+version = "0.10.2"
 authors = ["Vincent Ollivier <v@vinc.cc>"]
 edition = "2018"
 license = "MIT"
@@ -13,34 +13,40 @@ default-run = "moros"
 default = ["video"]
 video = []
 serial = []
+userspace = []
 
 [dependencies]
-acpi = "4.1.0"
-aml = "0.16.3"
+acpi = "5.0.0"
+aml = "0.16.4"
 base64 = { version = "0.13.1", default-features = false }
 bit_field = "0.10.2"
-bootloader = { version = "0.9.23", features = ["map_physical_memory"] }
+bootloader = { version = "0.9.28", features = ["map_physical_memory"] }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
-libm = "0.2.6"
+libm = "0.2.8"
 linked_list_allocator = "0.10.5"
 littlewing = { version = "0.7.0", default-features = false }
 nom = { version = "7.1.3", default-features = false, features = ["alloc"] }
-num-bigint = { version = "0.4.3", default-features = false }
-num-traits = { version = "0.2.15", default-features = false }
-object = { version = "0.30.3", default-features = false, features = ["read"] }
-pbkdf2 = { version = "0.12.1", default-features = false, features = ["hmac"] }
+num-bigint = { version = "0.4.4", default-features = false }
+num-traits = { version = "0.2.18", default-features = false }
+object = { version = "0.34.0", default-features = false, features = ["read"] }
+pbkdf2 = { version = "0.12.2", default-features = false, features = ["hmac"] }
 pc-keyboard = "0.6.1"
-pic8259 = "0.10.3"
+pic8259 = "0.11.0"
 rand = { version = "0.8.5", default-features = false }
 rand_hc = "0.3.1"
-raw-cpuid = "10.7.0"
-sha2 = { version = "0.10.6", default-features = false, features = ["force-soft"] }
-smoltcp = { version = "0.9.1", default-features = false, features = ["alloc", "medium-ethernet", "socket-tcp", "socket-udp", "socket-dhcpv4", "proto-ipv4", "proto-dhcpv4"] }
+raw-cpuid = "11.0.1"
+sha2 = { version = "0.10.8", default-features = false, features = ["force-soft"] }
+smoltcp = { version = "0.11.0", default-features = false, features = ["alloc", "medium-ethernet", "socket-tcp", "socket-udp", "socket-dhcpv4", "proto-ipv4", "proto-dhcpv4"] }
 spin = "0.9.8"
 time = { version = "0.2.27", default-features = false }
-uart_16550 = "0.2.18"
-vte = "0.11.0"
-x86_64 = "0.14.10"
+uart_16550 = "0.3.0"
+vte = "0.13.0"
+x86_64 = "0.15.0"
+
+[package.metadata.bootloader]
+physical-memory-offset = "0xFFFF800000000000"
+kernel-stack-address   = "0xFFFFFF8000000000"
+boot-info-address      = "0xFFFFFFFF80000000"
 
 [package.metadata.bootimage]
 test-success-exit-code = 33 # (0x10 << 1) | 1

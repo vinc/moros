@@ -1,9 +1,7 @@
 (load "/lib/lisp/core.lsp")
 
-(var esc (bin->str '(27)))
-
 (def (ansi-color x y)
-  (str esc "[" x ";" y "m"))
+  (str "\e[" x ";" y "m"))
 
 (def (fg c)
   (ansi-color c 40))
@@ -15,7 +13,7 @@
   (str " " (f c) (if (< c 100) " " "") c (ansi-color 0 0)))
 
 (def (colors fs i j)
-  (join-str (map (fun (c) (color fs c)) (range i j)) ""))
+  (str/join (map (fun (c) (color fs c)) (range i j)) ""))
 
 (print (colors fg 30 38))
 (print (colors fg 90 98))
