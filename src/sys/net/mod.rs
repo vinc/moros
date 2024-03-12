@@ -259,16 +259,10 @@ pub fn init() {
             *NET.lock() = Some((iface, device));
         }
     };
-    if let Some(io_base) = find_pci_io_base(0x10EC, 0x8139) {
-        add(
-            EthernetDevice::RTL8139(nic::rtl8139::Device::new(io_base)),
-            "RTL8139",
-        );
+    if let Some(io) = find_pci_io_base(0x10EC, 0x8139) {
+        add(EthernetDevice::RTL8139(nic::rtl8139::Device::new(io)), "RTL8139");
     }
-    if let Some(io_base) = find_pci_io_base(0x1022, 0x2000) {
-        add(
-            EthernetDevice::PCNET(nic::pcnet::Device::new(io_base)),
-            "PCNET",
-        );
+    if let Some(io) = find_pci_io_base(0x1022, 0x2000) {
+        add(EthernetDevice::PCNET(nic::pcnet::Device::new(io)), "PCNET");
     }
 }
