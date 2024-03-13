@@ -5,7 +5,9 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use moros::{debug, hlt_loop, print, println, sys, usr};
+use moros::{
+    debug, error, warning, hlt_loop, eprint, eprintln, print, println, sys, usr
+};
 
 entry_point!(main);
 
@@ -30,11 +32,10 @@ fn user_boot() {
         usr::shell::main(&["shell", script]).ok();
     } else {
         if sys::fs::is_mounted() {
-            println!("Could not find '{}'", script);
+            error!("Could not find '{}'", script);
         } else {
-            println!("MFS not found, run 'install' to setup the system");
+            warning!("MFS not found, run 'install' to setup the system");
         }
-        println!("Running console in diskless mode");
         usr::shell::main(&["shell"]).ok();
     }
 }
