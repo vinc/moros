@@ -51,8 +51,7 @@ memory size, processor, devices, network cards, disks, and the real time clock.<
 commands to test the system or <code>install</code> to setup the
     <a href="filesystem.html">filesystem</a> on a disk:</p>
 
-    <pre><code>MFS is not mounted to &#39;/&#39;
-Running console in diskless mode
+    <pre><code>Warning: MFS not found, run &#39;install&#39; to setup the system
 
 /
 &gt; install
@@ -63,6 +62,7 @@ Proceed? [y/N] y
 Listing disks ...
 Path            Name (Size)
 /dev/ata/0/0    QEMU HARDDISK QM00001 (32 MB)
+/dev/mem        RAM DISK
 
 Formatting disk ...
 Enter path of disk to format: /dev/ata/0/0
@@ -162,7 +162,8 @@ diskless mode and let MOROS run the bootscript <code>/ini/boot.sh</code> to logi
 the shell.</p>
 
     <p>If no disks were detected or if you prefer not to use any you can mount the
-system in memory and use a virtual disk with <code>memory format</code> before <code>install</code>.</p>
+system in memory and use a virtual disk with <code>memory format</code> before <code>install</code>
+or using <code>/dev/mem</code> for the disk during the setup.</p>
 
     <h2>Shell</h2>
 
