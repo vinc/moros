@@ -36,7 +36,6 @@ fn user_boot() {
         } else {
             warning!("MFS not found, run 'install' to setup the system");
         }
-        println!("Running console in diskless mode");
         usr::shell::main(&["shell"]).ok();
     }
 }
