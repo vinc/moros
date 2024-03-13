@@ -32,7 +32,7 @@ fn user_boot() {
         if sys::fs::is_mounted() {
             println!("Could not find '{}'", script);
         } else {
-            println!("MFS is not mounted to '/'");
+            println!("MFS not found, run 'install' to setup the system");
         }
         println!("Running console in diskless mode");
         usr::shell::main(&["shell"]).ok();
