@@ -299,12 +299,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         if !sys::fs::is_mounted() {
             println!("{}Listing disks ...{}", csi_color, csi_reset);
             usr::shell::exec("disk list").ok();
+            println!("/dev/mem        RAM DISK");
             println!();
 
             println!("{}Formatting disk ...{}", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
-            let pathname = io::stdin().read_line();
-            usr::shell::exec(&format!("disk format {}", pathname.trim_end()))?;
+            let path = io::stdin().read_line();
+            if path.trim_end() == "/dev/mem" {
+                usr::shell::exec(&format!("memory format"))?;
+            } else {
+                usr::shell::exec(&format!("disk format {}", path.trim_end()))?;
+            }
             println!();
         }
 
