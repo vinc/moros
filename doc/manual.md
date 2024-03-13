@@ -42,8 +42,7 @@ The first time MOROS will boot in diskless mode where you can use the builtin
 commands to test the system or `install` to setup the
 [filesystem](filesystem.md) on a disk:
 
-    MFS is not mounted to '/'
-    Running console in diskless mode
+    Warning: MFS not found, run 'install' to setup the system
 
     /
     > install
@@ -54,6 +53,7 @@ commands to test the system or `install` to setup the
     Listing disks ...
     Path            Name (Size)
     /dev/ata/0/0    QEMU HARDDISK QM00001 (32 MB)
+    /dev/mem        RAM DISK
 
     Formatting disk ...
     Enter path of disk to format: /dev/ata/0/0
@@ -152,7 +152,8 @@ diskless mode and let MOROS run the bootscript `/ini/boot.sh` to login and use
 the shell.
 
 If no disks were detected or if you prefer not to use any you can mount the
-system in memory and use a virtual disk with `memory format` before `install`.
+system in memory and use a virtual disk with `memory format` before `install`
+or using `/dev/mem` for the disk during the setup.
 
 ## Shell
 

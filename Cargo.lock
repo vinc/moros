@@ -317,7 +317,7 @@ dependencies = [
  "time",
  "uart_16550",
  "vte",
- "x86_64 0.15.0",
+ "x86_64",
 ]
 
 [[package]]
@@ -368,9 +368,9 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.33.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8dd6c0cdf9429bce006e1362bfce61fa1bfd8c898a643ed8d2b471934701d3d"
+checksum = "d7090bae93f8585aad99e595b7073c5de9ba89fbd6b4e9f0cdd7a10177273ac8"
 dependencies = [
  "memchr",
 ]
@@ -393,11 +393,11 @@ checksum = "e0ad9805165d0672a3efa682cac952870d8b05d98e02e08063ca7db597005338"
 
 [[package]]
 name = "pic8259"
-version = "0.10.4"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb844b5b01db1e0b17938685738f113bfc903846f18932b378bc0eabfa40e194"
+checksum = "62d9a86c292b165f757e47e7fd66855def189b2564609bc4203727b27c33db22"
 dependencies = [
- "x86_64 0.14.12",
+ "x86_64",
 ]
 
 [[package]]
@@ -792,18 +792,6 @@ dependencies = [
  "bit_field",
  "bitflags 1.3.2",
  "raw-cpuid 10.7.0",
-]
-
-[[package]]
-name = "x86_64"
-version = "0.14.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96cb6fd45bfeab6a5055c5bffdb08768bd0c069f1d946debe585bbb380a7c062"
-dependencies = [
- "bit_field",
- "bitflags 2.4.1",
- "rustversion",
- "volatile",
 ]
 
 [[package]]
