@@ -77,14 +77,8 @@ impl Dir {
 
         for name in pathname.trim_start_matches('/').split('/') {
             match dir.find(name) {
-                Some(dir_entry) => {
-                    if dir_entry.is_dir() {
-                        dir = dir_entry.into()
-                    } else {
-                        return None;
-                    }
-                }
-                None => return None,
+                Some(entry) if entry.is_dir() => dir = entry.into(),
+                _ => return None,
             }
         }
         Some(dir)
