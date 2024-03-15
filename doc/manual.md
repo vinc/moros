@@ -42,8 +42,7 @@ The first time MOROS will boot in diskless mode where you can use the builtin
 commands to test the system or `install` to setup the
 [filesystem](filesystem.md) on a disk:
 
-    MFS is not mounted to '/'
-    Running console in diskless mode
+    Warning: MFS not found, run 'install' to setup the system
 
     /
     > install
@@ -54,6 +53,7 @@ commands to test the system or `install` to setup the
     Listing disks ...
     Path            Name (Size)
     /dev/ata/0/0    QEMU HARDDISK QM00001 (32 MB)
+    /dev/mem        RAM DISK
 
     Formatting disk ...
     Enter path of disk to format: /dev/ata/0/0
@@ -72,10 +72,17 @@ commands to test the system or `install` to setup the
     Created '/var'
     Copied '/bin/clear'
     Copied '/bin/halt'
-    Copied '/bin/hello'
+    Copied '/bin/ntp'
     Copied '/bin/print'
     Copied '/bin/reboot'
     Copied '/bin/sleep'
+    Created '/dev/ata'
+    Created '/dev/ata/0'
+    Created '/dev/ata/0/0'
+    Created '/dev/ata/0/1'
+    Created '/dev/ata/1'
+    Created '/dev/ata/1/0'
+    Created '/dev/ata/1/1'
     Created '/dev/clk'
     Created '/dev/clk/uptime'
     Created '/dev/clk/realtime'
@@ -83,23 +90,29 @@ commands to test the system or `install` to setup the
     Created '/dev/null'
     Created '/dev/random'
     Created '/dev/console'
+    Created '/dev/net'
+    Created '/dev/net/tcp'
+    Created '/dev/net/udp'
     Copied '/ini/banner.txt'
     Copied '/ini/boot.sh'
+    Copied '/ini/lisp.lsp'
     Copied '/ini/shell.sh'
     Copied '/ini/version.txt'
     Created '/ini/palettes'
-    Copied '/ini/palettes/gruvbox-dark.csv'
-    Copied '/ini/palettes/gruvbox-light.csv'
+    Copied '/ini/palettes/gruvbox-dark.sh'
+    Copied '/ini/palettes/gruvbox-light.sh'
     Created '/ini/fonts'
     Copied '/ini/fonts/zap-light-8x16.psf'
     Copied '/ini/fonts/zap-vga-8x16.psf'
     Created '/lib/lisp'
-    Copied '/lib/lisp/core.lsp'
     Copied '/lib/lisp/alias.lsp'
+    Copied '/lib/lisp/core.lsp'
+    Copied '/lib/lisp/file.lsp'
     Copied '/tmp/alice.txt'
     Copied '/tmp/machines.txt'
     Created '/tmp/lisp'
     Copied '/tmp/lisp/colors.lsp'
+    Copied '/tmp/lisp/doc.lsp'
     Copied '/tmp/lisp/factorial.lsp'
     Copied '/tmp/lisp/fibonacci.lsp'
     Copied '/tmp/lisp/geotime.lsp'
@@ -119,8 +132,10 @@ commands to test the system or `install` to setup the
     Copied '/tmp/beep/tetris.sh'
     Copied '/tmp/beep/starwars.sh'
     Copied '/tmp/beep/mario.sh'
+    Created '/var/log'
     Created '/var/www'
     Copied '/var/www/index.html'
+    Copied '/var/www/moros.css'
     Copied '/var/www/moros.png'
 
     Creating user...
@@ -137,7 +152,8 @@ diskless mode and let MOROS run the bootscript `/ini/boot.sh` to login and use
 the shell.
 
 If no disks were detected or if you prefer not to use any you can mount the
-system in memory and use a virtual disk with `memory format` before `install`.
+system in memory and use a virtual disk with `memory format` before `install`
+or using `/dev/mem` for the disk during the setup.
 
 ## Shell
 
@@ -188,10 +204,11 @@ The command has some options to sort the results:
     Usage: list <options> [<dir>]
 
     Options:
-      -a, --all     Show dot files
-      -n, --name    Sort by name
-      -s, --size    Sort by size
-      -t, --time    Sort by time
+      -b, --binary-size   Use binary size
+      -a, --all           Show dot files
+      -n, --name          Sort by name
+      -s, --size          Sort by size
+      -t, --time          Sort by time
 
 You can write a directory in the disk with `write`:
 
@@ -228,7 +245,7 @@ content to the file and `^Q` to quit the editor and go back to the shell.
 The `help` command has a subcommand `help edit` to list the editor commands:
 
     > help edit
-    MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
+    MOROS text editor is a very simple editor inspired by Pico.
 
     Commands:
       ^Q    Quit editor
@@ -270,8 +287,8 @@ You can also set the `TZ` environment variable to use your preferred timezone:
 Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
     > read /ini/boot.sh
-    vga set palette /ini/palettes/gruvbox-dark.csv
     vga set font /ini/fonts/zap-light-8x16.psf
+    shell /ini/palettes/gruvbox-dark.sh
     read /ini/banner.txt
     user login
     env TZ 7200
@@ -353,3 +370,10 @@ Or the more specialized `http` command to request a document from a web server:
         <h1>MOROS</h1>
       </body>
     </html>
+
+There is also a `ntp` script to synchronize the clock over the network:
+
+    > ntp
+    2023-03-21 10:00:00
+
+    > ntp => /dev/rtc

@@ -575,7 +575,9 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
                     config.env.insert("DIR".to_string(), sys::process::dir());
                     Ok(())
                 }
-                Some(FileType::File) => spawn(&path, args, config),
+                Some(FileType::File) => {
+                    spawn(&path, args, config)
+                }
                 _ => {
                     let path = format!("/bin/{}", args[0]);
                     spawn(&path, args, config)
@@ -585,7 +587,11 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 }
 
-fn spawn(path: &str, args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+fn spawn(
+    path: &str,
+    args: &[&str],
+    config: &mut Config
+) -> Result<(), ExitCode> {
     // Script
     if let Ok(contents) = fs::read_to_string(path) {
         if contents.starts_with("#!") {

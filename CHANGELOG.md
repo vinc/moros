@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Improve setup process (#596)
+- Improve warning when MFS is not mounted (#595)
+- Bump pic8259 from 0.10.4 to 0.11.0 (#594)
+- Bump object from 0.33.0 to 0.34.0 (#593)
+- Add drive device (#555)
+- Add memory dump command (#574)
 - Fix shell autocomplete (#591)
 - Update x86_64 crate from 0.14.12 to 0.15.0 (#590)
 - Bump object from 0.32.2 to 0.33.0 (#589)

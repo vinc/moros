@@ -26,7 +26,6 @@ additional common aliases.
 **Delete** file:
 
     > d a.txt
-    > del a.txt
     > delete a.txt
 
 **Copy** file:
@@ -65,7 +64,7 @@ additional common aliases.
 When executed without arguments, this command will list the files of the
 current directory.
 
-**Go to** dir:
+**Goto** dir:
 
     > goto /usr/alice
 

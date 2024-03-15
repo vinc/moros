@@ -69,7 +69,7 @@ The `host` command performs DNS lookups:
 The `tcp` command connects to TCP sockets:
 
     > tcp time.nist.gov:13 --verbose
-    DEBUG: Connecting to 129.6.15.30:13
+    DEBUG: Connected to 129.6.15.30:13
 
     58884 20-02-05 19:19:42 00 0 0  49.2 UTC(NIST) *
 
