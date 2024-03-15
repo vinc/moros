@@ -90,35 +90,17 @@ impl TryFrom<&[u8]> for Device {
     type Error = ();
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
-        match buf.try_into() {
-            Ok(DeviceType::Null) => {
-                Ok(Device::Null)
-            }
-            Ok(DeviceType::File) => {
-                Ok(Device::File(File::new()))
-            }
-            Ok(DeviceType::Console) => {
-                Ok(Device::Console(Console::new()))
-            }
-            Ok(DeviceType::Random) => {
-                Ok(Device::Random(Random::new()))
-            }
-            Ok(DeviceType::Uptime) => {
-                Ok(Device::Uptime(Uptime::new()))
-            }
-            Ok(DeviceType::Realtime) => {
-                Ok(Device::Realtime(Realtime::new()))
-            }
-            Ok(DeviceType::RTC) => {
-                Ok(Device::RTC(RTC::new()))
-            }
-            Ok(DeviceType::TcpSocket) => {
-                Ok(Device::TcpSocket(TcpSocket::new()))
-            }
-            Ok(DeviceType::UdpSocket) => {
-                Ok(Device::UdpSocket(UdpSocket::new()))
-            }
-            Ok(DeviceType::Drive) if buf.len() > 2 => {
+        match buf.try_into()? {
+            DeviceType::Null      => Ok(Device::Null),
+            DeviceType::File      => Ok(Device::File(File::new())),
+            DeviceType::Console   => Ok(Device::Console(Console::new())),
+            DeviceType::Random    => Ok(Device::Random(Random::new())),
+            DeviceType::Uptime    => Ok(Device::Uptime(Uptime::new())),
+            DeviceType::Realtime  => Ok(Device::Realtime(Realtime::new())),
+            DeviceType::RTC       => Ok(Device::RTC(RTC::new())),
+            DeviceType::TcpSocket => Ok(Device::TcpSocket(TcpSocket::new())),
+            DeviceType::UdpSocket => Ok(Device::UdpSocket(UdpSocket::new())),
+            DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
                 if let Some(drive) = Drive::open(bus, dsk) {
