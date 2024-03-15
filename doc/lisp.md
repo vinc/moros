@@ -92,7 +92,7 @@ The interpreter can be invoked from the shell:
 
 ```
 > lisp
-MOROS Lisp v0.5.0
+MOROS Lisp v0.7.0
 
 > (+ 1 2 3)
 6
@@ -170,44 +170,9 @@ Would produce the following output:
 
 ## Changelog
 
-### 0.1.0 (2021-07-21)
-MOROS Lisp started from [Risp](https://github.com/stopachka/risp) and was
-extended to include the seven primitive operators and the two special forms of
-John McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
-Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.
-
-### 0.2.0 (2021-12-04)
-The whole implementation was refactored and the parser was rewritten to use
-[Nom](https://github.com/Geal/nom). This allowed the addition of strings to the
-language and reading from the filesystem.
-
-### 0.3.0 (2022-12-12)
-- Rewrite the evaluation code
-- Add new functions
-- Add a core library
-
-### 0.3.1 (2022-06-06)
-- Rewrite parts of the code
-- Add new functions and examples
-
-### 0.3.2 (2022-07-02)
-- Add new functions
-
-### 0.4.0 (2022-08-25)
-- Rewrite a lot of the code
-- Add integer and big integer support
-- Add tail call optimization (TCO)
-- Add macro support
-
-### 0.5.0 (2023-06-21)
-- Rename or add aliases to many functions
-- Add full support for line and inline comments
-- Add params to function representations
-- Add docstring to functions
-
-### 0.6.0 (2023-09-23)
-- Add file, number, string, and regex namespaces
-- Add socket functions
+<!--
+### Unreleased
+-->
 
 ### 0.7.0 (2023-12-22)
 - Add binary and hexadecimal number literals
@@ -218,4 +183,41 @@ language and reading from the filesystem.
 - Use `/` instead of `.` as namespace separator
 - Add `number->string` (aliased to `num->str`) with an optional radix argument
 
-### Unreleased
+### 0.6.0 (2023-09-23)
+- Add file, number, string, and regex namespaces
+- Add socket functions
+
+### 0.5.0 (2023-06-21)
+- Rename or add aliases to many functions
+- Add full support for line and inline comments
+- Add params to function representations
+- Add docstring to functions
+
+### 0.4.0 (2022-08-25)
+- Rewrite a lot of the code
+- Add integer and big integer support
+- Add tail call optimization (TCO)
+- Add macro support
+
+### 0.3.2 (2022-07-02)
+- Add new functions
+
+### 0.3.1 (2022-06-06)
+- Rewrite parts of the code
+- Add new functions and examples
+
+### 0.3.0 (2022-12-12)
+- Rewrite the evaluation code
+- Add new functions
+- Add a core library
+
+### 0.2.0 (2021-12-04)
+The whole implementation was refactored and the parser was rewritten to use
+[Nom](https://github.com/Geal/nom). This allowed the addition of strings to the
+language and reading from the filesystem.
+
+### 0.1.0 (2021-07-21)
+MOROS Lisp started from [Risp](https://github.com/stopachka/risp) and was
+extended to include the seven primitive operators and the two special forms of
+John McCarthy's paper "Recursive Functions of Symbolic Expressions and Their
+Computation by Machine" (1960) and "The Roots of Lisp" (2002) by Paul Graham.

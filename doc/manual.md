@@ -204,10 +204,11 @@ The command has some options to sort the results:
     Usage: list <options> [<dir>]
 
     Options:
-      -a, --all     Show dot files
-      -n, --name    Sort by name
-      -s, --size    Sort by size
-      -t, --time    Sort by time
+      -b, --binary-size   Use binary size
+      -a, --all           Show dot files
+      -n, --name          Sort by name
+      -s, --size          Sort by size
+      -t, --time          Sort by time
 
 You can write a directory in the disk with `write`:
 
@@ -244,7 +245,7 @@ content to the file and `^Q` to quit the editor and go back to the shell.
 The `help` command has a subcommand `help edit` to list the editor commands:
 
     > help edit
-    MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
+    MOROS text editor is a very simple editor inspired by Pico.
 
     Commands:
       ^Q    Quit editor

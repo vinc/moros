@@ -218,10 +218,11 @@ tilde <code>~</code> means that you are in your home directory:</p>
 Usage: list &lt;options&gt; [&lt;dir&gt;]
 
 Options:
-  -a, --all     Show dot files
-  -n, --name    Sort by name
-  -s, --size    Sort by size
-  -t, --time    Sort by time
+  -b, --binary-size   Use binary size
+  -a, --all           Show dot files
+  -n, --name          Sort by name
+  -s, --size          Sort by size
+  -t, --time          Sort by time
 </code></pre>
 
     <p>You can write a directory in the disk with <code>write</code>:</p>
@@ -262,7 +263,7 @@ content to the file and <code>^Q</code> to quit the editor and go back to the sh
     <p>The <code>help</code> command has a subcommand <code>help edit</code> to list the editor commands:</p>
 
     <pre><code>&gt; help edit
-MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
+MOROS text editor is a very simple editor inspired by Pico.
 
 Commands:
   ^Q    Quit editor
