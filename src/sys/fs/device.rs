@@ -35,7 +35,7 @@ impl TryFrom<&[u8]> for DeviceType {
     type Error = ();
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
-        match buf.get(0).ok_or(())? {
+        match buf.first().ok_or(())? {
             0 => Ok(DeviceType::Null),
             1 => Ok(DeviceType::File),
             2 => Ok(DeviceType::Console),
