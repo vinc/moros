@@ -2,7 +2,6 @@ use crate::api::clock;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
-use crate::debug;
 use crate::sys::console;
 use crate::sys::net;
 use crate::usr::shell;
