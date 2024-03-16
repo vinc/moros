@@ -337,7 +337,7 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    if config.aliases.remove(&args[1].to_string()).is_none() {
+    if config.aliases.remove(args[1]).is_none() {
         error!("Could not unalias '{}'", args[1]);
         return Err(ExitCode::Failure);
     }
@@ -373,7 +373,7 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    if config.env.remove(&args[1].to_string()).is_none() {
+    if config.env.remove(args[1]).is_none() {
         error!("Could not unset '{}'", args[1]);
         return Err(ExitCode::Failure);
     }

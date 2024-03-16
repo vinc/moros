@@ -4,7 +4,6 @@ use super::dir_entry::DirEntry;
 use super::FileType;
 
 use alloc::string::String;
-use core::convert::From;
 use core::convert::TryInto;
 
 pub struct ReadDir {

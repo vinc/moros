@@ -9,7 +9,6 @@ use crate::sys;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use core::convert::From;
 
 #[derive(Debug, Clone)]
 pub struct Dir {

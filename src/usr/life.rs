@@ -121,7 +121,7 @@ impl Game {
         let color = Style::color("Black").with_background(bg);
         let reset = Style::reset();
         let stats = format!("GEN: {:04} | POP: {:04}", gen, pop);
-        let size = (self.cols as usize) - stats.len();
+        let size = self.cols - stats.len();
         format!("\n{}{:n$}{}{}", color, title, stats, reset, n = size)
     }
 }

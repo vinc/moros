@@ -1,3 +1,4 @@
+use core::ptr::addr_of;
 use lazy_static::lazy_static;
 use x86_64::instructions::segmentation::{Segment, CS, DS};
 use x86_64::instructions::tables::load_tss;
@@ -17,19 +18,19 @@ lazy_static! {
         let mut tss = TaskStateSegment::new();
         tss.privilege_stack_table[0] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
+            VirtAddr::from_ptr(unsafe { addr_of!(STACK) }) + STACK_SIZE as u64
         };
         tss.interrupt_stack_table[DOUBLE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
+            VirtAddr::from_ptr(unsafe { addr_of!(STACK) }) + STACK_SIZE as u64
         };
         tss.interrupt_stack_table[PAGE_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
+            VirtAddr::from_ptr(unsafe { addr_of!(STACK) }) + STACK_SIZE as u64
         };
         tss.interrupt_stack_table[GENERAL_PROTECTION_FAULT_IST as usize] = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-            VirtAddr::from_ptr(unsafe { &STACK }) + STACK_SIZE as u64
+            VirtAddr::from_ptr(unsafe { addr_of!(STACK) }) + STACK_SIZE as u64
         };
         tss
     };

@@ -12,7 +12,6 @@ use alloc::vec::Vec;
 use lazy_static::lazy_static;
 use littlewing::chess::*;
 use littlewing::color::*;
-use littlewing::fen::FEN;
 use spin::Mutex;
 
 lazy_static! {

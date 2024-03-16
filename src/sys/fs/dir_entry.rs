@@ -1,7 +1,9 @@
 use super::dir::Dir;
 use super::{dirname, filename, realpath, FileType};
+
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::convert::TryInto;
 
 #[derive(Clone)]
 pub struct DirEntry {
@@ -176,8 +178,6 @@ impl FileInfo {
     }
 }
 
-use core::convert::From;
-use core::convert::TryInto;
 impl From<&[u8]> for FileInfo {
     fn from(buf: &[u8]) -> Self {
         let kind = match buf[0] {

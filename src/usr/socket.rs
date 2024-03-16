@@ -6,7 +6,7 @@ use crate::api::syscall;
 use crate::sys::console;
 use crate::sys::fs::OpenFlag;
 use crate::sys::net::SocketStatus;
-use crate::{debug, usr};
+use crate::usr;
 
 use alloc::format;
 use alloc::vec;
