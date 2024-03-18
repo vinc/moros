@@ -49,10 +49,12 @@ pub fn get_u64() -> u64 {
             }
         }
     } else {
-        // FIXME: RDRAND instruction is not available on old CPUs
+        //debug!("RDRAND: not available");
         seed[0..8].clone_from_slice(&sys::time::ticks().to_be_bytes());
         seed[8..16].clone_from_slice(&sys::clock::realtime().to_be_bytes());
         seed[16..24].clone_from_slice(&sys::clock::uptime().to_be_bytes());
+
+        sys::time::sleep(0.001); // 1 ms
         seed[24..32].clone_from_slice(&sys::time::ticks().to_be_bytes());
     }
     let mut rng = Hc128Rng::from_seed(seed);
