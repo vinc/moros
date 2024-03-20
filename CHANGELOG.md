@@ -35,6 +35,7 @@
 - Bump pic8259 from 0.10.4 to 0.11.0 ([#594](https://github.com/vinc/moros/pull/594))
 - Bump smoltcp from 0.10.0 to 0.11.0 ([#565](https://github.com/vinc/moros/pull/565))
 - Bump uart_16550 from 0.2.19 to 0.3.0 ([#524](https://github.com/vinc/moros/pull/524))
+- Bump x86_64 from 0.15.0 to 0.15.1 ([#600](https://github.com/vinc/moros/pull/600))
 - Bump x86_64 from 0.14.11 to 0.14.12 ([#577](https://github.com/vinc/moros/pull/577))
 
 ## 0.10.2 (2023-12-22)
