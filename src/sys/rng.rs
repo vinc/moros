@@ -43,24 +43,21 @@ impl FileIO for Random {
 }
 
 pub fn get_u64() -> u64 {
-    let mut seed = [0u8; 32];
+    let mut seed = [0; 32];
     // NOTE: Intel's Software Developer's Manual, Volume 1, 7.3.17.1
-    if let Some(rdrand) = RdRand::new() {
-        for i in 0..4 {
-            let mut success = false;
+    if let Some(rng) = RdRand::new() {
+        for chunk in seed.chunks_mut(8) {
+            let mut retry = true;
             for _ in 0..10 { // Retry up to 10 times
-                if let Some(rand) = rdrand.get_u64() {
-                    let bytes = rand.to_be_bytes();
-                    for j in 0..8 {
-                        seed[8 * i + j] = bytes[j];
-                    }
-                    success = true;
+                if let Some(num) = rng.get_u64() {
+                    chunk.clone_from_slice(&num.to_be_bytes());
+                    retry = false;
                     break;
                 } else {
                     //debug!("RDRAND: read failed");
                 }
             }
-            if !success {
+            if retry {
                 //debug!("RDRAND: retry failed");
             }
         }
