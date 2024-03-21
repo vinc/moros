@@ -87,3 +87,11 @@ pub fn get_u32() -> u32 {
 pub fn get_u16() -> u16 {
     get_u64() as u16
 }
+
+pub fn init() {
+    if RdRand::new().is_some() {
+        log!("RNG RDRAND available");
+    } else {
+        log!("RNG RDRAND unavailable");
+    }
+}
