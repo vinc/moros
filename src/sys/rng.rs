@@ -20,8 +20,10 @@ impl Random {
 impl FileIO for Random {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let n = buf.len();
-        for i in 0..n {
-            buf[i] = get_u64() as u8;
+        for chunk in buf.chunks_mut(8) {
+            let bytes = get_u64().to_le_bytes();
+            let count = chunk.len();
+            chunk.clone_from_slice(&bytes[..count]);
         }
         Ok(n)
     }
