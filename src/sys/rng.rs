@@ -63,7 +63,7 @@ pub fn get_u64() -> u64 {
             }
         }
     } else {
-        //debug!("RDRAND: not available");
+        //debug!("RDRAND: unavailable");
         seed[0..8].clone_from_slice(&sys::time::ticks().to_be_bytes());
         seed[8..16].clone_from_slice(&sys::clock::realtime().to_be_bytes());
         seed[16..24].clone_from_slice(&sys::clock::uptime().to_be_bytes());
