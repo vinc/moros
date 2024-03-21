@@ -1,13 +1,16 @@
 use crate::api::fs::{FileIO, IO};
-//use crate::sys;
+use crate::sys;
 
+use lazy_static::lazy_static;
 use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
 use sha2::{Digest, Sha256};
 use spin::Mutex;
 use x86_64::instructions::random::RdRand;
 
-static SEED: Mutex<[u8; 32]> = Mutex::new([0; 32]);
+lazy_static! {
+    static ref RNG: Mutex<Hc128Rng> = Mutex::new(Hc128Rng::from_seed([0; 32]));
+}
 
 #[derive(Debug, Clone)]
 pub struct Random;
@@ -44,10 +47,23 @@ impl FileIO for Random {
 }
 
 pub fn get_u64() -> u64 {
+    RNG.lock().next_u64()
+}
+
+pub fn get_u32() -> u32 {
+    get_u64() as u32
+}
+
+pub fn get_u16() -> u16 {
+    get_u64() as u16
+}
+
+pub fn init() {
     let mut seed = [0; 32];
-    // NOTE: Intel's Software Developer's Manual, Volume 1, 7.3.17.1
     if let Some(rng) = RdRand::new() {
+        log!("RNG RDRAND available");
         for chunk in seed.chunks_mut(8) {
+            // NOTE: Intel's Software Developer's Manual, Volume 1, 7.3.17.1
             let mut retry = true;
             for _ in 0..10 { // Retry up to 10 times
                 if let Some(num) = rng.get_u64() {
@@ -63,33 +79,13 @@ pub fn get_u64() -> u64 {
             }
         }
     } else {
-        //debug!("RDRAND: unavailable");
-        let mut old_seed = SEED.lock();
-        let mut hasher = Sha256::new();
-        hasher.update(*old_seed);
-        //hasher.update(&sys::time::ticks().to_be_bytes());
-        //hasher.update(&sys::clock::realtime().to_be_bytes());
-        //hasher.update(&sys::clock::uptime().to_be_bytes());
-        seed = hasher.finalize().into();
-        *old_seed = seed;
-    }
-
-    let mut rng = Hc128Rng::from_seed(seed);
-    rng.next_u64()
-}
-
-pub fn get_u32() -> u32 {
-    get_u64() as u32
-}
-
-pub fn get_u16() -> u16 {
-    get_u64() as u16
-}
-
-pub fn init() {
-    if RdRand::new().is_some() {
-        log!("RNG RDRAND available");
-    } else {
         log!("RNG RDRAND unavailable");
+        let mut hasher = Sha256::new();
+        hasher.update(&sys::time::ticks().to_be_bytes());
+        hasher.update(&sys::clock::realtime().to_be_bytes());
+        hasher.update(&sys::clock::uptime().to_be_bytes());
+        seed = hasher.finalize().into();
     }
+
+    *RNG.lock() = Hc128Rng::from_seed(seed);
 }
