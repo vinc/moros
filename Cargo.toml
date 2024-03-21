@@ -1,7 +1,7 @@
 [package]
 name = "moros"
 description = "MOROS: Obscure Rust Operating System"
-version = "0.10.2"
+version = "0.10.3"
 authors = ["Vincent Ollivier <v@vinc.cc>"]
 edition = "2018"
 license = "MIT"
@@ -41,7 +41,7 @@ spin = "0.9.8"
 time = { version = "0.2.27", default-features = false }
 uart_16550 = "0.3.0"
 vte = "0.13.0"
-x86_64 = "0.15.0"
+x86_64 = "0.15.1"
 
 [package.metadata.bootloader]
 physical-memory-offset = "0xFFFF800000000000"
