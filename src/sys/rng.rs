@@ -1,9 +1,12 @@
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
 
+use spin::Mutex;
 use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
 use x86_64::instructions::random::RdRand;
+
+static SEED: Mutex<[u8; 32]> = Mutex::new([0; 32]);
 
 #[derive(Debug, Clone)]
 pub struct Random;
@@ -64,10 +67,15 @@ pub fn get_u64() -> u64 {
         seed[0..8].clone_from_slice(&sys::time::ticks().to_be_bytes());
         seed[8..16].clone_from_slice(&sys::clock::realtime().to_be_bytes());
         seed[16..24].clone_from_slice(&sys::clock::uptime().to_be_bytes());
-
-        sys::time::sleep(0.001); // 1 ms
         seed[24..32].clone_from_slice(&sys::time::ticks().to_be_bytes());
+        let mut old_seed = SEED.lock();
+        for i in 0..8 {
+            seed[i] += old_seed[i];
+            old_seed[i] = seed[i];
+        }
+        //sys::time::sleep(0.001); // Wait until next tick
     }
+
     let mut rng = Hc128Rng::from_seed(seed);
     rng.next_u64()
 }

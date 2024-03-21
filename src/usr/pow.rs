@@ -1,6 +1,6 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
-use crate::api::{console, io, random};
+use crate::api::{console, io, rng};
 
 use alloc::format;
 use alloc::string::ToString;
@@ -52,7 +52,7 @@ impl Game {
         let zeros: Vec<_> = (0..16).filter(|i| self.board[*i] == 0).collect();
 
         if !zeros.is_empty() {
-            let i = (random::get_u64() as usize) % zeros.len();
+            let i = (rng::get_u64() as usize) % zeros.len();
             self.board[zeros[i]] = 2;
         }
     }

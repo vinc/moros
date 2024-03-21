@@ -1,6 +1,6 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
-use crate::api::random;
+use crate::api::rng;
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
 use crate::usr;
@@ -61,7 +61,7 @@ impl Message {
     pub fn query(qname: &str, qtype: QueryType, qclass: QueryClass) -> Self {
         let mut datagram = Vec::new();
 
-        let id = random::get_u16();
+        let id = rng::get_u16();
         for b in id.to_be_bytes().iter() {
             datagram.push(*b); // Transaction ID
         }

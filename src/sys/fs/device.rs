@@ -9,7 +9,7 @@ use crate::sys::cmos::RTC;
 use crate::sys::console::Console;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
-use crate::sys::random::Random;
+use crate::sys::rng::Random;
 
 use alloc::vec;
 use alloc::vec::Vec;
