@@ -343,7 +343,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     x = param[0] as usize; // 1-indexed value
                 }
-                if x > BUFFER_WIDTH {
+                if x == 0 || x > BUFFER_WIDTH {
                     return;
                 }
                 self.set_writer_position(x - 1, y);
@@ -359,7 +359,7 @@ impl Perform for Writer {
                         _ => break,
                     };
                 }
-                if x > BUFFER_WIDTH || y > BUFFER_HEIGHT {
+                if x == 0 || y == 0 || x > BUFFER_WIDTH || y > BUFFER_HEIGHT {
                     return;
                 }
                 self.set_writer_position(x - 1, y - 1);
