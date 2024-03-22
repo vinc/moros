@@ -437,7 +437,7 @@ impl Perform for Writer {
                         self.set_palette(i, r, g, b);
                     }
                 }
-                Some('R') => {
+                Some('R') if s.len() == 1 => {
                     let palette = Palette::default();
                     for (i, (r, g, b)) in palette.colors.iter().enumerate() {
                         self.set_palette(i, *r, *g, *b);
