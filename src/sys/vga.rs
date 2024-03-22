@@ -8,6 +8,7 @@ use bit_field::BitField;
 use core::cmp;
 use core::fmt;
 use core::fmt::Write;
+use core::num::ParseIntError;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use vte::{Params, Parser, Perform};
@@ -271,15 +272,15 @@ fn vga_color(color: u8) -> u8 {
     color >> 2
 }
 
-fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ()> {
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
     debug_assert!(palette.len() == 8);
-    let i = usize::from_str_radix(&palette[1..2], 16).map_err(|_| ())?;
-    if i > 0xF {
-        return Err(());
-    }
-    let r = u8::from_str_radix(&palette[2..4], 16).map_err(|_| ())?;
-    let g = u8::from_str_radix(&palette[4..6], 16).map_err(|_| ())?;
-    let b = u8::from_str_radix(&palette[6..8], 16).map_err(|_| ())?;
+    debug_assert!(palette.chars().next() == Some('P'));
+
+    let i = usize::from_str_radix(&palette[1..2], 16)?;
+    let r = u8::from_str_radix(&palette[2..4], 16)?;
+    let g = u8::from_str_radix(&palette[4..6], 16)?;
+    let b = u8::from_str_radix(&palette[6..8], 16)?;
+
     Ok((i, r, g, b))
 }
 
@@ -578,4 +579,12 @@ pub fn init() {
     set_underline_location(0x1F); // Disable underline
 
     WRITER.lock().clear_screen();
+}
+
+#[test_case]
+fn test_parse_palette() {
+    assert_eq!(parse_palette("P0282828"), Ok((0, 0x28, 0x28, 0x28)));
+    assert_eq!(parse_palette("P4CC241D"), Ok((4, 0xCC, 0x24, 0x1D)));
+    assert!(parse_palette("PAAAAAAA").is_ok());
+    assert!(parse_palette("PGGAGGGG").is_err());
 }
