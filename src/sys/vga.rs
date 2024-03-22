@@ -271,6 +271,18 @@ fn vga_color(color: u8) -> u8 {
     color >> 2
 }
 
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ()> {
+    debug_assert!(palette.len() == 8);
+    let i = usize::from_str_radix(&palette[1..2], 16).map_err(|_| ())?;
+    if i > 0xF {
+        return Err(());
+    }
+    let r = u8::from_str_radix(&palette[2..4], 16).map_err(|_| ())?;
+    let g = u8::from_str_radix(&palette[4..6], 16).map_err(|_| ())?;
+    let b = u8::from_str_radix(&palette[6..8], 16).map_err(|_| ())?;
+    Ok((i, r, g, b))
+}
+
 /// See https://vt100.net/emu/dec_ansi_parser
 impl Perform for Writer {
     fn print(&mut self, c: char) {
@@ -420,11 +432,9 @@ impl Perform for Writer {
             let s = String::from_utf8_lossy(params[0]);
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
-                    let i = usize::from_str_radix(&s[1..2], 16).unwrap_or(0);
-                    let r = u8::from_str_radix(&s[2..4], 16).unwrap_or(0);
-                    let g = u8::from_str_radix(&s[4..6], 16).unwrap_or(0);
-                    let b = u8::from_str_radix(&s[6..8], 16).unwrap_or(0);
-                    self.set_palette(i, r, g, b);
+                    if let Ok((i, r, g, b)) = parse_palette(&s) {
+                        self.set_palette(i, r, g, b);
+                    }
                 }
                 Some('R') => {
                     let palette = Palette::default();
