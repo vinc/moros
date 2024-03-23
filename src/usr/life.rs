@@ -2,7 +2,7 @@ use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
-use crate::api::random;
+use crate::api::rng;
 use crate::sys::console;
 
 use alloc::collections::BTreeSet;
@@ -109,8 +109,8 @@ impl Game {
     fn seed(&mut self) {
         let n = self.seed_population;
         for _ in 0..n {
-            let x = (random::get_u64() % (self.cols as u64)) as i64;
-            let y = (random::get_u64() % (self.rows as u64)) as i64;
+            let x = (rng::get_u64() % (self.cols as u64)) as i64;
+            let y = (rng::get_u64() % (self.rows as u64)) as i64;
             self.grid.insert((x, y));
         }
     }

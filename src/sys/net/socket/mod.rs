@@ -16,7 +16,7 @@ lazy_static! {
 }
 
 fn random_port() -> u16 {
-    49152 + sys::random::get_u16() % 16384
+    49152 + sys::rng::get_u16() % 16384
 }
 
 fn wait(duration: Duration) {

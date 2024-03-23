@@ -89,7 +89,7 @@ pub mod fs;
 pub mod io;
 pub mod process;
 pub mod prompt;
-pub mod random;
+pub mod rng;
 pub mod regex;
 pub mod syscall;
 pub mod time;
