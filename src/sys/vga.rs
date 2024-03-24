@@ -8,6 +8,7 @@ use bit_field::BitField;
 use core::cmp;
 use core::fmt;
 use core::fmt::Write;
+use core::num::ParseIntError;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use vte::{Params, Parser, Perform};
@@ -271,6 +272,18 @@ fn vga_color(color: u8) -> u8 {
     color >> 2
 }
 
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
+    debug_assert!(palette.len() == 8);
+    debug_assert!(palette.chars().next() == Some('P'));
+
+    let i = usize::from_str_radix(&palette[1..2], 16)?;
+    let r = u8::from_str_radix(&palette[2..4], 16)?;
+    let g = u8::from_str_radix(&palette[4..6], 16)?;
+    let b = u8::from_str_radix(&palette[6..8], 16)?;
+
+    Ok((i, r, g, b))
+}
+
 /// See https://vt100.net/emu/dec_ansi_parser
 impl Perform for Writer {
     fn print(&mut self, c: char) {
@@ -343,7 +356,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     x = param[0] as usize; // 1-indexed value
                 }
-                if x > BUFFER_WIDTH {
+                if x == 0 || x > BUFFER_WIDTH {
                     return;
                 }
                 self.set_writer_position(x - 1, y);
@@ -359,7 +372,7 @@ impl Perform for Writer {
                         _ => break,
                     };
                 }
-                if x > BUFFER_WIDTH || y > BUFFER_HEIGHT {
+                if x == 0 || y == 0 || x > BUFFER_WIDTH || y > BUFFER_HEIGHT {
                     return;
                 }
                 self.set_writer_position(x - 1, y - 1);
@@ -420,13 +433,11 @@ impl Perform for Writer {
             let s = String::from_utf8_lossy(params[0]);
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
-                    let i = usize::from_str_radix(&s[1..2], 16).unwrap_or(0);
-                    let r = u8::from_str_radix(&s[2..4], 16).unwrap_or(0);
-                    let g = u8::from_str_radix(&s[4..6], 16).unwrap_or(0);
-                    let b = u8::from_str_radix(&s[6..8], 16).unwrap_or(0);
-                    self.set_palette(i, r, g, b);
+                    if let Ok((i, r, g, b)) = parse_palette(&s) {
+                        self.set_palette(i, r, g, b);
+                    }
                 }
-                Some('R') => {
+                Some('R') if s.len() == 1 => {
                     let palette = Palette::default();
                     for (i, (r, g, b)) in palette.colors.iter().enumerate() {
                         self.set_palette(i, *r, *g, *b);
@@ -568,4 +579,12 @@ pub fn init() {
     set_underline_location(0x1F); // Disable underline
 
     WRITER.lock().clear_screen();
+}
+
+#[test_case]
+fn test_parse_palette() {
+    assert_eq!(parse_palette("P0282828"), Ok((0, 0x28, 0x28, 0x28)));
+    assert_eq!(parse_palette("P4CC241D"), Ok((4, 0xCC, 0x24, 0x1D)));
+    assert!(parse_palette("BAAAAAAD").is_ok());
+    assert!(parse_palette("GOOOOOOD").is_err());
 }

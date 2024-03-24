@@ -54,7 +54,7 @@ pub fn from_csv(s: &str) -> Result<Palette, ()> {
 }
 
 #[test_case]
-fn parse_palette_csv() {
+fn test_from_csv() {
     assert!(from_csv("").is_err());
     assert!(from_csv("0,0,0,0").is_err());
 

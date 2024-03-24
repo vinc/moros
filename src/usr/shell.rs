@@ -337,7 +337,7 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    if config.aliases.remove(&args[1].to_string()).is_none() {
+    if config.aliases.remove(args[1]).is_none() {
         error!("Could not unalias '{}'", args[1]);
         return Err(ExitCode::Failure);
     }
@@ -373,7 +373,7 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    if config.env.remove(&args[1].to_string()).is_none() {
+    if config.env.remove(args[1]).is_none() {
         error!("Could not unset '{}'", args[1]);
         return Err(ExitCode::Failure);
     }
@@ -575,7 +575,9 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
                     config.env.insert("DIR".to_string(), sys::process::dir());
                     Ok(())
                 }
-                Some(FileType::File) => spawn(&path, args, config),
+                Some(FileType::File) => {
+                    spawn(&path, args, config)
+                }
                 _ => {
                     let path = format!("/bin/{}", args[0]);
                     spawn(&path, args, config)
@@ -585,7 +587,11 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 }
 
-fn spawn(path: &str, args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+fn spawn(
+    path: &str,
+    args: &[&str],
+    config: &mut Config
+) -> Result<(), ExitCode> {
     // Script
     if let Ok(contents) = fs::read_to_string(path) {
         if contents.starts_with("#!") {

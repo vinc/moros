@@ -1,7 +1,5 @@
 use crate::api::syscall;
 
-use core::convert::From;
-
 #[derive(Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ExitCode {

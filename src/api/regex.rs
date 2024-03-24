@@ -1,6 +1,5 @@
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::convert::From;
 use core::ops::RangeBounds;
 
 // See "A Regular Expression Matcher" by Rob Pike and Brian Kernighan (2007)

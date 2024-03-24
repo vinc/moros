@@ -290,7 +290,7 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "moros"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "acpi",
  "aml",
@@ -796,9 +796,9 @@ dependencies = [
 
 [[package]]
 name = "x86_64"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd9b58dbbd61248db1d7d5b7068fbe91b042e889361fe79fb4fd16a12daa66d3"
+checksum = "4bc79523af8abf92fb1a970c3e086c5a343f6bcc1a0eb890f575cbb3b45743df"
 dependencies = [
  "bit_field",
  "bitflags 2.4.1",

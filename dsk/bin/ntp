@@ -17,5 +17,5 @@
 (var res (file/read socket 48))
 
 (var buf (slice res 40 4))
-(var time (- (bin->num (concat '(0 0 0 0) buf) "int") 2208988800))
-(print (date time))
+(var num (- (bin->num (concat '(0 0 0 0) buf) "int") 2208988800))
+(print (date num))

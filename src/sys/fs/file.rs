@@ -6,7 +6,6 @@ use super::{dirname, filename, realpath, FileIO, IO};
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec;
-use core::convert::From;
 
 pub enum SeekFrom {
     Start(u32),

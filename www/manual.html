@@ -13,7 +13,7 @@
     <p>During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.</p>
 
-    <pre><code>[0.250962] MOROS v0.10.2
+    <pre><code>[0.250962] MOROS v0.10.3
 [0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
 [0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
 [0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
@@ -51,18 +51,18 @@ memory size, processor, devices, network cards, disks, and the real time clock.<
 commands to test the system or <code>install</code> to setup the
     <a href="filesystem.html">filesystem</a> on a disk:</p>
 
-    <pre><code>MFS is not mounted to &#39;/&#39;
-Running console in diskless mode
+    <pre><code>Warning: MFS not found, run &#39;install&#39; to setup the system
 
 /
 &gt; install
-Welcome to MOROS v0.10.2 installation program!
+Welcome to MOROS v0.10.3 installation program!
 
 Proceed? [y/N] y
 
 Listing disks ...
 Path            Name (Size)
 /dev/ata/0/0    QEMU HARDDISK QM00001 (32 MB)
+/dev/mem        RAM DISK
 
 Formatting disk ...
 Enter path of disk to format: /dev/ata/0/0
@@ -81,10 +81,17 @@ Created &#39;/usr&#39;
 Created &#39;/var&#39;
 Copied &#39;/bin/clear&#39;
 Copied &#39;/bin/halt&#39;
-Copied &#39;/bin/hello&#39;
+Copied &#39;/bin/ntp&#39;
 Copied &#39;/bin/print&#39;
 Copied &#39;/bin/reboot&#39;
 Copied &#39;/bin/sleep&#39;
+Created &#39;/dev/ata&#39;
+Created &#39;/dev/ata/0&#39;
+Created &#39;/dev/ata/0/0&#39;
+Created &#39;/dev/ata/0/1&#39;
+Created &#39;/dev/ata/1&#39;
+Created &#39;/dev/ata/1/0&#39;
+Created &#39;/dev/ata/1/1&#39;
 Created &#39;/dev/clk&#39;
 Created &#39;/dev/clk/uptime&#39;
 Created &#39;/dev/clk/realtime&#39;
@@ -92,23 +99,29 @@ Created &#39;/dev/rtc&#39;
 Created &#39;/dev/null&#39;
 Created &#39;/dev/random&#39;
 Created &#39;/dev/console&#39;
+Created &#39;/dev/net&#39;
+Created &#39;/dev/net/tcp&#39;
+Created &#39;/dev/net/udp&#39;
 Copied &#39;/ini/banner.txt&#39;
 Copied &#39;/ini/boot.sh&#39;
+Copied &#39;/ini/lisp.lsp&#39;
 Copied &#39;/ini/shell.sh&#39;
 Copied &#39;/ini/version.txt&#39;
 Created &#39;/ini/palettes&#39;
-Copied &#39;/ini/palettes/gruvbox-dark.csv&#39;
-Copied &#39;/ini/palettes/gruvbox-light.csv&#39;
+Copied &#39;/ini/palettes/gruvbox-dark.sh&#39;
+Copied &#39;/ini/palettes/gruvbox-light.sh&#39;
 Created &#39;/ini/fonts&#39;
 Copied &#39;/ini/fonts/zap-light-8x16.psf&#39;
 Copied &#39;/ini/fonts/zap-vga-8x16.psf&#39;
 Created &#39;/lib/lisp&#39;
-Copied &#39;/lib/lisp/core.lsp&#39;
 Copied &#39;/lib/lisp/alias.lsp&#39;
+Copied &#39;/lib/lisp/core.lsp&#39;
+Copied &#39;/lib/lisp/file.lsp&#39;
 Copied &#39;/tmp/alice.txt&#39;
 Copied &#39;/tmp/machines.txt&#39;
 Created &#39;/tmp/lisp&#39;
 Copied &#39;/tmp/lisp/colors.lsp&#39;
+Copied &#39;/tmp/lisp/doc.lsp&#39;
 Copied &#39;/tmp/lisp/factorial.lsp&#39;
 Copied &#39;/tmp/lisp/fibonacci.lsp&#39;
 Copied &#39;/tmp/lisp/geotime.lsp&#39;
@@ -128,8 +141,10 @@ Created &#39;/tmp/beep&#39;
 Copied &#39;/tmp/beep/tetris.sh&#39;
 Copied &#39;/tmp/beep/starwars.sh&#39;
 Copied &#39;/tmp/beep/mario.sh&#39;
+Created &#39;/var/log&#39;
 Created &#39;/var/www&#39;
 Copied &#39;/var/www/index.html&#39;
+Copied &#39;/var/www/moros.css&#39;
 Copied &#39;/var/www/moros.png&#39;
 
 Creating user...
@@ -147,7 +162,8 @@ diskless mode and let MOROS run the bootscript <code>/ini/boot.sh</code> to logi
 the shell.</p>
 
     <p>If no disks were detected or if you prefer not to use any you can mount the
-system in memory and use a virtual disk with <code>memory format</code> before <code>install</code>.</p>
+system in memory and use a virtual disk with <code>memory format</code> before <code>install</code>
+or using <code>/dev/mem</code> for the disk during the setup.</p>
 
     <h2>Shell</h2>
 
@@ -202,10 +218,11 @@ tilde <code>~</code> means that you are in your home directory:</p>
 Usage: list &lt;options&gt; [&lt;dir&gt;]
 
 Options:
-  -a, --all     Show dot files
-  -n, --name    Sort by name
-  -s, --size    Sort by size
-  -t, --time    Sort by time
+  -b, --binary-size   Use binary size
+  -a, --all           Show dot files
+  -n, --name          Sort by name
+  -s, --size          Sort by size
+  -t, --time          Sort by time
 </code></pre>
 
     <p>You can write a directory in the disk with <code>write</code>:</p>
@@ -246,7 +263,7 @@ content to the file and <code>^Q</code> to quit the editor and go back to the sh
     <p>The <code>help</code> command has a subcommand <code>help edit</code> to list the editor commands:</p>
 
     <pre><code>&gt; help edit
-MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
+MOROS text editor is a very simple editor inspired by Pico.
 
 Commands:
   ^Q    Quit editor
@@ -292,8 +309,8 @@ file:</p>
     <p>Add <code>env TZ 7200</code> to <code>/ini/boot.sh</code> before <code>shell</code> to save the timezone:</p>
 
     <pre><code>&gt; read /ini/boot.sh
-vga set palette /ini/palettes/gruvbox-dark.csv
 vga set font /ini/fonts/zap-light-8x16.psf
+shell /ini/palettes/gruvbox-dark.sh
 read /ini/banner.txt
 user login
 env TZ 7200
@@ -382,6 +399,14 @@ Hello, World!
     &lt;h1&gt;MOROS&lt;/h1&gt;
   &lt;/body&gt;
 &lt;/html&gt;
+</code></pre>
+
+    <p>There is also a <code>ntp</code> script to synchronize the clock over the network:</p>
+
+    <pre><code>&gt; ntp
+2023-03-21 10:00:00
+
+&gt; ntp =&gt; /dev/rtc
 </code></pre>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
