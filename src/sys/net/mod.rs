@@ -33,8 +33,8 @@ fn time() -> Instant {
 pub enum EthernetDevice {
     RTL8139(nic::rtl8139::Device),
     PCNET(nic::pcnet::Device),
+    VirtIO(nic::virtio::Device),
     //E2000,
-    //VirtIO,
 }
 
 pub trait EthernetDeviceIO {
@@ -50,6 +50,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.config(),
             EthernetDevice::PCNET(dev) => dev.config(),
+            EthernetDevice::VirtIO(dev) => dev.config(),
         }
     }
 
@@ -57,6 +58,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.stats(),
             EthernetDevice::PCNET(dev) => dev.stats(),
+            EthernetDevice::VirtIO(dev) => dev.stats(),
         }
     }
 
@@ -64,6 +66,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.receive_packet(),
             EthernetDevice::PCNET(dev) => dev.receive_packet(),
+            EthernetDevice::VirtIO(dev) => dev.receive_packet(),
         }
     }
 
@@ -71,6 +74,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.transmit_packet(len),
             EthernetDevice::PCNET(dev) => dev.transmit_packet(len),
+            EthernetDevice::VirtIO(dev) => dev.transmit_packet(len),
         }
     }
 
@@ -78,6 +82,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.next_tx_buffer(len),
             EthernetDevice::PCNET(dev) => dev.next_tx_buffer(len),
+            EthernetDevice::VirtIO(dev) => dev.next_tx_buffer(len),
         }
     }
 }
@@ -264,5 +269,8 @@ pub fn init() {
     }
     if let Some(io) = find_pci_io_base(0x1022, 0x2000) {
         add(EthernetDevice::PCNET(nic::pcnet::Device::new(io)), "PCNET");
+    }
+    if let Some(io) = find_pci_io_base(0x1AF4, 0x1000) {
+        add(EthernetDevice::VirtIO(nic::virtio::Device::new(io)), "VirtIO");
     }
 }
