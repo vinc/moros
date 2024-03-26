@@ -10,7 +10,7 @@ use core::ptr;
 use core::sync::atomic::{fence, AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
 use x86_64::instructions::port::Port;
-use x86_64::PhysAddr;
+use x86_64::{PhysAddr, VirtAddr};
 
 // https://pdos.csail.mit.edu/6.828/2019/readings/hardware/8254x_GBe_SDM.pdf
 
@@ -42,8 +42,10 @@ const REG_RDTR: u16 =   0x2820; // Receive Delay Timer Register
 const REG_RADV: u16 =   0x0282; // Receive Interrupt Absolute Delay Timer
 const REG_ITR: u16 =    0x00C4; // Interrupt Throttling Register
 
-const CTRL_SLU: u32 = 1 << 6;  // Set Link Up
-const CTRL_RST: u32 = 1 << 26; // Reset
+const CTRL_LRST: u32 = 1 << 3;  // Link Reset
+const CTRL_ASDE: u32 = 1 << 5;  // Auto-Speed Detection Enable
+const CTRL_SLU: u32 =  1 << 6;  // Set Link Up
+const CTRL_RST: u32 =  1 << 26; // Reset
 
 const ICR_LSC: u32 =    1 << 2; // Link Status Change
 const ICR_RXDMT0: u32 = 1 << 4; // Receive Descriptor Minimum Threshold Reached
@@ -104,7 +106,9 @@ const IO_ADDR: u16 = 0x00;
 const IO_DATA: u16 = 0x04;
 
 const MTU: usize = 1500;
-const RX_BUFFERS_COUNT: usize = 32;
+
+// NOTE: Must be a multiple of 8
+const RX_BUFFERS_COUNT: usize = 8;
 const TX_BUFFERS_COUNT: usize = 8;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -157,8 +161,10 @@ impl Device {
             stats: Arc::new(Stats::new()),
             rx_buffers: [(); RX_BUFFERS_COUNT].map(|_| PhysBuf::new(2048)),
             tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(2048)),
-            rx_descs: [RxDesc::default(); RX_BUFFERS_COUNT],
-            tx_descs: [TxDesc::default(); TX_BUFFERS_COUNT],
+            rx_descs: [(); RX_BUFFERS_COUNT].map(|_| RxDesc::default()),
+            tx_descs: [(); TX_BUFFERS_COUNT].map(|_| TxDesc::default()),
+            //rx_descs: [RxDesc::default(); RX_BUFFERS_COUNT],
+            //tx_descs: [TxDesc::default(); TX_BUFFERS_COUNT],
             rx_id: Arc::new(AtomicUsize::new(0)),
 
             // Before a transmission begin the id is incremented,
@@ -170,16 +176,20 @@ impl Device {
     }
 
     fn init(&mut self) {
-        debug!("NET E1000: CTRL:   {:#16X}", self.read(REG_CTRL));
-        debug!("NET E1000: STATUS: {:#16X}", self.read(REG_STATUS));
-        debug!("NET E1000: ICR:    {:#16X}", self.read(REG_ICR));
-        debug!("NET E1000: IMS:    {:#16X}", self.read(REG_IMS));
+        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        debug!("NET E1000: IMS:    {:#034b}", self.read(REG_IMS));
+        debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
 
         let ctrl = self.read(REG_CTRL);
         self.write(REG_IMS, 0); // Disable interrupts
         self.write(REG_CTRL, ctrl | CTRL_RST); // Reset
-        //self.write(REG_IMS, 0); // Disable interrupts
+        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         sys::time::nanowait(500);
+        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        let ctrl = self.read(REG_CTRL) & !CTRL_LRST;
+        self.write(REG_CTRL, ctrl); // Link Reset
+        //self.write(REG_IMS, 0); // Disable interrupts
 
         //self.config.update_mac(EthernetAddress::from_bytes(&[0, 0, 0, 0, 0, 0]));
         self.detect_eeprom();
@@ -193,10 +203,10 @@ impl Device {
             debug!("NET E1000: eeprom unavailable");
         }
 
-        debug!("NET E1000: CTRL:   {:#16X}", self.read(REG_CTRL));
-        debug!("NET E1000: STATUS: {:#16X}", self.read(REG_STATUS));
-        debug!("NET E1000: ICR:    {:#16X}", self.read(REG_ICR));
-        debug!("NET E1000: IMS:    {:#16X}", self.read(REG_IMS));
+        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        debug!("NET E1000: IMS:    {:#034b}", self.read(REG_IMS));
+        debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
 
         self.config.update_mac(self.read_mac());
 
@@ -208,15 +218,15 @@ impl Device {
         fence(Ordering::SeqCst);
         self.link_up();
 
-        self.write(REG_TIDV, 0);
-        self.write(REG_TADV, 0);
-        self.write(REG_RDTR, 0);
-        self.write(REG_RADV, 0);
-        self.write(REG_ITR, 0);
-        self.write(REG_IMS, 1 << 7);
-        self.write(REG_ICR, 0);
+        //self.write(REG_TIDV, 0);
+        //self.write(REG_TADV, 0);
+        //self.write(REG_RDTR, 0);
+        //self.write(REG_RADV, 0);
+        //self.write(REG_ITR, 0);
+        //self.write(REG_IMS, 1 << 7);
+        //self.write(REG_ICR, 0);
 
-        debug!("NET E1000: STATUS: {:#b}", self.read(REG_STATUS));
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
     }
 
     fn init_rx(&mut self) {
@@ -225,8 +235,8 @@ impl Device {
             self.write(REG_MTA + i * 4, 0);
         }
 
-        let mut phys_addr_head = 0;
-        let mut phys_addr_tail = 0;
+        let mut phys_addr_begin = 0;
+        let mut phys_addr_end = 0;
         let n = RX_BUFFERS_COUNT;
         for i in 0..n {
             self.rx_descs[i].addr = self.rx_buffers[i].addr();
@@ -240,16 +250,17 @@ impl Device {
             assert_eq!(p2 - p1, 16);
 
             if i == 0 {
-                phys_addr_head = p1;
+                phys_addr_begin = p1;
             } else if i == n - 1 {
-                phys_addr_tail = p2;
+                phys_addr_end = p2;
             }
 
             debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", self.rx_descs[i], i, p1, p2);
         }
-        debug!("NET E1000: RDH: {:#X}", phys_addr_head);
-        debug!("NET E1000: RDT: {:#X}", phys_addr_tail);
-        assert_eq!(phys_addr_tail - phys_addr_head, (n as u64) * 16);
+        debug!("NET E1000: RxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
+        assert_eq!(phys_addr_end - phys_addr_begin, (n as u64) * 16);
+
+        assert_eq!((self.rx_descs.len() * 16) % 128, 0);
 
         let ptr = ptr::addr_of!(self.rx_descs[0]) as *const u8;
         let phys_addr = sys::allocator::phys_addr(ptr);
@@ -262,41 +273,46 @@ impl Device {
         self.write(REG_RDLEN, (n as u32) * 16);
 
         self.write(REG_RDH, 0);
-        self.write(REG_RDT, (n as u32) - 1);
+        self.write(REG_RDT, n as u32);
+        //self.write(REG_RDT, (n as u32) - 1);
 
         //self.write(REG_RCTL, RCTL_EN | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_8192);
         self.write(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048);
+
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        fence(Ordering::SeqCst);
     }
 
     fn init_tx(&mut self) {
-        let mut phys_addr_head = 0;
-        let mut phys_addr_tail = 0;
+        let mut phys_addr_begin = 0;
+        let mut phys_addr_end = 0;
         let n = TX_BUFFERS_COUNT;
         for i in 0..n {
             self.tx_descs[i].addr = self.tx_buffers[i].addr();
             self.tx_descs[i].cmd = 0;
             self.tx_descs[i].status = TSTA_DD as u8;
 
-            let ptr = ptr::addr_of!(self.tx_descs[i]) as *const u8;
+            let ptr = ptr::addr_of!(self.tx_descs[i]) as *const _;
             assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
             let p1 = sys::allocator::phys_addr(ptr);
             assert_eq!(((p1 as usize) / 16) * 16, p1 as usize);
-            let p2 = sys::allocator::phys_addr(((ptr as usize) + 16) as *const u8);
+            let p2 = sys::allocator::phys_addr(((ptr as usize) + 16) as *const _);
             assert_eq!(p2 - p1, 16);
 
             if i == 0 {
-                phys_addr_head = p1;
+                phys_addr_begin = p1;
             } else if i == n - 1 {
-                phys_addr_tail = p2;
+                phys_addr_end = p2;
             }
 
             debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", self.tx_descs[i], i, p1, p2);
         }
-        debug!("NET E1000: TDH: {:#X}", phys_addr_head);
-        debug!("NET E1000: TDT: {:#X}", phys_addr_tail);
-        assert_eq!(phys_addr_tail - phys_addr_head, (n as u64) * 16);
+        debug!("NET E1000: TxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
+        assert_eq!(phys_addr_end - phys_addr_begin, (n as u64) * 16);
 
-        let ptr = ptr::addr_of!(self.tx_descs[0]) as *const u8;
+        assert_eq!((self.tx_descs.len() * 16) % 128, 0);
+
+        let ptr = ptr::addr_of!(self.tx_descs[0]) as *const _;
         let phys_addr = sys::allocator::phys_addr(ptr);
 
         //self.write(REG_TDBAL, phys_addr.get_bits(0..32) as u32);
@@ -315,6 +331,9 @@ impl Device {
 
         //self.write(REG_TCTL, 0b0110000000000111111000011111010);
         //self.write(REG_TIPG, 0x0060200A);
+
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        fence(Ordering::SeqCst);
     }
 
     fn read_mac(&self) -> EthernetAddress {
@@ -344,7 +363,9 @@ impl Device {
     }
 
     fn link_up(&self) {
-        self.write(REG_CTRL, self.read(REG_CTRL) | CTRL_SLU);
+        let ctrl = self.read(REG_CTRL);
+        self.write(REG_CTRL, ctrl | CTRL_SLU | CTRL_ASDE & !CTRL_LRST);
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
     }
 
     fn write(&self, addr: u16, data: u32) {
@@ -404,42 +425,48 @@ impl EthernetDeviceIO for Device {
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
         debug!("------------------------------------------------------------");
         debug!("NET E1000: receive_packet");
-        debug!("NET E1000: CTRL:   {:#016X}", self.read(REG_CTRL));
-        debug!("NET E1000: STATUS: {:#b}", self.read(REG_STATUS));
-
+        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let icr = self.read(REG_ICR);
         self.write(REG_ICR, icr);
-        debug!("NET E1000: ICR:    {:#016X}", icr);
+        debug!("NET E1000: ICR:    {:#034b}", icr);
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        debug!("NET E1000: RDH: {}", self.read(REG_RDH));
+        debug!("NET E1000: RDT: {}", self.read(REG_RDT));
 
         //self.write(REG_IMS, 0x1);
         if icr & ICR_LSC > 0 {
-            debug!("NET E1000: ICR -> LSC");
+            debug!("NET E1000: ICR.LSC");
             self.link_up();
         } else if icr & ICR_RXDMT0 > 0 {
-            debug!("NET E1000: ICR -> RXDMT0");
+            debug!("NET E1000: ICR.RXDMT0");
         } else if icr & ICR_RXT0 > 0 {
-            debug!("NET E1000: ICR -> RXT0");
+            debug!("NET E1000: ICR.RXT0");
 
             let rx_id = self.rx_id.load(Ordering::SeqCst);
-            debug!("NET E1000: rx_id = {:#X}", rx_id);
+            debug!("NET E1000: rx_id = {}", rx_id);
 
-            debug!("NET E1000: {:?}", self.rx_descs[rx_id]);
+            //debug!("NET E1000: {:?}", self.rx_descs[rx_id]);
 
-            let mut n = 0;
-            for (i, b) in self.rx_buffers[rx_id].iter().enumerate() {
-                if *b != 0 {
-                    n = i;
-                }
-            }
-            usr::hex::print_hex(&self.rx_buffers[rx_id][0..n]);
-
+            fence(Ordering::SeqCst);
             let rx_id = (rx_id + 1) % RX_BUFFERS_COUNT;
             self.rx_id.store(rx_id, Ordering::SeqCst);
-            self.write(REG_RDT, rx_id as u32);   
+            //self.write(REG_RDT, rx_id as u32);
+            //debug!("NET E1000: RDT -> rx_id = {:#X}", rx_id);
         }
 
         for i in 0..RX_BUFFERS_COUNT {
+            fence(Ordering::SeqCst);
             debug!("NET E1000: [{}] {:?}", i, self.rx_descs[i]);
+            let mut n = 0;
+            for (j, b) in self.rx_buffers[i].iter().enumerate() {
+                if *b != 0 {
+                    n = j;
+                }
+            }
+            if n > 0 {
+                debug!("NET E1000: RX_BUFFER[{}]", i);
+                usr::hex::print_hex(&self.rx_buffers[i][0..n]);
+            }
         }
 
         None
@@ -447,40 +474,42 @@ impl EthernetDeviceIO for Device {
 
     fn transmit_packet(&mut self, len: usize) {
         debug!("------------------------------------------------------------");
-        debug!("NET E1000: transmit_packet");
+        debug!("NET E1000: transmit_packet({})", len);
         let tx_id = self.tx_id.load(Ordering::SeqCst);
-        debug!("NET E1000: tx_id = {:#X}", tx_id);
-        debug!("NET E1000: {:?}", self.tx_descs[tx_id]);
+        debug!("NET E1000: tx_id = {}", tx_id);
+        debug!("NET E1000: TDH: {}", self.read(REG_TDH));
+        debug!("NET E1000: TDT: {}", self.read(REG_TDT));
+        //debug!("NET E1000: {:?}", self.tx_descs[tx_id]);
 
-        usr::hex::print_hex(&self.tx_buffers[tx_id][0..len]);
+        //usr::hex::print_hex(&self.tx_buffers[tx_id][0..len]);
 
+        fence(Ordering::SeqCst);
         assert_eq!(self.tx_descs[tx_id].addr, self.tx_buffers[tx_id].addr());
         self.tx_descs[tx_id].len = len as u16;
         self.tx_descs[tx_id].cmd = CMD_EOP | CMD_IFCS | CMD_RS;
         self.tx_descs[tx_id].status = 0;
 
-        debug!("NET E1000: {:?}", self.tx_descs[tx_id]);
+        //debug!("NET E1000: {:?}", self.tx_descs[tx_id]);
+
         for i in 0..TX_BUFFERS_COUNT {
             debug!("NET E1000: [{}] {:?}", i, self.tx_descs[i]);
         }
 
-        /*
-        while self.tx_descs[tx_id].status & 0xff == 0 {
-            let status = self.tx_descs[tx_id].status;
-            debug!("NET E1000: status = {:#X}", status);
-        }
-        */
+        fence(Ordering::SeqCst);
+        self.write(REG_TDT, ((tx_id + 1) % TX_BUFFERS_COUNT) as u32);
+        debug!("NET E1000: TDT <- {}", tx_id + 1);
 
-        //self.write(REG_TDT, (tx_id as u32) + 1); // FIXME?
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        fence(Ordering::SeqCst);
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
         debug!("------------------------------------------------------------");
         debug!("NET E1000: next_tx_buffer");
         let tx_id = (self.tx_id.load(Ordering::SeqCst) + 1) % TX_BUFFERS_COUNT;
-        debug!("NET E1000: tx_id = {:#X}", tx_id);
+        debug!("NET E1000: tx_id = {}", tx_id);
         self.tx_id.store(tx_id, Ordering::SeqCst);
-        self.write(REG_TDT, tx_id as u32); // FIXME?
+        //self.write(REG_TDT, (tx_id + 1) as u32); // FIXME?
         &mut self.tx_buffers[tx_id][0..len]
     }
 }
