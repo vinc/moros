@@ -512,8 +512,7 @@ impl EthernetDeviceIO for Device {
         //debug!("NET E1000: {:?}", tx_descs[tx_id]);
 
         for i in 0..TX_BUFFERS_COUNT {
-            let rx_descs = self.rx_descs.lock();
-            let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
+            let ptr = ptr::addr_of!(tx_descs[i]) as *const u8;
             assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
             let phy = sys::allocator::phys_addr(ptr);
             debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
@@ -529,6 +528,9 @@ impl EthernetDeviceIO for Device {
             sys::time::nanowait(50000);
             self.read(REG_STATUS);
             fence(Ordering::SeqCst);
+            if tx_descs[tx_id].status == 1 {
+                break;
+            }
         }
 
         //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
