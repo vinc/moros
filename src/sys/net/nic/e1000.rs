@@ -462,13 +462,14 @@ impl EthernetDeviceIO for Device {
             let rx_id = self.rx_id.load(Ordering::SeqCst);
             debug!("NET E1000: rx_id = {}", rx_id);
 
+            let rx_descs = self.rx_descs.lock();
             //debug!("NET E1000: {:?}", rx_descs[rx_id]);
 
             fence(Ordering::SeqCst);
-            let rx_id = (rx_id + 1) % RX_BUFFERS_COUNT;
-            self.rx_id.store(rx_id, Ordering::SeqCst);
-            //self.write(REG_RDT, rx_id as u32);
-            //debug!("NET E1000: RDT -> rx_id = {:#X}", rx_id);
+            self.rx_id.store((rx_id + 1) % RX_BUFFERS_COUNT, Ordering::SeqCst);
+
+            let n = rx_descs[rx_id].len as usize;
+            return Some(self.rx_buffers[rx_id][0..n].to_vec());
         }
 
         for i in 0..RX_BUFFERS_COUNT {
