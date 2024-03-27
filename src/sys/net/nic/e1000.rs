@@ -285,7 +285,7 @@ impl Device {
         self.write(REG_RDLEN, (n * 16) as u32);
 
         self.write(REG_RDH, 0);
-        self.write(REG_RDT, n as u32); // TODO: Try using n - 1
+        self.write(REG_RDT, (n - 1) as u32);
 
         //self.write(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048 | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF);
         self.write(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048);
@@ -491,6 +491,7 @@ impl EthernetDeviceIO for Device {
                 let n = rx_descs[rx_id].len as usize;
                 let buf = self.rx_buffers[rx_id][0..n].to_vec();
                 rx_descs[rx_id].status = 0; // Driver is done
+                self.write(REG_RDT, rx_id as u32);
                 return Some(buf);
             }
         }
