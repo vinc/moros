@@ -2,6 +2,7 @@ use crate::usr;
 use crate::sys;
 use crate::sys::allocator::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
+use spin::Mutex;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -144,8 +145,8 @@ pub struct Device {
     stats: Arc<Stats>,
     rx_buffers: [PhysBuf; RX_BUFFERS_COUNT],
     tx_buffers: [PhysBuf; TX_BUFFERS_COUNT],
-    rx_descs: [RxDesc; RX_BUFFERS_COUNT],
-    tx_descs: [TxDesc; TX_BUFFERS_COUNT],
+    rx_descs: Arc<Mutex<[RxDesc; RX_BUFFERS_COUNT]>>,
+    tx_descs: Arc<Mutex<[TxDesc; TX_BUFFERS_COUNT]>>,
     rx_id: Arc<AtomicUsize>,
     tx_id: Arc<AtomicUsize>,
 }
@@ -161,8 +162,8 @@ impl Device {
             stats: Arc::new(Stats::new()),
             rx_buffers: [(); RX_BUFFERS_COUNT].map(|_| PhysBuf::new(2048)),
             tx_buffers: [(); TX_BUFFERS_COUNT].map(|_| PhysBuf::new(2048)),
-            rx_descs: [(); RX_BUFFERS_COUNT].map(|_| RxDesc::default()),
-            tx_descs: [(); TX_BUFFERS_COUNT].map(|_| TxDesc::default()),
+            rx_descs: Arc::new(Mutex::new([(); RX_BUFFERS_COUNT].map(|_| RxDesc::default()))),
+            tx_descs: Arc::new(Mutex::new([(); TX_BUFFERS_COUNT].map(|_| TxDesc::default()))),
             //rx_descs: [RxDesc::default(); RX_BUFFERS_COUNT],
             //tx_descs: [TxDesc::default(); TX_BUFFERS_COUNT],
             rx_id: Arc::new(AtomicUsize::new(0)),
@@ -181,15 +182,20 @@ impl Device {
         debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
         debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
 
+        //self.write(REG_IMS, 0); // Disable interrupts
+        self.write(REG_IMC, 0xFFFFFFFF); // Disable interrupts
+
         let ctrl = self.read(REG_CTRL);
-        self.write(REG_IMS, 0); // Disable interrupts
         self.write(REG_CTRL, ctrl | CTRL_RST); // Reset
         debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         sys::time::nanowait(500);
         debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let ctrl = self.read(REG_CTRL) & !CTRL_LRST;
         self.write(REG_CTRL, ctrl); // Link Reset
+
         //self.write(REG_IMS, 0); // Disable interrupts
+        self.write(REG_IMC, 0xFFFFFFFF); // Disable interrupts
+        self.read(REG_ICR); // Clear interrupts
 
         //self.config.update_mac(EthernetAddress::from_bytes(&[0, 0, 0, 0, 0, 0]));
         self.detect_eeprom();
@@ -230,6 +236,7 @@ impl Device {
     }
 
     fn init_rx(&mut self) {
+        let mut rx_descs = self.rx_descs.lock();
         // Multicast Table Array
         for i in 0..128 {
             self.write(REG_MTA + i * 4, 0);
@@ -239,10 +246,10 @@ impl Device {
         let mut phys_addr_end = 0;
         let n = RX_BUFFERS_COUNT;
         for i in 0..n {
-            self.rx_descs[i].addr = self.rx_buffers[i].addr();
-            self.rx_descs[i].status = 0;
+            rx_descs[i].addr = self.rx_buffers[i].addr();
+            rx_descs[i].status = 0;
 
-            let ptr = ptr::addr_of!(self.rx_descs[i]) as *const u8;
+            let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
             assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
             let p1 = sys::allocator::phys_addr(ptr);
             assert_eq!(((p1 as usize) / 16) * 16, p1 as usize);
@@ -255,14 +262,14 @@ impl Device {
                 phys_addr_end = p2;
             }
 
-            debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", self.rx_descs[i], i, p1, p2);
+            debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", rx_descs[i], i, p1, p2);
         }
         debug!("NET E1000: RxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
         assert_eq!(phys_addr_end - phys_addr_begin, (n as u64) * 16);
 
-        assert_eq!((self.rx_descs.len() * 16) % 128, 0);
+        assert_eq!((rx_descs.len() * 16) % 128, 0);
 
-        let ptr = ptr::addr_of!(self.rx_descs[0]) as *const u8;
+        let ptr = ptr::addr_of!(rx_descs[0]) as *const u8;
         let phys_addr = sys::allocator::phys_addr(ptr);
 
         //self.write(REG_RDBAL, phys_addr.get_bits(0..32) as u32);
@@ -284,15 +291,16 @@ impl Device {
     }
 
     fn init_tx(&mut self) {
+        let mut tx_descs = self.tx_descs.lock();
         let mut phys_addr_begin = 0;
         let mut phys_addr_end = 0;
         let n = TX_BUFFERS_COUNT;
         for i in 0..n {
-            self.tx_descs[i].addr = self.tx_buffers[i].addr();
-            self.tx_descs[i].cmd = 0;
-            self.tx_descs[i].status = TSTA_DD as u8;
+            tx_descs[i].addr = self.tx_buffers[i].addr();
+            tx_descs[i].cmd = 0;
+            tx_descs[i].status = TSTA_DD as u8;
 
-            let ptr = ptr::addr_of!(self.tx_descs[i]) as *const _;
+            let ptr = ptr::addr_of!(tx_descs[i]) as *const _;
             assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
             let p1 = sys::allocator::phys_addr(ptr);
             assert_eq!(((p1 as usize) / 16) * 16, p1 as usize);
@@ -305,14 +313,14 @@ impl Device {
                 phys_addr_end = p2;
             }
 
-            debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", self.tx_descs[i], i, p1, p2);
+            debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", tx_descs[i], i, p1, p2);
         }
         debug!("NET E1000: TxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
         assert_eq!(phys_addr_end - phys_addr_begin, (n as u64) * 16);
 
-        assert_eq!((self.tx_descs.len() * 16) % 128, 0);
+        assert_eq!((tx_descs.len() * 16) % 128, 0);
 
-        let ptr = ptr::addr_of!(self.tx_descs[0]) as *const _;
+        let ptr = ptr::addr_of!(tx_descs[0]) as *const _;
         let phys_addr = sys::allocator::phys_addr(ptr);
 
         //self.write(REG_TDBAL, phys_addr.get_bits(0..32) as u32);
@@ -425,6 +433,15 @@ impl EthernetDeviceIO for Device {
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
         debug!("------------------------------------------------------------");
         debug!("NET E1000: receive_packet");
+        let tx_descs = self.tx_descs.lock();
+        for i in 0..TX_BUFFERS_COUNT {
+            let rx_descs = self.rx_descs.lock();
+            let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
+            assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
+            let phy = sys::allocator::phys_addr(ptr);
+            debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
+        }
+        fence(Ordering::SeqCst);
         debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let icr = self.read(REG_ICR);
         self.write(REG_ICR, icr);
@@ -445,7 +462,7 @@ impl EthernetDeviceIO for Device {
             let rx_id = self.rx_id.load(Ordering::SeqCst);
             debug!("NET E1000: rx_id = {}", rx_id);
 
-            //debug!("NET E1000: {:?}", self.rx_descs[rx_id]);
+            //debug!("NET E1000: {:?}", rx_descs[rx_id]);
 
             fence(Ordering::SeqCst);
             let rx_id = (rx_id + 1) % RX_BUFFERS_COUNT;
@@ -456,7 +473,8 @@ impl EthernetDeviceIO for Device {
 
         for i in 0..RX_BUFFERS_COUNT {
             fence(Ordering::SeqCst);
-            debug!("NET E1000: [{}] {:?}", i, self.rx_descs[i]);
+            let rx_descs = self.rx_descs.lock();
+            debug!("NET E1000: [{}] {:?}", i, rx_descs[i]);
             let mut n = 0;
             for (j, b) in self.rx_buffers[i].iter().enumerate() {
                 if *b != 0 {
@@ -479,28 +497,41 @@ impl EthernetDeviceIO for Device {
         debug!("NET E1000: tx_id = {}", tx_id);
         debug!("NET E1000: TDH: {}", self.read(REG_TDH));
         debug!("NET E1000: TDT: {}", self.read(REG_TDT));
-        //debug!("NET E1000: {:?}", self.tx_descs[tx_id]);
+        //debug!("NET E1000: {:?}", tx_descs[tx_id]);
 
         //usr::hex::print_hex(&self.tx_buffers[tx_id][0..len]);
 
         fence(Ordering::SeqCst);
-        assert_eq!(self.tx_descs[tx_id].addr, self.tx_buffers[tx_id].addr());
-        self.tx_descs[tx_id].len = len as u16;
-        self.tx_descs[tx_id].cmd = CMD_EOP | CMD_IFCS | CMD_RS;
-        self.tx_descs[tx_id].status = 0;
+        let mut tx_descs = self.tx_descs.lock();
+        assert_eq!(tx_descs[tx_id].addr, self.tx_buffers[tx_id].addr());
+        tx_descs[tx_id].len = len as u16;
+        tx_descs[tx_id].cmd = CMD_EOP | CMD_IFCS | CMD_RS;
+        tx_descs[tx_id].status = 0;
 
-        //debug!("NET E1000: {:?}", self.tx_descs[tx_id]);
+        //debug!("NET E1000: {:?}", tx_descs[tx_id]);
 
         for i in 0..TX_BUFFERS_COUNT {
-            debug!("NET E1000: [{}] {:?}", i, self.tx_descs[i]);
+            let rx_descs = self.rx_descs.lock();
+            let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
+            assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
+            let phy = sys::allocator::phys_addr(ptr);
+            debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
+            //debug!("NET E1000: [{}] {:?}", i, tx_descs[i]);
         }
 
         fence(Ordering::SeqCst);
         self.write(REG_TDT, ((tx_id + 1) % TX_BUFFERS_COUNT) as u32);
         debug!("NET E1000: TDT <- {}", tx_id + 1);
 
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
-        fence(Ordering::SeqCst);
+        for i in 0..256 {
+            debug!("NET E1000: [{}] {:?} ({})", tx_id, tx_descs[tx_id], i);
+            sys::time::nanowait(50000);
+            self.read(REG_STATUS);
+            fence(Ordering::SeqCst);
+        }
+
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //fence(Ordering::SeqCst);
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
