@@ -29,6 +29,7 @@ This project started from the [seventh post][1] of the second edition of
 - PCI devices
 - ATA PIO mode
 - Random number generator (using [rand_hc][12])
+- Intel PRO/1000 network card
 - RTL8139 network card
 - AMD PCNET network card
 - DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][13])
