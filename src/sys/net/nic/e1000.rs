@@ -467,9 +467,14 @@ impl EthernetDeviceIO for Device {
         if icr & ICR_LSC > 0 {
             debug!("NET E1000: ICR.LSC");
             self.link_up();
-        } else if icr & ICR_RXDMT0 > 0 {
+            return None;
+        }
+
+        if icr & ICR_RXDMT0 > 0 {
             debug!("NET E1000: ICR.RXDMT0");
-        } else if icr & ICR_RXT0 > 0 {
+        }
+
+        if icr & ICR_RXT0 > 0 {
             debug!("NET E1000: ICR.RXT0");
 
             let rx_id = self.rx_id.load(Ordering::SeqCst);
