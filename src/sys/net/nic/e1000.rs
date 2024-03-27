@@ -270,7 +270,7 @@ impl Device {
             //debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", rx_descs[i], i, p1, p2);
         }
         //debug!("NET E1000: RxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
-        assert_eq!(phys_addr_end - phys_addr_begin, (n as u64) * 16);
+        assert_eq!(phys_addr_end - phys_addr_begin, (n * 16) as u32);
 
         assert_eq!((rx_descs.len() * 16) % 128, 0);
 
@@ -282,13 +282,12 @@ impl Device {
         self.write(REG_RDBAL, phys_addr as u32);
         self.write(REG_RDBAH, (phys_addr >> 32) as u32);
 
-        self.write(REG_RDLEN, (n as u32) * 16);
+        self.write(REG_RDLEN, (n * 16) as u32);
 
         self.write(REG_RDH, 0);
-        self.write(REG_RDT, n as u32);
-        //self.write(REG_RDT, (n as u32) - 1);
+        self.write(REG_RDT, n as u32); // TODO: Try using n - 1
 
-        //self.write(REG_RCTL, RCTL_EN | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_8192);
+        //self.write(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048 | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF);
         self.write(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048);
 
         //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
@@ -436,10 +435,9 @@ impl EthernetDeviceIO for Device {
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        //debug!("------------------------------------------------------------");
-        //debug!("NET E1000: receive_packet");
-
         /*
+        debug!("------------------------------------------------------------");
+        debug!("NET E1000: receive_packet");
         debug!("NET E1000: begin listing descriptors");
         for i in 0..TX_BUFFERS_COUNT {
             let tx_descs = self.tx_descs.lock();
@@ -457,10 +455,10 @@ impl EthernetDeviceIO for Device {
         fence(Ordering::SeqCst);
         */
 
-        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let icr = self.read(REG_ICR);
         self.write(REG_ICR, icr);
         //debug!("NET E1000: ICR:    {:#034b}", icr);
+        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
         //debug!("NET E1000: RDH -> {}", self.read(REG_RDH));
         //debug!("NET E1000: RDT -> {}", self.read(REG_RDT));
