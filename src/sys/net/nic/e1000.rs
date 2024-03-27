@@ -177,19 +177,19 @@ impl Device {
     }
 
     fn init(&mut self) {
-        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
-        debug!("NET E1000: IMS:    {:#034b}", self.read(REG_IMS));
-        debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        //debug!("NET E1000: IMS:    {:#034b}", self.read(REG_IMS));
+        //debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
 
         //self.write(REG_IMS, 0); // Disable interrupts
         self.write(REG_IMC, 0xFFFFFFFF); // Disable interrupts
 
         let ctrl = self.read(REG_CTRL);
         self.write(REG_CTRL, ctrl | CTRL_RST); // Reset
-        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         sys::time::nanowait(500);
-        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let ctrl = self.read(REG_CTRL) & !CTRL_LRST;
         self.write(REG_CTRL, ctrl); // Link Reset
 
@@ -200,19 +200,19 @@ impl Device {
         //self.config.update_mac(EthernetAddress::from_bytes(&[0, 0, 0, 0, 0, 0]));
         self.detect_eeprom();
 
-        debug!("NET E1000: io base: {}", self.io_base);
-        debug!("NET E1000: mem base: {:#X}", self.mem_base.as_u64());
-        debug!("NET E1000: bar type: {:#X}", self.bar_type);
+        //debug!("NET E1000: io base: {}", self.io_base);
+        //debug!("NET E1000: mem base: {:#X}", self.mem_base.as_u64());
+        //debug!("NET E1000: bar type: {:#X}", self.bar_type);
         if self.has_eeprom {
-            debug!("NET E1000: eeprom available");
+            //debug!("NET E1000: eeprom available");
         } else {
-            debug!("NET E1000: eeprom unavailable");
+            //debug!("NET E1000: eeprom unavailable");
         }
 
-        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
-        debug!("NET E1000: IMS:    {:#034b}", self.read(REG_IMS));
-        debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        //debug!("NET E1000: IMS:    {:#034b}", self.read(REG_IMS));
+        //debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
 
         self.config.update_mac(self.read_mac());
 
@@ -232,7 +232,7 @@ impl Device {
         //self.write(REG_IMS, 1 << 7);
         //self.write(REG_ICR, 0);
 
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
     }
 
     fn init_rx(&mut self) {
@@ -262,9 +262,9 @@ impl Device {
                 phys_addr_end = p2;
             }
 
-            debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", rx_descs[i], i, p1, p2);
+            //debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", rx_descs[i], i, p1, p2);
         }
-        debug!("NET E1000: RxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
+        //debug!("NET E1000: RxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
         assert_eq!(phys_addr_end - phys_addr_begin, (n as u64) * 16);
 
         assert_eq!((rx_descs.len() * 16) % 128, 0);
@@ -286,7 +286,7 @@ impl Device {
         //self.write(REG_RCTL, RCTL_EN | RCTL_SBP | RCTL_UPE | RCTL_MPE | RCTL_LBM_NONE | RTCL_RDMTS_HALF | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_8192);
         self.write(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE_2048);
 
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
         fence(Ordering::SeqCst);
     }
 
@@ -313,9 +313,9 @@ impl Device {
                 phys_addr_end = p2;
             }
 
-            debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", tx_descs[i], i, p1, p2);
+            //debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", tx_descs[i], i, p1, p2);
         }
-        debug!("NET E1000: TxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
+        //debug!("NET E1000: TxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
         assert_eq!(phys_addr_end - phys_addr_begin, (n as u64) * 16);
 
         assert_eq!((tx_descs.len() * 16) % 128, 0);
@@ -340,7 +340,7 @@ impl Device {
         //self.write(REG_TCTL, 0b0110000000000111111000011111010);
         //self.write(REG_TIPG, 0x0060200A);
 
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
         fence(Ordering::SeqCst);
     }
 
@@ -373,7 +373,7 @@ impl Device {
     fn link_up(&self) {
         let ctrl = self.read(REG_CTRL);
         self.write(REG_CTRL, ctrl | CTRL_SLU | CTRL_ASDE & !CTRL_LRST);
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
     }
 
     fn write(&self, addr: u16, data: u32) {
@@ -431,36 +431,36 @@ impl EthernetDeviceIO for Device {
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        debug!("------------------------------------------------------------");
-        debug!("NET E1000: receive_packet");
+        //debug!("------------------------------------------------------------");
+        //debug!("NET E1000: receive_packet");
         let tx_descs = self.tx_descs.lock();
         for i in 0..TX_BUFFERS_COUNT {
             let rx_descs = self.rx_descs.lock();
             let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
             assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
             let phy = sys::allocator::phys_addr(ptr);
-            debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
+            //debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
         }
         fence(Ordering::SeqCst);
-        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let icr = self.read(REG_ICR);
         self.write(REG_ICR, icr);
-        debug!("NET E1000: ICR:    {:#034b}", icr);
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
-        debug!("NET E1000: RDH: {}", self.read(REG_RDH));
-        debug!("NET E1000: RDT: {}", self.read(REG_RDT));
+        //debug!("NET E1000: ICR:    {:#034b}", icr);
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: RDH: {}", self.read(REG_RDH));
+        //debug!("NET E1000: RDT: {}", self.read(REG_RDT));
 
         //self.write(REG_IMS, 0x1);
         if icr & ICR_LSC > 0 {
-            debug!("NET E1000: ICR.LSC");
+            //debug!("NET E1000: ICR.LSC");
             self.link_up();
         } else if icr & ICR_RXDMT0 > 0 {
-            debug!("NET E1000: ICR.RXDMT0");
+            //debug!("NET E1000: ICR.RXDMT0");
         } else if icr & ICR_RXT0 > 0 {
-            debug!("NET E1000: ICR.RXT0");
+            //debug!("NET E1000: ICR.RXT0");
 
             let rx_id = self.rx_id.load(Ordering::SeqCst);
-            debug!("NET E1000: rx_id = {}", rx_id);
+            //debug!("NET E1000: rx_id = {}", rx_id);
 
             let rx_descs = self.rx_descs.lock();
             //debug!("NET E1000: {:?}", rx_descs[rx_id]);
@@ -472,6 +472,7 @@ impl EthernetDeviceIO for Device {
             return Some(self.rx_buffers[rx_id][0..n].to_vec());
         }
 
+        /*
         for i in 0..RX_BUFFERS_COUNT {
             fence(Ordering::SeqCst);
             let rx_descs = self.rx_descs.lock();
@@ -487,17 +488,18 @@ impl EthernetDeviceIO for Device {
                 usr::hex::print_hex(&self.rx_buffers[i][0..n]);
             }
         }
+        */
 
         None
     }
 
     fn transmit_packet(&mut self, len: usize) {
-        debug!("------------------------------------------------------------");
-        debug!("NET E1000: transmit_packet({})", len);
+        //debug!("------------------------------------------------------------");
+        //debug!("NET E1000: transmit_packet({})", len);
         let tx_id = self.tx_id.load(Ordering::SeqCst);
-        debug!("NET E1000: tx_id = {}", tx_id);
-        debug!("NET E1000: TDH: {}", self.read(REG_TDH));
-        debug!("NET E1000: TDT: {}", self.read(REG_TDT));
+        //debug!("NET E1000: tx_id = {}", tx_id);
+        //debug!("NET E1000: TDH: {}", self.read(REG_TDH));
+        //debug!("NET E1000: TDT: {}", self.read(REG_TDT));
         //debug!("NET E1000: {:?}", tx_descs[tx_id]);
 
         //usr::hex::print_hex(&self.tx_buffers[tx_id][0..len]);
@@ -511,6 +513,7 @@ impl EthernetDeviceIO for Device {
 
         //debug!("NET E1000: {:?}", tx_descs[tx_id]);
 
+        /*
         for i in 0..TX_BUFFERS_COUNT {
             let ptr = ptr::addr_of!(tx_descs[i]) as *const u8;
             assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
@@ -518,11 +521,13 @@ impl EthernetDeviceIO for Device {
             debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
             //debug!("NET E1000: [{}] {:?}", i, tx_descs[i]);
         }
+        */
 
         fence(Ordering::SeqCst);
         self.write(REG_TDT, ((tx_id + 1) % TX_BUFFERS_COUNT) as u32);
-        debug!("NET E1000: TDT <- {}", tx_id + 1);
+        //debug!("NET E1000: TDT <- {}", tx_id + 1);
 
+        /*
         for i in 0..256 {
             debug!("NET E1000: [{}] {:?} ({})", tx_id, tx_descs[tx_id], i);
             sys::time::nanowait(50000);
@@ -532,16 +537,17 @@ impl EthernetDeviceIO for Device {
                 break;
             }
         }
+        */
 
         //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
         //fence(Ordering::SeqCst);
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
-        debug!("------------------------------------------------------------");
-        debug!("NET E1000: next_tx_buffer");
+        //debug!("------------------------------------------------------------");
+        //debug!("NET E1000: next_tx_buffer");
         let tx_id = (self.tx_id.load(Ordering::SeqCst) + 1) % TX_BUFFERS_COUNT;
-        debug!("NET E1000: tx_id = {}", tx_id);
+        //debug!("NET E1000: tx_id = {}", tx_id);
         self.tx_id.store(tx_id, Ordering::SeqCst);
         //self.write(REG_TDT, (tx_id + 1) as u32); // FIXME?
         &mut self.tx_buffers[tx_id][0..len]
