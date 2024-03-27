@@ -155,11 +155,11 @@ impl smoltcp::phy::TxToken for TxToken {
     {
         let config = self.device.config();
         let buf = self.device.next_tx_buffer(len);
+        let res = f(buf);
         if config.is_debug_enabled() {
             debug!("NET Packet Transmitted");
             usr::hex::print_hex(buf);
         }
-        let res = f(buf);
         self.device.transmit_packet(len);
         self.device.stats().tx_add(len as u64);
         res
