@@ -270,7 +270,7 @@ impl Device {
             //debug!("NET E1000: {:?} ({}: {:#X}..{:#X})", rx_descs[i], i, p1, p2);
         }
         //debug!("NET E1000: RxDesc: {:#X}..{:#X}", phys_addr_begin, phys_addr_end);
-        assert_eq!(phys_addr_end - phys_addr_begin, (n * 16) as u32);
+        assert_eq!(phys_addr_end - phys_addr_begin, (n * 16) as u64);
 
         assert_eq!((rx_descs.len() * 16) % 128, 0);
 
