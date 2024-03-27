@@ -272,7 +272,7 @@ pub fn init() {
         let io = dev.io_base();
         add(EthernetDevice::PCNET(nic::pcnet::Device::new(io)), "PCNET");
     }
-    for id in [0x100E, 0x10D3, 0x10F5] {
+    for id in [0x1004, 0x100C, 0x100E, 0x100F, 0x10D3, 0x10F5] {
         if let Some(dev) = find_device(0x8086, id) {
             let io = dev.io_base();
             let mem = dev.mem_base();
