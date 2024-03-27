@@ -436,9 +436,10 @@ impl EthernetDeviceIO for Device {
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        debug!("------------------------------------------------------------");
-        debug!("NET E1000: receive_packet");
+        //debug!("------------------------------------------------------------");
+        //debug!("NET E1000: receive_packet");
 
+        /*
         debug!("NET E1000: begin listing descriptors");
         for i in 0..TX_BUFFERS_COUNT {
             let tx_descs = self.tx_descs.lock();
@@ -454,31 +455,32 @@ impl EthernetDeviceIO for Device {
         }
         debug!("NET E1000: end listing descriptors");
         fence(Ordering::SeqCst);
+        */
 
         //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let icr = self.read(REG_ICR);
         self.write(REG_ICR, icr);
-        debug!("NET E1000: ICR:    {:#034b}", icr);
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
-        debug!("NET E1000: RDH -> {}", self.read(REG_RDH));
-        debug!("NET E1000: RDT -> {}", self.read(REG_RDT));
+        //debug!("NET E1000: ICR:    {:#034b}", icr);
+        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        //debug!("NET E1000: RDH -> {}", self.read(REG_RDH));
+        //debug!("NET E1000: RDT -> {}", self.read(REG_RDT));
 
         //self.write(REG_IMS, 0x1);
         if icr & ICR_LSC > 0 {
-            debug!("NET E1000: ICR.LSC");
+            //debug!("NET E1000: ICR.LSC");
             self.link_up();
             return None;
         }
 
         if icr & ICR_RXDMT0 > 0 {
-            debug!("NET E1000: ICR.RXDMT0");
+            //debug!("NET E1000: ICR.RXDMT0");
         }
 
         if icr & ICR_RXT0 > 0 {
-            debug!("NET E1000: ICR.RXT0");
+            //debug!("NET E1000: ICR.RXT0");
 
             let rx_id = self.rx_id.load(Ordering::SeqCst);
-            debug!("NET E1000: rx_id = {}", rx_id);
+            //debug!("NET E1000: rx_id = {}", rx_id);
 
             let mut rx_descs = self.rx_descs.lock();
             //debug!("NET E1000: {:?}", rx_descs[rx_id]);
@@ -499,53 +501,24 @@ impl EthernetDeviceIO for Device {
     }
 
     fn transmit_packet(&mut self, len: usize) {
-        debug!("------------------------------------------------------------");
-        debug!("NET E1000: transmit_packet({})", len);
+        //debug!("------------------------------------------------------------");
+        //debug!("NET E1000: transmit_packet({})", len);
         let tx_id = self.tx_id.load(Ordering::SeqCst);
-        debug!("NET E1000: tx_id = {}", tx_id);
-        debug!("NET E1000: TDH -> {}", self.read(REG_TDH));
-        debug!("NET E1000: TDT -> {}", self.read(REG_TDT));
-        //debug!("NET E1000: {:?}", tx_descs[tx_id]);
+        //debug!("NET E1000: tx_id = {}", tx_id);
+        //debug!("NET E1000: TDH -> {}", self.read(REG_TDH));
+        //debug!("NET E1000: TDT -> {}", self.read(REG_TDT));
 
-        //usr::hex::print_hex(&self.tx_buffers[tx_id][0..len]);
-
-        //fence(Ordering::SeqCst);
         let mut tx_descs = self.tx_descs.lock();
         assert_eq!(tx_descs[tx_id].addr, self.tx_buffers[tx_id].addr());
         tx_descs[tx_id].len = len as u16;
         tx_descs[tx_id].cmd = CMD_EOP | CMD_IFCS | CMD_RS;
-        tx_descs[tx_id].status = 0;
-
+        tx_descs[tx_id].status = 0; // Driver is done
         //debug!("NET E1000: {:?}", tx_descs[tx_id]);
-
-        /*
-        for i in 0..TX_BUFFERS_COUNT {
-            let ptr = ptr::addr_of!(tx_descs[i]) as *const u8;
-            assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
-            let phy = sys::allocator::phys_addr(ptr);
-            debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
-            //debug!("NET E1000: [{}] {:?}", i, tx_descs[i]);
-        }
-        */
-
         fence(Ordering::SeqCst);
+
+        // Let the hardware handle the descriptor
         self.write(REG_TDT, ((tx_id + 1) % TX_BUFFERS_COUNT) as u32);
-        debug!("NET E1000: TDT <- {}", tx_id + 1);
-
-        /*
-        for i in 0..256 {
-            debug!("NET E1000: [{}] {:?} ({})", tx_id, tx_descs[tx_id], i);
-            sys::time::nanowait(50000);
-            self.read(REG_STATUS);
-            fence(Ordering::SeqCst);
-            if tx_descs[tx_id].status == 1 {
-                break;
-            }
-        }
-        */
-
-        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
-        //fence(Ordering::SeqCst);
+        //debug!("NET E1000: TDT <- {}", tx_id + 1);
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
