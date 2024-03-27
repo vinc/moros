@@ -83,25 +83,30 @@ const RCTL_BSIZE_4096: u32 =    (3 << 16) | (1 << 25);
 const RCTL_BSIZE_8192: u32 =    (2 << 16) | (1 << 25);
 const RCTL_BSIZE_16384: u32 =   (1 << 16) | (1 << 25);
 
-const CMD_EOP: u8 =            1 << 0;  // End of Packet
-const CMD_IFCS: u8 =           1 << 1;  // Insert FCS
-const CMD_IC: u8 =             1 << 2;  // Insert Checksum
-const CMD_RS: u8 =             1 << 3;  // Report Status
-const CMD_RPS: u8 =            1 << 4;  // Report Packet Sent
-const CMD_VLE: u8 =            1 << 6;  // VLAN Packet Enable
-const CMD_IDE: u8 =            1 << 7;  // Interrupt Delay Enable
+const CMD_EOP: u8 =            1 << 0; // End of Packet
+const CMD_IFCS: u8 =           1 << 1; // Insert FCS
+const CMD_IC: u8 =             1 << 2; // Insert Checksum
+const CMD_RS: u8 =             1 << 3; // Report Status
+const CMD_RPS: u8 =            1 << 4; // Report Packet Sent
+const CMD_VLE: u8 =            1 << 6; // VLAN Packet Enable
+const CMD_IDE: u8 =            1 << 7; // Interrupt Delay Enable
 
-const TCTL_EN: u32 =            1 << 1;  // Transmit Enable
-const TCTL_PSP: u32 =           1 << 3;  // Pad Short Packets
-const TCTL_CT_SHIFT: u32 =           4;  // Collision Threshold
-const TCTL_COLD_SHIFT: u32 =        12;  // Collision Distance
-const TCTL_SWXOFF: u32 =        1 << 22; // Software XOFF Transmission
-const TCTL_RTLC: u32 =          1 << 24; // Re-transmit on Late Collision
+const TCTL_EN: u32 =            1 << 1; // Transmit Enable
+const TCTL_PSP: u32 =           1 << 3; // Pad Short Packets
+const TCTL_CT_SHIFT: u32 =           4; // Collision Threshold
+const TCTL_COLD_SHIFT: u32 =        12; // Collision Distance
+const TCTL_SWXOFF: u32 =       1 << 22; // Software XOFF Transmission
+const TCTL_RTLC: u32 =         1 << 24; // Re-transmit on Late Collision
 
-const TSTA_DD: u32 =             1 << 0;  // Descriptor Done
-const TSTA_EC: u32 =             1 << 1;  // Excess Collisions
-const TSTA_LC: u32 =             1 << 2;  // Late Collision
-const LSTA_TU: u32 =             1 << 3;  // Transmit Underrun
+// Transmit Descriptor Status Field
+const TSTA_DD: u8 =  1 << 0;  // Descriptor Done
+const TSTA_EC: u8 =  1 << 1;  // Excess Collisions
+const TSTA_LC: u8 =  1 << 2;  // Late Collision
+const LSTA_TU: u8 =  1 << 3;  // Transmit Underrun
+
+// Receive Descriptor Status Field
+const RSTA_DD: u8 =  1 << 0;  // Descriptor Done
+const RSTA_EOP: u8 = 1 << 1;  // End of Packet
 
 const IO_ADDR: u16 = 0x00;
 const IO_DATA: u16 = 0x04;
@@ -109,7 +114,7 @@ const IO_DATA: u16 = 0x04;
 const MTU: usize = 1500;
 
 // NOTE: Must be a multiple of 8
-const RX_BUFFERS_COUNT: usize = 8;
+const RX_BUFFERS_COUNT: usize = 32;
 const TX_BUFFERS_COUNT: usize = 8;
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -431,77 +436,70 @@ impl EthernetDeviceIO for Device {
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        //debug!("------------------------------------------------------------");
-        //debug!("NET E1000: receive_packet");
-        /*
-        let tx_descs = self.tx_descs.lock();
+        debug!("------------------------------------------------------------");
+        debug!("NET E1000: receive_packet");
+
+        debug!("NET E1000: begin listing descriptors");
         for i in 0..TX_BUFFERS_COUNT {
+            let tx_descs = self.tx_descs.lock();
+            let ptr = ptr::addr_of!(tx_descs[i]) as *const u8;
+            let phy = sys::allocator::phys_addr(ptr);
+            debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
+        }
+        for i in 0..RX_BUFFERS_COUNT {
             let rx_descs = self.rx_descs.lock();
             let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
-            assert_eq!(((ptr as usize) / 16) * 16, ptr as usize);
             let phy = sys::allocator::phys_addr(ptr);
-            //debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, tx_descs[i], ptr as u64, phy);
+            debug!("NET E1000: [{}] {:?} ({:#X} -> {:#X})", i, rx_descs[i], ptr as u64, phy);
         }
+        debug!("NET E1000: end listing descriptors");
         fence(Ordering::SeqCst);
-        */
+
         //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
         let icr = self.read(REG_ICR);
         self.write(REG_ICR, icr);
-        //debug!("NET E1000: ICR:    {:#034b}", icr);
-        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
-        //debug!("NET E1000: RDH: {}", self.read(REG_RDH));
-        //debug!("NET E1000: RDT: {}", self.read(REG_RDT));
+        debug!("NET E1000: ICR:    {:#034b}", icr);
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        debug!("NET E1000: RDH -> {}", self.read(REG_RDH));
+        debug!("NET E1000: RDT -> {}", self.read(REG_RDT));
 
         //self.write(REG_IMS, 0x1);
         if icr & ICR_LSC > 0 {
-            //debug!("NET E1000: ICR.LSC");
+            debug!("NET E1000: ICR.LSC");
             self.link_up();
         } else if icr & ICR_RXDMT0 > 0 {
-            //debug!("NET E1000: ICR.RXDMT0");
+            debug!("NET E1000: ICR.RXDMT0");
         } else if icr & ICR_RXT0 > 0 {
-            //debug!("NET E1000: ICR.RXT0");
+            debug!("NET E1000: ICR.RXT0");
 
             let rx_id = self.rx_id.load(Ordering::SeqCst);
-            //debug!("NET E1000: rx_id = {}", rx_id);
+            debug!("NET E1000: rx_id = {}", rx_id);
 
-            let rx_descs = self.rx_descs.lock();
+            let mut rx_descs = self.rx_descs.lock();
             //debug!("NET E1000: {:?}", rx_descs[rx_id]);
 
             fence(Ordering::SeqCst);
             self.rx_id.store((rx_id + 1) % RX_BUFFERS_COUNT, Ordering::SeqCst);
 
-            let n = rx_descs[rx_id].len as usize;
-            return Some(self.rx_buffers[rx_id][0..n].to_vec());
-        }
-
-        /*
-        for i in 0..RX_BUFFERS_COUNT {
-            fence(Ordering::SeqCst);
-            let rx_descs = self.rx_descs.lock();
-            debug!("NET E1000: [{}] {:?}", i, rx_descs[i]);
-            let mut n = 0;
-            for (j, b) in self.rx_buffers[i].iter().enumerate() {
-                if *b != 0 {
-                    n = j;
-                }
-            }
-            if n > 0 {
-                debug!("NET E1000: RX_BUFFER[{}]", i);
-                usr::hex::print_hex(&self.rx_buffers[i][0..n]);
+            // If hardware is done with the descriptor
+            if rx_descs[rx_id].status & RSTA_DD > 0 {
+                let n = rx_descs[rx_id].len as usize;
+                let buf = self.rx_buffers[rx_id][0..n].to_vec();
+                rx_descs[rx_id].status = 0; // Driver is done
+                return Some(buf);
             }
         }
-        */
 
         None
     }
 
     fn transmit_packet(&mut self, len: usize) {
-        //debug!("------------------------------------------------------------");
-        //debug!("NET E1000: transmit_packet({})", len);
+        debug!("------------------------------------------------------------");
+        debug!("NET E1000: transmit_packet({})", len);
         let tx_id = self.tx_id.load(Ordering::SeqCst);
-        //debug!("NET E1000: tx_id = {}", tx_id);
-        //debug!("NET E1000: TDH: {}", self.read(REG_TDH));
-        //debug!("NET E1000: TDT: {}", self.read(REG_TDT));
+        debug!("NET E1000: tx_id = {}", tx_id);
+        debug!("NET E1000: TDH -> {}", self.read(REG_TDH));
+        debug!("NET E1000: TDT -> {}", self.read(REG_TDT));
         //debug!("NET E1000: {:?}", tx_descs[tx_id]);
 
         //usr::hex::print_hex(&self.tx_buffers[tx_id][0..len]);
@@ -527,7 +525,7 @@ impl EthernetDeviceIO for Device {
 
         fence(Ordering::SeqCst);
         self.write(REG_TDT, ((tx_id + 1) % TX_BUFFERS_COUNT) as u32);
-        //debug!("NET E1000: TDT <- {}", tx_id + 1);
+        debug!("NET E1000: TDT <- {}", tx_id + 1);
 
         /*
         for i in 0..256 {
