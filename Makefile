@@ -66,7 +66,7 @@ qemu-opts = -m $(memory) -drive file=$(img),format=raw \
 ifeq ($(kvm),true)
 	qemu-opts += -cpu host -accel kvm
 else
-	qemu-opts += -cpu max
+	qemu-opts += -cpu core2duo
 endif
 
 ifeq ($(pcap),true)
