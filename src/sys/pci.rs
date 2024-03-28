@@ -100,7 +100,9 @@ impl DeviceConfig {
                 (bar0 & 0x0000FFF0) as u64
             }
             2 => { // 64 bits
-                ((bar0 & 0xFFFFFFF0) as u64) + (((bar1 & 0xFFFFFFF0) as u64) << 32)
+                let l = (bar0 & 0xFFFFFFF0) as u64;
+                let h = (bar1 & 0xFFFFFFF0) as u64;
+                l + (h << 32)
             }
             _ => { // TODO
                 panic!("Unknown base address size");
