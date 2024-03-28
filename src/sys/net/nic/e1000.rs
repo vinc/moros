@@ -417,37 +417,39 @@ impl EthernetDeviceIO for Device {
         //debug!("NET E1000: RDH -> {}", self.read(REG_RDH));
         //debug!("NET E1000: RDT -> {}", self.read(REG_RDT));
 
-        //self.write(REG_IMS, 0x1);
+        // Link Status Change
         if icr & ICR_LSC > 0 {
             //debug!("NET E1000: ICR.LSC");
             self.link_up();
             return None;
         }
 
+        // Receive Descriptor Minimum Threshold
         if icr & ICR_RXDMT0 > 0 {
             //debug!("NET E1000: ICR.RXDMT0");
         }
 
+        // Receiver Timer Interrupt
         if icr & ICR_RXT0 > 0 {
             //debug!("NET E1000: ICR.RXT0");
+        }
 
-            let rx_id = self.rx_id.load(Ordering::SeqCst);
-            //debug!("NET E1000: rx_id = {}", rx_id);
 
-            let mut rx_descs = self.rx_descs.lock();
-            //debug!("NET E1000: {:?}", rx_descs[rx_id]);
+        let rx_id = self.rx_id.load(Ordering::SeqCst);
+        let mut rx_descs = self.rx_descs.lock();
+        //debug!("NET E1000: rx_id = {}", rx_id);
+        //debug!("NET E1000: {:?}", rx_descs[rx_id]);
 
-            fence(Ordering::SeqCst); // TODO: Needed?
+
+        // If hardware is done with the current descriptor
+        if rx_descs[rx_id].status & RSTA_DD > 0 {
+            // TODO: Check for end of packet (RSTA_EOP)
             self.rx_id.store((rx_id + 1) % RX_BUFFERS_COUNT, Ordering::SeqCst);
-
-            // If hardware is done with the descriptor
-            if rx_descs[rx_id].status & RSTA_DD > 0 {
-                let n = rx_descs[rx_id].len as usize;
-                let buf = self.rx_buffers[rx_id][0..n].to_vec();
-                rx_descs[rx_id].status = 0; // Driver is done
-                self.write(REG_RDT, rx_id as u32);
-                return Some(buf);
-            }
+            let n = rx_descs[rx_id].len as usize;
+            let buf = self.rx_buffers[rx_id][0..n].to_vec();
+            rx_descs[rx_id].status = 0; // Driver is done
+            self.write(REG_RDT, rx_id as u32);
+            return Some(buf);
         }
 
         None
