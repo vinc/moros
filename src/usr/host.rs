@@ -152,7 +152,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
         loop {
             let mut data = vec![0; buf_len];
             if let Some(bytes) = syscall::read(handle, &mut data) {
-                if bytes == 0 {
+                if bytes < 28 {
                     break;
                 }
                 data.resize(bytes, 0);

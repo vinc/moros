@@ -4,10 +4,12 @@
 
 - [x] QEMU
   - [x] CPU: Intel Core 2 Duo T7700
-  - [x] NIC: Realtek RTL8139
+  - [x] NIC: Intel PRO/1000 MT Desktop
+  - [x] NIC: Realtek RTL8139C
+  - [x] NIC: AMD PCnet-FAST III
 
 - [x] VirtualBox
-  - [x] NIC: PCnet-FAST III
+  - [x] NIC: AMD PCnet-FAST III
 
 - [x] Bochs
 

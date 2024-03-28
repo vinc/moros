@@ -128,9 +128,9 @@ impl PhysBuf {
 
     // Realloc vec until it uses a chunk of contiguous physical memory
     fn from(vec: Vec<u8>) -> Self {
-        let buffer_len = vec.len() - 1;
-        let memory_len = phys_addr(&vec[buffer_len]) - phys_addr(&vec[0]);
-        if buffer_len == memory_len as usize {
+        let buffer_end = vec.len() - 1;
+        let memory_end = phys_addr(&vec[buffer_end]) - phys_addr(&vec[0]);
+        if buffer_end == memory_end as usize {
             Self {
                 buf: Arc::new(Mutex::new(vec)),
             }

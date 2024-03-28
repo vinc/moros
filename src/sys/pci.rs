@@ -4,6 +4,7 @@ use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
+use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceConfig {
@@ -81,6 +82,38 @@ impl DeviceConfig {
         let mut data = register.read();
         data.set_bit(2, true);
         register.write(data);
+    }
+
+    pub fn bar_type(&self) -> u16 {
+        self.base_addresses[0].get_bits(1..3) as u16
+    }
+
+    pub fn mem_base(&self) -> PhysAddr {
+        debug_assert!(self.base_addresses[0].get_bit(0) == false);
+        let bar0 = self.base_addresses[0];
+        let bar1 = self.base_addresses[1];
+        let addr = match bar0.get_bits(1..3) {
+            0 => { // 32 bits
+                (bar0 & 0xFFFFFFF0) as u64
+            }
+            1 => { // 16 bits
+                (bar0 & 0x0000FFF0) as u64
+            }
+            2 => { // 64 bits
+                let l = (bar0 & 0xFFFFFFF0) as u64;
+                let h = (bar1 & 0xFFFFFFF0) as u64;
+                l + (h << 32)
+            }
+            _ => { // TODO
+                panic!("Unknown base address size");
+            }
+        };
+        PhysAddr::new(addr)
+    }
+
+    pub fn io_base(&self) -> u16 {
+        debug_assert!(self.base_addresses[0].get_bit(0) == true);
+        (self.base_addresses[0] as u16) & 0xFFF0
     }
 }
 

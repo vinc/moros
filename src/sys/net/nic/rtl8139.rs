@@ -317,7 +317,7 @@ impl EthernetDeviceIO for Device {
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
         let tx_id = (self.tx_id.load(Ordering::SeqCst) + 1) % TX_BUFFERS_COUNT;
-        self.tx_id.store(tx_id, Ordering::Relaxed);
+        self.tx_id.store(tx_id, Ordering::SeqCst);
         &mut self.tx_buffers[tx_id][0..len]
     }
 }

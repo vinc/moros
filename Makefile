@@ -11,9 +11,10 @@ memory = 32
 output = video# video, serial
 keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
+trace = false# e1000
 
 # Emulation options
-nic = rtl8139# rtl8139, pcnet
+nic = rtl8139# rtl8139, pcnet, e1000
 audio = sdl# sdl, coreaudio
 kvm = false
 pcap = false
@@ -65,7 +66,7 @@ qemu-opts = -m $(memory) -drive file=$(img),format=raw \
 ifeq ($(kvm),true)
 	qemu-opts += -cpu host -accel kvm
 else
-	qemu-opts += -cpu max
+	qemu-opts += -cpu core2duo
 endif
 
 ifeq ($(pcap),true)
@@ -77,11 +78,15 @@ ifeq ($(monitor),true)
 endif
 
 ifeq ($(output),serial)
-	qemu-opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
+	qemu-opts += -display none -chardev stdio,id=s0 -serial chardev:s0
 endif
 
 ifeq ($(mode),debug)
 	qemu-opts += -s -S
+endif
+
+ifeq ($(trace),e1000)
+	qemu-opts += -trace 'e1000*'
 endif
 
 # In debug mode, open another terminal with the following command
