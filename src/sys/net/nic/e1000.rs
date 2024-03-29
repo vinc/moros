@@ -55,11 +55,11 @@ const RCTL_SECRC: u32 = 1 << 26; // Strip Ethernet CRC
 const RCTL_BSIZE_256: u32 =    3 << 16;
 const RCTL_BSIZE_512: u32 =    2 << 16;
 const RCTL_BSIZE_1024: u32 =   1 << 16;
-*/
 const RCTL_BSIZE_2048: u32 =   0 << 16;
-/*
 const RCTL_BSIZE_4096: u32 =  (3 << 16) | (1 << 25);
+*/
 const RCTL_BSIZE_8192: u32 =  (2 << 16) | (1 << 25);
+/*
 const RCTL_BSIZE_16384: u32 = (1 << 16) | (1 << 25);
 */
 
@@ -89,8 +89,8 @@ const RX_BUFFERS_COUNT: usize = 64;
 const TX_BUFFERS_COUNT: usize = 8;
 
 // NOTE: Must be equals
-const BUFFER_SIZE: usize = 2048;
-const RCTL_BSIZE: u32 = RCTL_BSIZE_2048;
+const BUFFER_SIZE: usize = 8192;
+const RCTL_BSIZE: u32 = RCTL_BSIZE_8192;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(C, align(16))]
