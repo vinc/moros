@@ -51,17 +51,13 @@ const RCTL_BAM: u32 =   1 << 15; // Broadcast Accept Mode
 const RCTL_SECRC: u32 = 1 << 26; // Strip Ethernet CRC
 
 // Buffer Sizes
-/*
-const RCTL_BSIZE_256: u32 =    3 << 16;
-const RCTL_BSIZE_512: u32 =    2 << 16;
-const RCTL_BSIZE_1024: u32 =   1 << 16;
-const RCTL_BSIZE_2048: u32 =   0 << 16;
-const RCTL_BSIZE_4096: u32 =  (3 << 16) | (1 << 25);
-*/
-const RCTL_BSIZE_8192: u32 =  (2 << 16) | (1 << 25);
-/*
-const RCTL_BSIZE_16384: u32 = (1 << 16) | (1 << 25);
-*/
+// const RCTL_BSIZE_256: u32 =    3 << 16;
+// const RCTL_BSIZE_512: u32 =    2 << 16;
+// const RCTL_BSIZE_1024: u32 =   1 << 16;
+// const RCTL_BSIZE_2048: u32 =   0 << 16;
+// const RCTL_BSIZE_4096: u32 =  (3 << 16) | (1 << 25);
+// const RCTL_BSIZE_16384: u32 = (1 << 16) | (1 << 25);
+const RCTL_BSIZE_8192: u32 = (2 << 16) | (1 << 25);
 
 const CMD_EOP: u8 =  1 << 0; // End of Packet
 const CMD_IFCS: u8 = 1 << 1; // Insert FCS
@@ -79,8 +75,13 @@ const TSTA_DD: u8 = 1 << 0;  // Descriptor Done
 const RSTA_DD: u8 =  1 << 0;  // Descriptor Done
 const RSTA_EOP: u8 =  1 << 1;  // End of Packet
 
-// Device Status Register Bits
+// Device Status Register
 const DSTA_LU: u32 = 1 << 1; // Link Up Indication
+
+// Transmit IPG Register
+const TIPG_IPGT: u32 = 10; // IPG Transmit Time
+const TIPG_IPGR1: u32 = 8; // IPG Receive Time 1
+const TIPG_IPGR2: u32 = 6; // IPG Receive Time 2
 
 const IO_ADDR: u16 = 0x00;
 const IO_DATA: u16 = 0x04;
@@ -176,21 +177,6 @@ impl Device {
         self.detect_eeprom();
         self.config.update_mac(self.read_mac());
 
-        /*
-        debug!("NET E1000: io base: {}", self.io_base);
-        debug!("NET E1000: mem base: {:#X}", self.mem_base.as_u64());
-        debug!("NET E1000: bar type: {:#X}", self.bar_type);
-        if self.has_eeprom {
-            debug!("NET E1000: eeprom available");
-        } else {
-            debug!("NET E1000: eeprom unavailable");
-        }
-        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
-        debug!("NET E1000: IMS:    {:#034b}", self.read(REG_IMS));
-        debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
-        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
-        */
-
         self.init_rx();
         self.init_tx();
         self.link_up();
@@ -213,12 +199,16 @@ impl Device {
         let ptr = ptr::addr_of!(rx_descs[0]) as *const u8;
         let phys_addr = sys::allocator::phys_addr(ptr);
 
-        // Registers
+        // Ring address and length
         self.write(REG_RDBAL, phys_addr.get_bits(0..32) as u32);
         self.write(REG_RDBAH, phys_addr.get_bits(32..64) as u32);
         self.write(REG_RDLEN, (n * 16) as u32);
+
+        // Ring head and tail
         self.write(REG_RDH, 0);
         self.write(REG_RDT, (n - 1) as u32);
+
+        // Control Register
         self.write(REG_RCTL, RCTL_EN | RCTL_BAM | RCTL_SECRC | RCTL_BSIZE);
     }
 
@@ -235,21 +225,25 @@ impl Device {
         let ptr = ptr::addr_of!(tx_descs[0]) as *const _;
         let phys_addr = sys::allocator::phys_addr(ptr);
 
-        // Registers
+        // Ring address and length
         self.write(REG_TDBAL, phys_addr.get_bits(0..32) as u32);
         self.write(REG_TDBAH, phys_addr.get_bits(32..64) as u32);
         self.write(REG_TDLEN, (n as u32) * 16);
+
+        // Ring head and tail
         self.write(REG_TDH, 0);
         self.write(REG_TDT, 0);
 
-        self.write(REG_TCTL, TCTL_EN
-            | TCTL_PSP
-            | (0x10 << TCTL_CT_SHIFT)
-            | (0x40 << TCTL_COLD_SHIFT));
+        // Control Register
+        self.write(REG_TCTL, TCTL_EN      // Transmit Enable
+            | TCTL_PSP                    // Pad Short Packets
+            | (0x10 << TCTL_CT_SHIFT)     // Collision Threshold
+            | (0x40 << TCTL_COLD_SHIFT)); // Collision Distance
 
-        self.write(REG_TIPG, 10 | (8 << 10) | (6 << 20));
-        //self.write(REG_TCTL, 0b0110000000000111111000011111010);
-        //self.write(REG_TIPG, 0x0060200A);
+        // Inter Packet Gap (3 x 10 bits)
+        self.write(REG_TIPG, TIPG_IPGT // IPG Transmit Time
+            | (TIPG_IPGR1 << 10)       // IPG Receive Time 1
+            | (TIPG_IPGR2 << 20));     // IPG Receive Time 2
     }
 
     fn read_mac(&self) -> EthernetAddress {
@@ -322,7 +316,6 @@ impl Device {
     fn read_eeprom(&self, addr: u16) -> u32 {
         let e = if self.has_eeprom { 4 } else { 0 };
         self.write(REG_EECD, 1 | ((addr as u32) << 2 * e));
-
         let mut res = 0;
         while res & (1 << 1 * e) == 0 {
             res = self.read(REG_EECD);
@@ -393,12 +386,10 @@ impl EthernetDeviceIO for Device {
             //debug!("NET E1000: ICR.RXT0");
         }
 
-
         let rx_id = self.rx_id.load(Ordering::SeqCst);
         let mut rx_descs = self.rx_descs.lock();
         //debug!("NET E1000: rx_id = {}", rx_id);
         //debug!("NET E1000: {:?}", rx_descs[rx_id]);
-
 
         // If hardware is done with the current descriptor
         if rx_descs[rx_id].status & RSTA_DD > 0 {
@@ -418,24 +409,16 @@ impl EthernetDeviceIO for Device {
 
     fn transmit_packet(&mut self, len: usize) {
         let tx_id = self.tx_id.load(Ordering::SeqCst);
-        /*
-        debug!("------------------------------------------------------------");
-        debug!("NET E1000: transmit_packet({})", len);
-        debug!("NET E1000: tx_id = {}", tx_id);
-        debug!("NET E1000: TDH -> {}", self.read(REG_TDH));
-        debug!("NET E1000: TDT -> {}", self.read(REG_TDT));
-        */
-
         let mut tx_descs = self.tx_descs.lock();
-        assert_eq!(tx_descs[tx_id].addr, self.tx_buffers[tx_id].addr());
+        debug_assert_eq!(tx_descs[tx_id].addr, self.tx_buffers[tx_id].addr());
+
+        // Setup descriptor
         tx_descs[tx_id].len = len as u16;
         tx_descs[tx_id].cmd = CMD_EOP | CMD_IFCS | CMD_RS;
         tx_descs[tx_id].status = 0; // Driver is done
-        //debug!("NET E1000: {:?}", tx_descs[tx_id]);
 
         // Let the hardware handle the descriptor
         self.write(REG_TDT, ((tx_id + 1) % TX_BUFFERS_COUNT) as u32);
-        //debug!("NET E1000: TDT <- {}", tx_id + 1);
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
