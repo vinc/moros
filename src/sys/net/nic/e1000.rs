@@ -77,6 +77,7 @@ const TSTA_DD: u8 = 1 << 0;  // Descriptor Done
 
 // Receive Descriptor Status Field
 const RSTA_DD: u8 =  1 << 0;  // Descriptor Done
+const RSTA_EOP: u8 =  1 << 1;  // End of Packet
 
 // Device Status Register Bits
 const DSTA_LU: u32 = 1 << 1; // Link Up Indication
@@ -401,7 +402,9 @@ impl EthernetDeviceIO for Device {
 
         // If hardware is done with the current descriptor
         if rx_descs[rx_id].status & RSTA_DD > 0 {
-            // TODO: Check for end of packet (RSTA_EOP)
+            if rx_descs[rx_id].status & RSTA_EOP == 0 {
+                // FIXME: this is not the last descriptor for the packet
+            }
             self.rx_id.store((rx_id + 1) % RX_BUFFERS_COUNT, Ordering::SeqCst);
             let n = rx_descs[rx_id].len as usize;
             let buf = self.rx_buffers[rx_id][0..n].to_vec();
