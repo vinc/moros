@@ -23,6 +23,7 @@ use smoltcp::wire::IpAddress;
 
 const MAX_CONNECTIONS: usize = 32;
 const POLL_DELAY_DIV: usize = 128;
+const INDEX: [&str; 4] = ["", "/index.html", "/index.htm", "/index.txt"];
 
 #[derive(Clone)]
 struct Request {
@@ -212,10 +213,8 @@ fn get(req: &Request, res: &mut Response) {
         res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
     } else {
         let mut not_found = true;
-        for autocomplete in
-            &["", "/index.html", "/index.htm", "/index.txt"]
-        {
-            let real_path = format!("{}{}", res.real_path, autocomplete);
+        for index in INDEX {
+            let real_path = format!("{}{}", res.real_path, index);
             if fs::is_dir(&real_path) {
                 continue;
             }
