@@ -34,11 +34,11 @@
 
 - [x] Dell Latitude E6400 (2008)
   - [x] CPU: Intel Core 2 Duo P8600
-  - [ ] NIC: Intel PRO/1000
+  - [x] NIC: Intel 82567LM
 
 - [x] Lenovo ThinkPad X200 (2008)
   - [x] CPU: Intel Core 2 Duo P8600
-  - [ ] NIC: Intel 82567-LM
+  - [x] NIC: Intel 82567LM
 
 - [x] Lenovo ThinkPad T440p (2013)
   - [x] CPU: Intel Core i5-4300M
