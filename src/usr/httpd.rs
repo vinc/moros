@@ -221,7 +221,7 @@ fn get(req: &Request, res: &mut Response) {
             }
             if let Ok(buf) = fs::read_to_bytes(&real_path) {
                 res.code = 200;
-                res.mime = content_type(&res.real_path);
+                res.mime = content_type(&real_path);
                 let tmp;
                 res.body.extend_from_slice(
                     if res.mime.starts_with("text/") {
