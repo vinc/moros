@@ -24,6 +24,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let source = args[1];
     let dest = destination(args[1], args[2]);
 
+    if fs::is_dir(source) {
+        error!("Could not copy directory '{}'", source);
+        return Err(ExitCode::Failure);
+    }
+
     if let Ok(contents) = fs::read_to_bytes(source) {
         if fs::write(&dest, &contents).is_ok() {
             Ok(())
