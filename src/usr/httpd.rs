@@ -380,45 +380,57 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     None => continue,
                 };
                 if socket.may_recv() {
-                    let res = socket.recv(|buf| {
-                        if let Some(req) = Request::from(endpoint.addr, buf) {
-                            let mut res = Response::new(req.clone());
-                            let sep = if req.path == "/" { "" } else { "/" };
-                            res.real_path = format!(
-                                "{}{}{}",
-                                dir,
-                                sep,
-                                req.path.strip_suffix('/').unwrap_or(&req.path)
-                            ).replace("//", "/");
-
-                            match req.verb.as_str() {
-                                "GET" => {
-                                    get(&req, &mut res)
-                                }
-                                "PUT" if !read_only => {
-                                    put(&req, &mut res)
-                                }
-                                "DELETE" if !read_only => {
-                                    delete(&req, &mut res)
-                                }
-                                _ => {
-                                    let s = b"<h1>Bad Request</h1>\r\n";
-                                    res.body.extend_from_slice(s);
-                                    res.code = 400;
-                                    res.mime = "text/html".to_string();
-                                }
+                    // The amount of octets queued in the receive buffer may be
+                    // larger than the contiguous slice returned by `recv` so
+                    // we need to loop over chunks of it until it is empty.
+                    let recv_queue = socket.recv_queue();
+                    let mut receiving = true;
+                    let mut buf = vec![];
+                    while receiving {
+                        let res = socket.recv(|chunk| {
+                            buf.extend_from_slice(chunk);
+                            if buf.len() < recv_queue {
+                                return (chunk.len(), None);
                             }
-                            res.end();
-                            println!("{}", res);
-                            (buf.len(), Some(res))
-                        } else {
-                            (0, None)
+                            receiving = false;
+
+                            let addr = endpoint.addr;
+                            if let Some(req) = Request::from(addr, &buf) {
+                                let mut res = Response::new(req.clone());
+                                res.real_path = join_path(&dir, &req.path);
+
+                                match req.verb.as_str() {
+                                    "GET" => {
+                                        get(&req, &mut res)
+                                    }
+                                    "PUT" if !read_only => {
+                                        put(&req, &mut res)
+                                    }
+                                    "DELETE" if !read_only => {
+                                        delete(&req, &mut res)
+                                    }
+                                    _ => {
+                                        let s = b"<h1>Bad Request</h1>\r\n";
+                                        res.body.extend_from_slice(s);
+                                        res.code = 400;
+                                        res.mime = "text/html".to_string();
+                                    }
+                                }
+                                res.end();
+                                println!("{}", res);
+                                (chunk.len(), Some(res))
+                            } else {
+                                (0, None)
+                            }
+                        });
+                        if receiving {
+                            continue;
                         }
-                    });
-                    if let Ok(Some(res)) = res {
-                        *keep_alive = res.is_persistent();
-                        for chunk in res.buf.chunks(buf_len) {
-                            send_queue.push_back(chunk.to_vec());
+                        if let Ok(Some(res)) = res {
+                            *keep_alive = res.is_persistent();
+                            for chunk in res.buf.chunks(buf_len) {
+                                send_queue.push_back(chunk.to_vec());
+                            }
                         }
                     }
                     if socket.can_send() {
@@ -465,6 +477,12 @@ fn content_type(path: &str) -> String {
         "txt"          => "text/plain",
         _              => "application/octet-stream",
     }.to_string()
+}
+
+fn join_path(dir: &str, path: &str) -> String {
+    let sep = if path == "/" { "" } else { "/" };
+    let path = path.strip_suffix('/').unwrap_or(&path);
+    format!("{}{}{}", dir, sep, path).replace("//", "/")
 }
 
 fn usage() {
