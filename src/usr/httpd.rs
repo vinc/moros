@@ -337,6 +337,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         i += 1;
     }
 
+    // NOTE: This specific format is needed by `join_path`
+    let dir = format!("/{}", fs::realpath(&dir).trim_matches('/'));
+
     if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
         let mut sockets = SocketSet::new(vec![]);
 
@@ -479,11 +482,13 @@ fn content_type(path: &str) -> String {
     }.to_string()
 }
 
+// Join the requested file path to the root dir of the server
 fn join_path(dir: &str, path: &str) -> String {
-    let dir = dir.trim_matches('/');
+    debug_assert!(dir.starts_with('/'));
+    debug_assert!(path.starts_with('/'));
     let path = path.trim_matches('/');
-    let sep = if dir == "" || path == "" { "" } else { "/" };
-    format!("/{}{}{}", dir, sep, path)
+    let sep = if dir == "/" || path == "" { "" } else { "/" };
+    format!("{}{}{}", dir, sep, path)
 }
 
 fn usage() {
@@ -512,9 +517,6 @@ fn usage() {
 
 #[test_case]
 fn test_join_path() {
-    assert_eq!(join_path("/foo/", "/bar/"), "/foo/bar");
-    assert_eq!(join_path("/foo/", "/bar"), "/foo/bar");
-    assert_eq!(join_path("/foo/", "/"), "/foo");
     assert_eq!(join_path("/foo", "/bar/"), "/foo/bar");
     assert_eq!(join_path("/foo", "/bar"), "/foo/bar");
     assert_eq!(join_path("/foo", "/"), "/foo");
