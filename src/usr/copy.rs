@@ -68,7 +68,7 @@ fn help() {
 }
 
 #[test_case]
-fn test_copy() {
+fn test_destination() {
     use crate::{usr, sys};
 
     sys::fs::mount_mem();
