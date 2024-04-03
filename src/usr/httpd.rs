@@ -480,9 +480,10 @@ fn content_type(path: &str) -> String {
 }
 
 fn join_path(dir: &str, path: &str) -> String {
-    let sep = if path == "/" { "" } else { "/" };
-    let path = path.strip_suffix('/').unwrap_or(&path);
-    format!("{}{}{}", dir, sep, path).replace("//", "/")
+    let dir = dir.trim_matches('/');
+    let path = path.trim_matches('/');
+    let sep = if dir == "" || path == "" { "" } else { "/" };
+    format!("/{}{}{}", dir, sep, path)
 }
 
 fn usage() {
@@ -507,4 +508,17 @@ fn usage() {
         "  {0}-r{1}, {0}--read-only{1}        Set read-only mode",
         csi_option, csi_reset
     );
+}
+
+#[test_case]
+fn test_join_path() {
+    assert_eq!(join_path("/foo/", "/bar/"), "/foo/bar");
+    assert_eq!(join_path("/foo/", "/bar"), "/foo/bar");
+    assert_eq!(join_path("/foo/", "/"), "/foo");
+    assert_eq!(join_path("/foo", "/bar/"), "/foo/bar");
+    assert_eq!(join_path("/foo", "/bar"), "/foo/bar");
+    assert_eq!(join_path("/foo", "/"), "/foo");
+    assert_eq!(join_path("/", "/bar/"), "/bar");
+    assert_eq!(join_path("/", "/bar"), "/bar");
+    assert_eq!(join_path("/", "/"), "/");
 }
