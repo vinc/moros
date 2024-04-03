@@ -21,6 +21,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
+    if args[2].is_empty() {
+        error!("Could not write to ''");
+        return Err(ExitCode::Failure);
+    }
+
     let source = args[1];
     let dest = destination(args[1], args[2]);
 
@@ -43,6 +48,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn destination(source: &str, dest: &str) -> String {
+    debug_assert!(!dest.is_empty());
     let mut dest = dest.trim_end_matches('/').to_string();
     if dest.is_empty() || fs::is_dir(&dest) {
         let file = fs::filename(source);
