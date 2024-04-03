@@ -43,11 +43,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn destination(source: &str, dest: &str) -> String {
-    let mut dest = dest.to_string();
-    if dest.ends_with('/') {
-        dest = dest.trim_end_matches('/').to_string();
-    }
-    if fs::is_dir(&dest) {
+    let mut dest = dest.trim_end_matches('/').to_string();
+    if dest.is_empty() || fs::is_dir(&dest) {
         let file = fs::filename(source);
         dest = format!("{}/{}", dest, file);
     }
@@ -73,8 +70,12 @@ fn test_copy() {
     usr::install::copy_files(false);
 
     assert_eq!(destination("foo.txt", "bar.txt"), "bar.txt");
+
+    assert_eq!(destination("foo.txt", "/"), "/foo.txt");
     assert_eq!(destination("foo.txt", "/tmp"), "/tmp/foo.txt");
     assert_eq!(destination("foo.txt", "/tmp/"), "/tmp/foo.txt");
+
+    assert_eq!(destination("/usr/vinc/foo.txt", "/"), "/foo.txt");
     assert_eq!(destination("/usr/vinc/foo.txt", "/tmp"), "/tmp/foo.txt");
     assert_eq!(destination("/usr/vinc/foo.txt", "/tmp/"), "/tmp/foo.txt");
 
