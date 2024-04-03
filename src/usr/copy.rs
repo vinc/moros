@@ -7,10 +7,6 @@ use alloc::string::{String, ToString};
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let n = args.len();
-    if n != 3 {
-        help();
-        return Err(ExitCode::UsageError);
-    }
     for i in 1..n {
         match args[i] {
             "-h" | "--help" => {
@@ -19,6 +15,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             _ => continue,
         }
+    }
+    if n != 3 {
+        help();
+        return Err(ExitCode::UsageError);
     }
 
     let source = args[1];
