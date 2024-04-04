@@ -253,6 +253,17 @@ fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     }
 }
 
+const E1000_DEVICES: [u16; 8] =[
+    0x1004, // 82543GC (Intel PRO/1000 T)
+    0x100C, // 82544GC (Intel PRO/1000 T)
+    0x100E, // 82540EM (Intel PRO/1000 MT)
+    0x100F, // 82545EM (Intel PRO/1000 MT)
+    0x107C, // 82541PI (Intel PRO/1000 GT)
+    0x10D3, // 82574L
+    0x10F5, // 82567LM
+    0x153A, // I217-LM
+];
+
 pub fn init() {
     let add = |mut device: EthernetDevice, name| {
         if let Some(mac) = device.config().mac() {
@@ -274,7 +285,7 @@ pub fn init() {
         let nic = nic::pcnet::Device::new(io);
         add(EthernetDevice::PCNET(nic), "PCNET");
     }
-    for id in [0x1004, 0x100C, 0x100E, 0x100F, 0x10D3, 0x10F5, 0x153A] {
+    for id in E1000_DEVICES {
         if let Some(dev) = find_device(0x8086, id) {
             let io = dev.io_base();
             let mem = dev.mem_base();
