@@ -20,7 +20,10 @@
 - [x] Homebuilt (2007)
   - [x] MB: Asus P5K
   - [x] CPU: Intel Core 2 Duo E6850
+  - [x] NIC: Realtek RTL8139B
+  - [x] NIC: Realtek RTL8139C
   - [x] NIC: Realtek RTL8139D
+  - [x] NIC: Intel PRO/1000 GT
 
 - [x] HP ProLiant MicroServer N40L (2012)
   - [x] CPU: AMD Athlon II Dual Core
