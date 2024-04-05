@@ -253,7 +253,7 @@ fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     }
 }
 
-const E1000_DEVICES: [u16; 8] =[
+const E1000_DEVICES: [u16; 8] = [
     0x1004, // 82543GC (Intel PRO/1000 T)
     0x100C, // 82544GC (Intel PRO/1000 T)
     0x100E, // 82540EM (Intel PRO/1000 MT)
