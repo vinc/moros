@@ -63,11 +63,11 @@ const CMD_EOP: u8 =  1 << 0; // End of Packet
 const CMD_IFCS: u8 = 1 << 1; // Insert FCS
 const CMD_RS: u8 =   1 << 3; // Report Status
 
-const TCTL_EN: u32 = 1 << 1; // Transmit Enable
-const TCTL_PSP: u32 = 1 << 3; // Pad Short Packets
-const TCTL_CT_SHIFT: u32 = 4; // Collision Threshold
+const TCTL_EN: u32 = 1 << 1;     // Transmit Enable
+const TCTL_PSP: u32 = 1 << 3;    // Pad Short Packets
+const TCTL_MULR: u32 = 1 << 28;  // Multiple Request Support
+const TCTL_CT_SHIFT: u32 = 4;    // Collision Threshold
 const TCTL_COLD_SHIFT: u32 = 12; // Collision Distance
-const TCTL_MULR: u32 = 1 << 28; // Multiple Request Support
 
 // Transmit Descriptor Status Field
 const TSTA_DD: u8 = 1 << 0; // Descriptor Done
@@ -237,16 +237,16 @@ impl Device {
 
         // Control Register
         // NOTE: MULR is only needed for Intel I217-LM
-        self.write(REG_TCTL, TCTL_EN      // Transmit Enable
-            | TCTL_PSP                    // Pad Short Packets
-            | (0x0F << TCTL_CT_SHIFT)     // Collision Threshold
-            | (0x3F << TCTL_COLD_SHIFT)   // Collision Distance
-            | TCTL_MULR);                 // Multiple Request Support
+        self.write(REG_TCTL, TCTL_EN    // Transmit Enable
+            | TCTL_PSP                  // Pad Short Packets
+            | (0x0F << TCTL_CT_SHIFT)   // Collision Threshold
+            | (0x3F << TCTL_COLD_SHIFT) // Collision Distance
+            | TCTL_MULR);               // Multiple Request Support
 
         // Inter Packet Gap (3 x 10 bits)
-        self.write(REG_TIPG, TIPG_IPGT // IPG Transmit Time
-            | (TIPG_IPGR1 << 10)       // IPG Receive Time 1
-            | (TIPG_IPGR2 << 20));     // IPG Receive Time 2
+        self.write(REG_TIPG, TIPG_IPGT  // IPG Transmit Time
+            | (TIPG_IPGR1 << 10)        // IPG Receive Time 1
+            | (TIPG_IPGR2 << 20));      // IPG Receive Time 2
     }
 
     fn read_mac(&self) -> EthernetAddress {
