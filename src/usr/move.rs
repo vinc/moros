@@ -19,9 +19,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     // TODO: Avoid doing copy+delete
-    match usr::copy::main(args) {
-        Ok(()) => usr::delete::main(&args[0..2]),
-        _ => Err(ExitCode::Failure),
+    if usr::copy::main(args).is_ok() {
+        usr::delete::main(&args[0..2])
+    } else {
+        Err(ExitCode::Failure)
     }
 }
 
