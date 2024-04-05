@@ -67,13 +67,14 @@ const TCTL_EN: u32 = 1 << 1; // Transmit Enable
 const TCTL_PSP: u32 = 1 << 3; // Pad Short Packets
 const TCTL_CT_SHIFT: u32 = 4; // Collision Threshold
 const TCTL_COLD_SHIFT: u32 = 12; // Collision Distance
+const TCTL_MULR: u32 = 1 << 28; // Multiple Request Support
 
 // Transmit Descriptor Status Field
-const TSTA_DD: u8 = 1 << 0;  // Descriptor Done
+const TSTA_DD: u8 = 1 << 0; // Descriptor Done
 
 // Receive Descriptor Status Field
-const RSTA_DD: u8 =  1 << 0;  // Descriptor Done
-const RSTA_EOP: u8 =  1 << 1;  // End of Packet
+const RSTA_DD: u8 =  1 << 0; // Descriptor Done
+const RSTA_EOP: u8 = 1 << 1; // End of Packet
 
 // Device Status Register
 const DSTA_LU: u32 = 1 << 1; // Link Up Indication
@@ -87,7 +88,7 @@ const IO_ADDR: u16 = 0x00;
 const IO_DATA: u16 = 0x04;
 
 // NOTE: Must be a multiple of 8
-const RX_BUFFERS_COUNT: usize = 64;
+const RX_BUFFERS_COUNT: usize = 8;
 const TX_BUFFERS_COUNT: usize = 8;
 
 // NOTE: Must be equals
@@ -235,10 +236,12 @@ impl Device {
         self.write(REG_TDT, 0);
 
         // Control Register
+        // NOTE: MULR is only needed for Intel I217-LM
         self.write(REG_TCTL, TCTL_EN      // Transmit Enable
             | TCTL_PSP                    // Pad Short Packets
-            | (0x10 << TCTL_CT_SHIFT)     // Collision Threshold
-            | (0x40 << TCTL_COLD_SHIFT)); // Collision Distance
+            | (0x0F << TCTL_CT_SHIFT)     // Collision Threshold
+            | (0x3F << TCTL_COLD_SHIFT)   // Collision Distance
+            | TCTL_MULR);                 // Multiple Request Support
 
         // Inter Packet Gap (3 x 10 bits)
         self.write(REG_TIPG, TIPG_IPGT // IPG Transmit Time
