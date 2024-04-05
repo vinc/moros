@@ -45,7 +45,7 @@
 
 - [x] Lenovo ThinkPad T440p (2013)
   - [x] CPU: Intel Core i5-4300M
-  - [ ] NIC: Intel I217-LM
+  - [x] NIC: Intel I217-LM
 
 - [x] ASUS EeeBook E202SA (2017)
   - [x] CPU: Intel Pentium N3710
