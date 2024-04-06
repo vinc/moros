@@ -10,6 +10,9 @@
 
 - [x] VirtualBox
   - [x] NIC: AMD PCnet-FAST III
+  - [x] NIC: Intel PRO/1000 MT Desktop (82540EM)
+  - [x] NIC: Intel PRO/1000 MT Server (82545EM)
+  - [x] NIC: Intel PRO/1000 T Server (82543GC)
 
 - [x] Bochs
 
@@ -23,7 +26,7 @@
   - [x] NIC: Realtek RTL8139B
   - [x] NIC: Realtek RTL8139C
   - [x] NIC: Realtek RTL8139D
-  - [x] NIC: Intel PRO/1000 GT
+  - [x] NIC: Intel PRO/1000 GT Desktop
 
 - [x] HP ProLiant MicroServer N40L (2012)
   - [x] CPU: AMD Athlon II Dual Core
