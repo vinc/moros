@@ -32,6 +32,10 @@
   - [x] CPU: AMD Athlon II Dual Core
   - [ ] NIC: HP NC107i
 
+- [x] Lenovo ThinkCentre M83 SFF (2014)
+  - [x] CPU: Intel Pentium G3220
+  - [x] NIC: Intel I217-LM
+
 - [x] Intel NUC 5CPYH (2015)
   - [x] CPU: Intel Celeron N3050
   - [ ] NIC: Realtek RTL8111HN
