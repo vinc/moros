@@ -88,7 +88,7 @@ const IO_ADDR: u16 = 0x00;
 const IO_DATA: u16 = 0x04;
 
 // NOTE: Must be a multiple of 8
-const RX_BUFFERS_COUNT: usize = 8;
+const RX_BUFFERS_COUNT: usize = 64;
 const TX_BUFFERS_COUNT: usize = 8;
 
 // NOTE: Must be equals
