@@ -9,10 +9,10 @@
   - [x] NIC: AMD PCnet-FAST III
 
 - [x] VirtualBox
-  - [x] NIC: AMD PCnet-FAST III
   - [x] NIC: Intel PRO/1000 MT Desktop (82540EM)
   - [x] NIC: Intel PRO/1000 MT Server (82545EM)
   - [x] NIC: Intel PRO/1000 T Server (82543GC)
+  - [x] NIC: AMD PCnet-FAST III
 
 - [x] Bochs
 
