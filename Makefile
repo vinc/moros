@@ -11,7 +11,6 @@ memory = 32
 output = video# video, serial
 keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
-trace = false# e1000
 
 # Emulation options
 nic = rtl8139# rtl8139, pcnet, e1000
@@ -19,6 +18,7 @@ audio = sdl# sdl, coreaudio
 signal = off# on
 kvm = false
 pcap = false
+trace = false# e1000
 monitor = false
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
