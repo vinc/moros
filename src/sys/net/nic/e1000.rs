@@ -156,12 +156,13 @@ impl Device {
             // so the first transimission will start at 0.
             tx_id: Arc::new(AtomicUsize::new(TX - 1)),
         };
+        device.reset();
         device.init();
         device
     }
 
-    fn init(&mut self) {
-        self.write(REG_IMS, 0xFFFF);
+    fn reset(&mut self) {
+        // Disable interrupts
         self.write(REG_IMC, 0xFFFF);
 
         // Reset device
@@ -169,18 +170,27 @@ impl Device {
         self.write(REG_CTRL, ctrl | CTRL_RST); // Reset
         sys::time::nanowait(500); // TODO: How long should we wait?
 
+        // Disable interrupts again
+        self.write(REG_IMC, 0xFFFF);
+
         // Reset link
         let ctrl = self.read(REG_CTRL) & !CTRL_LRST;
         self.write(REG_CTRL, ctrl);
+    }
 
-        self.read(REG_ICR); // Clear interrupts
-
+    fn init(&mut self) {
         self.detect_eeprom();
         self.config.update_mac(self.read_mac());
 
         self.init_rx();
         self.init_tx();
         self.link_up();
+
+        // Enable interrupts
+        self.write(REG_IMS, ICR_LSC | ICR_RXDMT0 | ICR_RXT0);
+
+        // Clear interrupts
+        self.read(REG_ICR);
     }
 
     fn init_rx(&mut self) {
@@ -325,6 +335,40 @@ impl Device {
         }
         (res >> 16) & 0xFFFF
     }
+
+    #[allow(dead_code)]
+    fn debug(&self) {
+        // Registers
+        debug!("NET E1000: ICR:    {:#034b}", self.read(REG_ICR));
+        debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
+        debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
+        debug!("NET E1000: RDH -> {}", self.read(REG_RDH));
+        debug!("NET E1000: RDT -> {}", self.read(REG_RDT));
+        debug!("NET E1000: TDH -> {}", self.read(REG_TDH));
+        debug!("NET E1000: TDT -> {}", self.read(REG_TDT));
+
+        // Receive descriptors
+        let rx_descs = self.rx_descs.lock();
+        for i in 0..RX_BUFFERS_COUNT {
+            let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
+            let phy = sys::allocator::phys_addr(ptr);
+            debug!(
+                "NET E1000: [{}] {:?} ({:#X} -> {:#X})",
+                i, rx_descs[i], ptr as u64, phy
+            );
+        }
+
+        // Transmit descriptors
+        let tx_descs = self.tx_descs.lock();
+        for i in 0..TX_BUFFERS_COUNT {
+            let ptr = ptr::addr_of!(tx_descs[i]) as *const u8;
+            let phy = sys::allocator::phys_addr(ptr);
+            debug!(
+                "NET E1000: [{}] {:?} ({:#X} -> {:#X})",
+                i, tx_descs[i], ptr as u64, phy
+            );
+        }
+    }
 }
 
 impl EthernetDeviceIO for Device {
@@ -337,42 +381,11 @@ impl EthernetDeviceIO for Device {
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        /*
-        debug!("------------------------------------------------------------");
-        debug!("NET E1000: receive_packet");
-        debug!("NET E1000: begin listing descriptors");
-        for i in 0..TX_BUFFERS_COUNT {
-            let tx_descs = self.tx_descs.lock();
-            let ptr = ptr::addr_of!(tx_descs[i]) as *const u8;
-            let phy = sys::allocator::phys_addr(ptr);
-            debug!(
-                "NET E1000: [{}] {:?} ({:#X} -> {:#X})",
-                i, tx_descs[i], ptr as u64, phy
-            );
-        }
-        for i in 0..RX_BUFFERS_COUNT {
-            let rx_descs = self.rx_descs.lock();
-            let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
-            let phy = sys::allocator::phys_addr(ptr);
-            debug!(
-                "NET E1000: [{}] {:?} ({:#X} -> {:#X})",
-                i, rx_descs[i], ptr as u64, phy
-            );
-        }
-        debug!("NET E1000: end listing descriptors");
-        */
-
         let icr = self.read(REG_ICR);
         self.write(REG_ICR, icr);
-        //debug!("NET E1000: ICR:    {:#034b}", icr);
-        //debug!("NET E1000: CTRL:   {:#034b}", self.read(REG_CTRL));
-        //debug!("NET E1000: STATUS: {:#034b}", self.read(REG_STATUS));
-        //debug!("NET E1000: RDH -> {}", self.read(REG_RDH));
-        //debug!("NET E1000: RDT -> {}", self.read(REG_RDT));
 
         // Link Status Change
         if icr & ICR_LSC > 0 {
-            //debug!("NET E1000: ICR.LSC");
             if self.read(REG_STATUS) & DSTA_LU == 0 {
                 self.link_up();
                 return None;
@@ -381,18 +394,16 @@ impl EthernetDeviceIO for Device {
 
         // Receive Descriptor Minimum Threshold
         if icr & ICR_RXDMT0 > 0 {
-            //debug!("NET E1000: ICR.RXDMT0");
+            // TODO
         }
 
         // Receiver Timer Interrupt
         if icr & ICR_RXT0 > 0 {
-            //debug!("NET E1000: ICR.RXT0");
+            // TODO
         }
 
         let rx_id = self.rx_id.load(Ordering::SeqCst);
         let mut rx_descs = self.rx_descs.lock();
-        //debug!("NET E1000: rx_id = {}", rx_id);
-        //debug!("NET E1000: {:?}", rx_descs[rx_id]);
 
         // If hardware is done with the current descriptor
         if rx_descs[rx_id].status & RSTA_DD > 0 {
