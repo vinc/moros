@@ -4,6 +4,7 @@ pub mod socket;
 use crate::{sys, usr};
 use crate::sys::pci::DeviceConfig;
 
+use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -267,7 +268,8 @@ const E1000_DEVICES: [u16; 8] = [
 pub fn init() {
     let add = |mut device: EthernetDevice, name| {
         if let Some(mac) = device.config().mac() {
-            log!("NET {} MAC {}", name, mac);
+            let addr = format!("{}", mac).to_uppercase();
+            log!("NET {} MAC {}", name, addr);
 
             let config = smoltcp::iface::Config::new(mac.into());
             let iface = Interface::new(config, &mut device, time());
