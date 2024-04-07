@@ -187,7 +187,8 @@ impl Device {
         self.link_up();
 
         // Enable interrupts
-        self.write(REG_IMS, ICR_LSC | ICR_RXDMT0 | ICR_RXT0);
+        //self.write(REG_IMS, ICR_LSC | ICR_RXDMT0 | ICR_RXT0);
+        self.write(REG_IMS, 0);
 
         // Clear interrupts
         self.read(REG_ICR);
