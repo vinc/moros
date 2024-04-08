@@ -2,7 +2,9 @@ mod nic;
 pub mod socket;
 
 use crate::{sys, usr};
+use crate::sys::pci::DeviceConfig;
 
+use alloc::format;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -33,8 +35,8 @@ fn time() -> Instant {
 pub enum EthernetDevice {
     RTL8139(nic::rtl8139::Device),
     PCNET(nic::pcnet::Device),
+    E1000(nic::e1000::Device),
     VirtIO(nic::virtio::Device),
-    //E2000,
 }
 
 pub trait EthernetDeviceIO {
@@ -50,6 +52,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.config(),
             EthernetDevice::PCNET(dev) => dev.config(),
+            EthernetDevice::E1000(dev) => dev.config(),
             EthernetDevice::VirtIO(dev) => dev.config(),
         }
     }
@@ -58,6 +61,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.stats(),
             EthernetDevice::PCNET(dev) => dev.stats(),
+            EthernetDevice::E1000(dev) => dev.stats(),
             EthernetDevice::VirtIO(dev) => dev.stats(),
         }
     }
@@ -66,6 +70,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.receive_packet(),
             EthernetDevice::PCNET(dev) => dev.receive_packet(),
+            EthernetDevice::E1000(dev) => dev.receive_packet(),
             EthernetDevice::VirtIO(dev) => dev.receive_packet(),
         }
     }
@@ -74,6 +79,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.transmit_packet(len),
             EthernetDevice::PCNET(dev) => dev.transmit_packet(len),
+            EthernetDevice::E1000(dev) => dev.transmit_packet(len),
             EthernetDevice::VirtIO(dev) => dev.transmit_packet(len),
         }
     }
@@ -82,6 +88,7 @@ impl EthernetDeviceIO for EthernetDevice {
         match self {
             EthernetDevice::RTL8139(dev) => dev.next_tx_buffer(len),
             EthernetDevice::PCNET(dev) => dev.next_tx_buffer(len),
+            EthernetDevice::E1000(dev) => dev.next_tx_buffer(len),
             EthernetDevice::VirtIO(dev) => dev.next_tx_buffer(len),
         }
     }
@@ -154,11 +161,11 @@ impl smoltcp::phy::TxToken for TxToken {
     {
         let config = self.device.config();
         let buf = self.device.next_tx_buffer(len);
+        let res = f(buf);
         if config.is_debug_enabled() {
             debug!("NET Packet Transmitted");
             usr::hex::print_hex(buf);
         }
-        let res = f(buf);
         self.device.transmit_packet(len);
         self.device.stats().tx_add(len as u64);
         res
@@ -243,20 +250,31 @@ impl Stats {
     }
 }
 
-fn find_pci_io_base(vendor_id: u16, device_id: u16) -> Option<u16> {
-    if let Some(mut pci_device) = sys::pci::find_device(vendor_id, device_id) {
-        pci_device.enable_bus_mastering();
-        let io_base = (pci_device.base_addresses[0] as u16) & 0xFFF0;
-        Some(io_base)
+fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
+    if let Some(mut dev) = sys::pci::find_device(vendor_id, device_id) {
+        dev.enable_bus_mastering();
+        Some(dev)
     } else {
         None
     }
 }
 
+const E1000_DEVICES: [u16; 8] = [
+    0x1004, // 82543GC (Intel PRO/1000 T)
+    0x100C, // 82544GC (Intel PRO/1000 T)
+    0x100E, // 82540EM (Intel PRO/1000 MT)
+    0x100F, // 82545EM (Intel PRO/1000 MT)
+    0x107C, // 82541PI (Intel PRO/1000 GT)
+    0x10D3, // 82574L
+    0x10F5, // 82567LM
+    0x153A, // I217-LM
+];
+
 pub fn init() {
     let add = |mut device: EthernetDevice, name| {
         if let Some(mac) = device.config().mac() {
-            log!("NET {} MAC {}", name, mac);
+            let addr = format!("{}", mac).to_uppercase();
+            log!("NET {} MAC {}", name, addr);
 
             let config = smoltcp::iface::Config::new(mac.into());
             let iface = Interface::new(config, &mut device, time());
@@ -264,13 +282,28 @@ pub fn init() {
             *NET.lock() = Some((iface, device));
         }
     };
-    if let Some(io) = find_pci_io_base(0x10EC, 0x8139) {
-        add(EthernetDevice::RTL8139(nic::rtl8139::Device::new(io)), "RTL8139");
+    if let Some(dev) = find_device(0x10EC, 0x8139) {
+        let io = dev.io_base();
+        let nic = nic::rtl8139::Device::new(io);
+        add(EthernetDevice::RTL8139(nic), "RTL8139");
     }
-    if let Some(io) = find_pci_io_base(0x1022, 0x2000) {
-        add(EthernetDevice::PCNET(nic::pcnet::Device::new(io)), "PCNET");
+    if let Some(dev) = find_device(0x1022, 0x2000) {
+        let io = dev.io_base();
+        let nic = nic::pcnet::Device::new(io);
+        add(EthernetDevice::PCNET(nic), "PCNET");
     }
-    if let Some(io) = find_pci_io_base(0x1AF4, 0x1000) {
-        add(EthernetDevice::VirtIO(nic::virtio::Device::new(io)), "VirtIO");
+    if let Some(dev) = find_device(0x1AF4, 0x1000) {
+        let io = dev.io_base();
+        let nic = nic::virtio::Device::new(io);
+        add(EthernetDevice::VirtIO(nic), "VirtIO");
+    }
+    for id in E1000_DEVICES {
+        if let Some(dev) = find_device(0x8086, id) {
+            let io = dev.io_base();
+            let mem = dev.mem_base();
+            let bar = dev.bar_type();
+            let nic = nic::e1000::Device::new(io, mem, bar);
+            add(EthernetDevice::E1000(nic), "E1000");
+        }
     }
 }

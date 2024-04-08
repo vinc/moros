@@ -224,7 +224,14 @@ pub fn read_dir(path: &str) -> Result<Vec<FileInfo>, ()> {
 }
 
 #[test_case]
-fn test_file() {
+fn test_filename() {
+    assert_eq!(filename("/path/to/file.txt"), "file.txt");
+    assert_eq!(filename("/file.txt"), "file.txt");
+    assert_eq!(filename("file.txt"), "file.txt");
+}
+
+#[test_case]
+fn test_fs() {
     use crate::sys::fs::{dismount, format_mem, mount_mem};
     mount_mem();
     format_mem();

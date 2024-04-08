@@ -23,6 +23,7 @@ use smoltcp::wire::IpAddress;
 
 const MAX_CONNECTIONS: usize = 32;
 const POLL_DELAY_DIV: usize = 128;
+const INDEX: [&str; 4] = ["", "/index.html", "/index.htm", "/index.txt"];
 
 #[derive(Clone)]
 struct Request {
@@ -212,16 +213,14 @@ fn get(req: &Request, res: &mut Response) {
         res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
     } else {
         let mut not_found = true;
-        for autocomplete in
-            &["", "/index.html", "/index.htm", "/index.txt"]
-        {
-            let real_path = format!("{}{}", res.real_path, autocomplete);
+        for index in INDEX {
+            let real_path = format!("{}{}", res.real_path, index);
             if fs::is_dir(&real_path) {
                 continue;
             }
             if let Ok(buf) = fs::read_to_bytes(&real_path) {
                 res.code = 200;
-                res.mime = content_type(&res.real_path);
+                res.mime = content_type(&real_path);
                 let tmp;
                 res.body.extend_from_slice(
                     if res.mime.starts_with("text/") {
@@ -338,6 +337,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         i += 1;
     }
 
+    // NOTE: This specific format is needed by `join_path`
+    let dir = format!("/{}", fs::realpath(&dir).trim_matches('/'));
+
     if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
         let mut sockets = SocketSet::new(vec![]);
 
@@ -381,45 +383,57 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     None => continue,
                 };
                 if socket.may_recv() {
-                    let res = socket.recv(|buf| {
-                        if let Some(req) = Request::from(endpoint.addr, buf) {
-                            let mut res = Response::new(req.clone());
-                            let sep = if req.path == "/" { "" } else { "/" };
-                            res.real_path = format!(
-                                "{}{}{}",
-                                dir,
-                                sep,
-                                req.path.strip_suffix('/').unwrap_or(&req.path)
-                            ).replace("//", "/");
-
-                            match req.verb.as_str() {
-                                "GET" => {
-                                    get(&req, &mut res)
-                                }
-                                "PUT" if !read_only => {
-                                    put(&req, &mut res)
-                                }
-                                "DELETE" if !read_only => {
-                                    delete(&req, &mut res)
-                                }
-                                _ => {
-                                    let s = b"<h1>Bad Request</h1>\r\n";
-                                    res.body.extend_from_slice(s);
-                                    res.code = 400;
-                                    res.mime = "text/html".to_string();
-                                }
+                    // The amount of octets queued in the receive buffer may be
+                    // larger than the contiguous slice returned by `recv` so
+                    // we need to loop over chunks of it until it is empty.
+                    let recv_queue = socket.recv_queue();
+                    let mut receiving = true;
+                    let mut buf = vec![];
+                    while receiving {
+                        let res = socket.recv(|chunk| {
+                            buf.extend_from_slice(chunk);
+                            if buf.len() < recv_queue {
+                                return (chunk.len(), None);
                             }
-                            res.end();
-                            println!("{}", res);
-                            (buf.len(), Some(res))
-                        } else {
-                            (0, None)
+                            receiving = false;
+
+                            let addr = endpoint.addr;
+                            if let Some(req) = Request::from(addr, &buf) {
+                                let mut res = Response::new(req.clone());
+                                res.real_path = join_path(&dir, &req.path);
+
+                                match req.verb.as_str() {
+                                    "GET" => {
+                                        get(&req, &mut res)
+                                    }
+                                    "PUT" if !read_only => {
+                                        put(&req, &mut res)
+                                    }
+                                    "DELETE" if !read_only => {
+                                        delete(&req, &mut res)
+                                    }
+                                    _ => {
+                                        let s = b"<h1>Bad Request</h1>\r\n";
+                                        res.body.extend_from_slice(s);
+                                        res.code = 400;
+                                        res.mime = "text/html".to_string();
+                                    }
+                                }
+                                res.end();
+                                println!("{}", res);
+                                (chunk.len(), Some(res))
+                            } else {
+                                (0, None)
+                            }
+                        });
+                        if receiving {
+                            continue;
                         }
-                    });
-                    if let Ok(Some(res)) = res {
-                        *keep_alive = res.is_persistent();
-                        for chunk in res.buf.chunks(buf_len) {
-                            send_queue.push_back(chunk.to_vec());
+                        if let Ok(Some(res)) = res {
+                            *keep_alive = res.is_persistent();
+                            for chunk in res.buf.chunks(buf_len) {
+                                send_queue.push_back(chunk.to_vec());
+                            }
                         }
                     }
                     if socket.can_send() {
@@ -437,10 +451,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     send_queue.clear();
                 }
             }
-            if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
-                let t = wait_duration.total_micros() / POLL_DELAY_DIV as u64;
-                if t > 0 {
-                    syscall::sleep((t as f64) / 1000000.0);
+            if let Some(delay) = iface.poll_delay(time, &sockets) {
+                let d = delay.total_micros() / POLL_DELAY_DIV as u64;
+                if d > 0 {
+                    syscall::sleep((d as f64) / 1000000.0);
                 }
             }
         }
@@ -468,6 +482,15 @@ fn content_type(path: &str) -> String {
     }.to_string()
 }
 
+// Join the requested file path to the root dir of the server
+fn join_path(dir: &str, path: &str) -> String {
+    debug_assert!(dir.starts_with('/'));
+    debug_assert!(path.starts_with('/'));
+    let path = path.trim_matches('/');
+    let sep = if dir == "/" || path == "" { "" } else { "/" };
+    format!("{}{}{}", dir, sep, path)
+}
+
 fn usage() {
     let csi_option = Style::color("LightCyan");
     let csi_title = Style::color("Yellow");
@@ -490,4 +513,14 @@ fn usage() {
         "  {0}-r{1}, {0}--read-only{1}        Set read-only mode",
         csi_option, csi_reset
     );
+}
+
+#[test_case]
+fn test_join_path() {
+    assert_eq!(join_path("/foo", "/bar/"), "/foo/bar");
+    assert_eq!(join_path("/foo", "/bar"), "/foo/bar");
+    assert_eq!(join_path("/foo", "/"), "/foo");
+    assert_eq!(join_path("/", "/bar/"), "/bar");
+    assert_eq!(join_path("/", "/bar"), "/bar");
+    assert_eq!(join_path("/", "/"), "/");
 }
