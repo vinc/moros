@@ -451,10 +451,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     send_queue.clear();
                 }
             }
-            if let Some(wait_duration) = iface.poll_delay(time, &sockets) {
-                let t = wait_duration.total_micros() / POLL_DELAY_DIV as u64;
-                if t > 0 {
-                    syscall::sleep((t as f64) / 1000000.0);
+            if let Some(delay) = iface.poll_delay(time, &sockets) {
+                let d = delay.total_micros() / POLL_DELAY_DIV as u64;
+                if d > 0 {
+                    syscall::sleep((d as f64) / 1000000.0);
                 }
             }
         }
