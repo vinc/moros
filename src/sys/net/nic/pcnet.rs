@@ -304,7 +304,7 @@ impl EthernetDeviceIO for Device {
             self.rx_des[rx_id * DE_LEN + 7].set_bit(DE_OWN, true);
 
             rx_id = (rx_id + 1) % RX_BUFFERS_COUNT;
-            self.rx_id.store(rx_id, Ordering::Relaxed);
+            self.rx_id.store(rx_id, Ordering::SeqCst);
 
             if end_of_packet {
                 break;
@@ -333,7 +333,7 @@ impl EthernetDeviceIO for Device {
         // Give back ownership to the card
         self.tx_des[tx_id * DE_LEN + 7].set_bit(DE_OWN, true);
 
-        self.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::Relaxed);
+        self.tx_id.store((tx_id + 1) % TX_BUFFERS_COUNT, Ordering::SeqCst);
 
         if !is_buffer_owner(&self.tx_des, tx_id) {
             self.ports.write_csr_32(0, 1 << CSR0_TDMD); // Send all buffers

@@ -13,10 +13,12 @@ keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
 
 # Emulation options
-nic = rtl8139# rtl8139, pcnet
+nic = rtl8139# rtl8139, pcnet, e1000
 audio = sdl# sdl, coreaudio
+signal = off# on
 kvm = false
 pcap = false
+trace = false# e1000
 monitor = false
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
@@ -65,7 +67,7 @@ qemu-opts = -m $(memory) -drive file=$(img),format=raw \
 ifeq ($(kvm),true)
 	qemu-opts += -cpu host -accel kvm
 else
-	qemu-opts += -cpu max
+	qemu-opts += -cpu core2duo
 endif
 
 ifeq ($(pcap),true)
@@ -77,11 +79,16 @@ ifeq ($(monitor),true)
 endif
 
 ifeq ($(output),serial)
-	qemu-opts += -display none -chardev stdio,id=s0,signal=off -serial chardev:s0
+	qemu-opts += -display none
+	qemu-opts += -chardev stdio,id=s0,signal=$(signal) -serial chardev:s0
 endif
 
 ifeq ($(mode),debug)
 	qemu-opts += -s -S
+endif
+
+ifeq ($(trace),e1000)
+	qemu-opts += -trace 'e1000*'
 endif
 
 # In debug mode, open another terminal with the following command
@@ -93,7 +100,8 @@ qemu:
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
-		-m $(memory) -display none -serial stdio -device isa-debug-exit,iobase=0xF4,iosize=0x04
+		-m $(memory) -display none -serial stdio \
+		-device isa-debug-exit,iobase=0xF4,iosize=0x04
 
 website:
 	cd www && sh build.sh
