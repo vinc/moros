@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Add e1000 driver (#337)
+- Reduce DHCP sleep time (#610)
+- Allow copying file to dir (#607)
+- Fix HTTP server (#609)
+- Fix HTTP server content type (#608)
 - Improve RNG (#602)
 - Fix invalid VGA palette reset (#605)
 - Improve VGA palette parser (#604)
