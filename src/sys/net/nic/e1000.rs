@@ -186,7 +186,7 @@ impl Device {
         self.init_tx();
         self.link_up();
 
-        // Enable interrupts
+        // TODO: Enable interrupts
         //self.write(REG_IMS, ICR_LSC | ICR_RXDMT0 | ICR_RXT0);
         self.write(REG_IMS, 0);
 
