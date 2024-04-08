@@ -64,8 +64,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 Some(dhcpv4::Event::Deconfigured) => {}
             }
 
-            if let Some(d) = iface.poll_delay(time, &sockets) {
-                syscall::sleep((d.total_micros() as f64) / 1000000.0);
+            if let Some(duration) = iface.poll_delay(time, &sockets) {
+                let d = (duration.total_micros() as f64) / 1000000.0;
+                syscall::sleep(d.min(0.1)); // Don't sleep longer than 0.1s
             }
         }
     } else {
