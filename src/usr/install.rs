@@ -191,6 +191,11 @@ pub fn copy_files(verbose: bool) {
         include_bytes!("../../dsk/tmp/lisp/sum.lsp"),
         verbose,
     );
+    copy_file(
+        "/tmp/lisp/tak.lsp",
+        include_bytes!("../../dsk/tmp/lisp/tak.lsp"),
+        verbose,
+    );
 
     create_dir("/tmp/life", verbose);
     copy_file(
