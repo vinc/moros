@@ -124,6 +124,11 @@ pub fn copy_files(verbose: bool) {
         include_bytes!("../../dsk/lib/lisp/file.lsp"),
         verbose,
     );
+    copy_file(
+        "/lib/lisp/math.lsp",
+        include_bytes!("../../dsk/lib/lisp/math.lsp"),
+        verbose,
+    );
     /*
     copy_file(
         "/lib/lisp/legacy.lsp",

@@ -160,3 +160,4 @@
 (var uniq unique)
 
 (load "/lib/lisp/file.lsp")
+(load "/lib/lisp/math.lsp")
