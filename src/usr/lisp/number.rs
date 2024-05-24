@@ -14,7 +14,7 @@ use num_traits::cast::ToPrimitive;
 use num_traits::Num;
 use num_traits::Zero;
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq)]
 pub enum Number {
     BigInt(BigInt),
     Float(f64),
@@ -252,6 +252,27 @@ operator!(Div, div);
 operator!(Rem, rem);
 operator!(Shl, shl);
 operator!(Shr, shr);
+
+use core::cmp::Ordering;
+
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Number::Int(a),    Number::Int(b))    => a.partial_cmp(b),
+            (Number::Float(a),  Number::Float(b))  => a.partial_cmp(b),
+            (Number::BigInt(a), Number::BigInt(b)) => a.partial_cmp(b),
+
+            (Number::Int(a),    Number::Float(b))  => (*a as f64).partial_cmp(b),
+            (Number::Int(a),    Number::BigInt(b)) => (*a as f64).partial_cmp(&b.to_f64().unwrap()),
+
+            (Number::Float(a),  Number::Int(b))    => a.partial_cmp(&(*b as f64)),
+            (Number::Float(a),  Number::BigInt(b)) => a.partial_cmp(&b.to_f64().unwrap()),
+
+            (Number::BigInt(a), Number::Float(b))  => a.to_f64().unwrap().partial_cmp(b),
+            (Number::BigInt(a), Number::Int(b))    => a.to_f64().unwrap().partial_cmp(&(*b as f64)),
+        }
+    }
+}
 
 fn parse_int(s: &str) -> Result<i64, ParseIntError> {
     if s.starts_with("0x") {

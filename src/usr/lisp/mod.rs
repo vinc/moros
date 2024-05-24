@@ -564,6 +564,7 @@ fn test_lisp() {
     assert_eq!(eval!("(> 6 4 2)"), "true");
     assert_eq!(eval!("(> 6)"), "true");
     assert_eq!(eval!("(>)"), "true");
+    assert_eq!(eval!("(> 6.0 4)"), "true");
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
