@@ -181,9 +181,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-p" | "--population" => {
                 if i + 1 < n {
-                    game.seed_population = args[i + 1].parse().
-                        unwrap_or(game.seed_population);
                     i += 1;
+                    let opt = &mut game.seed_population;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --population <num>");
                     return Err(ExitCode::UsageError);
@@ -191,9 +191,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-i" | "--interval" => {
                 if i + 1 < n {
-                    game.seed_interval = args[i + 1].parse().
-                        unwrap_or(game.seed_interval);
                     i += 1;
+                    let opt = &mut game.seed_interval;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --interval <num>");
                     return Err(ExitCode::UsageError);
@@ -201,8 +201,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-s" | "--speed" => {
                 if i + 1 < n {
-                    game.speed = args[i + 1].parse().unwrap_or(game.speed);
                     i += 1;
+                    let opt = &mut game.speed;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --speed <num>");
                     return Err(ExitCode::UsageError);

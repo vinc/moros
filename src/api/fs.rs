@@ -98,13 +98,47 @@ pub fn open_device(path: &str) -> Option<usize> {
     syscall::open(path, flags)
 }
 
-pub fn create_device(path: &str, buf: &[u8]) -> Option<usize> {
-    let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
-    if let Some(handle) = syscall::open(path, flags) {
-        syscall::write(handle, buf);
-        return Some(handle);
+pub fn create_device(path: &str, name: &str) -> Option<usize> {
+    if let Ok(buf) = device_buffer(name) {
+        let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
+        if let Some(handle) = syscall::open(path, flags) {
+            syscall::write(handle, &buf);
+            return Some(handle);
+        }
     }
     None
+}
+
+fn device_buffer(name: &str) -> Result<Vec<u8>, ()> {
+    let arg = if name.starts_with("ata-") { "ata" } else { name };
+    let dev = device_type(arg)?;
+    let mut buf = dev.buf();
+    if name.starts_with("ata-") {
+        match name {
+            "ata-0-0" => { buf[1] = 0; buf[2] = 0 },
+            "ata-0-1" => { buf[1] = 0; buf[2] = 1 },
+            "ata-1-0" => { buf[1] = 1; buf[2] = 0 },
+            "ata-1-1" => { buf[1] = 1; buf[2] = 1 },
+            _ => return Err(()),
+        }
+    }
+    Ok(buf)
+}
+
+fn device_type(name: &str) -> Result<DeviceType, ()> {
+    match name {
+        "null"     => Ok(DeviceType::Null),
+        "file"     => Ok(DeviceType::File),
+        "console"  => Ok(DeviceType::Console),
+        "random"   => Ok(DeviceType::Random),
+        "uptime"   => Ok(DeviceType::Uptime),
+        "realtime" => Ok(DeviceType::Realtime),
+        "rtc"      => Ok(DeviceType::RTC),
+        "tcp"      => Ok(DeviceType::TcpSocket),
+        "udp"      => Ok(DeviceType::UdpSocket),
+        "ata"      => Ok(DeviceType::Drive),
+        _          => Err(()),
+    }
 }
 
 pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {

@@ -1,6 +1,5 @@
 use crate::api::console::Style;
 use crate::api::fs;
-use crate::api::fs::DeviceType;
 use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
@@ -37,21 +36,22 @@ pub fn copy_files(verbose: bool) {
 
     create_dir("/dev/ata", verbose); // Drives
     create_dir("/dev/ata/0", verbose);
-    create_dev("/dev/ata/0/0", DeviceType::Drive, verbose);
-    create_dev("/dev/ata/0/1", DeviceType::Drive, verbose);
     create_dir("/dev/ata/1", verbose);
-    create_dev("/dev/ata/1/0", DeviceType::Drive, verbose);
-    create_dev("/dev/ata/1/1", DeviceType::Drive, verbose);
     create_dir("/dev/clk", verbose); // Clock
-    create_dev("/dev/clk/uptime", DeviceType::Uptime, verbose);
-    create_dev("/dev/clk/realtime", DeviceType::Realtime, verbose);
-    create_dev("/dev/rtc", DeviceType::RTC, verbose);
-    create_dev("/dev/null", DeviceType::Null, verbose);
-    create_dev("/dev/random", DeviceType::Random, verbose);
-    create_dev("/dev/console", DeviceType::Console, verbose);
     create_dir("/dev/net", verbose); // Network
-    create_dev("/dev/net/tcp", DeviceType::TcpSocket, verbose);
-    create_dev("/dev/net/udp", DeviceType::UdpSocket, verbose);
+
+    create_dev("/dev/ata/0/0", "ata-0-0", verbose);
+    create_dev("/dev/ata/0/1", "ata-0-1", verbose);
+    create_dev("/dev/ata/1/0", "ata-1-0", verbose);
+    create_dev("/dev/ata/1/1", "ata-1-1", verbose);
+    create_dev("/dev/clk/uptime", "uptime", verbose);
+    create_dev("/dev/clk/realtime", "realtime", verbose);
+    create_dev("/dev/rtc", "rtc", verbose);
+    create_dev("/dev/null", "null", verbose);
+    create_dev("/dev/random", "random", verbose);
+    create_dev("/dev/console", "console", verbose);
+    create_dev("/dev/net/tcp", "tcp", verbose);
+    create_dev("/dev/net/udp", "udp", verbose);
 
     copy_file!("/ini/banner.txt", verbose);
     copy_file!("/ini/boot.sh", verbose);
@@ -177,53 +177,46 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn create_dir(pathname: &str, verbose: bool) {
-    if syscall::info(pathname).is_none() {
-        if let Some(handle) = api::fs::create_dir(pathname) {
-            syscall::close(handle);
-            if verbose {
-                println!("Created '{}'", pathname);
-            }
-        }
-    }
-}
-
-fn create_dev(pathname: &str, dev: DeviceType, verbose: bool) {
-    if syscall::info(pathname).is_none() {
-        let mut buf = dev.buf();
-        // NOTE: The first byte of `buf` contains the device type
-        match pathname {
-            "/dev/ata/0/0" => { buf[1] = 0; buf[2] = 0 },
-            "/dev/ata/0/1" => { buf[1] = 0; buf[2] = 1 },
-            "/dev/ata/1/0" => { buf[1] = 1; buf[2] = 0 },
-            "/dev/ata/1/1" => { buf[1] = 1; buf[2] = 1 },
-            _ => {},
-        }
-        if let Some(handle) = fs::create_device(pathname, &buf) {
-            syscall::close(handle);
-            if verbose {
-                println!("Created '{}'", pathname);
-            }
-        }
-    }
-}
-
-fn copy_file(pathname: &str, buf: &[u8], verbose: bool) {
-    if fs::exists(pathname) {
+fn create_dir(path: &str, verbose: bool) {
+    if fs::exists(path) {
         return;
     }
-    if pathname.ends_with(".txt") {
+    if let Some(handle) = api::fs::create_dir(path) {
+        syscall::close(handle);
+        if verbose {
+            println!("Created '{}'", path);
+        }
+    }
+}
+
+fn create_dev(path: &str, name: &str, verbose: bool) {
+    if fs::exists(path) {
+        return;
+    }
+    if let Some(handle) = fs::create_device(path, name) {
+        syscall::close(handle);
+        if verbose {
+            println!("Created '{}'", path);
+        }
+    }
+}
+
+fn copy_file(path: &str, buf: &[u8], verbose: bool) {
+    if fs::exists(path) {
+        return;
+    }
+    if path.ends_with(".txt") {
         if let Ok(text) = String::from_utf8(buf.to_vec()) {
             let text = text.replace("{x.x.x}", env!("CARGO_PKG_VERSION"));
-            fs::write(pathname, text.as_bytes()).ok();
+            fs::write(path, text.as_bytes()).ok();
         } else {
-            fs::write(pathname, buf).ok();
+            fs::write(path, buf).ok();
         }
     } else {
-        fs::write(pathname, buf).ok();
+        fs::write(path, buf).ok();
     }
     // TODO: add File::write_all to split buf if needed
     if verbose {
-        println!("Copied '{}'", pathname);
+        println!("Copied '{}'", path);
     }
 }

@@ -44,13 +44,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-f" | "--freq" => {
                 if i + 1 < n {
-                    if let Ok(value) = args[i + 1].parse() {
+                    i += 1;
+                    if let Ok(value) = args[i].parse() {
                         freq = value;
                     } else {
                         error!("Could not parse freq");
                         return Err(ExitCode::Failure);
                     }
-                    i += 1;
                 } else {
                     error!("Missing freq");
                     return Err(ExitCode::UsageError);
@@ -58,13 +58,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-l" | "--len" => {
                 if i + 1 < n {
-                    if let Ok(value) = args[i + 1].parse() {
+                    i += 1;
+                    if let Ok(value) = args[i].parse() {
                         len = value;
                     } else {
                         error!("Could not parse len");
                         return Err(ExitCode::Failure);
                     }
-                    i += 1;
                 } else {
                     error!("Missing len");
                     return Err(ExitCode::UsageError);

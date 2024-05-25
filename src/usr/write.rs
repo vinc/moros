@@ -3,32 +3,61 @@ use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 
+use alloc::vec::Vec;
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() != 2 {
+    let mut opt = Vec::new();
+    let mut dev = None;
+    let mut i = 1;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                help();
+                return Ok(());
+            }
+            "-d" | "--dev" => {
+                if i + 1 < n {
+                    i += 1;
+                    dev = Some(args[i]);
+                } else {
+                    error!("Missing device type");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+            _ => opt.push(args[i]),
+        }
+        i += 1;
+    }
+    if opt.len() != 1 {
         help();
         return Err(ExitCode::UsageError);
+    };
+    let path = opt[0];
+
+    if fs::exists(path) {
+        error!("Could not write to '{}'", path);
+        return Err(ExitCode::Failure);
     }
-    if args[1] == "-h" || args[1] == "--help" {
-        help();
-        return Ok(());
-    }
-    let pathname = args[1];
 
     // The command `write /usr/alice/` with a trailing slash will create
     // a directory, while the same command without a trailing slash will
     // create a file.
-    let res = if pathname.ends_with('/') {
-        let pathname = pathname.trim_end_matches('/');
-        fs::create_dir(pathname)
+
+    let res = if path.ends_with('/') {
+        let path = path.trim_end_matches('/');
+        fs::create_dir(path)
+    } else if let Some(name) = dev {
+        fs::create_device(path, name)
     } else {
-        fs::create_file(pathname)
+        fs::create_file(path)
     };
 
     if let Some(handle) = res {
         syscall::close(handle);
         Ok(())
     } else {
-        error!("Could not write to '{}'", pathname);
+        error!("Could not write to '{}'", path);
         Err(ExitCode::Failure)
     }
 }
