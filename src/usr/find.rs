@@ -38,8 +38,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-n" | "--name" => {
                 if i + 1 < n {
-                    name = Some(args[i + 1]);
                     i += 1;
+                    name = Some(args[i]);
                 } else {
                     error!("Missing name");
                     return Err(ExitCode::UsageError);
@@ -47,8 +47,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-l" | "--line" => {
                 if i + 1 < n {
-                    line = Some(args[i + 1]);
                     i += 1;
+                    line = Some(args[i]);
                 } else {
                     error!("Missing line");
                     return Err(ExitCode::UsageError);
