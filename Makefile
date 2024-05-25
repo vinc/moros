@@ -81,6 +81,8 @@ endif
 ifeq ($(output),serial)
 	qemu-opts += -display none
 	qemu-opts += -chardev stdio,id=s0,signal=$(signal) -serial chardev:s0
+else
+	qemu-opts += -display gtk,full-screen=on,gl=on
 endif
 
 ifeq ($(mode),debug)
