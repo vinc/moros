@@ -316,8 +316,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-p" | "--port" => {
                 if i + 1 < n {
-                    port = args[i + 1].parse().unwrap_or(port);
                     i += 1;
+                    port = args[i].parse().unwrap_or(port);
                 } else {
                     error!("Missing port number");
                     return Err(ExitCode::UsageError);
@@ -325,8 +325,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-d" | "--dir" => {
                 if i + 1 < n {
-                    dir = args[i + 1].to_string();
                     i += 1;
+                    dir = args[i].to_string();
                 } else {
                     error!("Missing directory");
                     return Err(ExitCode::UsageError);

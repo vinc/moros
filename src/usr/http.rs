@@ -67,8 +67,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-t" | "--timeout" => {
                 if i + 1 < n {
-                    timeout = args[i + 1].parse().unwrap_or(timeout);
                     i += 1;
+                    timeout = args[i].parse().unwrap_or(timeout);
                 } else {
                     error!("Missing timeout seconds");
                     return Err(ExitCode::UsageError);
