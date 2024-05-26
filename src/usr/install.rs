@@ -217,6 +217,6 @@ fn copy_file(path: &str, buf: &[u8], verbose: bool) {
     }
     // TODO: add File::write_all to split buf if needed
     if verbose {
-        println!("Copied '{}'", path);
+        println!("Fetched '{}'", path);
     }
 }

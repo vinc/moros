@@ -59,7 +59,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - String: `string/trim` and `string/split` (aliased to `str/trim` and `str/split`)
 - List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
 - Dict: `dict`
-- File: `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
+- File: `file/exists?`, `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
 - Net: `host`, `socket/connect`, `socket/listen`, `socket/accept`
 
 ### Core Library
@@ -80,6 +80,9 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `read-line`, `read-char`
 - `uptime`, `realtime`
 - `p`, `print`
+
+### Math Library
+- `floor`, `ceil`, `round`
 
 ### Compatibility Library
 
@@ -170,9 +173,8 @@ Would produce the following output:
 
 ## Changelog
 
-<!--
 ### Unreleased
--->
+- Add `floor`, `ceil`, and `round` functions
 
 ### 0.7.0 (2023-12-22)
 - Add binary and hexadecimal number literals
