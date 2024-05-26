@@ -477,7 +477,7 @@ fn content_type(path: &str) -> String {
         "lsp" | "lisp" => "text/plain",
         "png"          => "image/png",
         "sh"           => "application/x-sh",
-        "txt"          => "text/plain",
+        "txt" | "md"   => "text/plain",
         _              => "application/octet-stream",
     }.to_string()
 }
