@@ -106,7 +106,7 @@ fn help() {
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} hash {}<file>{}",
+        "{}Usage:{} hash {}<options> <file>{}",
         csi_title, csi_reset, csi_option, csi_reset
     );
     println!();
