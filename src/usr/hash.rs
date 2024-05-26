@@ -9,11 +9,20 @@ use alloc::vec::Vec;
 use core::str;
 use sha2::{Digest, Sha256};
 
+#[derive(Copy, Clone)]
+struct Config {
+    show_full_hash: bool,
+    recursive_mode: bool,
+}
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut i = 1;
     let n = args.len();
     let mut paths = Vec::new();
-    let mut full = false;
+    let mut conf = Config {
+        show_full_hash: false,
+        recursive_mode: false,
+    };
     while i < n {
         match args[i] {
             "-h" | "--help" => {
@@ -21,7 +30,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 return Ok(());
             }
             "-f" | "--full" => {
-                full = true;
+                conf.show_full_hash = true;
+            }
+            "-r" | "--recursive" => {
+                conf.recursive_mode = true;
             }
             arg => {
                 if arg.starts_with('-') {
@@ -36,13 +48,18 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     paths.sort();
     for path in paths {
-        print_hash(path, full)?;
+        let path = if path.len() > 1 {
+            path.trim_end_matches('/')
+        } else {
+            path
+        };
+        print_hash(path , conf)?;
     }
     Ok(())
 }
 
-pub fn print_hash(path: &str, full: bool) -> Result<(), ExitCode> {
-    let n = if full { 32 } else { 16 };
+fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
+    let n = if conf.show_full_hash { 32 } else { 16 };
     if let Some(info) = syscall::info(path) {
         if info.is_file() {
             if let Ok(bytes) = api::fs::read_to_bytes(path) {
@@ -60,8 +77,22 @@ pub fn print_hash(path: &str, full: bool) -> Result<(), ExitCode> {
                 error!("Could not read '{}'", path);
                 Err(ExitCode::Failure)
             }
+        } else if conf.recursive_mode && info.is_dir() {
+            if let Ok(entries) = api::fs::read_dir(path) {
+                let mut fs: Vec<_> = entries.iter().map(|e| e.name()).collect();
+                fs.sort();
+                for f in fs.iter() {
+                    let s = if path == "/" { "" } else { "/" };
+                    let p = format!("{}{}{}", path, s, f);
+                    print_hash(&p, conf)?;
+                }
+                Ok(())
+            } else {
+                error!("Could not read '{}'", path);
+                Err(ExitCode::Failure)
+            }
         } else {
-            error!("Could not read '{}'", path);
+            error!("Could not hash '{}'", path);
             Err(ExitCode::Failure)
         }
     } else {
@@ -75,13 +106,17 @@ fn help() {
     let csi_title = Style::color("Yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} hash {}<file>{}",
+        "{}Usage:{} hash {}<options> <file>{}",
         csi_title, csi_reset, csi_option, csi_reset
     );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-f{1}, {0}--full{1}     Show full hash",
+        "  {0}-f{1}, {0}--full{1}         Show full hash",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-r{1}, {0}--recursive{1}    Enable recursive mode",
         csi_option, csi_reset
     );
 }
