@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Improve lisp numbers (#618)
+- Add device creation from write command (#620)
+- Refactor install with copy_file macro (#619)
+- Bump num-bigint from 0.4.4 to 0.4.5 (#617)
+- Bump num-traits from 0.2.18 to 0.2.19 (#616)
+- Bump raw-cpuid from 11.0.1 to 11.0.2 (#613)
+- Bump bootloader from 0.9.28 to 0.9.29 (#614)
+- Add Intel PRO/1000 PT (#612)
+- Bump object from 0.34.0 to 0.35.0 (#611)
 - Add e1000 driver (#337)
 - Reduce DHCP sleep time (#610)
 - Allow copying file to dir (#607)
