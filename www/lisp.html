@@ -78,7 +78,7 @@ of the Shell.</p>
     <li>String: <code>string/trim</code> and <code>string/split</code> (aliased to <code>str/trim</code> and <code>str/split</code>)</li>
     <li>List: <code>list</code>, <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>)</li>
     <li>Dict: <code>dict</code></li>
-    <li>File: <code>file/size</code>, <code>file/open</code>, <code>file/close</code>, <code>file/read</code>, <code>file/write</code></li>
+    <li>File: <code>file/exists?</code>, <code>file/size</code>, <code>file/open</code>, <code>file/close</code>, <code>file/read</code>, <code>file/write</code></li>
     <li>Net: <code>host</code>, <code>socket/connect</code>, <code>socket/listen</code>, <code>socket/accept</code></li>
     </ul>
 
@@ -105,6 +105,12 @@ of the Shell.</p>
     <li><code>read-line</code>, <code>read-char</code></li>
     <li><code>uptime</code>, <code>realtime</code></li>
     <li><code>p</code>, <code>print</code></li>
+    </ul>
+
+    <h3>Math Library</h3>
+
+    <ul>
+    <li><code>floor</code>, <code>ceil</code>, <code>round</code></li>
     </ul>
 
     <h3>Compatibility Library</h3>
@@ -194,9 +200,11 @@ with the following content:</p>
 
     <h2>Changelog</h2>
 
-    <!--
-### Unreleased
--->
+    <h3>Unreleased</h3>
+
+    <ul>
+    <li>Add <code>floor</code>, <code>ceil</code>, and <code>round</code> functions</li>
+    </ul>
 
     <h3>0.7.0 (2023-12-22)</h3>
 
