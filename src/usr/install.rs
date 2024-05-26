@@ -73,6 +73,7 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/lib/lisp/core.lsp", verbose);
     copy_file!("/lib/lisp/file.lsp", verbose);
     //copy_file!("/lib/lisp/legacy.lsp", verbose);
+    copy_file!("/lib/lisp/math.lsp", verbose);
 
     copy_file!("/tmp/alice.txt", verbose);
     copy_file!("/tmp/machines.txt", verbose);
@@ -86,6 +87,7 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/tmp/lisp/geotime.lsp", verbose);
     copy_file!("/tmp/lisp/pi.lsp", verbose);
     copy_file!("/tmp/lisp/sum.lsp", verbose);
+    copy_file!("/tmp/lisp/tak.lsp", verbose);
 
     create_dir("/tmp/life", verbose);
     copy_file!("/tmp/life/centinal.cells", verbose);
