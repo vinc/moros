@@ -36,7 +36,7 @@ pub fn print_hex_at(buf: &[u8], offset: usize) {
     let null = 0 as char;
     let cyan = Style::color("LightCyan");
     let gray = Style::color("DarkGray");
-    let pink = Style::color("Pink");
+    let pink = Style::color("fushia");
     let reset = Style::reset();
 
     for (index, chunk) in buf.chunks(16).enumerate() {

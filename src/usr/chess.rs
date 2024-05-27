@@ -287,7 +287,7 @@ impl Chess {
 
     fn cmd_perf(&mut self, args: Vec<&str>) {
         let csi_depth = Style::color("LightCyan");
-        let csi_count = Style::color("Pink");
+        let csi_count = Style::color("fushia");
         let csi_reset = Style::reset();
 
         let mut depth = if args.len() > 1 {

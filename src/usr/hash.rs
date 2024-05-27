@@ -69,7 +69,7 @@ fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
                 let hex = res.iter().map(|byte|
                     format!("{:02X}", byte)
                 ).take(n).collect::<Vec<String>>().join("");
-                let pink = Style::color("Pink");
+                let pink = Style::color("fushia");
                 let reset = Style::reset();
                 println!("{}{}{} {}", pink, hex, reset, path);
                 Ok(())
