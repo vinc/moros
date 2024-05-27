@@ -119,7 +119,7 @@ impl Game {
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let reset = Style::reset();
-        let color = Style::color("Yellow");
+        let color = Style::color("yellow");
         write!(f, "\n  {}SCORE: {:>22}{}\n\n", color, self.score, reset)?;
         for y in 0..4 {
             write!(f, "  +------+------+------+------+\n")?;
@@ -135,7 +135,7 @@ impl fmt::Display for Game {
                         4 => Style::color("LightBlue"),
                         8 => Style::color("LightCyan"),
                         16 => Style::color("lime"),
-                        32 => Style::color("Yellow"),
+                        32 => Style::color("yellow"),
                         64 => Style::color("red"),
                         128 => Style::color("Pink"),
                         256 => Style::color("purple"),

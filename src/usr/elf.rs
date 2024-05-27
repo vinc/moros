@@ -15,7 +15,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(());
     }
 
-    let color = Style::color("Yellow");
+    let color = Style::color("yellow");
     let reset = Style::reset();
     let pathname = args[1];
     if let Ok(buf) = fs::read_to_bytes(pathname) {
@@ -53,7 +53,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 fn help() {
     let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} elf {}<binary>{}",

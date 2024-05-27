@@ -313,7 +313,7 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
 fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
-        let csi_title = Style::color("Yellow");
+        let csi_title = Style::color("yellow");
         let csi_reset = Style::reset();
         eprintln!(
             "{}Usage:{} alias {}<key> <val>{1}",
@@ -328,7 +328,7 @@ fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
 fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
-        let csi_title = Style::color("Yellow");
+        let csi_title = Style::color("yellow");
         let csi_reset = Style::reset();
         eprintln!(
             "{}Usage:{} unalias {}<key>{1}",
@@ -348,7 +348,7 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
 fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 3 {
         let csi_option = Style::color("LightCyan");
-        let csi_title = Style::color("Yellow");
+        let csi_title = Style::color("yellow");
         let csi_reset = Style::reset();
         eprintln!(
             "{}Usage:{} set {}<key> <val>{1}",
@@ -364,7 +364,7 @@ fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
 fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 2 {
         let csi_option = Style::color("LightCyan");
-        let csi_title = Style::color("Yellow");
+        let csi_title = Style::color("yellow");
         let csi_reset = Style::reset();
         eprintln!(
             "{}Usage:{} unset {}<key>{1}",
@@ -695,7 +695,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} shell {}[<file> [<args>]]{}",

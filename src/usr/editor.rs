@@ -87,7 +87,7 @@ impl Editor {
 
         if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
-            self.print_status(&status, "Yellow");
+            self.print_status(&status, "yellow");
             Ok(())
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
@@ -597,7 +597,7 @@ fn truncated_line_indicator() -> String {
 
 fn help() {
     let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} edit {}<file>{}",

@@ -68,7 +68,7 @@ impl Chess {
             game: Game::new(),
             side: BLACK,
             csi_color: Style::color("teal"),
-            csi_notif: Style::color("Yellow"),
+            csi_notif: Style::color("yellow"),
             csi_reset: Style::reset(),
         }
     }
@@ -381,7 +381,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 pub fn help() -> Result<(), ExitCode> {
     let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} chess {}{}",

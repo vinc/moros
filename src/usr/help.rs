@@ -40,7 +40,7 @@ fn print_usage(alias: &str, command: &str, usage: &str) {
 }
 
 fn help_summary() -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
 
     println!("{}Usage:{}", csi_color, csi_reset);
@@ -76,7 +76,7 @@ fn help_summary() -> Result<(), ExitCode> {
 }
 
 fn help_edit() -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "MOROS text editor is a very simple editor inspired by Pico.");
@@ -103,7 +103,7 @@ fn help_edit() -> Result<(), ExitCode> {
 }
 
 fn help_date() -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     println!("The date command's formatting behavior is based on strftime.");
     println!();
@@ -276,7 +276,7 @@ fn help_date() -> Result<(), ExitCode> {
 
 fn help() {
     let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} help {}[<command>]{}",

@@ -114,7 +114,7 @@ pub fn copy_files(verbose: bool) {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Welcome to MOROS v{} installation program!{}",

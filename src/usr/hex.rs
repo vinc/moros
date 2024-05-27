@@ -64,7 +64,7 @@ pub fn print_hex_at(buf: &[u8], offset: usize) {
 
 fn help() {
     let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} hex {}<file>{}",
