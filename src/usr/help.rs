@@ -30,7 +30,7 @@ fn help_unknown(cmd: &str) -> Result<(), ExitCode> {
 }
 
 fn print_usage(alias: &str, command: &str, usage: &str) {
-    let csi_col1 = Style::color("LightGreen");
+    let csi_col1 = Style::color("lime");
     let csi_col2 = Style::color("LightCyan");
     let csi_reset = Style::reset();
     println!(

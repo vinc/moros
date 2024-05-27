@@ -134,7 +134,7 @@ impl fmt::Display for Game {
                         2 => Style::color("LightGray"),
                         4 => Style::color("LightBlue"),
                         8 => Style::color("LightCyan"),
-                        16 => Style::color("LightGreen"),
+                        16 => Style::color("lime"),
                         32 => Style::color("Yellow"),
                         64 => Style::color("red"),
                         128 => Style::color("Pink"),

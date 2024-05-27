@@ -65,7 +65,7 @@ impl<T> Testable for T where T: Fn() {
     fn run(&self) {
         print!("test {} ... ", core::any::type_name::<T>());
         self();
-        let csi_color = api::console::Style::color("LightGreen");
+        let csi_color = api::console::Style::color("lime");
         let csi_reset = api::console::Style::reset();
         println!("{}ok{}", csi_color, csi_reset);
     }

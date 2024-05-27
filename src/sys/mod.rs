@@ -21,7 +21,7 @@ macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
             let uptime = $crate::sys::clock::uptime();
-            let csi_color = $crate::api::console::Style::color("LightGreen");
+            let csi_color = $crate::api::console::Style::color("lime");
             let csi_reset = $crate::api::console::Style::reset();
             $crate::sys::console::print_fmt(format_args!(
                 "{}[{:.6}]{} {}\n",

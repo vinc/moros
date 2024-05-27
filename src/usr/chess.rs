@@ -137,7 +137,7 @@ impl Chess {
             ("", "perf [<depth>] ", "Count the nodes at each depth\n"),
         ];
         for (alias, command, usage) in &cmds {
-            let csi_col1 = Style::color("LightGreen");
+            let csi_col1 = Style::color("lime");
             let csi_col2 = Style::color("LightCyan");
             print!(
                 "  {}{}{}{:20}{}{}",
