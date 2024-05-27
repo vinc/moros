@@ -76,7 +76,7 @@ fn color_to_fg(name: &str) -> Option<usize> {
     match name {
         "black"      => Some(30),
         "maroon"        => Some(31),
-        "Green"      => Some(32),
+        "green"      => Some(32),
         "olive"      => Some(33),
         "Blue"       => Some(34),
         "Magenta"    => Some(35),
