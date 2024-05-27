@@ -60,6 +60,7 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/ini/version.txt", verbose);
 
     create_dir("/ini/palettes", verbose);
+    copy_file!("/ini/palettes/default.sh", verbose);
     copy_file!("/ini/palettes/gruvbox-dark.sh", verbose);
     copy_file!("/ini/palettes/gruvbox-light.sh", verbose);
 
