@@ -34,7 +34,7 @@ pub fn print_hex(buf: &[u8]) {
 
 pub fn print_hex_at(buf: &[u8], offset: usize) {
     let null = 0 as char;
-    let cyan = Style::color("LightCyan");
+    let cyan = Style::color("aqua");
     let gray = Style::color("DarkGray");
     let pink = Style::color("fushia");
     let reset = Style::reset();
@@ -63,7 +63,7 @@ pub fn print_hex_at(buf: &[u8], offset: usize) {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
+    let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(

@@ -31,7 +31,7 @@ fn help_unknown(cmd: &str) -> Result<(), ExitCode> {
 
 fn print_usage(alias: &str, command: &str, usage: &str) {
     let csi_col1 = Style::color("lime");
-    let csi_col2 = Style::color("LightCyan");
+    let csi_col2 = Style::color("aqua");
     let csi_reset = Style::reset();
     println!(
         "  {}{}{}{:21}{}{}",
@@ -95,7 +95,7 @@ fn help_edit() -> Result<(), ExitCode> {
         ("^P", "Paste line"),
     ];
     for (command, usage) in &commands {
-        let csi_color = Style::color("LightCyan");
+        let csi_color = Style::color("aqua");
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, command, csi_reset, usage);
     }
@@ -267,7 +267,7 @@ fn help_date() -> Result<(), ExitCode> {
         ),
     ];
     for (specifier, usage, _exemple) in &specifiers {
-        let csi_color = Style::color("LightCyan");
+        let csi_color = Style::color("aqua");
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }
@@ -275,7 +275,7 @@ fn help_date() -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
+    let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(

@@ -110,7 +110,7 @@ fn print_matching_lines_in_file(
     state: &mut PrintingState
 ) {
     let name_color = Style::color("yellow");
-    let line_color = Style::color("LightCyan");
+    let line_color = Style::color("aqua");
     let match_color = Style::color("red");
     let reset = Style::reset();
 
@@ -167,7 +167,7 @@ fn print_matching_lines_in_file(
 }
 
 fn usage() {
-    let csi_option = Style::color("LightCyan");
+    let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(

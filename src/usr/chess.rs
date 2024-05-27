@@ -138,7 +138,7 @@ impl Chess {
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("lime");
-            let csi_col2 = Style::color("LightCyan");
+            let csi_col2 = Style::color("aqua");
             print!(
                 "  {}{}{}{:20}{}{}",
                 csi_col1, alias, csi_col2, command, self.csi_reset, usage
@@ -286,7 +286,7 @@ impl Chess {
     }
 
     fn cmd_perf(&mut self, args: Vec<&str>) {
-        let csi_depth = Style::color("LightCyan");
+        let csi_depth = Style::color("aqua");
         let csi_count = Style::color("fushia");
         let csi_reset = Style::reset();
 
@@ -380,7 +380,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 pub fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
+    let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(

@@ -133,7 +133,7 @@ impl fmt::Display for Game {
                     let color = match v {
                         2 => Style::color("LightGray"),
                         4 => Style::color("blue"),
-                        8 => Style::color("LightCyan"),
+                        8 => Style::color("aqua"),
                         16 => Style::color("lime"),
                         32 => Style::color("yellow"),
                         64 => Style::color("red"),

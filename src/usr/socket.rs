@@ -151,7 +151,7 @@ fn is_closed(status: u8) -> bool {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
+    let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(

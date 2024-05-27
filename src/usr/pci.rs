@@ -61,7 +61,7 @@ fn list(verbose: bool) -> Result<(), ExitCode> {
 }
 
 fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
+    let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(

@@ -78,7 +78,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn print_file(file: &FileInfo, width: usize, unit: SizeUnit) {
-    let csi_dir_color = Style::color("LightCyan");
+    let csi_dir_color = Style::color("aqua");
     let csi_dev_color = Style::color("yellow");
     let csi_reset = Style::reset();
 
@@ -103,7 +103,7 @@ fn print_file(file: &FileInfo, width: usize, unit: SizeUnit) {
 }
 
 fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
+    let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
