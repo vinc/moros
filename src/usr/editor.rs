@@ -125,7 +125,7 @@ impl Editor {
         let width = self.cols() - start.chars().count();
         let status = format!("{}{:>width$}", start, end, width = width);
 
-        self.print_status(&status, "LightGray");
+        self.print_status(&status, "silver");
     }
 
     fn print_screen(&mut self) {
@@ -590,7 +590,7 @@ impl Editor {
 }
 
 fn truncated_line_indicator() -> String {
-    let color = Style::color("black").with_background("LightGray");
+    let color = Style::color("black").with_background("silver");
     let reset = Style::reset();
     format!("{}>{}", color, reset)
 }

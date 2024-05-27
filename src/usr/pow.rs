@@ -131,7 +131,7 @@ impl fmt::Display for Game {
                     write!(f, "      |")?;
                 } else {
                     let color = match v {
-                        2 => Style::color("LightGray"),
+                        2 => Style::color("silver"),
                         4 => Style::color("blue"),
                         8 => Style::color("aqua"),
                         16 => Style::color("lime"),
