@@ -142,7 +142,7 @@ impl fmt::Display for Game {
                         512 => Style::color("fushia"),
                         1024 => Style::color("maroon"),
                         2048 => Style::color("olive"),
-                        _ => Style::color("White"),
+                        _ => Style::color("white"),
                     };
                     write!(f, " {}{:^5}{}|", color, v, reset)?;
                 }

@@ -89,7 +89,7 @@ fn color_to_fg(name: &str) -> Option<usize> {
         "blue"  => Some(94),
         "fushia"       => Some(95),
         "aqua"  => Some(96),
-        "White"      => Some(97),
+        "white"      => Some(97),
         _            => None,
     }
 }
