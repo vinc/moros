@@ -62,7 +62,7 @@ macro_rules! eprintln {
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => ({
-        let csi_color = $crate::api::console::Style::color("LightRed");
+        let csi_color = $crate::api::console::Style::color("red");
         let csi_reset = $crate::api::console::Style::reset();
         eprintln!(
             "{}Error:{} {}", csi_color, csi_reset, format_args!($($arg)*)

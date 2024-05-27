@@ -91,7 +91,7 @@ impl Editor {
             Ok(())
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
-            self.print_status(&status, "LightRed");
+            self.print_status(&status, "red");
             Err(ExitCode::Failure)
         }
     }
@@ -236,7 +236,7 @@ impl Editor {
         self.match_chars('(', ')');
         self.match_chars('{', '}');
         self.match_chars('[', ']');
-        let color = Style::color("LightRed");
+        let color = Style::color("red");
         let reset = Style::reset();
         for (x, y, c) in &self.highlighted {
             if *x == self.cols() - 1 {

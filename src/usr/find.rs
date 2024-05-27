@@ -111,7 +111,7 @@ fn print_matching_lines_in_file(
 ) {
     let name_color = Style::color("Yellow");
     let line_color = Style::color("LightCyan");
-    let match_color = Style::color("LightRed");
+    let match_color = Style::color("red");
     let reset = Style::reset();
 
     let re = Regex::new(pattern);

@@ -83,7 +83,7 @@ fn color_to_fg(name: &str) -> Option<usize> {
         "Cyan"       => Some(36),
         "LightGray"  => Some(37),
         "DarkGray"   => Some(90),
-        "LightRed"   => Some(91),
+        "red"   => Some(91),
         "LightGreen" => Some(92),
         "Yellow"     => Some(93),
         "LightBlue"  => Some(94),
