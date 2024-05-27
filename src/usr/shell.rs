@@ -100,7 +100,7 @@ fn shell_completer(line: &str) -> Vec<String> {
 
 pub fn prompt_string(success: bool) -> String {
     let csi_line1 = Style::color("navy");
-    let csi_line2 = Style::color("Magenta");
+    let csi_line2 = Style::color("purple");
     let csi_error = Style::color("maroon");
     let csi_reset = Style::reset();
 
