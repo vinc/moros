@@ -72,25 +72,26 @@ impl fmt::Display for Style {
     }
 }
 
+// W3C Colors (HTML 3.2)
 fn color_to_fg(name: &str) -> Option<usize> {
     match name {
-        "black"      => Some(30),
-        "maroon"        => Some(31),
-        "green"      => Some(32),
-        "olive"      => Some(33),
-        "navy"       => Some(34),
-        "purple"    => Some(35),
-        "teal"       => Some(36),
-        "silver"  => Some(37),
+        "black"  => Some(30),
+        "maroon" => Some(31),
+        "green"  => Some(32),
+        "olive"  => Some(33),
+        "navy"   => Some(34),
+        "purple" => Some(35),
+        "teal"   => Some(36),
+        "silver" => Some(37),
         "gray"   => Some(90),
-        "red"   => Some(91),
-        "lime" => Some(92),
-        "yellow"     => Some(93),
-        "blue"  => Some(94),
-        "fushia"       => Some(95),
-        "aqua"  => Some(96),
-        "white"      => Some(97),
-        _            => None,
+        "red"    => Some(91),
+        "lime"   => Some(92),
+        "yellow" => Some(93),
+        "blue"   => Some(94),
+        "fushia" => Some(95),
+        "aqua"   => Some(96),
+        "white"  => Some(97),
+        _        => None,
     }
 }
 
