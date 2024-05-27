@@ -74,7 +74,7 @@ impl fmt::Display for Style {
 
 fn color_to_fg(name: &str) -> Option<usize> {
     match name {
-        "Black"      => Some(30),
+        "black"      => Some(30),
         "maroon"        => Some(31),
         "Green"      => Some(32),
         "olive"      => Some(33),

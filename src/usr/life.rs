@@ -118,7 +118,7 @@ impl Game {
     fn status(&self, title: &str, bg: &str) -> String {
         let gen = self.generation();
         let pop = self.population();
-        let color = Style::color("Black").with_background(bg);
+        let color = Style::color("black").with_background(bg);
         let reset = Style::reset();
         let stats = format!("GEN: {:04} | POP: {:04}", gen, pop);
         let size = self.cols - stats.len();

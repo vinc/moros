@@ -100,7 +100,7 @@ impl Editor {
         // Move cursor to the bottom of the screen
         print!("\x1b[{};1H", self.rows() + 1);
 
-        let color = Style::color("Black").with_background(background);
+        let color = Style::color("black").with_background(background);
         let reset = Style::reset();
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
 
@@ -590,7 +590,7 @@ impl Editor {
 }
 
 fn truncated_line_indicator() -> String {
-    let color = Style::color("Black").with_background("LightGray");
+    let color = Style::color("black").with_background("LightGray");
     let reset = Style::reset();
     format!("{}>{}", color, reset)
 }
