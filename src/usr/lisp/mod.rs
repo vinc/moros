@@ -274,7 +274,7 @@ fn lisp_completer(line: &str) -> Vec<String> {
 }
 
 fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
-    let csi_color = Style::color("Cyan");
+    let csi_color = Style::color("teal");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 

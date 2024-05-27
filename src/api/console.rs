@@ -80,7 +80,7 @@ fn color_to_fg(name: &str) -> Option<usize> {
         "olive"      => Some(33),
         "navy"       => Some(34),
         "purple"    => Some(35),
-        "Cyan"       => Some(36),
+        "teal"       => Some(36),
         "LightGray"  => Some(37),
         "DarkGray"   => Some(90),
         "red"   => Some(91),

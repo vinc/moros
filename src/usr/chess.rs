@@ -67,7 +67,7 @@ impl Chess {
         Self {
             game: Game::new(),
             side: BLACK,
-            csi_color: Style::color("Cyan"),
+            csi_color: Style::color("teal"),
             csi_notif: Style::color("Yellow"),
             csi_reset: Style::reset(),
         }
