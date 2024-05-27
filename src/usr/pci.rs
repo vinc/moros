@@ -18,7 +18,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
 fn list(verbose: bool) -> Result<(), ExitCode> {
     let color1 = Style::color("navy");
-    let color2 = Style::color("LightBlue");
+    let color2 = Style::color("blue");
     let reset = Style::reset();
     if verbose {
         println!(

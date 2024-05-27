@@ -181,7 +181,7 @@ impl Response {
 
 impl fmt::Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let csi_blue = Style::color("LightBlue");
+        let csi_blue = Style::color("blue");
         let csi_cyan = Style::color("LightCyan");
         let csi_pink = Style::color("Pink");
         let csi_reset = Style::reset();

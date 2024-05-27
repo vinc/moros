@@ -47,7 +47,7 @@ impl URL {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let csi_verbose = Style::color("LightBlue");
+    let csi_verbose = Style::color("blue");
     let csi_reset = Style::reset();
 
     // Parse command line options
