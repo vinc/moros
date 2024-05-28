@@ -8,7 +8,8 @@
   <body>
     <h1>Colors</h1>
 
-    <p>MOROS uses 80x25 VGA text mode with standard ANSI escape sequences.</p>
+    <p>MOROS operates in 80x25 VGA text mode and supports standard ANSI escape
+sequences for color manipulation.</p>
 
     <p>There are 8 dark and 8 bright colors:</p>
 
@@ -27,17 +28,19 @@
 Yellow
 </code></pre>
 
-    <p>The background color can also be changed by adding 10 to the numbers in the
-table. It is possible to change both at the same time:</p>
+    <p>The background color can also be changed by adding 10 to the color code. It is
+possible to change both at the same time:</p>
 
     <pre><code>&gt; print &quot;\e[93;46mYellow on teal\e[m&quot;
 Yellow on teal
 </code></pre>
 
-    <p>The values of the colors can be customized. After its installation MOROS will
-run the script <code>/ini/palettes/gruvbox-dark.sh</code> at the end of each boot to load
-a Gruvbox color palette by default. It is possible to change this behavior by
-editing the boot script <code>/ini/boot.sh</code>.</p>
+    <p>The values of the colors can be customized.</p>
+
+    <p>After its installation MOROS will run <code>/ini/palettes/gruvbox-dark.sh</code> at the
+end of each boot to load a Gruvbox color palette by default.</p>
+
+    <p>It is possible to change this behavior by editing <code>/ini/boot.sh</code>.</p>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>
