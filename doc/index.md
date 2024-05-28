@@ -54,7 +54,7 @@ It even has [2048](games.md#2048):
 
 ![2048](images/2048.png)
 
-And finally it is quite customizable:
+And finally it is quite [customizable](colors.md):
 
 ![light](images/light.png)
 
