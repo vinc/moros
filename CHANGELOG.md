@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Rename colors (#625)
+- Update install output (#626)
+- Refactor install output (#623)
+- Add text/plain content type to markdown files (#622)
+- Add recursive hash (#621)
 - Improve lisp numbers (#618)
 - Add device creation from write command (#620)
 - Refactor install with copy_file macro (#619)
