@@ -56,8 +56,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} net {}<command>{}",
@@ -74,8 +74,8 @@ fn help() {
 }
 
 fn help_config() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} net config {}<attribute> <value>{}",
@@ -90,7 +90,7 @@ fn help_config() {
 }
 
 fn print_config(attribute: &str) {
-    let csi_color = Style::color("LightCyan");
+    let csi_color = Style::color("aqua");
     let csi_reset = Style::reset();
     if let Some(value) = get_config(attribute) {
         let width = 4 - attribute.len();
@@ -232,7 +232,7 @@ pub fn set_config(attribute: &str, value: &str) {
 pub fn stat() {
     if let Some((_, ref mut device)) = *sys::net::NET.lock() {
         let stats = device.stats();
-        let csi_color = Style::color("LightCyan");
+        let csi_color = Style::color("aqua");
         let csi_reset = Style::reset();
         println!(
             "{}rx:{} {} packets ({} bytes)",

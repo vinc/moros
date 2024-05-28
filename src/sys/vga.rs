@@ -25,8 +25,8 @@ const CRTC_ADDR_REG: u16 = 0x3D4;
 const CRTC_DATA_REG: u16 = 0x3D5;
 const INPUT_STATUS_REG: u16 = 0x3DA;
 
-const FG: Color = Color::LightGray;
-const BG: Color = Color::Black;
+const FG: Color = Color::DarkWhite;
+const BG: Color = Color::DarkBlack;
 const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 
 lazy_static! {

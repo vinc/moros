@@ -8,7 +8,7 @@ macro_rules! printk {
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => ({
-        let csi_color = $crate::api::console::Style::color("LightBlue");
+        let csi_color = $crate::api::console::Style::color("blue");
         let csi_reset = $crate::api::console::Style::reset();
         $crate::sys::console::print_fmt(format_args!(
             "{}DEBUG: {}{}\n", csi_color, format_args!($($arg)*), csi_reset
@@ -21,7 +21,7 @@ macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
             let uptime = $crate::sys::clock::uptime();
-            let csi_color = $crate::api::console::Style::color("LightGreen");
+            let csi_color = $crate::api::console::Style::color("lime");
             let csi_reset = $crate::api::console::Style::reset();
             $crate::sys::console::print_fmt(format_args!(
                 "{}[{:.6}]{} {}\n",

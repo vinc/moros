@@ -78,7 +78,7 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
     let width = [size, used, free].iter().fold(0, |acc, num|
         core::cmp::max(acc, unit.format(*num).len())
     );
-    let color = Style::color("LightCyan");
+    let color = Style::color("aqua");
     let reset = Style::reset();
     println!(
         "{}size:{} {:>width$}",
@@ -105,8 +105,8 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help_usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} memory usage {}<options>{}",
@@ -121,8 +121,8 @@ fn help_usage() {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} memory {}<command>{}",

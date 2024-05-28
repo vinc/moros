@@ -60,6 +60,7 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/ini/version.txt", verbose);
 
     create_dir("/ini/palettes", verbose);
+    copy_file!("/ini/palettes/default.sh", verbose);
     copy_file!("/ini/palettes/gruvbox-dark.sh", verbose);
     copy_file!("/ini/palettes/gruvbox-light.sh", verbose);
 
@@ -114,7 +115,7 @@ pub fn copy_files(verbose: bool) {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Welcome to MOROS v{} installation program!{}",

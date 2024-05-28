@@ -181,9 +181,9 @@ impl Response {
 
 impl fmt::Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let csi_blue = Style::color("LightBlue");
-        let csi_cyan = Style::color("LightCyan");
-        let csi_pink = Style::color("Pink");
+        let csi_blue = Style::color("blue");
+        let csi_cyan = Style::color("aqua");
+        let csi_pink = Style::color("fushia");
         let csi_reset = Style::reset();
         write!(
             f,
@@ -298,7 +298,7 @@ fn delete(_req: &Request, res: &mut Response) {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     let mut read_only = false;
     let mut port = 80;
@@ -492,8 +492,8 @@ fn join_path(dir: &str, path: &str) -> String {
 }
 
 fn usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} httpd {}<options>{1}",

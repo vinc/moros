@@ -46,7 +46,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
-    let csi_color = api::console::Style::color("LightRed");
+    let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
     printk!(
         "{}Error:{} Could not allocate {} bytes\n",
@@ -65,7 +65,7 @@ impl<T> Testable for T where T: Fn() {
     fn run(&self) {
         print!("test {} ... ", core::any::type_name::<T>());
         self();
-        let csi_color = api::console::Style::color("LightGreen");
+        let csi_color = api::console::Style::color("lime");
         let csi_reset = api::console::Style::reset();
         println!("{}ok{}", csi_color, csi_reset);
     }
@@ -121,7 +121,7 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let csi_color = api::console::Style::color("LightRed");
+    let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
     println!("{}failed{}\n", csi_color, csi_reset);
     println!("{}\n", info);

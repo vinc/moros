@@ -109,9 +109,9 @@ fn print_matching_lines_in_file(
     pattern: &str,
     state: &mut PrintingState
 ) {
-    let name_color = Style::color("Yellow");
-    let line_color = Style::color("LightCyan");
-    let match_color = Style::color("LightRed");
+    let name_color = Style::color("yellow");
+    let line_color = Style::color("aqua");
+    let match_color = Style::color("red");
     let reset = Style::reset();
 
     let re = Regex::new(pattern);
@@ -167,8 +167,8 @@ fn print_matching_lines_in_file(
 }
 
 fn usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} find {}<options> <path>{1}",

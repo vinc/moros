@@ -118,7 +118,7 @@ impl Game {
     fn status(&self, title: &str, bg: &str) -> String {
         let gen = self.generation();
         let pop = self.population();
-        let color = Style::color("Black").with_background(bg);
+        let color = Style::color("black").with_background(bg);
         let reset = Style::reset();
         let stats = format!("GEN: {:04} | POP: {:04}", gen, pop);
         let size = self.cols - stats.len();
@@ -157,7 +157,7 @@ impl fmt::Display for Game {
 
         if !self.quiet {
             let line = if self.is_game_over() {
-                self.status("GAME OVER", "Yellow")
+                self.status("GAME OVER", "yellow")
             } else {
                 self.status("GAME OF LIFE", "White")
             };
@@ -242,8 +242,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} life {}<options> [<path>]{1}",

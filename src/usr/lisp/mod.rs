@@ -274,7 +274,7 @@ fn lisp_completer(line: &str) -> Vec<String> {
 }
 
 fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
-    let csi_color = Style::color("Cyan");
+    let csi_color = Style::color("teal");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -381,8 +381,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} lisp {}[<file> [<args>]]{}",

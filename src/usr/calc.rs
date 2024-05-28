@@ -111,7 +111,7 @@ fn parse_eval(line: &str) -> Result<f64, String> {
 
 fn repl() -> Result<(), ExitCode> {
     println!("MOROS Calc v0.1.0\n");
-    let csi_color = Style::color("Cyan");
+    let csi_color = Style::color("teal");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -168,8 +168,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 pub fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} calc {}[<exp>]{}",

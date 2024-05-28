@@ -29,8 +29,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     // TODO: Create device drivers for `/net` hardcoded commands
     if path.starts_with("/net/") {
-        let csi_option = Style::color("LightCyan");
-        let csi_title = Style::color("Yellow");
+        let csi_option = Style::color("aqua");
+        let csi_title = Style::color("yellow");
         let csi_reset = Style::reset();
         // Examples:
         // > read /net/http/example.com/articles
@@ -142,8 +142,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} read {}<path>{}",

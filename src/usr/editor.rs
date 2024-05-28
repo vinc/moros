@@ -87,11 +87,11 @@ impl Editor {
 
         if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
-            self.print_status(&status, "Yellow");
+            self.print_status(&status, "yellow");
             Ok(())
         } else {
             let status = format!("Could not write to '{}'", self.pathname);
-            self.print_status(&status, "LightRed");
+            self.print_status(&status, "red");
             Err(ExitCode::Failure)
         }
     }
@@ -100,7 +100,7 @@ impl Editor {
         // Move cursor to the bottom of the screen
         print!("\x1b[{};1H", self.rows() + 1);
 
-        let color = Style::color("Black").with_background(background);
+        let color = Style::color("black").with_background(background);
         let reset = Style::reset();
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
 
@@ -125,7 +125,7 @@ impl Editor {
         let width = self.cols() - start.chars().count();
         let status = format!("{}{:>width$}", start, end, width = width);
 
-        self.print_status(&status, "LightGray");
+        self.print_status(&status, "silver");
     }
 
     fn print_screen(&mut self) {
@@ -236,7 +236,7 @@ impl Editor {
         self.match_chars('(', ')');
         self.match_chars('{', '}');
         self.match_chars('[', ']');
-        let color = Style::color("LightRed");
+        let color = Style::color("red");
         let reset = Style::reset();
         for (x, y, c) in &self.highlighted {
             if *x == self.cols() - 1 {
@@ -590,14 +590,14 @@ impl Editor {
 }
 
 fn truncated_line_indicator() -> String {
-    let color = Style::color("Black").with_background("LightGray");
+    let color = Style::color("black").with_background("silver");
     let reset = Style::reset();
     format!("{}>{}", color, reset)
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} edit {}<file>{}",

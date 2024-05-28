@@ -136,7 +136,7 @@ extern "x86-interrupt" fn page_fault_handler(
     };
 
     if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
-        let csi_color = api::console::Style::color("LightRed");
+        let csi_color = api::console::Style::color("red");
         let csi_reset = api::console::Style::reset();
         printk!(
             "{}Error:{} Could not allocate address {:#X}\n",

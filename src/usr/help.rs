@@ -30,8 +30,8 @@ fn help_unknown(cmd: &str) -> Result<(), ExitCode> {
 }
 
 fn print_usage(alias: &str, command: &str, usage: &str) {
-    let csi_col1 = Style::color("LightGreen");
-    let csi_col2 = Style::color("LightCyan");
+    let csi_col1 = Style::color("lime");
+    let csi_col2 = Style::color("aqua");
     let csi_reset = Style::reset();
     println!(
         "  {}{}{}{:21}{}{}",
@@ -40,7 +40,7 @@ fn print_usage(alias: &str, command: &str, usage: &str) {
 }
 
 fn help_summary() -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
 
     println!("{}Usage:{}", csi_color, csi_reset);
@@ -76,7 +76,7 @@ fn help_summary() -> Result<(), ExitCode> {
 }
 
 fn help_edit() -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "MOROS text editor is a very simple editor inspired by Pico.");
@@ -95,7 +95,7 @@ fn help_edit() -> Result<(), ExitCode> {
         ("^P", "Paste line"),
     ];
     for (command, usage) in &commands {
-        let csi_color = Style::color("LightCyan");
+        let csi_color = Style::color("aqua");
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, command, csi_reset, usage);
     }
@@ -103,7 +103,7 @@ fn help_edit() -> Result<(), ExitCode> {
 }
 
 fn help_date() -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     println!("The date command's formatting behavior is based on strftime.");
     println!();
@@ -267,7 +267,7 @@ fn help_date() -> Result<(), ExitCode> {
         ),
     ];
     for (specifier, usage, _exemple) in &specifiers {
-        let csi_color = Style::color("LightCyan");
+        let csi_color = Style::color("aqua");
         let csi_reset = Style::reset();
         println!("  {}{}{}    {}", csi_color, specifier, csi_reset, usage);
     }
@@ -275,8 +275,8 @@ fn help_date() -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} help {}[<command>]{}",
