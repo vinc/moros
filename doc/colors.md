@@ -1,4 +1,4 @@
-# Colors
+# MOROS Colors
 
 MOROS operates in 80x25 VGA text mode and supports standard ANSI escape
 sequences for color manipulation.
