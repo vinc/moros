@@ -444,6 +444,22 @@ impl Perform for Writer {
                 self.set_writer_position(x, y);
                 self.set_cursor_position(x, y);
             }
+            'S' => { // Scroll Up
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.scrollback_cursor = self.scrollback_cursor.saturating_sub(n);
+                self.scroll();
+            }
+            'T' => { // Scroll Down
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.scrollback_cursor = cmp::min(self.scrollback_cursor + n, self.scrollback_bottom);
+                self.scroll();
+            }
             'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
