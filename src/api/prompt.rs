@@ -182,6 +182,14 @@ impl Prompt {
         self.history.pos = pos;
     }
 
+    fn handle_page_up_key(&mut self) {
+        print!("\x1b[25S");
+    }
+
+    fn handle_page_down_key(&mut self) {
+        print!("\x1b[25T");
+    }
+
     fn handle_forward_key(&mut self) {
         self.update_completion();
         self.update_history();
@@ -268,8 +276,11 @@ impl Perform for Prompt {
             'Z' => self.handle_backtab_key(),
             '~' => {
                 for param in params.iter() {
-                    if param[0] == 3 { // Delete
-                        self.handle_delete_key();
+                    match param[0] {
+                        3 => self.handle_delete_key(),
+                        5 => self.handle_page_up_key(),
+                        6 => self.handle_page_down_key(),
+                        _ => continue,
                     }
                 }
             }
