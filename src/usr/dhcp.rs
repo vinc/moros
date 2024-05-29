@@ -76,20 +76,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     if let Some((address, router, dns_servers)) = dhcp_config {
         shell::exec(&format!("net config ip {}", address)).ok();
-        shell::exec("net config ip").ok();
 
         if let Some(router) = router {
             shell::exec(&format!("net config gw {}", router)).ok();
         } else {
             shell::exec("net config gw 0.0.0.0").ok();
         }
-        shell::exec("net config gw").ok();
 
         let dns: Vec<_> = dns_servers.iter().map(|s| s.to_string()).collect();
         if !dns.is_empty() {
             shell::exec(&format!("net config dns {}", dns.join(","))).ok();
         }
-        shell::exec("net config dns").ok();
 
         return Ok(());
     }
