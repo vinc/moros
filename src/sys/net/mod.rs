@@ -268,9 +268,10 @@ const E1000_DEVICES: [u16; 9] = [
 
 pub fn init() {
     let add = |mut device: EthernetDevice, name| {
+        log!("NET DRV {}", name);
         if let Some(mac) = device.config().mac() {
             let addr = format!("{}", mac).to_uppercase();
-            log!("NET {} MAC {}", name, addr);
+            log!("NET MAC {}", addr);
 
             let config = smoltcp::iface::Config::new(mac.into());
             let iface = Interface::new(config, &mut device, time());
