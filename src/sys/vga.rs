@@ -29,16 +29,6 @@ const FG: Color = Color::DarkWhite;
 const BG: Color = Color::DarkBlack;
 const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 
-lazy_static! {
-    pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
-    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
-        cursor: [0; 2],
-        writer: [0; 2],
-        color_code: ColorCode::new(FG, BG),
-        buffer: unsafe { &mut *(0xB8000 as *mut Buffer) },
-    });
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
@@ -56,12 +46,35 @@ struct ScreenChar {
     color_code: ColorCode,
 }
 
+impl ScreenChar {
+    fn new() -> Self {
+        Self {
+            ascii_code: b' ',
+            color_code: ColorCode::new(FG, BG),
+        }
+    }
+}
+
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
+const SCROLLBACK: usize = 10;
 
 #[repr(transparent)]
 struct Buffer {
     chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
+}
+
+lazy_static! {
+    pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        cursor: [0; 2],
+        writer: [0; 2],
+        color_code: ColorCode::new(FG, BG),
+        buffer: unsafe { &mut *(0xB8000 as *mut Buffer) }, // TODO: Rename to `text_buffer`
+        scrollback_buffer: [[ScreenChar::new(); BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
+        scrollback_cursor: 0,
+        scrollback_bottom: 0,
+    });
 }
 
 pub struct Writer {
@@ -69,6 +82,9 @@ pub struct Writer {
     writer: [usize; 2], // x, y
     color_code: ColorCode,
     buffer: &'static mut Buffer,
+    scrollback_buffer: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
+    scrollback_cursor: usize,
+    scrollback_bottom: usize,
 }
 
 impl Writer {
@@ -155,6 +171,9 @@ impl Writer {
                     let y = self.writer[1];
                     let ptr = &mut self.buffer.chars[y][x];
                     unsafe { core::ptr::write_volatile(ptr, c); }
+
+                    let dy = self.scrollback_cursor;
+                    self.scrollback_buffer[y + dy][x] = c;
                 }
             }
             byte => {
@@ -177,6 +196,9 @@ impl Writer {
                 let ptr = &mut self.buffer.chars[y][x];
                 unsafe { core::ptr::write_volatile(ptr, c); }
                 self.writer[0] += 1;
+
+                let dy = self.scrollback_cursor;
+                self.scrollback_buffer[y + dy][x] = c;
             }
         }
     }
@@ -189,6 +211,8 @@ impl Writer {
                 self.buffer.chars[y - 1] = self.buffer.chars[y];
             }
             self.clear_row_after(0, BUFFER_HEIGHT - 1);
+            self.scrollback_cursor += 1;
+            self.scrollback_bottom += 1;
         }
         self.writer[0] = 0;
     }
@@ -199,6 +223,9 @@ impl Writer {
             color_code: self.color_code,
         };
         self.buffer.chars[y][x..BUFFER_WIDTH].fill(c);
+
+        let dy = self.scrollback_cursor;
+        self.scrollback_buffer[y + dy][x..BUFFER_WIDTH].fill(c);
     }
 
     fn clear_screen(&mut self) {
