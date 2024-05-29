@@ -292,6 +292,17 @@ impl Writer {
             }
         }
     }
+
+    fn scroll(&mut self) {
+        let dy = self.scrollback_cursor;
+        for y in 0..BUFFER_HEIGHT {
+            for x in 0..BUFFER_WIDTH {
+                let c = self.scrollback_buffer[y + dy][x];
+                let ptr = &mut self.buffer.chars[y][x];
+                unsafe { core::ptr::write_volatile(ptr, c); }
+            }
+        }
+    }
 }
 
 // Convert 8-bit to 6-bit color
