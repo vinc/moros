@@ -23,10 +23,9 @@ impl PrintingState {
     }
 }
 
-// > find /tmp -name *.txt -line hello
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut path: &str = &sys::process::dir(); // TODO: use '.'
-    let mut name = None;
+    let mut path: &str = &sys::process::dir();
+    let mut file = None;
     let mut line = None;
     let mut i = 1;
     let n = args.len();
@@ -36,12 +35,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 usage();
                 return Ok(());
             }
-            "-n" | "--name" => {
+            "-f" | "--file" => {
                 if i + 1 < n {
                     i += 1;
-                    name = Some(args[i]);
+                    file = Some(args[i]);
                 } else {
-                    error!("Missing name");
+                    error!("Missing file");
                     return Err(ExitCode::UsageError);
                 }
             }
@@ -63,14 +62,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         path = path.trim_end_matches('/');
     }
 
-    if name.is_none() && line.is_none() {
+    if file.is_none() && line.is_none() {
         usage();
         return Err(ExitCode::UsageError);
     }
 
-    if name.is_some() {
+    if file.is_some() {
         // TODO
-        error!("`--name` is not implemented");
+        error!("`--file` is not implemented");
         return Err(ExitCode::Failure);
     }
 
@@ -109,7 +108,7 @@ fn print_matching_lines_in_file(
     pattern: &str,
     state: &mut PrintingState
 ) {
-    let name_color = Style::color("yellow");
+    let file_color = Style::color("yellow");
     let line_color = Style::color("aqua");
     let match_color = Style::color("red");
     let reset = Style::reset();
@@ -149,7 +148,7 @@ fn print_matching_lines_in_file(
                 } else {
                     println!();
                 }
-                println!("{}{}{}", name_color, path, reset);
+                println!("{}{}{}", file_color, path, reset);
             }
             let width = matches[matches.len() - 1].0.to_string().len();
             for (i, line) in matches {
@@ -171,14 +170,14 @@ fn usage() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} find {}<options> <path>{1}",
+        "{}Usage:{} find {}<options> [<path>]{1}",
         csi_title, csi_reset, csi_option
     );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-n{1}, {0}--name \"<pattern>\"{1}    \
-        Find file name matching {0}<pattern>{1}",
+        "  {0}-f{1}, {0}--file \"<pattern>\"{1}    \
+        Find files matching {0}<pattern>{1}",
         csi_option, csi_reset
     );
     println!(
