@@ -62,23 +62,46 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         path = path.trim_end_matches('/');
     }
 
-    if file.is_none() && line.is_none() {
-        usage();
-        return Err(ExitCode::UsageError);
+    if let Some(pattern) = file {
+        print_matching_files(path, pattern);
+        return Ok(());
     }
 
-    if file.is_some() {
-        // TODO
-        error!("`--file` is not implemented");
-        return Err(ExitCode::Failure);
-    }
-
-    let mut state = PrintingState::new();
     if let Some(pattern) = line {
+        let mut state = PrintingState::new();
         print_matching_lines(path, pattern, &mut state);
+        return Ok(());
     }
 
-    Ok(())
+    usage();
+    Err(ExitCode::UsageError)
+}
+
+fn print_matching_files(path: &str, pattern: &str) {
+    if let Ok(files) = fs::read_dir(path) {
+        for file in files {
+            let mut file_path = path.to_string();
+            if !file_path.ends_with('/') {
+                file_path.push('/');
+            }
+            file_path.push_str(&file.name());
+            if file.is_dir() {
+                print_matching_files(&file_path, pattern);
+            } else if file.is_device() {
+                // Skip devices
+            } else {
+                print_matching_file(&file_path, pattern);
+            }
+        }
+    }
+}
+
+fn print_matching_file(path: &str, pattern: &str) {
+    let file = fs::filename(&path);
+    let re = Regex::from_glob(pattern);
+    if re.is_match(file) {
+        println!("{}", path);
+    }
 }
 
 fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
