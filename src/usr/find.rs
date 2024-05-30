@@ -62,6 +62,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         path = path.trim_end_matches('/');
     }
 
+    // TODO: `find --file "*.txt" --line "Hello"
+
     if let Some(pattern) = file {
         print_matching_files(path, pattern);
         return Ok(());
