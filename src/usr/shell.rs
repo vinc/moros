@@ -528,7 +528,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "delete"   => usr::delete::main(args),
         "dhcp"     => usr::dhcp::main(args),
         "disk"     => usr::disk::main(args),
-        "edit"     => usr::editor::main(args),
+        "edit"     => usr::edit::main(args),
         "elf"      => usr::elf::main(args),
         "env"      => usr::env::main(args),
         "find"     => usr::find::main(args),

@@ -7,7 +7,7 @@ pub mod date;
 pub mod delete;
 pub mod dhcp;
 pub mod disk;
-pub mod editor;
+pub mod edit;
 pub mod elf;
 pub mod env;
 pub mod find;
