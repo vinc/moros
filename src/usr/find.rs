@@ -40,7 +40,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     i += 1;
                     file = Some(args[i]);
                 } else {
-                    error!("Missing file");
+                    error!("Missing file pattern");
                     return Err(ExitCode::UsageError);
                 }
             }
@@ -49,7 +49,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     i += 1;
                     line = Some(args[i]);
                 } else {
-                    error!("Missing line");
+                    error!("Missing line pattern");
                     return Err(ExitCode::UsageError);
                 }
             }
