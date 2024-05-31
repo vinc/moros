@@ -192,3 +192,47 @@ fn usage() {
         csi_option, csi_reset
     );
 }
+
+#[test_case]
+fn test_find() {
+    use crate::{api, usr, sys};
+    use crate::usr::shell::exec;
+
+    sys::fs::mount_mem();
+    sys::fs::format_mem();
+    usr::install::copy_files(false);
+
+    exec("find / => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("/tmp/alice.txt"));
+
+    exec("find /dev => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("/dev/random"));
+
+    exec("find /tmp/alice.txt --line Alice => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Alice"));
+
+    exec("find nope 2=> /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Invalid path"));
+
+    exec("find /tmp/alice.txt 2=> /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Invalid path"));
+
+    exec("find /dev/random --line nope 2=> /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Invalid path"));
+
+    exec("find /tmp --line list => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("alice.txt"));
+
+    exec("find /tmp --file \"*.lsp\" --line list => /tmp/find.log").ok();
+    assert!(!api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("alice.txt"));
+
+    sys::fs::dismount();
+}
