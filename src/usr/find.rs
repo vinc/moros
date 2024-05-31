@@ -30,7 +30,7 @@ impl Options {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut path = sys::process::dir();
+    let mut path = String::new();
     let mut options = Options::new();
     let mut i = 1;
     let n = args.len();
@@ -58,9 +58,20 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     return Err(ExitCode::UsageError);
                 }
             }
-            _ => path = args[i].into(),
+            _ => {
+                if path.is_empty() {
+                    path = args[i].into();
+                } else {
+                    error!("Multiple paths not supported");
+                    return Err(ExitCode::UsageError);
+                }
+            }
         }
         i += 1;
+    }
+
+    if path.is_empty() {
+        path = sys::process::dir()
     }
 
     if path.len() > 1 {
