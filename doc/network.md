@@ -18,6 +18,7 @@ Display one attribute of the network configuration:
 Set one attribute of the network configuration:
 
     > net config dns 10.0.2.3
+    [14.946833] NET DNS 10.0.2.3
 
 Display network statistics:
 
@@ -151,3 +152,16 @@ Here's a connexion to a SMTP server to send a mail:
 Sending a file to a server:
 
     > socket 10.0.2.2:1234 <= /tmp/alice.txt
+
+## NTP
+
+The `ntp` commmand is a lisp script used to get the time from a NTP server
+passed as an argument or defined in `/ini/ntp`:
+
+    > ntp
+    2023-03-21 10:00:00
+
+It can be used to synchronize the real-time clock (RTC):
+
+    > ntp => /dev/rtc
+    [42.123456] RTC 2023-03-21 10:00:00 +0000
