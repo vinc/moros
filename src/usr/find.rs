@@ -63,20 +63,25 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     // TODO: `find --file "*.txt" --line "Hello"
+    if file.is_some() && line.is_some() {
+        error!("Incompatible file and line options");
+        return Err(ExitCode::UsageError);
+    }
+
+    if file.is_none() && line.is_none() {
+        file = Some("*");
+    }
 
     if let Some(pattern) = file {
         print_matching_files(path, pattern);
-        return Ok(());
     }
 
     if let Some(pattern) = line {
         let mut state = PrintingState::new();
         print_matching_lines(path, pattern, &mut state);
-        return Ok(());
     }
 
-    usage();
-    Err(ExitCode::UsageError)
+    Ok(())
 }
 
 fn print_matching_files(path: &str, pattern: &str) {
