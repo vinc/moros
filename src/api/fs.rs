@@ -64,6 +64,14 @@ pub fn is_dir(path: &str) -> bool {
     }
 }
 
+pub fn is_file(path: &str) -> bool {
+    if let Some(info) = syscall::info(path) {
+        info.is_file()
+    } else {
+        false
+    }
+}
+
 pub fn delete(path: &str) -> Result<(), ()> {
     syscall::delete(path)
 }

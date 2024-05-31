@@ -73,12 +73,22 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if let Some(pattern) = file {
-        print_matching_files(path, pattern);
+        if fs::is_dir(path) {
+            print_matching_files(path, pattern);
+        } else {
+            error!("Invalid path");
+            return Err(ExitCode::UsageError);
+        }
     }
 
     if let Some(pattern) = line {
-        let mut state = PrintingState::new();
-        print_matching_lines(path, pattern, &mut state);
+        if fs::is_dir(path) || fs::is_file(path) {
+            let mut state = PrintingState::new();
+            print_matching_lines(path, pattern, &mut state);
+        } else {
+            error!("Invalid path");
+            return Err(ExitCode::UsageError);
+        }
     }
 
     Ok(())
