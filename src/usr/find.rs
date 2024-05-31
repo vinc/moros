@@ -85,7 +85,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn print_matching_files(path: &str, pattern: &str) {
-    if let Ok(files) = fs::read_dir(path) {
+    if let Ok(mut files) = fs::read_dir(path) {
+        files.sort_by_key(|f| f.name());
         for file in files {
             let mut file_path = path.to_string();
             if !file_path.ends_with('/') {
@@ -112,7 +113,8 @@ fn print_matching_file(path: &str, pattern: &str) {
 }
 
 fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
-    if let Ok(files) = fs::read_dir(path) {
+    if let Ok(mut files) = fs::read_dir(path) {
+        files.sort_by_key(|f| f.name());
         state.is_recursive = true;
         for file in files {
             let mut file_path = path.to_string();
