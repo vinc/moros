@@ -10,21 +10,21 @@ use alloc::vec::Vec;
 use core::iter::FromIterator;
 
 struct Options {
-    //is_file_search: bool,
     is_first_match: bool,
     is_recursive: bool,
     file: String,
     line: String,
+    trim: String,
 }
 
 impl Options {
     fn new() -> Self {
         Self {
-            //is_file_search: true,
             is_first_match: true,
             is_recursive: false,
             file: "*".into(),
             line: "".into(),
+            trim: "".into(),
         }
     }
 }
@@ -71,7 +71,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if path.is_empty() {
-        path = sys::process::dir()
+        path = sys::process::dir();
+        options.trim = format!("{}/", path);
     }
 
     if path.len() > 1 {
@@ -102,7 +103,7 @@ fn search_files(path: &str, options: &mut Options) {
                 search_files(&file_path, options);
             } else if is_matching_file(&file_path, &options.file) {
                 if options.line == "" {
-                    println!("{}", file_path);
+                    println!("{}", file_path.trim_start_matches(&options.trim));
                 } else {
                     print_matching_lines(&file_path, options);
                 }
