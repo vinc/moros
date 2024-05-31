@@ -9,24 +9,29 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::iter::FromIterator;
 
-struct PrintingState {
+struct Options {
+    //is_file_search: bool,
     is_first_match: bool,
     is_recursive: bool,
+    file: String,
+    line: String,
 }
 
-impl PrintingState {
+impl Options {
     fn new() -> Self {
         Self {
+            //is_file_search: true,
             is_first_match: true,
             is_recursive: false,
+            file: "*".into(),
+            line: "".into(),
         }
     }
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut path: &str = &sys::process::dir();
-    let mut file = None;
-    let mut line = None;
+    let mut path = sys::process::dir();
+    let mut options = Options::new();
     let mut i = 1;
     let n = args.len();
     while i < n {
@@ -38,7 +43,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-f" | "--file" => {
                 if i + 1 < n {
                     i += 1;
-                    file = Some(args[i]);
+                    options.file = args[i].into();
                 } else {
                     error!("Missing file pattern");
                     return Err(ExitCode::UsageError);
@@ -47,56 +52,35 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-l" | "--line" => {
                 if i + 1 < n {
                     i += 1;
-                    line = Some(args[i]);
+                    options.line = args[i].into();
                 } else {
                     error!("Missing line pattern");
                     return Err(ExitCode::UsageError);
                 }
             }
-            _ => path = args[i],
+            _ => path = args[i].into(),
         }
         i += 1;
     }
 
     if path.len() > 1 {
-        path = path.trim_end_matches('/');
+        path = path.trim_end_matches('/').into();
     }
 
-    // TODO: `find --file "*.txt" --line "Hello"
-    if file.is_some() && line.is_some() {
-        error!("Incompatible file and line options");
+    if fs::is_dir(&path) || (fs::is_file(&path) && !options.line.is_empty()) {
+        search_files(&path, &mut options);
+    } else {
+        error!("Invalid path");
         return Err(ExitCode::UsageError);
-    }
-
-    if file.is_none() && line.is_none() {
-        file = Some("*");
-    }
-
-    if let Some(pattern) = file {
-        if fs::is_dir(path) {
-            print_matching_files(path, pattern);
-        } else {
-            error!("Invalid path");
-            return Err(ExitCode::UsageError);
-        }
-    }
-
-    if let Some(pattern) = line {
-        if fs::is_dir(path) || fs::is_file(path) {
-            let mut state = PrintingState::new();
-            print_matching_lines(path, pattern, &mut state);
-        } else {
-            error!("Invalid path");
-            return Err(ExitCode::UsageError);
-        }
     }
 
     Ok(())
 }
 
-fn print_matching_files(path: &str, pattern: &str) {
+fn search_files(path: &str, options: &mut Options) {
     if let Ok(mut files) = fs::read_dir(path) {
         files.sort_by_key(|f| f.name());
+        options.is_recursive = true;
         for file in files {
             let mut file_path = path.to_string();
             if !file_path.ends_with('/') {
@@ -104,58 +88,38 @@ fn print_matching_files(path: &str, pattern: &str) {
             }
             file_path.push_str(&file.name());
             if file.is_dir() {
-                print_matching_files(&file_path, pattern);
-            } else if file.is_device() {
-                // Skip devices
-            } else {
-                print_matching_file(&file_path, pattern);
+                search_files(&file_path, options);
+            } else if is_matching_file(&file_path, &options.file) {
+                if options.line == "" {
+                    println!("{}", file_path);
+                } else {
+                    print_matching_lines(&file_path, options);
+                }
             }
+
         }
+    } else {
+        print_matching_lines(path, options);
     }
 }
 
-fn print_matching_file(path: &str, pattern: &str) {
+fn is_matching_file(path: &str, pattern: &str) -> bool {
     let file = fs::filename(&path);
     let re = Regex::from_glob(pattern);
-    if re.is_match(file) {
-        println!("{}", path);
-    }
+    re.is_match(file)
 }
 
-fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
-    if let Ok(mut files) = fs::read_dir(path) {
-        files.sort_by_key(|f| f.name());
-        state.is_recursive = true;
-        for file in files {
-            let mut file_path = path.to_string();
-            if !file_path.ends_with('/') {
-                file_path.push('/');
-            }
-            file_path.push_str(&file.name());
-            if file.is_dir() {
-                print_matching_lines(&file_path, pattern, state);
-            } else if file.is_device() {
-                // Skip devices
-            } else {
-                print_matching_lines_in_file(&file_path, pattern, state);
-            }
-        }
-    } else if fs::exists(path) {
-        print_matching_lines_in_file(path, pattern, state);
+fn print_matching_lines(path: &str, options: &mut Options) {
+    if !fs::is_file(path) {
+        return;
     }
-}
 
-fn print_matching_lines_in_file(
-    path: &str,
-    pattern: &str,
-    state: &mut PrintingState
-) {
     let file_color = Style::color("yellow");
     let line_color = Style::color("aqua");
     let match_color = Style::color("red");
     let reset = Style::reset();
 
-    let re = Regex::new(pattern);
+    let re = Regex::new(&options.line);
     if let Ok(lines) = fs::read_to_string(path) {
         let mut matches = Vec::new();
         for (i, line) in lines.split('\n').enumerate() {
@@ -184,9 +148,9 @@ fn print_matching_lines_in_file(
             }
         }
         if !matches.is_empty() {
-            if state.is_recursive {
-                if state.is_first_match {
-                    state.is_first_match = false;
+            if options.is_recursive {
+                if options.is_first_match {
+                    options.is_first_match = false;
                 } else {
                     println!();
                 }
