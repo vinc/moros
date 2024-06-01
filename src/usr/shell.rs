@@ -140,16 +140,6 @@ fn is_globbing(arg: &str) -> bool {
     false
 }
 
-fn glob_to_regex(pattern: &str) -> String {
-    format!(
-        "^{}$",
-        pattern.replace('\\', "\\\\") // `\` string literal
-               .replace('.', "\\.") // `.` string literal
-               .replace('*', ".*") // `*` match zero or more chars except `/`
-               .replace('?', ".") // `?` match any char except `/`
-    )
-}
-
 fn glob(arg: &str) -> Vec<String> {
     let mut matches = Vec::new();
     if is_globbing(arg) {
@@ -160,7 +150,7 @@ fn glob(arg: &str) -> Vec<String> {
         } else {
             (sys::process::dir(), arg.to_string(), false)
         };
-        let re = Regex::new(&glob_to_regex(&pattern));
+        let re = Regex::from_glob(&pattern);
         let sep = if dir == "/" { "" } else { "/" };
         if let Ok(files) = fs::read_dir(&dir) {
             for file in files {
@@ -762,15 +752,6 @@ fn test_split_args() {
         vec!["print", "foo", "bar"]
     );
     assert_eq!(split_args("print foo \"\" "), vec!["print", "foo", ""]);
-}
-
-#[test_case]
-fn test_glob_to_regex() {
-    assert_eq!(glob_to_regex("hello.txt"), "^hello\\.txt$");
-    assert_eq!(glob_to_regex("h?llo.txt"), "^h.llo\\.txt$");
-    assert_eq!(glob_to_regex("h*.txt"), "^h.*\\.txt$");
-    assert_eq!(glob_to_regex("*.txt"), "^.*\\.txt$");
-    assert_eq!(glob_to_regex("\\w*.txt"), "^\\\\w.*\\.txt$");
 }
 
 #[test_case]
