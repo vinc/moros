@@ -7,8 +7,7 @@ MOROS is a hobby operating system written in Rust by
 
 It targets [computers](hardware.md#computers) with an x86-64 architecture and a
 BIOS, typically from 2005 to 2020. It also runs well on most
-[emulators](hardware.md#emulators). One of its goals is to extend the
-lifespan of older hardware through permacomputing principles.
+[emulators](hardware.md#emulators).
 
 ## Usage
 
@@ -19,17 +18,17 @@ the [manual](manual.md) for details on how to use it.
 ## Features
 
 MOROS is text-based and draws inspiration from Unix and DOS to provide a simple
-yet powerful environment for computing and communication from the command line.
-Each program is designed to ensure a cosy and coherent user interface across
-the entire system.
+and efficient environment for computing and communication from the command
+line. Each program is designed to ensure a cohesive user interface across the
+entire system.
 
 The [shell](shell.md) is the hearth of MOROS, used to navigate the
 [filesystem](filesystem.md) and run other programs:
 
 ![shell screenshot](images/shell.png)
 
-A [lisp](lisp.md) interpreter servers as the primary programming environment to
-extend the system from within:
+A [lisp](lisp.md) interpreter serves as the primary programming environment to
+extend the userspace:
 
 ![lisp screenshot](images/lisp.png)
 
