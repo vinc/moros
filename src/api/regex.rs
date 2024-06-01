@@ -1,3 +1,4 @@
+use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::ops::RangeBounds;
@@ -62,6 +63,16 @@ pub struct Regex(String);
 impl Regex {
     pub fn new(re: &str) -> Self {
         Self(re.to_string())
+    }
+
+    pub fn from_glob(glob: &str) -> Self {
+        Self(format!(
+            "^{}$",
+            glob.replace('\\', "\\\\") // `\` string literal
+                .replace('.', "\\.") // `.` string literal
+                .replace('*', ".*") // `*` match zero or more chars except `/`
+                .replace('?', ".") // `?` match any char except `/`
+        ))
     }
 
     pub fn is_match(&self, text: &str) -> bool {
@@ -299,4 +310,13 @@ fn test_regex() {
     assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
     assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
     assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 10)));
+}
+
+#[test_case]
+fn test_regex_from_glob() {
+    assert_eq!(Regex::from_glob("hello.txt").0, "^hello\\.txt$");
+    assert_eq!(Regex::from_glob("h?llo.txt").0, "^h.llo\\.txt$");
+    assert_eq!(Regex::from_glob("h*.txt").0, "^h.*\\.txt$");
+    assert_eq!(Regex::from_glob("*.txt").0, "^.*\\.txt$");
+    assert_eq!(Regex::from_glob("\\w*.txt").0, "^\\\\w.*\\.txt$");
 }
