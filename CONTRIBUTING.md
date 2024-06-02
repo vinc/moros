@@ -15,8 +15,9 @@ appreciation, which we would also be very happy about:
 - Ensure the bug was not already reported by searching on GitHub under
   [Issues][1]
 - If you're unable to find an open issue addressing the problem,
-  [open a new one][2]. Be sure to include a **title and clear description**,
-  as much relevant information as possible to reproduce it
+  [open a new one][2]
+- Include a **title and clear description**, as much relevant information as
+  possible to reproduce it
 
 ## Did you write a patch that fixes a bug?
 
