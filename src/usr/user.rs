@@ -191,7 +191,7 @@ pub fn hash(password: &str) -> String {
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
     if let Ok(csv) = api::fs::read_to_string(USERS) {
-        for line in csv.split('\n') {
+        for line in csv.lines() {
             let mut rows = line.split(',');
             if let Some(username) = rows.next() {
                 if let Some(hash) = rows.next() {

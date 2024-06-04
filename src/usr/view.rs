@@ -38,7 +38,7 @@ impl Viewer {
         let mut width = 0;
         match fs::read_to_string(pathname) {
             Ok(contents) => {
-                for line in contents.split('\n') {
+                for line in contents.lines() {
                     lines.push(line.into());
                     width = cmp::max(width, line.chars().count());
                 }

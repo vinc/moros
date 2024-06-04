@@ -33,7 +33,7 @@ impl Palette {
 
 // TODO: Remove this
 pub fn from_csv(s: &str) -> Result<Palette, ()> {
-    let colors: Vec<_> = s.split('\n').filter_map(|line| {
+    let colors: Vec<_> = s.lines().filter_map(|line| {
         let line = line.split('#').next().unwrap(); // Remove comments
         let color: Vec<u8> = line.split(',').filter_map(|value| {
             let radix = if value.contains("0x") { 16 } else { 10 };
