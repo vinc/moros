@@ -648,8 +648,8 @@ pub fn exec(cmd: &str) -> Result<(), ExitCode> {
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut config = Config::new();
 
-    if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
-        for cmd in rc.split('\n') {
+    if let Ok(contents) = fs::read_to_string("/ini/shell.sh") {
+        for cmd in contents.lines() {
             exec_with_config(cmd, &mut config).ok();
         }
     }
@@ -671,7 +671,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
         let path = args[1];
         if let Ok(contents) = api::fs::read_to_string(path) {
-            for line in contents.split('\n') {
+            for line in contents.lines() {
                 if !line.is_empty() {
                     exec_with_config(line, &mut config).ok();
                 }

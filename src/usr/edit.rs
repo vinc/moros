@@ -53,7 +53,7 @@ impl Editor {
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
-                for line in contents.split('\n') {
+                for line in contents.lines() {
                     lines.push(line.into());
                 }
             }

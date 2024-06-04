@@ -190,8 +190,8 @@ pub fn hash(password: &str) -> String {
 
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
-    if let Ok(csv) = api::fs::read_to_string(USERS) {
-        for line in csv.split('\n') {
+    if let Ok(contents) = api::fs::read_to_string(USERS) {
+        for line in contents.lines() {
             let mut rows = line.split(',');
             if let Some(username) = rows.next() {
                 if let Some(hash) = rows.next() {
@@ -212,12 +212,12 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     hashed_passwords.remove(username);
     hashed_passwords.insert(username.into(), hash.into());
 
-    let mut csv = String::new();
+    let mut contents = String::new();
     for (u, h) in hashed_passwords {
-        csv.push_str(&format!("{},{}\n", u, h));
+        contents.push_str(&format!("{},{}\n", u, h));
     }
 
-    fs::write(USERS, csv.as_bytes())
+    fs::write(USERS, contents.as_bytes())
 }
 
 fn help() {
