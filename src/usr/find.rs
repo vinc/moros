@@ -132,9 +132,9 @@ fn print_matching_lines(path: &str, options: &mut Options) {
     let reset = Style::reset();
 
     let re = Regex::new(&options.line);
-    if let Ok(lines) = fs::read_to_string(path) {
+    if let Ok(contents) = fs::read_to_string(path) {
         let mut matches = Vec::new();
-        for (i, line) in lines.lines().enumerate() {
+        for (i, line) in contents.lines().enumerate() {
             let line: Vec<char> = line.chars().collect();
             let mut l = String::new();
             let mut j = 0;

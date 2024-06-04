@@ -317,8 +317,8 @@ impl History {
     }
 
     pub fn load(&mut self, path: &str) {
-        if let Ok(lines) = fs::read_to_string(path) {
-            self.entries = lines.lines().map(|s| s.to_string()).collect();
+        if let Ok(contents) = fs::read_to_string(path) {
+            self.entries = contents.lines().map(|s| s.to_string()).collect();
         }
     }
 
