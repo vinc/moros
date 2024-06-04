@@ -56,6 +56,9 @@ impl Editor {
                 for line in contents.lines() {
                     lines.push(line.into());
                 }
+                if lines.is_empty() {
+                    lines.push(String::new());
+                }
             }
             Err(_) => {
                 lines.push(String::new());
