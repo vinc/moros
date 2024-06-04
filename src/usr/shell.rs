@@ -648,8 +648,8 @@ pub fn exec(cmd: &str) -> Result<(), ExitCode> {
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut config = Config::new();
 
-    if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
-        for cmd in rc.lines() {
+    if let Ok(contents) = fs::read_to_string("/ini/shell.sh") {
+        for cmd in contents.lines() {
             exec_with_config(cmd, &mut config).ok();
         }
     }
