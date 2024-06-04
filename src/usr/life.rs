@@ -159,7 +159,7 @@ impl fmt::Display for Game {
             let line = if self.is_game_over() {
                 self.status("GAME OVER", "yellow")
             } else {
-                self.status("GAME OF LIFE", "White")
+                self.status("GAME OF LIFE", "white")
             };
             out.push_str(&line);
         }
