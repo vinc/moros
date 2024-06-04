@@ -1,66 +1,67 @@
 # MOROS: Obscure Rust Operating System
 
-![screenshot](images/moros.png)
+![moros screenshot](images/moros.png)
 
 MOROS is a hobby operating system written in Rust by
 [Vincent Ollivier](https://vinc.cc).
 
-It targets [computers](hardware.md#computers) with a x86-64 architecture and a
-BIOS, so mostly from 2005 to 2020, but it also runs well on most
+It targets [computers](hardware.md#computers) with an x86-64 architecture and a
+BIOS, typically from 2005 to 2020. It also runs well on most
 [emulators](hardware.md#emulators).
 
 ## Usage
 
-MOROS is open source, you can [build it](https://github.com/vinc/moros)
-or [download an image](https://github.com/vinc/moros/releases). Consult the
-[manual](manual.md) to learn how to use the system.
+MOROS is open source. You can [build](https://github.com/vinc/moros) or
+[download](https://github.com/vinc/moros/releases) an image. Check out
+the [manual](manual.md) for details on how to use it.
 
 ## Features
 
-Everything in MOROS is done from a command line interface and most programs are
-rather minimalist.
+MOROS is text-based and draws inspiration from Unix and DOS to provide a simple
+and efficient environment for computing and communication from the command
+line. Each program is designed to ensure a cohesive user interface across the
+entire system.
 
-It has a [shell](shell.md):
+The [shell](shell.md) is the hearth of MOROS, used to navigate the
+[filesystem](filesystem.md) and run other programs:
 
-![screenshot](images/shell.png)
+![shell screenshot](images/shell.png)
 
-With a few programs like `find` that use a [regex engine](regex.md) to find
-files or lines:
+A [lisp](lisp.md) interpreter serves as the primary programming environment to
+extend the userspace:
 
-![screenshot](images/find.png)
+![lisp screenshot](images/lisp.png)
 
-It has a [calculator](calculator.md) and also a [lisp](lisp.md) interpreter:
+A basic [text editor](editor.md) is included for editing text files and
+scripts, and a derived text viewer offers a distraction-free experience for
+reading long texts:
 
-![screenshot](images/lisp.png)
+![viewer screenshot](images/viewer.png)
 
-And a [text editor](editor.md):
+Other utilities include a [calculator](calculator.md) and the `find` command,
+which uses a simple [regex engine](regex.md) to search files or lines in the
+filesystem:
 
-![screenshot](images/edit.png)
+![find command screenshot](images/find.png)
 
-It has a [network stack](network.md) with two drivers for RTL8139 and PCNET
-cards:
+MOROS features a [network stack](network.md) with drivers for Intel PRO/1000,
+RTL8139, and PCNET cards, enabling internet access:
 
 ![screenshot](images/network.png)
 
-It has a [chess game](games.md#chess):
+It also includes some [games](games.md):
 
-![chess](images/chess.png)
+![chess screenshot](images/chess.png)
 
-And the [game of life](games.md#conways-game-of-life):
+And it's quite [customizable](colors.md):
 
-![life](images/life.png)
-
-It even has [2048](games.md#2048):
-
-![2048](images/2048.png)
-
-And finally it is quite [customizable](colors.md):
-
-![light](images/light.png)
+![light mode screenshot](images/light.png)
 
 ## Demo
 
-You can log in to a demo with the following command using the name of the
-system as a password for the guest account:
+Log in to a demo using the name of the system as the password for the guest
+account:
 
     $ ssh guest@try.moros.cc
+
+Happy hacking!

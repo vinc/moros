@@ -346,9 +346,9 @@ You can setup the [network](network.md) manually with `net` or automatically
 with `dhcp`:
 
     > dhcp
-    ip:  10.0.2.15/24
-    gw:  10.0.2.2
-    dns: 10.0.2.3
+    [8.801660] NET IP 10.0.2.15/24
+    [8.804659] NET GW 10.0.2.2
+    [8.808659] NET DNS 10.0.2.3
 
 A few tools are available like the generalist `socket` command that be used to
 send and receive TCP packets:
@@ -377,3 +377,4 @@ There is also a `ntp` script to synchronize the clock over the network:
     2023-03-21 10:00:00
 
     > ntp => /dev/rtc
+    [12.111156] RTC 2023-03-21 10:00:00 +0000

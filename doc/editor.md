@@ -1,5 +1,7 @@
 # MOROS Editor
 
+![screenshot](images/editor.png)
+
 ## Commands
 
 - `CTRL` + `C` to quit without saving and without warnings
