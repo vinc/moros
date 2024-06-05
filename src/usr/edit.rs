@@ -56,6 +56,9 @@ impl Editor {
                 for line in contents.lines() {
                     lines.push(line.into());
                 }
+                if lines.is_empty() {
+                    lines.push(String::new());
+                }
             }
             Err(_) => {
                 lines.push(String::new());
@@ -76,16 +79,10 @@ impl Editor {
     }
 
     pub fn save(&mut self) -> Result<(), ExitCode> {
-        let mut contents = String::new();
-        let n = self.lines.len();
-        for i in 0..n {
-            contents.push_str(&self.lines[i]);
-            if i < n - 1 {
-                contents.push('\n');
-            }
-        }
+        let contents = self.lines.join("\n") + "\n";
 
         if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
+            let n = self.lines.len();
             let status = format!("Wrote {}L to '{}'", n, self.pathname);
             self.print_status(&status, "yellow");
             Ok(())

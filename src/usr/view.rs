@@ -42,6 +42,9 @@ impl Viewer {
                     lines.push(line.into());
                     width = cmp::max(width, line.chars().count());
                 }
+                if lines.is_empty() {
+                    lines.push(String::new());
+                }
             }
             Err(_) => {
                 lines.push(String::new());
