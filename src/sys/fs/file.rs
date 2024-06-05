@@ -1,3 +1,4 @@
+use super::bitmap_block::BitmapBlock;
 use super::block::LinkedBlock;
 use super::dir::Dir;
 use super::dir_entry::DirEntry;
@@ -173,7 +174,15 @@ impl FileIO for File {
                     if bytes < buf_len {
                         next_block.addr()
                     } else {
-                        // TODO: Free the next block(s)
+                        // Free next block(s)
+                        let mut free_block = next_block;
+                        loop {
+                            BitmapBlock::free(free_block.addr());
+                            match free_block.next() { // FIXME: read after free?
+                                Some(next_block) => free_block = next_block,
+                                None => break,
+                            }
+                        }
                         0
                     }
                 }
