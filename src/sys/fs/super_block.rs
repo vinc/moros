@@ -12,8 +12,8 @@ pub struct SuperBlock {
     signature: &'static [u8; 8],
     version: u8,
     block_size: u32,
-    pub block_count: u32, // TODO: Remove pub
-    pub alloc_count: u32, // TODO: Remove pub
+    block_count: u32,
+    alloc_count: u32,
 }
 
 impl SuperBlock {

@@ -157,11 +157,11 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
 }
 
 pub fn disk_size() -> usize {
-    (SuperBlock::read().block_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().block_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_used() -> usize {
-    (SuperBlock::read().alloc_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().alloc_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_free() -> usize {
