@@ -12,8 +12,8 @@ pub struct SuperBlock {
     signature: &'static [u8; 8],
     version: u8,
     block_size: u32,
-    pub block_count: u32,
-    pub alloc_count: u32,
+    pub block_count: u32, // TODO: Remove pub
+    pub alloc_count: u32, // TODO: Remove pub
 }
 
 impl SuperBlock {
@@ -83,11 +83,24 @@ impl SuperBlock {
     }
 
     pub fn data_area(&self) -> u32 {
-        let bs = super::BITMAP_SIZE as u32;
-        let total = self.block_count;
-        let offset = self.bitmap_area();
-        let rest = (total - offset) * bs / (bs + 1);
-        self.bitmap_area() + rest / bs
+        let s = self.block_size * 8;
+        let n = self.block_count;
+        let a = self.bitmap_area();
+
+        if self.version == 1 {
+            a + ((n - a) / (s + 1)) // Incorrect formula fixed in v2
+        } else {
+            let mut p; // Previous bitmap count
+            let mut b = 0; // Bitmap count
+            loop {
+                p = b;
+                b = (n - (a + b) + s - 1) / s;
+                if b == p {
+                    break;
+                }
+            }
+            a + b
+        }
     }
 }
 
@@ -99,6 +112,6 @@ pub fn inc_alloc_count() {
 
 pub fn dec_alloc_count() {
     let mut sb = SuperBlock::read();
-    sb.alloc_count -= 1;
+    sb.alloc_count -= 1; // FIXME: Use saturating substraction
     sb.write();
 }

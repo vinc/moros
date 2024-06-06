@@ -26,7 +26,7 @@ use super_block::SuperBlock;
 
 use alloc::string::{String, ToString};
 
-pub const VERSION: u8 = 1;
+pub const VERSION: u8 = 2;
 
 // TODO: Move that to API
 #[derive(Clone, Copy)]
