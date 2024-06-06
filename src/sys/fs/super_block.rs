@@ -36,7 +36,7 @@ impl SuperBlock {
             };
 
             // Reserved blocks
-            sb.alloc_count = sb.data_area() - 1;
+            sb.alloc_count = sb.data_area();
 
             Some(sb)
         } else {

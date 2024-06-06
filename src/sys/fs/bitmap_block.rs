@@ -42,7 +42,7 @@ impl BitmapBlock {
 
     pub fn next_free_addr() -> Option<u32> {
         let sb = SuperBlock::read();
-        if sb.alloc_count() == sb.block_count() - 1 {
+        if sb.alloc_count() == sb.block_count() {
             return None;
         }
 
