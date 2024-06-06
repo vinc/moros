@@ -83,6 +83,10 @@ impl SuperBlock {
         self.block_count
     }
 
+    pub fn alloc_count(&self) -> u32 {
+        self.alloc_count
+    }
+
     pub fn bitmap_area(&self) -> u32 {
         SUPERBLOCK_ADDR + 2
     }

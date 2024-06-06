@@ -120,15 +120,18 @@ impl Dir {
         if entry_len > space_left {
             match entries.block.alloc_next() {
                 None => return None, // Disk is full
-                Some(new_block) => {
-                    entries.block = new_block;
+                Some(block) => {
+                    entries.block = block;
                     entries.block_offset = 0;
                 }
             }
         }
 
         // Create a new entry
-        let entry_block = LinkedBlock::alloc().unwrap();
+        let entry_block = match LinkedBlock::alloc() {
+            None => return None,
+            Some(block) => block,
+        };
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;
