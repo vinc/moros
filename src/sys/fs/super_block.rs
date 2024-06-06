@@ -27,13 +27,18 @@ impl SuperBlock {
 
     pub fn new() -> Option<Self> {
         if let Some(ref dev) = *super::block_device::BLOCK_DEVICE.lock() {
-            Some(Self {
+            let mut sb = Self {
                 signature: SIGNATURE,
                 version: super::VERSION,
                 block_size: dev.block_size() as u32,
                 block_count: dev.block_count() as u32,
                 alloc_count: 0,
-            })
+            };
+
+            // Reserved blocks
+            sb.alloc_count = sb.data_area() - 1;
+
+            Some(sb)
         } else {
             None
         }
