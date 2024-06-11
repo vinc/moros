@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- Improve lisp docs (#639)
+- Fix block bitmap utilisation (#637)
+- Free unused blocks after rewrite (#636)
+- Fix final line ending (#635)
+- Bump object from 0.35.0 to 0.36.0 (#624)
+- Add shell operator shortcut (#634)
+- Fix life status color (#633)
+- Fix line iterators (#632)
+- Update doc (#631)
+- Add file search to find command (#630)
+- Add text viewer (#629)
+- Improve network logs (#628)
 - Rename colors (#625)
 - Update install output (#626)
 - Refactor install output (#623)
@@ -18,7 +30,7 @@
 - Add e1000 driver (#337)
 - Reduce DHCP sleep time (#610)
 - Allow copying file to dir (#607)
-- Fix HTTP server (#609)
+- Fix HTTP server buffer (#609)
 - Fix HTTP server content type (#608)
 - Improve RNG (#602)
 - Fix invalid VGA palette reset (#605)
