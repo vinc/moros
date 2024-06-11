@@ -1,3 +1,5 @@
+# TAK by Ikuo Takeuchi (1978)
+
 (load "/lib/lisp/core.lsp")
 
 (def (tak x y z)
