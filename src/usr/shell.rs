@@ -14,12 +14,12 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 37] = [
-    "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit",
-    "elf", "env", "goto", "hash", "help", "hex", "host", "http", "httpd",
-    "install", "keyboard", "life", "lisp", "list", "memory", "move", "net",
-    "pci", "quit", "read", "shell", "socket", "tcp", "time", "user", "vga",
-    "view", "write",
+const AUTOCOMPLETE_COMMANDS: [&str; 38] = [
+    "2048", "base64", "calc", "chess", "copy", "date", "delete", "dhcp",
+    "disk", "edit", "elf", "env", "goto", "hash", "help", "hex", "host",
+    "http", "httpd", "install", "keyboard", "life", "lisp", "list", "memory",
+    "move", "net", "pci", "quit", "read", "shell", "socket", "tcp", "time",
+    "user", "vga", "view", "write",
 ];
 
 struct Config {
