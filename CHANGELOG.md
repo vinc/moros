@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.10.4 (2024-06-20)
 - Empty log buffer when full ([#640](https://github.com/vinc/moros/pull/640))
 - Improve lisp docs ([#639](https://github.com/vinc/moros/pull/639))
 - Fix block bitmap utilisation ([#637](https://github.com/vinc/moros/pull/637))
