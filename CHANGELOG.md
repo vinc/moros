@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Empty log buffer when full (#640)
 - Improve lisp docs (#639)
 - Fix block bitmap utilisation (#637)
 - Free unused blocks after rewrite (#636)
