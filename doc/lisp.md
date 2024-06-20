@@ -174,6 +174,8 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+
+### 0.7.1 (2024-06-20)
 - Add `floor`, `ceil`, and `round` functions
 
 ### 0.7.0 (2023-12-22)
