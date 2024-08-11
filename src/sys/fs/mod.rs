@@ -26,7 +26,7 @@ use super_block::SuperBlock;
 
 use alloc::string::{String, ToString};
 
-pub const VERSION: u8 = 1;
+pub const VERSION: u8 = 2;
 
 // TODO: Move that to API
 #[derive(Clone, Copy)]
@@ -157,11 +157,11 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
 }
 
 pub fn disk_size() -> usize {
-    (SuperBlock::read().block_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().block_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_used() -> usize {
-    (SuperBlock::read().alloc_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().alloc_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_free() -> usize {
