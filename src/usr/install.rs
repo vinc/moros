@@ -27,6 +27,7 @@ pub fn copy_files(verbose: bool) {
 
     copy_file!("/bin/clear", verbose);
     //copy_file!("/bin/exec", verbose);
+    copy_file!("/bin/get", verbose);
     copy_file!("/bin/halt", verbose);
     //copy_file!("/bin/hello", verbose);
     copy_file!("/bin/ntp", verbose);
@@ -83,7 +84,6 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/tmp/lisp/colors.lsp", verbose);
     copy_file!("/tmp/lisp/doc.lsp", verbose);
     copy_file!("/tmp/lisp/factorial.lsp", verbose);
-    //copy_file!("/tmp/lisp/fetch.lsp", verbose);
     copy_file!("/tmp/lisp/fibonacci.lsp", verbose);
     copy_file!("/tmp/lisp/geotime.lsp", verbose);
     copy_file!("/tmp/lisp/pi.lsp", verbose);
