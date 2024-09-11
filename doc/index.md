@@ -57,7 +57,7 @@ And it's quite [customizable](colors.md):
 
 ![light mode screenshot](images/light.png)
 
-## Demo
+## Demo (currently disabled)
 
 Log in to a demo using the name of the system as the password for the guest
 account:
