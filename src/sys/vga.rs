@@ -1,4 +1,5 @@
 use crate::api::font::Font;
+use crate::api::fs::{FileIO, IO};
 use crate::api::vga::color;
 use crate::api::vga::{Color, Palette};
 use crate::sys;
@@ -461,6 +462,39 @@ impl fmt::Write for Writer {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct VgaFont;
+
+impl VgaFont {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl FileIO for VgaFont {
+    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
+        Err(()) // TODO
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        if let Ok(font) = Font::from_bytes(&buf) {
+            set_font(&font);
+            Ok(buf.len())
+        } else {
+            Err(())
+        }
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => false, // TODO
+            IO::Write => true,
+        }
+    }
+}
+
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(||
@@ -489,6 +523,7 @@ pub fn is_printable(c: u8) -> bool {
     matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x7F..=0xFF)
 }
 
+// TODO: Remove this
 pub fn set_font(font: &Font) {
     interrupts::without_interrupts(||
         WRITER.lock().set_font(font)

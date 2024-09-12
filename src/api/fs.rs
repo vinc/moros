@@ -144,6 +144,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "rtc"      => Ok(DeviceType::RTC),
         "tcp"      => Ok(DeviceType::TcpSocket),
         "udp"      => Ok(DeviceType::UdpSocket),
+        "font"     => Ok(DeviceType::VgaFont),
         "ata"      => Ok(DeviceType::Drive),
         _          => Err(()),
     }

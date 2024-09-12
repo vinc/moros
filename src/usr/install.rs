@@ -40,6 +40,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/ata/1", verbose);
     create_dir("/dev/clk", verbose); // Clock
     create_dir("/dev/net", verbose); // Network
+    create_dir("/dev/vga", verbose);
 
     create_dev("/dev/ata/0/0", "ata-0-0", verbose);
     create_dev("/dev/ata/0/1", "ata-0-1", verbose);
@@ -53,6 +54,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/console", "console", verbose);
     create_dev("/dev/net/tcp", "tcp", verbose);
     create_dev("/dev/net/udp", "udp", verbose);
+    create_dev("/dev/vga/font", "font", verbose);
 
     copy_file!("/ini/banner.txt", verbose);
     copy_file!("/ini/boot.sh", verbose);
