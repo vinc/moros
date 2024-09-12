@@ -72,6 +72,14 @@ pub fn is_file(path: &str) -> bool {
     }
 }
 
+pub fn is_device(path: &str) -> bool {
+    if let Some(info) = syscall::info(path) {
+        info.is_device()
+    } else {
+        false
+    }
+}
+
 pub fn delete(path: &str) -> Result<(), ()> {
     syscall::delete(path)
 }
@@ -174,14 +182,14 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
 
 pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
     if let Some(info) = syscall::info(path) {
-        let f = if info.is_device() {
+        let res = if info.is_device() {
             open_device(path)
         } else if info.is_dir() {
             open_dir(path)
         } else {
             open_file(path)
         };
-        if let Some(handle) = f {
+        if let Some(handle) = res {
             let n = info.size() as usize;
             let mut buf = vec![0; n];
             if let Some(bytes) = syscall::read(handle, &mut buf) {
@@ -195,12 +203,8 @@ pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
 }
 
 pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    let res = if let Some(info) = syscall::info(path) {
-        if info.is_device() {
-            open_device(path)
-        } else {
-            create_file(path)
-        }
+    let res = if is_device(path) {
+        open_device(path)
     } else {
         create_file(path)
     };
