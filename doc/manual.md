@@ -288,8 +288,8 @@ You can also set the `TZ` environment variable to use your preferred timezone:
 Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
     > read /ini/boot.sh
-    vga set font /ini/fonts/zap-light-8x16.psf
     shell /ini/palettes/gruvbox-dark.sh
+    read /ini/fonts/zap-light-8x16.psf => /dev/vga/font
     read /ini/banner.txt
     user login
     env TZ 7200
