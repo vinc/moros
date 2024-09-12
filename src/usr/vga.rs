@@ -5,7 +5,7 @@ use crate::api::font::Font;
 use crate::api::vga::palette;
 use crate::sys;
 
-// TODO: Remove this command when everything can be done from userspace
+// TODO: Remove this command in the next version of MOROS
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
@@ -19,6 +19,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
         "set" => {
             if args.len() == 4 && args[2] == "font" {
+                warning!("Use VGA font device");
                 if let Ok(buf) = fs::read_to_bytes(args[3]) {
                     if let Ok(font) = Font::from_bytes(&buf) {
                         sys::vga::set_font(&font);

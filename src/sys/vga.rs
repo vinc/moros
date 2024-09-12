@@ -479,7 +479,7 @@ impl FileIO for VgaFont {
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         if let Ok(font) = Font::from_bytes(&buf) {
             set_font(&font);
-            Ok(buf.len())
+            Ok(buf.len()) // TODO: Use font.data.len() ?
         } else {
             Err(())
         }
