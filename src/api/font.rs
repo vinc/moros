@@ -41,10 +41,10 @@ impl TryFrom<&[u8]> for Font {
 #[test_case]
 fn parse_psf_font() {
     let buf = include_bytes!("../../dsk/ini/boot.sh");
-    assert!(Font::try_from(buf).is_err());
+    assert!(Font::try_from(&buf[..]).is_err());
 
     let buf = include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf");
-    let font = Font::try_from(buf).unwrap();
+    let font = Font::try_from(&buf[..]).unwrap();
     assert_eq!(font.height, 16);
     assert_eq!(font.size, 256);
     assert_eq!(font.data.len(), 256 * 16);
