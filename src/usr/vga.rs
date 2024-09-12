@@ -5,6 +5,8 @@ use crate::api::font::Font;
 use crate::api::vga::palette;
 use crate::sys;
 
+use core::convert::TryFrom;
+
 // TODO: Remove this command in the next version of MOROS
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
@@ -21,7 +23,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             if args.len() == 4 && args[2] == "font" {
                 warning!("Use VGA font device");
                 if let Ok(buf) = fs::read_to_bytes(args[3]) {
-                    if let Ok(font) = Font::from_bytes(&buf) {
+                    if let Ok(font) = Font::try_from(buf.as_slice()) {
                         sys::vga::set_font(&font);
                         Ok(())
                     } else {

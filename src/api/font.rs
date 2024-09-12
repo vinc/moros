@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 
 #[derive(Clone)]
 pub struct Font {
@@ -7,9 +8,11 @@ pub struct Font {
     pub data: Vec<u8>,
 }
 
-impl Font {
-    // http://www.fifi.org/doc/console-tools-dev/file-formats/psf
-    pub fn from_bytes(buf: &[u8]) -> Result<Font, ()> {
+impl TryFrom<&[u8]> for Font {
+    type Error = ();
+
+    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+        // See: http://www.fifi.org/doc/console-tools-dev/file-formats/psf
         // Header
         if buf.len() < 4 || buf[0] != 0x36 || buf[1] != 0x04 {
             return Err(());
@@ -38,10 +41,10 @@ impl Font {
 #[test_case]
 fn parse_psf_font() {
     let buf = include_bytes!("../../dsk/ini/boot.sh");
-    assert!(Font::from_bytes(buf).is_err());
+    assert!(Font::try_from(buf).is_err());
 
     let buf = include_bytes!("../../dsk/ini/fonts/zap-light-8x16.psf");
-    let font = Font::from_bytes(buf).unwrap();
+    let font = Font::try_from(buf).unwrap();
     assert_eq!(font.height, 16);
     assert_eq!(font.size, 256);
     assert_eq!(font.data.len(), 256 * 16);

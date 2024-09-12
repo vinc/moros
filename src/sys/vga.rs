@@ -6,6 +6,7 @@ use crate::sys;
 
 use alloc::string::String;
 use bit_field::BitField;
+use core::convert::TryFrom;
 use core::cmp;
 use core::fmt;
 use core::fmt::Write;
@@ -477,7 +478,7 @@ impl FileIO for VgaFont {
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        if let Ok(font) = Font::from_bytes(&buf) {
+        if let Ok(font) = Font::try_from(buf) {
             set_font(&font);
             Ok(buf.len()) // TODO: Use font.data.len() ?
         } else {
