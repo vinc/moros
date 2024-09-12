@@ -213,25 +213,6 @@ pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
     Err(())
 }
 
-pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    let res = if let Some(info) = syscall::info(path) {
-        if info.is_device() {
-            open_device(path)
-        } else {
-            append_file(path)
-        }
-    } else {
-        create_file(path)
-    };
-    if let Some(handle) = res {
-        if let Some(bytes) = syscall::write(handle, buf) {
-            syscall::close(handle);
-            return Ok(bytes);
-        }
-    }
-    Err(())
-}
-
 pub fn reopen(path: &str, handle: usize, append: bool) -> Result<usize, ()> {
     let res = if let Some(info) = syscall::info(path) {
         if info.is_device() {
