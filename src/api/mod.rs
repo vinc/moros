@@ -82,6 +82,7 @@ macro_rules! warning {
 }
 
 pub mod allocator;
+pub mod base64;
 pub mod clock;
 pub mod console;
 pub mod font;
