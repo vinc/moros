@@ -1,6 +1,18 @@
 # Changelog
 
 ## Unreleased
+- Replace base64 command with encode and decode (#654)
+- Add VgaFont device (#653)
+- Replace fetch by get (#652)
+- Bump object from 0.36.3 to 0.36.4 (#651)
+- Fix block bitmap area calculation (#638)
+- Bump object from 0.36.2 to 0.36.3 (#650)
+- Bump object from 0.36.1 to 0.36.2 (#649)
+- Bump raw-cpuid from 11.0.2 to 11.1.0 (#648)
+- Bump uart_16550 from 0.3.0 to 0.3.1 (#647)
+- Bump num-bigint from 0.4.5 to 0.4.6 (#644)
+- Update Rust to nightly-2024-06-01 (#646)
+- Bump object from 0.36.0 to 0.36.1 (#645)
 
 ## 0.10.4 (2024-06-20)
 - Add Intel PRO/1000 PT ([#612](https://github.com/vinc/moros/pull/612))
