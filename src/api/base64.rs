@@ -26,8 +26,8 @@ impl Base64 {
 
 #[test_case]
 fn test_base64() {
-    let encoded = b"SGVsbG8sIFdvcmxkIQ";
     let decoded = b"Hello, World!";
+    let encoded = b"SGVsbG8sIFdvcmxkIQ";
     assert_eq!(Base64::encode(decoded), encoded.to_vec());
     assert_eq!(Base64::decode(encoded), Ok(decoded.to_vec()));
 }
