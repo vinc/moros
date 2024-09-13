@@ -10,6 +10,7 @@ use crate::sys::console::Console;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
+use crate::sys::vga::VgaFont;
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -29,6 +30,7 @@ pub enum DeviceType {
     TcpSocket = 7,
     UdpSocket = 8,
     Drive     = 9,
+    VgaFont   = 10,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -36,17 +38,18 @@ impl TryFrom<&[u8]> for DeviceType {
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
         match buf.first().ok_or(())? {
-            0 => Ok(DeviceType::Null),
-            1 => Ok(DeviceType::File),
-            2 => Ok(DeviceType::Console),
-            3 => Ok(DeviceType::Random),
-            4 => Ok(DeviceType::Uptime),
-            5 => Ok(DeviceType::Realtime),
-            6 => Ok(DeviceType::RTC),
-            7 => Ok(DeviceType::TcpSocket),
-            8 => Ok(DeviceType::UdpSocket),
-            9 => Ok(DeviceType::Drive),
-            _ => Err(()),
+             0 => Ok(DeviceType::Null),
+             1 => Ok(DeviceType::File),
+             2 => Ok(DeviceType::Console),
+             3 => Ok(DeviceType::Random),
+             4 => Ok(DeviceType::Uptime),
+             5 => Ok(DeviceType::Realtime),
+             6 => Ok(DeviceType::RTC),
+             7 => Ok(DeviceType::TcpSocket),
+             8 => Ok(DeviceType::UdpSocket),
+             9 => Ok(DeviceType::Drive),
+            10 => Ok(DeviceType::VgaFont),
+             _ => Err(()),
         }
     }
 }
@@ -83,6 +86,7 @@ pub enum Device {
     RTC(RTC),
     TcpSocket(TcpSocket),
     UdpSocket(UdpSocket),
+    VgaFont(VgaFont),
     Drive(Drive),
 }
 
@@ -100,6 +104,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::RTC       => Ok(Device::RTC(RTC::new())),
             DeviceType::TcpSocket => Ok(Device::TcpSocket(TcpSocket::new())),
             DeviceType::UdpSocket => Ok(Device::UdpSocket(UdpSocket::new())),
+            DeviceType::VgaFont   => Ok(Device::VgaFont(VgaFont::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -158,6 +163,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.read(buf),
             Device::TcpSocket(io) => io.read(buf),
             Device::UdpSocket(io) => io.read(buf),
+            Device::VgaFont(io)   => io.read(buf),
             Device::Drive(io)     => io.read(buf),
         }
     }
@@ -173,6 +179,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.write(buf),
             Device::TcpSocket(io) => io.write(buf),
             Device::UdpSocket(io) => io.write(buf),
+            Device::VgaFont(io)   => io.write(buf),
             Device::Drive(io)     => io.write(buf),
         }
     }
@@ -188,6 +195,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.close(),
             Device::TcpSocket(io) => io.close(),
             Device::UdpSocket(io) => io.close(),
+            Device::VgaFont(io)   => io.close(),
             Device::Drive(io)     => io.close(),
         }
     }
@@ -203,6 +211,7 @@ impl FileIO for Device {
             Device::RTC(io)       => io.poll(event),
             Device::TcpSocket(io) => io.poll(event),
             Device::UdpSocket(io) => io.poll(event),
+            Device::VgaFont(io)   => io.poll(event),
             Device::Drive(io)     => io.poll(event),
         }
     }

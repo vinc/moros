@@ -310,8 +310,8 @@ file:</p>
     <p>Add <code>env TZ 7200</code> to <code>/ini/boot.sh</code> before <code>shell</code> to save the timezone:</p>
 
     <pre><code>&gt; read /ini/boot.sh
-vga set font /ini/fonts/zap-light-8x16.psf
 shell /ini/palettes/gruvbox-dark.sh
+read /ini/fonts/zap-light-8x16.psf =&gt; /dev/vga/font
 read /ini/banner.txt
 user login
 env TZ 7200

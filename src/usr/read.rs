@@ -75,8 +75,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     } else if let Some(info) = syscall::info(path) {
         if info.is_file() {
-            if let Ok(contents) = api::fs::read_to_string(path) {
-                print!("{}", contents);
+            if let Ok(buf) = api::fs::read_to_bytes(path) {
+                syscall::write(1, &buf);
                 Ok(())
             } else {
                 error!("Could not read '{}'", path);
