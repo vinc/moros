@@ -35,7 +35,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 help();
                 return Ok(());
             }
-            "--color" => {
+            "-c" | "--color" => {
                 conf.color = true;
             }
             "-s" | "--short" => {
