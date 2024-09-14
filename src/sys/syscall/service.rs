@@ -41,6 +41,14 @@ pub fn info(path: &str, info: &mut FileInfo) -> isize {
     }
 }
 
+pub fn kind(handle: usize) -> isize {
+    if let Some(file) = sys::process::handle(handle) {
+        file.kind() as isize
+    } else {
+        -1
+    }
+}
+
 pub fn open(path: &str, flags: usize) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,

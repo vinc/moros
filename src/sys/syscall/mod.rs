@@ -42,6 +42,10 @@ pub fn dispatcher(
             let info = unsafe { &mut *(arg3 as *mut FileInfo) };
             service::info(path, info) as usize
         }
+        number::KIND => {
+            let handle = arg1;
+            service::kind(handle) as usize
+        }
         number::OPEN => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;

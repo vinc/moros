@@ -123,6 +123,16 @@ pub enum Resource {
     Device(Device),
 }
 
+impl Resource {
+    pub fn kind(&self) -> FileType {
+        match self {
+            Resource::Dir(_) => FileType::Dir,
+            Resource::File(_) => FileType::File,
+            Resource::Device(_) => FileType::Device,
+        }
+    }
+}
+
 impl FileIO for Resource {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match self {
