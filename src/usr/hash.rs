@@ -11,8 +11,8 @@ use sha2::{Digest, Sha256};
 
 #[derive(Copy, Clone)]
 struct Config {
-    colorized: bool,
-    full_hash: bool,
+    color: bool,
+    short: bool,
     recursive: bool,
 }
 
@@ -21,12 +21,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let n = args.len();
     let mut paths = Vec::new();
     let mut conf = Config {
-        colorized: true,
-        full_hash: false,
+        color: true,
+        short: true,
         recursive: false,
     };
     if api::io::is_redirected(1) {
-        conf.colorized = false;
+        conf.color = false;
+        conf.short = false;
     }
     while i < n {
         match args[i] {
@@ -34,14 +35,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 help();
                 return Ok(());
             }
-            "-f" | "--full" => {
-                conf.full_hash = true;
+            "--color" => {
+                conf.color = true;
+            }
+            "-s" | "--short" => {
+                conf.short = true;
+            }
+            "-l" | "--long" => {
+                conf.short = false;
             }
             "-r" | "--recursive" => {
                 conf.recursive = true;
-            }
-            "--color" => {
-                conf.colorized = true;
             }
             arg => {
                 if arg.starts_with('-') {
@@ -69,7 +73,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
     let color = Style::color("fushia");
     let reset = Style::reset();
-    let n = if conf.full_hash { 32 } else { 16 };
+    let n = if conf.short { 4 } else { 32 };
     if let Some(info) = syscall::info(path) {
         if info.is_file() {
             if let Ok(bytes) = api::fs::read_to_bytes(path) {
@@ -79,7 +83,7 @@ fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
                 let hex = res.iter().map(|byte|
                     format!("{:02X}", byte)
                 ).take(n).collect::<Vec<String>>().join("");
-                if conf.colorized {
+                if conf.color {
                     println!("{}{}{} {}", color, hex, reset, path);
                 } else {
                     println!("{} {}", hex, path);
@@ -124,7 +128,15 @@ fn help() {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-f{1}, {0}--full{1}         Show full hash",
+        "  {0}-l{1}, {0}--long{1}         Show full hash",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-s{1}, {0}--short{1}        Show abbreviated hash",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-c{1}, {0}--color{1}        Enable color mode",
         csi_option, csi_reset
     );
     println!(
