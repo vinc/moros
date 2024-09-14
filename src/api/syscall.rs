@@ -1,9 +1,10 @@
 use crate::api::fs::IO;
 use crate::api::process::ExitCode;
-use crate::sys::fs::FileInfo;
+use crate::sys::fs::{FileInfo, FileType};
 use crate::sys::syscall::number::*;
 use crate::syscall;
 
+use core::convert::TryFrom;
 use smoltcp::wire::IpAddress;
 use smoltcp::wire::Ipv4Address;
 
@@ -34,6 +35,15 @@ pub fn info(path: &str) -> Option<FileInfo> {
     let res = unsafe { syscall!(INFO, path_ptr, path_len, stat_ptr) } as isize;
     if res >= 0 {
         Some(info)
+    } else {
+        None
+    }
+}
+
+pub fn kind(handle: usize) -> Option<FileType> {
+    let res = unsafe { syscall!(KIND, handle) } as isize;
+    if res >= 0 {
+        FileType::try_from(res as usize).ok()
     } else {
         None
     }

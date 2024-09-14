@@ -25,6 +25,7 @@ use dir_entry::DirEntry;
 use super_block::SuperBlock;
 
 use alloc::string::{String, ToString};
+use core::convert::TryFrom;
 
 pub const VERSION: u8 = 2;
 
@@ -102,11 +103,34 @@ pub enum FileType {
     Device = 2,
 }
 
+impl TryFrom<usize> for FileType {
+    type Error = ();
+
+    fn try_from(num: usize) -> Result<Self, Self::Error> {
+        match num {
+             0 => Ok(FileType::Dir),
+             1 => Ok(FileType::File),
+             2 => Ok(FileType::Device),
+             _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Resource {
     Dir(Dir),
     File(File),
     Device(Device),
+}
+
+impl Resource {
+    pub fn kind(&self) -> FileType {
+        match self {
+            Resource::Dir(_) => FileType::Dir,
+            Resource::File(_) => FileType::File,
+            Resource::Device(_) => FileType::Device,
+        }
+    }
 }
 
 impl FileIO for Resource {

@@ -11,8 +11,9 @@ use sha2::{Digest, Sha256};
 
 #[derive(Copy, Clone)]
 struct Config {
-    show_full_hash: bool,
-    recursive_mode: bool,
+    colorized: bool,
+    full_hash: bool,
+    recursive: bool,
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -20,9 +21,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let n = args.len();
     let mut paths = Vec::new();
     let mut conf = Config {
-        show_full_hash: false,
-        recursive_mode: false,
+        colorized: true,
+        full_hash: false,
+        recursive: false,
     };
+    if api::io::is_redirected(1) {
+        conf.colorized = false;
+    }
     while i < n {
         match args[i] {
             "-h" | "--help" => {
@@ -30,10 +35,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 return Ok(());
             }
             "-f" | "--full" => {
-                conf.show_full_hash = true;
+                conf.full_hash = true;
             }
             "-r" | "--recursive" => {
-                conf.recursive_mode = true;
+                conf.recursive = true;
+            }
+            "--color" => {
+                conf.colorized = true;
             }
             arg => {
                 if arg.starts_with('-') {
@@ -59,7 +67,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
-    let n = if conf.show_full_hash { 32 } else { 16 };
+    let color = Style::color("fushia");
+    let reset = Style::reset();
+    let n = if conf.full_hash { 32 } else { 16 };
     if let Some(info) = syscall::info(path) {
         if info.is_file() {
             if let Ok(bytes) = api::fs::read_to_bytes(path) {
@@ -69,15 +79,17 @@ fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
                 let hex = res.iter().map(|byte|
                     format!("{:02X}", byte)
                 ).take(n).collect::<Vec<String>>().join("");
-                let pink = Style::color("fushia");
-                let reset = Style::reset();
-                println!("{}{}{} {}", pink, hex, reset, path);
+                if conf.colorized {
+                    println!("{}{}{} {}", color, hex, reset, path);
+                } else {
+                    println!("{} {}", hex, path);
+                }
                 Ok(())
             } else {
                 error!("Could not read '{}'", path);
                 Err(ExitCode::Failure)
             }
-        } else if conf.recursive_mode && info.is_dir() {
+        } else if conf.recursive && info.is_dir() {
             if let Ok(entries) = api::fs::read_dir(path) {
                 let mut fs: Vec<_> = entries.iter().map(|e| e.name()).collect();
                 fs.sort();
