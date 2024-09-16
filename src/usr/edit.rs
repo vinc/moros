@@ -315,9 +315,19 @@ impl Editor {
         print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
         print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
         print!("\x1b[?25h"); // Enable cursor
+        let mut escape = false;
+        let mut csi = false;
         loop {
             let c = io::stdin().read_char().unwrap_or('\0');
             match c {
+                '\x1B' => { // ESC
+                    escape = true;
+                    continue;
+                }
+                '[' if escape => {
+                    csi = true;
+                    continue;
+                }
                 '\n' => { // Newline
                     self.find_next();
                     return;
@@ -335,6 +345,17 @@ impl Editor {
                     }
                 }
                 c => {
+                    if csi {
+                        match c {
+                            '0'..'9' | ';' => {
+                            }
+                            _ => {
+                                escape = false;
+                                csi = false;
+                            }
+                        }
+                        continue;
+                    }
                     if let Some(s) = self.render_char(c) {
                         print!("{}{}{}", color, s, reset);
                         self.query.push_str(&s);
