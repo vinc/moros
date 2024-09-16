@@ -6,6 +6,7 @@ pub mod date;
 pub mod decode;
 pub mod delete;
 pub mod dhcp;
+pub mod diff;
 pub mod disk;
 pub mod edit;
 pub mod elf;

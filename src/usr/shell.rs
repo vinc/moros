@@ -14,12 +14,12 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 39] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
     "2048", "calc", "chess", "copy", "date", "decode", "delete", "dhcp",
-    "disk", "edit", "elf", "encode", "env", "goto", "hash", "help", "hex",
-    "host", "http", "httpd", "install", "keyboard", "life", "lisp", "list",
-    "memory", "move", "net", "pci", "quit", "read", "shell", "socket", "tcp",
-    "time", "user", "vga", "view", "write",
+    "diff", "disk", "edit", "elf", "encode", "env", "goto", "hash", "help",
+    "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
+    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket",
+    "tcp", "time", "user", "vga", "view", "write",
 ];
 
 struct Config {
@@ -524,6 +524,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "decode"   => usr::decode::main(args),
         "delete"   => usr::delete::main(args),
         "dhcp"     => usr::dhcp::main(args),
+        "diff"     => usr::diff::main(args),
         "disk"     => usr::disk::main(args),
         "edit"     => usr::edit::main(args),
         "elf"      => usr::elf::main(args),
