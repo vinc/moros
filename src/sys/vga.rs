@@ -521,7 +521,7 @@ pub fn set_color(foreground: Color, background: Color) {
 // Carriage Return
 // Extended ASCII Printable
 pub fn is_printable(c: u8) -> bool {
-    matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x7F..=0xFF)
+    matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x80..=0xFF)
 }
 
 // TODO: Remove this
