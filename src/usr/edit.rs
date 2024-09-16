@@ -322,6 +322,9 @@ impl Editor {
                     self.find_next();
                     return;
                 }
+                '\x03' => { // Ctrl C
+                    return;
+                }
                 '\x08' => { // Backspace
                     if !self.query.is_empty() {
                         self.query.pop();
