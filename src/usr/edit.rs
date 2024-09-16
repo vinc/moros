@@ -284,87 +284,6 @@ impl Editor {
         }
     }
 
-    pub fn find_next(&mut self) {
-        let dx = self.offset.x + self.cursor.x;
-        let dy = self.offset.y + self.cursor.y;
-        for (y, line) in self.lines.iter().enumerate() {
-            let mut o = 0;
-            if y < dy {
-                continue;
-            }
-            if y == dy {
-                o = cmp::min(dx + 1, line.len());
-            }
-            if let Some(i) = line[o..].find(&self.query) {
-                let x = o + i;
-                self.cursor.x = x % self.cols();
-                self.cursor.y = y % self.rows();
-                self.offset.x = x - self.cursor.x;
-                self.offset.y = y - self.cursor.y;
-                break;
-            }
-        }
-    }
-
-    pub fn find(&mut self) {
-        self.query = String::new();
-        let status = format!("Find: ");
-        let color = Style::color("black").with_background("silver");
-        let reset = Style::reset();
-        print!("\x1b[{};1H", self.rows() + 1);
-        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
-        print!("\x1b[?25h"); // Enable cursor
-        let mut escape = false;
-        let mut csi = false;
-        loop {
-            let c = io::stdin().read_char().unwrap_or('\0');
-            match c {
-                '\x1B' => { // ESC
-                    escape = true;
-                    continue;
-                }
-                '[' if escape => {
-                    csi = true;
-                    continue;
-                }
-                '\n' => { // Newline
-                    self.find_next();
-                    return;
-                }
-                '\x03' => { // Ctrl C
-                    return;
-                }
-                '\x08' => { // Backspace
-                    if !self.query.is_empty() {
-                        self.query.pop();
-                        print!("\x1b[{};1H", self.rows() + 1);
-                        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-                        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
-                        print!("{}{}{}", color, self.query, reset);
-                    }
-                }
-                c => {
-                    if csi {
-                        match c {
-                            '0'..'9' | ';' => {
-                            }
-                            _ => {
-                                escape = false;
-                                csi = false;
-                            }
-                        }
-                        continue;
-                    }
-                    if let Some(s) = self.render_char(c) {
-                        print!("{}{}{}", color, s, reset);
-                        self.query.push_str(&s);
-                    }
-                }
-            }
-        }
-    }
-
     pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
         self.print_screen();
@@ -667,6 +586,87 @@ impl Editor {
             csi = false;
         }
         Ok(())
+    }
+
+    pub fn find(&mut self) {
+        self.query = String::new();
+        let status = format!("Find: ");
+        let color = Style::color("black").with_background("silver");
+        let reset = Style::reset();
+        print!("\x1b[{};1H", self.rows() + 1);
+        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
+        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
+        print!("\x1b[?25h"); // Enable cursor
+        let mut escape = false;
+        let mut csi = false;
+        loop {
+            let c = io::stdin().read_char().unwrap_or('\0');
+            match c {
+                '\x1B' => { // ESC
+                    escape = true;
+                    continue;
+                }
+                '[' if escape => {
+                    csi = true;
+                    continue;
+                }
+                '\n' => { // Newline
+                    self.find_next();
+                    return;
+                }
+                '\x03' => { // Ctrl C
+                    return;
+                }
+                '\x08' => { // Backspace
+                    if !self.query.is_empty() {
+                        self.query.pop();
+                        print!("\x1b[{};1H", self.rows() + 1);
+                        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
+                        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
+                        print!("{}{}{}", color, self.query, reset);
+                    }
+                }
+                c => {
+                    if csi {
+                        match c {
+                            '0'..'9' | ';' => {
+                            }
+                            _ => {
+                                escape = false;
+                                csi = false;
+                            }
+                        }
+                        continue;
+                    }
+                    if let Some(s) = self.render_char(c) {
+                        print!("{}{}{}", color, s, reset);
+                        self.query.push_str(&s);
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn find_next(&mut self) {
+        let dx = self.offset.x + self.cursor.x;
+        let dy = self.offset.y + self.cursor.y;
+        for (y, line) in self.lines.iter().enumerate() {
+            let mut o = 0;
+            if y < dy {
+                continue;
+            }
+            if y == dy {
+                o = cmp::min(dx + 1, line.len());
+            }
+            if let Some(i) = line[o..].find(&self.query) {
+                let x = o + i;
+                self.cursor.x = x % self.cols();
+                self.cursor.y = y % self.rows();
+                self.offset.x = x - self.cursor.x;
+                self.offset.y = y - self.cursor.y;
+                break;
+            }
+        }
     }
 
     fn rows(&self) -> usize {
