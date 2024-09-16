@@ -308,7 +308,7 @@ impl Editor {
 
     pub fn find(&mut self) {
         self.query = String::new();
-        let status = format!("> find: ");
+        let status = format!("Find: ");
         let color = Style::color("black").with_background("silver");
         let reset = Style::reset();
         print!("\x1b[{};1H", self.rows() + 1);
