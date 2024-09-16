@@ -34,6 +34,7 @@ struct Coords {
 
 pub struct Editor {
     pathname: String,
+    query: String,
     clipboard: Vec<String>,
     lines: Vec<String>,
     cursor: Coords,
@@ -46,6 +47,7 @@ impl Editor {
     pub fn new(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
+        let query = String::new();
         let highlighted = Vec::new();
         let clipboard = Vec::new();
         let mut lines = Vec::new();
@@ -69,6 +71,7 @@ impl Editor {
 
         Self {
             pathname,
+            query,
             clipboard,
             lines,
             cursor,
@@ -281,6 +284,63 @@ impl Editor {
         }
     }
 
+    pub fn find_next(&mut self) {
+        let dx = self.offset.x + self.cursor.x;
+        let dy = self.offset.y + self.cursor.y;
+        for (y, line) in self.lines.iter().enumerate() {
+            let mut o = 0;
+            if y < dy {
+                continue;
+            }
+            if y == dy {
+                o = cmp::min(dx + 1, line.len());
+            }
+            if let Some(i) = line[o..].find(&self.query) {
+                let x = o + i;
+                self.cursor.x = x % self.cols();
+                self.cursor.y = y % self.rows();
+                self.offset.x = x - self.cursor.x;
+                self.offset.y = y - self.cursor.y;
+                break;
+            }
+        }
+    }
+
+    pub fn find(&mut self) {
+        self.query = String::new();
+        let status = format!("> find: ");
+        let color = Style::color("black").with_background("silver");
+        let reset = Style::reset();
+        print!("\x1b[{};1H", self.rows() + 1);
+        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
+        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
+        print!("\x1b[?25h"); // Enable cursor
+        loop {
+            let c = io::stdin().read_char().unwrap_or('\0');
+            match c {
+                '\n' => { // Newline
+                    self.find_next();
+                    return;
+                }
+                '\x08' => { // Backspace
+                    if !self.query.is_empty() {
+                        self.query.pop();
+                        print!("\x1b[{};1H", self.rows() + 1);
+                        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
+                        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
+                        print!("{}{}{}", color, self.query, reset);
+                    }
+                }
+                c => {
+                    if let Some(s) = self.render_char(c) {
+                        print!("{}{}{}", color, s, reset);
+                        self.query.push_str(&s);
+                    }
+                }
+            }
+        }
+    }
+
     pub fn run(&mut self) -> Result<(), ExitCode> {
         print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
         self.print_screen();
@@ -477,6 +537,14 @@ impl Editor {
                     }
                     self.cursor.x = 0;
                     self.offset.x = 0;
+                    self.print_screen();
+                }
+                '\x06' => { // Ctrl F -> Find
+                    self.find();
+                    self.print_screen();
+                }
+                '\x0E' => { // Ctrl N -> Find next
+                    self.find_next();
                     self.print_screen();
                 }
                 '\x08' => { // Backspace
