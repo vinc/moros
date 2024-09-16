@@ -1,5 +1,6 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
+use crate::api::prompt::Prompt;
 use crate::api::{console, fs, io};
 use crate::api;
 
@@ -34,24 +35,28 @@ struct Coords {
 
 pub struct Editor {
     pathname: String,
-    query: String,
     clipboard: Vec<String>,
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
     highlighted: Vec<(usize, usize, char)>,
     config: EditorConfig,
+    search_query: String,
+    search_prompt: Prompt,
 }
 
 impl Editor {
     pub fn new(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
-        let query = String::new();
         let highlighted = Vec::new();
         let clipboard = Vec::new();
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
+
+        let search_query = String::new();
+        let mut search_prompt = Prompt::new();
+        search_prompt.eol = false;
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
@@ -71,13 +76,14 @@ impl Editor {
 
         Self {
             pathname,
-            query,
             clipboard,
             lines,
             cursor,
             offset,
             highlighted,
             config,
+            search_query,
+            search_prompt,
         }
     }
 
@@ -589,60 +595,25 @@ impl Editor {
     }
 
     pub fn find(&mut self) {
-        self.query = String::new();
-        let status = format!("Find: ");
+        let label = format!("Find: ");
         let color = Style::color("black").with_background("silver");
         let reset = Style::reset();
+
+        // Set up bottom line
         print!("\x1b[{};1H", self.rows() + 1);
-        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
+        print!("{}{}", color, " ".repeat(self.cols()));
+        print!("\x1b[{};1H", self.rows() + 1);
         print!("\x1b[?25h"); // Enable cursor
-        let mut escape = false;
-        let mut csi = false;
-        loop {
-            let c = io::stdin().read_char().unwrap_or('\0');
-            match c {
-                '\x1B' => { // ESC
-                    escape = true;
-                    continue;
-                }
-                '[' if escape => {
-                    csi = true;
-                    continue;
-                }
-                '\n' => { // Newline
-                    self.find_next();
-                    return;
-                }
-                '\x03' => { // Ctrl C
-                    return;
-                }
-                '\x08' => { // Backspace
-                    if !self.query.is_empty() {
-                        self.query.pop();
-                        print!("\x1b[{};1H", self.rows() + 1);
-                        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
-                        print!("\x1b[{};{}H", self.rows() + 1, status.len() + 1);
-                        print!("{}{}{}", color, self.query, reset);
-                    }
-                }
-                c => {
-                    if csi {
-                        match c {
-                            '0'..'9' | ';' => {
-                            }
-                            _ => {
-                                escape = false;
-                                csi = false;
-                            }
-                        }
-                        continue;
-                    }
-                    if let Some(s) = self.render_char(c) {
-                        print!("{}{}{}", color, s, reset);
-                        self.query.push_str(&s);
-                    }
-                }
+
+        let res = self.search_prompt.input(&label);
+
+        print!("{}", reset);
+
+        if let Some(query) = res {
+            if !query.is_empty() {
+                self.search_prompt.history.add(&query);
+                self.search_query = query;
+                self.find_next();
             }
         }
     }
@@ -658,7 +629,7 @@ impl Editor {
             if y == dy {
                 o = cmp::min(dx + 1, line.len());
             }
-            if let Some(i) = line[o..].find(&self.query) {
+            if let Some(i) = line[o..].find(&self.search_query) {
                 let x = o + i;
                 self.cursor.x = x % self.cols();
                 self.cursor.y = y % self.rows();

@@ -7,6 +7,7 @@ use vte::{Params, Parser, Perform};
 pub struct Prompt {
     pub completion: Completion,
     pub history: History,
+    pub eol: bool,
     offset: usize, // Offset line by the length of the prompt string
     cursor: usize,
     line: Vec<char>, // UTF-32
@@ -17,6 +18,7 @@ impl Prompt {
         Self {
             completion: Completion::new(),
             history: History::new(),
+            eol: true,
             offset: 0,
             cursor: 0,
             line: Vec::with_capacity(80),
@@ -33,18 +35,24 @@ impl Prompt {
             match c {
                 console::ETX_KEY => { // End of Text (^C)
                     self.update_completion();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return Some(String::new());
                 }
                 console::EOT_KEY => { // End of Transmission (^D)
                     self.update_completion();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return None;
                 }
                 '\n' => { // New Line
                     self.update_completion();
                     self.update_history();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return Some(self.line.iter().collect());
                 }
                 c => {
