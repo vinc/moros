@@ -612,6 +612,12 @@ impl Editor {
         if let Some(query) = prompt(&mut self.command_prompt, ":") {
             let params: Vec<&str> = query.split('/').collect();
             match params[0] {
+                "g" if params.len() == 3 => { // Global command
+                    let re = Regex::new(params[1]);
+                    if params[2] == "d" { // Delete all matching lines
+                        self.lines.retain(|line| !re.is_match(line));
+                    }
+                }
                 "s" if params.len() == 4 => { // Substitute current line
                     let re = Regex::new(params[1]);
                     let s = params[2];
