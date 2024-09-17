@@ -41,8 +41,10 @@ pub struct Editor {
     offset: Coords,
     highlighted: Vec<(usize, usize, char)>,
     config: EditorConfig,
-    search_query: String,
     search_prompt: Prompt,
+    search_query: String,
+    command_prompt: Prompt,
+    command_history: String,
 }
 
 impl Editor {
@@ -57,6 +59,10 @@ impl Editor {
         let search_query = String::new();
         let mut search_prompt = Prompt::new();
         search_prompt.eol = false;
+
+        let mut command_prompt = Prompt::new();
+        let command_history = String::from("~/.edit-history");
+        command_prompt.history.load(&command_history);
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
@@ -82,8 +88,10 @@ impl Editor {
             offset,
             highlighted,
             config,
-            search_query,
             search_prompt,
+            search_query,
+            command_prompt,
+            command_history,
         }
     }
 
@@ -599,7 +607,7 @@ impl Editor {
     }
 
     pub fn exec(&mut self) {
-        if let Some(query) = prompt(&mut self.search_prompt, ":") {
+        if let Some(query) = prompt(&mut self.command_prompt, ":") {
             if !query.is_empty() {
                 let params: Vec<&str> = query.split('/').collect();
                 match params[0] {
@@ -619,6 +627,8 @@ impl Editor {
                     }
                     _ => {}
                 }
+                self.command_prompt.history.add(&query);
+                self.command_prompt.history.save(&self.command_history);
             }
         }
     }
