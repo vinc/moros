@@ -107,6 +107,9 @@ impl Regex {
             tmp.replace_range(i..j, replacement);
             res.push_str(&tmp);
             o += j;
+            if o == text.len() {
+                break;
+            }
         }
         res.push_str(&text[o..]);
         res
@@ -347,6 +350,7 @@ fn test_regex_find() {
 
 #[test_case]
 fn test_regex_replace() {
+    assert_eq!(Regex::new(".*").replace("aaa", "bbb"), "bbb");
     assert_eq!(Regex::new("a\\wa").replace("aaa", "bbb"), "bbb");
     assert_eq!(Regex::new("a\\wa").replace("abc", "bbb"), "abc");
     assert_eq!(Regex::new("a\\wa").replace("aba aca", "bbb"), "bbb aca");
@@ -354,6 +358,7 @@ fn test_regex_replace() {
 
 #[test_case]
 fn test_regex_replace_all() {
+    assert_eq!(Regex::new(".*").replace_all("aaa", "bbb"), "bbb");
     assert_eq!(Regex::new("a\\wa").replace_all("aaa", "bbb"), "bbb");
     assert_eq!(Regex::new("a\\wa").replace_all("abc", "bbb"), "abc");
     assert_eq!(Regex::new("a\\wa").replace_all("aba aca", "bbb"), "bbb bbb");
