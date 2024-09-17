@@ -90,6 +90,14 @@ impl Regex {
             None
         }
     }
+
+    pub fn replace(&self, text: &str, replacement: &str) -> String {
+        let mut res = String::from(text);
+        if let Some((i, j)) = self.find(text) {
+            res.replace_range(i..j, replacement);
+        }
+        res
+    }
 }
 
 fn is_match(
