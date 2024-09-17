@@ -98,6 +98,19 @@ impl Regex {
         }
         res
     }
+
+    pub fn replace_all(&self, text: &str, replacement: &str) -> String {
+        let mut res = String::new();
+        let mut o = 0;
+        while let Some((i, j)) = self.find(&text[o..]) {
+            let mut tmp = String::from(&text[o..(o + j)]);
+            tmp.replace_range(i..j, replacement);
+            res.push_str(&tmp);
+            o += j;
+        }
+        res.push_str(&text[o..]);
+        res
+    }
 }
 
 fn is_match(
@@ -311,13 +324,6 @@ fn test_regex() {
             is_match
         );
     }
-
-    assert_eq!(Regex::new(".*").find("abcd"), Some((0, 4)));
-    assert_eq!(Regex::new("b.*c").find("aaabbbcccddd"), Some((3, 9)));
-    assert_eq!(Regex::new("b.*?c").find("aaabbbcccddd"), Some((3, 7)));
-    assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
-    assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
-    assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 10)));
 }
 
 #[test_case]
@@ -327,4 +333,28 @@ fn test_regex_from_glob() {
     assert_eq!(Regex::from_glob("h*.txt").0, "^h.*\\.txt$");
     assert_eq!(Regex::from_glob("*.txt").0, "^.*\\.txt$");
     assert_eq!(Regex::from_glob("\\w*.txt").0, "^\\\\w.*\\.txt$");
+}
+
+#[test_case]
+fn test_regex_find() {
+    assert_eq!(Regex::new(".*").find("abcd"), Some((0, 4)));
+    assert_eq!(Regex::new("b.*c").find("aaabbbcccddd"), Some((3, 9)));
+    assert_eq!(Regex::new("b.*?c").find("aaabbbcccddd"), Some((3, 7)));
+    assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
+    assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
+    assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 10)));
+}
+
+#[test_case]
+fn test_regex_replace() {
+    assert_eq!(Regex::new("a\\wa").replace("aaa", "bbb"), "bbb");
+    assert_eq!(Regex::new("a\\wa").replace("abc", "bbb"), "abc");
+    assert_eq!(Regex::new("a\\wa").replace("aba aca", "bbb"), "bbb aca");
+}
+
+#[test_case]
+fn test_regex_replace_all() {
+    assert_eq!(Regex::new("a\\wa").replace_all("aaa", "bbb"), "bbb");
+    assert_eq!(Regex::new("a\\wa").replace_all("abc", "bbb"), "abc");
+    assert_eq!(Regex::new("a\\wa").replace_all("aba aca", "bbb"), "bbb bbb");
 }
