@@ -1,5 +1,6 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
+use crate::api::prompt::Prompt;
 use crate::api::{console, fs, io};
 use crate::api;
 
@@ -40,6 +41,8 @@ pub struct Editor {
     offset: Coords,
     highlighted: Vec<(usize, usize, char)>,
     config: EditorConfig,
+    search_query: String,
+    search_prompt: Prompt,
 }
 
 impl Editor {
@@ -50,6 +53,10 @@ impl Editor {
         let clipboard = Vec::new();
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
+
+        let search_query = String::new();
+        let mut search_prompt = Prompt::new();
+        search_prompt.eol = false;
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
@@ -75,6 +82,8 @@ impl Editor {
             offset,
             highlighted,
             config,
+            search_query,
+            search_prompt,
         }
     }
 
@@ -95,11 +104,11 @@ impl Editor {
 
     fn print_status(&mut self, status: &str, background: &str) {
         // Move cursor to the bottom of the screen
-        print!("\x1b[{};1H", self.rows() + 1);
+        print!("\x1b[{};1H", rows() + 1);
 
         let color = Style::color("black").with_background(background);
         let reset = Style::reset();
-        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
+        print!("{}{:cols$}{}", color, status, reset, cols = cols());
 
         // Move cursor back
         print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
@@ -119,20 +128,20 @@ impl Editor {
         let n = y * 100 / self.lines.len();
         let end = format!("{},{} {:3}%", y, x, n);
 
-        let width = self.cols() - start.chars().count();
+        let width = cols() - start.chars().count();
         let status = format!("{}{:>width$}", start, end, width = width);
 
         self.print_status(&status, "silver");
     }
 
     fn print_screen(&mut self) {
-        let mut rows: Vec<String> = Vec::new();
+        let mut lines: Vec<String> = Vec::new();
         let a = self.offset.y;
-        let b = self.offset.y + self.rows();
+        let b = self.offset.y + rows();
         for y in a..b {
-            rows.push(self.render_line(y));
+            lines.push(self.render_line(y));
         }
-        println!("\x1b[1;1H{}", rows.join("\n"));
+        println!("\x1b[1;1H{}", lines.join("\n"));
     }
 
     fn render_line(&self, y: usize) -> String {
@@ -145,7 +154,7 @@ impl Editor {
 
         let s = format!("{:cols$}", line, cols = self.offset.x);
         let mut row: Vec<char> = s.chars().collect();
-        let n = self.offset.x + self.cols();
+        let n = self.offset.x + cols();
         let after = if row.len() > n {
             row.truncate(n - 1);
             truncated_line_indicator()
@@ -178,8 +187,8 @@ impl Editor {
                             // Cursor position
                             if let Some((x, y)) = stack.pop() {
                                 self.highlighted.push((cx, cy, closing));
-                                let is_col = ox <= x && x < ox + self.cols();
-                                let is_row = oy <= y && y < oy + self.rows();
+                                let is_col = ox <= x && x < ox + cols();
+                                let is_row = oy <= y && y < oy + rows();
                                 if is_col && is_row {
                                     self.highlighted.push(
                                         (x - ox, y - oy, opening)
@@ -213,8 +222,8 @@ impl Editor {
                         if c == closing {
                             if stack.pop().is_none() {
                                 self.highlighted.push((cx, cy, opening));
-                                let is_col = ox <= x && x < ox + self.cols();
-                                let is_row = oy <= y && y < oy + self.rows();
+                                let is_col = ox <= x && x < ox + cols();
+                                let is_row = oy <= y && y < oy + rows();
                                 if is_col && is_row {
                                     self.highlighted.push(
                                         (x - ox, y - oy, closing)
@@ -236,7 +245,7 @@ impl Editor {
         let color = Style::color("red");
         let reset = Style::reset();
         for (x, y, c) in &self.highlighted {
-            if *x == self.cols() - 1 {
+            if *x == cols() - 1 {
                 continue;
             }
             print!("\x1b[{};{}H", y + 1, x + 1);
@@ -247,7 +256,7 @@ impl Editor {
     fn clear_highlighted(&mut self) {
         let reset = Style::reset();
         for (x, y, c) in &self.highlighted {
-            if *x == self.cols() - 1 {
+            if *x == cols() - 1 {
                 continue;
             }
             print!("\x1b[{};{}H", y + 1, x + 1);
@@ -275,7 +284,7 @@ impl Editor {
         let y = self.offset.y + self.cursor.y;
         let eol = self.lines[y].chars().count();
         if x > eol {
-            let n = self.cols();
+            let n = cols();
             self.offset.x = (eol / n) * n;
             self.cursor.x = eol % n;
         }
@@ -335,7 +344,7 @@ impl Editor {
                         into_iter().collect();
                     self.lines[y] = row.into_iter().collect();
                     self.lines.insert(y + 1, new_line);
-                    if self.cursor.y == self.rows() - 1 {
+                    if self.cursor.y == rows() - 1 {
                         self.offset.y += 1;
                     } else {
                         self.cursor.y += 1;
@@ -345,12 +354,12 @@ impl Editor {
                     self.print_screen();
                 }
                 '~' if csi && csi_params == "5" => { // Page Up
-                    let scroll = self.rows() - 1; // Keep one line on screen
+                    let scroll = rows() - 1; // Keep one line on screen
                     self.offset.y -= cmp::min(scroll, self.offset.y);
                     self.print_screen();
                 }
                 '~' if csi && csi_params == "6" => { // Page Down
-                    let scroll = self.rows() - 1; // Keep one line on screen
+                    let scroll = rows() - 1; // Keep one line on screen
                     let n = cmp::max(self.lines.len(), 1);
                     let remaining = n - self.offset.y - 1;
                     self.offset.y += cmp::min(scroll, remaining);
@@ -371,8 +380,8 @@ impl Editor {
                 'B' if csi => { // Arrow Down
                     let n = self.lines.len() - 1;
                     let is_eof = n == (self.offset.y + self.cursor.y);
-                    let is_bottom = self.cursor.y == self.rows() - 1;
-                    if self.cursor.y < cmp::min(self.rows(), n) {
+                    let is_bottom = self.cursor.y == rows() - 1;
+                    if self.cursor.y < cmp::min(rows(), n) {
                         if is_bottom || is_eof {
                             if !is_eof {
                                 self.offset.y += 1;
@@ -393,9 +402,9 @@ impl Editor {
                         escape = false;
                         csi = false;
                         continue;
-                    } else if self.cursor.x == self.cols() - 1 {
-                        self.offset.x += self.cols();
-                        self.cursor.x -= self.cols() - 1;
+                    } else if self.cursor.x == cols() - 1 {
+                        self.offset.x += cols();
+                        self.cursor.x -= cols() - 1;
                         self.print_screen();
                     } else {
                         self.cursor.x += 1;
@@ -408,8 +417,8 @@ impl Editor {
                         csi = false;
                         continue;
                     } else if self.cursor.x == 0 {
-                        self.offset.x -= self.cols();
-                        self.cursor.x += self.cols() - 1;
+                        self.offset.x -= cols();
+                        self.cursor.x += cols() - 1;
                         self.align_cursor();
                         self.print_screen();
                     } else {
@@ -428,7 +437,7 @@ impl Editor {
                 }
                 '\x02' => { // Ctrl B -> Go to bottom of file
                     self.cursor.x = 0;
-                    self.cursor.y = cmp::min(self.rows(), self.lines.len()) - 1;
+                    self.cursor.y = cmp::min(rows(), self.lines.len()) - 1;
                     self.offset.x = 0;
                     self.offset.y = self.lines.len() - 1 - self.cursor.y;
                     self.print_screen();
@@ -441,7 +450,7 @@ impl Editor {
                 '\x05' => { // Ctrl E -> Go to end of line
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     let n = line.chars().count();
-                    let w = self.cols();
+                    let w = cols();
                     self.cursor.x = n % w;
                     self.offset.x = w * (n / w);
                     self.print_screen();
@@ -479,6 +488,14 @@ impl Editor {
                     self.offset.x = 0;
                     self.print_screen();
                 }
+                '\x06' => { // Ctrl F -> Find
+                    self.find();
+                    self.print_screen();
+                }
+                '\x0E' => { // Ctrl N -> Find next
+                    self.find_next();
+                    self.print_screen();
+                }
                 '\x08' => { // Backspace
                     let y = self.offset.y + self.cursor.y;
                     if self.offset.x + self.cursor.x > 0 {
@@ -488,8 +505,8 @@ impl Editor {
                         self.lines[y] = row.into_iter().collect();
 
                         if self.cursor.x == 0 {
-                            self.offset.x -= self.cols();
-                            self.cursor.x = self.cols() - 1;
+                            self.offset.x -= cols();
+                            self.cursor.x = cols() - 1;
                             self.print_screen();
                         } else {
                             self.cursor.x -= 1;
@@ -507,7 +524,7 @@ impl Editor {
 
                         // Move cursor below the end of the previous line
                         let n = self.lines[y - 1].chars().count();
-                        let w = self.cols();
+                        let w = cols();
                         self.cursor.x = n % w;
                         self.offset.x = w * (n / w);
 
@@ -556,9 +573,9 @@ impl Editor {
                             self.cursor.x += 1;
                         }
                         self.lines[y] = row.into_iter().collect();
-                        if self.cursor.x >= self.cols() {
-                            self.offset.x += self.cols();
-                            self.cursor.x -= self.cols();
+                        if self.cursor.x >= cols() {
+                            self.offset.x += cols();
+                            self.cursor.x -= cols();
                             self.print_screen();
                         } else {
                             let line = self.render_line(y);
@@ -577,13 +594,60 @@ impl Editor {
         Ok(())
     }
 
-    fn rows(&self) -> usize {
-        api::console::rows() - 1 // Leave out one line for status line
+    pub fn find(&mut self) {
+        if let Some(query) = prompt(&mut self.search_prompt, "Find: ") {
+            if !query.is_empty() {
+                self.search_prompt.history.add(&query);
+                self.search_query = query;
+                self.find_next();
+            }
+        }
     }
 
-    fn cols(&self) -> usize {
-        api::console::cols()
+    pub fn find_next(&mut self) {
+        let dx = self.offset.x + self.cursor.x;
+        let dy = self.offset.y + self.cursor.y;
+        for (y, line) in self.lines.iter().enumerate() {
+            let mut o = 0;
+            if y < dy {
+                continue;
+            }
+            if y == dy {
+                o = cmp::min(dx + 1, line.len());
+            }
+            if let Some(i) = line[o..].find(&self.search_query) {
+                let x = o + i;
+                self.cursor.x = x % cols();
+                self.cursor.y = y % rows();
+                self.offset.x = x - self.cursor.x;
+                self.offset.y = y - self.cursor.y;
+                break;
+            }
+        }
     }
+}
+
+pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
+    let color = Style::color("black").with_background("silver");
+    let reset = Style::reset();
+
+    // Set up bottom line
+    print!("\x1b[{};1H", rows() + 1);
+    print!("{}{}", color, " ".repeat(cols()));
+    print!("\x1b[{};1H", rows() + 1);
+    print!("\x1b[?25h"); // Enable cursor
+
+    let res = prompt.input(&label);
+    print!("{}", reset);
+    res
+}
+
+fn rows() -> usize {
+    api::console::rows() - 1 // Leave out one line for status line
+}
+
+fn cols() -> usize {
+    api::console::cols()
 }
 
 fn truncated_line_indicator() -> String {
