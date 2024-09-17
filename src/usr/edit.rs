@@ -1,6 +1,7 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
+use crate::api::regex::Regex;
 use crate::api::{console, fs, io};
 use crate::api;
 
@@ -613,17 +614,17 @@ impl Editor {
                 let params: Vec<&str> = query.split('/').collect();
                 match params[0] {
                     "s" if params.len() == 4 => { // Replace current line
-                        let old = params[1];
-                        let new = params[2];
+                        let re = Regex::new(params[1]);
+                        let s = params[2];
                         let y = self.offset.y + self.cursor.y;
-                        self.lines[y] = self.lines[y].replace(old, new);
+                        self.lines[y] = re.replace(&self.lines[y], s);
                     }
                     "%s" if params.len() == 4 => { // Replace all lines
-                        let old = params[1];
-                        let new = params[2];
+                        let re = Regex::new(params[1]);
+                        let s = params[2];
                         let n = self.lines.len();
                         for y in 0..n {
-                            self.lines[y] = self.lines[y].replace(old, new);
+                            self.lines[y] = re.replace(&self.lines[y], s);
                         }
                     }
                     _ => {}
