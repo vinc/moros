@@ -492,6 +492,10 @@ impl Editor {
                     self.find();
                     self.print_screen();
                 }
+                '\x0C' => { // Ctrl L -> Line mode
+                    self.exec();
+                    self.print_screen();
+                }
                 '\x0E' => { // Ctrl N -> Find next
                     self.find_next();
                     self.print_screen();
@@ -594,6 +598,31 @@ impl Editor {
         Ok(())
     }
 
+    pub fn exec(&mut self) {
+        if let Some(query) = prompt(&mut self.search_prompt, ":") {
+            if !query.is_empty() {
+                let params: Vec<&str> = query.split('/').collect();
+                match params[0] {
+                    "s" if params.len() == 4 => { // Replace current line
+                        let old = params[1];
+                        let new = params[2];
+                        let y = self.offset.y + self.cursor.y;
+                        self.lines[y] = self.lines[y].replace(old, new);
+                    }
+                    "%s" if params.len() == 4 => { // Replace all lines
+                        let old = params[1];
+                        let new = params[2];
+                        let n = self.lines.len();
+                        for y in 0..n {
+                            self.lines[y] = self.lines[y].replace(old, new);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
     pub fn find(&mut self) {
         if let Some(query) = prompt(&mut self.search_prompt, "Find: ") {
             if !query.is_empty() {
@@ -631,7 +660,7 @@ pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
     let color = Style::color("black").with_background("silver");
     let reset = Style::reset();
 
-    // Set up bottom line
+    // Set up the bottom line for the prompt
     print!("\x1b[{};1H", rows() + 1);
     print!("{}{}", color, " ".repeat(cols()));
     print!("\x1b[{};1H", rows() + 1);
