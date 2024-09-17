@@ -650,6 +650,20 @@ impl Editor {
                 }
                 _ => {}
             }
+
+            let mut y = self.offset.y + self.cursor.y;
+            let n = self.lines.len() - 1;
+            if y > n {
+                self.cursor.y = n % rows();
+                self.offset.y = n - self.cursor.y;
+                y = n;
+            }
+            let n = self.lines[y].len();
+            if self.offset.x + self.cursor.x > n {
+                self.cursor.x = n % cols();
+                self.offset.x = n - self.cursor.x;
+            }
+
             if !query.is_empty() {
                 self.command_prompt.history.add(&query);
                 self.command_prompt.history.save(&self.command_history);
