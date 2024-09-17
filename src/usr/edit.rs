@@ -63,6 +63,7 @@ impl Editor {
         let mut command_prompt = Prompt::new();
         let command_history = String::from("~/.edit-history");
         command_prompt.history.load(&command_history);
+        command_prompt.eol = false;
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
