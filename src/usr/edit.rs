@@ -7,6 +7,7 @@ use crate::api;
 
 use alloc::format;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp;
 
@@ -612,6 +613,13 @@ impl Editor {
         if let Some(query) = prompt(&mut self.command_prompt, ":") {
             let params: Vec<&str> = query.split('/').collect();
             match params[0] {
+                "d" if params.len() == 1 => { // Delete current line
+                    let y = self.offset.y + self.cursor.y;
+                    self.lines.remove(y);
+                }
+                "%d" if params.len() == 1 => { // Delete all lines
+                    self.lines = vec![String::new()];
+                }
                 "g" if params.len() == 3 => { // Global command
                     let re = Regex::new(params[1]);
                     if params[2] == "d" { // Delete all matching lines
