@@ -500,12 +500,12 @@ impl Editor {
                     self.find();
                     self.print_screen();
                 }
-                '\x0C' => { // Ctrl L -> Line mode
-                    self.exec();
-                    self.print_screen();
-                }
                 '\x0E' => { // Ctrl N -> Find next
                     self.find_next();
+                    self.print_screen();
+                }
+                '\x0C' => { // Ctrl L -> Line mode
+                    self.exec();
                     self.print_screen();
                 }
                 '\x08' => { // Backspace
