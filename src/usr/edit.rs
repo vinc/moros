@@ -11,21 +11,6 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp;
 
-pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() != 2 {
-        help();
-        return Err(ExitCode::UsageError);
-    }
-    if args[1] == "-h" || args[1] == "--help" {
-        help();
-        return Ok(());
-    }
-
-    let pathname = args[1];
-    let mut editor = Editor::new(pathname);
-    editor.run()
-}
-
 struct EditorConfig {
     tab_size: usize,
 }
@@ -610,64 +595,68 @@ impl Editor {
     }
 
     pub fn exec(&mut self) {
-        if let Some(query) = prompt(&mut self.command_prompt, ":") {
-            let params: Vec<&str> = query.split('/').collect();
-            match params[0] {
-                "d" if params.len() == 1 => { // Delete current line
-                    let y = self.offset.y + self.cursor.y;
-                    self.lines.remove(y);
+        if let Some(cmd) = prompt(&mut self.command_prompt, ":") {
+            self.exec_command(&cmd);
+        }
+    }
+
+    pub fn exec_command(&mut self, cmd: &str) {
+        let params: Vec<&str> = cmd.split('/').collect();
+        match params[0] {
+            "d" if params.len() == 1 => { // Delete current line
+                let y = self.offset.y + self.cursor.y;
+                self.lines.remove(y);
+            }
+            "%d" if params.len() == 1 => { // Delete all lines
+                self.lines = vec![String::new()];
+            }
+            "g" if params.len() == 3 => { // Global command
+                let re = Regex::new(params[1]);
+                if params[2] == "d" { // Delete all matching lines
+                    self.lines.retain(|line| !re.is_match(line));
                 }
-                "%d" if params.len() == 1 => { // Delete all lines
-                    self.lines = vec![String::new()];
+            }
+            "s" if params.len() == 4 => { // Substitute current line
+                let re = Regex::new(params[1]);
+                let s = params[2];
+                let y = self.offset.y + self.cursor.y;
+                if params[3] == "g" { // Substitute all occurrences
+                    self.lines[y] = re.replace_all(&self.lines[y], s);
+                } else {
+                    self.lines[y] = re.replace(&self.lines[y], s);
                 }
-                "g" if params.len() == 3 => { // Global command
-                    let re = Regex::new(params[1]);
-                    if params[2] == "d" { // Delete all matching lines
-                        self.lines.retain(|line| !re.is_match(line));
-                    }
-                }
-                "s" if params.len() == 4 => { // Substitute current line
-                    let re = Regex::new(params[1]);
-                    let s = params[2];
-                    let y = self.offset.y + self.cursor.y;
+            }
+            "%s" if params.len() == 4 => { // Substitute all lines
+                let re = Regex::new(params[1]);
+                let s = params[2];
+                let n = self.lines.len();
+                for y in 0..n {
                     if params[3] == "g" { // Substitute all occurrences
                         self.lines[y] = re.replace_all(&self.lines[y], s);
                     } else {
                         self.lines[y] = re.replace(&self.lines[y], s);
                     }
                 }
-                "%s" if params.len() == 4 => { // Substitute all lines
-                    let re = Regex::new(params[1]);
-                    let s = params[2];
-                    let n = self.lines.len();
-                    for y in 0..n {
-                        if params[3] == "g" { // Substitute all occurrences
-                            self.lines[y] = re.replace_all(&self.lines[y], s);
-                        } else {
-                            self.lines[y] = re.replace(&self.lines[y], s);
-                        }
-                    }
-                }
-                _ => {}
             }
+            _ => {}
+        }
 
-            let mut y = self.offset.y + self.cursor.y;
-            let n = self.lines.len() - 1;
-            if y > n {
-                self.cursor.y = n % rows();
-                self.offset.y = n - self.cursor.y;
-                y = n;
-            }
-            let n = self.lines[y].len();
-            if self.offset.x + self.cursor.x > n {
-                self.cursor.x = n % cols();
-                self.offset.x = n - self.cursor.x;
-            }
+        let mut y = self.offset.y + self.cursor.y;
+        let n = self.lines.len() - 1;
+        if y > n {
+            self.cursor.y = n % rows();
+            self.offset.y = n - self.cursor.y;
+            y = n;
+        }
+        let n = self.lines[y].len();
+        if self.offset.x + self.cursor.x > n {
+            self.cursor.x = n % cols();
+            self.offset.x = n - self.cursor.x;
+        }
 
-            if !query.is_empty() {
-                self.command_prompt.history.add(&query);
-                self.command_prompt.history.save(&self.command_history);
-            }
+        if !cmd.is_empty() {
+            self.command_prompt.history.add(&cmd);
+            self.command_prompt.history.save(&self.command_history);
         }
     }
 
@@ -738,7 +727,65 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} edit {}<file>{}",
-        csi_title, csi_reset, csi_option, csi_reset
+        "{}Usage:{} edit {}<options> <file>{1}",
+        csi_title, csi_reset, csi_option
     );
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!(
+        "  {0}-c{1}, {0}--command <cmd>{1}    Execute command",
+        csi_option, csi_reset
+    );
+}
+
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    let mut path = "";
+    let mut cmd = "";
+    let mut i = 1;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                help();
+                return Ok(());
+            }
+            "-c" | "--command" => {
+                if i + 1 < n {
+                    i += 1;
+                    cmd = args[i];
+                } else {
+                    error!("Missing command");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+            _ => {
+                if args[i].starts_with('-') {
+                    error!("Invalid option '{}'", args[i]);
+                    return Err(ExitCode::UsageError);
+                } else if path.is_empty() {
+                    path = args[i];
+                } else {
+                    error!("Too many arguments");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+        }
+        i += 1;
+    }
+    if path.is_empty() {
+        help();
+        return Err(ExitCode::UsageError);
+    }
+
+    let mut editor = Editor::new(path);
+
+    if !cmd.is_empty() {
+        editor.exec_command(cmd);
+        for line in editor.lines {
+            println!("{}", line);
+        }
+        return Ok(());
+    }
+
+    editor.run()
 }
