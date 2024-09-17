@@ -612,22 +612,22 @@ impl Editor {
         if let Some(query) = prompt(&mut self.command_prompt, ":") {
             let params: Vec<&str> = query.split('/').collect();
             match params[0] {
-                "s" if params.len() == 4 => { // Replace current line
+                "s" if params.len() == 4 => { // Substitute current line
                     let re = Regex::new(params[1]);
                     let s = params[2];
                     let y = self.offset.y + self.cursor.y;
-                    if params[3] == "g" { // Replace all occurrences
+                    if params[3] == "g" { // Substitute all occurrences
                         self.lines[y] = re.replace_all(&self.lines[y], s);
                     } else {
                         self.lines[y] = re.replace(&self.lines[y], s);
                     }
                 }
-                "%s" if params.len() == 4 => { // Replace all lines
+                "%s" if params.len() == 4 => { // Substitute all lines
                     let re = Regex::new(params[1]);
                     let s = params[2];
                     let n = self.lines.len();
                     for y in 0..n {
-                        if params[3] == "g" { // Replace all occurrences
+                        if params[3] == "g" { // Substitute all occurrences
                             self.lines[y] = re.replace_all(&self.lines[y], s);
                         } else {
                             self.lines[y] = re.replace(&self.lines[y], s);
