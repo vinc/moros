@@ -11,6 +11,12 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp;
 
+enum Cmd {
+    Save,
+    Replace,
+    Delete,
+}
+
 struct EditorConfig {
     tab_size: usize,
 }
@@ -83,16 +89,17 @@ impl Editor {
         }
     }
 
-    pub fn save(&mut self) -> Result<(), ExitCode> {
+    pub fn save(&mut self, path: &str) -> Result<(), ExitCode> {
         let contents = self.lines.join("\n") + "\n";
 
-        if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
+        if fs::write(path, contents.as_bytes()).is_ok() {
+            self.pathname = path.into();
             let n = self.lines.len();
-            let status = format!("Wrote {}L to '{}'", n, self.pathname);
+            let status = format!("Wrote {}L to '{}'", n, path);
             self.print_status(&status, "yellow");
             Ok(())
         } else {
-            let status = format!("Could not write to '{}'", self.pathname);
+            let status = format!("Could not write to '{}'", path);
             self.print_status(&status, "red");
             Err(ExitCode::Failure)
         }
@@ -321,12 +328,12 @@ impl Editor {
                     break;
                 }
                 '\x17' => { // Ctrl W
-                    self.save().ok();
+                    self.save(&self.pathname.clone()).ok();
                     print!("\x1b[?25h"); // Enable cursor
                     continue;
                 }
                 '\x18' => { // Ctrl X
-                    let res = self.save();
+                    let res = self.save(&self.pathname.clone());
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
                     return res;
@@ -493,8 +500,17 @@ impl Editor {
                     self.print_screen();
                 }
                 '\x0C' => { // Ctrl L -> Line mode
-                    self.exec();
-                    self.print_screen();
+                    match self.exec() {
+                        Some(Cmd::Save) => {
+                            print!("\x1b[?25h"); // Enable cursor
+                            continue;
+                        }
+                        Some(_) => {
+                            self.print_screen();
+                        }
+                        None => {
+                        }
+                    }
                 }
                 '\x08' => { // Backspace
                     let y = self.offset.y + self.cursor.y;
@@ -594,27 +610,46 @@ impl Editor {
         Ok(())
     }
 
-    pub fn exec(&mut self) {
+    fn exec(&mut self) -> Option<Cmd> {
         if let Some(cmd) = prompt(&mut self.command_prompt, ":") {
-            self.exec_command(&cmd);
-            print!("\x1b[?25l"); // Disable cursor
+            // The cursor is disabled at the beginning of the loop in the `run`
+            // method to avoid seeing it jump around during screen operations.
+            // The `prompt` method above re-enable the cursor so we need to
+            // disable it again until the end of the loop in the `run` method.
+            print!("\x1b[?25l");
+
+            self.exec_command(&cmd)
+        } else {
+            None
         }
     }
 
-    pub fn exec_command(&mut self, cmd: &str) {
-        let params: Vec<&str> = cmd.split('/').collect();
+    fn exec_command(&mut self, cmd: &str) -> Option<Cmd> {
+        let mut res = None;
+        let params: Vec<&str> = match cmd.chars().next() {
+            Some('w') =>  {
+                cmd.split(' ').collect()
+            }
+            _ => {
+                cmd.split('/').collect()
+            }
+        };
+        // TODO: Display line numbers on screen and support command range
         match params[0] {
             "d" if params.len() == 1 => { // Delete current line
                 let y = self.offset.y + self.cursor.y;
                 self.lines.remove(y);
+                res = Some(Cmd::Delete);
             }
             "%d" if params.len() == 1 => { // Delete all lines
                 self.lines = vec![String::new()];
+                res = Some(Cmd::Delete);
             }
             "g" if params.len() == 3 => { // Global command
                 let re = Regex::new(params[1]);
                 if params[2] == "d" { // Delete all matching lines
                     self.lines.retain(|line| !re.is_match(line));
+                    res = Some(Cmd::Delete);
                 }
             }
             "s" if params.len() == 4 => { // Substitute current line
@@ -626,6 +661,7 @@ impl Editor {
                 } else {
                     self.lines[y] = re.replace(&self.lines[y], s);
                 }
+                res = Some(Cmd::Replace);
             }
             "%s" if params.len() == 4 => { // Substitute all lines
                 let re = Regex::new(params[1]);
@@ -638,27 +674,39 @@ impl Editor {
                         self.lines[y] = re.replace(&self.lines[y], s);
                     }
                 }
+                res = Some(Cmd::Replace);
+            }
+            "w" => { // Save file
+                let path = if params.len() == 2 {
+                    params[1]
+                } else {
+                    &self.pathname.clone()
+                };
+                self.save(path).ok();
+                res = Some(Cmd::Save);
             }
             _ => {}
         }
 
-        let mut y = self.offset.y + self.cursor.y;
-        let n = self.lines.len() - 1;
-        if y > n {
-            self.cursor.y = n % rows();
-            self.offset.y = n - self.cursor.y;
-            y = n;
-        }
-        let n = self.lines[y].len();
-        if self.offset.x + self.cursor.x > n {
-            self.cursor.x = n % cols();
-            self.offset.x = n - self.cursor.x;
-        }
+        if res.is_some() {
+            let mut y = self.offset.y + self.cursor.y;
+            let n = self.lines.len() - 1;
+            if y > n {
+                self.cursor.y = n % rows();
+                self.offset.y = n - self.cursor.y;
+                y = n;
+            }
+            let n = self.lines[y].len();
+            if self.offset.x + self.cursor.x > n {
+                self.cursor.x = n % cols();
+                self.offset.x = n - self.cursor.x;
+            }
 
-        if !cmd.is_empty() {
             self.command_prompt.history.add(&cmd);
             self.command_prompt.history.save(&self.command_history);
         }
+
+        res
     }
 
     pub fn find(&mut self) {
