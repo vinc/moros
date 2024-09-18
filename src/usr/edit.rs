@@ -597,6 +597,7 @@ impl Editor {
     pub fn exec(&mut self) {
         if let Some(cmd) = prompt(&mut self.command_prompt, ":") {
             self.exec_command(&cmd);
+            print!("\x1b[?25l"); // Disable cursor
         }
     }
 
