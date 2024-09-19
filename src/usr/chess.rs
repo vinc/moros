@@ -19,8 +19,9 @@ lazy_static! {
 }
 
 const FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const COMMANDS: [&str; 8] = [
-    "quit", "help", "init", "time", "move", "undo", "show", "perf",
+const COMMANDS: [&str; 10] = [
+    "quit", "help", "init", "time", "move", "undo", "show", "perf", "save",
+    "load"
 ];
 
 fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
