@@ -1,27 +1,20 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
+use crate::api::regex::Regex;
 use crate::api::{console, fs, io};
 use crate::api;
 
 use alloc::format;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::cmp;
 
-pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() != 2 {
-        help();
-        return Err(ExitCode::UsageError);
-    }
-    if args[1] == "-h" || args[1] == "--help" {
-        help();
-        return Ok(());
-    }
-
-    let pathname = args[1];
-    let mut editor = Editor::new(pathname);
-    editor.run()
+enum Cmd {
+    Save,
+    Replace,
+    Delete,
 }
 
 struct EditorConfig {
@@ -41,8 +34,10 @@ pub struct Editor {
     offset: Coords,
     highlighted: Vec<(usize, usize, char)>,
     config: EditorConfig,
-    search_query: String,
     search_prompt: Prompt,
+    search_query: String,
+    command_prompt: Prompt,
+    command_history: String,
 }
 
 impl Editor {
@@ -57,6 +52,11 @@ impl Editor {
         let search_query = String::new();
         let mut search_prompt = Prompt::new();
         search_prompt.eol = false;
+
+        let mut command_prompt = Prompt::new();
+        let command_history = String::from("~/.edit-history");
+        command_prompt.history.load(&command_history);
+        command_prompt.eol = false;
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
@@ -82,21 +82,24 @@ impl Editor {
             offset,
             highlighted,
             config,
-            search_query,
             search_prompt,
+            search_query,
+            command_prompt,
+            command_history,
         }
     }
 
-    pub fn save(&mut self) -> Result<(), ExitCode> {
+    pub fn save(&mut self, path: &str) -> Result<(), ExitCode> {
         let contents = self.lines.join("\n") + "\n";
 
-        if fs::write(&self.pathname, contents.as_bytes()).is_ok() {
+        if fs::write(path, contents.as_bytes()).is_ok() {
+            self.pathname = path.into();
             let n = self.lines.len();
-            let status = format!("Wrote {}L to '{}'", n, self.pathname);
+            let status = format!("Wrote {}L to '{}'", n, path);
             self.print_status(&status, "yellow");
             Ok(())
         } else {
-            let status = format!("Could not write to '{}'", self.pathname);
+            let status = format!("Could not write to '{}'", path);
             self.print_status(&status, "red");
             Err(ExitCode::Failure)
         }
@@ -145,7 +148,7 @@ impl Editor {
     }
 
     fn render_line(&self, y: usize) -> String {
-        // Render line into a row of the screen, or an empty row when past eof
+        // Render line into a row of the screen, or an empty row when past EOF
         let line = if y < self.lines.len() {
             &self.lines[y]
         } else {
@@ -213,8 +216,7 @@ impl Editor {
                 for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
                     for (x, c) in line.chars().enumerate() {
                         if y == oy + cy && x <= ox + cx {
-                            // Skip chars before cursor
-                            continue;
+                            continue; // Skip chars before cursor
                         }
                         if c == opening {
                             stack.push((x, y));
@@ -325,12 +327,12 @@ impl Editor {
                     break;
                 }
                 '\x17' => { // Ctrl W
-                    self.save().ok();
+                    self.save(&self.pathname.clone()).ok();
                     print!("\x1b[?25h"); // Enable cursor
                     continue;
                 }
                 '\x18' => { // Ctrl X
-                    let res = self.save();
+                    let res = self.save(&self.pathname.clone());
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
                     return res;
@@ -496,6 +498,19 @@ impl Editor {
                     self.find_next();
                     self.print_screen();
                 }
+                '\x0C' => { // Ctrl L -> Line mode
+                    match self.exec() {
+                        Some(Cmd::Save) => {
+                            print!("\x1b[?25h"); // Enable cursor
+                            continue;
+                        }
+                        Some(_) => {
+                            self.print_screen();
+                        }
+                        None => {
+                        }
+                    }
+                }
                 '\x08' => { // Backspace
                     let y = self.offset.y + self.cursor.y;
                     if self.offset.x + self.cursor.x > 0 {
@@ -594,6 +609,105 @@ impl Editor {
         Ok(())
     }
 
+    fn exec(&mut self) -> Option<Cmd> {
+        if let Some(cmd) = prompt(&mut self.command_prompt, ":") {
+            // The cursor is disabled at the beginning of the loop in the `run`
+            // method to avoid seeing it jump around during screen operations.
+            // The `prompt` method above re-enable the cursor so we need to
+            // disable it again until the end of the loop in the `run` method.
+            print!("\x1b[?25l");
+
+            self.exec_command(&cmd)
+        } else {
+            None
+        }
+    }
+
+    fn exec_command(&mut self, cmd: &str) -> Option<Cmd> {
+        let mut res = None;
+        let params: Vec<&str> = match cmd.chars().next() {
+            Some('w') =>  {
+                cmd.split(' ').collect()
+            }
+            _ => {
+                cmd.split('/').collect()
+            }
+        };
+        // TODO: Display line numbers on screen and support command range
+        match params[0] {
+            "d" if params.len() == 1 => { // Delete current line
+                let y = self.offset.y + self.cursor.y;
+                self.lines.remove(y);
+                res = Some(Cmd::Delete);
+            }
+            "%d" if params.len() == 1 => { // Delete all lines
+                self.lines = vec![String::new()];
+                res = Some(Cmd::Delete);
+            }
+            "g" if params.len() == 3 => { // Global command
+                let re = Regex::new(params[1]);
+                if params[2] == "d" { // Delete all matching lines
+                    self.lines.retain(|line| !re.is_match(line));
+                    res = Some(Cmd::Delete);
+                }
+            }
+            "s" if params.len() == 4 => { // Substitute current line
+                let re = Regex::new(params[1]);
+                let s = params[2];
+                let y = self.offset.y + self.cursor.y;
+                if params[3] == "g" { // Substitute all occurrences
+                    self.lines[y] = re.replace_all(&self.lines[y], s);
+                } else {
+                    self.lines[y] = re.replace(&self.lines[y], s);
+                }
+                res = Some(Cmd::Replace);
+            }
+            "%s" if params.len() == 4 => { // Substitute all lines
+                let re = Regex::new(params[1]);
+                let s = params[2];
+                let n = self.lines.len();
+                for y in 0..n {
+                    if params[3] == "g" { // Substitute all occurrences
+                        self.lines[y] = re.replace_all(&self.lines[y], s);
+                    } else {
+                        self.lines[y] = re.replace(&self.lines[y], s);
+                    }
+                }
+                res = Some(Cmd::Replace);
+            }
+            "w" => { // Save file
+                let path = if params.len() == 2 {
+                    params[1]
+                } else {
+                    &self.pathname.clone()
+                };
+                self.save(path).ok();
+                res = Some(Cmd::Save);
+            }
+            _ => {}
+        }
+
+        if res.is_some() {
+            let mut y = self.offset.y + self.cursor.y;
+            let n = self.lines.len() - 1;
+            if y > n {
+                self.cursor.y = n % rows();
+                self.offset.y = n - self.cursor.y;
+                y = n;
+            }
+            let n = self.lines[y].len();
+            if self.offset.x + self.cursor.x > n {
+                self.cursor.x = n % cols();
+                self.offset.x = n - self.cursor.x;
+            }
+
+            self.command_prompt.history.add(&cmd);
+            self.command_prompt.history.save(&self.command_history);
+        }
+
+        res
+    }
+
     pub fn find(&mut self) {
         if let Some(query) = prompt(&mut self.search_prompt, "Find: ") {
             if !query.is_empty() {
@@ -631,7 +745,7 @@ pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
     let color = Style::color("black").with_background("silver");
     let reset = Style::reset();
 
-    // Set up bottom line
+    // Set up the bottom line for the prompt
     print!("\x1b[{};1H", rows() + 1);
     print!("{}{}", color, " ".repeat(cols()));
     print!("\x1b[{};1H", rows() + 1);
@@ -661,7 +775,65 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} edit {}<file>{}",
-        csi_title, csi_reset, csi_option, csi_reset
+        "{}Usage:{} edit {}<options> <file>{1}",
+        csi_title, csi_reset, csi_option
     );
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!(
+        "  {0}-c{1}, {0}--command <cmd>{1}    Execute command",
+        csi_option, csi_reset
+    );
+}
+
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    let mut path = "";
+    let mut cmd = "";
+    let mut i = 1;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                help();
+                return Ok(());
+            }
+            "-c" | "--command" => {
+                if i + 1 < n {
+                    i += 1;
+                    cmd = args[i];
+                } else {
+                    error!("Missing command");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+            _ => {
+                if args[i].starts_with('-') {
+                    error!("Invalid option '{}'", args[i]);
+                    return Err(ExitCode::UsageError);
+                } else if path.is_empty() {
+                    path = args[i];
+                } else {
+                    error!("Too many arguments");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+        }
+        i += 1;
+    }
+    if path.is_empty() {
+        help();
+        return Err(ExitCode::UsageError);
+    }
+
+    let mut editor = Editor::new(path);
+
+    if !cmd.is_empty() {
+        editor.exec_command(cmd);
+        for line in editor.lines {
+            println!("{}", line);
+        }
+        return Ok(());
+    }
+
+    editor.run()
 }
