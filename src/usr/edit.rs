@@ -148,7 +148,7 @@ impl Editor {
     }
 
     fn render_line(&self, y: usize) -> String {
-        // Render line into a row of the screen, or an empty row when past eof
+        // Render line into a row of the screen, or an empty row when past EOF
         let line = if y < self.lines.len() {
             &self.lines[y]
         } else {
@@ -216,8 +216,7 @@ impl Editor {
                 for (y, line) in self.lines.iter().enumerate().skip(oy + cy) {
                     for (x, c) in line.chars().enumerate() {
                         if y == oy + cy && x <= ox + cx {
-                            // Skip chars before cursor
-                            continue;
+                            continue; // Skip chars before cursor
                         }
                         if c == opening {
                             stack.push((x, y));
