@@ -84,6 +84,9 @@ pub fn copy_files(verbose: bool) {
 
     create_dir("/tmp/chess", verbose);
     copy_file!("/tmp/chess/mi2.epd", verbose);
+    //copy_file!("/tmp/chess/mi3.epd", verbose);
+    //copy_file!("/tmp/chess/mi4.epd", verbose);
+    //copy_file!("/tmp/chess/puru.epd", verbose);
 
     create_dir("/tmp/lisp", verbose);
     copy_file!("/tmp/lisp/colors.lsp", verbose);
