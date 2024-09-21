@@ -83,13 +83,13 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/tmp/alice.txt", verbose);
     copy_file!("/tmp/machines.txt", verbose);
 
-    create_dir("/tmp/chess", verbose);
+    //create_dir("/tmp/chess", verbose);
     //copy_file!("/tmp/chess/mi2.epd", verbose);
     //copy_file!("/tmp/chess/mi3.epd", verbose);
     //copy_file!("/tmp/chess/mi4.epd", verbose);
     //copy_file!("/tmp/chess/puru.epd", verbose);
 
-    create_dir("/tmp/lisp", verbose);
+    //create_dir("/tmp/lisp", verbose);
     //copy_file!("/tmp/lisp/colors.lsp", verbose);
     //copy_file!("/tmp/lisp/doc.lsp", verbose);
     //copy_file!("/tmp/lisp/factorial.lsp", verbose);
@@ -99,7 +99,7 @@ pub fn copy_files(verbose: bool) {
     //copy_file!("/tmp/lisp/sum.lsp", verbose);
     //copy_file!("/tmp/lisp/tak.lsp", verbose);
 
-    create_dir("/tmp/life", verbose);
+    //create_dir("/tmp/life", verbose);
     //copy_file!("/tmp/life/centinal.cells", verbose);
     //copy_file!("/tmp/life/flower-of-eden.cells", verbose);
     //copy_file!("/tmp/life/garden-of-eden.cells", verbose);
@@ -110,7 +110,7 @@ pub fn copy_files(verbose: bool) {
     //copy_file!("/tmp/life/thunderbird.cells", verbose);
     //copy_file!("/tmp/life/wing.cells", verbose);
 
-    create_dir("/tmp/beep", verbose);
+    //create_dir("/tmp/beep", verbose);
     //copy_file!("/tmp/beep/tetris.sh", verbose);
     //copy_file!("/tmp/beep/starwars.sh", verbose);
     //copy_file!("/tmp/beep/mario.sh", verbose);
