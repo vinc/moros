@@ -1,0 +1,21 @@
+#! lisp
+
+(load "/lib/lisp/core.lsp")
+
+(var config "/ini/pkg")
+(var base (if (file/exists? config) (str/trim (read config)) "10.0.2.2:8181"))
+
+(def (fetch path) (do
+  (print (str "Fetching '" path "'"))
+  # TODO: create dirname(path) if it doesn't exist
+  (sh (str "http " base path " => " path))))
+
+(var cmd (first args))
+
+(if (eq? cmd "install")
+  (do
+    (var pkg (second args))
+    (var path (str "/var/pkg/" pkg))
+    (fetch path)
+    (var files (reverse (lines (read path))))
+    (map fetch files)))
