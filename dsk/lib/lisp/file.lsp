@@ -54,14 +54,24 @@
   (binary->string (file/read stdin 4)))
 
 (def (p exp)
-  "Prints expression to the console"
+  "Prints expression to stdout"
   (do
     (file/write stdout (string->binary (string exp)))
     '()))
 
 (def (print exp)
-  "Prints expression to the console with a newline"
+  "Prints expression to stdout with a newline"
   (p (string exp "\n")))
+
+(def (eprint exp)
+  "Prints expression to stderr with a newline"
+  (do
+    (file/write stderr (string->binary (string exp "\n")))
+    '()))
+
+(def (error msg)
+  "Prints error message to stderr"
+  (eprint (string "\e[91mError:\e[m " msg)))
 
 # Clocks
 
