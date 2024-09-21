@@ -219,10 +219,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
         syscall::close(handle);
-        match code.as_deref() {
-            Some("200") => Ok(()),
-            _ => Err(ExitCode::Failure),
+        if let Some(s) = code {
+            if let Ok(n) = s.parse::<usize>() {
+                if n < 400 {
+                    return Ok(());
+                }
+            }
         }
+        Err(ExitCode::Failure)
     } else {
         Err(ExitCode::Failure)
     }
