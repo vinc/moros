@@ -193,11 +193,11 @@ fn create_dir(path: &str, verbose: bool) {
     if fs::exists(path) {
         return;
     }
+    if verbose {
+        println!("Creating '{}'", path);
+    }
     if let Some(handle) = api::fs::create_dir(path) {
         syscall::close(handle);
-        if verbose {
-            println!("Created '{}'", path);
-        }
     }
 }
 
@@ -205,17 +205,20 @@ fn create_dev(path: &str, name: &str, verbose: bool) {
     if fs::exists(path) {
         return;
     }
+    if verbose {
+        println!("Creating '{}'", path);
+    }
     if let Some(handle) = fs::create_device(path, name) {
         syscall::close(handle);
-        if verbose {
-            println!("Created '{}'", path);
-        }
     }
 }
 
 fn copy_file(path: &str, buf: &[u8], verbose: bool) {
     if fs::exists(path) {
         return;
+    }
+    if verbose {
+        println!("Fetching '{}'", path);
     }
     if path.ends_with(".txt") {
         if let Ok(text) = String::from_utf8(buf.to_vec()) {
@@ -226,9 +229,5 @@ fn copy_file(path: &str, buf: &[u8], verbose: bool) {
         }
     } else {
         fs::write(path, buf).ok();
-    }
-    // TODO: add File::write_all to split buf if needed
-    if verbose {
-        println!("Fetched '{}'", path);
     }
 }
