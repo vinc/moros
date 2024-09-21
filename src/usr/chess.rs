@@ -2,6 +2,7 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
+use crate::api::rng;
 use crate::{api, sys};
 
 use alloc::format;
@@ -19,8 +20,9 @@ lazy_static! {
 }
 
 const FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const COMMANDS: [&str; 8] = [
-    "quit", "help", "init", "time", "move", "undo", "show", "perf",
+const COMMANDS: [&str; 11] = [
+    "quit", "help", "init", "time", "move", "undo", "show", "perf", "save",
+    "load", "puzzle"
 ];
 
 fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
@@ -103,6 +105,7 @@ impl Chess {
                 "u" | "undo" => self.cmd_undo(args),
                 "l" | "load" => self.cmd_load(args),
                 "s" | "save" => self.cmd_save(args),
+                "puzzle" => self.cmd_puzzle(args),
                 "perf" => self.cmd_perf(args),
                 cmd => {
                     if cmd.is_empty() {
@@ -154,29 +157,30 @@ impl Chess {
         println!("{}", self.game);
     }
 
+    fn cmd_puzzle(&mut self, args: Vec<&str>) {
+        if args.len() != 2 {
+            error!("No <path> given\n");
+            return;
+        }
+        let path = args[1];
+        if let Ok(text) = fs::read_to_string(path) {
+            let lines: Vec<&str> = text.lines().collect();
+            let i = (rng::get_u64() as usize) % lines.len();
+            let fen = lines[i];
+            self.load(fen);
+        } else {
+            error!("Could not read '{}'\n", path);
+        }
+    }
+
     fn cmd_load(&mut self, args: Vec<&str>) {
         if args.len() != 2 {
             error!("No <path> given\n");
             return;
         }
         let path = args[1];
-        if let Ok(contents) = fs::read_to_string(path) {
-            if self.game.load_fen(&contents).is_ok() {
-                self.side = self.game.side() ^ 1;
-                let color = if self.game.side() == WHITE {
-                    "white"
-                } else {
-                    "black"
-                };
-                println!();
-                println!(
-                    "{}<{} play {}", self.csi_color, self.csi_reset, color
-                );
-                println!();
-                println!("{}", self.game);
-            } else {
-                error!("Could not load game\n");
-            }
+        if let Ok(fen) = fs::read_to_string(path) {
+            self.load(&fen);
         } else {
             error!("Could not read '{}'\n", path);
         }
@@ -188,8 +192,8 @@ impl Chess {
             return;
         }
         let path = args[1];
-        let contents = format!("{}\n", self.game.to_fen());
-        if fs::write(path, contents.as_bytes()).is_ok() {
+        let text = format!("{}\n", self.game.to_fen());
+        if fs::write(path, text.as_bytes()).is_ok() {
             println!();
         } else {
             error!("Could not write to '{}'\n", path);
@@ -319,6 +323,26 @@ impl Chess {
             }
         }
         println!();
+    }
+
+    fn load(&mut self, fen: &str) {
+        self.game.clear(); // TODO: do we need this
+        if self.game.load_fen(&fen).is_ok() {
+            self.side = self.game.side() ^ 1;
+            let color = if self.game.side() == WHITE {
+                "white"
+            } else {
+                "black"
+            };
+            println!();
+            println!(
+                "{}<{} play {}", self.csi_color, self.csi_reset, color
+            );
+            println!();
+            println!("{}", self.game);
+        } else {
+            error!("Could not load game\n");
+        }
     }
 
     fn play(&mut self) {
