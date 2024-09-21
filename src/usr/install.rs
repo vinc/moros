@@ -121,6 +121,8 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/var/www/index.html", verbose);
     copy_file!("/var/www/moros.css", verbose);
     copy_file!("/var/www/moros.png", verbose);
+
+    create_dir("/var/pkg", verbose);
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
