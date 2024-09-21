@@ -63,7 +63,7 @@
   "Prints expression to the console with a newline"
   (p (string exp "\n")))
 
-# Special
+# Clocks
 
 (def (uptime)
   "Returns the current value of the uptime clock"
@@ -72,3 +72,13 @@
 (def (realtime)
   "Returns the current value of the realtime clock"
   (binary->number (read-binary "/dev/clk/realtime") "float"))
+
+# Path
+
+(def (filename path)
+  "Returns the filename from the given path"
+  (last (str/split path "/")))
+
+(def (dirname path)
+  "Returns the given path without the filename"
+  (str/join (rev (rest (rev (str/split path "/")))) "/"))
