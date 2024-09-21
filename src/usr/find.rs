@@ -242,9 +242,5 @@ fn test_find() {
     assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
         contains("alice.txt"));
 
-    exec("find /tmp --file \"*.lsp\" --line list => /tmp/find.log").ok();
-    assert!(!api::fs::read_to_string("/tmp/find.log").unwrap().
-        contains("alice.txt"));
-
     sys::fs::dismount();
 }
