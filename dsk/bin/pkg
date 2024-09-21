@@ -14,10 +14,14 @@
 
 (var cmd (first args))
 
-(if (eq? cmd "install")
+(if (or (eq? cmd "install") (eq? cmd "i"))
   (do
     (var pkg (second args))
     (var path (str "/var/pkg/" pkg))
-    (fetch path)
-    (var files (reverse (lines (read path))))
-    (map fetch files)))
+    (if (= (fetch path) 0)
+      (do
+        (var files (reverse (lines (read path))))
+        (map fetch files))
+      (do
+        (error (str "Could not find package '" pkg "'"))
+        (sh (str "delete " path))))))
