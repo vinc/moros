@@ -71,7 +71,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/ini/fonts", verbose);
     //copy_file!("/ini/fonts/lat15-terminus-8x16.psf", verbose);
     copy_file!("/ini/fonts/zap-light-8x16.psf", verbose);
-    copy_file!("/ini/fonts/zap-vga-8x16.psf", verbose);
+    //copy_file!("/ini/fonts/zap-vga-8x16.psf", verbose);
 
     create_dir("/lib/lisp", verbose);
     copy_file!("/lib/lisp/alias.lsp", verbose);
@@ -84,36 +84,36 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/tmp/machines.txt", verbose);
 
     create_dir("/tmp/chess", verbose);
-    copy_file!("/tmp/chess/mi2.epd", verbose);
+    //copy_file!("/tmp/chess/mi2.epd", verbose);
     //copy_file!("/tmp/chess/mi3.epd", verbose);
     //copy_file!("/tmp/chess/mi4.epd", verbose);
     //copy_file!("/tmp/chess/puru.epd", verbose);
 
     create_dir("/tmp/lisp", verbose);
-    copy_file!("/tmp/lisp/colors.lsp", verbose);
-    copy_file!("/tmp/lisp/doc.lsp", verbose);
-    copy_file!("/tmp/lisp/factorial.lsp", verbose);
-    copy_file!("/tmp/lisp/fibonacci.lsp", verbose);
-    copy_file!("/tmp/lisp/geotime.lsp", verbose);
-    copy_file!("/tmp/lisp/pi.lsp", verbose);
-    copy_file!("/tmp/lisp/sum.lsp", verbose);
-    copy_file!("/tmp/lisp/tak.lsp", verbose);
+    //copy_file!("/tmp/lisp/colors.lsp", verbose);
+    //copy_file!("/tmp/lisp/doc.lsp", verbose);
+    //copy_file!("/tmp/lisp/factorial.lsp", verbose);
+    //copy_file!("/tmp/lisp/fibonacci.lsp", verbose);
+    //copy_file!("/tmp/lisp/geotime.lsp", verbose);
+    //copy_file!("/tmp/lisp/pi.lsp", verbose);
+    //copy_file!("/tmp/lisp/sum.lsp", verbose);
+    //copy_file!("/tmp/lisp/tak.lsp", verbose);
 
     create_dir("/tmp/life", verbose);
-    copy_file!("/tmp/life/centinal.cells", verbose);
-    copy_file!("/tmp/life/flower-of-eden.cells", verbose);
-    copy_file!("/tmp/life/garden-of-eden.cells", verbose);
-    copy_file!("/tmp/life/glider-gun.cells", verbose);
-    copy_file!("/tmp/life/pentadecathlon.cells", verbose);
-    copy_file!("/tmp/life/queen-bee-shuttle.cells", verbose);
-    copy_file!("/tmp/life/ship-in-a-bottle.cells", verbose);
-    copy_file!("/tmp/life/thunderbird.cells", verbose);
-    copy_file!("/tmp/life/wing.cells", verbose);
+    //copy_file!("/tmp/life/centinal.cells", verbose);
+    //copy_file!("/tmp/life/flower-of-eden.cells", verbose);
+    //copy_file!("/tmp/life/garden-of-eden.cells", verbose);
+    //copy_file!("/tmp/life/glider-gun.cells", verbose);
+    //copy_file!("/tmp/life/pentadecathlon.cells", verbose);
+    //copy_file!("/tmp/life/queen-bee-shuttle.cells", verbose);
+    //copy_file!("/tmp/life/ship-in-a-bottle.cells", verbose);
+    //copy_file!("/tmp/life/thunderbird.cells", verbose);
+    //copy_file!("/tmp/life/wing.cells", verbose);
 
     create_dir("/tmp/beep", verbose);
-    copy_file!("/tmp/beep/tetris.sh", verbose);
-    copy_file!("/tmp/beep/starwars.sh", verbose);
-    copy_file!("/tmp/beep/mario.sh", verbose);
+    //copy_file!("/tmp/beep/tetris.sh", verbose);
+    //copy_file!("/tmp/beep/starwars.sh", verbose);
+    //copy_file!("/tmp/beep/mario.sh", verbose);
 
     create_dir("/var/log", verbose);
 
