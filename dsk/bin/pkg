@@ -6,22 +6,38 @@
 (var base (if (file/exists? config) (str/trim (read config)) "10.0.2.2:8181"))
 
 (def (fetch path) (do
+  "Download the given file"
   (print (str "Fetching '" path "'"))
   (var dir (dirname path))
   (if (not (file/exists? dir))
     (sh (str "write -p " dir "/")))
   (sh (str "http " base path " => " path))))
 
-(var cmd (first args))
+(def (pkg/install pkg) (do
+  "Installs the given package"
+  (var path (str "/var/pkg/" pkg))
+  (if (= (fetch path) 0)
+    (do
+      (var files (reverse (lines (read path))))
+      (map fetch files))
+    (do
+      (error (str "Could not find package '" pkg "'"))
+      (sh (str "delete " path))))))
 
-(if (or (eq? cmd "install") (eq? cmd "i"))
-  (do
-    (var pkg (second args))
-    (var path (str "/var/pkg/" pkg))
-    (if (= (fetch path) 0)
-      (do
-        (var files (reverse (lines (read path))))
-        (map fetch files))
-      (do
-        (error (str "Could not find package '" pkg "'"))
-        (sh (str "delete " path))))))
+(def (print-usage) (do
+  (var lime "\e[92m")
+  (var yellow "\e[93m")
+  (var aqua "\e[96m")
+  (var reset "\e[m")
+  (print (str yellow "Usage:" reset " pkg " aqua "<cmd>" reset))
+  (print "")
+  (print (str yellow "Commands:" reset))
+  (print (str "  " lime "i" aqua "nstall <pkg>" reset "    Install package"))))
+
+(if (> (len args) 0)
+  (if (contains? '("install" "i") (first args))
+    (if (= (len args) 2)
+      (pkg/install (second args))
+      (print-usage))
+    (print-usage))
+  (print-usage))
