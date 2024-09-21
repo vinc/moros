@@ -7,7 +7,9 @@
 
 (def (fetch path) (do
   (print (str "Fetching '" path "'"))
-  # TODO: create dirname(path) if it doesn't exist
+  (var dir (dirname path))
+  (if (not (file/exists? dir))
+    (sh (str "write -p " dir "/")))
   (sh (str "http " base path " => " path))))
 
 (var cmd (first args))
