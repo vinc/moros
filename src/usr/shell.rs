@@ -72,9 +72,14 @@ fn shell_completer(line: &str) -> Vec<String> {
     }
 
     // Autocomplete path
-    let pathname = fs::realpath(&args[i]);
-    let dirname = fs::dirname(&pathname);
-    let filename = fs::filename(&pathname);
+    let path = fs::realpath(&args[i]);
+    let (dirname, filename) = if path.len() > 1 && path.ends_with('/') {
+        // List files in dir (/path/to/ -> /path/to/file.txt)
+        (path.trim_end_matches('/'), "")
+    } else {
+        // List matching files (/path/to/fi -> /path/to/file.txt)
+        (fs::dirname(&path), fs::filename(&path))
+    };
     let sep = if dirname.ends_with('/') { "" } else { "/" };
     if let Ok(files) = fs::read_dir(dirname) {
         for file in files {
@@ -88,8 +93,8 @@ fn shell_completer(line: &str) -> Vec<String> {
                 } else {
                     ""
                 };
-                let path = format!("{}{}{}{}", dirname, sep, name, end);
-                entries.push(path[pathname.len()..].into());
+                let entry = format!("{}{}{}{}", dirname, sep, name, end);
+                entries.push(entry[path.len()..].into());
             }
         }
     }

@@ -23,16 +23,25 @@ pub trait FileIO {
 }
 
 pub fn dirname(pathname: &str) -> &str {
-    let n = pathname.len();
+    let pathname = if pathname.len() > 1 {
+        pathname.trim_end_matches('/')
+    } else {
+        pathname
+    };
     let i = match pathname.rfind('/') {
         Some(0) => 1,
         Some(i) => i,
-        None => n,
+        None => return "",
     };
     &pathname[0..i]
 }
 
 pub fn filename(pathname: &str) -> &str {
+    let pathname = if pathname.len() > 1 {
+        pathname.trim_end_matches('/')
+    } else {
+        pathname
+    };
     let n = pathname.len();
     let i = match pathname.rfind('/') {
         Some(i) => i + 1,
@@ -265,6 +274,23 @@ fn test_filename() {
     assert_eq!(filename("/path/to/file.txt"), "file.txt");
     assert_eq!(filename("/file.txt"), "file.txt");
     assert_eq!(filename("file.txt"), "file.txt");
+    assert_eq!(filename("/path/to/"), "to");
+    assert_eq!(filename("/path/to"), "to");
+    assert_eq!(filename("path/to"), "to");
+    assert_eq!(filename("/"), "");
+    assert_eq!(filename(""), "");
+}
+
+#[test_case]
+fn test_dirname() {
+    assert_eq!(dirname("/path/to/file.txt"), "/path/to");
+    assert_eq!(dirname("/file.txt"), "/");
+    assert_eq!(dirname("file.txt"), "");
+    assert_eq!(dirname("/path/to/"), "/path");
+    assert_eq!(dirname("/path/to"), "/path");
+    assert_eq!(dirname("path/to"), "path");
+    assert_eq!(dirname("/"), "/");
+    assert_eq!(dirname(""), "");
 }
 
 #[test_case]
