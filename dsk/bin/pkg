@@ -5,7 +5,7 @@
 (var config "/ini/pkg")
 (var base (if (file/exists? config) (str/trim (read config)) "10.0.2.2:8181"))
 
-(def (fetch path) (do
+(def (pkg/fetch path) (do
   "Download the given file"
   (print (str "Fetching '" path "'"))
   (var dir (dirname path))
@@ -13,38 +13,66 @@
     (sh (str "write -p " dir "/")))
   (sh (str "http " base path " => " path))))
 
+(def (pkg/delete path) (do
+  "Delete the given file"
+  (print (str "Deleting '" path "'"))
+  (var dir (dirname path))
+  (sh (str "delete " path))))
+
 (def (pkg/install pkg) (do
   "Installs the given package"
   (var path (str "/var/pkg/" pkg))
   (if (not (eq? pkg "index.html"))
-    (if (= (fetch path) 0)
+    (if (= (pkg/fetch path) 0)
       (do
         (var files (reverse (lines (read path))))
-        (map fetch files))
+        (map pkg/fetch files))
       (do
         (sh (str "delete " path))
         (error (str "Could not find package '" pkg "'"))))
+    (error (str "Could not find package '" pkg "'")))))
+
+(def (pkg/uninstall pkg) (do
+  "Uninstalls the given package"
+  (var path (str "/var/pkg/" pkg))
+  (if (not (eq? pkg "index.html"))
+    (if (file/exists? path)
+      (do # The local package could list files not in the latest version
+        (var files (reverse (lines (read path))))
+        (map pkg/delete files))
+      (if (= (pkg/fetch path) 0)
+        (do # Fallback to fetching the latest version of the package
+          (var files (reverse (lines (read path))))
+          (map pkg/delete files))
+        (do
+          (sh (str "delete " path))
+          (error (str "Could not find package '" pkg "'")))))
     (error (str "Could not find package '" pkg "'")))))
 
 (def (pkg/list)
   (sh (str "http " base "/var/pkg/")))
 
 (def (print-usage) (do
-  (var lime "\e[92m")
-  (var yellow "\e[93m")
-  (var aqua "\e[96m")
-  (var reset "\e[m")
-  (print (str yellow "Usage:" reset " pkg " aqua "<cmd>" reset))
+  (var l "\e[92m") # Lime
+  (var y "\e[93m") # Yellow
+  (var a "\e[96m") # Aqua
+  (var r "\e[m")   # Reset
+  (print (str y "Usage:" r " pkg " a "<cmd>" r))
   (print "")
-  (print (str yellow "Commands:" reset))
-  (print (str "  " lime "i" aqua "nstall <pkg>" reset "    Install package"))
-  (print (str "  " lime "l" aqua "ist" reset "             List packages"))))
+  (print (str y "Commands:" r))
+  (print (str "  " l "l" a "ist" r "             List packages"))
+  (print (str "  " l "i" a "nstall <pkg>" r "    Install package"))
+  (print (str "  " l "u" a "ninstall <pkg>" r "  Uninstall package"))))
 
 (if (> (len args) 0)
   (cond
     ((contains? '("install" "i") (first args))
       (if (= (len args) 2)
         (pkg/install (second args))
+        (print-usage)))
+    ((contains? '("uninstall" "u") (first args))
+      (if (= (len args) 2)
+        (pkg/uninstall (second args))
         (print-usage)))
     ((contains? '("list" "l") (first args))
       (pkg/list))
