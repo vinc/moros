@@ -32,8 +32,8 @@
         (error (str "Could not find package '" pkg "'"))))
     (error (str "Could not find package '" pkg "'")))))
 
-(def (pkg/uninstall pkg) (do
-  "Uninstalls the given package"
+(def (pkg/remove pkg) (do
+  "Removes the given package"
   (var path (str "/var/pkg/" pkg))
   (if (not (eq? pkg "index.html"))
     (if (file/exists? path)
@@ -62,7 +62,7 @@
   (print (str y "Commands:" r))
   (print (str "  " l "l" a "ist" r "             List packages"))
   (print (str "  " l "i" a "nstall <pkg>" r "    Install package"))
-  (print (str "  " l "u" a "ninstall <pkg>" r "  Uninstall package"))))
+  (print (str "  " l "r" a "emove <pkg>" r "     Remove package"))))
 
 (if (> (len args) 0)
   (cond
@@ -70,9 +70,9 @@
       (if (= (len args) 2)
         (pkg/install (second args))
         (print-usage)))
-    ((contains? '("uninstall" "u") (first args))
+    ((contains? '("remove" "r") (first args))
       (if (= (len args) 2)
-        (pkg/uninstall (second args))
+        (pkg/remove (second args))
         (print-usage)))
     ((contains? '("list" "l") (first args))
       (pkg/list))
