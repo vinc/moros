@@ -16,13 +16,18 @@
 (def (pkg/install pkg) (do
   "Installs the given package"
   (var path (str "/var/pkg/" pkg))
-  (if (= (fetch path) 0)
-    (do
-      (var files (reverse (lines (read path))))
-      (map fetch files))
-    (do
-      (error (str "Could not find package '" pkg "'"))
-      (sh (str "delete " path))))))
+  (if (not (eq? pkg "index.html"))
+    (if (= (fetch path) 0)
+      (do
+        (var files (reverse (lines (read path))))
+        (map fetch files))
+      (do
+        (sh (str "delete " path))
+        (error (str "Could not find package '" pkg "'"))))
+    (error (str "Could not find package '" pkg "'")))))
+
+(def (pkg/list)
+  (sh (str "http " base "/var/pkg/")))
 
 (def (print-usage) (do
   (var lime "\e[92m")
@@ -32,12 +37,16 @@
   (print (str yellow "Usage:" reset " pkg " aqua "<cmd>" reset))
   (print "")
   (print (str yellow "Commands:" reset))
-  (print (str "  " lime "i" aqua "nstall <pkg>" reset "    Install package"))))
+  (print (str "  " lime "i" aqua "nstall <pkg>" reset "    Install package"))
+  (print (str "  " lime "l" aqua "ist" reset "             List packages"))))
 
 (if (> (len args) 0)
-  (if (contains? '("install" "i") (first args))
-    (if (= (len args) 2)
-      (pkg/install (second args))
-      (print-usage))
-    (print-usage))
+  (cond
+    ((contains? '("install" "i") (first args))
+      (if (= (len args) 2)
+        (pkg/install (second args))
+        (print-usage)))
+    ((contains? '("list" "l") (first args))
+      (pkg/list))
+    (true (print-usage)))
   (print-usage))

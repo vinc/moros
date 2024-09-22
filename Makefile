@@ -106,6 +106,9 @@ test:
 website:
 	cd www && sh build.sh
 
+pkg:
+	ls -1 dsk/var/pkg | grep -v index.html > dsk/var/pkg/index.html
+
 clean:
 	cargo clean
 	rm -f www/*.html www/images/*.png
