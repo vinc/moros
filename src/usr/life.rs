@@ -215,7 +215,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             arg => {
                 if arg.starts_with('-') {
-                    error!("Unknown option '{}'", arg);
+                    error!("Invalid option '{}'", arg);
                     return Err(ExitCode::UsageError);
                 }
                 if i > 0 {
