@@ -701,7 +701,7 @@ impl Editor {
                 self.offset.x = n - self.cursor.x;
             }
 
-            self.command_prompt.history.add(&cmd);
+            self.command_prompt.history.add(cmd);
             self.command_prompt.history.save(&self.command_history);
         }
 
@@ -751,7 +751,7 @@ pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
     print!("\x1b[{};1H", rows() + 1);
     print!("\x1b[?25h"); // Enable cursor
 
-    let res = prompt.input(&label);
+    let res = prompt.input(label);
     print!("{}", reset);
     res
 }

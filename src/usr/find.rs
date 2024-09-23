@@ -102,7 +102,7 @@ fn search_files(path: &str, options: &mut Options) {
             if file.is_dir() {
                 search_files(&file_path, options);
             } else if is_matching_file(&file_path, &options.file) {
-                if options.line == "" {
+                if options.line.is_empty() {
                     println!("{}", file_path.trim_start_matches(&options.trim));
                 } else {
                     print_matching_lines(&file_path, options);
@@ -116,7 +116,7 @@ fn search_files(path: &str, options: &mut Options) {
 }
 
 fn is_matching_file(path: &str, pattern: &str) -> bool {
-    let file = fs::filename(&path);
+    let file = fs::filename(path);
     let re = Regex::from_glob(pattern);
     re.is_match(file)
 }

@@ -276,7 +276,7 @@ fn vga_color(color: u8) -> u8 {
 
 fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
     debug_assert!(palette.len() == 8);
-    debug_assert!(palette.chars().next() == Some('P'));
+    debug_assert!(palette.starts_with('P'));
 
     let i = usize::from_str_radix(&palette[1..2], 16)?;
     let r = u8::from_str_radix(&palette[2..4], 16)?;

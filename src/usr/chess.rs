@@ -326,8 +326,8 @@ impl Chess {
     }
 
     fn load(&mut self, fen: &str) {
-        self.game.clear(); // TODO: do we need this
-        if self.game.load_fen(&fen).is_ok() {
+        self.game.clear(); // TODO: Do we need this?
+        if self.game.load_fen(fen).is_ok() {
             self.side = self.game.side() ^ 1;
             let color = if self.game.side() == WHITE {
                 "white"
