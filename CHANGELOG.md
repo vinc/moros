@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Add pkg command (#663)
+- Add write --parents option (#664)
+- Add chess puzzle (#662)
+- Add a line mode to the editor (#660)
+- Add search to editor (#659)
+- Add diff command (#657)
+- Update hash command (#656)
+- Add filetype syscall (#655)
 - Replace base64 command with encode and decode (#654)
 - Add VgaFont device (#653)
 - Replace fetch by get (#652)
