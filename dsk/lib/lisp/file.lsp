@@ -54,16 +54,26 @@
   (binary->string (file/read stdin 4)))
 
 (def (p exp)
-  "Prints expression to the console"
+  "Prints expression to stdout"
   (do
     (file/write stdout (string->binary (string exp)))
     '()))
 
 (def (print exp)
-  "Prints expression to the console with a newline"
+  "Prints expression to stdout with a newline"
   (p (string exp "\n")))
 
-# Special
+(def (eprint exp)
+  "Prints expression to stderr with a newline"
+  (do
+    (file/write stderr (string->binary (string exp "\n")))
+    '()))
+
+(def (error msg)
+  "Prints error message to stderr"
+  (eprint (string "\e[91mError:\e[m " msg)))
+
+# Clocks
 
 (def (uptime)
   "Returns the current value of the uptime clock"
@@ -72,3 +82,13 @@
 (def (realtime)
   "Returns the current value of the realtime clock"
   (binary->number (read-binary "/dev/clk/realtime") "float"))
+
+# Path
+
+(def (filename path)
+  "Returns the filename from the given path"
+  (last (str/split path "/")))
+
+(def (dirname path)
+  "Returns the given path without the filename"
+  (str/join (rev (rest (rev (str/split path "/")))) "/"))

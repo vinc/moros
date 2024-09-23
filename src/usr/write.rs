@@ -71,7 +71,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn create_parents(path: &str) {
-    debug!("create_parents('{}')", path);
     if path.is_empty() || fs::exists(path) {
         return;
     }

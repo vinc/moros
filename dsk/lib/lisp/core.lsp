@@ -101,7 +101,7 @@
 
 (def (string/join ls s)
   "Joins the elements of the list with the string"
-  (reduce (fun (x y) (string x s y)) ls))
+  (if (empty? ls) "" (reduce (fun (x y) (string x s y)) ls)))
 
 (def (regex/match? r s)
   "Returns true if the string match the pattern"
