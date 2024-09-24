@@ -72,10 +72,10 @@ lazy_static! {
         cursor: [0; 2],
         writer: [0; 2],
         color_code: ColorCode::new(FG, BG),
-        buffer: unsafe { &mut *(0xB8000 as *mut Buffer) }, // TODO: Rename to `text_buffer`
-        scrollback_buffer: [[ScreenChar::new(); BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
-        scrollback_cursor: 0,
-        scrollback_bottom: 0,
+        screen_buffer: unsafe { &mut *(0xB8000 as *mut Buffer) },
+        scroll_buffer: [[ScreenChar::new(); BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
+        scroll_reader: 0,
+        scroll_bottom: BUFFER_HEIGHT,
     });
 }
 
@@ -83,11 +83,41 @@ pub struct Writer {
     cursor: [usize; 2], // x, y
     writer: [usize; 2], // x, y
     color_code: ColorCode,
-    buffer: &'static mut Buffer,
-    scrollback_buffer: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
-    scrollback_cursor: usize,
-    scrollback_bottom: usize,
+    screen_buffer: &'static mut Buffer,
+    scroll_buffer: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
+    scroll_reader: usize, // Top of the screen
+    scroll_bottom: usize, // Bottom of the buffer
 }
+
+// Scroll Buffer
+// +----------------------------+
+// | line 01                    |
+// | line 02                    |
+// | line 03                    |
+// | line 04                    |
+// +----------------------------+
+// | line 05                    | <-- scroll_reader
+// | line 06                    |
+// | line 07                    |
+// | line 08                    |
+// +----------------------------+
+// | line 09                    |
+// | line 10                    |
+// | line 11                    |
+// | line 12                    | <-- scroll_bottom
+// |                            |
+// |                            |
+// |                            |
+// |                            |
+// +----------------------------+
+//
+// Screen Buffer
+// +----------------------------+
+// | line 05                    |
+// | line 06                    |
+// | line 07                    |
+// | line 08                    |
+// +----------------------------+
 
 impl Writer {
     fn writer_position(&self) -> (usize, usize) {
@@ -171,11 +201,11 @@ impl Writer {
                     };
                     let x = self.writer[0];
                     let y = self.writer[1];
-                    let ptr = &mut self.buffer.chars[y][x];
+                    let ptr = &mut self.screen_buffer.chars[y][x];
                     unsafe { core::ptr::write_volatile(ptr, c); }
 
-                    let dy = self.scrollback_cursor;
-                    self.scrollback_buffer[y + dy][x] = c;
+                    let dy = self.scroll_reader;
+                    self.scroll_buffer[y + dy][x] = c;
                 }
             }
             byte => {
@@ -195,12 +225,12 @@ impl Writer {
                     ascii_code,
                     color_code,
                 };
-                let ptr = &mut self.buffer.chars[y][x];
+                let ptr = &mut self.screen_buffer.chars[y][x];
                 unsafe { core::ptr::write_volatile(ptr, c); }
                 self.writer[0] += 1;
 
-                let dy = self.scrollback_cursor;
-                self.scrollback_buffer[y + dy][x] = c;
+                let dy = self.scroll_reader;
+                self.scroll_buffer[y + dy][x] = c;
             }
         }
     }
@@ -210,11 +240,11 @@ impl Writer {
             self.writer[1] += 1;
         } else {
             for y in 1..BUFFER_HEIGHT {
-                self.buffer.chars[y - 1] = self.buffer.chars[y];
+                self.screen_buffer.chars[y - 1] = self.screen_buffer.chars[y];
             }
             self.clear_row_after(0, BUFFER_HEIGHT - 1);
-            self.scrollback_cursor += 1;
-            self.scrollback_bottom += 1;
+            self.scroll_reader += 1;
+            self.scroll_bottom += 1;
         }
         self.writer[0] = 0;
     }
@@ -224,10 +254,10 @@ impl Writer {
             ascii_code: b' ',
             color_code: self.color_code,
         };
-        self.buffer.chars[y][x..BUFFER_WIDTH].fill(c);
+        self.screen_buffer.chars[y][x..BUFFER_WIDTH].fill(c);
 
-        let dy = self.scrollback_cursor;
-        self.scrollback_buffer[y + dy][x..BUFFER_WIDTH].fill(c);
+        let dy = self.scroll_reader;
+        self.scroll_buffer[y + dy][x..BUFFER_WIDTH].fill(c);
     }
 
     fn clear_screen(&mut self) {
@@ -296,11 +326,11 @@ impl Writer {
     }
 
     fn scroll(&mut self) {
-        let dy = self.scrollback_cursor;
+        let dy = self.scroll_reader;
         for y in 0..BUFFER_HEIGHT {
             for x in 0..BUFFER_WIDTH {
-                let c = self.scrollback_buffer[y + dy][x];
-                let ptr = &mut self.buffer.chars[y][x];
+                let c = self.scroll_buffer[y + dy][x];
+                let ptr = &mut self.screen_buffer.chars[y][x];
                 unsafe { core::ptr::write_volatile(ptr, c); }
             }
         }
@@ -424,7 +454,7 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 match n {
-                    // TODO: 0 and 1, cursor to begining or to end of screen
+                    // TODO: 0 and 1, cursor to beginning or to end of screen
                     2 => self.clear_screen(),
                     _ => return,
                 }
@@ -451,7 +481,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                self.scrollback_cursor = self.scrollback_cursor.saturating_sub(n);
+                self.scroll_reader = self.scroll_reader.saturating_sub(n);
                 self.scroll();
             }
             'T' => { // Scroll Down
@@ -459,7 +489,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                self.scrollback_cursor = cmp::min(self.scrollback_cursor + n, self.scrollback_bottom);
+                self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - BUFFER_HEIGHT);
                 self.scroll();
             }
             'h' => { // Enable
