@@ -185,7 +185,9 @@ impl Writer {
 
     fn write_byte(&mut self, byte: u8) {
         if self.is_scrolling() {
-            self.scroll_bottom();
+            // Scroll to the current screen
+            self.scroll_reader = self.scroll_bottom - SCREEN_HEIGHT;
+            self.scroll();
         }
 
         match byte {
@@ -351,11 +353,6 @@ impl Writer {
         } else {
             self.enable_cursor();
         }
-    }
-
-    fn scroll_bottom(&mut self) {
-        self.scroll_reader = self.scroll_bottom - SCREEN_HEIGHT;
-        self.scroll();
     }
 
     fn is_scrolling(&self) -> bool {
