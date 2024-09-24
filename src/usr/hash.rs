@@ -11,8 +11,9 @@ use sha2::{Digest, Sha256};
 
 #[derive(Copy, Clone)]
 struct Config {
-    show_full_hash: bool,
-    recursive_mode: bool,
+    color: bool,
+    short: bool,
+    recursive: bool,
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -20,24 +21,35 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let n = args.len();
     let mut paths = Vec::new();
     let mut conf = Config {
-        show_full_hash: false,
-        recursive_mode: false,
+        color: true,
+        short: true,
+        recursive: false,
     };
+    if api::io::is_redirected(1) {
+        conf.color = false;
+        conf.short = false;
+    }
     while i < n {
         match args[i] {
             "-h" | "--help" => {
                 help();
                 return Ok(());
             }
-            "-f" | "--full" => {
-                conf.show_full_hash = true;
+            "-c" | "--color" => {
+                conf.color = true;
+            }
+            "-s" | "--short" => {
+                conf.short = true;
+            }
+            "-l" | "--long" => {
+                conf.short = false;
             }
             "-r" | "--recursive" => {
-                conf.recursive_mode = true;
+                conf.recursive = true;
             }
             arg => {
                 if arg.starts_with('-') {
-                    error!("Unknown option '{}'", arg);
+                    error!("Invalid option '{}'", arg);
                     return Err(ExitCode::UsageError);
                 }
                 paths.push(arg);
@@ -59,7 +71,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
-    let n = if conf.show_full_hash { 32 } else { 16 };
+    let color = Style::color("fushia");
+    let reset = Style::reset();
+    let n = if conf.short { 4 } else { 32 };
     if let Some(info) = syscall::info(path) {
         if info.is_file() {
             if let Ok(bytes) = api::fs::read_to_bytes(path) {
@@ -69,15 +83,17 @@ fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
                 let hex = res.iter().map(|byte|
                     format!("{:02X}", byte)
                 ).take(n).collect::<Vec<String>>().join("");
-                let pink = Style::color("fushia");
-                let reset = Style::reset();
-                println!("{}{}{} {}", pink, hex, reset, path);
+                if conf.color {
+                    println!("{}{}{} {}", color, hex, reset, path);
+                } else {
+                    println!("{} {}", hex, path);
+                }
                 Ok(())
             } else {
                 error!("Could not read '{}'", path);
                 Err(ExitCode::Failure)
             }
-        } else if conf.recursive_mode && info.is_dir() {
+        } else if conf.recursive && info.is_dir() {
             if let Ok(entries) = api::fs::read_dir(path) {
                 let mut fs: Vec<_> = entries.iter().map(|e| e.name()).collect();
                 fs.sort();
@@ -112,7 +128,15 @@ fn help() {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-f{1}, {0}--full{1}         Show full hash",
+        "  {0}-l{1}, {0}--long{1}         Show full hash",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-s{1}, {0}--short{1}        Show abbreviated hash",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-c{1}, {0}--color{1}        Enable color mode",
         csi_option, csi_reset
     );
     println!(

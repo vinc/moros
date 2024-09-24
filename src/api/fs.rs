@@ -23,16 +23,25 @@ pub trait FileIO {
 }
 
 pub fn dirname(pathname: &str) -> &str {
-    let n = pathname.len();
+    let pathname = if pathname.len() > 1 {
+        pathname.trim_end_matches('/')
+    } else {
+        pathname
+    };
     let i = match pathname.rfind('/') {
         Some(0) => 1,
         Some(i) => i,
-        None => n,
+        None => return "",
     };
     &pathname[0..i]
 }
 
 pub fn filename(pathname: &str) -> &str {
+    let pathname = if pathname.len() > 1 {
+        pathname.trim_end_matches('/')
+    } else {
+        pathname
+    };
     let n = pathname.len();
     let i = match pathname.rfind('/') {
         Some(i) => i + 1,
@@ -59,6 +68,22 @@ pub fn exists(path: &str) -> bool {
 pub fn is_dir(path: &str) -> bool {
     if let Some(info) = syscall::info(path) {
         info.is_dir()
+    } else {
+        false
+    }
+}
+
+pub fn is_file(path: &str) -> bool {
+    if let Some(info) = syscall::info(path) {
+        info.is_file()
+    } else {
+        false
+    }
+}
+
+pub fn is_device(path: &str) -> bool {
+    if let Some(info) = syscall::info(path) {
+        info.is_device()
     } else {
         false
     }
@@ -136,6 +161,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "rtc"      => Ok(DeviceType::RTC),
         "tcp"      => Ok(DeviceType::TcpSocket),
         "udp"      => Ok(DeviceType::UdpSocket),
+        "font"     => Ok(DeviceType::VgaFont),
         "ata"      => Ok(DeviceType::Drive),
         _          => Err(()),
     }
@@ -165,14 +191,14 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
 
 pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
     if let Some(info) = syscall::info(path) {
-        let f = if info.is_device() {
+        let res = if info.is_device() {
             open_device(path)
         } else if info.is_dir() {
             open_dir(path)
         } else {
             open_file(path)
         };
-        if let Some(handle) = f {
+        if let Some(handle) = res {
             let n = info.size() as usize;
             let mut buf = vec![0; n];
             if let Some(bytes) = syscall::read(handle, &mut buf) {
@@ -186,22 +212,8 @@ pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
 }
 
 pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    if let Some(handle) = create_file(path) {
-        if let Some(bytes) = syscall::write(handle, buf) {
-            syscall::close(handle);
-            return Ok(bytes);
-        }
-    }
-    Err(())
-}
-
-pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    let res = if let Some(info) = syscall::info(path) {
-        if info.is_device() {
-            open_device(path)
-        } else {
-            append_file(path)
-        }
+    let res = if is_device(path) {
+        open_device(path)
     } else {
         create_file(path)
     };
@@ -262,6 +274,23 @@ fn test_filename() {
     assert_eq!(filename("/path/to/file.txt"), "file.txt");
     assert_eq!(filename("/file.txt"), "file.txt");
     assert_eq!(filename("file.txt"), "file.txt");
+    assert_eq!(filename("/path/to/"), "to");
+    assert_eq!(filename("/path/to"), "to");
+    assert_eq!(filename("path/to"), "to");
+    assert_eq!(filename("/"), "");
+    assert_eq!(filename(""), "");
+}
+
+#[test_case]
+fn test_dirname() {
+    assert_eq!(dirname("/path/to/file.txt"), "/path/to");
+    assert_eq!(dirname("/file.txt"), "/");
+    assert_eq!(dirname("file.txt"), "");
+    assert_eq!(dirname("/path/to/"), "/path");
+    assert_eq!(dirname("/path/to"), "/path");
+    assert_eq!(dirname("path/to"), "path");
+    assert_eq!(dirname("/"), "/");
+    assert_eq!(dirname(""), "");
 }
 
 #[test_case]

@@ -25,8 +25,9 @@ use dir_entry::DirEntry;
 use super_block::SuperBlock;
 
 use alloc::string::{String, ToString};
+use core::convert::TryFrom;
 
-pub const VERSION: u8 = 1;
+pub const VERSION: u8 = 2;
 
 // TODO: Move that to API
 #[derive(Clone, Copy)]
@@ -102,11 +103,34 @@ pub enum FileType {
     Device = 2,
 }
 
+impl TryFrom<usize> for FileType {
+    type Error = ();
+
+    fn try_from(num: usize) -> Result<Self, Self::Error> {
+        match num {
+             0 => Ok(FileType::Dir),
+             1 => Ok(FileType::File),
+             2 => Ok(FileType::Device),
+             _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Resource {
     Dir(Dir),
     File(File),
     Device(Device),
+}
+
+impl Resource {
+    pub fn kind(&self) -> FileType {
+        match self {
+            Resource::Dir(_) => FileType::Dir,
+            Resource::File(_) => FileType::File,
+            Resource::Device(_) => FileType::Device,
+        }
+    }
 }
 
 impl FileIO for Resource {
@@ -157,11 +181,11 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
 }
 
 pub fn disk_size() -> usize {
-    (SuperBlock::read().block_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().block_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_used() -> usize {
-    (SuperBlock::read().alloc_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().alloc_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_free() -> usize {

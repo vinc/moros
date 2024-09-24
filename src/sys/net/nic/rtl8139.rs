@@ -98,10 +98,10 @@ pub struct Ports {
     pub cmd: Port<u8>,
 
     // Interrupt Mask Register (IMR)
-    pub imr: Port<u16>,
+    //pub imr: Port<u16>,
 
     // Interrupt Status Register (ISR)
-    pub isr: Port<u16>,
+    //pub isr: Port<u16>,
 
     // Transmit (Tx) Configuration Register (TCR)
     pub tx_config: Port<u32>,
@@ -138,8 +138,8 @@ impl Ports {
             capr: Port::new(io_base + 0x38),
             cba: Port::new(io_base + 0x3A),
             cmd: Port::new(io_base + 0x37),
-            imr: Port::new(io_base + 0x3C),
-            isr: Port::new(io_base + 0x3E),
+            //imr: Port::new(io_base + 0x3C),
+            //isr: Port::new(io_base + 0x3E),
             tx_config: Port::new(io_base + 0x40),
             rx_config: Port::new(io_base + 0x44),
         }

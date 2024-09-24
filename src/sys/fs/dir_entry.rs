@@ -180,13 +180,7 @@ impl FileInfo {
 
 impl From<&[u8]> for FileInfo {
     fn from(buf: &[u8]) -> Self {
-        let kind = match buf[0] {
-            // TODO: Add FileType::from(u8)
-            0 => FileType::Dir,
-            1 => FileType::File,
-            2 => FileType::Device,
-            _ => panic!(),
-        };
+        let kind = (buf[0] as usize).try_into().unwrap();
         let size = u32::from_be_bytes(buf[1..5].try_into().unwrap());
         let time = u64::from_be_bytes(buf[5..13].try_into().unwrap());
         let i = 14 + buf[13] as usize;

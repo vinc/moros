@@ -105,3 +105,9 @@ pub fn alloc(size: usize, align: usize) -> *mut u8
 ```rust
 pub fn free(ptr: *mut u8, size: usize, align: usize)
 ```
+
+## KIND (0x12)
+
+```rust
+pub fn kind(handle: usize) -> isize
+```

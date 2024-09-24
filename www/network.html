@@ -28,6 +28,7 @@ dns: 10.0.2.3
     <p>Set one attribute of the network configuration:</p>
 
     <pre><code>&gt; net config dns 10.0.2.3
+[14.946833] NET DNS 10.0.2.3
 </code></pre>
 
     <p>Display network statistics:</p>
@@ -62,12 +63,10 @@ tx: 15 packets (1518 bytes)
 
     <p>The <code>dhcp</code> command configures the network automatically:</p>
 
-    <pre><code>&gt; dhcp --verbose
-DEBUG: DHCP Discover transmitted
-DEBUG: DHCP Offer received
-ip:  10.0.2.15/24
-gw:  10.0.2.2
-dns: 10.0.2.3
+    <pre><code>&gt; dhcp
+[8.801660] NET IP 10.0.2.15/24
+[8.804659] NET GW 10.0.2.2
+[8.808659] NET DNS 10.0.2.3
 </code></pre>
 
     <h2>HOST</h2>
@@ -176,6 +175,21 @@ QUIT
     <p>Sending a file to a server:</p>
 
     <pre><code>&gt; socket 10.0.2.2:1234 &lt;= /tmp/alice.txt
+</code></pre>
+
+    <h2>NTP</h2>
+
+    <p>The <code>ntp</code> commmand is a lisp script used to get the time from a NTP server
+passed as an argument or defined in <code>/ini/ntp</code>:</p>
+
+    <pre><code>&gt; ntp
+2023-03-21 10:00:00
+</code></pre>
+
+    <p>It can be used to synchronize the real-time clock (RTC):</p>
+
+    <pre><code>&gt; ntp =&gt; /dev/rtc
+[42.123456] RTC 2023-03-21 10:00:00 +0000
 </code></pre>
   <footer><p><a href="/">MOROS</a></footer>
   </body>

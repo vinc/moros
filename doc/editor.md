@@ -1,5 +1,7 @@
 # MOROS Editor
 
+![screenshot](images/editor.png)
+
 ## Commands
 
 - `CTRL` + `C` to quit without saving and without warnings
@@ -13,3 +15,5 @@
 - `CTRL` + `D` to cut (delete) a line
 - `CTRL` + `Y` to copy (yank) a line
 - `CTRL` + `P` to paste (put) a line
+- `CTRL` + `F` to find a string in the file
+- `CTRL` + `N` to find the next string in the file

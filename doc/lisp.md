@@ -75,11 +75,12 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `regex/match?`
 
 ### File Library
+- `dirname`, `filename`
 - `read`, `write`, `append`
 - `read-binary`, `write-binary`, `append-binary`
 - `read-line`, `read-char`
 - `uptime`, `realtime`
-- `p`, `print`
+- `p`, `print`, `eprint`, `error`
 
 ### Math Library
 - `floor`, `ceil`, `round`
@@ -174,6 +175,9 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Add `dirname`, `filename`, `eprint`, and `error` functions
+
+### 0.7.1 (2024-06-20)
 - Add `floor`, `ceil`, and `round` functions
 
 ### 0.7.0 (2023-12-22)

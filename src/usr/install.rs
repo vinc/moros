@@ -27,9 +27,11 @@ pub fn copy_files(verbose: bool) {
 
     copy_file!("/bin/clear", verbose);
     //copy_file!("/bin/exec", verbose);
+    copy_file!("/bin/get", verbose);
     copy_file!("/bin/halt", verbose);
     //copy_file!("/bin/hello", verbose);
     copy_file!("/bin/ntp", verbose);
+    copy_file!("/bin/pkg", verbose);
     copy_file!("/bin/print", verbose);
     copy_file!("/bin/reboot", verbose);
     copy_file!("/bin/sleep", verbose);
@@ -39,6 +41,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/ata/1", verbose);
     create_dir("/dev/clk", verbose); // Clock
     create_dir("/dev/net", verbose); // Network
+    create_dir("/dev/vga", verbose);
 
     create_dev("/dev/ata/0/0", "ata-0-0", verbose);
     create_dev("/dev/ata/0/1", "ata-0-1", verbose);
@@ -52,6 +55,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/console", "console", verbose);
     create_dev("/dev/net/tcp", "tcp", verbose);
     create_dev("/dev/net/udp", "udp", verbose);
+    create_dev("/dev/vga/font", "font", verbose);
 
     copy_file!("/ini/banner.txt", verbose);
     copy_file!("/ini/boot.sh", verbose);
@@ -67,7 +71,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/ini/fonts", verbose);
     //copy_file!("/ini/fonts/lat15-terminus-8x16.psf", verbose);
     copy_file!("/ini/fonts/zap-light-8x16.psf", verbose);
-    copy_file!("/ini/fonts/zap-vga-8x16.psf", verbose);
+    //copy_file!("/ini/fonts/zap-vga-8x16.psf", verbose);
 
     create_dir("/lib/lisp", verbose);
     copy_file!("/lib/lisp/alias.lsp", verbose);
@@ -79,32 +83,37 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/tmp/alice.txt", verbose);
     copy_file!("/tmp/machines.txt", verbose);
 
-    create_dir("/tmp/lisp", verbose);
-    copy_file!("/tmp/lisp/colors.lsp", verbose);
-    copy_file!("/tmp/lisp/doc.lsp", verbose);
-    copy_file!("/tmp/lisp/factorial.lsp", verbose);
-    //copy_file!("/tmp/lisp/fetch.lsp", verbose);
-    copy_file!("/tmp/lisp/fibonacci.lsp", verbose);
-    copy_file!("/tmp/lisp/geotime.lsp", verbose);
-    copy_file!("/tmp/lisp/pi.lsp", verbose);
-    copy_file!("/tmp/lisp/sum.lsp", verbose);
-    copy_file!("/tmp/lisp/tak.lsp", verbose);
+    //create_dir("/tmp/chess", verbose);
+    //copy_file!("/tmp/chess/mi2.epd", verbose);
+    //copy_file!("/tmp/chess/mi3.epd", verbose);
+    //copy_file!("/tmp/chess/mi4.epd", verbose);
+    //copy_file!("/tmp/chess/puru.epd", verbose);
 
-    create_dir("/tmp/life", verbose);
-    copy_file!("/tmp/life/centinal.cells", verbose);
-    copy_file!("/tmp/life/flower-of-eden.cells", verbose);
-    copy_file!("/tmp/life/garden-of-eden.cells", verbose);
-    copy_file!("/tmp/life/glider-gun.cells", verbose);
-    copy_file!("/tmp/life/pentadecathlon.cells", verbose);
-    copy_file!("/tmp/life/queen-bee-shuttle.cells", verbose);
-    copy_file!("/tmp/life/ship-in-a-bottle.cells", verbose);
-    copy_file!("/tmp/life/thunderbird.cells", verbose);
-    copy_file!("/tmp/life/wing.cells", verbose);
+    //create_dir("/tmp/lisp", verbose);
+    //copy_file!("/tmp/lisp/colors.lsp", verbose);
+    //copy_file!("/tmp/lisp/doc.lsp", verbose);
+    //copy_file!("/tmp/lisp/factorial.lsp", verbose);
+    //copy_file!("/tmp/lisp/fibonacci.lsp", verbose);
+    //copy_file!("/tmp/lisp/geotime.lsp", verbose);
+    //copy_file!("/tmp/lisp/pi.lsp", verbose);
+    //copy_file!("/tmp/lisp/sum.lsp", verbose);
+    //copy_file!("/tmp/lisp/tak.lsp", verbose);
 
-    create_dir("/tmp/beep", verbose);
-    copy_file!("/tmp/beep/tetris.sh", verbose);
-    copy_file!("/tmp/beep/starwars.sh", verbose);
-    copy_file!("/tmp/beep/mario.sh", verbose);
+    //create_dir("/tmp/life", verbose);
+    //copy_file!("/tmp/life/centinal.cells", verbose);
+    //copy_file!("/tmp/life/flower-of-eden.cells", verbose);
+    //copy_file!("/tmp/life/garden-of-eden.cells", verbose);
+    //copy_file!("/tmp/life/glider-gun.cells", verbose);
+    //copy_file!("/tmp/life/pentadecathlon.cells", verbose);
+    //copy_file!("/tmp/life/queen-bee-shuttle.cells", verbose);
+    //copy_file!("/tmp/life/ship-in-a-bottle.cells", verbose);
+    //copy_file!("/tmp/life/thunderbird.cells", verbose);
+    //copy_file!("/tmp/life/wing.cells", verbose);
+
+    //create_dir("/tmp/beep", verbose);
+    //copy_file!("/tmp/beep/tetris.sh", verbose);
+    //copy_file!("/tmp/beep/starwars.sh", verbose);
+    //copy_file!("/tmp/beep/mario.sh", verbose);
 
     create_dir("/var/log", verbose);
 
@@ -112,6 +121,8 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/var/www/index.html", verbose);
     copy_file!("/var/www/moros.css", verbose);
     copy_file!("/var/www/moros.png", verbose);
+
+    create_dir("/var/pkg", verbose);
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -182,11 +193,11 @@ fn create_dir(path: &str, verbose: bool) {
     if fs::exists(path) {
         return;
     }
+    if verbose {
+        println!("Creating '{}'", path);
+    }
     if let Some(handle) = api::fs::create_dir(path) {
         syscall::close(handle);
-        if verbose {
-            println!("Created '{}'", path);
-        }
     }
 }
 
@@ -194,17 +205,20 @@ fn create_dev(path: &str, name: &str, verbose: bool) {
     if fs::exists(path) {
         return;
     }
+    if verbose {
+        println!("Creating '{}'", path);
+    }
     if let Some(handle) = fs::create_device(path, name) {
         syscall::close(handle);
-        if verbose {
-            println!("Created '{}'", path);
-        }
     }
 }
 
 fn copy_file(path: &str, buf: &[u8], verbose: bool) {
     if fs::exists(path) {
         return;
+    }
+    if verbose {
+        println!("Fetching '{}'", path);
     }
     if path.ends_with(".txt") {
         if let Ok(text) = String::from_utf8(buf.to_vec()) {
@@ -215,9 +229,5 @@ fn copy_file(path: &str, buf: &[u8], verbose: bool) {
         }
     } else {
         fs::write(path, buf).ok();
-    }
-    // TODO: add File::write_all to split buf if needed
-    if verbose {
-        println!("Fetched '{}'", path);
     }
 }

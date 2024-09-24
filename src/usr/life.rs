@@ -38,8 +38,8 @@ impl Game {
     }
 
     pub fn load_file(&mut self, path: &str) {
-        if let Ok(lines) = fs::read_to_string(path) {
-            for (y, line) in lines.split('\n').enumerate() {
+        if let Ok(contents) = fs::read_to_string(path) {
+            for (y, line) in contents.lines().enumerate() {
                 for (x, c) in line.chars().enumerate() {
                     let cell = (x as i64, y as i64);
                     match c {
@@ -159,7 +159,7 @@ impl fmt::Display for Game {
             let line = if self.is_game_over() {
                 self.status("GAME OVER", "yellow")
             } else {
-                self.status("GAME OF LIFE", "White")
+                self.status("GAME OF LIFE", "white")
             };
             out.push_str(&line);
         }
@@ -215,7 +215,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             arg => {
                 if arg.starts_with('-') {
-                    error!("Unknown option '{}'", arg);
+                    error!("Invalid option '{}'", arg);
                     return Err(ExitCode::UsageError);
                 }
                 if i > 0 {

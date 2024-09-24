@@ -231,7 +231,7 @@ impl Device {
         for i in 0..n {
             tx_descs[i].addr = self.tx_buffers[i].addr();
             tx_descs[i].cmd = 0;
-            tx_descs[i].status = TSTA_DD as u8;
+            tx_descs[i].status = TSTA_DD;
         }
 
         let ptr = ptr::addr_of!(tx_descs[0]) as *const _;

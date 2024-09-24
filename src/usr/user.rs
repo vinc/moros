@@ -1,10 +1,12 @@
+use crate::api::base64::Base64;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
-use crate::{api, sys, usr};
+use crate::sys;
+
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -45,7 +47,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 // TODO: Add max number of attempts
-pub fn login(username: &str) -> Result<(), ExitCode> {
+fn login(username: &str) -> Result<(), ExitCode> {
     if !fs::exists(USERS) {
         error!("Could not read '{}'", USERS);
         return Err(ExitCode::Failure);
@@ -64,7 +66,7 @@ pub fn login(username: &str) -> Result<(), ExitCode> {
             let password = io::stdin().read_line().trim_end().to_string();
             print!("\x1b[12h"); // Enable echo
             println!();
-            if !check(&password, &hash) {
+            if check(&password, &hash).is_err() {
                 println!();
                 syscall::sleep(1.0);
                 return main(&["user", "login"]);
@@ -87,7 +89,7 @@ pub fn login(username: &str) -> Result<(), ExitCode> {
     Ok(())
 }
 
-pub fn create(username: &str) -> Result<(), ExitCode> {
+fn create(username: &str) -> Result<(), ExitCode> {
     if username.is_empty() {
         return Err(ExitCode::Failure);
     }
@@ -124,8 +126,8 @@ pub fn create(username: &str) -> Result<(), ExitCode> {
     }
 
     // Create home dir
-    if let Some(handle) = api::fs::create_dir(&format!("/usr/{}", username)) {
-        api::syscall::close(handle);
+    if let Some(handle) = fs::create_dir(&format!("/usr/{}", username)) {
+        syscall::close(handle);
     } else {
         error!("Could not create home dir");
         return Err(ExitCode::Failure);
@@ -134,30 +136,34 @@ pub fn create(username: &str) -> Result<(), ExitCode> {
     Ok(())
 }
 
-pub fn check(password: &str, hashed_password: &str) -> bool {
+fn check(password: &str, hashed_password: &str) -> Result<(), ()> {
     let fields: Vec<_> = hashed_password.split('$').collect();
     if fields.len() != 4 || fields[0] != "1" {
-        return false;
+        return Err(());
     }
 
-    let decoded_field = usr::base64::decode(fields[1].as_bytes());
+    let decoded_field = Base64::decode(fields[1].as_bytes())?;
     let c = u32::from_be_bytes(decoded_field[0..4].try_into().unwrap());
 
-    let decoded_field = usr::base64::decode(fields[2].as_bytes());
+    let decoded_field = Base64::decode(fields[2].as_bytes())?;
     let salt: [u8; 16] = decoded_field[0..16].try_into().unwrap();
 
     let mut hash = [0u8; 32];
     pbkdf2::pbkdf2_hmac::<Sha256>(password.as_bytes(), &salt, c, &mut hash);
-    let encoded_hash = String::from_utf8(usr::base64::encode(&hash)).unwrap();
+    let encoded_hash = String::from_utf8(Base64::encode(&hash)).unwrap();
 
-    encoded_hash == fields[3]
+    if encoded_hash == fields[3] {
+        Ok(())
+    } else {
+        Err(())
+    }
 }
 
 // Password hashing version 1 => PBKDF2-HMAC-SHA256 + BASE64
 // Fields: <version>$<c>$<salt>$<hash>
 // Example:
 // 1$AAAQAA$PDkXP0I8O7SxNOxvUKmHHQ$BwIUWBxKs50BTpH6i4ImF3SZOxADv7dh4xtu3IKc3o8
-pub fn hash(password: &str) -> String {
+fn hash(password: &str) -> String {
     let v = "1"; // Password hashing version
     let c = 4096u32; // Number of iterations
     let mut salt = [0u8; 16];
@@ -180,18 +186,18 @@ pub fn hash(password: &str) -> String {
     let c = c.to_be_bytes();
     let mut res: String = String::from(v);
     res.push('$');
-    res.push_str(&String::from_utf8(usr::base64::encode(&c)).unwrap());
+    res.push_str(&String::from_utf8(Base64::encode(&c)).unwrap());
     res.push('$');
-    res.push_str(&String::from_utf8(usr::base64::encode(&salt)).unwrap());
+    res.push_str(&String::from_utf8(Base64::encode(&salt)).unwrap());
     res.push('$');
-    res.push_str(&String::from_utf8(usr::base64::encode(&hash)).unwrap());
+    res.push_str(&String::from_utf8(Base64::encode(&hash)).unwrap());
     res
 }
 
 fn read_hashed_passwords() -> BTreeMap<String, String> {
     let mut hashed_passwords = BTreeMap::new();
-    if let Ok(csv) = api::fs::read_to_string(USERS) {
-        for line in csv.split('\n') {
+    if let Ok(contents) = fs::read_to_string(USERS) {
+        for line in contents.lines() {
             let mut rows = line.split(',');
             if let Some(username) = rows.next() {
                 if let Some(hash) = rows.next() {
@@ -212,12 +218,12 @@ fn save_hashed_password(username: &str, hash: &str) -> Result<usize, ()> {
     hashed_passwords.remove(username);
     hashed_passwords.insert(username.into(), hash.into());
 
-    let mut csv = String::new();
+    let mut contents = String::new();
     for (u, h) in hashed_passwords {
-        csv.push_str(&format!("{},{}\n", u, h));
+        contents.push_str(&format!("{},{}\n", u, h));
     }
 
-    fs::write(USERS, csv.as_bytes())
+    fs::write(USERS, contents.as_bytes())
 }
 
 fn help() {

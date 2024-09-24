@@ -1,10 +1,12 @@
 use crate::api::font::Font;
+use crate::api::fs::{FileIO, IO};
 use crate::api::vga::color;
 use crate::api::vga::{Color, Palette};
 use crate::sys;
 
 use alloc::string::String;
 use bit_field::BitField;
+use core::convert::TryFrom;
 use core::cmp;
 use core::fmt;
 use core::fmt::Write;
@@ -312,7 +314,7 @@ fn vga_color(color: u8) -> u8 {
 
 fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
     debug_assert!(palette.len() == 8);
-    debug_assert!(palette.chars().next() == Some('P'));
+    debug_assert!(palette.starts_with('P'));
 
     let i = usize::from_str_radix(&palette[1..2], 16)?;
     let r = u8::from_str_radix(&palette[2..4], 16)?;
@@ -515,6 +517,39 @@ impl fmt::Write for Writer {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct VgaFont;
+
+impl VgaFont {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl FileIO for VgaFont {
+    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
+        Err(()) // TODO
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        if let Ok(font) = Font::try_from(buf) {
+            set_font(&font);
+            Ok(buf.len()) // TODO: Use font.data.len() ?
+        } else {
+            Err(())
+        }
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => false, // TODO
+            IO::Write => true,
+        }
+    }
+}
+
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(||
@@ -540,9 +575,10 @@ pub fn set_color(foreground: Color, background: Color) {
 // Carriage Return
 // Extended ASCII Printable
 pub fn is_printable(c: u8) -> bool {
-    matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x7F..=0xFF)
+    matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x80..=0xFF)
 }
 
+// TODO: Remove this
 pub fn set_font(font: &Font) {
     interrupts::without_interrupts(||
         WRITER.lock().set_font(font)

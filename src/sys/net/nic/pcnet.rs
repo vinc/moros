@@ -38,10 +38,10 @@ const DE_OWN: usize = 7;
 #[derive(Clone)]
 pub struct Ports {
     pub mac: [Port<u8>; 6],
-    pub rdp_16: Port<u16>,
-    pub rap_16: Port<u16>,
+    //pub rdp_16: Port<u16>,
+    //pub rap_16: Port<u16>,
     pub rst_16: Port<u16>,
-    pub bdp_16: Port<u16>,
+    //pub bdp_16: Port<u16>,
 
     pub rdp_32: Port<u32>,
     pub rap_32: Port<u32>,
@@ -61,10 +61,10 @@ impl Ports {
                 Port::new(io_base + 0x05),
             ],
 
-            rdp_16: Port::new(io_base + 0x10),
-            rap_16: Port::new(io_base + 0x12),
+            //rdp_16: Port::new(io_base + 0x10),
+            //rap_16: Port::new(io_base + 0x12),
             rst_16: Port::new(io_base + 0x14),
-            bdp_16: Port::new(io_base + 0x16),
+            //bdp_16: Port::new(io_base + 0x16),
 
             rdp_32: Port::new(io_base + 0x10),
             rap_32: Port::new(io_base + 0x14),

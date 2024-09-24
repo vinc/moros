@@ -32,13 +32,14 @@ impl LogBuffer {
 
 impl core::fmt::Write for LogBuffer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        if self.len + s.len() > LOG_SIZE {
+            self.len = 0;
+            self.buf.fill(0);
+        }
+
         let bytes = s.as_bytes();
         let i = self.len;
         let n = i + bytes.len();
-
-        if n > LOG_SIZE {
-            return Err(core::fmt::Error);
-        }
 
         self.buf[i..n].copy_from_slice(bytes);
         self.len += bytes.len();

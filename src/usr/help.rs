@@ -93,6 +93,8 @@ fn help_edit() -> Result<(), ExitCode> {
         ("^D", "Cut line"),
         ("^Y", "Copy line"),
         ("^P", "Paste line"),
+        ("^F", "Find string"),
+        ("^N", "Find next string"),
     ];
     for (command, usage) in &commands {
         let csi_color = Style::color("aqua");

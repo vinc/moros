@@ -14,12 +14,12 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 36] = [
-    "2048", "base64", "calc", "copy", "date", "delete", "dhcp", "disk", "edit",
-    "elf", "env", "goto", "hash", "help", "hex", "host", "http", "httpd",
-    "install", "keyboard", "life", "lisp", "list", "memory", "move", "net",
-    "pci", "quit", "read", "shell", "socket", "tcp", "time", "user", "vga",
-    "write",
+const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
+    "2048", "calc", "chess", "copy", "date", "decode", "delete", "dhcp",
+    "diff", "disk", "edit", "elf", "encode", "env", "goto", "hash", "help",
+    "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
+    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket",
+    "tcp", "time", "user", "vga", "view", "write",
 ];
 
 struct Config {
@@ -72,9 +72,14 @@ fn shell_completer(line: &str) -> Vec<String> {
     }
 
     // Autocomplete path
-    let pathname = fs::realpath(&args[i]);
-    let dirname = fs::dirname(&pathname);
-    let filename = fs::filename(&pathname);
+    let path = fs::realpath(&args[i]);
+    let (dirname, filename) = if path.len() > 1 && path.ends_with('/') {
+        // List files in dir (/path/to/ -> /path/to/file.txt)
+        (path.trim_end_matches('/'), "")
+    } else {
+        // List matching files (/path/to/fi -> /path/to/file.txt)
+        (fs::dirname(&path), fs::filename(&path))
+    };
     let sep = if dirname.ends_with('/') { "" } else { "/" };
     if let Ok(files) = fs::read_dir(dirname) {
         for file in files {
@@ -88,8 +93,8 @@ fn shell_completer(line: &str) -> Vec<String> {
                 } else {
                     ""
                 };
-                let path = format!("{}{}{}{}", dirname, sep, name, end);
-                entries.push(path[pathname.len()..].into());
+                let entry = format!("{}{}{}{}", dirname, sep, name, end);
+                entries.push(entry[path.len()..].into());
             }
         }
     }
@@ -140,16 +145,6 @@ fn is_globbing(arg: &str) -> bool {
     false
 }
 
-fn glob_to_regex(pattern: &str) -> String {
-    format!(
-        "^{}$",
-        pattern.replace('\\', "\\\\") // `\` string literal
-               .replace('.', "\\.") // `.` string literal
-               .replace('*', ".*") // `*` match zero or more chars except `/`
-               .replace('?', ".") // `?` match any char except `/`
-    )
-}
-
 fn glob(arg: &str) -> Vec<String> {
     let mut matches = Vec::new();
     if is_globbing(arg) {
@@ -160,7 +155,7 @@ fn glob(arg: &str) -> Vec<String> {
         } else {
             (sys::process::dir(), arg.to_string(), false)
         };
-        let re = Regex::new(&glob_to_regex(&pattern));
+        let re = Regex::from_glob(&pattern);
         let sep = if dir == "/" { "" } else { "/" };
         if let Ok(files) = fs::read_dir(&dir) {
             for file in files {
@@ -431,6 +426,13 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
             // read foo.txt [2]-> write /dev/null
             is_thin_arrow = true;
             left_handle = 1;
+        } else if Regex::new("^<=*>+$").is_match(args[i]) {
+            is_fat_arrow = true;
+            left_handle = 0;
+            n += 2;
+            args.insert(i + 2, args[i + 1]);
+            args.insert(i + 2, args[i].trim_start_matches('<'));
+            args[i] = "<=";
         } else if Regex::new("^[?\\d*]?=*>+[?\\d*]?$").is_match(args[i]) {
             // Redirections to
             // read foo.txt ==> bar.txt
@@ -519,17 +521,19 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         ""         => Ok(()),
         "2048"     => usr::pow::main(args),
         "alias"    => cmd_alias(args, config),
-        "base64"   => usr::base64::main(args),
         "beep"     => usr::beep::main(args),
         "calc"     => usr::calc::main(args),
         "chess"    => usr::chess::main(args),
         "copy"     => usr::copy::main(args),
         "date"     => usr::date::main(args),
+        "decode"   => usr::decode::main(args),
         "delete"   => usr::delete::main(args),
         "dhcp"     => usr::dhcp::main(args),
+        "diff"     => usr::diff::main(args),
         "disk"     => usr::disk::main(args),
-        "edit"     => usr::editor::main(args),
+        "edit"     => usr::edit::main(args),
         "elf"      => usr::elf::main(args),
+        "encode"   => usr::encode::main(args),
         "env"      => usr::env::main(args),
         "find"     => usr::find::main(args),
         "goto"     => cmd_change_dir(args, config), // TODO: Remove this
@@ -562,6 +566,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "version"  => cmd_version(),
         "user"     => usr::user::main(args),
         "vga"      => usr::vga::main(args),
+        "view"     => usr::view::main(args),
         "write"    => usr::write::main(args),
         "panic"    => panic!("{}", args[1..].join(" ")),
         _ => {
@@ -657,8 +662,8 @@ pub fn exec(cmd: &str) -> Result<(), ExitCode> {
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut config = Config::new();
 
-    if let Ok(rc) = fs::read_to_string("/ini/shell.sh") {
-        for cmd in rc.split('\n') {
+    if let Ok(contents) = fs::read_to_string("/ini/shell.sh") {
+        for cmd in contents.lines() {
             exec_with_config(cmd, &mut config).ok();
         }
     }
@@ -680,7 +685,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
         let path = args[1];
         if let Ok(contents) = api::fs::read_to_string(path) {
-            for line in contents.split('\n') {
+            for line in contents.lines() {
                 if !line.is_empty() {
                     exec_with_config(line, &mut config).ok();
                 }
@@ -761,15 +766,6 @@ fn test_split_args() {
         vec!["print", "foo", "bar"]
     );
     assert_eq!(split_args("print foo \"\" "), vec!["print", "foo", ""]);
-}
-
-#[test_case]
-fn test_glob_to_regex() {
-    assert_eq!(glob_to_regex("hello.txt"), "^hello\\.txt$");
-    assert_eq!(glob_to_regex("h?llo.txt"), "^h.llo\\.txt$");
-    assert_eq!(glob_to_regex("h*.txt"), "^h.*\\.txt$");
-    assert_eq!(glob_to_regex("*.txt"), "^.*\\.txt$");
-    assert_eq!(glob_to_regex("\\w*.txt"), "^\\\\w.*\\.txt$");
 }
 
 #[test_case]

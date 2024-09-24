@@ -9,25 +9,29 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::iter::FromIterator;
 
-struct PrintingState {
+struct Options {
     is_first_match: bool,
     is_recursive: bool,
+    file: String,
+    line: String,
+    trim: String,
 }
 
-impl PrintingState {
+impl Options {
     fn new() -> Self {
         Self {
             is_first_match: true,
             is_recursive: false,
+            file: "*".into(),
+            line: "".into(),
+            trim: "".into(),
         }
     }
 }
 
-// > find /tmp -name *.txt -line hello
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut path: &str = &sys::process::dir(); // TODO: use '.'
-    let mut name = None;
-    let mut line = None;
+    let mut path = String::new();
+    let mut options = Options::new();
     let mut i = 1;
     let n = args.len();
     while i < n {
@@ -36,55 +40,62 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 usage();
                 return Ok(());
             }
-            "-n" | "--name" => {
+            "-f" | "--file" => {
                 if i + 1 < n {
                     i += 1;
-                    name = Some(args[i]);
+                    options.file = args[i].into();
                 } else {
-                    error!("Missing name");
+                    error!("Missing file pattern");
                     return Err(ExitCode::UsageError);
                 }
             }
             "-l" | "--line" => {
                 if i + 1 < n {
                     i += 1;
-                    line = Some(args[i]);
+                    options.line = args[i].into();
                 } else {
-                    error!("Missing line");
+                    error!("Missing line pattern");
                     return Err(ExitCode::UsageError);
                 }
             }
-            _ => path = args[i],
+            _ => {
+                if args[i].starts_with('-') {
+                    error!("Invalid option '{}'", args[i]);
+                    return Err(ExitCode::UsageError);
+                } else if path.is_empty() {
+                    path = args[i].into();
+                } else {
+                    error!("Multiple paths not supported");
+                    return Err(ExitCode::UsageError);
+                }
+            }
         }
         i += 1;
     }
 
+    if path.is_empty() {
+        path = sys::process::dir();
+        options.trim = format!("{}/", path);
+    }
+
     if path.len() > 1 {
-        path = path.trim_end_matches('/');
+        path = path.trim_end_matches('/').into();
     }
 
-    if name.is_none() && line.is_none() {
-        usage();
+    if fs::is_dir(&path) || (fs::is_file(&path) && !options.line.is_empty()) {
+        search_files(&path, &mut options);
+    } else {
+        error!("Invalid path");
         return Err(ExitCode::UsageError);
-    }
-
-    if name.is_some() {
-        // TODO
-        error!("`--name` is not implemented");
-        return Err(ExitCode::Failure);
-    }
-
-    let mut state = PrintingState::new();
-    if let Some(pattern) = line {
-        print_matching_lines(path, pattern, &mut state);
     }
 
     Ok(())
 }
 
-fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
-    if let Ok(files) = fs::read_dir(path) {
-        state.is_recursive = true;
+fn search_files(path: &str, options: &mut Options) {
+    if let Ok(mut files) = fs::read_dir(path) {
+        files.sort_by_key(|f| f.name());
+        options.is_recursive = true;
         for file in files {
             let mut file_path = path.to_string();
             if !file_path.ends_with('/') {
@@ -92,32 +103,41 @@ fn print_matching_lines(path: &str, pattern: &str, state: &mut PrintingState) {
             }
             file_path.push_str(&file.name());
             if file.is_dir() {
-                print_matching_lines(&file_path, pattern, state);
-            } else if file.is_device() {
-                // Skip devices
-            } else {
-                print_matching_lines_in_file(&file_path, pattern, state);
+                search_files(&file_path, options);
+            } else if is_matching_file(&file_path, &options.file) {
+                if options.line.is_empty() {
+                    println!("{}", file_path.trim_start_matches(&options.trim));
+                } else {
+                    print_matching_lines(&file_path, options);
+                }
             }
+
         }
-    } else if fs::exists(path) {
-        print_matching_lines_in_file(path, pattern, state);
+    } else {
+        print_matching_lines(path, options);
     }
 }
 
-fn print_matching_lines_in_file(
-    path: &str,
-    pattern: &str,
-    state: &mut PrintingState
-) {
-    let name_color = Style::color("yellow");
+fn is_matching_file(path: &str, pattern: &str) -> bool {
+    let file = fs::filename(path);
+    let re = Regex::from_glob(pattern);
+    re.is_match(file)
+}
+
+fn print_matching_lines(path: &str, options: &mut Options) {
+    if !fs::is_file(path) {
+        return;
+    }
+
+    let file_color = Style::color("yellow");
     let line_color = Style::color("aqua");
     let match_color = Style::color("red");
     let reset = Style::reset();
 
-    let re = Regex::new(pattern);
-    if let Ok(lines) = fs::read_to_string(path) {
+    let re = Regex::new(&options.line);
+    if let Ok(contents) = fs::read_to_string(path) {
         let mut matches = Vec::new();
-        for (i, line) in lines.split('\n').enumerate() {
+        for (i, line) in contents.lines().enumerate() {
             let line: Vec<char> = line.chars().collect();
             let mut l = String::new();
             let mut j = 0;
@@ -143,13 +163,13 @@ fn print_matching_lines_in_file(
             }
         }
         if !matches.is_empty() {
-            if state.is_recursive {
-                if state.is_first_match {
-                    state.is_first_match = false;
+            if options.is_recursive {
+                if options.is_first_match {
+                    options.is_first_match = false;
                 } else {
                     println!();
                 }
-                println!("{}{}{}", name_color, path, reset);
+                println!("{}{}{}", file_color, path, reset);
             }
             let width = matches[matches.len() - 1].0.to_string().len();
             for (i, line) in matches {
@@ -171,14 +191,14 @@ fn usage() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} find {}<options> <path>{1}",
+        "{}Usage:{} find {}<options> [<path>]{1}",
         csi_title, csi_reset, csi_option
     );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-n{1}, {0}--name \"<pattern>\"{1}    \
-        Find file name matching {0}<pattern>{1}",
+        "  {0}-f{1}, {0}--file \"<pattern>\"{1}    \
+        Find files matching {0}<pattern>{1}",
         csi_option, csi_reset
     );
     println!(
@@ -186,4 +206,44 @@ fn usage() {
         Find lines matching {0}<pattern>{1}",
         csi_option, csi_reset
     );
+}
+
+#[test_case]
+fn test_find() {
+    use crate::{api, usr, sys};
+    use crate::usr::shell::exec;
+
+    sys::fs::mount_mem();
+    sys::fs::format_mem();
+    usr::install::copy_files(false);
+
+    exec("find / => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("/tmp/alice.txt"));
+
+    exec("find /dev => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("/dev/random"));
+
+    exec("find /tmp/alice.txt --line Alice => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Alice"));
+
+    exec("find nope 2=> /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Invalid path"));
+
+    exec("find /tmp/alice.txt 2=> /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Invalid path"));
+
+    exec("find /dev/random --line nope 2=> /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("Invalid path"));
+
+    exec("find /tmp --line list => /tmp/find.log").ok();
+    assert!(api::fs::read_to_string("/tmp/find.log").unwrap().
+        contains("alice.txt"));
+
+    sys::fs::dismount();
 }

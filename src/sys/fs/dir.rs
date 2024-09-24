@@ -120,15 +120,18 @@ impl Dir {
         if entry_len > space_left {
             match entries.block.alloc_next() {
                 None => return None, // Disk is full
-                Some(new_block) => {
-                    entries.block = new_block;
+                Some(block) => {
+                    entries.block = block;
                     entries.block_offset = 0;
                 }
             }
         }
 
         // Create a new entry
-        let entry_block = LinkedBlock::alloc().unwrap();
+        let entry_block = match LinkedBlock::alloc() {
+            None => return None,
+            Some(block) => block,
+        };
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;
@@ -158,7 +161,7 @@ impl Dir {
         ))
     }
 
-    // Deleting an entry is done by setting the entry address to 0
+    // FIXME: Deleting an entry is done by setting the entry address to 0
     // TODO: If the entry is a directory, remove its entries recursively
     pub fn delete_entry(&mut self, name: &str) -> Result<(), ()> {
         let mut entries = self.entries();
@@ -175,11 +178,11 @@ impl Dir {
                 self.update_size();
 
                 // Freeing entry blocks
-                let mut entry_block = LinkedBlock::read(entry.addr());
+                let mut free_block = LinkedBlock::read(entry.addr());
                 loop {
-                    BitmapBlock::free(entry_block.addr());
-                    match entry_block.next() {
-                        Some(next_block) => entry_block = next_block,
+                    BitmapBlock::free(free_block.addr());
+                    match free_block.next() { // FIXME: read after free?
+                        Some(next_block) => free_block = next_block,
                         None => break,
                     }
                 }

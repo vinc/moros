@@ -1,4 +1,5 @@
 use crate::api::syscall;
+use crate::sys::fs::FileType;
 
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -65,4 +66,11 @@ pub fn stdout() -> Stdout {
 
 pub fn stderr() -> Stderr {
     Stderr::new()
+}
+
+pub fn is_redirected(handle: usize) -> bool {
+    match syscall::kind(handle) {
+        Some(FileType::File) => true,
+        _ => false,
+    }
 }

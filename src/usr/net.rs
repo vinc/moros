@@ -191,6 +191,7 @@ pub fn set_config(attribute: &str, value: &str) {
                     iface.update_ip_addrs(|addrs| {
                         addrs.clear();
                         addrs.push(addr).unwrap();
+                        log!("NET IP {}", value);
                     });
                 } else {
                     error!("Network error");
@@ -205,6 +206,7 @@ pub fn set_config(attribute: &str, value: &str) {
                     iface.routes_mut().remove_default_ipv4_route();
                 } else if let Ok(ip) = Ipv4Address::from_str(value) {
                     iface.routes_mut().add_default_ipv4_route(ip).unwrap();
+                    log!("NET GW {}", value);
                 } else {
                     error!("Could not parse address");
                 }
@@ -216,7 +218,9 @@ pub fn set_config(attribute: &str, value: &str) {
             let servers = value.trim();
             if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
                 let s = format!("{}\n", servers);
-                if fs::write(DNS_FILE, s.as_bytes()).is_err() {
+                if fs::write(DNS_FILE, s.as_bytes()).is_ok() {
+                    log!("NET DNS {}", servers);
+                } else {
                     error!("Could not write to '{}'", DNS_FILE);
                 }
             } else {
