@@ -184,6 +184,10 @@ impl Writer {
     }
 
     fn write_byte(&mut self, byte: u8) {
+        if self.is_scrolling() {
+            self.scroll_bottom();
+        }
+
         match byte {
             0x0A => {
                 // Newline
@@ -342,6 +346,16 @@ impl Writer {
                 unsafe { core::ptr::write_volatile(ptr, c); }
             }
         }
+        if self.is_scrolling() {
+            self.disable_cursor();
+        } else {
+            self.enable_cursor();
+        }
+    }
+
+    fn scroll_bottom(&mut self) {
+        self.scroll_reader = self.scroll_bottom - SCREEN_HEIGHT;
+        self.scroll();
     }
 
     fn is_scrolling(&self) -> bool {
@@ -494,9 +508,6 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 self.scroll_reader = self.scroll_reader.saturating_sub(n);
-                if self.is_scrolling() {
-                    self.disable_cursor();
-                }
                 self.scroll();
             }
             'T' => { // Scroll Down
@@ -506,9 +517,6 @@ impl Perform for Writer {
                 }
                 self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - SCREEN_HEIGHT);
                 self.scroll();
-                if !self.is_scrolling() {
-                    self.enable_cursor();
-                }
             }
             'h' => { // Enable
                 for param in params.iter() {
