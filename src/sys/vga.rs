@@ -62,7 +62,7 @@ const BUFFER_WIDTH: usize = 80;
 const SCROLLBACK: usize = 10;
 
 #[repr(transparent)]
-struct Buffer {
+struct ScreenBuffer {
     chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 
@@ -72,7 +72,7 @@ lazy_static! {
         cursor: [0; 2],
         writer: [0; 2],
         color_code: ColorCode::new(FG, BG),
-        screen_buffer: unsafe { &mut *(0xB8000 as *mut Buffer) },
+        screen_buffer: unsafe { &mut *(0xB8000 as *mut ScreenBuffer) },
         scroll_buffer: [[ScreenChar::new(); BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
         scroll_reader: 0,
         scroll_bottom: BUFFER_HEIGHT,
@@ -83,7 +83,7 @@ pub struct Writer {
     cursor: [usize; 2], // x, y
     writer: [usize; 2], // x, y
     color_code: ColorCode,
-    screen_buffer: &'static mut Buffer,
+    screen_buffer: &'static mut ScreenBuffer,
     scroll_buffer: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT * SCROLLBACK],
     scroll_reader: usize, // Top of the screen
     scroll_bottom: usize, // Bottom of the buffer
