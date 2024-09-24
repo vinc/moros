@@ -343,6 +343,10 @@ impl Writer {
             }
         }
     }
+
+    fn is_scrolling(&self) -> bool {
+        self.scroll_reader != self.scroll_bottom - SCREEN_HEIGHT
+    }
 }
 
 // Convert 8-bit to 6-bit color
@@ -490,7 +494,7 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 self.scroll_reader = self.scroll_reader.saturating_sub(n);
-                if self.scroll_reader != self.scroll_bottom - SCREEN_HEIGHT {
+                if self.is_scrolling() {
                     self.disable_cursor();
                 }
                 self.scroll();
@@ -502,7 +506,7 @@ impl Perform for Writer {
                 }
                 self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - SCREEN_HEIGHT);
                 self.scroll();
-                if self.scroll_reader == self.scroll_bottom - SCREEN_HEIGHT {
+                if !self.is_scrolling() {
                     self.enable_cursor();
                 }
             }
