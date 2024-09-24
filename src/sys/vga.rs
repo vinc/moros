@@ -267,6 +267,8 @@ impl Writer {
     }
 
     fn clear_screen(&mut self) {
+        self.scroll_reader = 0;
+        self.scroll_bottom = SCREEN_HEIGHT;
         for y in 0..SCREEN_HEIGHT {
             self.clear_row_after(0, y);
         }
@@ -488,7 +490,9 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 self.scroll_reader = self.scroll_reader.saturating_sub(n);
-                self.disable_cursor();
+                if self.scroll_reader != self.scroll_bottom - SCREEN_HEIGHT {
+                    self.disable_cursor();
+                }
                 self.scroll();
             }
             'T' => { // Scroll Down
