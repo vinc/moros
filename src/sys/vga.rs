@@ -482,6 +482,7 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 self.scroll_reader = self.scroll_reader.saturating_sub(n);
+                self.disable_cursor();
                 self.scroll();
             }
             'T' => { // Scroll Down
@@ -491,6 +492,9 @@ impl Perform for Writer {
                 }
                 self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - BUFFER_HEIGHT);
                 self.scroll();
+                if self.scroll_reader == self.scroll_bottom - BUFFER_HEIGHT {
+                    self.enable_cursor();
+                }
             }
             'h' => { // Enable
                 for param in params.iter() {
