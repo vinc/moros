@@ -242,9 +242,9 @@ impl Writer {
             for y in 1..SCREEN_HEIGHT {
                 self.screen_buffer.chars[y - 1] = self.screen_buffer.chars[y];
             }
-            self.clear_row_after(0, SCREEN_HEIGHT - 1);
             self.scroll_reader += 1;
             self.scroll_bottom += 1;
+            self.clear_row_after(0, SCREEN_HEIGHT - 1);
         }
         self.writer[0] = 0;
     }
