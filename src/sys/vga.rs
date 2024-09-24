@@ -356,6 +356,7 @@ impl Writer {
     }
 
     fn is_scrolling(&self) -> bool {
+        // If the current screen is reached we are not scrolling anymore
         self.scroll_reader != self.scroll_bottom - SCREEN_HEIGHT
     }
 }
