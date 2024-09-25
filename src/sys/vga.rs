@@ -31,16 +31,6 @@ const FG: Color = Color::DarkWhite;
 const BG: Color = Color::DarkBlack;
 const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 
-lazy_static! {
-    pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
-    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
-        cursor: [0; 2],
-        writer: [0; 2],
-        color_code: ColorCode::new(FG, BG),
-        buffer: unsafe { &mut *(0xB8000 as *mut Buffer) },
-    });
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 struct ColorCode(u8);
@@ -58,20 +48,76 @@ struct ScreenChar {
     color_code: ColorCode,
 }
 
-const BUFFER_HEIGHT: usize = 25;
-const BUFFER_WIDTH: usize = 80;
+impl ScreenChar {
+    fn new() -> Self {
+        Self {
+            ascii_code: b' ',
+            color_code: ColorCode::new(FG, BG),
+        }
+    }
+}
+
+const SCREEN_WIDTH: usize = 80;
+const SCREEN_HEIGHT: usize = 25;
+const SCROLL_HEIGHT: usize = 250;
 
 #[repr(transparent)]
-struct Buffer {
-    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
+struct ScreenBuffer {
+    chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
+}
+
+lazy_static! {
+    pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        cursor: [0; 2],
+        writer: [0; 2],
+        color_code: ColorCode::new(FG, BG),
+        screen_buffer: unsafe { &mut *(0xB8000 as *mut ScreenBuffer) },
+        scroll_buffer: [[ScreenChar::new(); SCREEN_WIDTH]; SCROLL_HEIGHT],
+        scroll_reader: 0,
+        scroll_bottom: SCREEN_HEIGHT,
+    });
 }
 
 pub struct Writer {
     cursor: [usize; 2], // x, y
     writer: [usize; 2], // x, y
     color_code: ColorCode,
-    buffer: &'static mut Buffer,
+    screen_buffer: &'static mut ScreenBuffer,
+    scroll_buffer: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT],
+    scroll_reader: usize, // Top of the screen
+    scroll_bottom: usize, // Bottom of the buffer
 }
+
+// Scroll Buffer
+// +----------------------------+
+// | line 01                    |
+// | line 02                    |
+// | line 03                    |
+// | line 04                    |
+// +----------------------------+
+// | line 05                    | <-- scroll_reader
+// | line 06                    |
+// | line 07                    |
+// | line 08                    |
+// +----------------------------+
+// | line 09                    |
+// | line 10                    |
+// | line 11                    |
+// | line 12                    | <-- scroll_bottom
+// |                            |
+// |                            |
+// |                            |
+// |                            |
+// +----------------------------+
+//
+// Screen Buffer
+// +----------------------------+
+// | line 05                    |
+// | line 06                    |
+// | line 07                    |
+// | line 08                    |
+// +----------------------------+
 
 impl Writer {
     fn writer_position(&self) -> (usize, usize) {
@@ -92,7 +138,7 @@ impl Writer {
     }
 
     fn write_cursor(&mut self) {
-        let pos = self.cursor[0] + self.cursor[1] * BUFFER_WIDTH;
+        let pos = self.cursor[0] + self.cursor[1] * SCREEN_WIDTH;
         let mut addr = Port::new(CRTC_ADDR_REG);
         let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
@@ -138,6 +184,12 @@ impl Writer {
     }
 
     fn write_byte(&mut self, byte: u8) {
+        if self.is_scrolling() {
+            // Scroll to the current screen
+            self.scroll_reader = self.scroll_bottom - SCREEN_HEIGHT;
+            self.scroll();
+        }
+
         match byte {
             0x0A => {
                 // Newline
@@ -155,12 +207,15 @@ impl Writer {
                     };
                     let x = self.writer[0];
                     let y = self.writer[1];
-                    let ptr = &mut self.buffer.chars[y][x];
+                    let ptr = &mut self.screen_buffer.chars[y][x];
                     unsafe { core::ptr::write_volatile(ptr, c); }
+
+                    let dy = self.scroll_reader;
+                    self.scroll_buffer[y + dy][x] = c;
                 }
             }
             byte => {
-                if self.writer[0] >= BUFFER_WIDTH {
+                if self.writer[0] >= SCREEN_WIDTH {
                     self.new_line();
                 }
 
@@ -176,21 +231,32 @@ impl Writer {
                     ascii_code,
                     color_code,
                 };
-                let ptr = &mut self.buffer.chars[y][x];
+                let ptr = &mut self.screen_buffer.chars[y][x];
                 unsafe { core::ptr::write_volatile(ptr, c); }
                 self.writer[0] += 1;
+
+                let dy = self.scroll_reader;
+                self.scroll_buffer[y + dy][x] = c;
             }
         }
     }
 
     fn new_line(&mut self) {
-        if self.writer[1] < BUFFER_HEIGHT - 1 {
+        if self.writer[1] < SCREEN_HEIGHT - 1 {
             self.writer[1] += 1;
         } else {
-            for y in 1..BUFFER_HEIGHT {
-                self.buffer.chars[y - 1] = self.buffer.chars[y];
+            for y in 1..SCREEN_HEIGHT {
+                self.screen_buffer.chars[y - 1] = self.screen_buffer.chars[y];
             }
-            self.clear_row_after(0, BUFFER_HEIGHT - 1);
+            if self.scroll_bottom == SCROLL_HEIGHT - 1 {
+                for y in 1..SCROLL_HEIGHT {
+                    self.scroll_buffer[y - 1] = self.scroll_buffer[y];
+                }
+            } else {
+                self.scroll_reader += 1;
+                self.scroll_bottom += 1;
+            }
+            self.clear_row_after(0, SCREEN_HEIGHT - 1);
         }
         self.writer[0] = 0;
     }
@@ -200,11 +266,16 @@ impl Writer {
             ascii_code: b' ',
             color_code: self.color_code,
         };
-        self.buffer.chars[y][x..BUFFER_WIDTH].fill(c);
+        self.screen_buffer.chars[y][x..SCREEN_WIDTH].fill(c);
+
+        let dy = self.scroll_reader;
+        self.scroll_buffer[y + dy][x..SCREEN_WIDTH].fill(c);
     }
 
     fn clear_screen(&mut self) {
-        for y in 0..BUFFER_HEIGHT {
+        self.scroll_reader = 0;
+        self.scroll_bottom = SCREEN_HEIGHT;
+        for y in 0..SCREEN_HEIGHT {
             self.clear_row_after(0, y);
         }
     }
@@ -266,6 +337,27 @@ impl Writer {
                 data.write(vga_color(b));
             }
         }
+    }
+
+    fn scroll(&mut self) {
+        let dy = self.scroll_reader;
+        for y in 0..SCREEN_HEIGHT {
+            for x in 0..SCREEN_WIDTH {
+                let c = self.scroll_buffer[y + dy][x];
+                let ptr = &mut self.screen_buffer.chars[y][x];
+                unsafe { core::ptr::write_volatile(ptr, c); }
+            }
+        }
+        if self.is_scrolling() {
+            self.disable_cursor();
+        } else {
+            self.enable_cursor();
+        }
+    }
+
+    fn is_scrolling(&self) -> bool {
+        // If the current screen is reached we are not scrolling anymore
+        self.scroll_reader != self.scroll_bottom - SCREEN_HEIGHT
     }
 }
 
@@ -331,7 +423,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                let height = BUFFER_HEIGHT - 1;
+                let height = SCREEN_HEIGHT - 1;
                 self.writer[1] = cmp::min(self.writer[1] + n, height);
                 self.cursor[1] = cmp::min(self.cursor[1] + n, height);
             }
@@ -340,7 +432,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     n = param[0] as usize;
                 }
-                let width = BUFFER_WIDTH - 1;
+                let width = SCREEN_WIDTH - 1;
                 self.writer[0] = cmp::min(self.writer[0] + n, width);
                 self.cursor[0] = cmp::min(self.cursor[0] + n, width);
             }
@@ -358,7 +450,7 @@ impl Perform for Writer {
                 for param in params.iter() {
                     x = param[0] as usize; // 1-indexed value
                 }
-                if x == 0 || x > BUFFER_WIDTH {
+                if x == 0 || x > SCREEN_WIDTH {
                     return;
                 }
                 self.set_writer_position(x - 1, y);
@@ -374,7 +466,7 @@ impl Perform for Writer {
                         _ => break,
                     };
                 }
-                if x == 0 || y == 0 || x > BUFFER_WIDTH || y > BUFFER_HEIGHT {
+                if x == 0 || y == 0 || x > SCREEN_WIDTH || y > SCREEN_HEIGHT {
                     return;
                 }
                 self.set_writer_position(x - 1, y - 1);
@@ -386,7 +478,7 @@ impl Perform for Writer {
                     n = param[0] as usize;
                 }
                 match n {
-                    // TODO: 0 and 1, cursor to begining or to end of screen
+                    // TODO: 0 and 1, cursor to beginning or to end of screen
                     2 => self.clear_screen(),
                     _ => return,
                 }
@@ -407,6 +499,22 @@ impl Perform for Writer {
                 }
                 self.set_writer_position(x, y);
                 self.set_cursor_position(x, y);
+            }
+            'S' => { // Scroll Up
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.scroll_reader = self.scroll_reader.saturating_sub(n);
+                self.scroll();
+            }
+            'T' => { // Scroll Down
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - SCREEN_HEIGHT);
+                self.scroll();
             }
             'h' => { // Enable
                 for param in params.iter() {
