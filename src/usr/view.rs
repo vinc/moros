@@ -1,7 +1,8 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
+use crate::api::prompt::Prompt;
 use crate::api::{fs, io};
-use crate::api;
+use crate::usr::edit::{rows, cols};
 
 use alloc::format;
 use alloc::string::String;
@@ -24,6 +25,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 pub struct Viewer {
+    search_prompt: Prompt,
+    search_query: String,
     pathname: String,
     lines: Vec<String>,
     width: usize,
@@ -53,7 +56,13 @@ impl Viewer {
 
         let pathname = pathname.into();
 
+        let search_query = String::new();
+        let mut search_prompt = Prompt::new();
+        search_prompt.eol = false;
+
         Self {
+            search_prompt,
+            search_query,
             pathname,
             lines,
             width,
@@ -71,31 +80,31 @@ impl Viewer {
         }
         let start = format!("Viewing '{}'", path);
 
-        let x = self.x +  1;
-        let y = cmp::min(self.lines.len(), self.y + self.rows());
+        let x = self.x + 1;
+        let y = cmp::min(self.lines.len(), self.y + rows());
         let n = y * 100 / self.lines.len();
         let end = format!("{},{} {:3}%", y, x, n);
 
-        let width = self.cols() - start.chars().count();
+        let width = cols() - start.chars().count();
         let status = format!("{}{:>width$}", start, end, width = width);
 
         let color = Style::color("black").with_background("silver");
         let reset = Style::reset();
 
         // Move cursor to the bottom of the screen
-        print!("\x1b[{};1H", self.rows() + 1);
+        print!("\x1b[{};1H", rows() + 1);
 
-        print!("{}{:cols$}{}", color, status, reset, cols = self.cols());
+        print!("{}{:cols$}{}", color, status, reset, cols = cols());
     }
 
     fn print_screen(&mut self) {
-        let mut rows: Vec<String> = Vec::new();
+        let mut lines: Vec<String> = Vec::new();
         let a = self.y;
-        let b = self.y + self.rows();
+        let b = self.y + rows();
         for y in a..b {
-            rows.push(self.render_line(y));
+            lines.push(self.render_line(y));
         }
-        println!("\x1b[1;1H{}", rows.join("\n"));
+        println!("\x1b[1;1H{}", lines.join("\n"));
     }
 
     fn render_line(&self, y: usize) -> String {
@@ -108,7 +117,7 @@ impl Viewer {
 
         let s = format!("{:cols$}", line, cols = self.x);
         let mut row: Vec<char> = s.chars().collect();
-        let n = self.x + self.cols();
+        let n = self.x + cols();
         let after = if row.len() > n {
             row.truncate(n - 1);
             truncated_line_indicator()
@@ -128,7 +137,7 @@ impl Viewer {
 
     fn scroll_down(&mut self, n: usize) {
         let lines = self.lines.len();
-        let bottom = self.y + self.rows();
+        let bottom = self.y + rows();
         if lines > bottom {
             self.y += cmp::min(n, lines - bottom);
             self.print_screen();
@@ -169,13 +178,13 @@ impl Viewer {
                     self.scroll_down(1);
                 }
                 ' ' => { // Space
-                    self.scroll_down(self.rows() - 1);
+                    self.scroll_down(rows() - 1);
                 }
                 '~' if csi && csi_params == "5" => { // Page Up
-                    self.scroll_up(self.rows() - 1);
+                    self.scroll_up(rows() - 1);
                 }
                 '~' if csi && csi_params == "6" => { // Page Down
-                    self.scroll_down(self.rows() - 1);
+                    self.scroll_down(rows() - 1);
                 }
                 'A' if csi => { // Arrow Up
                     self.scroll_up(1);
@@ -184,14 +193,14 @@ impl Viewer {
                     self.scroll_down(1);
                 }
                 'C' if csi => { // Arrow Right
-                    if self.x + self.cols() < self.width {
-                        self.x += self.cols();
+                    if self.x + cols() < self.width {
+                        self.x += cols();
                         self.print_screen();
                     }
                 }
                 'D' if csi => { // Arrow Left
                     if self.x > 0 {
-                        self.x = self.x.saturating_sub(self.cols());
+                        self.x = self.x.saturating_sub(cols());
                         self.print_screen();
                     }
                 }
@@ -200,7 +209,15 @@ impl Viewer {
                     self.print_screen();
                 }
                 '\x02' => { // Ctrl B -> Go to bottom of file
-                    self.y = self.lines.len() - self.rows();
+                    self.y = self.lines.len() - rows();
+                    self.print_screen();
+                }
+                '\x06' => { // Ctrl F -> Find
+                    self.find();
+                    self.print_screen();
+                }
+                '\x0E' => { // Ctrl N -> Find next
+                    self.find_next();
                     self.print_screen();
                 }
                 c => {
@@ -217,13 +234,41 @@ impl Viewer {
         Ok(())
     }
 
-    fn rows(&self) -> usize {
-        api::console::rows() - 1 // Leave out one line for status line
+    pub fn find(&mut self) {
+        if let Some(query) = prompt(&mut self.search_prompt, "Find: ") {
+            if !query.is_empty() {
+                self.search_prompt.history.add(&query);
+                self.search_query = query;
+                self.find_next();
+            }
+        }
     }
 
-    fn cols(&self) -> usize {
-        api::console::cols()
+    pub fn find_next(&mut self) {
+        for (y, line) in self.lines.iter().enumerate() {
+            if y <= self.y {
+                continue;
+            }
+            if line.find(&self.search_query).is_some() {
+                self.y = y;
+                break;
+            }
+        }
     }
+}
+
+pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
+    let color = Style::color("black").with_background("silver");
+    let reset = Style::reset();
+
+    // Set up the bottom line for the prompt
+    print!("\x1b[{};1H", rows() + 1);
+    print!("{}{}", color, " ".repeat(cols()));
+    print!("\x1b[{};1H", rows() + 1);
+
+    let res = prompt.input(label);
+    print!("{}", reset);
+    res
 }
 
 fn truncated_line_indicator() -> String {
