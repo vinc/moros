@@ -2,7 +2,7 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::{fs, io};
-use crate::usr::edit::{rows, cols};
+use crate::usr::edit::{prompt, rows, cols};
 
 use alloc::format;
 use alloc::string::String;
@@ -235,7 +235,10 @@ impl Viewer {
     }
 
     pub fn find(&mut self) {
-        if let Some(query) = prompt(&mut self.search_prompt, "Find: ") {
+        let res = prompt(&mut self.search_prompt, "Find: ");
+        print!("\x1b[?25l"); // Disable cursor
+
+        if let Some(query) = res {
             if !query.is_empty() {
                 self.search_prompt.history.add(&query);
                 self.search_query = query;
@@ -255,20 +258,6 @@ impl Viewer {
             }
         }
     }
-}
-
-pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
-    let color = Style::color("black").with_background("silver");
-    let reset = Style::reset();
-
-    // Set up the bottom line for the prompt
-    print!("\x1b[{};1H", rows() + 1);
-    print!("{}{}", color, " ".repeat(cols()));
-    print!("\x1b[{};1H", rows() + 1);
-
-    let res = prompt.input(label);
-    print!("{}", reset);
-    res
 }
 
 fn truncated_line_indicator() -> String {
