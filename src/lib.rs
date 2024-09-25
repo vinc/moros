@@ -32,7 +32,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::time::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
-    log!("MOROS v{}", v);
+    log!("SYS MOROS v{}", v);
 
     sys::mem::init(boot_info);
     sys::acpi::init(); // Require MEM
