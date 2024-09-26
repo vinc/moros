@@ -756,11 +756,11 @@ pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
     res
 }
 
-fn rows() -> usize {
+pub fn rows() -> usize {
     api::console::rows() - 1 // Leave out one line for status line
 }
 
-fn cols() -> usize {
+pub fn cols() -> usize {
     api::console::cols()
 }
 
