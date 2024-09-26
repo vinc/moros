@@ -345,7 +345,10 @@ impl Writer {
     }
 
     fn scroll_down(&mut self, n: usize) {
-        self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - SCREEN_HEIGHT);
+        self.scroll_reader = cmp::min(
+            self.scroll_reader + n,
+            self.scroll_bottom - SCREEN_HEIGHT
+        );
         self.scroll();
     }
 
