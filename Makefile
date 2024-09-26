@@ -26,19 +26,27 @@ export MOROS_MEMORY = $(memory)
 export MOROS_KEYBOARD = $(keyboard)
 
 # Build userspace binaries
+
 user-nasm:
 	basename -s .s dsk/src/bin/*.s | xargs -I {} \
     nasm dsk/src/bin/{}.s -o dsk/bin/{}.tmp
 	basename -s .s dsk/src/bin/*.s | xargs -I {} \
 		sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
 	rm dsk/bin/*.tmp
+
+user-cargo-opts = --no-default-features --features userspace --release
+
+# FIXME: Userspace alloc panic when the default `lld` linker is used, but the
+# resulting binaries are much larger with `ld`
+linker-opts = -C linker-flavor=ld
+
 user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
-		cargo rustc --no-default-features --features userspace --release --bin {}
-	cargo rustc --no-default-features --features userspace --release --bin hello -- -C linker-flavor=ld
-	cargo rustc --no-default-features --features userspace --release --bin exec -- -C linker-flavor=ld
+		cargo rustc $(user-cargo-opts) --bin {}
+	cargo rustc $(user-cargo-opts) --bin exec -- $(linker-opts)
+	cargo rustc $(user-cargo-opts) --bin hello -- $(linker-opts)
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
