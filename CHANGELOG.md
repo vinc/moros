@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Fix usage of CSI sequences for scrolling the scrollback buffer (#667)
+- Add search to viewer (#666)
+- Add scrollback buffer support (#627)
+- Improve option parsing (#665)
+- Bump lazy_static from 1.4.0 to 1.5.0 (#643)
 - Add pkg command (#663)
 - Add write --parents option (#664)
 - Add chess puzzle (#662)
