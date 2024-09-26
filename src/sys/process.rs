@@ -357,34 +357,34 @@ impl Process {
         let stack_addr = code_addr + proc_size - 4096;
 
         let mut entry_point_addr = 0;
-        let code_ptr = code_addr as *mut u8;
-        let code_size = bin.len();
-
-        sys::allocator::alloc_pages(&mut mapper, code_addr, code_size).
-            expect("proc mem alloc");
 
         if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry_point_addr = obj.entry();
 
-                let addr = code_addr + entry_point_addr;
-                sys::allocator::alloc_pages(&mut mapper, addr, code_size).
-                    expect("proc mem alloc");
-
                 for segment in obj.segments() {
-                    let addr = segment.address() as usize;
                     if let Ok(data) = segment.data() {
+                        let addr = code_addr + segment.address();
+                        let size = segment.size() as usize;
+                        sys::allocator::alloc_pages(&mut mapper, addr, size)?;
                         for (i, b) in data.iter().enumerate() {
+                            let ptr = (addr + i as u64) as *mut u8;
                             unsafe {
-                                core::ptr::write(code_ptr.add(addr + i), *b)
+                                core::ptr::write(ptr, *b)
                             };
                         }
                     }
                 }
             }
         } else if bin[0..4] == BIN_MAGIC { // Flat binary
+            let addr = code_addr;
+            let size = bin.len() - 4;
+            sys::allocator::alloc_pages(&mut mapper, addr, size)?;
             for (i, b) in bin.iter().skip(4).enumerate() {
-                unsafe { core::ptr::write(code_ptr.add(i), *b) };
+                let ptr = (addr + i as u64) as *mut u8;
+                unsafe {
+                    core::ptr::write(ptr, *b)
+                };
             }
         } else {
             return Err(());
