@@ -339,6 +339,16 @@ impl Writer {
         }
     }
 
+    fn scroll_up(&mut self, n: usize) {
+        self.scroll_reader = self.scroll_reader.saturating_sub(n);
+        self.scroll();
+    }
+
+    fn scroll_down(&mut self, n: usize) {
+        self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - SCREEN_HEIGHT);
+        self.scroll();
+    }
+
     fn scroll(&mut self) {
         let dy = self.scroll_reader;
         for y in 0..SCREEN_HEIGHT {
@@ -500,22 +510,6 @@ impl Perform for Writer {
                 self.set_writer_position(x, y);
                 self.set_cursor_position(x, y);
             }
-            'S' => { // Scroll Up
-                let mut n = 0;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
-                self.scroll_reader = self.scroll_reader.saturating_sub(n);
-                self.scroll();
-            }
-            'T' => { // Scroll Down
-                let mut n = 0;
-                for param in params.iter() {
-                    n = param[0] as usize;
-                }
-                self.scroll_reader = cmp::min(self.scroll_reader + n, self.scroll_bottom - SCREEN_HEIGHT);
-                self.scroll();
-            }
             'h' => { // Enable
                 for param in params.iter() {
                     match param[0] {
@@ -531,6 +525,15 @@ impl Perform for Writer {
                         12 => self.disable_echo(),
                         25 => self.disable_cursor(),
                         _ => return,
+                    }
+                }
+            }
+            '~' => {
+                for param in params.iter() {
+                    match param[0] {
+                        5 => self.scroll_up(SCREEN_HEIGHT),
+                        6 => self.scroll_down(SCREEN_HEIGHT),
+                        _ => continue,
                     }
                 }
             }
