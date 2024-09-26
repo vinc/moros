@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Improve process code alloc (#669)
+- Fix userspace heap address (#668)
 - Fix usage of CSI sequences for scrolling the scrollback buffer (#667)
 - Add search to viewer (#666)
 - Add scrollback buffer support (#627)
