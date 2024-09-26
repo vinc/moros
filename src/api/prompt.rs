@@ -191,11 +191,11 @@ impl Prompt {
     }
 
     fn handle_page_up_key(&mut self) {
-        print!("\x1b[25S");
+        print!("\x1b[5~");
     }
 
     fn handle_page_down_key(&mut self) {
-        print!("\x1b[25T");
+        print!("\x1b[6~");
     }
 
     fn handle_forward_key(&mut self) {
