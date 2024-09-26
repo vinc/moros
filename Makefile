@@ -37,6 +37,8 @@ user-rust:
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cargo rustc --no-default-features --features userspace --release --bin {}
+	cargo rustc --no-default-features --features userspace --release --bin hello -- -C linker-flavor=ld
+	cargo rustc --no-default-features --features userspace --release --bin exec -- -C linker-flavor=ld
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
