@@ -460,7 +460,7 @@ impl Process {
         };
         let args_ptr = args.as_ptr() as u64;
 
-        let heap_addr = addr;
+        let heap_addr = addr + 4096;
         let heap_size = ((self.stack_addr - heap_addr) / 2) as usize;
         unsafe {
             self.allocator.lock().init(heap_addr as *mut u8, heap_size);
