@@ -365,27 +365,12 @@ impl Process {
                 for segment in obj.segments() {
                     if let Ok(data) = segment.data() {
                         let addr = code_addr + segment.address();
-                        let size = segment.size() as usize;
-                        sys::allocator::alloc_pages(&mut mapper, addr, size)?;
-                        for (i, b) in data.iter().enumerate() {
-                            let ptr = (addr + i as u64) as *mut u8;
-                            unsafe {
-                                core::ptr::write(ptr, *b)
-                            };
-                        }
+                        copy_to_addr(&mut mapper, addr, &data)?;
                     }
                 }
             }
         } else if bin[0..4] == BIN_MAGIC { // Flat binary
-            let addr = code_addr;
-            let size = bin.len() - 4;
-            sys::allocator::alloc_pages(&mut mapper, addr, size)?;
-            for (i, b) in bin.iter().skip(4).enumerate() {
-                let ptr = (addr + i as u64) as *mut u8;
-                unsafe {
-                    core::ptr::write(ptr, *b)
-                };
-            }
+            copy_to_addr(&mut mapper, code_addr, &bin[4..])?;
         } else {
             return Err(());
         }
@@ -489,4 +474,17 @@ impl Process {
             );
         }
     }
+}
+
+type Res = Result<(), ()>;
+
+fn copy_to_addr(mapper: &mut OffsetPageTable, addr: u64, buf: &[u8]) -> Res {
+    let size = buf.len();
+    sys::allocator::alloc_pages(mapper, addr, size)?;
+    let src = buf.as_ptr();
+    let dst = addr as *mut u8;
+    unsafe {
+        core::ptr::copy_nonoverlapping(src, dst, size);
+    }
+    Ok(())
 }
