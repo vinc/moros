@@ -358,6 +358,7 @@ impl Editor {
                 '~' if csi && csi_params == "5" => { // Page Up
                     let scroll = rows() - 1; // Keep one line on screen
                     self.offset.y -= cmp::min(scroll, self.offset.y);
+                    self.align_cursor();
                     self.print_screen();
                 }
                 '~' if csi && csi_params == "6" => { // Page Down
@@ -368,6 +369,7 @@ impl Editor {
                     if self.cursor.y + scroll > remaining {
                         self.cursor.y = 0;
                     }
+                    self.align_cursor();
                     self.print_screen();
                 }
                 'A' if csi => { // Arrow Up
