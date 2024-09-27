@@ -367,11 +367,10 @@ impl Process {
                         let addr = code_addr + segment.address();
                         let size = segment.size() as usize;
                         sys::allocator::alloc_pages(&mut mapper, addr, size)?;
-                        for (i, b) in data.iter().enumerate() {
-                            let ptr = (addr + i as u64) as *mut u8;
-                            unsafe {
-                                core::ptr::write(ptr, *b)
-                            };
+                        let src = data.as_ptr();
+                        let dst = addr as *mut u8;
+                        unsafe {
+                            core::ptr::copy_nonoverlapping(src, dst, size);
                         }
                     }
                 }
@@ -380,11 +379,10 @@ impl Process {
             let addr = code_addr;
             let size = bin.len() - 4;
             sys::allocator::alloc_pages(&mut mapper, addr, size)?;
-            for (i, b) in bin.iter().skip(4).enumerate() {
-                let ptr = (addr + i as u64) as *mut u8;
-                unsafe {
-                    core::ptr::write(ptr, *b)
-                };
+            let src = bin[4..].as_ptr();
+            let dst = addr as *mut u8;
+            unsafe {
+                core::ptr::copy_nonoverlapping(src, dst, size);
             }
         } else {
             return Err(());
