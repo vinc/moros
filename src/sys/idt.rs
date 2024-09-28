@@ -126,8 +126,10 @@ extern "x86-interrupt" fn page_fault_handler(
     _stack_frame: InterruptStackFrame,
     error_code: PageFaultErrorCode,
 ) {
-    //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
+    let csi_color = api::console::Style::color("red");
+    let csi_reset = api::console::Style::reset();
     let addr = Cr2::read().unwrap().as_u64();
+    //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
     let page_table = unsafe { sys::process::page_table() };
     let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
@@ -135,11 +137,40 @@ extern "x86-interrupt" fn page_fault_handler(
         OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
     };
 
-    if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
-        let csi_color = api::console::Style::color("red");
-        let csi_reset = api::console::Style::reset();
+    if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
+        if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
+            printk!(
+                "{}Error:{} Could not allocate page at {:#X}\n",
+                csi_color, csi_reset, addr
+            );
+            if error_code.contains(PageFaultErrorCode::USER_MODE) {
+                api::syscall::exit(ExitCode::PageFaultError);
+            } else {
+                hlt_loop();
+            }
+        }
+    } else if error_code.contains(PageFaultErrorCode::USER_MODE) {
+        //debug!("{:?}", error_code);
+        let start = (addr / 4096) * 4096;
+        if sys::allocator::alloc_pages(&mut mapper, start, 4096).is_ok() {
+            if error_code.contains(PageFaultErrorCode::INSTRUCTION_FETCH) {
+                let code_addr = sys::process::code_addr();
+                let src = (code_addr + start) as *mut u8;
+                let dst = start as *mut u8;
+                //debug!("{:#p} -> {:#p}", src, dst);
+                unsafe {
+                    core::ptr::copy_nonoverlapping(src, dst, 4096);
+                }
+                //debug!("done");
+            }
+        }
+        // FIXME: `USER_MODE` without `INSTRUCTION_FETCH` can happen when the
+        // .bss section of an ELF binary is accessed. The first time we can
+        // allocate but not the following times.
+    } else {
+        debug!("{:?}", error_code);
         printk!(
-            "{}Error:{} Could not allocate address {:#X}\n",
+            "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr
         );
         if error_code.contains(PageFaultErrorCode::USER_MODE) {

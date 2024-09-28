@@ -262,7 +262,7 @@ pub unsafe fn alloc(layout: Layout) -> *mut u8 {
     proc.allocator.alloc(layout)
 }
 
-pub unsafe fn free(ptr: *mut u8, _layout: Layout) {
+pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     let bottom = proc.allocator.lock().bottom();
@@ -272,9 +272,11 @@ pub unsafe fn free(ptr: *mut u8, _layout: Layout) {
     //debug!("heap top:    {:#?}", top);
     if bottom <= ptr && ptr < top {
         // FIXME: panicked at 'Freed node aliases existing hole! Bad free?'
-        //proc.allocator.dealloc(ptr, layout);
+        proc.allocator.dealloc(ptr, layout);
     } else {
-        //debug!("Could not free {:#?}", ptr);
+        //let size = layout.size();
+        //let plural = if size != 1 { "s" } else { "" };
+        //debug!("Could not free {} byte{} at {:#?}", size, plural, ptr);
     }
 }
 
@@ -365,12 +367,16 @@ impl Process {
                 for segment in obj.segments() {
                     if let Ok(data) = segment.data() {
                         let addr = code_addr + segment.address();
-                        copy_to_addr(&mut mapper, addr, data)?;
+                        let size = segment.size() as usize;
+                        // NOTE: `size` can be larger than `data.len()` because
+                        // the object can contain uninitialized sections like
+                        // ".bss" that have a size but no data.
+                        load_binary(&mut mapper, addr, size, data)?;
                     }
                 }
             }
         } else if bin[0..4] == BIN_MAGIC { // Flat binary
-            copy_to_addr(&mut mapper, code_addr, &bin[4..])?;
+            load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..])?;
         } else {
             return Err(());
         }
@@ -476,15 +482,15 @@ impl Process {
     }
 }
 
-type Res = Result<(), ()>;
-
-fn copy_to_addr(mapper: &mut OffsetPageTable, addr: u64, buf: &[u8]) -> Res {
-    let size = buf.len();
+fn load_binary(
+    mapper: &mut OffsetPageTable, addr: u64, size: usize, buf: &[u8]
+) -> Result<(), ()> {
+    debug_assert!(size >= buf.len());
     sys::allocator::alloc_pages(mapper, addr, size)?;
     let src = buf.as_ptr();
     let dst = addr as *mut u8;
     unsafe {
-        core::ptr::copy_nonoverlapping(src, dst, size);
+        core::ptr::copy_nonoverlapping(src, dst, buf.len());
     }
     Ok(())
 }
