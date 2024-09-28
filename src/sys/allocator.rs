@@ -84,7 +84,7 @@ pub fn alloc_pages(
             } else {
                 debug!("Could not map {:?} to {:?}", page, frame);
                 if let Ok(old_frame) = mapper.translate_page(page) {
-                    debug!("Aleardy mapped to {:?}", old_frame);
+                    debug!("Already mapped to {:?}", old_frame);
                 }
                 return Err(());
             }
