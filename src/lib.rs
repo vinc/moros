@@ -45,7 +45,8 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::clock::init(); // Require MEM
 }
 
-#[alloc_error_handler]
+#[allow(dead_code)]
+#[cfg_attr(not(feature = "userspace"), alloc_error_handler)]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
