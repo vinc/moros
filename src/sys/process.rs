@@ -262,7 +262,7 @@ pub unsafe fn alloc(layout: Layout) -> *mut u8 {
     proc.allocator.alloc(layout)
 }
 
-pub unsafe fn free(ptr: *mut u8, _layout: Layout) {
+pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
     let bottom = proc.allocator.lock().bottom();
@@ -272,9 +272,11 @@ pub unsafe fn free(ptr: *mut u8, _layout: Layout) {
     //debug!("heap top:    {:#?}", top);
     if bottom <= ptr && ptr < top {
         // FIXME: panicked at 'Freed node aliases existing hole! Bad free?'
-        //proc.allocator.dealloc(ptr, layout);
+        proc.allocator.dealloc(ptr, layout);
     } else {
-        //debug!("Could not free {:#?}", ptr);
+        //let size = layout.size();
+        //let plural = if size != 1 { "s" } else { "" };
+        //debug!("Could not free {} byte{} at {:#?}", size, plural, ptr);
     }
 }
 
