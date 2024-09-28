@@ -1,12 +1,12 @@
-use super::{dirname, filename, realpath, FileIO, IO};
-use super::dir::Dir;
+use super::bitmap_block::BitmapBlock;
 use super::block::LinkedBlock;
+use super::dir::Dir;
 use super::dir_entry::DirEntry;
+use super::{dirname, filename, realpath, FileIO, IO};
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec;
-use core::convert::From;
 
 pub enum SeekFrom {
     Start(u32),
@@ -42,7 +42,7 @@ impl File {
             name: String::new(),
             addr: 0,
             size: 0,
-            offset:0,
+            offset: 0,
         }
     }
 
@@ -87,13 +87,13 @@ impl File {
             SeekFrom::End(i)     => i + self.size as i32,
         };
         if offset < 0 || offset > self.size as i32 { // TODO: offset > size?
-            return Err(())
+            return Err(());
         }
         self.offset = offset as u32;
 
         Ok(self.offset)
     }
-    // TODO: add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
+    // TODO: Add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
 
     // TODO: `return Result<String>`
     pub fn read_to_string(&mut self) -> String {
@@ -174,7 +174,15 @@ impl FileIO for File {
                     if bytes < buf_len {
                         next_block.addr()
                     } else {
-                        // TODO: Free the next block(s)
+                        // Free next block(s)
+                        let mut free_block = next_block;
+                        loop {
+                            BitmapBlock::free(free_block.addr());
+                            match free_block.next() { // FIXME: read after free?
+                                Some(next_block) => free_block = next_block,
+                                None => break,
+                            }
+                        }
                         0
                     }
                 }
@@ -200,8 +208,7 @@ impl FileIO for File {
         Ok(bytes)
     }
 
-    fn close(&mut self) {
-    }
+    fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
         match event {

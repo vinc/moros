@@ -1,7 +1,9 @@
 use crate::sys;
+
+use alloc::string::ToString;
 use core::fmt;
 
-pub use crate::sys::console::{ETX_KEY, EOT_KEY};
+pub use crate::sys::console::{EOT_KEY, ETX_KEY};
 
 #[derive(Clone, Copy)]
 pub struct Style {
@@ -11,23 +13,38 @@ pub struct Style {
 
 impl Style {
     pub fn reset() -> Self {
-        Self { foreground: None, background: None }
+        Self {
+            foreground: None,
+            background: None,
+        }
     }
 
     pub fn foreground(name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: None }
+        Self {
+            foreground: color_to_fg(name),
+            background: None,
+        }
     }
 
     pub fn with_foreground(self, name: &str) -> Self {
-        Self { foreground: color_to_fg(name), background: self.background }
+        Self {
+            foreground: color_to_fg(name),
+            background: self.background,
+        }
     }
 
     pub fn background(name: &str) -> Self {
-        Self { foreground: None, background: color_to_bg(name) }
+        Self {
+            foreground: None,
+            background: color_to_bg(name),
+        }
     }
 
     pub fn with_background(self, name: &str) -> Self {
-        Self { foreground: self.foreground, background: color_to_bg(name) }
+        Self {
+            foreground: self.foreground,
+            background: color_to_bg(name),
+        }
     }
 
     pub fn color(name: &str) -> Self {
@@ -55,25 +72,26 @@ impl fmt::Display for Style {
     }
 }
 
+// W3C Colors (HTML 3.2)
 fn color_to_fg(name: &str) -> Option<usize> {
     match name {
-        "Black"      => Some(30),
-        "Red"        => Some(31),
-        "Green"      => Some(32),
-        "Brown"      => Some(33),
-        "Blue"       => Some(34),
-        "Magenta"    => Some(35),
-        "Cyan"       => Some(36),
-        "LightGray"  => Some(37),
-        "DarkGray"   => Some(90),
-        "LightRed"   => Some(91),
-        "LightGreen" => Some(92),
-        "Yellow"     => Some(93),
-        "LightBlue"  => Some(94),
-        "Pink"       => Some(95),
-        "LightCyan"  => Some(96),
-        "White"      => Some(97),
-        _            => None,
+        "black"  => Some(30),
+        "maroon" => Some(31),
+        "green"  => Some(32),
+        "olive"  => Some(33),
+        "navy"   => Some(34),
+        "purple" => Some(35),
+        "teal"   => Some(36),
+        "silver" => Some(37),
+        "gray"   => Some(90),
+        "red"    => Some(91),
+        "lime"   => Some(92),
+        "yellow" => Some(93),
+        "blue"   => Some(94),
+        "fushia" => Some(95),
+        "aqua"   => Some(96),
+        "white"  => Some(97),
+        _        => None,
     }
 }
 
@@ -89,4 +107,16 @@ pub fn is_printable(c: char) -> bool {
     } else {
         true // TODO
     }
+}
+
+// The size of the screen in VGA Text Mode is 80x25
+
+pub fn cols() -> usize {
+    let n = 80; // chars
+    sys::process::env("COLS").unwrap_or(n.to_string()).parse().unwrap_or(n)
+}
+
+pub fn rows() -> usize {
+    let n = 25; // lines
+    sys::process::env("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)
 }

@@ -33,7 +33,6 @@ additional common aliases.</p>
     <p><strong>Delete</strong> file:</p>
 
     <pre><code>&gt; d a.txt
-&gt; del a.txt
 &gt; delete a.txt
 </code></pre>
 
@@ -80,7 +79,7 @@ additional common aliases.</p>
     <p>When executed without arguments, this command will list the files of the
 current directory.</p>
 
-    <p><strong>Go to</strong> dir:</p>
+    <p><strong>Goto</strong> dir:</p>
 
     <pre><code>&gt; goto /usr/alice
 </code></pre>
@@ -140,9 +139,15 @@ possible to explicitly redirect a handle to another (TODO):</p>
 </code></pre>
 
     <p>When the arrow point to the other direction the source and destination are
-swapped and the standard input is implied (TODO):</p>
+swapped and the standard input is implied:</p>
 
-    <pre><code>&gt; write &lt;= req.txt =&gt; /net/http/moros.cc
+    <pre><code>&gt; http &lt;= req.txt =&gt; res.txt
+</code></pre>
+
+    <p>Here we redirect <code>req.txt</code> to <code>stdin</code> and <code>stdout</code> to <code>res.txt</code>. If both files
+are the same we can use this shortcut:</p>
+
+    <pre><code>&gt; http &lt;=&gt; tmp.txt
 </code></pre>
 
     <p>Redirections should be declared before piping (TODO):</p>

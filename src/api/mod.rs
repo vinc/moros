@@ -5,16 +5,18 @@ macro_rules! entry_point {
         #[panic_handler]
         fn panic(_info: &core::panic::PanicInfo) -> ! {
             $crate::api::syscall::write(1, b"An exception occured!\n");
-            $crate::api::syscall::exit($crate::api::process::ExitCode::ExecError);
+            let code = $crate::api::process::ExitCode::ExecError;
+            $crate::api::syscall::exit(code);
             loop {}
         }
 
         #[export_name = "_start"]
-        pub unsafe extern "sysv64" fn __impl_start(args_ptr: u64, args_len: usize) {
-            let args = core::slice::from_raw_parts(args_ptr as *const _, args_len);
+        pub unsafe extern "sysv64" fn __impl_start(ptr: u64, len: usize) {
+            let args = core::slice::from_raw_parts(ptr as *const _, len);
             let f: fn(&[&str]) = $path;
             f(args);
-            $crate::api::syscall::exit($crate::api::process::ExitCode::Success);
+            let code = $crate::api::process::ExitCode::Success;
+            $crate::api::syscall::exit(code);
         }
     };
 }
@@ -60,13 +62,27 @@ macro_rules! eprintln {
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => ({
-        let csi_color = $crate::api::console::Style::color("LightRed");
+        let csi_color = $crate::api::console::Style::color("red");
         let csi_reset = $crate::api::console::Style::reset();
-        eprintln!("{}Error:{} {}", csi_color, csi_reset, format_args!($($arg)*));
+        eprintln!(
+            "{}Error:{} {}", csi_color, csi_reset, format_args!($($arg)*)
+        );
+    });
+}
+
+#[macro_export]
+macro_rules! warning {
+    ($($arg:tt)*) => ({
+        let csi_color = $crate::api::console::Style::color("yellow");
+        let csi_reset = $crate::api::console::Style::reset();
+        eprintln!(
+            "{}Warning:{} {}", csi_color, csi_reset, format_args!($($arg)*)
+        );
     });
 }
 
 pub mod allocator;
+pub mod base64;
 pub mod clock;
 pub mod console;
 pub mod font;
@@ -74,7 +90,7 @@ pub mod fs;
 pub mod io;
 pub mod process;
 pub mod prompt;
-pub mod random;
+pub mod rng;
 pub mod regex;
 pub mod syscall;
 pub mod time;

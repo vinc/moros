@@ -1,5 +1,5 @@
-use crate::api::fs;
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 
 use alloc::format;
@@ -17,11 +17,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(());
     }
     let pathname = args[1];
-    if let Ok(buf) = fs::read_to_bytes(pathname) { // TODO: read chunks
+    if let Ok(buf) = fs::read_to_bytes(pathname) {
+        // TODO: read chunks
         print_hex(&buf);
         Ok(())
     } else {
-        error!("Could not find file '{}'", pathname);
+        error!("Could not read file '{}'", pathname);
         Err(ExitCode::Failure)
     }
 }
@@ -32,8 +33,10 @@ pub fn print_hex(buf: &[u8]) {
 }
 
 pub fn print_hex_at(buf: &[u8], offset: usize) {
-    let cyan = Style::color("LightCyan");
-    let pink = Style::color("Pink");
+    let null = 0 as char;
+    let cyan = Style::color("aqua");
+    let gray = Style::color("gray");
+    let pink = Style::color("fushia");
     let reset = Style::reset();
 
     for (index, chunk) in buf.chunks(16).enumerate() {
@@ -49,17 +52,22 @@ pub fn print_hex_at(buf: &[u8], offset: usize) {
             if *byte >= 32 && *byte <= 126 {
                 *byte as char
             } else {
-                '.'
+                null
             }
         ).collect();
 
-        println!("{}{:08X}: {}{:40}{}{}", cyan, addr, pink, hex, reset, ascii);
+        let text = ascii.replace(null, &format!("{}.{}", gray, reset));
+
+        println!("{}{:08X}: {}{:40}{}{}", cyan, addr, pink, hex, reset, text);
     }
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} hex {}<file>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} hex {}<file>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }

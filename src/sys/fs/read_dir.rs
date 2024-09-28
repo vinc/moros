@@ -1,10 +1,9 @@
-use super::dir_entry::DirEntry;
 use super::block::LinkedBlock;
 use super::dir::Dir;
+use super::dir_entry::DirEntry;
 use super::FileType;
 
 use alloc::string::String;
-use core::convert::From;
 use core::convert::TryInto;
 
 pub struct ReadDir {
@@ -87,7 +86,7 @@ impl Iterator for ReadDir {
                     _ => {
                         self.block_offset = offset; // Rewind the cursor
                         break;
-                    },
+                    }
                 };
 
                 let entry_addr = self.read_u32();
@@ -109,7 +108,14 @@ impl Iterator for ReadDir {
                 }
 
                 let dir = self.dir.clone();
-                return Some(DirEntry::new(dir, entry_kind, entry_addr, entry_size, entry_time, &entry_name));
+                return Some(DirEntry::new(
+                    dir,
+                    entry_kind,
+                    entry_addr,
+                    entry_size,
+                    entry_time,
+                    &entry_name,
+                ));
             }
 
             match self.block.next() {

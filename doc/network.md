@@ -18,6 +18,7 @@ Display one attribute of the network configuration:
 Set one attribute of the network configuration:
 
     > net config dns 10.0.2.3
+    [14.946833] NET DNS 10.0.2.3
 
 Display network statistics:
 
@@ -49,12 +50,10 @@ Listen for packets transmitted on the network:
 
 The `dhcp` command configures the network automatically:
 
-    > dhcp --verbose
-    DEBUG: DHCP Discover transmitted
-    DEBUG: DHCP Offer received
-    ip:  10.0.2.15/24
-    gw:  10.0.2.2
-    dns: 10.0.2.3
+    > dhcp
+    [8.801660] NET IP 10.0.2.15/24
+    [8.804659] NET GW 10.0.2.2
+    [8.808659] NET DNS 10.0.2.3
 
 ## HOST
 
@@ -63,13 +62,12 @@ The `host` command performs DNS lookups:
     > host example.com                                                                                 
     93.184.216.34
 
-
 ## TCP
 
 The `tcp` command connects to TCP sockets:
 
     > tcp time.nist.gov:13 --verbose
-    DEBUG: Connecting to 129.6.15.30:13
+    DEBUG: Connected to 129.6.15.30:13
 
     58884 20-02-05 19:19:42 00 0 0  49.2 UTC(NIST) *
 
@@ -78,7 +76,6 @@ This could also be done with the `read` command:
     > read /net/tcp/time.nist.gov:13
 
     58884 20-02-05 19:19:55 00 0 0  49.2 UTC(NIST) *
-
 
 ## HTTP
 
@@ -155,3 +152,16 @@ Here's a connexion to a SMTP server to send a mail:
 Sending a file to a server:
 
     > socket 10.0.2.2:1234 <= /tmp/alice.txt
+
+## NTP
+
+The `ntp` commmand is a lisp script used to get the time from a NTP server
+passed as an argument or defined in `/ini/ntp`:
+
+    > ntp
+    2023-03-21 10:00:00
+
+It can be used to synchronize the real-time clock (RTC):
+
+    > ntp => /dev/rtc
+    [42.123456] RTC 2023-03-21 10:00:00 +0000

@@ -26,7 +26,6 @@ additional common aliases.
 **Delete** file:
 
     > d a.txt
-    > del a.txt
     > delete a.txt
 
 **Copy** file:
@@ -65,7 +64,7 @@ additional common aliases.
 When executed without arguments, this command will list the files of the
 current directory.
 
-**Go to** dir:
+**Goto** dir:
 
     > goto /usr/alice
 
@@ -117,9 +116,14 @@ It is possible to chain multiple redirections:
     > time read foo.txt [1]=> bar.txt [2]=> time.txt
 
 When the arrow point to the other direction the source and destination are
-swapped and the standard input is implied (TODO):
+swapped and the standard input is implied:
 
-    > write <= req.txt => /net/http/moros.cc
+    > http <= req.txt => res.txt
+
+Here we redirect `req.txt` to `stdin` and `stdout` to `res.txt`. If both files
+are the same we can use this shortcut:
+
+    > http <=> tmp.txt
 
 Redirections should be declared before piping (TODO):
 

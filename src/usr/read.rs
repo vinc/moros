@@ -1,9 +1,9 @@
-use crate::{api, sys, usr};
-use crate::api::console;
 use crate::api::console::Style;
 use crate::api::fs;
-use crate::api::syscall;
 use crate::api::process::ExitCode;
+use crate::api::syscall;
+use crate::sys::console;
+use crate::{api, usr};
 
 use alloc::borrow::ToOwned;
 use alloc::format;
@@ -29,8 +29,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     // TODO: Create device drivers for `/net` hardcoded commands
     if path.starts_with("/net/") {
-        let csi_option = Style::color("LightCyan");
-        let csi_title = Style::color("Yellow");
+        let csi_option = Style::color("aqua");
+        let csi_title = Style::color("yellow");
         let csi_reset = Style::reset();
         // Examples:
         // > read /net/http/example.com/articles
@@ -39,7 +39,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         // > read /net/tcp/time.nist.gov:13
         let parts: Vec<_> = path.split('/').collect();
         if parts.len() < 4 {
-            println!("{}Usage:{} read {}/net/<proto>/<host>[:<port>]/<path>{1}", csi_title, csi_reset, csi_option);
+            println!(
+                "{}Usage:{} read {}/net/<proto>/<host>[:<port>]/<path>{1}",
+                csi_title, csi_reset, csi_option
+            );
             Err(ExitCode::Failure)
         } else {
             let host = parts[3];
@@ -72,8 +75,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     } else if let Some(info) = syscall::info(path) {
         if info.is_file() {
-            if let Ok(contents) = api::fs::read_to_string(path) {
-                print!("{}", contents);
+            if let Ok(buf) = api::fs::read_to_bytes(path) {
+                syscall::write(1, &buf);
                 Ok(())
             } else {
                 error!("Could not read '{}'", path);
@@ -82,23 +85,28 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         } else if info.is_dir() {
             usr::list::main(args)
         } else if info.is_device() {
-            // TODO: Improve device file usage
-            let is_char_device = info.size() == 4;
-            let is_float_device = info.size() == 8;
-            let is_eof_device = info.size() > 8;
+            // TODO: Add a way to read the device file to get its type directly
+            // instead of relying on the various device file sizes. We could
+            // maybe allow `sys::fs::file::File::open()` to open a Device file
+            // as a regular file and read the type in the first byte of the
+            // file.
+            let n = info.size();
+            let is_char_device = n == 4;
+            let is_float_device = n == 8;
+            let is_block_device = n > 8;
             loop {
-                if sys::console::end_of_text() || sys::console::end_of_transmission() {
+                if console::end_of_text() || console::end_of_transmission() {
                     println!();
                     return Ok(());
                 }
                 if let Ok(bytes) = fs::read_to_bytes(path) {
                     if is_char_device && bytes.len() == 1 {
                         match bytes[0] as char {
-                            console::ETX_KEY => {
+                            api::console::ETX_KEY => {
                                 println!("^C");
                                 return Ok(());
                             }
-                            console::EOT_KEY => {
+                            api::console::EOT_KEY => {
                                 println!("^D");
                                 return Ok(());
                             }
@@ -106,13 +114,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         }
                     }
                     if is_float_device && bytes.len() == 8 {
-                        println!("{:.6}", f64::from_be_bytes(bytes[0..8].try_into().unwrap()));
+                        let f = f64::from_be_bytes(bytes[0..8].try_into().
+                            unwrap());
+                        println!("{:.6}", f);
                         return Ok(());
                     }
                     for b in bytes {
                         print!("{}", b as char);
                     }
-                    if is_eof_device {
+                    if is_block_device {
                         println!();
                         return Ok(());
                     }
@@ -132,10 +142,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} read {}<path>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} read {}<path>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
     println!("  {0}<dir>/{1}     Read directory", csi_option, csi_reset);

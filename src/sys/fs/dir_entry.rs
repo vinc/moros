@@ -1,7 +1,9 @@
-use super::{dirname, filename, realpath, FileType};
 use super::dir::Dir;
+use super::{dirname, filename, realpath, FileType};
+
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::convert::TryInto;
 
 #[derive(Clone)]
 pub struct DirEntry {
@@ -26,9 +28,23 @@ impl DirEntry {
         None
     }
 
-    pub fn new(dir: Dir, kind: FileType, addr: u32, size: u32, time: u64, name: &str) -> Self {
+    pub fn new(
+        dir: Dir,
+        kind: FileType,
+        addr: u32,
+        size: u32,
+        time: u64,
+        name: &str
+    ) -> Self {
         let name = String::from(name);
-        Self { dir, kind, addr, size, time, name }
+        Self {
+            dir,
+            kind,
+            addr,
+            size,
+            time,
+            name,
+        }
     }
 
     pub fn empty_len() -> usize {
@@ -80,7 +96,12 @@ impl DirEntry {
     }
 
     pub fn info(&self) -> FileInfo {
-        FileInfo { kind: self.kind, name: self.name(), size: self.size(), time: self.time }
+        FileInfo {
+            kind: self.kind,
+            name: self.name(),
+            size: self.size(),
+            time: self.time,
+        }
     }
 }
 
@@ -94,7 +115,12 @@ pub struct FileInfo {
 
 impl FileInfo {
     pub fn new() -> Self {
-        Self { kind: FileType::File, name: String::new(), size: 0, time: 0 }
+        Self {
+            kind: FileType::File,
+            name: String::new(),
+            size: 0,
+            time: 0,
+        }
     }
 
     pub fn root() -> Self {
@@ -102,7 +128,12 @@ impl FileInfo {
         let name = String::new();
         let size = Dir::root().size() as u32;
         let time = 0;
-        Self { kind, name, size, time }
+        Self {
+            kind,
+            name,
+            size,
+            time,
+        }
     }
 
     pub fn size(&self) -> u32 {
@@ -147,20 +178,18 @@ impl FileInfo {
     }
 }
 
-use core::convert::TryInto;
-use core::convert::From;
 impl From<&[u8]> for FileInfo {
     fn from(buf: &[u8]) -> Self {
-        let kind = match buf[0] { // TODO: Add FileType::from(u8)
-            0 => FileType::Dir,
-            1 => FileType::File,
-            2 => FileType::Device,
-            _ => panic!(),
-        };
+        let kind = (buf[0] as usize).try_into().unwrap();
         let size = u32::from_be_bytes(buf[1..5].try_into().unwrap());
         let time = u64::from_be_bytes(buf[5..13].try_into().unwrap());
         let i = 14 + buf[13] as usize;
         let name = String::from_utf8_lossy(&buf[14..i]).into();
-        Self { kind, name, size, time }
+        Self {
+            kind,
+            name,
+            size,
+            time,
+        }
     }
 }

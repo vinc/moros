@@ -2,12 +2,12 @@ use crate::api::{console, fs, io};
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::cmp;
 use vte::{Params, Parser, Perform};
 
 pub struct Prompt {
     pub completion: Completion,
     pub history: History,
+    pub eol: bool,
     offset: usize, // Offset line by the length of the prompt string
     cursor: usize,
     line: Vec<char>, // UTF-32
@@ -18,6 +18,7 @@ impl Prompt {
         Self {
             completion: Completion::new(),
             history: History::new(),
+            eol: true,
             offset: 0,
             cursor: 0,
             line: Vec::with_capacity(80),
@@ -34,22 +35,28 @@ impl Prompt {
             match c {
                 console::ETX_KEY => { // End of Text (^C)
                     self.update_completion();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return Some(String::new());
-                },
+                }
                 console::EOT_KEY => { // End of Transmission (^D)
                     self.update_completion();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return None;
-                },
+                }
                 '\n' => { // New Line
                     self.update_completion();
                     self.update_history();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return Some(self.line.iter().collect());
-                },
+                }
                 c => {
-                   for b in c.to_string().as_bytes() {
+                    for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
                     }
                 }
@@ -91,16 +98,16 @@ impl Prompt {
                 } else {
                     (bs, 0)
                 }
-            },
+            }
             None => {
                 let line: String = self.line.iter().collect();
                 self.completion.entries = (self.completion.completer)(&line);
                 if !self.completion.entries.is_empty() {
                     (0, 0)
                 } else {
-                    return
+                    return;
                 }
-            },
+            }
         };
         let erase = "\x08".repeat(bs);
         let complete = &self.completion.entries[pos];
@@ -123,16 +130,16 @@ impl Prompt {
                 } else {
                     (bs, pos - 1)
                 }
-            },
+            }
             None => {
                 let line: String = self.line.iter().collect();
                 self.completion.entries = (self.completion.completer)(&line);
                 if !self.completion.entries.is_empty() {
                     (0, 0)
                 } else {
-                    return
+                    return;
                 }
-            },
+            }
         };
         let erase = "\x08".repeat(bs);
         let complete = &self.completion.entries[pos];
@@ -147,8 +154,12 @@ impl Prompt {
             return;
         }
         let (bs, i) = match self.history.pos {
-            Some(i) => (self.history.entries[i].chars().count(), cmp::max(i, 1) - 1),
-            None => (self.line.len(), n - 1),
+            Some(i) => {
+                (self.history.entries[i].chars().count(), i.saturating_sub(1))
+            }
+            None => {
+                (self.line.len(), n - 1)
+            }
         };
         let line = &self.history.entries[i];
         let blank = ' '.to_string().repeat((self.offset + bs) - self.cursor);
@@ -177,6 +188,14 @@ impl Prompt {
         print!("{}{}", erase, line);
         self.cursor = self.offset + line.chars().count();
         self.history.pos = pos;
+    }
+
+    fn handle_page_up_key(&mut self) {
+        print!("\x1b[5~");
+    }
+
+    fn handle_page_down_key(&mut self) {
+        print!("\x1b[6~");
     }
 
     fn handle_forward_key(&mut self) {
@@ -245,7 +264,7 @@ impl Perform for Prompt {
         match c {
             '\x08' => self.handle_backspace_key(),
             '\t' => self.handle_tab_key(),
-            _ => {},
+            _ => {}
         }
     }
 
@@ -256,7 +275,7 @@ impl Perform for Prompt {
         }
     }
 
-    fn csi_dispatch(&mut self, params: &Params, _intermediates: &[u8], _ignore: bool, c: char) {
+    fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
         match c {
             'A' => self.handle_up_key(),
             'B' => self.handle_down_key(),
@@ -265,12 +284,15 @@ impl Perform for Prompt {
             'Z' => self.handle_backtab_key(),
             '~' => {
                 for param in params.iter() {
-                    if param[0] == 3 { // Delete
-                        self.handle_delete_key();
+                    match param[0] {
+                        3 => self.handle_delete_key(),
+                        5 => self.handle_page_up_key(),
+                        6 => self.handle_page_down_key(),
+                        _ => continue,
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
@@ -314,8 +336,8 @@ impl History {
     }
 
     pub fn load(&mut self, path: &str) {
-        if let Ok(lines) = fs::read_to_string(path) {
-            self.entries = lines.split('\n').map(|s| s.to_string()).collect();
+        if let Ok(contents) = fs::read_to_string(path) {
+            self.entries = contents.lines().map(|s| s.to_string()).collect();
         }
     }
 

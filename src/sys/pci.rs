@@ -1,8 +1,10 @@
+use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::port::Port;
+use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceConfig {
@@ -47,7 +49,9 @@ impl DeviceConfig {
         let mut base_addresses: [u32; 6] = [0; 6];
         for i in 0..6 {
             let offset = 0x10 + ((i as u8) << 2);
-            let mut register = ConfigRegister::new(bus, device, function, offset);
+            let mut register = ConfigRegister::new(
+                bus, device, function, offset
+            );
             base_addresses[i] = register.read();
         }
 
@@ -72,15 +76,49 @@ impl DeviceConfig {
     }
 
     pub fn enable_bus_mastering(&mut self) {
-        let mut register = ConfigRegister::new(self.bus, self.device, self.function, 0x04);
+        let mut register = ConfigRegister::new(
+            self.bus, self.device, self.function, 0x04
+        );
         let mut data = register.read();
         data.set_bit(2, true);
         register.write(data);
     }
+
+    pub fn bar_type(&self) -> u16 {
+        self.base_addresses[0].get_bits(1..3) as u16
+    }
+
+    pub fn mem_base(&self) -> PhysAddr {
+        debug_assert!(self.base_addresses[0].get_bit(0) == false);
+        let bar0 = self.base_addresses[0];
+        let bar1 = self.base_addresses[1];
+        let addr = match bar0.get_bits(1..3) {
+            0 => { // 32 bits
+                (bar0 & 0xFFFFFFF0) as u64
+            }
+            1 => { // 16 bits
+                (bar0 & 0x0000FFF0) as u64
+            }
+            2 => { // 64 bits
+                let l = (bar0 & 0xFFFFFFF0) as u64;
+                let h = (bar1 & 0xFFFFFFF0) as u64;
+                l + (h << 32)
+            }
+            _ => { // TODO
+                panic!("Unknown base address size");
+            }
+        };
+        PhysAddr::new(addr)
+    }
+
+    pub fn io_base(&self) -> u16 {
+        debug_assert!(self.base_addresses[0].get_bit(0) == true);
+        (self.base_addresses[0] as u16) & 0xFFF0
+    }
 }
 
 lazy_static! {
-    pub static ref PCI_DEVICES: Mutex<Vec<DeviceConfig>> = Mutex::new(Vec::new());
+    pub static ref PCI_DEVICES: Mutex<Vec<DeviceConfig>> = Mutex::new(vec![]);
 }
 
 pub fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
@@ -122,7 +160,10 @@ fn check_device(bus: u8, device: u8) {
 fn add_device(bus: u8, device: u8, function: u8) {
     let config = DeviceConfig::new(bus, device, function);
     PCI_DEVICES.lock().push(config);
-    log!("PCI {:04X}:{:02X}:{:02X} [{:04X}:{:04X}]\n", bus, device, function, config.vendor_id, config.device_id);
+    log!(
+        "PCI {:04X}:{:02X}:{:02X} [{:04X}:{:04X}]",
+        bus, device, function, config.vendor_id, config.device_id
+    );
 }
 
 fn get_vendor_id(bus: u8, device: u8, function: u8) -> u16 {
@@ -151,10 +192,11 @@ impl ConfigRegister {
         Self {
             data_port: Port::new(0xCFC),
             addr_port: Port::new(0xCF8),
-            addr: 0x8000_0000 | ((bus as u32) << 16)
-                              | ((device as u32) << 11)
-                              | ((function as u32) << 8)
-                              | ((offset as u32) & 0xFC),
+            addr: 0x8000_0000
+                | ((bus as u32) << 16)
+                | ((device as u32) << 11)
+                | ((function as u32) << 8)
+                | ((offset as u32) & 0xFC),
         }
     }
 
@@ -182,22 +224,29 @@ pub fn init() {
     for dev in devs.iter() {
         // NOTE: There's not yet an AHCI driver for SATA disks so we must
         // switch to IDE legacy mode for the ATA driver.
-        if dev.class == 0x01 && dev.subclass == 0x01 { // IDE Controller
-            let mut register = ConfigRegister::new(dev.bus, dev.device, dev.function, 0x08);
+        if dev.class == 0x01 && dev.subclass == 0x01 {
+            // IDE Controller
+            let mut register = ConfigRegister::new(
+                dev.bus, dev.device, dev.function, 0x08
+            );
             let mut data = register.read();
             let prog_offset = 8; // The programing interface start at bit 8
 
             // Switching primary channel to compatibility mode
-            if dev.prog.get_bit(0) { // PCI native mode
-                if dev.prog.get_bit(1) { // Modifiable
+            if dev.prog.get_bit(0) {
+                // PCI native mode
+                if dev.prog.get_bit(1) {
+                    // Modifiable
                     data.set_bit(prog_offset, false);
                     register.write(data);
                 }
             }
 
             // Switching secondary channel to compatibility mode
-            if dev.prog.get_bit(2) { // PCI native mode
-                if dev.prog.get_bit(3) { // Modifiable
+            if dev.prog.get_bit(2) {
+                // PCI native mode
+                if dev.prog.get_bit(3) {
+                    // Modifiable
                     data.set_bit(prog_offset + 2, false);
                     register.write(data);
                 }

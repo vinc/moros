@@ -1,16 +1,19 @@
+use crate::api::syscall;
 use crate::sys;
 use crate::sys::fs::OpenFlag;
-use crate::api::syscall;
 
 use alloc::format;
 use alloc::string::{String, ToString};
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 
-pub use crate::sys::fs::{FileInfo, DeviceType};
+pub use crate::sys::fs::{DeviceType, FileInfo};
 
 #[derive(Clone, Copy)]
-pub enum IO { Read, Write }
+pub enum IO {
+    Read,
+    Write,
+}
 
 pub trait FileIO {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()>;
@@ -20,16 +23,25 @@ pub trait FileIO {
 }
 
 pub fn dirname(pathname: &str) -> &str {
-    let n = pathname.len();
+    let pathname = if pathname.len() > 1 {
+        pathname.trim_end_matches('/')
+    } else {
+        pathname
+    };
     let i = match pathname.rfind('/') {
         Some(0) => 1,
         Some(i) => i,
-        None => n,
+        None => return "",
     };
     &pathname[0..i]
 }
 
 pub fn filename(pathname: &str) -> &str {
+    let pathname = if pathname.len() > 1 {
+        pathname.trim_end_matches('/')
+    } else {
+        pathname
+    };
     let n = pathname.len();
     let i = match pathname.rfind('/') {
         Some(i) => i + 1,
@@ -56,6 +68,22 @@ pub fn exists(path: &str) -> bool {
 pub fn is_dir(path: &str) -> bool {
     if let Some(info) = syscall::info(path) {
         info.is_dir()
+    } else {
+        false
+    }
+}
+
+pub fn is_file(path: &str) -> bool {
+    if let Some(info) = syscall::info(path) {
+        info.is_file()
+    } else {
+        false
+    }
+}
+
+pub fn is_device(path: &str) -> bool {
+    if let Some(info) = syscall::info(path) {
+        info.is_device()
     } else {
         false
     }
@@ -95,18 +123,57 @@ pub fn open_device(path: &str) -> Option<usize> {
     syscall::open(path, flags)
 }
 
-pub fn create_device(path: &str, kind: DeviceType) -> Option<usize> {
-    let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
-    if let Some(handle) = syscall::open(path, flags) {
-        syscall::write(handle, &kind.buf());
-        return Some(handle);
+pub fn create_device(path: &str, name: &str) -> Option<usize> {
+    if let Ok(buf) = device_buffer(name) {
+        let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
+        if let Some(handle) = syscall::open(path, flags) {
+            syscall::write(handle, &buf);
+            return Some(handle);
+        }
     }
     None
 }
 
+fn device_buffer(name: &str) -> Result<Vec<u8>, ()> {
+    let arg = if name.starts_with("ata-") { "ata" } else { name };
+    let dev = device_type(arg)?;
+    let mut buf = dev.buf();
+    if name.starts_with("ata-") {
+        match name {
+            "ata-0-0" => { buf[1] = 0; buf[2] = 0 },
+            "ata-0-1" => { buf[1] = 0; buf[2] = 1 },
+            "ata-1-0" => { buf[1] = 1; buf[2] = 0 },
+            "ata-1-1" => { buf[1] = 1; buf[2] = 1 },
+            _ => return Err(()),
+        }
+    }
+    Ok(buf)
+}
+
+fn device_type(name: &str) -> Result<DeviceType, ()> {
+    match name {
+        "null"     => Ok(DeviceType::Null),
+        "file"     => Ok(DeviceType::File),
+        "console"  => Ok(DeviceType::Console),
+        "random"   => Ok(DeviceType::Random),
+        "uptime"   => Ok(DeviceType::Uptime),
+        "realtime" => Ok(DeviceType::Realtime),
+        "rtc"      => Ok(DeviceType::RTC),
+        "tcp"      => Ok(DeviceType::TcpSocket),
+        "udp"      => Ok(DeviceType::UdpSocket),
+        "font"     => Ok(DeviceType::VgaFont),
+        "ata"      => Ok(DeviceType::Drive),
+        _          => Err(()),
+    }
+}
+
 pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {
     if let Some(info) = syscall::info(path) {
-        let res = if info.is_device() { open_device(path) } else { open_file(path) };
+        let res = if info.is_device() {
+            open_device(path)
+        } else {
+            open_file(path)
+        };
         if let Some(handle) = res {
             if let Some(bytes) = syscall::read(handle, buf) {
                 syscall::close(handle);
@@ -124,14 +191,14 @@ pub fn read_to_string(path: &str) -> Result<String, ()> {
 
 pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
     if let Some(info) = syscall::info(path) {
-        let f = if info.is_device() {
+        let res = if info.is_device() {
             open_device(path)
         } else if info.is_dir() {
             open_dir(path)
         } else {
             open_file(path)
         };
-        if let Some(handle) = f {
+        if let Some(handle) = res {
             let n = info.size() as usize;
             let mut buf = vec![0; n];
             if let Some(bytes) = syscall::read(handle, &mut buf) {
@@ -145,22 +212,8 @@ pub fn read_to_bytes(path: &str) -> Result<Vec<u8>, ()> {
 }
 
 pub fn write(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    if let Some(handle) = create_file(path) {
-        if let Some(bytes) = syscall::write(handle, buf) {
-            syscall::close(handle);
-            return Ok(bytes);
-        }
-    }
-    Err(())
-}
-
-pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
-    let res = if let Some(info) = syscall::info(path) {
-        if info.is_device() {
-            open_device(path)
-        } else {
-            append_file(path)
-        }
+    let res = if is_device(path) {
+        open_device(path)
     } else {
         create_file(path)
     };
@@ -173,11 +226,11 @@ pub fn append(path: &str, buf: &[u8]) -> Result<usize, ()> {
     Err(())
 }
 
-pub fn reopen(path: &str, handle: usize, append_mode: bool) -> Result<usize, ()> {
+pub fn reopen(path: &str, handle: usize, append: bool) -> Result<usize, ()> {
     let res = if let Some(info) = syscall::info(path) {
         if info.is_device() {
             open_device(path)
-        } else if append_mode {
+        } else if append {
             append_file(path)
         } else {
             open_file(path)
@@ -217,8 +270,32 @@ pub fn read_dir(path: &str) -> Result<Vec<FileInfo>, ()> {
 }
 
 #[test_case]
-fn test_file() {
-    use crate::sys::fs::{mount_mem, format_mem, dismount};
+fn test_filename() {
+    assert_eq!(filename("/path/to/file.txt"), "file.txt");
+    assert_eq!(filename("/file.txt"), "file.txt");
+    assert_eq!(filename("file.txt"), "file.txt");
+    assert_eq!(filename("/path/to/"), "to");
+    assert_eq!(filename("/path/to"), "to");
+    assert_eq!(filename("path/to"), "to");
+    assert_eq!(filename("/"), "");
+    assert_eq!(filename(""), "");
+}
+
+#[test_case]
+fn test_dirname() {
+    assert_eq!(dirname("/path/to/file.txt"), "/path/to");
+    assert_eq!(dirname("/file.txt"), "/");
+    assert_eq!(dirname("file.txt"), "");
+    assert_eq!(dirname("/path/to/"), "/path");
+    assert_eq!(dirname("/path/to"), "/path");
+    assert_eq!(dirname("path/to"), "path");
+    assert_eq!(dirname("/"), "/");
+    assert_eq!(dirname(""), "");
+}
+
+#[test_case]
+fn test_fs() {
+    use crate::sys::fs::{dismount, format_mem, mount_mem};
     mount_mem();
     format_mem();
 

@@ -1,45 +1,50 @@
-use super::{Err, Exp, Env};
 use super::env::{env_get, macro_env};
 use super::eval::eval;
+use super::{Env, Err, Exp};
 
-use crate::{ensure_length_eq, ensure_length_gt, ensure_list, ensure_string, expected};
+use crate::{
+    ensure_length_eq, ensure_length_gt, ensure_list, ensure_string, expected
+};
 
 use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::ToString;
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 use core::cell::RefCell;
+
+fn is_sym(e: &Exp, name: &str) -> bool {
+    *e == Exp::Sym(name.to_string())
+}
 
 pub fn expand_quasiquote(exp: &Exp) -> Result<Exp, Err> {
     match exp {
-        Exp::List(list) if list.len() > 0 => {
-            match &list[0] {
-                Exp::Sym(s) if s == "unquote" => {
-                    Ok(list[1].clone())
-                }
-                Exp::List(l) if l.len() == 2 && l[0] == Exp::Sym("unquote-splice".to_string()) => {
-                    Ok(Exp::List(vec![
-                        Exp::Sym("concat".to_string()),
-                        l[1].clone(),
-                        expand_quasiquote(&Exp::List(list[1..].to_vec()))?
-                    ]))
-                }
-                _ => {
-                    Ok(Exp::List(vec![
-                        Exp::Sym("cons".to_string()),
-                        expand_quasiquote(&list[0])?,
-                        expand_quasiquote(&Exp::List(list[1..].to_vec()))?,
-                    ]))
-                }
+        Exp::List(list) if list.len() > 0 => match &list[0] {
+            Exp::Sym(s) if s == "unquote" => Ok(list[1].clone()),
+            Exp::List(l) if l.len() == 2 && is_sym(&l[0], "unquote-splice") => {
+                Ok(Exp::List(vec![
+                    Exp::Sym("concat".to_string()),
+                    l[1].clone(),
+                    expand_quasiquote(&Exp::List(list[1..].to_vec()))?,
+                ]))
             }
-        }
+            _ => Ok(Exp::List(vec![
+                Exp::Sym("cons".to_string()),
+                expand_quasiquote(&list[0])?,
+                expand_quasiquote(&Exp::List(list[1..].to_vec()))?,
+            ])),
+        },
         _ => Ok(Exp::List(vec![Exp::Sym("quote".to_string()), exp.clone()])),
     }
 }
 
-pub fn expand_list(list: &[Exp], env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
-    let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item| expand(item, env)).collect();
+pub fn expand_list(
+    list: &[Exp],
+    env: &mut Rc<RefCell<Env>>
+) -> Result<Exp, Err> {
+    let expanded: Result<Vec<Exp>, Err> = list.iter().map(|item|
+        expand(item, env)
+    ).collect();
     Ok(Exp::List(expanded?))
 }
 
@@ -74,16 +79,22 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let name = args[0].clone();
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(body, env)?;
-                        let mut function = vec![Exp::Sym("function".to_string()), args, body];
+                        let mut function = vec![
+                            Exp::Sym("function".to_string()),
+                            args,
+                            body,
+                        ];
                         if list.len() == 4 {
                             function.insert(2, list[2].clone());
                         }
                         Ok(Exp::List(vec![
-                            Exp::Sym("variable".to_string()), name, Exp::List(function)
+                            Exp::Sym("variable".to_string()),
+                            name,
+                            Exp::List(function),
                         ]))
                     }
                     Exp::Sym(_) => expand_list(list, env),
-                    _ => expected!("first argument to be a symbol or a list")
+                    _ => expected!("first argument to be a symbol or a list"),
                 }
             }
             Exp::Sym(s) if s == "define-macro" => {
@@ -95,13 +106,17 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
-                            Exp::Sym("variable".to_string()), name, Exp::List(vec![
-                                Exp::Sym("macro".to_string()), args, body
-                            ])
+                            Exp::Sym("variable".to_string()),
+                            name,
+                            Exp::List(vec![
+                                Exp::Sym("macro".to_string()),
+                                args,
+                                body
+                            ]),
                         ]))
                     }
                     (Exp::Sym(_), _) => expand_list(list, env),
-                    _ => expected!("first argument to be a symbol or a list")
+                    _ => expected!("first argument to be a symbol or a list"),
                 }
             }
             Exp::Sym(s) if s == "cond" => {
@@ -110,7 +125,11 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     ensure_length_eq!(args, 2);
                     let test_exp = expand(&args[0], env)?;
                     let then_exp = expand(&args[1], env)?;
-                    let mut res = vec![Exp::Sym("if".to_string()), test_exp, then_exp];
+                    let mut res = vec![
+                        Exp::Sym("if".to_string()),
+                        test_exp,
+                        then_exp,
+                    ];
                     if list.len() > 2 {
                         let mut acc = vec![Exp::Sym("cond".to_string())];
                         acc.extend_from_slice(&list[2..]);

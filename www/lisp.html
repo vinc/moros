@@ -25,8 +25,9 @@ of the Shell.</p>
     <h3>Literals</h3>
 
     <ul>
+    <li>Number: <code>2.5</code>, <code>-25</code>, <code>255</code>, <code>0xFF</code>, <code>0xDEAD_C0DE</code>, <code>0b101010</code></li>
     <li>String: <code>&quot;Hello, World!&quot;</code></li>
-    <li>Number: <code>2.5</code>, <code>-25</code>, <code>255</code>, <code>0xFF</code>, <code>0xDEAD_C0DE</code></li>
+    <li>Escape: <code>\b</code>, <code>\e</code>, <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\&quot;</code>, <code>\\</code></li>
     </ul>
 
     <h3>Built-in Operators</h3>
@@ -63,45 +64,54 @@ of the Shell.</p>
     <h3>Primitive Operators</h3>
 
     <ul>
-    <li><code>type</code>, <code>number.type</code> (aliased to <code>num.type</code>)</li>
+    <li><code>type</code>, <code>number/type</code> (aliased to <code>num/type</code>), <code>parse</code></li>
     <li><code>string</code> (aliased to <code>str</code>)</li>
-    <li><code>string-&gt;number</code> (aliased to to <code>str-&gt;num</code>)</li>
+    <li><code>string-&gt;number</code> and <code>number-&gt;string</code> (aliased to <code>str-&gt;num</code> and <code>num-&gt;str</code>)</li>
     <li><code>string-&gt;binary</code> and <code>binary-&gt;string</code> (aliased to <code>str-&gt;bin</code> and <code>bin-&gt;str</code>)</li>
     <li><code>number-&gt;binary</code> and <code>binary-&gt;number</code> (aliased to <code>num-&gt;bin</code> and <code>bin-&gt;num</code>)</li>
-    <li><code>regex.find</code></li>
-    <li><code>system</code></li>
-    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>abs</code>, <code>mod</code>, <code>rem</code> (aliased to <code>%</code>)</li>
+    <li><code>regex/find</code></li>
+    <li><code>shell</code> (aliased to <code>sh</code>)</li>
+    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>rem</code> (aliased to <code>%</code>), <code>trunc</code></li>
     <li>Trigonometric functions: <code>acos</code>, <code>asin</code>, <code>atan</code>, <code>cos</code>, <code>sin</code>, <code>tan</code></li>
     <li>Comparisons: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>=</code></li>
-    <li>Enumerable: <code>length</code> (aliased to <code>len</code>), <code>nth</code>, <code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>slice</code></li>
-    <li>String: <code>string.trim</code> and <code>string.split</code> (aliased to <code>str.trim</code> and <code>str.split</code>)</li>
-    <li>List: <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>), <code>min</code>, <code>max</code></li>
-    <li>File: <code>file.size</code>, <code>file.open</code>, <code>file.close</code>, <code>file.read</code>, <code>file.write</code></li>
+    <li>Enumerable: <code>length</code> (aliased to <code>len</code>), <code>put</code>, <code>get</code>, <code>slice</code>, <code>contains?</code></li>
+    <li>String: <code>string/trim</code> and <code>string/split</code> (aliased to <code>str/trim</code> and <code>str/split</code>)</li>
+    <li>List: <code>list</code>, <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>)</li>
+    <li>Dict: <code>dict</code></li>
+    <li>File: <code>file/exists?</code>, <code>file/size</code>, <code>file/open</code>, <code>file/close</code>, <code>file/read</code>, <code>file/write</code></li>
+    <li>Net: <code>host</code>, <code>socket/connect</code>, <code>socket/listen</code>, <code>socket/accept</code></li>
     </ul>
 
     <h3>Core Library</h3>
 
     <ul>
-    <li><code>nil</code>, <code>nil?</code>, <code>list?</code></li>
+    <li><code>nil</code>, <code>nil?</code>, <code>list?</code>, <code>empty?</code></li>
     <li><code>boolean?</code> (aliased to <code>bool?</code>), <code>string?</code> (aliased to <code>str?</code>), <code>symbol?</code> (aliased to <code>sym?</code>), <code>number?</code> (aliased to <code>num?</code>)</li>
     <li><code>function?</code> (aliased to <code>fun?</code>), <code>macro?</code> (aliased to <code>mac?</code>)</li>
-    <li><code>first</code>, <code>second</code>, <code>third</code>, <code>rest</code></li>
-    <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>intersection</code></li>
+    <li><code>abs</code>, <code>mod</code>, <code>min</code>, <code>max</code></li>
+    <li><code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>push</code></li>
+    <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>reject</code>, <code>intersection</code></li>
     <li><code>not</code>, <code>and</code>, <code>or</code></li>
     <li><code>let</code></li>
-    <li><code>string.join</code> (aliased to <code>str.join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
-    <li><code>regex.match?</code></li>
-    <li><code>socket.connect</code>, <code>socket.listen</code>, <code>socket.accept</code></li>
+    <li><code>string/join</code> (aliased to <code>str/join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
+    <li><code>regex/match?</code></li>
     </ul>
 
     <h3>File Library</h3>
 
     <ul>
+    <li><code>dirname</code>, <code>filename</code></li>
     <li><code>read</code>, <code>write</code>, <code>append</code></li>
     <li><code>read-binary</code>, <code>write-binary</code>, <code>append-binary</code></li>
     <li><code>read-line</code>, <code>read-char</code></li>
     <li><code>uptime</code>, <code>realtime</code></li>
-    <li><code>p</code>, <code>print</code></li>
+    <li><code>p</code>, <code>print</code>, <code>eprint</code>, <code>error</code></li>
+    </ul>
+
+    <h3>Math Library</h3>
+
+    <ul>
+    <li><code>floor</code>, <code>ceil</code>, <code>round</code></li>
     </ul>
 
     <h3>Compatibility Library</h3>
@@ -116,7 +126,7 @@ of the Shell.</p>
     <p>The interpreter can be invoked from the shell:</p>
 
     <pre><code>&gt; lisp
-MOROS Lisp v0.5.0
+MOROS Lisp v0.7.0
 
 &gt; (+ 1 2 3)
 6
@@ -191,47 +201,35 @@ with the following content:</p>
 
     <h2>Changelog</h2>
 
-    <h3>0.1.0 (2021-07-21)</h3>
-
-    <p>MOROS Lisp started from <a href="https://github.com/stopachka/risp">Risp</a> and was
-extended to include the seven primitive operators and the two special forms of
-John McCarthy&#39;s paper &quot;Recursive Functions of Symbolic Expressions and Their
-Computation by Machine&quot; (1960) and &quot;The Roots of Lisp&quot; (2002) by Paul Graham.</p>
-
-    <h3>0.2.0 (2021-12-04)</h3>
-
-    <p>The whole implementation was refactored and the parser was rewritten to use
-    <a href="https://github.com/Geal/nom">Nom</a>. This allowed the addition of strings to the
-language and reading from the filesystem.</p>
-
-    <h3>0.3.0 (2022-12-12)</h3>
+    <h3>Unreleased</h3>
 
     <ul>
-    <li>Rewrite the evaluation code</li>
-    <li>Add new functions</li>
-    <li>Add a core library</li>
+    <li>Add <code>dirname</code>, <code>filename</code>, <code>eprint</code>, and <code>error</code> functions</li>
     </ul>
 
-    <h3>0.3.1 (2022-06-06)</h3>
+    <h3>0.7.1 (2024-06-20)</h3>
 
     <ul>
-    <li>Rewrite parts of the code</li>
-    <li>Add new functions and examples</li>
+    <li>Add <code>floor</code>, <code>ceil</code>, and <code>round</code> functions</li>
     </ul>
 
-    <h3>0.3.2 (2022-07-02)</h3>
+    <h3>0.7.0 (2023-12-22)</h3>
 
     <ul>
-    <li>Add new functions</li>
+    <li>Add binary and hexadecimal number literals</li>
+    <li>Test for truthiness (neither <code>false</code> nor <code>nil</code>) in conditions of <code>if</code> and <code>while</code></li>
+    <li>Rename <code>nth</code> to <code>get</code></li>
+    <li>Add <code>empty?</code>, <code>reject</code>, <code>put</code>, <code>push</code>, and <code>host</code> functions`</li>
+    <li>Add <code>dict</code> type</li>
+    <li>Use <code>/</code> instead of <code>.</code> as namespace separator</li>
+    <li>Add <code>number-&gt;string</code> (aliased to <code>num-&gt;str</code>) with an optional radix argument</li>
     </ul>
 
-    <h3>0.4.0 (2022-08-25)</h3>
+    <h3>0.6.0 (2023-09-23)</h3>
 
     <ul>
-    <li>Rewrite a lot of the code</li>
-    <li>Add integer and big integer support</li>
-    <li>Add tail call optimization (TCO)</li>
-    <li>Add macro support</li>
+    <li>Add file, number, string, and regex namespaces</li>
+    <li>Add socket functions</li>
     </ul>
 
     <h3>0.5.0 (2023-06-21)</h3>
@@ -243,18 +241,48 @@ language and reading from the filesystem.</p>
     <li>Add docstring to functions</li>
     </ul>
 
-    <h3>0.6.0 (2023-09-23)</h3>
+    <h3>0.4.0 (2022-08-25)</h3>
 
     <ul>
-    <li>Add file, number, string, and regex namespaces</li>
-    <li>Add socket functions</li>
+    <li>Rewrite a lot of the code</li>
+    <li>Add integer and big integer support</li>
+    <li>Add tail call optimization (TCO)</li>
+    <li>Add macro support</li>
     </ul>
 
-    <h3>Unreleased</h3>
+    <h3>0.3.2 (2022-07-02)</h3>
 
     <ul>
-    <li>Add hexadecimal number literals</li>
+    <li>Add new functions</li>
     </ul>
+
+    <h3>0.3.1 (2022-06-06)</h3>
+
+    <ul>
+    <li>Rewrite parts of the code</li>
+    <li>Add new functions and examples</li>
+    </ul>
+
+    <h3>0.3.0 (2022-12-12)</h3>
+
+    <ul>
+    <li>Rewrite the evaluation code</li>
+    <li>Add new functions</li>
+    <li>Add a core library</li>
+    </ul>
+
+    <h3>0.2.0 (2021-12-04)</h3>
+
+    <p>The whole implementation was refactored and the parser was rewritten to use
+    <a href="https://github.com/Geal/nom">Nom</a>. This allowed the addition of strings to the
+language and reading from the filesystem.</p>
+
+    <h3>0.1.0 (2021-07-21)</h3>
+
+    <p>MOROS Lisp started from <a href="https://github.com/stopachka/risp">Risp</a> and was
+extended to include the seven primitive operators and the two special forms of
+John McCarthy&#39;s paper &quot;Recursive Functions of Symbolic Expressions and Their
+Computation by Machine&quot; (1960) and &quot;The Roots of Lisp&quot; (2002) by Paul Graham.</p>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

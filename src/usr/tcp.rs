@@ -1,8 +1,9 @@
-use crate::{sys, usr};
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
+use crate::sys::console;
 use crate::sys::fs::OpenFlag;
+use crate::usr;
 
 use alloc::format;
 use alloc::vec;
@@ -13,16 +14,12 @@ use smoltcp::wire::IpAddress;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut verbose = false;
-    let args: Vec<&str> = args.iter().filter_map(|arg| {
-        match *arg {
-            "-v" | "--verbose" => {
-                verbose = true;
-                None
-            }
-            _ => {
-                Some(*arg)
-            }
+    let args: Vec<&str> = args.iter().filter_map(|arg| match *arg {
+        "-v" | "--verbose" => {
+            verbose = true;
+            None
         }
+        _ => Some(*arg),
     }).collect();
 
     if args.len() != 2 {
@@ -48,9 +45,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         IpAddress::from_str(host).expect("invalid address format")
     } else {
         match usr::host::resolve(host) {
-            Ok(ip_addr) => {
-                ip_addr
-            }
+            Ok(ip_addr) => ip_addr,
             Err(e) => {
                 error!("Could not resolve host {:?}", e);
                 return Err(ExitCode::Failure);
@@ -77,7 +72,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             debug!("Connected to {}:{}", addr, port);
         }
         loop {
-            if sys::console::end_of_text() || sys::console::end_of_transmission() {
+            if console::end_of_text() || console::end_of_transmission() {
                 eprintln!();
                 syscall::close(handle);
                 return Err(ExitCode::Failure);
@@ -103,8 +98,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} tcp {}<host>:<port>{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} tcp {}<host>:<port>{1}",
+        csi_title, csi_reset, csi_option
+    );
 }

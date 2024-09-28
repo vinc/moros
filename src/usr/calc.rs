@@ -1,6 +1,6 @@
+use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
-use crate::api::console::Style;
 
 use alloc::boxed::Box;
 use alloc::format;
@@ -9,9 +9,9 @@ use alloc::vec::Vec;
 
 use nom::branch::alt;
 use nom::character::complete::{char, space0};
-use nom::number::complete::double;
 use nom::combinator::map;
 use nom::multi::many0;
+use nom::number::complete::double;
 use nom::sequence::{delimited, tuple};
 use nom::IResult;
 
@@ -34,13 +34,18 @@ pub enum Exp {
 
 fn parse(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_term(input)?;
-    let (input, exps) = many0(tuple((alt((char('+'), char('-'))), parse_term)))(input)?;
+    let (input, exps) = many0(
+        tuple((alt((char('+'), char('-'))), parse_term))
+    )(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
 fn parse_term(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_factor(input)?;
-    let (input, exps) = many0(tuple((alt((char('%'), char('/'), char('*'))), parse_factor)))(input)?;
+    let (input, exps) = many0(tuple((
+        alt((char('%'), char('/'), char('*'))),
+        parse_factor,
+    )))(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
@@ -99,16 +104,14 @@ fn parse_eval(line: &str) -> Result<f64, String> {
             } else {
                 Err(format!("Could not parse '{}'", line))
             }
-        },
-        Err(_) => {
-            Err(format!("Could not parse '{}'", line))
-        },
+        }
+        Err(_) => Err(format!("Could not parse '{}'", line)),
     }
 }
 
 fn repl() -> Result<(), ExitCode> {
     println!("MOROS Calc v0.1.0\n");
-    let csi_color = Style::color("Cyan");
+    let csi_color = Style::color("teal");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -145,7 +148,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     for &arg in args {
         match arg {
             "-h" | "--help" => return help(),
-            _ => {},
+            _ => {}
         }
     }
     if args.len() == 1 {
@@ -165,10 +168,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 pub fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} calc {}[<exp>]{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} calc {}[<exp>]{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     Ok(())
 }
 
@@ -180,28 +186,28 @@ fn test_calc() {
         };
     }
 
-    assert_eq!(eval!("1"),                       "1");
-    assert_eq!(eval!("1.5"),                   "1.5");
+    assert_eq!(eval!("1"), "1");
+    assert_eq!(eval!("1.5"), "1.5");
 
-    assert_eq!(eval!("+1"),                      "1");
-    assert_eq!(eval!("-1"),                     "-1");
+    assert_eq!(eval!("+1"), "1");
+    assert_eq!(eval!("-1"), "-1");
 
-    assert_eq!(eval!("1 + 2"),                   "3");
-    assert_eq!(eval!("1 + 2 + 3"),               "6");
-    assert_eq!(eval!("1 + 2.5"),               "3.5");
-    assert_eq!(eval!("1 + 2.5"),               "3.5");
-    assert_eq!(eval!("2 - 1"),                   "1");
-    assert_eq!(eval!("1 - 2"),                  "-1");
-    assert_eq!(eval!("2 * 3"),                   "6");
-    assert_eq!(eval!("2 * 3.5"),                 "7");
-    assert_eq!(eval!("6 / 2"),                   "3");
-    assert_eq!(eval!("6 / 4"),                 "1.5");
-    assert_eq!(eval!("2 ^ 4"),                  "16");
-    assert_eq!(eval!("3 % 2"),                   "1");
+    assert_eq!(eval!("1 + 2"), "3");
+    assert_eq!(eval!("1 + 2 + 3"), "6");
+    assert_eq!(eval!("1 + 2.5"), "3.5");
+    assert_eq!(eval!("1 + 2.5"), "3.5");
+    assert_eq!(eval!("2 - 1"), "1");
+    assert_eq!(eval!("1 - 2"), "-1");
+    assert_eq!(eval!("2 * 3"), "6");
+    assert_eq!(eval!("2 * 3.5"), "7");
+    assert_eq!(eval!("6 / 2"), "3");
+    assert_eq!(eval!("6 / 4"), "1.5");
+    assert_eq!(eval!("2 ^ 4"), "16");
+    assert_eq!(eval!("3 % 2"), "1");
 
-    assert_eq!(eval!("2 * 3 + 4"),              "10");
-    assert_eq!(eval!("2 * (3 + 4)"),            "14");
-    assert_eq!(eval!("2 ^ 4 + 1"),              "17");
-    assert_eq!(eval!("1 + 2 ^ 4"),              "17");
+    assert_eq!(eval!("2 * 3 + 4"), "10");
+    assert_eq!(eval!("2 * (3 + 4)"), "14");
+    assert_eq!(eval!("2 ^ 4 + 1"), "17");
+    assert_eq!(eval!("1 + 2 ^ 4"), "17");
     assert_eq!(eval!("1 + 3 * 2 ^ 4 * 2 + 3"), "100");
 }

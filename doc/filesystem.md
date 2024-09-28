@@ -6,13 +6,13 @@
 A hard drive is separated in blocks of 512 bytes, grouped into 4 areas:
 
     +------------+
-    | Boot       | (4096 blocks)
+    | Boot       | (8192 blocks)
     +------------+
     | Superblock | (2 blocks)
     +------------+
-    | Bitmap     | (n / (8 * 512) blocks)
+    | Bitmap     | (n blocks)
     +------------+
-    | Data       | (n blocks)
+    | Data       | (n * 512 * 8 blocks)
     +------------+
 
 The first area contains the bootloader and the kernel, the second is a
@@ -116,8 +116,8 @@ Structure:
 
 ### File
 
-The first block of a contains the address of the next block where its contents
-is stored and the beginning of its contents in the rest of the block.
+The first block of a file contains the address of the next block where its
+contents is stored and the beginning of its contents in the rest of the block.
 
 If all contents can fit into one block the address of the next block will be
 empty.

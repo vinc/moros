@@ -15,15 +15,15 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 help();
                 return Ok(());
             }
-            _ => continue
+            _ => continue,
         }
     }
 
     for arg in &args[1..] {
         let mut pathname = *arg;
 
-        // The commands `delete /usr/alice/` and `delete /usr/alice` are equivalent,
-        // but `delete /` should not be modified.
+        // The commands `delete /usr/alice/` and `delete /usr/alice`
+        // are equivalent, but `delete /` should not be modified.
         if pathname.len() > 1 {
             pathname = pathname.trim_end_matches('/');
         }
@@ -49,10 +49,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} delete {}<path>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} delete {}<path>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
     println!("  {0}<dir>/{1}     Delete directory", csi_option, csi_reset);

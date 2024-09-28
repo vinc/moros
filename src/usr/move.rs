@@ -14,20 +14,24 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 help();
                 return Ok(());
             }
-            _ => continue
+            _ => continue,
         }
     }
 
     // TODO: Avoid doing copy+delete
-    match usr::copy::main(args) {
-        Ok(()) => usr::delete::main(&args[0..2]),
-        _ => Err(ExitCode::Failure),
+    if usr::copy::main(args).is_ok() {
+        usr::delete::main(&args[0..2])
+    } else {
+        Err(ExitCode::Failure)
     }
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} move {}<src> <dst>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} move {}<src> <dst>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }

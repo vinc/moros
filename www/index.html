@@ -8,71 +8,72 @@
   <body>
     <h1>MOROS: Obscure Rust Operating System</h1>
 
-    <p><img src="images/moros.png" alt="screenshot"></p>
+    <p><img src="images/moros.png" alt="moros screenshot"></p>
 
     <p>MOROS is a hobby operating system written in Rust by
     <a href="https://vinc.cc">Vincent Ollivier</a>.</p>
 
-    <p>It targets <a href="hardware.html#computers">computers</a> with a x86-64 architecture and a
-BIOS, so mostly from 2005 to 2020, but it also runs well on most
+    <p>It targets <a href="hardware.html#computers">computers</a> with an x86-64 architecture and a
+BIOS, typically from 2005 to 2020. It also runs well on most
     <a href="hardware.html#emulators">emulators</a>.</p>
 
     <h2>Usage</h2>
 
-    <p>MOROS is open source, you can <a href="https://github.com/vinc/moros">build it</a>
-or <a href="https://github.com/vinc/moros/releases">download an image</a>. Consult the
-    <a href="manual.html">manual</a> to learn how to use the system.</p>
+    <p>MOROS is open source. You can <a href="https://github.com/vinc/moros">build</a> or
+    <a href="https://github.com/vinc/moros/releases">download</a> an image. Check out
+the <a href="manual.html">manual</a> for details on how to use it.</p>
 
     <h2>Features</h2>
 
-    <p>Everything in MOROS is done from a command line interface and most programs are
-rather minimalist.</p>
+    <p>MOROS is text-based and draws inspiration from Unix and DOS to provide a simple
+and efficient environment for computing and communication from the command
+line. Each program is designed to ensure a cohesive user interface across the
+entire system.</p>
 
-    <p>It has a <a href="shell.html">shell</a>:</p>
+    <p>The <a href="shell.html">shell</a> is the hearth of MOROS, used to navigate the
+    <a href="filesystem.html">filesystem</a> and run other programs:</p>
 
-    <p><img src="images/shell.png" alt="screenshot"></p>
+    <p><img src="images/shell.png" alt="shell screenshot"></p>
 
-    <p>With a few programs like <code>find</code> that use a <a href="regex.html">regex engine</a> to find
-files or lines:</p>
+    <p>A <a href="lisp.html">lisp</a> interpreter serves as the primary programming environment to
+extend the userspace:</p>
 
-    <p><img src="images/find.png" alt="screenshot"></p>
+    <p><img src="images/lisp.png" alt="lisp screenshot"></p>
 
-    <p>It has a <a href="calculator.html">calculator</a> and also a <a href="lisp.html">lisp</a> interpreter:</p>
+    <p>A basic <a href="editor.html">text editor</a> is included for editing text files and
+scripts, and a derived text viewer offers a distraction-free experience for
+reading long texts:</p>
 
-    <p><img src="images/lisp.png" alt="screenshot"></p>
+    <p><img src="images/viewer.png" alt="viewer screenshot"></p>
 
-    <p>And a <a href="editor.html">text editor</a>:</p>
+    <p>Other utilities include a <a href="calculator.html">calculator</a> and the <code>find</code> command,
+which uses a simple <a href="regex.html">regex engine</a> to search files or lines in the
+filesystem:</p>
 
-    <p><img src="images/edit.png" alt="screenshot"></p>
+    <p><img src="images/find.png" alt="find command screenshot"></p>
 
-    <p>It has a <a href="network.html">network stack</a> with two drivers for RTL8139 and PCNET
-cards:</p>
+    <p>MOROS features a <a href="network.html">network stack</a> with drivers for Intel PRO/1000,
+RTL8139, and PCNET cards, enabling internet access:</p>
 
     <p><img src="images/network.png" alt="screenshot"></p>
 
-    <p>It has a <a href="games.html#chess">chess game</a>:</p>
+    <p>It also includes some <a href="games.html">games</a>:</p>
 
-    <p><img src="images/chess.png" alt="chess"></p>
+    <p><img src="images/chess.png" alt="chess screenshot"></p>
 
-    <p>And the <a href="games.html#conways-game-of-life">game of life</a>:</p>
+    <p>And it&#39;s quite <a href="colors.html">customizable</a>:</p>
 
-    <p><img src="images/life.png" alt="life"></p>
+    <p><img src="images/light.png" alt="light mode screenshot"></p>
 
-    <p>It even has <a href="games.html#2048">2048</a>:</p>
+    <h2>Demo (currently disabled)</h2>
 
-    <p><img src="images/2048.png" alt="2048"></p>
-
-    <p>And finally it is quite customizable:</p>
-
-    <p><img src="images/light.png" alt="light"></p>
-
-    <h2>Demo</h2>
-
-    <p>You can log in to a demo with the following command using the name of the
-system as a password for the guest account:</p>
+    <p>Log in to a demo using the name of the system as the password for the guest
+account:</p>
 
     <pre><code>$ ssh guest@try.moros.cc
 </code></pre>
+
+    <p>Happy hacking!</p>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

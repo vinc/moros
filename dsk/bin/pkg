@@ -1,0 +1,80 @@
+#! lisp
+
+(load "/lib/lisp/core.lsp")
+
+(var config "/ini/pkg")
+(var base (if (file/exists? config) (str/trim (read config)) "10.0.2.2:8181"))
+
+(def (pkg/fetch path) (do
+  "Download the given file"
+  (print (str "Fetching '" path "'"))
+  (var dir (dirname path))
+  (if (not (file/exists? dir))
+    (sh (str "write -p " dir "/")))
+  (sh (str "http " base path " => " path))))
+
+(def (pkg/delete path) (do
+  "Delete the given file"
+  (print (str "Deleting '" path "'"))
+  (var dir (dirname path))
+  (sh (str "delete " path))))
+
+(def (pkg/install pkg) (do
+  "Installs the given package"
+  (var path (str "/var/pkg/" pkg))
+  (if (not (eq? pkg "index.html"))
+    (if (= (pkg/fetch path) 0)
+      (do
+        (var files (reverse (lines (read path))))
+        (map pkg/fetch files))
+      (do
+        (sh (str "delete " path))
+        (error (str "Could not find package '" pkg "'"))))
+    (error (str "Could not find package '" pkg "'")))))
+
+(def (pkg/remove pkg) (do
+  "Removes the given package"
+  (var path (str "/var/pkg/" pkg))
+  (if (not (eq? pkg "index.html"))
+    (if (file/exists? path)
+      (do # The local package could list files not in the latest version
+        (var files (reverse (lines (read path))))
+        (map pkg/delete files))
+      (if (= (pkg/fetch path) 0)
+        (do # Fallback to fetching the latest version of the package
+          (var files (reverse (lines (read path))))
+          (map pkg/delete files))
+        (do
+          (sh (str "delete " path))
+          (error (str "Could not find package '" pkg "'")))))
+    (error (str "Could not find package '" pkg "'")))))
+
+(def (pkg/list)
+  (sh (str "http " base "/var/pkg/")))
+
+(def (print-usage) (do
+  (var l "\e[92m") # Lime
+  (var y "\e[93m") # Yellow
+  (var a "\e[96m") # Aqua
+  (var r "\e[m")   # Reset
+  (print (str y "Usage:" r " pkg " a "<cmd>" r))
+  (print "")
+  (print (str y "Commands:" r))
+  (print (str "  " l "l" a "ist" r "             List packages"))
+  (print (str "  " l "i" a "nstall <pkg>" r "    Install package"))
+  (print (str "  " l "r" a "emove <pkg>" r "     Remove package"))))
+
+(if (> (len args) 0)
+  (cond
+    ((contains? '("install" "i") (first args))
+      (if (= (len args) 2)
+        (pkg/install (second args))
+        (print-usage)))
+    ((contains? '("remove" "r") (first args))
+      (if (= (len args) 2)
+        (pkg/remove (second args))
+        (print-usage)))
+    ((contains? '("list" "l") (first args))
+      (pkg/list))
+    (true (print-usage)))
+  (print-usage))

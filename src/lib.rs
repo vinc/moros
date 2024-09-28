@@ -1,5 +1,6 @@
 #![no_std]
 #![cfg_attr(test, no_main)]
+#![feature(vec_pop_if)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(naked_functions)]
@@ -19,7 +20,7 @@ pub mod usr;
 
 use bootloader::BootInfo;
 
-const KERNEL_SIZE: usize = 2 << 20; // 2 MB
+const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
 pub fn init(boot_info: &'static BootInfo) {
     sys::vga::init();
@@ -30,9 +31,13 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::keyboard::init();
     sys::time::init();
 
-    log!("MOROS v{}\n", option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION")));
+    let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
+    log!("SYS MOROS v{}", v);
+
     sys::mem::init(boot_info);
+    sys::acpi::init(); // Require MEM
     sys::cpu::init();
+    sys::rng::init();
     sys::pci::init(); // Require MEM
     sys::net::init(); // Require PCI
     sys::ata::init();
@@ -42,9 +47,14 @@ pub fn init(boot_info: &'static BootInfo) {
 
 #[alloc_error_handler]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
-    let csi_color = api::console::Style::color("LightRed");
+    let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
-    printk!("{}Error:{} Could not allocate {} bytes\n", csi_color, csi_reset, layout.size());
+    printk!(
+        "{}Error:{} Could not allocate {} bytes\n",
+        csi_color,
+        csi_reset,
+        layout.size()
+    );
     hlt_loop();
 }
 
@@ -56,7 +66,7 @@ impl<T> Testable for T where T: Fn() {
     fn run(&self) {
         print!("test {} ... ", core::any::type_name::<T>());
         self();
-        let csi_color = api::console::Style::color("LightGreen");
+        let csi_color = api::console::Style::color("lime");
         let csi_reset = api::console::Style::reset();
         println!("{}ok{}", csi_color, csi_reset);
     }
@@ -70,7 +80,6 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     }
     exit_qemu(QemuExitCode::Success);
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
@@ -113,7 +122,7 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    let csi_color = api::console::Style::color("LightRed");
+    let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
     println!("{}failed{}\n", csi_color, csi_reset);
     println!("{}\n", info);

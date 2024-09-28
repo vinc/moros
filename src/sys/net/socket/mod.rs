@@ -10,11 +10,13 @@ use smoltcp::time::Duration;
 use spin::Mutex;
 
 lazy_static! {
-    pub static ref SOCKETS: Mutex<SocketSet<'static>> = Mutex::new(SocketSet::new(vec![]));
+    pub static ref SOCKETS: Mutex<SocketSet<'static>> = {
+        Mutex::new(SocketSet::new(vec![]))
+    };
 }
 
 fn random_port() -> u16 {
-    49152 + sys::random::get_u16() % 16384
+    49152 + sys::rng::get_u16() % 16384
 }
 
 fn wait(duration: Duration) {

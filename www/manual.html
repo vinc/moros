@@ -13,36 +13,37 @@
     <p>During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.</p>
 
-    <pre><code>[0.250962] MOROS v0.10.1
-[0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
-[0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
-[0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
-[0.250962] MEM [0x00000000016000-0x00000000016FFF] BootInfo
-[0.250962] MEM [0x00000000017000-0x0000000002DFFF] Kernel
-[0.250962] MEM [0x0000000002E000-0x0000000009EFFF] KernelStack
-[0.250962] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
-[0.250962] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
-[0.250962] MEM [0x00000000100000-0x0000000028EFFF] KernelStack
-[0.250962] MEM [0x0000000028F000-0x000000003FFFFF] Usable
-[0.250962] MEM [0x00000000400000-0x000000005E1FFF] Kernel
-[0.250962] MEM [0x000000005E2000-0x000000005EFFFF] PageTable
-[0.250962] MEM [0x000000005F0000-0x00000001FDFFFF] Usable
-[0.250962] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
-[0.250962] MEM [0x000000FEFFC000-0x000000FEFFFFFF] Reserved
-[0.250962] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
-[0.250962] MEM 32720 KB
-[0.251962] CPU GenuineIntel
-[0.254961] CPU Intel(R) Core(TM) i5-4300M CPU @ 2.60GHz
-[0.284957] PCI 0000:00:00 [8086:1237]
-[0.312952] PCI 0000:01:00 [8086:7000]
-[0.321951] PCI 0000:01:01 [8086:7010]
-[0.321951] PCI 0000:01:03 [8086:7113]
-[0.322951] PCI 0000:02:00 [1234:1111]
-[0.323951] PCI 0000:03:00 [10EC:8139]
-[0.377942] NET RTL8139 MAC 52-54-00-12-34-56
-[0.382942] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
-[0.384941] MFS Superblock found in ATA 0:0
-[0.386941] RTC 2023-04-17 20:00:28 +0000
+    <pre><code>[0.250962] MOROS v0.10.4
+[0.256961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
+[0.256961] MEM [0x00000000001000-0x00000000004FFF] PageTable
+[0.256961] MEM [0x00000000005000-0x00000000016FFF] Bootloader
+[0.256961] MEM [0x00000000017000-0x00000000017FFF] BootInfo
+[0.256961] MEM [0x00000000018000-0x0000000009EFFF] Kernel
+[0.256961] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
+[0.256961] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
+[0.256961] MEM [0x00000000100000-0x00000000104FFF] Kernel
+[0.256961] MEM [0x00000000105000-0x00000000304FFF] KernelStack
+[0.256961] MEM [0x00000000305000-0x000000003FFFFF] Usable
+[0.256961] MEM [0x00000000400000-0x000000005EEFFF] Kernel
+[0.256961] MEM [0x000000005EF000-0x000000005FFFFF] PageTable
+[0.256961] MEM [0x00000000600000-0x00000001FDFFFF] Usable
+[0.256961] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
+[0.256961] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
+[0.256961] MEM 32704 KB
+[0.282957] CPU GenuineIntel
+[0.283957] CPU Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
+[0.284957] RNG RDRAND unavailable
+[0.291956] PCI 0000:00:00 [8086:1237]
+[0.292955] PCI 0000:01:00 [8086:7000]
+[0.292955] PCI 0000:01:01 [8086:7010]
+[0.292955] PCI 0000:01:03 [8086:7113]
+[0.293955] PCI 0000:02:00 [1234:1111]
+[0.293955] PCI 0000:03:00 [8086:100E]
+[0.301954] NET DRV E1000
+[0.303954] NET MAC 52-54-00-12-34-56
+[0.308953] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
+[0.310953] MFS Superblock found in ATA 0:0
+[0.315952] RTC 2024-06-19 11:54:13 +0000
 </code></pre>
 
     <h2>Installation</h2>
@@ -51,18 +52,18 @@ memory size, processor, devices, network cards, disks, and the real time clock.<
 commands to test the system or <code>install</code> to setup the
     <a href="filesystem.html">filesystem</a> on a disk:</p>
 
-    <pre><code>MFS is not mounted to &#39;/&#39;
-Running console in diskless mode
+    <pre><code>Warning: MFS not found, run &#39;install&#39; to setup the system
 
 /
 &gt; install
-Welcome to MOROS v0.10.1 installation program!
+Welcome to MOROS v0.10.4 installation program!
 
 Proceed? [y/N] y
 
 Listing disks ...
 Path            Name (Size)
 /dev/ata/0/0    QEMU HARDDISK QM00001 (32 MB)
+/dev/mem        RAM DISK
 
 Formatting disk ...
 Enter path of disk to format: /dev/ata/0/0
@@ -79,12 +80,19 @@ Created &#39;/src&#39;
 Created &#39;/tmp&#39;
 Created &#39;/usr&#39;
 Created &#39;/var&#39;
-Copied &#39;/bin/clear&#39;
-Copied &#39;/bin/halt&#39;
-Copied &#39;/bin/hello&#39;
-Copied &#39;/bin/print&#39;
-Copied &#39;/bin/reboot&#39;
-Copied &#39;/bin/sleep&#39;
+Fetched &#39;/bin/clear&#39;
+Fetched &#39;/bin/halt&#39;
+Fetched &#39;/bin/ntp&#39;
+Fetched &#39;/bin/print&#39;
+Fetched &#39;/bin/reboot&#39;
+Fetched &#39;/bin/sleep&#39;
+Created &#39;/dev/ata&#39;
+Created &#39;/dev/ata/0&#39;
+Created &#39;/dev/ata/0/0&#39;
+Created &#39;/dev/ata/0/1&#39;
+Created &#39;/dev/ata/1&#39;
+Created &#39;/dev/ata/1/0&#39;
+Created &#39;/dev/ata/1/1&#39;
 Created &#39;/dev/clk&#39;
 Created &#39;/dev/clk/uptime&#39;
 Created &#39;/dev/clk/realtime&#39;
@@ -92,45 +100,53 @@ Created &#39;/dev/rtc&#39;
 Created &#39;/dev/null&#39;
 Created &#39;/dev/random&#39;
 Created &#39;/dev/console&#39;
-Copied &#39;/ini/banner.txt&#39;
-Copied &#39;/ini/boot.sh&#39;
-Copied &#39;/ini/shell.sh&#39;
-Copied &#39;/ini/version.txt&#39;
+Created &#39;/dev/net&#39;
+Created &#39;/dev/net/tcp&#39;
+Created &#39;/dev/net/udp&#39;
+Fetched &#39;/ini/banner.txt&#39;
+Fetched &#39;/ini/boot.sh&#39;
+Fetched &#39;/ini/lisp.lsp&#39;
+Fetched &#39;/ini/shell.sh&#39;
+Fetched &#39;/ini/version.txt&#39;
 Created &#39;/ini/palettes&#39;
-Copied &#39;/ini/palettes/gruvbox-dark.csv&#39;
-Copied &#39;/ini/palettes/gruvbox-light.csv&#39;
+Fetched &#39;/ini/palettes/gruvbox-dark.sh&#39;
+Fetched &#39;/ini/palettes/gruvbox-light.sh&#39;
 Created &#39;/ini/fonts&#39;
-Copied &#39;/ini/fonts/zap-light-8x16.psf&#39;
-Copied &#39;/ini/fonts/zap-vga-8x16.psf&#39;
+Fetched &#39;/ini/fonts/zap-light-8x16.psf&#39;
+Fetched &#39;/ini/fonts/zap-vga-8x16.psf&#39;
 Created &#39;/lib/lisp&#39;
-Copied &#39;/lib/lisp/core.lsp&#39;
-Copied &#39;/lib/lisp/alias.lsp&#39;
-Copied &#39;/tmp/alice.txt&#39;
-Copied &#39;/tmp/machines.txt&#39;
+Fetched &#39;/lib/lisp/alias.lsp&#39;
+Fetched &#39;/lib/lisp/core.lsp&#39;
+Fetched &#39;/lib/lisp/file.lsp&#39;
+Fetched &#39;/tmp/alice.txt&#39;
+Fetched &#39;/tmp/machines.txt&#39;
 Created &#39;/tmp/lisp&#39;
-Copied &#39;/tmp/lisp/colors.lsp&#39;
-Copied &#39;/tmp/lisp/factorial.lsp&#39;
-Copied &#39;/tmp/lisp/fibonacci.lsp&#39;
-Copied &#39;/tmp/lisp/geotime.lsp&#39;
-Copied &#39;/tmp/lisp/pi.lsp&#39;
-Copied &#39;/tmp/lisp/sum.lsp&#39;
+Fetched &#39;/tmp/lisp/colors.lsp&#39;
+Fetched &#39;/tmp/lisp/doc.lsp&#39;
+Fetched &#39;/tmp/lisp/factorial.lsp&#39;
+Fetched &#39;/tmp/lisp/fibonacci.lsp&#39;
+Fetched &#39;/tmp/lisp/geotime.lsp&#39;
+Fetched &#39;/tmp/lisp/pi.lsp&#39;
+Fetched &#39;/tmp/lisp/sum.lsp&#39;
 Created &#39;/tmp/life&#39;
-Copied &#39;/tmp/life/centinal.cells&#39;
-Copied &#39;/tmp/life/flower-of-eden.cells&#39;
-Copied &#39;/tmp/life/garden-of-eden.cells&#39;
-Copied &#39;/tmp/life/glider-gun.cells&#39;
-Copied &#39;/tmp/life/pentadecathlon.cells&#39;
-Copied &#39;/tmp/life/queen-bee-shuttle.cells&#39;
-Copied &#39;/tmp/life/ship-in-a-bottle.cells&#39;
-Copied &#39;/tmp/life/thunderbird.cells&#39;
-Copied &#39;/tmp/life/wing.cells&#39;
+Fetched &#39;/tmp/life/centinal.cells&#39;
+Fetched &#39;/tmp/life/flower-of-eden.cells&#39;
+Fetched &#39;/tmp/life/garden-of-eden.cells&#39;
+Fetched &#39;/tmp/life/glider-gun.cells&#39;
+Fetched &#39;/tmp/life/pentadecathlon.cells&#39;
+Fetched &#39;/tmp/life/queen-bee-shuttle.cells&#39;
+Fetched &#39;/tmp/life/ship-in-a-bottle.cells&#39;
+Fetched &#39;/tmp/life/thunderbird.cells&#39;
+Fetched &#39;/tmp/life/wing.cells&#39;
 Created &#39;/tmp/beep&#39;
-Copied &#39;/tmp/beep/tetris.sh&#39;
-Copied &#39;/tmp/beep/starwars.sh&#39;
-Copied &#39;/tmp/beep/mario.sh&#39;
+Fetched &#39;/tmp/beep/tetris.sh&#39;
+Fetched &#39;/tmp/beep/starwars.sh&#39;
+Fetched &#39;/tmp/beep/mario.sh&#39;
+Created &#39;/var/log&#39;
 Created &#39;/var/www&#39;
-Copied &#39;/var/www/index.html&#39;
-Copied &#39;/var/www/moros.png&#39;
+Fetched &#39;/var/www/index.html&#39;
+Fetched &#39;/var/www/moros.css&#39;
+Fetched &#39;/var/www/moros.png&#39;
 
 Creating user...
 Username: vinc
@@ -147,7 +163,8 @@ diskless mode and let MOROS run the bootscript <code>/ini/boot.sh</code> to logi
 the shell.</p>
 
     <p>If no disks were detected or if you prefer not to use any you can mount the
-system in memory and use a virtual disk with <code>memory format</code> before <code>install</code>.</p>
+system in memory and use a virtual disk with <code>memory format</code> before <code>install</code>
+or using <code>/dev/mem</code> for the disk during the setup.</p>
 
     <h2>Shell</h2>
 
@@ -202,10 +219,11 @@ tilde <code>~</code> means that you are in your home directory:</p>
 Usage: list &lt;options&gt; [&lt;dir&gt;]
 
 Options:
-  -a, --all     Show dot files
-  -n, --name    Sort by name
-  -s, --size    Sort by size
-  -t, --time    Sort by time
+  -b, --binary-size   Use binary size
+  -a, --all           Show dot files
+  -n, --name          Sort by name
+  -s, --size          Sort by size
+  -t, --time          Sort by time
 </code></pre>
 
     <p>You can write a directory in the disk with <code>write</code>:</p>
@@ -246,7 +264,7 @@ content to the file and <code>^Q</code> to quit the editor and go back to the sh
     <p>The <code>help</code> command has a subcommand <code>help edit</code> to list the editor commands:</p>
 
     <pre><code>&gt; help edit
-MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
+MOROS text editor is a very simple editor inspired by Pico.
 
 Commands:
   ^Q    Quit editor
@@ -292,8 +310,8 @@ file:</p>
     <p>Add <code>env TZ 7200</code> to <code>/ini/boot.sh</code> before <code>shell</code> to save the timezone:</p>
 
     <pre><code>&gt; read /ini/boot.sh
-vga set palette /ini/palettes/gruvbox-dark.csv
-vga set font /ini/fonts/zap-light-8x16.psf
+shell /ini/palettes/gruvbox-dark.sh
+read /ini/fonts/zap-light-8x16.psf =&gt; /dev/vga/font
 read /ini/banner.txt
 user login
 env TZ 7200
@@ -356,9 +374,9 @@ alias kbd  keyboard
 with <code>dhcp</code>:</p>
 
     <pre><code>&gt; dhcp
-ip:  10.0.2.15/24
-gw:  10.0.2.2
-dns: 10.0.2.3
+[8.801660] NET IP 10.0.2.15/24
+[8.804659] NET GW 10.0.2.2
+[8.808659] NET DNS 10.0.2.3
 </code></pre>
 
     <p>A few tools are available like the generalist <code>socket</code> command that be used to
@@ -382,6 +400,15 @@ Hello, World!
     &lt;h1&gt;MOROS&lt;/h1&gt;
   &lt;/body&gt;
 &lt;/html&gt;
+</code></pre>
+
+    <p>There is also a <code>ntp</code> script to synchronize the clock over the network:</p>
+
+    <pre><code>&gt; ntp
+2023-03-21 10:00:00
+
+&gt; ntp =&gt; /dev/rtc
+[12.111156] RTC 2023-03-21 10:00:00 +0000
 </code></pre>
   <footer><p><a href="/">MOROS</a></footer>
   </body>

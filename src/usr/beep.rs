@@ -1,6 +1,6 @@
-use crate::{api, sys};
-use crate::api::process::ExitCode;
 use crate::api::console::Style;
+use crate::api::process::ExitCode;
+use crate::{api, sys};
 
 use x86_64::instructions::port::Port;
 
@@ -44,33 +44,33 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-f" | "--freq" => {
                 if i + 1 < n {
-                    if let Ok(value) = args[i + 1].parse() {
+                    i += 1;
+                    if let Ok(value) = args[i].parse() {
                         freq = value;
                     } else {
                         error!("Could not parse freq");
                         return Err(ExitCode::Failure);
                     }
-                    i += 1;
                 } else {
                     error!("Missing freq");
                     return Err(ExitCode::UsageError);
                 }
-            },
+            }
             "-l" | "--len" => {
                 if i + 1 < n {
-                    if let Ok(value) = args[i + 1].parse() {
+                    i += 1;
+                    if let Ok(value) = args[i].parse() {
                         len = value;
                     } else {
                         error!("Could not parse len");
                         return Err(ExitCode::Failure);
                     }
-                    i += 1;
                 } else {
                     error!("Missing len");
                     return Err(ExitCode::UsageError);
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
         i += 1;
     }
@@ -80,13 +80,22 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} beep {}<options>{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} beep {}<options>{1}",
+        csi_title, csi_reset, csi_option
+    );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-f{1}, {0}--freq <hertz>{1}          Tone frequency", csi_option, csi_reset);
-    println!("  {0}-l{1}, {0}--len <milliseconds>{1}    Tone length", csi_option, csi_reset);
+    println!(
+        "  {0}-f{1}, {0}--freq <hertz>{1}          Tone frequency",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-l{1}, {0}--len <milliseconds>{1}    Tone length",
+        csi_option, csi_reset
+    );
     Ok(())
 }

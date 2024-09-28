@@ -5,68 +5,90 @@
 # Read
 
 (def (read-binary path)
-  "Read binary file"
+  "Reads binary file"
   (do
-    (var size (file.size path))
-    (var file (file.open path "r"))
-    (var data (file.read file size))
-    (file.close file)
+    (var size (file/size path))
+    (var file (file/open path "r"))
+    (var data (file/read file size))
+    (file/close file)
     data))
 
 (def (read path)
-  "Read text file"
+  "Reads text file"
   (binary->string (read-binary path)))
 
 # Write
 
 (def (write-binary path data)
-  "Write binary to file"
+  "Writes binary to file"
   (do
-    (var file (file.open path "w"))
-    (file.write file data)
-    (file.close file)))
+    (var file (file/open path "w"))
+    (file/write file data)
+    (file/close file)))
 
 (def (write path text)
-  "Write text to file"
+  "Writes text to file"
   (write-binary path (string->binary text)))
 
 # Append
 
 (def (append-binary path data)
-  "Append binary to file"
+  "Appends binary to file"
   (do
-    (var file (file.open path "a"))
-    (file.write file data)
-    (file.close file)))
+    (var file (file/open path "a"))
+    (file/write file data)
+    (file/close file)))
 
 (def (append path text)
-  "Append text to file"
+  "Appends text to file"
   (append-binary path (string->binary text)))
 
 # Console
 
 (def (read-line)
-  "Read line from the console"
-  (string.trim (binary->string (file.read stdin 256))))
+  "Reads line from the console"
+  (string/trim (binary->string (file/read stdin 256))))
 
 (def (read-char)
-  "Read char from the console"
-  (binary->string (file.read stdin 4)))
+  "Reads char from the console"
+  (binary->string (file/read stdin 4)))
 
 (def (p exp)
-  "Print expression to the console"
+  "Prints expression to stdout"
   (do
-    (file.write stdout (string->binary (string exp)))
+    (file/write stdout (string->binary (string exp)))
     '()))
 
 (def (print exp)
-  "Print expression to the console with a newline"
+  "Prints expression to stdout with a newline"
   (p (string exp "\n")))
 
-# Special
+(def (eprint exp)
+  "Prints expression to stderr with a newline"
+  (do
+    (file/write stderr (string->binary (string exp "\n")))
+    '()))
+
+(def (error msg)
+  "Prints error message to stderr"
+  (eprint (string "\e[91mError:\e[m " msg)))
+
+# Clocks
 
 (def (uptime)
+  "Returns the current value of the uptime clock"
   (binary->number (read-binary "/dev/clk/uptime") "float"))
 
 (def (realtime)
+  "Returns the current value of the realtime clock"
   (binary->number (read-binary "/dev/clk/realtime") "float"))
+
+# Path
+
+(def (filename path)
+  "Returns the filename from the given path"
+  (last (str/split path "/")))
+
+(def (dirname path)
+  "Returns the given path without the filename"
+  (str/join (rev (rest (rev (str/split path "/")))) "/"))

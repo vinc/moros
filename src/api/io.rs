@@ -1,7 +1,8 @@
 use crate::api::syscall;
+use crate::sys::fs::FileType;
 
-use alloc::vec;
 use alloc::string::{String, ToString};
+use alloc::vec;
 
 pub struct Stdin;
 pub struct Stdout;
@@ -17,7 +18,8 @@ impl Stdin {
         if let Some(bytes) = syscall::read(0, &mut buf) {
             if bytes > 0 {
                 buf.resize(bytes, 0);
-                return Some(String::from_utf8_lossy(&buf).to_string().remove(0));
+                let s = String::from_utf8_lossy(&buf).to_string().remove(0);
+                return Some(s);
             }
         }
         None
@@ -64,4 +66,11 @@ pub fn stdout() -> Stdout {
 
 pub fn stderr() -> Stderr {
     Stderr::new()
+}
+
+pub fn is_redirected(handle: usize) -> bool {
+    match syscall::kind(handle) {
+        Some(FileType::File) => true,
+        _ => false,
+    }
 }

@@ -1,9 +1,13 @@
-use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::fs;
-use crate::api::vga::palette;
 use crate::api::process::ExitCode;
+use crate::api::font::Font;
+use crate::api::vga::palette;
+use crate::sys;
 
+use core::convert::TryFrom;
+
+// TODO: Remove this command in the next version of MOROS
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
@@ -17,8 +21,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
         "set" => {
             if args.len() == 4 && args[2] == "font" {
+                warning!("Use VGA font device");
                 if let Ok(buf) = fs::read_to_bytes(args[3]) {
-                    if let Ok(font) = api::font::from_bytes(&buf) {
+                    if let Ok(font) = Font::try_from(buf.as_slice()) {
                         sys::vga::set_font(&font);
                         Ok(())
                     } else {
@@ -30,15 +35,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     Err(ExitCode::Failure)
                 }
             } else if args.len() == 4 && args[2] == "palette" {
+                warning!("Use ANSI OSC palette sequence");
                 if let Ok(csv) = fs::read_to_string(args[3]) {
                     if let Ok(palette) = palette::from_csv(&csv) {
                         sys::vga::set_palette(palette);
-                        // TODO: Instead of calling a kernel function we could
-                        // use the following ANSI OSC command to set a palette:
-                        //     for (i, r, g, b) in palette.colors {
-                        //         print!("\x1b]P{:x}{:x}{:x}{:x}", i, r, g, b);
-                        //     }
-                        // And "ESC]R" to reset a palette.
                         Ok(())
                     } else {
                         error!("Could not parse palette file");
@@ -61,12 +61,21 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} vga {}<command>{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} vga {}<command>{1}",
+        csi_title, csi_reset, csi_option
+    );
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}set font <file>{}       Set VGA font", csi_option, csi_reset);
-    println!("  {}set palette <file>{}    Set VGA color palette", csi_option, csi_reset);
+    println!(
+        "  {}set font <file>{}       Set VGA font",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {}set palette <file>{}    Set VGA color palette",
+        csi_option, csi_reset
+    );
 }

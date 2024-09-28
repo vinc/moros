@@ -1,15 +1,14 @@
-use super::{dirname, filename, realpath, FileIO, IO};
-use super::super_block::SuperBlock;
+use super::bitmap_block::BitmapBlock;
+use super::block::LinkedBlock;
 use super::dir_entry::DirEntry;
 use super::read_dir::ReadDir;
-use super::bitmap_block::BitmapBlock;
+use super::super_block::SuperBlock;
 use super::FileType;
-use super::block::LinkedBlock;
+use super::{dirname, filename, realpath, FileIO, IO};
 use crate::sys;
 
 use alloc::boxed::Box;
 use alloc::string::String;
-use core::convert::From;
 
 #[derive(Debug, Clone)]
 pub struct Dir {
@@ -22,7 +21,13 @@ pub struct Dir {
 
 impl From<DirEntry> for Dir {
     fn from(entry: DirEntry) -> Self {
-        Self { parent: Some(Box::new(entry.dir())), name: entry.name(), addr: entry.addr(), size: entry.size(), entry_index: 0 }
+        Self {
+            parent: Some(Box::new(entry.dir())),
+            name: entry.name(),
+            addr: entry.addr(),
+            size: entry.size(),
+            entry_index: 0,
+        }
     }
 }
 
@@ -30,7 +35,13 @@ impl Dir {
     pub fn root() -> Self {
         let name = String::new();
         let addr = SuperBlock::read().data_area();
-        let mut root = Self { parent: None, name, addr, size: 0, entry_index: 0 };
+        let mut root = Self {
+            parent: None,
+            name,
+            addr,
+            size: 0,
+            entry_index: 0,
+        };
         root.update_size();
         root
     }
@@ -65,16 +76,8 @@ impl Dir {
 
         for name in pathname.trim_start_matches('/').split('/') {
             match dir.find(name) {
-                Some(dir_entry) => {
-                    if dir_entry.is_dir() {
-                        dir = dir_entry.into()
-                    } else {
-                        return None;
-                    }
-                },
-                None => {
-                    return None
-                },
+                Some(entry) if entry.is_dir() => dir = entry.into(),
+                _ => return None,
             }
         }
         Some(dir)
@@ -110,21 +113,25 @@ impl Dir {
         let mut entries = self.entries();
         while entries.next().is_some() {}
 
-        // Allocate a new block for the dir if no space left for adding the new entry
+        // Allocate a new block for the dir if no space left for adding
+        // the new entry.
         let space_left = entries.block.data().len() - entries.block_offset();
         let entry_len = DirEntry::empty_len() + name.len();
         if entry_len > space_left {
             match entries.block.alloc_next() {
                 None => return None, // Disk is full
-                Some(new_block) => {
-                    entries.block = new_block;
+                Some(block) => {
+                    entries.block = block;
                     entries.block_offset = 0;
-                },
+                }
             }
         }
 
         // Create a new entry
-        let entry_block = LinkedBlock::alloc().unwrap();
+        let entry_block = match LinkedBlock::alloc() {
+            None => return None,
+            Some(block) => block,
+        };
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;
@@ -144,10 +151,17 @@ impl Dir {
         entries.block.write();
         self.update_size();
 
-        Some(DirEntry::new(self.clone(), kind, entry_addr, entry_size, entry_time, &entry_name))
+        Some(DirEntry::new(
+            self.clone(),
+            kind,
+            entry_addr,
+            entry_size,
+            entry_time,
+            &entry_name,
+        ))
     }
 
-    // Deleting an entry is done by setting the entry address to 0
+    // FIXME: Deleting an entry is done by setting the entry address to 0
     // TODO: If the entry is a directory, remove its entries recursively
     pub fn delete_entry(&mut self, name: &str) -> Result<(), ()> {
         let mut entries = self.entries();
@@ -164,11 +178,11 @@ impl Dir {
                 self.update_size();
 
                 // Freeing entry blocks
-                let mut entry_block = LinkedBlock::read(entry.addr());
+                let mut free_block = LinkedBlock::read(entry.addr());
                 loop {
-                    BitmapBlock::free(entry_block.addr());
-                    match entry_block.next() {
-                        Some(next_block) => entry_block = next_block,
+                    BitmapBlock::free(free_block.addr());
+                    match free_block.next() { // FIXME: read after free?
+                        Some(next_block) => free_block = next_block,
                         None => break,
                     }
                 }
@@ -244,8 +258,7 @@ impl FileIO for Dir {
         Err(())
     }
 
-    fn close(&mut self) {
-    }
+    fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
@@ -255,7 +268,8 @@ impl FileIO for Dir {
     }
 }
 
-// Truncate to the given number of bytes at most while respecting char boundaries
+// Truncate to the given number of bytes at most
+// while respecting char boundaries.
 fn truncate(s: &str, max: usize) -> String {
     s.char_indices().take_while(|(i, _)| *i <= max).map(|(_, c)| c).collect()
 }

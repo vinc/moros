@@ -1,18 +1,18 @@
-use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
+use crate::api::rng;
+use crate::{api, sys};
 
 use alloc::format;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
-use littlewing::color::*;
-use littlewing::chess::*;
-use littlewing::fen::FEN;
 use lazy_static::lazy_static;
+use littlewing::chess::*;
+use littlewing::color::*;
 use spin::Mutex;
 
 lazy_static! {
@@ -20,7 +20,10 @@ lazy_static! {
 }
 
 const FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const COMMANDS: [&str; 8] = ["quit", "help", "init", "time", "move", "undo", "show", "perf"];
+const COMMANDS: [&str; 11] = [
+    "quit", "help", "init", "time", "move", "undo", "show", "perf", "save",
+    "load", "puzzle"
+];
 
 fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
     *MOVES.lock() = game.get_moves().into_iter().map(|m| m.to_lan()).collect();
@@ -29,13 +32,15 @@ fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
         let mut entries = Vec::new();
         let args: Vec<&str> = line.split(' ').collect();
         let i = args.len() - 1;
-        if i == 0 { // Autocomplete command
+        if i == 0 {
+            // Autocomplete command
             for &cmd in &COMMANDS {
                 if let Some(entry) = cmd.strip_prefix(args[i]) {
                     entries.push(entry.into());
                 }
             }
-        } else if i == 1 && (args[0] == "move" || args[0] == "m") { // Autocomplete moves
+        } else if i == 1 && (args[0] == "move" || args[0] == "m") {
+            // Autocomplete moves
             for m in &*MOVES.lock() {
                 if let Some(entry) = m.strip_prefix(args[1]) {
                     entries.push(entry.into());
@@ -64,8 +69,8 @@ impl Chess {
         Self {
             game: Game::new(),
             side: BLACK,
-            csi_color: Style::color("Cyan"),
-            csi_notif: Style::color("Yellow"),
+            csi_color: Style::color("teal"),
+            csi_notif: Style::color("yellow"),
             csi_reset: Style::reset(),
         }
     }
@@ -78,9 +83,10 @@ impl Chess {
         let history_file = "~/.chess-history";
         prompt.history.load(history_file);
 
-        self.game.show_coordinates = true;
-        self.game.clock = Clock::new(40, 5 * 60 * 1000); // 40 moves in 5 minutes
+        // 40 moves in 5 minutes
+        self.game.clock = Clock::new(40, 5 * 60 * 1000);
         self.game.clock.system_time = Arc::new(system_time);
+        self.game.show_coordinates = true;
         let size = 1 << 20; // 1 MB
         self.game.tt_resize(size);
         self.game.load_fen(FEN).unwrap();
@@ -99,7 +105,8 @@ impl Chess {
                 "u" | "undo" => self.cmd_undo(args),
                 "l" | "load" => self.cmd_load(args),
                 "s" | "save" => self.cmd_save(args),
-                      "perf" => self.cmd_perf(args),
+                "puzzle" => self.cmd_puzzle(args),
+                "perf" => self.cmd_perf(args),
                 cmd => {
                     if cmd.is_empty() {
                         println!();
@@ -117,21 +124,28 @@ impl Chess {
     fn cmd_help(&mut self, _args: Vec<&str>) {
         println!("{}Commands:{}", self.csi_notif, self.csi_reset);
         let cmds = [
-            ("q", "uit",                "Exit this program\n"),
-            ("h", "elp",                "Display this screen\n"),
-            ("i", "nit",                "Initialize a new game\n"),
-            ("t", "ime <moves> <time>", "Set clock to <moves> in <time> (in seconds)\n"),
-            ("p", "lay [<side>]",       "Play <side> on the board\n"),
-            ("m", "ove <move>",         "Play <move> on the board\n"),
-            ("u", "ndo",                "Undo the last move\n"),
-            ("l", "oad <file>",         "Load game from <file>\n"),
-            ("s", "ave <file>",         "Save game to <file>\n"),
-            ("", "perf [<depth>] ",     "Count the nodes at each depth\n"),
+            ("q", "uit", "Exit this program\n"),
+            ("h", "elp", "Display this screen\n"),
+            ("i", "nit", "Initialize a new game\n"),
+            (
+                "t",
+                "ime <moves> <time>",
+                "Set clock to <moves> in <time> (in seconds)\n",
+            ),
+            ("p", "lay [<side>]", "Play <side> on the board\n"),
+            ("m", "ove <move>", "Play <move> on the board\n"),
+            ("u", "ndo", "Undo the last move\n"),
+            ("l", "oad <file>", "Load game from <file>\n"),
+            ("s", "ave <file>", "Save game to <file>\n"),
+            ("", "perf [<depth>] ", "Count the nodes at each depth\n"),
         ];
         for (alias, command, usage) in &cmds {
-            let csi_col1 = Style::color("LightGreen");
-            let csi_col2 = Style::color("LightCyan");
-            print!("  {}{}{}{:20}{}{}", csi_col1, alias, csi_col2, command, self.csi_reset, usage);
+            let csi_col1 = Style::color("lime");
+            let csi_col2 = Style::color("aqua");
+            print!(
+                "  {}{}{}{:20}{}{}",
+                csi_col1, alias, csi_col2, command, self.csi_reset, usage
+            );
         }
         println!();
     }
@@ -143,23 +157,30 @@ impl Chess {
         println!("{}", self.game);
     }
 
+    fn cmd_puzzle(&mut self, args: Vec<&str>) {
+        if args.len() != 2 {
+            error!("No <path> given\n");
+            return;
+        }
+        let path = args[1];
+        if let Ok(text) = fs::read_to_string(path) {
+            let lines: Vec<&str> = text.lines().collect();
+            let i = (rng::get_u64() as usize) % lines.len();
+            let fen = lines[i];
+            self.load(fen);
+        } else {
+            error!("Could not read '{}'\n", path);
+        }
+    }
+
     fn cmd_load(&mut self, args: Vec<&str>) {
         if args.len() != 2 {
             error!("No <path> given\n");
             return;
         }
         let path = args[1];
-        if let Ok(contents) = fs::read_to_string(path) {
-            if self.game.load_fen(&contents).is_ok() {
-                self.side = self.game.side() ^ 1;
-                let color = if self.game.side() == WHITE { "white" } else { "black" };
-                println!();
-                println!("{}<{} play {}", self.csi_color, self.csi_reset, color);
-                println!();
-                println!("{}", self.game);
-            } else {
-                error!("Could not load game\n");
-            }
+        if let Ok(fen) = fs::read_to_string(path) {
+            self.load(&fen);
         } else {
             error!("Could not read '{}'\n", path);
         }
@@ -171,7 +192,8 @@ impl Chess {
             return;
         }
         let path = args[1];
-        if fs::write(path, format!("{}\n", self.game.to_fen()).as_bytes()).is_ok() {
+        let text = format!("{}\n", self.game.to_fen());
+        if fs::write(path, text.as_bytes()).is_ok() {
             println!();
         } else {
             error!("Could not write to '{}'\n", path);
@@ -183,12 +205,12 @@ impl Chess {
             1 => {
                 error!("No <moves> and <time> given\n");
                 return;
-            },
+            }
             2 => {
                 error!("No <time> given\n");
                 return;
-            },
-            _ => {},
+            }
+            _ => {}
         }
         if let Ok(moves) = args[1].parse::<u16>() {
             if let Ok(time) = args[2].parse::<f64>() {
@@ -268,8 +290,8 @@ impl Chess {
     }
 
     fn cmd_perf(&mut self, args: Vec<&str>) {
-        let csi_depth = Style::color("LightCyan");
-        let csi_count = Style::color("Pink");
+        let csi_depth = Style::color("aqua");
+        let csi_count = Style::color("fushia");
         let csi_reset = Style::reset();
 
         let mut depth = if args.len() > 1 {
@@ -286,9 +308,13 @@ impl Chess {
         loop {
             let started_at = (self.game.clock.system_time)();
             let n = self.game.perft(depth);
-            let s = (((self.game.clock.system_time)() - started_at) as f64) / 1000.0;
+            let t = (self.game.clock.system_time)();
+            let s = ((t - started_at) as f64) / 1000.0;
             let nps = (n as f64) / s;
-            println!("{}{}:{} {}{} ({:.2} s, {:.2e} nps)", csi_depth, depth, csi_count, n, csi_reset, s, nps);
+            println!(
+                "{}{}:{} {}{} ({:.2} s, {:.2e} nps)",
+                csi_depth, depth, csi_count, n, csi_reset, s, nps
+            );
 
             if args.len() > 1 || sys::console::end_of_text() {
                 break;
@@ -299,13 +325,37 @@ impl Chess {
         println!();
     }
 
+    fn load(&mut self, fen: &str) {
+        self.game.clear(); // TODO: Do we need this?
+        if self.game.load_fen(fen).is_ok() {
+            self.side = self.game.side() ^ 1;
+            let color = if self.game.side() == WHITE {
+                "white"
+            } else {
+                "black"
+            };
+            println!();
+            println!(
+                "{}<{} play {}", self.csi_color, self.csi_reset, color
+            );
+            println!();
+            println!("{}", self.game);
+        } else {
+            error!("Could not load game\n");
+        }
+    }
+
     fn play(&mut self) {
         let time = (self.game.clock.allocated_time() as f64) / 1000.0;
-        print!("{}<{} wait {:.2} seconds{}", self.csi_color, self.csi_notif, time, self.csi_reset);
+        print!(
+            "{}<{} wait {:.2} seconds{}",
+            self.csi_color, self.csi_notif, time, self.csi_reset
+        );
         let r = self.game.search(1..99);
         print!("\x1b[2K\x1b[1G");
         if let Some(m) = r {
-            println!("{}<{} move {}", self.csi_color, self.csi_reset, m.to_lan());
+            let s = m.to_lan();
+            println!("{}<{} move {}", self.csi_color, self.csi_reset, s);
             println!();
             self.game.make_move(m);
             self.game.history.push(m);
@@ -345,7 +395,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     for &arg in args {
         match arg {
             "-h" | "--help" => return help(),
-            _ => {},
+            _ => {}
         }
     }
     let mut chess = Chess::new();
@@ -354,9 +404,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 pub fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} chess {}{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} chess {}{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     Ok(())
 }

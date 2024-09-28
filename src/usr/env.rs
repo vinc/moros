@@ -10,12 +10,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 help();
                 return Ok(());
             }
-            _ => continue
+            _ => continue,
         }
     }
     match n {
         1 => {
-            let width = sys::process::envs().keys().map(|k| k.len()).max().unwrap_or(0);
+            let width = sys::process::envs().keys().map(|k|
+                k.len()
+            ).max().unwrap_or(0);
             for (key, val) in sys::process::envs() {
                 println!("{:width$} \"{}\"", key, val, width = width);
             }
@@ -43,8 +45,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} env {}[<key> [<value>]]{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} env {}[<key> [<value>]]{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }

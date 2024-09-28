@@ -1,8 +1,9 @@
+use crate::{api, sys};
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
-use crate::api::random;
-use crate::sys;
+use crate::api::rng;
+use crate::sys::console;
 
 use alloc::collections::BTreeSet;
 use alloc::format;
@@ -12,8 +13,8 @@ use alloc::vec::Vec;
 use core::fmt;
 
 struct Game {
-    cols: i64,
-    rows: i64,
+    cols: usize,
+    rows: usize,
     grid: BTreeSet<(i64, i64)>,
     step: usize,
     speed: f64,
@@ -23,7 +24,7 @@ struct Game {
 }
 
 impl Game {
-    pub fn new(cols: i64, rows: i64) -> Self {
+    pub fn new(cols: usize, rows: usize) -> Self {
         Self {
             cols,
             rows,
@@ -37,13 +38,13 @@ impl Game {
     }
 
     pub fn load_file(&mut self, path: &str) {
-        if let Ok(lines) = fs::read_to_string(path) {
-            for (y, line) in lines.split('\n').enumerate() {
+        if let Ok(contents) = fs::read_to_string(path) {
+            for (y, line) in contents.lines().enumerate() {
                 for (x, c) in line.chars().enumerate() {
                     let cell = (x as i64, y as i64);
                     match c {
                         ' ' | '.' | '0' => self.grid.remove(&cell),
-                        _               => self.grid.insert(cell),
+                        _ => self.grid.insert(cell),
                     };
                 }
             }
@@ -55,8 +56,8 @@ impl Game {
             if self.seed_interval > 0 && self.step % self.seed_interval == 0 {
                 self.seed();
             }
-            if sys::console::end_of_text() || (self.is_game_over() && self.quiet) {
-                print!("\x1b[2J\x1b[1;1H"); // Clear screen and move cursor to top
+            if console::end_of_text() || (self.is_game_over() && self.quiet) {
+                print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                 return;
             }
             print!("{}", self);
@@ -73,8 +74,11 @@ impl Game {
             let mut cells_to_remove = vec![];
             for x in 0..self.cols {
                 for y in 0..self.rows {
-                    let cell = (x, y);
-                    match neighboors(&cell).iter().fold(0, |s, c| s + self.grid.contains(c) as u8) {
+                    let cell = (x as i64, y as i64);
+                    let n = neighboors(&cell).iter().fold(0, |s, c|
+                        s + self.grid.contains(c) as u8
+                    );
+                    match n {
                         2 => continue,
                         3 => cells_to_insert.push(cell),
                         _ => cells_to_remove.push(cell),
@@ -105,8 +109,8 @@ impl Game {
     fn seed(&mut self) {
         let n = self.seed_population;
         for _ in 0..n {
-            let x = (random::get_u64() % (self.cols as u64)) as i64;
-            let y = (random::get_u64() % (self.rows as u64)) as i64;
+            let x = (rng::get_u64() % (self.cols as u64)) as i64;
+            let y = (rng::get_u64() % (self.rows as u64)) as i64;
             self.grid.insert((x, y));
         }
     }
@@ -114,19 +118,24 @@ impl Game {
     fn status(&self, title: &str, bg: &str) -> String {
         let gen = self.generation();
         let pop = self.population();
-        let color = Style::color("Black").with_background(bg);
+        let color = Style::color("black").with_background(bg);
         let reset = Style::reset();
         let stats = format!("GEN: {:04} | POP: {:04}", gen, pop);
-        let size = (self.cols as usize) - stats.len();
-        format!("\n{}{:n$}{}{}", color, title, stats, reset, n=size)
+        let size = self.cols - stats.len();
+        format!("\n{}{:n$}{}{}", color, title, stats, reset, n = size)
     }
 }
 
 fn neighboors(&(x, y): &(i64, i64)) -> Vec<(i64, i64)> {
     vec![
-        (x - 1, y - 1), (x, y - 1), (x + 1, y - 1),
-        (x - 1, y),                 (x + 1, y),
-        (x - 1, y + 1), (x, y + 1), (x + 1, y + 1),
+        (x - 1, y - 1),
+        (x, y - 1),
+        (x + 1, y - 1),
+        (x - 1, y),
+        (x + 1, y),
+        (x - 1, y + 1),
+        (x, y + 1),
+        (x + 1, y + 1),
     ]
 }
 
@@ -135,7 +144,11 @@ impl fmt::Display for Game {
         let mut out = String::new();
         for y in 0..self.rows {
             for x in 0..self.cols {
-                out.push(if self.grid.contains(&(x, y)) { '#' } else { ' ' });
+                out.push(if self.grid.contains(&(x as i64, y as i64)) {
+                    '#'
+                } else {
+                    ' '
+                });
             }
             if y < self.rows - 1 {
                 out.push('\n');
@@ -144,9 +157,9 @@ impl fmt::Display for Game {
 
         if !self.quiet {
             let line = if self.is_game_over() {
-                self.status("GAME OVER", "Yellow")
+                self.status("GAME OVER", "yellow")
             } else {
-                self.status("GAME OF LIFE", "White")
+                self.status("GAME OF LIFE", "white")
             };
             out.push_str(&line);
         }
@@ -157,7 +170,7 @@ impl fmt::Display for Game {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut game = Game::new(80, 24);
+    let mut game = Game::new(api::console::cols(), api::console::rows() - 1);
     let mut i = 0;
     let n = args.len();
     while i < n {
@@ -168,8 +181,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-p" | "--population" => {
                 if i + 1 < n {
-                    game.seed_population = args[i + 1].parse().unwrap_or(game.seed_population);
                     i += 1;
+                    let opt = &mut game.seed_population;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --population <num>");
                     return Err(ExitCode::UsageError);
@@ -177,8 +191,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-i" | "--interval" => {
                 if i + 1 < n {
-                    game.seed_interval = args[i + 1].parse().unwrap_or(game.seed_interval);
                     i += 1;
+                    let opt = &mut game.seed_interval;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --interval <num>");
                     return Err(ExitCode::UsageError);
@@ -186,8 +201,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-s" | "--speed" => {
                 if i + 1 < n {
-                    game.speed = args[i + 1].parse().unwrap_or(game.speed);
                     i += 1;
+                    let opt = &mut game.speed;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --speed <num>");
                     return Err(ExitCode::UsageError);
@@ -199,7 +215,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             arg => {
                 if arg.starts_with('-') {
-                    error!("Unknown option '{}'", arg);
+                    error!("Invalid option '{}'", arg);
                     return Err(ExitCode::UsageError);
                 }
                 if i > 0 {
@@ -226,14 +242,33 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} life {}<options> [<path>]{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} life {}<options> [<path>]{1}",
+        csi_title, csi_reset, csi_option
+    );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-p{1}, {0}--population <num>{1}   Set the seed population to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-i{1}, {0}--interval <num>{1}     Set the seed interval to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-s{1}, {0}--speed <num>{1}        Set the simulation speed to {0}<num>{1}", csi_option, csi_reset);
-    println!("  {0}-q{1}, {0}--quiet{1}              Enable quiet mode", csi_option, csi_reset);
+    println!(
+        "  {0}-p{1}, {0}--population <num>{1}   \
+        Set the seed population to {0}<num>{1}",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-i{1}, {0}--interval <num>{1}     \
+        Set the seed interval to {0}<num>{1}",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-s{1}, {0}--speed <num>{1}        \
+        Set the simulation speed to {0}<num>{1}",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-q{1}, {0}--quiet{1}              \
+        Enable quiet mode",
+        csi_option, csi_reset
+    );
 }

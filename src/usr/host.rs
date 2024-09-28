@@ -1,9 +1,9 @@
-use crate::usr;
 use crate::api::console::Style;
-use crate::sys::fs::OpenFlag;
 use crate::api::process::ExitCode;
-use crate::api::random;
+use crate::api::rng;
 use crate::api::syscall;
+use crate::sys::fs::OpenFlag;
+use crate::usr;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -61,7 +61,7 @@ impl Message {
     pub fn query(qname: &str, qtype: QueryType, qclass: QueryClass) -> Self {
         let mut datagram = Vec::new();
 
-        let id = random::get_u16();
+        let id = rng::get_u16();
         for b in id.to_be_bytes().iter() {
             datagram.push(*b); // Transaction ID
         }
@@ -143,16 +143,16 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
     if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             syscall::close(handle);
-            return Err(ResponseCode::NetworkError)
+            return Err(ResponseCode::NetworkError);
         }
         if syscall::write(handle, &query.datagram).is_none() {
             syscall::close(handle);
-            return Err(ResponseCode::NetworkError)
+            return Err(ResponseCode::NetworkError);
         }
         loop {
             let mut data = vec![0; buf_len];
             if let Some(bytes) = syscall::read(handle, &mut data) {
-                if bytes == 0 {
+                if bytes < 28 {
                     break;
                 }
                 data.resize(bytes, 0);
@@ -160,18 +160,22 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
                 let message = Message::from(&data);
                 if message.id() == query.id() && message.is_response() {
                     syscall::close(handle);
+                    //usr::hex::print_hex(&message.datagram);
                     return match message.code() {
                         ResponseCode::NoError => {
                             // TODO: Parse the datagram instead of extracting
                             // the last 4 bytes
                             let n = message.datagram.len();
                             let data = &message.datagram[(n - 4)..];
-                            Ok(IpAddress::from(Ipv4Address::from_bytes(data)))
+                            let ipv4 = Ipv4Address::from_bytes(data);
+                            if ipv4.is_unspecified() {
+                                Err(ResponseCode::NameError) // FIXME
+                            } else {
+                                Ok(IpAddress::from(ipv4))
+                            }
                         }
-                        code => {
-                            Err(code)
-                        }
-                    }
+                        code => Err(code),
+                    };
                 }
             } else {
                 break;
@@ -202,8 +206,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} host {}<domain>{1}", csi_title, csi_reset, csi_option);
+    println!(
+        "{}Usage:{} host {}<domain>{1}",
+        csi_title, csi_reset, csi_option
+    );
 }

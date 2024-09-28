@@ -4,27 +4,20 @@ use crate::api::process::ExitCode;
 use crate::api::unit::SizeUnit;
 use crate::sys;
 use crate::sys::ata::Drive;
+use crate::sys::console;
 
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
-use alloc::vec::Vec;
 use alloc::vec;
+use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match *args.get(1).unwrap_or(&"") {
-        "f" | "format" if args.len() == 3 => {
-            format(args[2])
-        }
-        "e" | "erase" if args.len() == 3 => {
-            erase(args[2])
-        }
-        "u" | "usage" => {
-            usage(&args[2..])
-        }
-        "l" | "list" => {
-            list()
-        }
+        "f" | "format" if args.len() == 3 => format(args[2]),
+        "e" | "erase" if args.len() == 3 => erase(args[2]),
+        "u" | "usage" => usage(&args[2..]),
+        "l" | "list" => list(),
         "-h" | "--help" => {
             help();
             Ok(())
@@ -62,6 +55,10 @@ fn format(pathname: &str) -> Result<(), ExitCode> {
     }
 }
 
+fn is_canceled() -> bool {
+    console::end_of_text() || console::end_of_transmission()
+}
+
 fn erase(pathname: &str) -> Result<(), ExitCode> {
     match parse_disk_path(pathname) {
         Ok((bus, dsk)) => {
@@ -74,7 +71,7 @@ fn erase(pathname: &str) -> Result<(), ExitCode> {
                     let buf = vec![0; drive.block_size() as usize];
                     print!("\x1b[?25l"); // Disable cursor
                     for i in 0..n {
-                        if sys::console::end_of_text() || sys::console::end_of_transmission() {
+                        if is_canceled() {
                             println!();
                             print!("\x1b[?25h"); // Enable cursor
                             return Err(ExitCode::Failure);
@@ -128,36 +125,71 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
     let size = sys::fs::disk_size();
     let used = sys::fs::disk_used();
     let free = size - used;
-    let width = [size, used, free].iter().fold(0, |acc, num| {
+    let width = [size, used, free].iter().fold(0, |acc, num|
         core::cmp::max(acc, unit.format(*num).len())
-    });
-    let color = Style::color("LightCyan");
+    );
+    let color = Style::color("aqua");
     let reset = Style::reset();
-    println!("{}size:{} {:>width$}", color, reset, unit.format(size), width = width);
-    println!("{}used:{} {:>width$}", color, reset, unit.format(used), width = width);
-    println!("{}free:{} {:>width$}", color, reset, unit.format(free), width = width);
+    println!(
+        "{}size:{} {:>width$}",
+        color,
+        reset,
+        unit.format(size),
+        width = width
+    );
+    println!(
+        "{}used:{} {:>width$}",
+        color,
+        reset,
+        unit.format(used),
+        width = width
+    );
+    println!(
+        "{}free:{} {:>width$}",
+        color,
+        reset,
+        unit.format(free),
+        width = width
+    );
     Ok(())
 }
 
 fn help_usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} disk usage {}<options>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} disk usage {}<options>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
-    println!("  {0}-b{1}, {0}--binary-size{1}   Use binary size", csi_option, csi_reset);
+    println!(
+        "  {0}-b{1}, {0}--binary-size{1}   Use binary size",
+        csi_option, csi_reset
+    );
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!("{}Usage:{} disk {}<command>{}", csi_title, csi_reset, csi_option, csi_reset);
+    println!(
+        "{}Usage:{} disk {}<command>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
     println!();
     println!("{}Commands:{}", csi_title, csi_reset);
-    println!("  {}list{}             List detected disks", csi_option, csi_reset);
-    println!("  {}usage{}            List disk usage", csi_option, csi_reset);
-    println!("  {}format <path>{}    Format disk", csi_option, csi_reset);
-    println!("  {}erase <path>{}     Erase disk", csi_option, csi_reset);
+    println!(
+        "  {}erase <path>{}    Erase disk", csi_option, csi_reset
+    );
+    println!(
+        "  {}format <path>{}   Format disk", csi_option, csi_reset
+    );
+    println!(
+        "  {}list{}            List detected disks", csi_option, csi_reset
+    );
+    println!(
+        "  {}usage{}           List disk usage", csi_option, csi_reset
+    );
 }

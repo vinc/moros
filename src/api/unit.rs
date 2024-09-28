@@ -9,40 +9,53 @@ pub enum SizeUnit {
 }
 
 impl SizeUnit {
-    pub fn format(&self, size: usize) -> String {
+    pub fn format(&self, bytes: usize) -> String {
         match self {
-            SizeUnit::None => format!("{}", size),
-            SizeUnit::Binary => binary_size(size),
-            SizeUnit::Decimal => decimal_size(size),
+            SizeUnit::None => format!("{}", bytes),
+            SizeUnit::Binary => readable_size(bytes, 1024),
+            SizeUnit::Decimal => readable_size(bytes, 1000),
         }
     }
 }
 
-const PREFIXES: [&str; 5] = ["", "K", "M", "G", "T"];
-
-fn binary_size(size: usize) -> String {
-    let n = PREFIXES.len();
-    for i in 0..n {
-        let prefix = PREFIXES[i];
-        if size < (1 << ((i + 1) * 10)) || i == n - 1 {
-            let s = ((size * 10) >> (i * 10)) as f64 / 10.0;
-            let s = if s >= 10.0 { libm::round(s) } else { s };
-            return format!("{}{}", s, prefix);
-        }
+fn readable_size(bytes: usize, divisor: usize) -> String {
+    let units = ["", "K", "M", "G", "T"];
+    let d = divisor as f64;
+    let mut s = bytes as f64;
+    let mut i = 0;
+    while s >= d && i < units.len() - 1 {
+        s /= d;
+        i += 1;
     }
-    unreachable!();
+    let p = if i > 0 && s < 10.0 { 1 } else { 0 };
+    format!("{:.2$}{}", s, units[i], p)
 }
 
-fn decimal_size(size: usize) -> String {
-    let size = size;
-    let n = PREFIXES.len();
-    for i in 0..n {
-        let prefix = PREFIXES[i];
-        if size < usize::pow(10, 3 * (i + 1) as u32) || i == n - 1 {
-            let s = (size as f64) / libm::pow(10.0, 3.0 * (i as f64));
-            let precision = if s >= 10.0 { 0 } else { 1 };
-            return format!("{:.2$}{}", s, prefix, precision);
-        }
-    }
-    unreachable!();
+#[test_case]
+fn test_binary_size() {
+    let unit = SizeUnit::Binary;
+    assert_eq!(unit.format(1),          "1");
+    assert_eq!(unit.format(10),        "10");
+    assert_eq!(unit.format(100),      "100");
+    assert_eq!(unit.format(1000),    "1000");
+    assert_eq!(unit.format(1024),    "1.0K");
+    assert_eq!(unit.format(1120),    "1.1K");
+    assert_eq!(unit.format(1160),    "1.1K");
+    assert_eq!(unit.format(15000),    "15K");
+    assert_eq!(unit.format(1000000), "977K");
+}
+
+#[test_case]
+fn test_decimal_size() {
+    let unit = SizeUnit::Decimal;
+    assert_eq!(unit.format(1),          "1");
+    assert_eq!(unit.format(10),        "10");
+    assert_eq!(unit.format(100),      "100");
+    assert_eq!(unit.format(1000),    "1.0K");
+    assert_eq!(unit.format(1024),    "1.0K");
+    assert_eq!(unit.format(1120),    "1.1K");
+    assert_eq!(unit.format(1160),    "1.2K");
+    assert_eq!(unit.format(1500),    "1.5K");
+    assert_eq!(unit.format(15000),    "15K");
+    assert_eq!(unit.format(1000000), "1.0M");
 }

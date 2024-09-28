@@ -5,36 +5,37 @@
 During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.
 
-    [0.250962] MOROS v0.10.1
-    [0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
-    [0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
-    [0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
-    [0.250962] MEM [0x00000000016000-0x00000000016FFF] BootInfo
-    [0.250962] MEM [0x00000000017000-0x0000000002DFFF] Kernel
-    [0.250962] MEM [0x0000000002E000-0x0000000009EFFF] KernelStack
-    [0.250962] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
-    [0.250962] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
-    [0.250962] MEM [0x00000000100000-0x0000000028EFFF] KernelStack
-    [0.250962] MEM [0x0000000028F000-0x000000003FFFFF] Usable
-    [0.250962] MEM [0x00000000400000-0x000000005E1FFF] Kernel
-    [0.250962] MEM [0x000000005E2000-0x000000005EFFFF] PageTable
-    [0.250962] MEM [0x000000005F0000-0x00000001FDFFFF] Usable
-    [0.250962] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
-    [0.250962] MEM [0x000000FEFFC000-0x000000FEFFFFFF] Reserved
-    [0.250962] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
-    [0.250962] MEM 32720 KB
-    [0.251962] CPU GenuineIntel
-    [0.254961] CPU Intel(R) Core(TM) i5-4300M CPU @ 2.60GHz
-    [0.284957] PCI 0000:00:00 [8086:1237]
-    [0.312952] PCI 0000:01:00 [8086:7000]
-    [0.321951] PCI 0000:01:01 [8086:7010]
-    [0.321951] PCI 0000:01:03 [8086:7113]
-    [0.322951] PCI 0000:02:00 [1234:1111]
-    [0.323951] PCI 0000:03:00 [10EC:8139]
-    [0.377942] NET RTL8139 MAC 52-54-00-12-34-56
-    [0.382942] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
-    [0.384941] MFS Superblock found in ATA 0:0
-    [0.386941] RTC 2023-04-17 20:00:28 +0000
+    [0.250962] MOROS v0.10.4
+    [0.256961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
+    [0.256961] MEM [0x00000000001000-0x00000000004FFF] PageTable
+    [0.256961] MEM [0x00000000005000-0x00000000016FFF] Bootloader
+    [0.256961] MEM [0x00000000017000-0x00000000017FFF] BootInfo
+    [0.256961] MEM [0x00000000018000-0x0000000009EFFF] Kernel
+    [0.256961] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
+    [0.256961] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
+    [0.256961] MEM [0x00000000100000-0x00000000104FFF] Kernel
+    [0.256961] MEM [0x00000000105000-0x00000000304FFF] KernelStack
+    [0.256961] MEM [0x00000000305000-0x000000003FFFFF] Usable
+    [0.256961] MEM [0x00000000400000-0x000000005EEFFF] Kernel
+    [0.256961] MEM [0x000000005EF000-0x000000005FFFFF] PageTable
+    [0.256961] MEM [0x00000000600000-0x00000001FDFFFF] Usable
+    [0.256961] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
+    [0.256961] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
+    [0.256961] MEM 32704 KB
+    [0.282957] CPU GenuineIntel
+    [0.283957] CPU Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
+    [0.284957] RNG RDRAND unavailable
+    [0.291956] PCI 0000:00:00 [8086:1237]
+    [0.292955] PCI 0000:01:00 [8086:7000]
+    [0.292955] PCI 0000:01:01 [8086:7010]
+    [0.292955] PCI 0000:01:03 [8086:7113]
+    [0.293955] PCI 0000:02:00 [1234:1111]
+    [0.293955] PCI 0000:03:00 [8086:100E]
+    [0.301954] NET DRV E1000
+    [0.303954] NET MAC 52-54-00-12-34-56
+    [0.308953] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
+    [0.310953] MFS Superblock found in ATA 0:0
+    [0.315952] RTC 2024-06-19 11:54:13 +0000
 
 ## Installation
 
@@ -42,18 +43,18 @@ The first time MOROS will boot in diskless mode where you can use the builtin
 commands to test the system or `install` to setup the
 [filesystem](filesystem.md) on a disk:
 
-    MFS is not mounted to '/'
-    Running console in diskless mode
+    Warning: MFS not found, run 'install' to setup the system
 
     /
     > install
-    Welcome to MOROS v0.10.1 installation program!
+    Welcome to MOROS v0.10.4 installation program!
 
     Proceed? [y/N] y
 
     Listing disks ...
     Path            Name (Size)
     /dev/ata/0/0    QEMU HARDDISK QM00001 (32 MB)
+    /dev/mem        RAM DISK
 
     Formatting disk ...
     Enter path of disk to format: /dev/ata/0/0
@@ -70,12 +71,19 @@ commands to test the system or `install` to setup the
     Created '/tmp'
     Created '/usr'
     Created '/var'
-    Copied '/bin/clear'
-    Copied '/bin/halt'
-    Copied '/bin/hello'
-    Copied '/bin/print'
-    Copied '/bin/reboot'
-    Copied '/bin/sleep'
+    Fetched '/bin/clear'
+    Fetched '/bin/halt'
+    Fetched '/bin/ntp'
+    Fetched '/bin/print'
+    Fetched '/bin/reboot'
+    Fetched '/bin/sleep'
+    Created '/dev/ata'
+    Created '/dev/ata/0'
+    Created '/dev/ata/0/0'
+    Created '/dev/ata/0/1'
+    Created '/dev/ata/1'
+    Created '/dev/ata/1/0'
+    Created '/dev/ata/1/1'
     Created '/dev/clk'
     Created '/dev/clk/uptime'
     Created '/dev/clk/realtime'
@@ -83,45 +91,53 @@ commands to test the system or `install` to setup the
     Created '/dev/null'
     Created '/dev/random'
     Created '/dev/console'
-    Copied '/ini/banner.txt'
-    Copied '/ini/boot.sh'
-    Copied '/ini/shell.sh'
-    Copied '/ini/version.txt'
+    Created '/dev/net'
+    Created '/dev/net/tcp'
+    Created '/dev/net/udp'
+    Fetched '/ini/banner.txt'
+    Fetched '/ini/boot.sh'
+    Fetched '/ini/lisp.lsp'
+    Fetched '/ini/shell.sh'
+    Fetched '/ini/version.txt'
     Created '/ini/palettes'
-    Copied '/ini/palettes/gruvbox-dark.csv'
-    Copied '/ini/palettes/gruvbox-light.csv'
+    Fetched '/ini/palettes/gruvbox-dark.sh'
+    Fetched '/ini/palettes/gruvbox-light.sh'
     Created '/ini/fonts'
-    Copied '/ini/fonts/zap-light-8x16.psf'
-    Copied '/ini/fonts/zap-vga-8x16.psf'
+    Fetched '/ini/fonts/zap-light-8x16.psf'
+    Fetched '/ini/fonts/zap-vga-8x16.psf'
     Created '/lib/lisp'
-    Copied '/lib/lisp/core.lsp'
-    Copied '/lib/lisp/alias.lsp'
-    Copied '/tmp/alice.txt'
-    Copied '/tmp/machines.txt'
+    Fetched '/lib/lisp/alias.lsp'
+    Fetched '/lib/lisp/core.lsp'
+    Fetched '/lib/lisp/file.lsp'
+    Fetched '/tmp/alice.txt'
+    Fetched '/tmp/machines.txt'
     Created '/tmp/lisp'
-    Copied '/tmp/lisp/colors.lsp'
-    Copied '/tmp/lisp/factorial.lsp'
-    Copied '/tmp/lisp/fibonacci.lsp'
-    Copied '/tmp/lisp/geotime.lsp'
-    Copied '/tmp/lisp/pi.lsp'
-    Copied '/tmp/lisp/sum.lsp'
+    Fetched '/tmp/lisp/colors.lsp'
+    Fetched '/tmp/lisp/doc.lsp'
+    Fetched '/tmp/lisp/factorial.lsp'
+    Fetched '/tmp/lisp/fibonacci.lsp'
+    Fetched '/tmp/lisp/geotime.lsp'
+    Fetched '/tmp/lisp/pi.lsp'
+    Fetched '/tmp/lisp/sum.lsp'
     Created '/tmp/life'
-    Copied '/tmp/life/centinal.cells'
-    Copied '/tmp/life/flower-of-eden.cells'
-    Copied '/tmp/life/garden-of-eden.cells'
-    Copied '/tmp/life/glider-gun.cells'
-    Copied '/tmp/life/pentadecathlon.cells'
-    Copied '/tmp/life/queen-bee-shuttle.cells'
-    Copied '/tmp/life/ship-in-a-bottle.cells'
-    Copied '/tmp/life/thunderbird.cells'
-    Copied '/tmp/life/wing.cells'
+    Fetched '/tmp/life/centinal.cells'
+    Fetched '/tmp/life/flower-of-eden.cells'
+    Fetched '/tmp/life/garden-of-eden.cells'
+    Fetched '/tmp/life/glider-gun.cells'
+    Fetched '/tmp/life/pentadecathlon.cells'
+    Fetched '/tmp/life/queen-bee-shuttle.cells'
+    Fetched '/tmp/life/ship-in-a-bottle.cells'
+    Fetched '/tmp/life/thunderbird.cells'
+    Fetched '/tmp/life/wing.cells'
     Created '/tmp/beep'
-    Copied '/tmp/beep/tetris.sh'
-    Copied '/tmp/beep/starwars.sh'
-    Copied '/tmp/beep/mario.sh'
+    Fetched '/tmp/beep/tetris.sh'
+    Fetched '/tmp/beep/starwars.sh'
+    Fetched '/tmp/beep/mario.sh'
+    Created '/var/log'
     Created '/var/www'
-    Copied '/var/www/index.html'
-    Copied '/var/www/moros.png'
+    Fetched '/var/www/index.html'
+    Fetched '/var/www/moros.css'
+    Fetched '/var/www/moros.png'
 
     Creating user...
     Username: vinc
@@ -137,7 +153,8 @@ diskless mode and let MOROS run the bootscript `/ini/boot.sh` to login and use
 the shell.
 
 If no disks were detected or if you prefer not to use any you can mount the
-system in memory and use a virtual disk with `memory format` before `install`.
+system in memory and use a virtual disk with `memory format` before `install`
+or using `/dev/mem` for the disk during the setup.
 
 ## Shell
 
@@ -188,10 +205,11 @@ The command has some options to sort the results:
     Usage: list <options> [<dir>]
 
     Options:
-      -a, --all     Show dot files
-      -n, --name    Sort by name
-      -s, --size    Sort by size
-      -t, --time    Sort by time
+      -b, --binary-size   Use binary size
+      -a, --all           Show dot files
+      -n, --name          Sort by name
+      -s, --size          Sort by size
+      -t, --time          Sort by time
 
 You can write a directory in the disk with `write`:
 
@@ -228,7 +246,7 @@ content to the file and `^Q` to quit the editor and go back to the shell.
 The `help` command has a subcommand `help edit` to list the editor commands:
 
     > help edit
-    MOROS text editor is a very simple editor inspired by Pico, Nano, and Micro.
+    MOROS text editor is a very simple editor inspired by Pico.
 
     Commands:
       ^Q    Quit editor
@@ -270,8 +288,8 @@ You can also set the `TZ` environment variable to use your preferred timezone:
 Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
     > read /ini/boot.sh
-    vga set palette /ini/palettes/gruvbox-dark.csv
-    vga set font /ini/fonts/zap-light-8x16.psf
+    shell /ini/palettes/gruvbox-dark.sh
+    read /ini/fonts/zap-light-8x16.psf => /dev/vga/font
     read /ini/banner.txt
     user login
     env TZ 7200
@@ -329,9 +347,9 @@ You can setup the [network](network.md) manually with `net` or automatically
 with `dhcp`:
 
     > dhcp
-    ip:  10.0.2.15/24
-    gw:  10.0.2.2
-    dns: 10.0.2.3
+    [8.801660] NET IP 10.0.2.15/24
+    [8.804659] NET GW 10.0.2.2
+    [8.808659] NET DNS 10.0.2.3
 
 A few tools are available like the generalist `socket` command that be used to
 send and receive TCP packets:
@@ -353,3 +371,11 @@ Or the more specialized `http` command to request a document from a web server:
         <h1>MOROS</h1>
       </body>
     </html>
+
+There is also a `ntp` script to synchronize the clock over the network:
+
+    > ntp
+    2023-03-21 10:00:00
+
+    > ntp => /dev/rtc
+    [12.111156] RTC 2023-03-21 10:00:00 +0000

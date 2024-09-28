@@ -1,3 +1,4 @@
+use crate::sys;
 use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
 use crate::api::fs::{FileIO, IO};
 
@@ -57,8 +58,12 @@ impl RTC {
 impl FileIO for RTC {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         self.sync();
-        let date = Date::try_from_ymd(self.year.into(), self.month, self.day).map_err(|_| ())?;
-        let date_time = date.try_with_hms(self.hour, self.minute, self.second).map_err(|_| ())?;
+        let date = Date::try_from_ymd(
+            self.year.into(), self.month, self.day
+        ).map_err(|_| ())?;
+        let date_time = date.try_with_hms(
+            self.hour, self.minute, self.second
+        ).map_err(|_| ())?;
         let out = date_time.format(DATE_TIME);
         buf.copy_from_slice(out.as_bytes());
         Ok(out.len())
@@ -81,11 +86,11 @@ impl FileIO for RTC {
             return Err(());
         }
         CMOS::new().update_rtc(self);
+        sys::clock::init();
         Ok(buf.len())
     }
 
-    fn close(&mut self) {
-    }
+    fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
@@ -134,16 +139,19 @@ impl CMOS {
 
         let b = self.read_register(Register::B);
 
-        if b & 0x04 == 0 { // BCD Mode
+        // BCD Mode
+        if b & 0x04 == 0 {
             rtc.second = (rtc.second & 0x0F) + ((rtc.second / 16) * 10);
             rtc.minute = (rtc.minute & 0x0F) + ((rtc.minute / 16) * 10);
-            rtc.hour = ((rtc.hour & 0x0F) + (((rtc.hour & 0x70) / 16) * 10)) | (rtc.hour & 0x80);
+            rtc.hour = ((rtc.hour & 0x0F) + (((rtc.hour & 0x70) / 16) * 10))
+                     | (rtc.hour & 0x80);
             rtc.day = (rtc.day & 0x0F) + ((rtc.day / 16) * 10);
             rtc.month = (rtc.month & 0x0F) + ((rtc.month / 16) * 10);
             rtc.year = (rtc.year & 0x0F) + ((rtc.year / 16) * 10);
         }
 
-        if (b & 0x02 == 0) && (rtc.hour & 0x80 == 0) { // 12 hour format
+        // 12 hour format
+        if (b & 0x02 == 0) && (rtc.hour & 0x80 == 0) {
             rtc.hour = ((rtc.hour & 0x7F) + 12) % 24;
         }
 
@@ -165,7 +173,8 @@ impl CMOS {
 
         let b = self.read_register(Register::B);
 
-        if b & 0x02 == 0 { // 12 hour format
+        // 12 hour format
+        if b & 0x02 == 0 {
             if hour == 0 {
                 hour = 24;
             }
@@ -175,7 +184,8 @@ impl CMOS {
             }
         }
 
-        if b & 0x04 == 0 { // BCD Mode
+        // BCD Mode
+        if b & 0x04 == 0 {
             second = 16 * (second / 10) + (second % 10);
             minute = 16 * (minute / 10) + (minute % 10);
             hour = 16 * (hour / 10) + (hour % 10);

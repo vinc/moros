@@ -10,6 +10,7 @@ alias m    move
 alias p    print
 alias q    quit
 alias r    read
+alias v    view
 alias w    write
 
 alias del  delete
