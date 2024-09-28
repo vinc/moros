@@ -150,6 +150,7 @@ extern "x86-interrupt" fn page_fault_handler(
             }
         }
     } else {
+        debug!("{:?}", error_code);
         printk!(
             "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr

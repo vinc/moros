@@ -80,6 +80,7 @@ pub fn alloc_pages(
                 mapper.map_to(page, frame, flags, &mut frame_allocator)
             };
             if let Ok(mapping) = res {
+                //debug!("Mapped {:?} to {:?}", page, frame);
                 mapping.flush();
             } else {
                 debug!("Could not map {:?} to {:?}", page, frame);
