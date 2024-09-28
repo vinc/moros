@@ -20,7 +20,7 @@ pub mod usr;
 
 use bootloader::BootInfo;
 
-const KERNEL_SIZE: usize = 2 << 20; // 2 MB
+const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
 pub fn init(boot_info: &'static BootInfo) {
     sys::vga::init();
