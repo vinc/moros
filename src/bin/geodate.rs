@@ -26,4 +26,5 @@ fn main(args: &[&str]) {
 
     let t = geodate::get_formatted_date(format, timestamp as i64, longitude);
     syscall::write(1, t.as_bytes());
+    syscall::write(1, b"\n");
 }
