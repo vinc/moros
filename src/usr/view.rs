@@ -252,7 +252,7 @@ impl Viewer {
             if y <= self.y {
                 continue;
             }
-            if line.find(&self.search_query).is_some() {
+            if line.contains(&self.search_query) {
                 self.y = y;
                 break;
             }

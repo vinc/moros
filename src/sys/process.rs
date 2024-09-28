@@ -365,7 +365,7 @@ impl Process {
                 for segment in obj.segments() {
                     if let Ok(data) = segment.data() {
                         let addr = code_addr + segment.address();
-                        copy_to_addr(&mut mapper, addr, &data)?;
+                        copy_to_addr(&mut mapper, addr, data)?;
                     }
                 }
             }
