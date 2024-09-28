@@ -127,19 +127,31 @@ extern "x86-interrupt" fn page_fault_handler(
     error_code: PageFaultErrorCode,
 ) {
     //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
+    let csi_color = api::console::Style::color("red");
+    let csi_reset = api::console::Style::reset();
     let addr = Cr2::read().unwrap().as_u64();
 
-    let page_table = unsafe { sys::process::page_table() };
-    let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
-    };
+    if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
+        let page_table = unsafe { sys::process::page_table() };
+        let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
+        let mut mapper = unsafe {
+            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
+        };
 
-    if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
-        let csi_color = api::console::Style::color("red");
-        let csi_reset = api::console::Style::reset();
+        if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
+            printk!(
+                "{}Error:{} Could not allocate address {:#X}\n",
+                csi_color, csi_reset, addr
+            );
+            if error_code.contains(PageFaultErrorCode::USER_MODE) {
+                api::syscall::exit(ExitCode::PageFaultError);
+            } else {
+                hlt_loop();
+            }
+        }
+    } else {
         printk!(
-            "{}Error:{} Could not allocate address {:#X}\n",
+            "{}Error:{} Page fault at address {:#X}\n",
             csi_color, csi_reset, addr
         );
         if error_code.contains(PageFaultErrorCode::USER_MODE) {
