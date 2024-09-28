@@ -47,6 +47,7 @@ user-rust:
 		cargo rustc $(user-cargo-opts) --bin {}
 	cargo rustc $(user-cargo-opts) --bin exec -- $(linker-opts)
 	cargo rustc $(user-cargo-opts) --bin hello -- $(linker-opts)
+	cargo rustc $(user-cargo-opts) --bin geodate -- $(linker-opts)
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \

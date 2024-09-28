@@ -536,6 +536,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "encode"   => usr::encode::main(args),
         "env"      => usr::env::main(args),
         "find"     => usr::find::main(args),
+        "geodate"  => usr::geodate::main(args),
         "goto"     => cmd_change_dir(args, config), // TODO: Remove this
         "hash"     => usr::hash::main(args),
         "help"     => usr::help::main(args),
