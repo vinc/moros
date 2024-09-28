@@ -126,10 +126,10 @@ extern "x86-interrupt" fn page_fault_handler(
     _stack_frame: InterruptStackFrame,
     error_code: PageFaultErrorCode,
 ) {
-    //debug!("EXCEPTION: PAGE FAULT ({:?})", error_code);
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
     let addr = Cr2::read().unwrap().as_u64();
+    //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
     if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
         let page_table = unsafe { sys::process::page_table() };
@@ -140,7 +140,7 @@ extern "x86-interrupt" fn page_fault_handler(
 
         if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
             printk!(
-                "{}Error:{} Could not allocate address {:#X}\n",
+                "{}Error:{} Could not allocate page at {:#X}\n",
                 csi_color, csi_reset, addr
             );
             if error_code.contains(PageFaultErrorCode::USER_MODE) {
@@ -151,7 +151,7 @@ extern "x86-interrupt" fn page_fault_handler(
         }
     } else {
         printk!(
-            "{}Error:{} Page fault at address {:#X}\n",
+            "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr
         );
         if error_code.contains(PageFaultErrorCode::USER_MODE) {
