@@ -50,8 +50,8 @@ user-rust:
 	cargo rustc $(user-cargo-opts) --bin geodate -- $(linker-opts)
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
-	#basename -s .rs src/bin/*.rs | xargs -I {} \
-	#	strip dsk/bin/{}
+	basename -s .rs src/bin/*.rs | xargs -I {} \
+		strip dsk/bin/{}
 
 bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
 img = disk.img
