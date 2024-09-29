@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Add geodate program (#304)
+- Copy memory on instruction fetch page fault (#677)
+- Enable userspace memory deallocation (#676)
+- Add more restrictive mapping on page fault (#675)
+- Fix binary loading (#674)
+- Add special alloc_error_handler for userspace (#673)
+- Update Rust to nightly-2024-09-01 (#672)
+- Use ptr::copy_nonoverlapping to load binaries (#670)
+- Align cursor after scrolling in the editor (#671)
 - Improve process code alloc (#669)
 - Fix userspace heap address (#668)
 - Fix usage of CSI sequences for scrolling the scrollback buffer (#667)
