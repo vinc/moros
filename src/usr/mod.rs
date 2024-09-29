@@ -13,7 +13,7 @@ pub mod elf;
 pub mod encode;
 pub mod env;
 pub mod find;
-pub mod geodate;
+//pub mod geodate;
 pub mod hash;
 pub mod help;
 pub mod hex;
