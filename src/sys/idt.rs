@@ -12,7 +12,7 @@ use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue,
     PageFaultErrorCode,
 };
-use x86_64::structures::paging::OffsetPageTable;
+use x86_64::structures::paging::{OffsetPageTable, Translate};
 use x86_64::VirtAddr;
 
 const PIC1: u16 = 0x21;
@@ -155,21 +155,22 @@ extern "x86-interrupt" fn page_fault_handler(
         // is executed from its kernel address that is shared with the process.
         //debug!("{:?}", error_code);
         let start = (addr / 4096) * 4096;
+        if mapper.translate_addr(VirtAddr::new(addr)).is_some() {
+            // FIXME: If a program has a ".bss" section, it may stay mapped
+            // after the first time it is executed, so we need to unmap it
+            // first.
+            sys::allocator::free_pages(&mut mapper, start, 4096);
+        }
         if sys::allocator::alloc_pages(&mut mapper, start, 4096).is_ok() {
             if error_code.contains(PageFaultErrorCode::INSTRUCTION_FETCH) {
                 let code_addr = sys::process::code_addr();
                 let src = (code_addr + start) as *mut u8;
                 let dst = start as *mut u8;
-                //debug!("{:#p} -> {:#p}", src, dst);
                 unsafe {
                     core::ptr::copy_nonoverlapping(src, dst, 4096);
                 }
-                //debug!("done");
             }
         }
-        // FIXME: `USER_MODE` without `INSTRUCTION_FETCH` can happen when the
-        // .bss section of an ELF binary is accessed. The first time we can
-        // allocate but not the following times.
     } else {
         debug!("{:?}", error_code);
         printk!(
