@@ -150,6 +150,9 @@ extern "x86-interrupt" fn page_fault_handler(
             }
         }
     } else if error_code.contains(PageFaultErrorCode::USER_MODE) {
+        // TODO: This should be removed when the process page table is no
+        // longer a simple clone of the kernel page table. Currently a process
+        // is executed from its kernel address that is shared with the process.
         //debug!("{:?}", error_code);
         let start = (addr / 4096) * 4096;
         if sys::allocator::alloc_pages(&mut mapper, start, 4096).is_ok() {
