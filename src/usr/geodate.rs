@@ -10,7 +10,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    let format = "%h:%y:%m:%d:%c:%b";
+    let format = "%h%y-%m-%d %c:%b";
     let longitude = args[1].parse().expect("Could not parse longitude");
     let timestamp = if args.len() == 3 {
         args[2].parse().expect("Could not parse timestamp")

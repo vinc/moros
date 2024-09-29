@@ -16,7 +16,7 @@ fn main(args: &[&str]) {
         return;
     }
 
-    let format = "%h:%y:%m:%d:%c:%b";
+    let format = "%h%y-%m-%d %c:%b";
     let longitude = args[1].parse().expect("Could not parse longitude");
     let timestamp = if args.len() == 3 {
         args[2].parse().expect("Could not parse timestamp")
