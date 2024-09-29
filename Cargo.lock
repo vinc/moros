@@ -186,8 +186,9 @@ dependencies = [
 
 [[package]]
 name = "geodate"
-version = "0.4.0"
-source = "git+https://github.com/vinc/geodate#a548a21baf5b6e89a02a2346ee7b98e055e925f2"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "539e815bf99bb38f2ce1ae379a0886d6f7f3502af7981c9db2e89e7473f553ba"
 dependencies = [
  "num-traits",
 ]
