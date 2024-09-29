@@ -267,13 +267,9 @@ pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let proc = &table[id()];
     let bottom = proc.allocator.lock().bottom();
     let top = proc.allocator.lock().top();
-    //debug!("heap bottom: {:#?}", bottom);
-    //debug!("ptr:         {:#?}", ptr);
-    //debug!("heap top:    {:#?}", top);
     if bottom <= ptr && ptr < top {
-        // FIXME: panicked at 'Freed node aliases existing hole! Bad free?'
         proc.allocator.dealloc(ptr, layout);
-    } else {
+    } else { // FIXME: Uncomment to see errors
         //let size = layout.size();
         //let plural = if size != 1 { "s" } else { "" };
         //debug!("Could not free {} byte{} at {:#?}", size, plural, ptr);
@@ -360,17 +356,26 @@ impl Process {
 
         let mut entry_point_addr = 0;
 
+        //debug!("Process memory:");
         if bin[0..4] == ELF_MAGIC { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry_point_addr = obj.entry();
 
                 for segment in obj.segments() {
                     if let Ok(data) = segment.data() {
+                        // NOTE: The size of the segment in memory can be
+                        // larger than on the disk because the object can
+                        // contain uninitialized sections like ".bss" that has
+                        // a length but no data.
                         let addr = code_addr + segment.address();
                         let size = segment.size() as usize;
-                        // NOTE: `size` can be larger than `data.len()` because
-                        // the object can contain uninitialized sections like
-                        // ".bss" that have a size but no data.
+                        /*
+                        debug!(
+                            "{:#X}..{:#X}: {} bytes for a code segment ({:#X}..{:#X}: {} bytes)",
+                            addr, addr + data.len() as u64, data.len(),
+                            segment.address(), segment.address() + segment.size(), segment.size(),
+                        );
+                        */
                         load_binary(&mut mapper, addr, size, data)?;
                     }
                 }
@@ -421,16 +426,15 @@ impl Process {
             OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
         };
 
-        let heap_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-
-        sys::allocator::alloc_pages(&mut mapper, heap_addr, 1).
-            expect("proc heap alloc");
-
-        let args_ptr = ptr_from_addr(args_ptr as u64) as usize;
+        // Copy args to user memory
+        let args_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
+        sys::allocator::alloc_pages(&mut mapper, args_addr, 1).
+            expect("proc args alloc");
         let args: &[&str] = unsafe {
-            core::slice::from_raw_parts(args_ptr as *const &str, args_len)
+            let ptr = ptr_from_addr(args_ptr as u64) as usize;
+            core::slice::from_raw_parts(ptr as *const &str, args_len)
         };
-        let mut addr = heap_addr;
+        let mut addr = args_addr;
         let vec: Vec<&str> = args.iter().map(|arg| {
             let ptr = addr as *mut u8;
             addr += arg.len() as u64;
@@ -456,6 +460,10 @@ impl Process {
         unsafe {
             self.allocator.lock().init(heap_addr as *mut u8, heap_size);
         }
+
+        //debug!("{:#X}..{:#X}: {} bytes for the args", args_addr, args_addr + 4096, 4096); // FIXME: args size
+        //debug!("{:#X}..{:#X}: {} bytes for the heap", heap_addr, heap_addr + heap_size as u64, heap_size);
+        //debug!("{:#X}..{:#X}: {} bytes for the stack", self.stack_addr - heap_size as u64, self.stack_addr, heap_size);
 
         set_id(self.id); // Change PID
 
