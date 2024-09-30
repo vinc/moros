@@ -61,6 +61,10 @@ pub fn realpath(pathname: &str) -> String {
     }
 }
 
+pub fn is_absolute_path(path: &str) -> bool {
+    path.starts_with('/') || path.starts_with('~')
+}
+
 pub fn exists(path: &str) -> bool {
     syscall::info(path).is_some()
 }
@@ -291,6 +295,14 @@ fn test_dirname() {
     assert_eq!(dirname("path/to"), "path");
     assert_eq!(dirname("/"), "/");
     assert_eq!(dirname(""), "");
+}
+
+#[test_case]
+fn test_is_absolute_path() {
+    assert_eq!(is_absolute_path("/path/to/binary"), true);
+    assert_eq!(is_absolute_path("~/path/to/binary"), true);
+    assert_eq!(is_absolute_path("path/to/binary"), false);
+    assert_eq!(is_absolute_path("binary"), false);
 }
 
 #[test_case]
