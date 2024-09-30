@@ -85,14 +85,7 @@ fn shell_completer(line: &str) -> Vec<String> {
         for file in files {
             let name = file.name();
             if name.starts_with(filename) {
-                if args.len() == 1 && !file.is_dir() {
-                    continue;
-                }
-                let end = if args.len() != 1 && file.is_dir() {
-                    "/"
-                } else {
-                    ""
-                };
+                let end = if file.is_dir() { "/" } else { "" };
                 let entry = format!("{}{}{}{}", dirname, sep, name, end);
                 entries.push(entry[path.len()..].into());
             }
