@@ -167,7 +167,9 @@ fn last_day_of_solar_month(timestamp: i64, longitude: f64) -> usize {
     // day following the last day of the month.
     let format = String::from("%h:%y:%s:%d:%c:%b");
     for i in 88..100 {
-        let a = get_formatted_date(&format!("%h:%y:%s:{:02}:50:00", i), timestamp, longitude);
+        let d = format!("{:02}", i);
+        let f = ["%h:%y:%s:", &d, ":50:00"].join("");
+        let a = get_formatted_date(&f, timestamp, longitude);
         let t = get_timestamp(format.clone(), a.clone(), longitude);
         let b = get_formatted_date(&format, t, longitude);
         if a != b {
