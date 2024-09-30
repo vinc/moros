@@ -63,7 +63,7 @@ fn shell_completer(line: &str) -> Vec<String> {
     let i = args.len() - 1;
 
     // Autocomplete command
-    if i == 0 && !args[i].starts_with('/') && !args[i].starts_with('~') {
+    if i == 0 && !fs::is_absolute_path(&args[i]) {
         for cmd in autocomplete_commands() {
             if let Some(entry) = cmd.strip_prefix(&args[i]) {
                 entries.push(entry.into());
@@ -72,29 +72,24 @@ fn shell_completer(line: &str) -> Vec<String> {
     }
 
     // Autocomplete path
-    let path = fs::realpath(&args[i]);
-    let (dirname, filename) = if path.len() > 1 && path.ends_with('/') {
-        // List files in dir (/path/to/ -> /path/to/file.txt)
-        (path.trim_end_matches('/'), "")
-    } else {
-        // List matching files (/path/to/fi -> /path/to/file.txt)
-        (fs::dirname(&path), fs::filename(&path))
-    };
-    let sep = if dirname.ends_with('/') { "" } else { "/" };
-    if let Ok(files) = fs::read_dir(dirname) {
-        for file in files {
-            let name = file.name();
-            if name.starts_with(filename) {
-                if args.len() == 1 && !file.is_dir() {
-                    continue;
+    if (i == 0 && fs::is_absolute_path(&args[i])) || i > 0 {
+        let path = fs::realpath(&args[i]);
+        let (dirname, filename) = if path.len() > 1 && path.ends_with('/') {
+            // List files in dir (/path/to/ -> /path/to/file.txt)
+            (path.trim_end_matches('/'), "")
+        } else {
+            // List matching files (/path/to/fi -> /path/to/file.txt)
+            (fs::dirname(&path), fs::filename(&path))
+        };
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
+        if let Ok(files) = fs::read_dir(dirname) {
+            for file in files {
+                let name = file.name();
+                if name.starts_with(filename) {
+                    let end = if file.is_dir() { "/" } else { "" };
+                    let entry = format!("{}{}{}{}", dirname, sep, name, end);
+                    entries.push(entry[path.len()..].into());
                 }
-                let end = if args.len() != 1 && file.is_dir() {
-                    "/"
-                } else {
-                    ""
-                };
-                let entry = format!("{}{}{}{}", dirname, sep, name, end);
-                entries.push(entry[path.len()..].into());
             }
         }
     }
