@@ -42,12 +42,15 @@ fn main(args: &[&str]) {
 
     let week;
     let format;
+    let last_day;
     if solar_calendar {
         week = 10;
         format = String::from("%h:%y:%s:%d:%c:%b");
+        last_day = last_day_of_solar_month(timestamp, longitude);
     } else {
         week = 8;
         format = String::from("%h:%y:%m:%d:%c:%b");
+        last_day = last_day_of_lunisolar_month(timestamp, longitude);
     };
     let formatted_date = get_formatted_date(&format, timestamp, longitude);
     let date: Vec<_> = formatted_date.split(":").collect();
@@ -70,16 +73,12 @@ fn main(args: &[&str]) {
     print_line(week);
 
     // Calendar
-    let last_day;
-    if solar_calendar {
-        let line = [" ", sep, "So Me Ve Te Ma Ju Sa Ur Ne Lu", ""].join(" ");
-        syscall::write(1, line.as_bytes());
-        last_day = last_day_of_solar_month(timestamp, longitude);
+    let line = if solar_calendar {
+        [" ", sep, "So Me Ve Te Ma Ju Sa Ur Ne Lu", ""].join(" ")
     } else {
-        let line = [" ", sep, "So Me Ve Te Ma Ju Sa Lu", ""].join(" ");
-        syscall::write(1, line.as_bytes());
-        last_day = last_day_of_lunisolar_month(timestamp, longitude);
-    }
+        [" ", sep, "So Me Ve Te Ma Ju Sa Lu", ""].join(" ")
+    };
+    syscall::write(1, line.as_bytes());
     let n = last_day + 1;
     for i in 0..n {
         // Weekend
