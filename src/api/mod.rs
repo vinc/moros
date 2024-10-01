@@ -4,7 +4,8 @@ macro_rules! entry_point {
     ($path:path) => {
         #[panic_handler]
         fn panic(_info: &core::panic::PanicInfo) -> ! {
-            $crate::api::syscall::write(1, b"An exception occured!\n");
+            let msg = b"\x1b[91mError:\x1b[m An exception occured\n";
+            $crate::api::syscall::write(2, msg);
             let code = $crate::api::process::ExitCode::ExecError;
             $crate::api::syscall::exit(code);
             loop {}
