@@ -499,6 +499,9 @@ fn load_binary(
     let dst = addr as *mut u8;
     unsafe {
         core::ptr::copy_nonoverlapping(src, dst, buf.len());
+        if size > buf.len() {
+            core::ptr::write_bytes(dst.add(buf.len()), 0, size - buf.len());
+        }
     }
     Ok(())
 }
