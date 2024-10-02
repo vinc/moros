@@ -59,7 +59,7 @@ pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
 }
 
 pub fn alloc_pages(
-    mapper: &mut OffsetPageTable, addr: u64, size: usize
+    mapper: &mut OffsetPageTable, addr: u64, size: usize, flags: PageTableFlags
 ) -> Result<(), ()> {
     let size = size.saturating_sub(1) as u64;
     let mut frame_allocator = sys::mem::frame_allocator();
@@ -70,9 +70,11 @@ pub fn alloc_pages(
         Page::range_inclusive(start_page, end_page)
     };
 
+    /*
     let flags = PageTableFlags::PRESENT
               | PageTableFlags::WRITABLE
               | PageTableFlags::USER_ACCESSIBLE;
+    */
 
     for page in pages {
         if let Some(frame) = frame_allocator.allocate_frame() {

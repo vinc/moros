@@ -12,7 +12,7 @@ use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue,
     PageFaultErrorCode,
 };
-use x86_64::structures::paging::{OffsetPageTable, Translate};
+use x86_64::structures::paging::{OffsetPageTable, PageTableFlags, Translate};
 use x86_64::VirtAddr;
 
 const PIC1: u16 = 0x21;
@@ -136,9 +136,12 @@ extern "x86-interrupt" fn page_fault_handler(
     let mut mapper = unsafe {
         OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
     };
+    let flags = PageTableFlags::PRESENT
+              | PageTableFlags::WRITABLE
+              | PageTableFlags::USER_ACCESSIBLE; // TODO
 
     if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
-        if sys::allocator::alloc_pages(&mut mapper, addr, 1).is_err() {
+        if sys::allocator::alloc_pages(&mut mapper, addr, 1, flags).is_err() {
             printk!(
                 "{}Error:{} Could not allocate page at {:#X}\n",
                 csi_color, csi_reset, addr
@@ -161,7 +164,7 @@ extern "x86-interrupt" fn page_fault_handler(
             // first.
             sys::allocator::free_pages(&mut mapper, start, 4096);
         }
-        if sys::allocator::alloc_pages(&mut mapper, start, 4096).is_ok() {
+        if sys::allocator::alloc_pages(&mut mapper, start, 4096, flags).is_ok() {
             if error_code.contains(PageFaultErrorCode::INSTRUCTION_FETCH) {
                 let code_addr = sys::process::code_addr();
                 let src = (code_addr + start) as *mut u8;
