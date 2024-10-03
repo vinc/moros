@@ -320,7 +320,7 @@ dependencies = [
  "pic8259",
  "rand 0.8.5",
  "rand_hc 0.3.2",
- "raw-cpuid 11.1.0",
+ "raw-cpuid 11.2.0",
  "sha2",
  "smoltcp",
  "spin",
@@ -549,9 +549,9 @@ dependencies = [
 
 [[package]]
 name = "raw-cpuid"
-version = "11.1.0"
+version = "11.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb9ee317cfe3fbd54b36a511efc1edd42e216903c9cd575e686dd68a2ba90d8d"
+checksum = "1ab240315c661615f2ee9f0f2cd32d5a7343a84d5ebcccb99d46e6637565e7b0"
 dependencies = [
  "bitflags 2.4.1",
 ]

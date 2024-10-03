@@ -34,7 +34,7 @@ pc-keyboard = "0.6.1"
 pic8259 = "0.11.0"
 rand = { version = "0.8.5", default-features = false }
 rand_hc = "0.3.1"
-raw-cpuid = "11.1.0"
+raw-cpuid = "11.2.0"
 sha2 = { version = "0.10.8", default-features = false, features = ["force-soft"] }
 smoltcp = { version = "0.11.0", default-features = false, features = ["alloc", "medium-ethernet", "socket-tcp", "socket-udp", "socket-dhcpv4", "proto-ipv4", "proto-dhcpv4"] }
 spin = "0.9.8"
