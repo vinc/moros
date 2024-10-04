@@ -334,6 +334,7 @@ pub fn lisp_sort(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
+        Exp::Dict(d) => Ok(Exp::Bool(d.contains_key(&format!("{}", args[1])))),
         Exp::List(l) => Ok(Exp::Bool(l.contains(&args[1]))),
         Exp::Str(s) => Ok(Exp::Bool(s.contains(&string(&args[1])?))),
         _ => expected!("first argument to be a list or a string"),
