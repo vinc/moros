@@ -597,18 +597,18 @@ pub fn lisp_dict(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
-        Exp::Dict(dict) => {
-            let key = format!("{}", args[1]);
-            if let Some(val) = dict.get(&key) {
-                Ok(val.clone())
+        Exp::Dict(d) => {
+            let k = format!("{}", args[1]);
+            if let Some(v) = d.get(&k) {
+                Ok(v.clone())
             } else {
                 Ok(Exp::List(vec![]))
             }
         }
         Exp::List(l) => {
             let i = usize::try_from(number(&args[1])?)?;
-            if let Some(e) = l.get(i) {
-                Ok(e.clone())
+            if let Some(v) = l.get(i) {
+                Ok(v.clone())
             } else {
                 Ok(Exp::List(Vec::new()))
             }
@@ -628,24 +628,24 @@ pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 3);
     match &args[0] {
-        Exp::Dict(dict) => {
-            let mut dict = dict.clone();
-            let key = format!("{}", args[1]);
-            let val = args[2].clone();
-            dict.insert(key, val);
-            Ok(Exp::Dict(dict))
+        Exp::Dict(d) => {
+            let mut d = d.clone();
+            let k = format!("{}", args[1]);
+            let v = args[2].clone();
+            d.insert(k, v);
+            Ok(Exp::Dict(d))
         }
-        Exp::List(list) => {
+        Exp::List(l) => {
+            let mut l = l.clone();
             let i = usize::try_from(number(&args[1])?)?;
-            let val = args[2].clone();
-            let mut list = list.clone();
-            list.insert(i, val);
-            Ok(Exp::List(list))
+            let v = args[2].clone();
+            l.insert(i, v);
+            Ok(Exp::List(l))
         }
         Exp::Str(s) => {
+            let mut s: Vec<char> = s.chars().collect();
             let i = usize::try_from(number(&args[1])?)?;
             let v: Vec<char> = string(&args[2])?.chars().collect();
-            let mut s: Vec<char> = s.chars().collect();
             s.splice(i..i, v);
             let s: String = s.into_iter().collect();
             Ok(Exp::Str(s))
