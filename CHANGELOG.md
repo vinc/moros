@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Ensure uninitialized data is zeroed when loading binary (#681)
+- Update panic handler (#680)
+- Add geocal program (#679)
+- Fix shell autocomplete command path (#678)
 - Add geodate program (#304)
 - Copy memory on instruction fetch page fault (#677)
 - Enable userspace memory deallocation (#676)
