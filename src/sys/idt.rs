@@ -12,7 +12,7 @@ use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue,
     PageFaultErrorCode,
 };
-use x86_64::structures::paging::{OffsetPageTable, Translate};
+use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
 
 const PIC1: u16 = 0x21;
@@ -154,10 +154,6 @@ extern "x86-interrupt" fn page_fault_handler(
         // longer a simple clone of the kernel page table. Currently a process
         // is executed from its kernel address that is shared with the process.
         let start = (addr / 4096) * 4096;
-        // FIXME: This should not be needed anymore
-        if mapper.translate_addr(VirtAddr::new(start)).is_some() {
-            sys::allocator::free_pages(&mut mapper, start, 4096);
-        }
         if sys::allocator::alloc_pages(&mut mapper, start, 4096).is_ok() {
             if sys::process::is_userspace(start) {
                 let code_addr = sys::process::code_addr();
