@@ -19,7 +19,9 @@ use spin::RwLock;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PhysFrame
+    FrameAllocator, OffsetPageTable, PageTable, PhysFrame,
+    Translate, PageTableFlags, // Page, Size4KiB,
+    mapper::TranslateResult
 };
 use x86_64::VirtAddr;
 
@@ -222,9 +224,27 @@ pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
     proc.stack_frame = Some(stack_frame);
 }
 
+// FIXME: Remove this
+pub fn is_userspace(addr: u64) -> bool {
+    0x800000 <= addr && addr <= 0xA00000
+    //let table = PROCESS_TABLE.read();
+    //let proc = &table[id()];
+    //let start_addr = (proc.entry_point_addr / 4096) * 4096;
+    //let end_addr = start_addr + MAX_PROC_SIZE as u64;
+    //(start_addr..end_addr).contains(&addr)
+}
+
 pub fn exit() {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
+
+    MAX_PID.fetch_sub(1, Ordering::SeqCst);
+    set_id(proc.parent_id);
+
+    unsafe {
+        let (_, flags) = Cr3::read();
+        Cr3::write(page_table_frame(), flags);
+    }
 
     let page_table = unsafe {
         sys::mem::create_page_table(proc.page_table_frame)
@@ -236,14 +256,36 @@ pub fn exit() {
         OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
     };
     sys::allocator::free_pages(&mut mapper, proc.code_addr, MAX_PROC_SIZE);
-
-    MAX_PID.fetch_sub(1, Ordering::SeqCst);
-    set_id(proc.parent_id);
-
-    unsafe {
-        let (_, flags) = Cr3::read();
-        Cr3::write(page_table_frame(), flags);
+    //let addr = proc.entry_point_addr;
+    //let start_addr = (addr / 4096) * 4096;
+    //debug!("Process Exit: start: {:#X}", start_addr);
+    //let start_page: Page<Size4KiB> = Page::containing_address(VirtAddr::new(addr));
+    //debug!("Process Exit: start_page: {:?}", start_page);
+    let addr = 0x800000;
+    //debug!("{:?}", mapper.translate(VirtAddr::new(addr)));
+    match mapper.translate(VirtAddr::new(addr)) {
+        TranslateResult::Mapped { frame: _, offset: _, flags } => {
+            //debug!("{:?}", flags);
+            if flags.contains(PageTableFlags::USER_ACCESSIBLE) {
+                //debug!("Process Exit: {:#X} freed", addr);
+                sys::allocator::free_pages(&mut mapper, addr, MAX_PROC_SIZE);
+            }
+        }
+        _ => {}
     }
+
+    /*
+    debug!("process::exit user");
+    let mut i = 0;
+    for page in page_table.iter_mut() {
+        if page.flags().contains(PageTableFlags::USER_ACCESSIBLE) {
+            debug!("process::exit {}: {:?}", i, page);
+            debug!("process::exit {}: {:?}", i, page.frame());
+            debug!("process::exit {}: {:?}", i, sys::mem::phys_to_virt(page.addr()));
+        }
+        i += 1;
+    }
+    */
 }
 
 unsafe fn page_table_frame() -> PhysFrame {

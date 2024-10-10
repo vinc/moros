@@ -153,16 +153,16 @@ extern "x86-interrupt" fn page_fault_handler(
         // TODO: This should be removed when the process page table is no
         // longer a simple clone of the kernel page table. Currently a process
         // is executed from its kernel address that is shared with the process.
-        //debug!("{:?}", error_code);
         let start = (addr / 4096) * 4096;
-        if mapper.translate_addr(VirtAddr::new(addr)).is_some() {
-            // FIXME: If a program has a ".bss" section, it may stay mapped
-            // after the first time it is executed, so we need to unmap it
-            // first.
+        if mapper.translate_addr(VirtAddr::new(start)).is_some() {
+            // FIXME: This should not be needed anymore
             sys::allocator::free_pages(&mut mapper, start, 4096);
+            //debug!("Page Fault: {:#X} freed", start);
         }
         if sys::allocator::alloc_pages(&mut mapper, start, 4096).is_ok() {
-            if error_code.contains(PageFaultErrorCode::INSTRUCTION_FETCH) {
+            //debug!("Page Fault: {:#X} allocated", start);
+            if sys::process::is_userspace(start) {
+                //debug!("Page Fault: {:#X} copied", start);
                 let code_addr = sys::process::code_addr();
                 let src = (code_addr + start) as *mut u8;
                 let dst = start as *mut u8;
@@ -170,9 +170,10 @@ extern "x86-interrupt" fn page_fault_handler(
                     core::ptr::copy_nonoverlapping(src, dst, 4096);
                 }
             }
+        } else {
+            //debug!("Page Fault: {:#X} cannot allocate", start);
         }
     } else {
-        debug!("{:?}", error_code);
         printk!(
             "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr
