@@ -47,11 +47,15 @@ fn eval_head_args(
 ) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
-        Exp::List(list) => {
-            ensure_length_gt!(list, 0);
-            Ok(list[0].clone())
+        Exp::List(l) => {
+            ensure_length_gt!(l, 0);
+            Ok(l[0].clone())
         }
-        _ => expected!("first argument to be a list"),
+        Exp::Str(s) => {
+            ensure_length_gt!(s, 0);
+            Ok(Exp::Str(s.chars().next().unwrap().to_string()))
+        }
+        _ => expected!("first argument to be a list or a string"),
     }
 }
 
@@ -65,7 +69,11 @@ fn eval_tail_args(
             ensure_length_gt!(list, 0);
             Ok(Exp::List(list[1..].to_vec()))
         }
-        _ => expected!("first argument to be a list"),
+        Exp::Str(s) => {
+            ensure_length_gt!(s, 0);
+            Ok(Exp::Str(s.chars().skip(1).collect()))
+        }
+        _ => expected!("first argument to be a list or a string"),
     }
 }
 

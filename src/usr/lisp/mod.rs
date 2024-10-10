@@ -128,10 +128,11 @@ impl fmt::Display for Exp {
                 format!("({})", xs.join(" "))
             }
             Exp::Dict(dict) => {
-                let xs: Vec<_> = dict.iter().map(|(k, v)|
+                let mut xs: Vec<_> = dict.iter().map(|(k, v)|
                     format!("{} {}", k, v)
                 ).collect();
-                format!("(dict {})", xs.join(" "))
+                xs.insert(0, "dict".into());
+                format!("({})", xs.join(" "))
             }
         };
         write!(f, "{}", out)
