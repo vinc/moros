@@ -32,7 +32,11 @@ const MAX_HANDLES: usize = 64;
 const MAX_PROCS: usize = 4; // TODO: Increase this
 const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
+// TODO: Remove this when the kernel is no longer at 0x200000 in userspace.
+// Currently this address must be used by the linker for user programs that
+// need to allocate memory to avoid using kernel memory.
 static USER_ADDR: u64 = 0x800000;
+
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
 pub static PID: AtomicUsize = AtomicUsize::new(0);
 pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
