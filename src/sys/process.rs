@@ -15,11 +15,12 @@ use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
+use object::read::SegmentFlags;
 use spin::RwLock;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PhysFrame
+    FrameAllocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame
 };
 use x86_64::VirtAddr;
 
@@ -372,16 +373,21 @@ impl Process {
                         /*
                         debug!(
                             "{:#X}..{:#X}: {} bytes for a code segment ({:#X}..{:#X}: {} bytes)",
-                            addr, addr + data.len() as u64, data.len(),
-                            segment.address(), segment.address() + segment.size(), segment.size(),
+                            addr, addr + size as u64, size,
+                            segment.address(), segment.address() + data.len() as u64, data.len(),
                         );
                         */
-                        load_binary(&mut mapper, addr, size, data)?;
+                        let flags = parse_flags(segment.flags()).unwrap();
+                        //debug!("{:#?}", flags);
+                        load_binary(&mut mapper, addr, size, data, flags)?;
                     }
                 }
             }
         } else if bin[0..4] == BIN_MAGIC { // Flat binary
-            load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..])?;
+            let flags = PageTableFlags::PRESENT
+                      | PageTableFlags::WRITABLE
+                      | PageTableFlags::USER_ACCESSIBLE; // TODO
+            load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..], flags)?;
         } else {
             return Err(());
         }
@@ -428,7 +434,10 @@ impl Process {
 
         // Copy args to user memory
         let args_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        sys::allocator::alloc_pages(&mut mapper, args_addr, 1).
+        let flags = PageTableFlags::PRESENT
+                  | PageTableFlags::WRITABLE
+                  | PageTableFlags::USER_ACCESSIBLE; // TODO
+        sys::allocator::alloc_pages(&mut mapper, args_addr, 1, flags).
             expect("proc args alloc");
         let args: &[&str] = unsafe {
             let ptr = ptr_from_addr(args_ptr as u64) as usize;
@@ -491,10 +500,14 @@ impl Process {
 }
 
 fn load_binary(
-    mapper: &mut OffsetPageTable, addr: u64, size: usize, buf: &[u8]
+    mapper: &mut OffsetPageTable,
+    addr: u64,
+    size: usize,
+    buf: &[u8],
+    flags: PageTableFlags,
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
-    sys::allocator::alloc_pages(mapper, addr, size)?;
+    sys::allocator::alloc_pages(mapper, addr, size, flags)?;
     let src = buf.as_ptr();
     let dst = addr as *mut u8;
     unsafe {
@@ -504,4 +517,15 @@ fn load_binary(
         }
     }
     Ok(())
+}
+
+fn parse_flags(flags: SegmentFlags) -> Option<PageTableFlags> {
+    match flags {
+        SegmentFlags::Elf { p_flags } => {
+            PageTableFlags::from_bits(p_flags as u64)
+        }
+        _ => {
+            None
+        }
+    }
 }
