@@ -32,7 +32,7 @@ const MAX_HANDLES: usize = 64;
 const MAX_PROCS: usize = 4; // TODO: Increase this
 const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
-static ENTRY_ADDR: u64 = 0x800000;
+static USER_ADDR: u64 = 0x800000;
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
 pub static PID: AtomicUsize = AtomicUsize::new(0);
 pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
@@ -227,7 +227,7 @@ pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
 
 // TODO: Remove this when the kernel is no longer at 0x200000 in userspace
 pub fn is_userspace(addr: u64) -> bool {
-    ENTRY_ADDR <= addr && addr <= ENTRY_ADDR + MAX_PROC_SIZE as u64
+    USER_ADDR <= addr && addr <= USER_ADDR + MAX_PROC_SIZE as u64
 }
 
 pub fn exit() {
@@ -506,7 +506,7 @@ impl Process {
         let size = MAX_PROC_SIZE;
         sys::allocator::free_pages(&mut mapper, self.code_addr, size);
 
-        let addr = ENTRY_ADDR;
+        let addr = USER_ADDR;
         match mapper.translate(VirtAddr::new(addr)) {
             TranslateResult::Mapped { frame: _, offset: _, flags } => {
                 if flags.contains(PageTableFlags::USER_ACCESSIBLE) {
