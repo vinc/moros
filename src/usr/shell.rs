@@ -539,6 +539,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "host"     => usr::host::main(args),
         "http"     => usr::http::main(args),
         "httpd"    => usr::httpd::main(args),
+        "image"    => usr::image::main(args),
         "install"  => usr::install::main(args),
         "keyboard" => usr::keyboard::main(args),
         "life"     => usr::life::main(args),
