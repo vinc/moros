@@ -101,6 +101,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "conquer-once"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c6d3a9775a69f6d1fe2cc888999b67ed30257d3da4d2af91984e722f2ec918a"
+dependencies = [
+ "conquer-util",
+]
+
+[[package]]
+name = "conquer-util"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e763eef8846b13b380f37dfecda401770b0ca4e56e95170237bd7c25c7db3582"
+
+[[package]]
 name = "const_fn"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -167,6 +182,12 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "font8x8"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "875488b8711a968268c7cf5d139578713097ca4635a76044e8fe8eedf831d07e"
 
 [[package]]
 name = "funty"
@@ -326,8 +347,9 @@ dependencies = [
  "spin",
  "time",
  "uart_16550",
+ "vga",
  "vte",
- "x86_64",
+ "x86_64 0.15.1",
 ]
 
 [[package]]
@@ -406,7 +428,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62d9a86c292b165f757e47e7fd66855def189b2564609bc4203727b27c33db22"
 dependencies = [
- "x86_64",
+ "x86_64 0.15.1",
 ]
 
 [[package]]
@@ -751,6 +773,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
+name = "vga"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5dd163a9cf938e0406e1ee29e3b71ac7d8f5ffe6c1321fe74797ebef1299bc6"
+dependencies = [
+ "bitflags 1.3.2",
+ "conquer-once",
+ "font8x8",
+ "num-traits",
+ "spinning_top",
+ "x86_64 0.14.12",
+]
+
+[[package]]
 name = "volatile"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -795,6 +831,18 @@ dependencies = [
  "bit_field",
  "bitflags 1.3.2",
  "raw-cpuid 10.7.0",
+]
+
+[[package]]
+name = "x86_64"
+version = "0.14.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96cb6fd45bfeab6a5055c5bffdb08768bd0c069f1d946debe585bbb380a7c062"
+dependencies = [
+ "bit_field",
+ "bitflags 2.4.1",
+ "rustversion",
+ "volatile",
 ]
 
 [[package]]
