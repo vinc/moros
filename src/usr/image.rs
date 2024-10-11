@@ -293,6 +293,63 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     let path = args[1];
+
+    if let Ok(buf) = fs::read_to_bytes(&path) {
+        if let Ok(bmp) = parse_bmp(&buf) {
+            debug!("width: {}", bmp.width);
+            debug!("height: {}", bmp.height);
+            debug!("pixels.len(): {}", bmp.pixels.len());
+            // debug!("palette: {:#?}", bmp.palette);
+            /*
+            for (i, (r, g, b)) in bmp.palette.iter().enumerate() {
+                debug!("{}: ({}, {}, {})", i, r, g, b);
+            }
+            return Ok(());
+            */
+            sys::vga::set_320x200_mode();
+            let mode = Graphics320x200x256::new();
+            for (i, (r, g, b)) in bmp.palette.iter().enumerate() {
+                sys::vga::set_palette_color(i, *r, *g, *b);
+            }
+            mode.clear_screen(0x00);
+            let width = bmp.width as usize;
+            let height = bmp.height as usize;
+
+            /*
+            for y in 0..height {
+                for x in 0..width {
+                    let c = (x / 3) % 256;
+                    mode.set_pixel(x, y, c as u8);
+                }
+            }
+            */
+
+            // BMP rows are padded to multiples of 4 bytes
+            let row_padding = (4 - (width % 4)) % 4;
+
+            for y in 0..height {
+                for x in 0..width {
+                    // BMP stores images bottom-up
+                    let bmp_y = height - 1 - y;
+                    let i = (bmp_y * (width + row_padding) + x) as usize;
+                    if i < bmp.pixels.len() {
+                        let c = bmp.pixels[i];
+                        mode.set_pixel(x, y, c);
+                    }
+                }
+            }
+            while !sys::console::end_of_text() {
+                x86_64::instructions::hlt();
+            }
+            sys::vga::set_80x25_mode();
+            vga_reset();
+        } else {
+            error!("Could not parse BMP");
+            return Err(ExitCode::Failure);
+        }
+    }
+
+    /*
     if let Ok(buf) = read_ppm(path) {
         /*
         for y in 0..200 {
@@ -329,14 +386,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             sys::vga::set_palette_color(i, *r, *g, *b);
         }
 
-        /*
-        for y in 0..200 {
-            for x in 0..320 {
-                let c = (x / 3) % 256;
-                mode.set_pixel(x, y, c as u8);
-            }
-        }
-        */
 
         for y in 0..200 {
             for x in 0..320 {
@@ -404,6 +453,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         sys::vga::set_80x25_mode();
                         vga_reset();
     */
+    */
     Ok(())
 }
 
@@ -469,6 +519,99 @@ fn read_ppm(path: &str) -> Result<Vec<u8>, ()> {
     }
 
     Ok(pixels)
+}
+
+use core::mem::size_of;
+
+#[derive(Debug)]
+#[repr(C, packed)]
+struct BmpHeader {
+    signature: [u8; 2],
+    file_size: u32,
+    reserved: u32,
+    data_offset: u32,
+}
+
+#[derive(Debug)]
+#[repr(C, packed)]
+struct DibHeader {
+    size: u32,
+    width: i32,
+    height: i32,
+    planes: u16,
+    bits_per_pixel: u16,
+    compression: u32,
+    image_size: u32,
+    x_pixels_per_meter: i32,
+    y_pixels_per_meter: i32,
+    colors_used: u32,
+    colors_important: u32,
+}
+
+#[derive(Debug)]
+struct BmpInfo {
+    pub width: u32,
+    pub height: u32,
+    pub palette: [(u8, u8, u8); 256],
+    pub pixels: Vec<u8>,
+}
+
+fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
+    if data.len() < size_of::<BmpHeader>() + size_of::<DibHeader>() {
+        return Err("Invalid BMP file: too small".to_string());
+    }
+
+    let bmp_header: &BmpHeader = unsafe { &*(data.as_ptr() as *const BmpHeader) };
+    if &bmp_header.signature != b"BM" {
+        return Err("Invalid BMP signature".to_string());
+    }
+
+    let dib_header: &DibHeader = unsafe { &*(data[size_of::<BmpHeader>()..].as_ptr() as *const DibHeader) };
+    if dib_header.bits_per_pixel != 8 {
+        return Err("Only 8-bit (256 color) BMPs are supported".to_string());
+    }
+    debug!("{:?}", dib_header);
+
+    /*
+    let palette_offset = size_of::<BmpHeader>() + size_of::<DibHeader>();
+    let palette_size = 256 * 4; // 256 colors, 4 bytes per color (BGRA)
+    if data.len() < palette_offset + palette_size {
+        return Err("Invalid BMP file: too small for palette".to_string());
+    }
+    */
+
+    let pixels_offset = bmp_header.data_offset as usize;
+    let palette_size = 256 * 4; // 256 colors, 4 bytes per color (BGRA)
+    let palette_offset = pixels_offset - palette_size;
+
+    /*
+    if data.len() < pixels_offset || palette_offset < size_of::<BmpHeader>() + size_of::<DibHeader>() {
+        return Err("Invalid BMP file: incorrect data offset or palette size");
+    }
+    */
+
+    let mut palette = [(0, 0, 0); 256];
+    //for (i, chunk) in data[palette_offset..palette_offset + palette_size].chunks(4).enumerate() {
+    for (i, chunk) in data[palette_offset..pixels_offset].chunks(4).enumerate() {
+        // Convert BGRA to RGB
+        palette[i] = (chunk[2], chunk[1], chunk[0]);
+    }
+
+    //let pixels_offset = bmp_header.data_offset as usize;
+    /*
+    if data.len() < pixels_offset {
+        return Err("Invalid BMP file: data offset out of bounds".to_string());
+    }
+    */
+
+    let pixels = data[pixels_offset..].to_vec();
+    let width = dib_header.width as u32;
+    let height = dib_header.height.abs() as u32;
+    if pixels.len() != (width * height) as usize {
+        return Err("Invalid BMP file: wrong pixels count".to_string());
+    }
+
+    Ok(BmpInfo { width, height, palette, pixels })
 }
 
 fn vga_reset() {
