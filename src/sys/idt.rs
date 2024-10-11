@@ -12,7 +12,7 @@ use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue,
     PageFaultErrorCode,
 };
-use x86_64::structures::paging::{OffsetPageTable, Translate};
+use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
 
 const PIC1: u16 = 0x21;
@@ -153,16 +153,9 @@ extern "x86-interrupt" fn page_fault_handler(
         // TODO: This should be removed when the process page table is no
         // longer a simple clone of the kernel page table. Currently a process
         // is executed from its kernel address that is shared with the process.
-        //debug!("{:?}", error_code);
         let start = (addr / 4096) * 4096;
-        if mapper.translate_addr(VirtAddr::new(addr)).is_some() {
-            // FIXME: If a program has a ".bss" section, it may stay mapped
-            // after the first time it is executed, so we need to unmap it
-            // first.
-            sys::allocator::free_pages(&mut mapper, start, 4096);
-        }
         if sys::allocator::alloc_pages(&mut mapper, start, 4096).is_ok() {
-            if error_code.contains(PageFaultErrorCode::INSTRUCTION_FETCH) {
+            if sys::process::is_userspace(start) {
                 let code_addr = sys::process::code_addr();
                 let src = (code_addr + start) as *mut u8;
                 let dst = start as *mut u8;
@@ -172,7 +165,6 @@ extern "x86-interrupt" fn page_fault_handler(
             }
         }
     } else {
-        debug!("{:?}", error_code);
         printk!(
             "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr
