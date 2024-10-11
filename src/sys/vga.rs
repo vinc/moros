@@ -464,15 +464,15 @@ impl Writer {
     pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
         let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
-        if i < 16 {
-            let reg = color::from_index(i).to_vga_reg();
+        //if i < 16 {
+            let reg = if i < 16 { color::from_index(i).to_vga_reg() } else { i as u8 };
             unsafe {
                 addr.write(reg);
                 data.write(vga_color(r));
                 data.write(vga_color(g));
                 data.write(vga_color(b));
             }
-        }
+        //}
     }
 
     fn scroll_up(&mut self, n: usize) {
@@ -787,6 +787,11 @@ pub fn set_palette(palette: Palette) {
         for (i, (r, g, b)) in palette.colors.iter().enumerate() {
             WRITER.lock().set_palette(i, *r, *g, *b)
         }
+    )
+}
+pub fn set_palette_color(i: usize, r: u8, g: u8, b: u8) {
+    interrupts::without_interrupts(||
+        WRITER.lock().set_palette(i, r, g, b)
     )
 }
 

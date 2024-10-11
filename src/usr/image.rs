@@ -325,6 +325,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let mode = Graphics320x200x256::new();
         mode.clear_screen(0x00);
 
+        for (i, (r, g, b)) in PALETTE.iter().enumerate() {
+            sys::vga::set_palette_color(i, *r, *g, *b);
+        }
+
         /*
         for y in 0..200 {
             for x in 0..320 {
