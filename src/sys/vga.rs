@@ -88,6 +88,8 @@ const AC_REGS_COUNT: usize = 21;
 
 pub fn set_80x25_mode() {
     set_mode(&T_80_25);
+    disable_blinking();
+    disable_underline();
 }
 
 pub fn set_320x200_mode() {
@@ -809,6 +811,19 @@ fn set_underline_location(location: u8) {
     })
 }
 
+fn disable_underline() {
+    set_underline_location(0x1F);
+}
+
+fn disable_blinking() {
+    interrupts::without_interrupts(|| {
+        let reg = 0x10; // Attribute Mode Control Register
+        let mut attr = get_attr_ctrl_reg(reg);
+        attr.set_bit(3, false); // Clear "Blinking Enable" bit
+        set_attr_ctrl_reg(reg, attr);
+    })
+}
+
 fn set_attr_ctrl_reg(index: u8, value: u8) {
     interrupts::without_interrupts(|| {
         let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
@@ -861,13 +876,8 @@ pub fn init() {
 
     set_palette(Palette::default());
 
-    // Disable blinking
-    let reg = 0x10; // Attribute Mode Control Register
-    let mut attr = get_attr_ctrl_reg(reg);
-    attr.set_bit(3, false); // Clear "Blinking Enable" bit
-    set_attr_ctrl_reg(reg, attr);
-
-    set_underline_location(0x1F); // Disable underline
+    disable_blinking();
+    disable_underline();
 
     WRITER.lock().clear_screen();
 }
