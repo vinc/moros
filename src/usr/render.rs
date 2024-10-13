@@ -1,5 +1,6 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::usr::shell;
 use crate::sys;
@@ -107,24 +108,62 @@ fn help() {
     );
 }
 
+#[derive(PartialEq)]
+enum Mode {
+    Text,
+    Graphic,
+}
 
-pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    if args.len() == 1 {
-        help();
-        return Err(ExitCode::UsageError);
+#[derive(PartialEq)]
+enum Command {
+    Prev,
+    Next,
+    Quit,
+}
+
+struct Config {
+    mode: Mode
+}
+
+impl Config {
+    pub fn new() -> Self {
+        Self { mode: Mode::Text }
     }
 
-    if args[1].starts_with("-h") || args[1].starts_with("--help") {
-        help();
-        return Ok(());
+    pub fn text_mode(&mut self) {
+        if self.mode == Mode::Graphic {
+            text_mode();
+            self.mode = Mode::Text;
+        }
     }
 
-    let path = args[1];
+    pub fn graphic_mode(&mut self) {
+        if self.mode == Mode::Text {
+            graphic_mode();
+            self.mode = Mode::Graphic;
+        }
+    }
+}
+
+fn graphic_mode() {
+    sys::vga::set_320x200_mode();
+    clear();
+}
+
+fn text_mode() {
+    clear();
+    sys::vga::set_80x25_mode();
+    reset();
+    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
+}
+
+fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
     if let Ok(buf) = fs::read_to_bytes(&path) {
         if let Ok(bmp) = parse_bmp(&buf) {
             let width = bmp.width as usize;
             let height = bmp.height as usize;
             if width != WIDTH || height != HEIGHT {
+                config.text_mode();
                 error!("Unsupported BMP size");
                 return Err(ExitCode::Failure);
             }
@@ -144,8 +183,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
             }
 
-            sys::vga::set_320x200_mode();
-            clear();
+            config.graphic_mode();
 
             // Load palette
             for (i, (r, g, b)) in bmp.palette.iter().enumerate() {
@@ -159,18 +197,90 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 core::ptr::copy_nonoverlapping(src, dst, size);
             }
 
-            while !sys::console::end_of_text() {
-                x86_64::instructions::hlt();
-            }
-
-            clear();
-            sys::vga::set_80x25_mode();
-            reset();
-            print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
+            Ok(read_command())
         } else {
+            config.text_mode();
             error!("Could not parse BMP");
-            return Err(ExitCode::Failure);
+            Err(ExitCode::Failure)
+        }
+    } else {
+        config.text_mode();
+        error!("Could not read BMP");
+        Err(ExitCode::Failure)
+    }
+}
+
+
+fn read_command() -> Command {
+    let mut escape = false;
+    let mut csi = false;
+    let mut csi_params = String::new();
+    loop {
+        let c = io::stdin().read_char().unwrap_or('\0');
+        match c {
+            'q' | '\x11' | '\x03' => { // Ctrl Q or Ctrl C
+                return Command::Quit;
+            }
+            '\0' => {
+                continue;
+            }
+            '\x1B' => { // ESC
+                escape = true;
+                continue;
+            }
+            '[' if escape => {
+                csi = true;
+                csi_params.clear();
+                continue;
+            }
+            'C' if csi => { // Arrow Right
+                return Command::Next;
+            }
+            'D' if csi => { // Arrow Left
+                return Command::Prev;
+            }
+            c => {
+                if csi {
+                    csi_params.push(c);
+                    continue;
+                } else {
+                    return Command::Next;
+                }
+            }
         }
     }
+}
+
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    if args.len() == 1 {
+        help();
+        return Err(ExitCode::UsageError);
+    }
+    if args.contains(&"-h") || args.contains(&"--help") {
+        help();
+        return Ok(());
+    }
+    let files = &args[1..];
+
+    let mut config = Config::new();
+    let mut i = 0;
+    let n = files.len();
+    loop {
+        match render_bmp(files[i], &mut config) {
+            Err(err) => {
+                return Err(err);
+            }
+            Ok(Command::Quit) => {
+                break;
+            }
+            Ok(Command::Next) => {
+                i = (i + 1) % n;
+            }
+            Ok(Command::Prev) => {
+                i = (i - 1) % n;
+            }
+        }
+    }
+    config.text_mode();
     Ok(())
 }
