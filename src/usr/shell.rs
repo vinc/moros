@@ -14,12 +14,12 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 41] = [
     "2048", "calc", "chess", "copy", "date", "decode", "delete", "dhcp",
     "diff", "disk", "edit", "elf", "encode", "env", "goto", "hash", "help",
     "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
-    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket",
-    "tcp", "time", "user", "vga", "view", "write",
+    "list", "memory", "move", "net", "pci", "quit", "read", "render", "shell",
+    "socket", "tcp", "time", "user", "vga", "view", "write",
 ];
 
 struct Config {
@@ -539,7 +539,6 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "host"     => usr::host::main(args),
         "http"     => usr::http::main(args),
         "httpd"    => usr::httpd::main(args),
-        "image"    => usr::image::main(args),
         "install"  => usr::install::main(args),
         "keyboard" => usr::keyboard::main(args),
         "life"     => usr::life::main(args),
@@ -553,6 +552,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "pi"       => usr::pi::main(args),
         "quit"     => Err(ExitCode::ShellExit),
         "read"     => usr::read::main(args),
+        "render"   => usr::render::main(args),
         "set"      => cmd_set(args, config),
         "shell"    => usr::shell::main(args),
         "socket"   => usr::socket::main(args),
