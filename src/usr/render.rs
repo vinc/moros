@@ -93,11 +93,6 @@ fn clear() {
     }
 }
 
-fn reset() {
-    shell::exec("shell /ini/palettes/gruvbox-dark.sh").ok();
-    shell::exec("read /ini/fonts/zap-light-8x16.psf => /dev/vga/font").ok();
-}
-
 fn help() {
     let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
@@ -146,6 +141,7 @@ impl Config {
 }
 
 fn graphic_mode() {
+    // TODO: Backup font and palette
     sys::vga::set_320x200_mode();
     clear();
 }
@@ -153,7 +149,11 @@ fn graphic_mode() {
 fn text_mode() {
     clear();
     sys::vga::set_80x25_mode();
-    reset();
+
+    // TODO: Restore font and palette backup instead of this
+    shell::exec("shell /ini/palettes/gruvbox-dark.sh").ok();
+    shell::exec("read /ini/fonts/zap-light-8x16.psf => /dev/vga/font").ok();
+
     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
 }
 
