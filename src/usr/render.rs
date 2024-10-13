@@ -47,7 +47,7 @@ struct BmpInfo {
 
 fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
     if data.len() < size_of::<BmpHeader>() + size_of::<DibHeader>() {
-        return Err("Invalid BMP file: too small".to_string());
+        return Err("Invalid BMP file: size too small".to_string());
     }
 
     let bmp_header: &BmpHeader = unsafe { &*(data.as_ptr() as *const BmpHeader) };
@@ -62,12 +62,15 @@ fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
 
     let pixels_offset = bmp_header.data_offset as usize;
     let palette_size = 256 * 4; // 256 colors, 4 bytes per color (BGRA)
+    if pixels_offset < palette_size || data.len() <= pixels_offset {
+        return Err("Invalid BMP palette".to_string());
+    }
     let palette_offset = pixels_offset - palette_size;
 
     let mut palette = [(0, 0, 0); 256];
-    for (i, chunk) in data[palette_offset..pixels_offset].chunks(4).enumerate() {
-        // Convert BGRA to RGB
-        palette[i] = (chunk[2], chunk[1], chunk[0]);
+    for (i, bgra) in data[palette_offset..pixels_offset].chunks(4).enumerate() {
+        // Convert BGRA to RGB and discard the Alpha layer
+        palette[i] = (bgra[2], bgra[1], bgra[0]);
     }
 
     let pixels = data[pixels_offset..].to_vec();
