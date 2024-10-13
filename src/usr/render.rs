@@ -277,7 +277,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 i = (i + 1) % n;
             }
             Ok(Command::Prev) => {
-                i = (i - 1) % n;
+                i = (n + i - 1) % n; // Avoid underflow
             }
         }
     }
