@@ -1,3 +1,4 @@
+mod color;
 mod font;
 mod screen;
 mod writer;
@@ -5,9 +6,9 @@ mod writer;
 pub use font::VgaFont;
 pub use screen::VgaMode;
 use writer::WRITER;
+use color::Color;
 
-use crate::api::vga::color;
-use crate::api::vga::{Color, Palette};
+use crate::api::vga::Palette;
 
 use alloc::string::String;
 use bit_field::BitField;
