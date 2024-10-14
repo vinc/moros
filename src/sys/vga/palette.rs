@@ -3,6 +3,9 @@ use super::*;
 use crate::api::fs::{FileIO, IO};
 
 use core::convert::TryFrom;
+use spin::Mutex;
+
+static PALETTE: Mutex<Option<Palette>> = Mutex::new(None);
 
 const DEFAULT_COLORS: [(u8, u8, u8); 16] = [
     (0x00, 0x00, 0x00), // DarkBlack
@@ -125,4 +128,14 @@ fn get_palette(i: usize) -> (u8, u8, u8) {
     interrupts::without_interrupts(||
         WRITER.lock().palette(i)
     )
+}
+
+pub fn restore_palette() {
+    if let Some(ref palette) = *PALETTE.lock() {
+        palette.set();
+    }
+}
+
+pub fn backup_palette() {
+    *PALETTE.lock() = Some(Palette::get())
 }

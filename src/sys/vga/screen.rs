@@ -126,14 +126,19 @@ pub fn set_80x25_mode() {
     disable_blinking();
     disable_underline();
     font::restore_font();
+    palette::restore_palette();
 }
 
 pub fn set_320x200_mode() {
+    // NOTE: Setting a graphic mode twice without going back to text mode will
+    // overwrite the backup palette.
+    palette::backup_palette();
     set_mode(&G_320_200_256);
     // TODO: Clear screen
 }
 
 pub fn set_640x480_mode() {
+    palette::backup_palette();
     set_mode(&G_640_480_16);
     // TODO: Clear screen
 }
