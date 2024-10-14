@@ -1,7 +1,3 @@
-pub mod palette;
-
-pub use palette::Palette;
-
 use crate::api::fs;
 use crate::usr::shell;
 

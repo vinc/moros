@@ -1,4 +1,3 @@
-// TODO: Move this to kernel after removing the `vga set palette` command
 pub struct Palette {
     pub colors: [(u8, u8, u8); 16],
 }
