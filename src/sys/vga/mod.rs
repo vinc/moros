@@ -27,6 +27,7 @@ const ATTR_READ_REG:           u16 = 0x3C1;
 const MISC_WRITE_REG:          u16 = 0x3C2;
 const SEQUENCER_ADDR_REG:      u16 = 0x3C4;
 const SEQUENCER_DATA_REG:      u16 = 0x3C5;
+const DAC_ADDR_READ_MODE_REG:  u16 = 0x3C7;
 const DAC_ADDR_WRITE_MODE_REG: u16 = 0x3C8;
 const DAC_DATA_REG:            u16 = 0x3C9;
 const GRAPHICS_ADDR_REG:       u16 = 0x3CE;
@@ -73,11 +74,6 @@ const SCROLL_HEIGHT: usize = 250;
 #[repr(transparent)]
 struct ScreenBuffer {
     chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
-}
-
-// Convert 8-bit to 6-bit color
-fn vga_color(color: u8) -> u8 {
-    color >> 2
 }
 
 // TODO: Remove this

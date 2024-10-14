@@ -42,10 +42,28 @@ impl Palette {
         palette
     }
 
+    pub fn get() -> Self {
+        let mut palette = Palette::new();
+        for i in 0..256 {
+            palette.colors[i] = get_palette(i);
+        }
+        palette
+    }
+
     pub fn set(&self) {
         for (i, (r, g, b)) in self.colors.iter().enumerate() {
             set_palette(i, *r, *g, *b);
         }
+    }
+
+    pub fn to_bytes(&self) -> [u8; 256 * 3] {
+        let mut buf = [0; 256 * 3];
+        for (i, (r, g, b)) in self.colors.iter().enumerate() {
+            buf[i * 3 + 0] = *r;
+            buf[i * 3 + 1] = *g;
+            buf[i * 3 + 2] = *b;
+        }
+        buf
     }
 
     pub fn size() -> usize {
@@ -70,8 +88,13 @@ impl TryFrom<&[u8]> for Palette {
 }
 
 impl FileIO for VgaPalette {
-    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
-        Err(()) // TODO
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let res = Palette::get().to_bytes();
+        if buf.len() < res.len() {
+            return Err(());
+        }
+        buf.clone_from_slice(&res);
+        Ok(res.len())
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
@@ -84,14 +107,22 @@ impl FileIO for VgaPalette {
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
-            IO::Read => false, // TODO
-            IO::Write => true, // TODO
+            IO::Read => true,
+            IO::Write => true,
         }
     }
 }
 
-pub fn set_palette(i: usize, r: u8, g: u8, b: u8) {
+// TODO: Rename to `write_palette_index`
+fn set_palette(i: usize, r: u8, g: u8, b: u8) {
     interrupts::without_interrupts(||
         WRITER.lock().set_palette(i, r, g, b)
+    )
+}
+
+// TODO: Rename to `read_palette_index`
+fn get_palette(i: usize) -> (u8, u8, u8) {
+    interrupts::without_interrupts(||
+        WRITER.lock().palette(i)
     )
 }

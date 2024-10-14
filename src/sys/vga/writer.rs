@@ -272,9 +272,21 @@ impl Writer {
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         unsafe {
             addr.write(i as u8);
-            data.write(vga_color(r));
-            data.write(vga_color(g));
-            data.write(vga_color(b));
+            data.write(r >> 2); // Convert 8-bit to 6-bit color
+            data.write(g >> 2);
+            data.write(b >> 2);
+        }
+    }
+
+    pub fn palette(&mut self, i: usize) -> (u8, u8, u8) {
+        let mut addr: Port<u8> = Port::new(DAC_ADDR_READ_MODE_REG);
+        let mut data: Port<u8> = Port::new(DAC_DATA_REG);
+        unsafe {
+            addr.write(i as u8);
+            let r = data.read() << 2; // Convert 6-bit to 8-bit color
+            let g = data.read() << 2;
+            let b = data.read() << 2;
+            (r, g, b)
         }
     }
 
