@@ -27,7 +27,7 @@ impl Palette {
     pub fn default() -> Palette {
         let mut colors = [(0, 0, 0); 256];
         for (i, (r, g, b)) in DEFAULT_COLORS.iter().enumerate() {
-            let i = Color::from_index(i).to_vga_reg() as usize;
+            let i = Color::from_index(i).register();
             colors[i] = (*r, *g, *b);
         }
         Palette { colors }

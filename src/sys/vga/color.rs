@@ -66,7 +66,7 @@ impl Color {
         }
     }
 
-    pub fn to_vga_reg(&self) -> u8 {
+    pub fn register(&self) -> usize {
         match self {
             Color::DarkBlack     => 0x00,
             Color::DarkBlue      => 0x01,

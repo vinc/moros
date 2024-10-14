@@ -472,7 +472,7 @@ impl Perform for Writer {
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
                     if let Ok((i, r, g, b)) = parse_palette(&s) {
-                        let i = Color::from_index(i).to_vga_reg() as usize;
+                        let i = Color::from_index(i).register();
                         self.set_palette(i, r, g, b);
                     }
                 }
