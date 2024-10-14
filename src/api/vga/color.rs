@@ -1,5 +1,4 @@
 /// The standard color palette in VGA text mode
-#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Color {
@@ -22,31 +21,26 @@ pub enum Color {
     BrightWhite   = 0xF,
 }
 
-const COLORS: [Color; 16] = [
-    Color::DarkBlack,
-    Color::DarkBlue,
-    Color::DarkGreen,
-    Color::DarkCyan,
-    Color::DarkRed,
-    Color::DarkMagenta,
-    Color::DarkYellow,
-    Color::DarkWhite,
-    Color::BrightBlack,
-    Color::BrightBlue,
-    Color::BrightGreen,
-    Color::BrightCyan,
-    Color::BrightRed,
-    Color::BrightMagenta,
-    Color::BrightYellow,
-    Color::BrightWhite,
-];
-
-pub fn colors() -> [Color; 16] {
-    COLORS
-}
-
-pub fn from_index(index: usize) -> Color {
-    COLORS[index]
+pub fn from_index(code: usize) -> Color {
+    match code {
+        0x0 => Color::DarkBlack,
+        0x1 => Color::DarkBlue,
+        0x2 => Color::DarkGreen,
+        0x3 => Color::DarkCyan,
+        0x4 => Color::DarkRed,
+        0x5 => Color::DarkMagenta,
+        0x6 => Color::DarkYellow,
+        0x7 => Color::DarkWhite,
+        0x8 => Color::BrightBlack,
+        0x9 => Color::BrightBlue,
+        0xA => Color::BrightGreen,
+        0xB => Color::BrightCyan,
+        0xC => Color::BrightRed,
+        0xD => Color::BrightMagenta,
+        0xE => Color::BrightYellow,
+        0xF => Color::BrightWhite,
+        _   => Color::DarkBlack, // TODO: Error
+    }
 }
 
 pub fn from_ansi(code: u8) -> Color {
