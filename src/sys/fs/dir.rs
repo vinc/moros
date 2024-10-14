@@ -46,6 +46,13 @@ impl Dir {
         root
     }
 
+    pub fn parent(&self) -> Option<Self> {
+        match &self.parent {
+            Some(dir) => Some(*dir.clone()),
+            None => None,
+        }
+    }
+
     pub fn is_root(&self) -> bool {
         self.parent.is_none()
     }
