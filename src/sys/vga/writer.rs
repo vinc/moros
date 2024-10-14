@@ -228,8 +228,8 @@ impl Writer {
 
     pub fn color(&self) -> (Color, Color) {
         let cc = self.color_code.0;
-        let fg = color::from_index(cc.get_bits(0..4) as usize);
-        let bg = color::from_index(cc.get_bits(4..8) as usize);
+        let fg = Color::from_index(cc.get_bits(0..4) as usize);
+        let bg = Color::from_index(cc.get_bits(4..8) as usize);
         (fg, bg)
     }
 
@@ -335,10 +335,10 @@ impl Perform for Writer {
                             bg = BG;
                         }
                         30..=37 | 90..=97 => {
-                            fg = color::from_ansi(param[0] as u8);
+                            fg = Color::from_ansi(param[0] as u8);
                         }
                         40..=47 | 100..=107 => {
-                            bg = color::from_ansi((param[0] as u8) - 10);
+                            bg = Color::from_ansi((param[0] as u8) - 10);
                         }
                         _ => {}
                     }
@@ -472,7 +472,7 @@ impl Perform for Writer {
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
                     if let Ok((i, r, g, b)) = parse_palette(&s) {
-                        let i = color::from_index(i).to_vga_reg() as usize;
+                        let i = Color::from_index(i).to_vga_reg() as usize;
                         self.set_palette(i, r, g, b);
                     }
                 }

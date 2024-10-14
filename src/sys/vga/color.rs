@@ -21,51 +21,51 @@ pub enum Color {
     BrightWhite   = 0xF,
 }
 
-pub fn from_index(code: usize) -> Color {
-    match code {
-        0x0 => Color::DarkBlack,
-        0x1 => Color::DarkBlue,
-        0x2 => Color::DarkGreen,
-        0x3 => Color::DarkCyan,
-        0x4 => Color::DarkRed,
-        0x5 => Color::DarkMagenta,
-        0x6 => Color::DarkYellow,
-        0x7 => Color::DarkWhite,
-        0x8 => Color::BrightBlack,
-        0x9 => Color::BrightBlue,
-        0xA => Color::BrightGreen,
-        0xB => Color::BrightCyan,
-        0xC => Color::BrightRed,
-        0xD => Color::BrightMagenta,
-        0xE => Color::BrightYellow,
-        0xF => Color::BrightWhite,
-        _   => Color::DarkBlack, // TODO: Error
-    }
-}
-
-pub fn from_ansi(code: u8) -> Color {
-    match code {
-        30 => Color::DarkBlack,
-        31 => Color::DarkRed,
-        32 => Color::DarkGreen,
-        33 => Color::DarkYellow,
-        34 => Color::DarkBlue,
-        35 => Color::DarkMagenta,
-        36 => Color::DarkCyan,
-        37 => Color::DarkWhite,
-        90 => Color::BrightBlack,
-        91 => Color::BrightRed,
-        92 => Color::BrightGreen,
-        93 => Color::BrightYellow,
-        94 => Color::BrightBlue,
-        95 => Color::BrightMagenta,
-        96 => Color::BrightCyan,
-        97 => Color::BrightWhite,
-        _  => Color::DarkBlack, // TODO: Error
-    }
-}
-
 impl Color {
+    pub fn from_index(code: usize) -> Color {
+        match code {
+            0x0 => Color::DarkBlack,
+            0x1 => Color::DarkBlue,
+            0x2 => Color::DarkGreen,
+            0x3 => Color::DarkCyan,
+            0x4 => Color::DarkRed,
+            0x5 => Color::DarkMagenta,
+            0x6 => Color::DarkYellow,
+            0x7 => Color::DarkWhite,
+            0x8 => Color::BrightBlack,
+            0x9 => Color::BrightBlue,
+            0xA => Color::BrightGreen,
+            0xB => Color::BrightCyan,
+            0xC => Color::BrightRed,
+            0xD => Color::BrightMagenta,
+            0xE => Color::BrightYellow,
+            0xF => Color::BrightWhite,
+            _   => Color::DarkBlack, // TODO: Error
+        }
+    }
+
+    pub fn from_ansi(code: u8) -> Color {
+        match code {
+            30 => Color::DarkBlack,
+            31 => Color::DarkRed,
+            32 => Color::DarkGreen,
+            33 => Color::DarkYellow,
+            34 => Color::DarkBlue,
+            35 => Color::DarkMagenta,
+            36 => Color::DarkCyan,
+            37 => Color::DarkWhite,
+            90 => Color::BrightBlack,
+            91 => Color::BrightRed,
+            92 => Color::BrightGreen,
+            93 => Color::BrightYellow,
+            94 => Color::BrightBlue,
+            95 => Color::BrightMagenta,
+            96 => Color::BrightCyan,
+            97 => Color::BrightWhite,
+            _  => Color::DarkBlack, // TODO: Error
+        }
+    }
+
     pub fn to_vga_reg(&self) -> u8 {
         match self {
             Color::DarkBlack     => 0x00,
