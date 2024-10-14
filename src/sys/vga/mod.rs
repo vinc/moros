@@ -7,6 +7,8 @@ mod writer;
 pub use font::VgaFont;
 pub use screen::VgaMode;
 
+pub use palette::set_palette; // TODO: Remove this
+
 use color::Color;
 use palette::Palette;
 use writer::WRITER;
@@ -120,20 +122,6 @@ pub fn is_printable(c: u8) -> bool {
     matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x80..=0xFF)
 }
 
-// TODO: Remove this
-pub fn set_palette(palette: Palette) {
-    interrupts::without_interrupts(||
-        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
-            WRITER.lock().set_palette(i, *r, *g, *b)
-        }
-    )
-}
-pub fn set_palette_color(i: usize, r: u8, g: u8, b: u8) {
-    interrupts::without_interrupts(||
-        WRITER.lock().set_palette(i, r, g, b)
-    )
-}
-
 // 0x00 -> top
 // 0x0F -> bottom
 // 0x1F -> max (invisible)
@@ -211,7 +199,7 @@ pub fn init() {
     set_attr_ctrl_reg(0xE, 0x3E);
     set_attr_ctrl_reg(0xF, 0x3F);
 
-    set_palette(Palette::default());
+    Palette::default().set();
 
     disable_blinking();
     disable_underline();

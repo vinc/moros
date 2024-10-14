@@ -172,7 +172,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
 
             // Load palette
             for (i, (r, g, b)) in bmp.palette.iter().enumerate() {
-                sys::vga::set_palette_color(i, *r, *g, *b);
+                sys::vga::set_palette(i, *r, *g, *b);
             }
 
             // Display image

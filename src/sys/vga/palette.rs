@@ -32,4 +32,16 @@ impl Palette {
         }
         Palette { colors }
     }
+
+    pub fn set(&self) {
+        for (i, (r, g, b)) in self.colors.iter().enumerate() {
+            set_palette(i, *r, *g, *b);
+        }
+    }
+}
+
+pub fn set_palette(i: usize, r: u8, g: u8, b: u8) {
+    interrupts::without_interrupts(||
+        WRITER.lock().set_palette(i, r, g, b)
+    )
 }
