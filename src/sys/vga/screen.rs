@@ -125,6 +125,7 @@ pub fn set_80x25_mode() {
     set_mode(&T_80_25);
     disable_blinking();
     disable_underline();
+    font::restore_font();
 }
 
 pub fn set_320x200_mode() {
