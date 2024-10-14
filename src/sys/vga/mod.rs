@@ -6,6 +6,7 @@ mod writer;
 
 pub use font::VgaFont;
 pub use screen::VgaMode;
+pub use palette::Palette as VgaPalette;
 
 pub use palette::set_palette; // TODO: Remove this
 

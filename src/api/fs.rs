@@ -154,21 +154,23 @@ fn device_buffer(name: &str) -> Result<Vec<u8>, ()> {
     Ok(buf)
 }
 
+// TODO: Move this to sys::fs::device
 fn device_type(name: &str) -> Result<DeviceType, ()> {
     match name {
-        "null"     => Ok(DeviceType::Null),
-        "file"     => Ok(DeviceType::File),
-        "console"  => Ok(DeviceType::Console),
-        "random"   => Ok(DeviceType::Random),
-        "uptime"   => Ok(DeviceType::Uptime),
-        "realtime" => Ok(DeviceType::Realtime),
-        "rtc"      => Ok(DeviceType::RTC),
-        "tcp"      => Ok(DeviceType::TcpSocket),
-        "udp"      => Ok(DeviceType::UdpSocket),
-        "vga-font" => Ok(DeviceType::VgaFont),
-        "vga-mode" => Ok(DeviceType::VgaMode),
-        "ata"      => Ok(DeviceType::Drive),
-        _          => Err(()),
+        "null"        => Ok(DeviceType::Null),
+        "file"        => Ok(DeviceType::File),
+        "console"     => Ok(DeviceType::Console),
+        "random"      => Ok(DeviceType::Random),
+        "uptime"      => Ok(DeviceType::Uptime),
+        "realtime"    => Ok(DeviceType::Realtime),
+        "rtc"         => Ok(DeviceType::RTC),
+        "tcp"         => Ok(DeviceType::TcpSocket),
+        "udp"         => Ok(DeviceType::UdpSocket),
+        "vga-font"    => Ok(DeviceType::VgaFont),
+        "vga-mode"    => Ok(DeviceType::VgaMode),
+        "vga-palette" => Ok(DeviceType::VgaPalette),
+        "ata"         => Ok(DeviceType::Drive),
+        _             => Err(()),
     }
 }
 

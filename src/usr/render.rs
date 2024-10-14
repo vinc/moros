@@ -3,7 +3,6 @@ use crate::api::fs;
 use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::api::vga;
-use crate::sys;
 
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
@@ -171,8 +170,15 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
             config.graphic_mode();
 
             // Load palette
+            let mut palette = [0; 256 * 3];
             for (i, (r, g, b)) in bmp.palette.iter().enumerate() {
-                sys::vga::set_palette(i, *r, *g, *b);
+                palette[i * 3 + 0] = *r;
+                palette[i * 3 + 1] = *g;
+                palette[i * 3 + 2] = *b;
+            }
+            if fs::write("/dev/vga/palette", &palette).is_err() {
+                error!("Could not set palette");
+                return Err(ExitCode::Failure);
             }
 
             // Display image
