@@ -1,5 +1,7 @@
 use super::*;
 
+use crate::api::fs::{FileIO, IO};
+
 // Source: https://www.singlix.com/trdos/archive/vga/Graphics%20in%20pmode.pdf
 const T_80_25: [u8; 61] = [
     // MISC
@@ -127,8 +129,44 @@ pub fn set_80x25_mode() {
 
 pub fn set_320x200_mode() {
     set_mode(&G_320_200_256);
+    // TODO: Clear screen
 }
 
 pub fn set_640x480_mode() {
     set_mode(&G_640_480_16);
+    // TODO: Clear screen
+}
+
+#[derive(Debug, Clone)]
+pub struct VgaMode;
+
+impl VgaMode {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl FileIO for VgaMode {
+    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
+        Err(()) // TODO
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        match buf {
+            b"80x25" => set_80x25_mode(),
+            b"320x200" => set_320x200_mode(),
+            b"640x480" => set_640x480_mode(),
+            _ => return Err(()),
+        }
+        Ok(buf.len())
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        match event {
+            IO::Read => false, // TODO
+            IO::Write => true,
+        }
+    }
 }

@@ -3,7 +3,7 @@ mod screen;
 mod writer;
 
 pub use font::VgaFont;
-pub use screen::{set_80x25_mode, set_320x200_mode, set_640x480_mode};
+pub use screen::VgaMode;
 use writer::WRITER;
 
 use crate::api::vga::color;

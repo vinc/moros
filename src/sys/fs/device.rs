@@ -10,7 +10,7 @@ use crate::sys::console::Console;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
-use crate::sys::vga::VgaFont;
+use crate::sys::vga::{VgaFont, VgaMode};
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -31,6 +31,7 @@ pub enum DeviceType {
     UdpSocket = 8,
     Drive     = 9,
     VgaFont   = 10,
+    VgaMode   = 11,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -49,6 +50,7 @@ impl TryFrom<&[u8]> for DeviceType {
              8 => Ok(DeviceType::UdpSocket),
              9 => Ok(DeviceType::Drive),
             10 => Ok(DeviceType::VgaFont),
+            11 => Ok(DeviceType::VgaMode),
              _ => Err(()),
         }
     }
@@ -87,6 +89,7 @@ pub enum Device {
     TcpSocket(TcpSocket),
     UdpSocket(UdpSocket),
     VgaFont(VgaFont),
+    VgaMode(VgaMode),
     Drive(Drive),
 }
 
@@ -105,6 +108,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::TcpSocket => Ok(Device::TcpSocket(TcpSocket::new())),
             DeviceType::UdpSocket => Ok(Device::UdpSocket(UdpSocket::new())),
             DeviceType::VgaFont   => Ok(Device::VgaFont(VgaFont::new())),
+            DeviceType::VgaMode   => Ok(Device::VgaMode(VgaMode::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -164,6 +168,7 @@ impl FileIO for Device {
             Device::TcpSocket(io) => io.read(buf),
             Device::UdpSocket(io) => io.read(buf),
             Device::VgaFont(io)   => io.read(buf),
+            Device::VgaMode(io)   => io.read(buf),
             Device::Drive(io)     => io.read(buf),
         }
     }
@@ -180,6 +185,7 @@ impl FileIO for Device {
             Device::TcpSocket(io) => io.write(buf),
             Device::UdpSocket(io) => io.write(buf),
             Device::VgaFont(io)   => io.write(buf),
+            Device::VgaMode(io)   => io.write(buf),
             Device::Drive(io)     => io.write(buf),
         }
     }
@@ -196,6 +202,7 @@ impl FileIO for Device {
             Device::TcpSocket(io) => io.close(),
             Device::UdpSocket(io) => io.close(),
             Device::VgaFont(io)   => io.close(),
+            Device::VgaMode(io)   => io.close(),
             Device::Drive(io)     => io.close(),
         }
     }
@@ -212,6 +219,7 @@ impl FileIO for Device {
             Device::TcpSocket(io) => io.poll(event),
             Device::UdpSocket(io) => io.poll(event),
             Device::VgaFont(io)   => io.poll(event),
+            Device::VgaMode(io)   => io.poll(event),
             Device::Drive(io)     => io.poll(event),
         }
     }

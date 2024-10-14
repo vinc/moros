@@ -4,16 +4,17 @@ pub mod palette;
 pub use color::Color;
 pub use palette::Palette;
 
-use crate::sys::vga;
+use crate::api::fs;
 use crate::usr::shell;
 
 pub fn graphic_mode() {
+    fs::write("/dev/vga/mode", b"320x200").ok();
+
     // TODO: Backup font and palette
-    vga::set_320x200_mode();
 }
 
 pub fn text_mode() {
-    vga::set_80x25_mode();
+    fs::write("/dev/vga/mode", b"80x25").ok();
 
     // TODO: Restore font and palette backup instead of this
     shell::exec("shell /ini/palettes/gruvbox-dark.sh").ok();

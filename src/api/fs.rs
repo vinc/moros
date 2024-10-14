@@ -166,6 +166,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "tcp"      => Ok(DeviceType::TcpSocket),
         "udp"      => Ok(DeviceType::UdpSocket),
         "vga-font" => Ok(DeviceType::VgaFont),
+        "vga-mode" => Ok(DeviceType::VgaMode),
         "ata"      => Ok(DeviceType::Drive),
         _          => Err(()),
     }
