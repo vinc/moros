@@ -8,8 +8,6 @@ pub use font::VgaFont;
 pub use screen::VgaMode;
 pub use palette::Palette as VgaPalette;
 
-pub use palette::set_palette; // TODO: Remove this
-
 use color::Color;
 use palette::Palette;
 use writer::WRITER;
