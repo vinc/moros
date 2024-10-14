@@ -32,6 +32,7 @@ pub mod pi;
 pub mod pow;
 pub mod r#move;
 pub mod read;
+pub mod render;
 pub mod shell;
 pub mod socket;
 pub mod tcp;
