@@ -479,7 +479,6 @@ impl Perform for Writer {
                 Some('R') if s.len() == 1 => {
                     let palette = Palette::default();
                     for (i, (r, g, b)) in palette.colors.iter().enumerate() {
-                        let i = color::from_index(i).to_vga_reg() as usize;
                         self.set_palette(i, *r, *g, *b);
                     }
                 }

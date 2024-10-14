@@ -124,7 +124,6 @@ pub fn is_printable(c: u8) -> bool {
 pub fn set_palette(palette: Palette) {
     interrupts::without_interrupts(||
         for (i, (r, g, b)) in palette.colors.iter().enumerate() {
-            let i = color::from_index(i).to_vga_reg() as usize;
             WRITER.lock().set_palette(i, *r, *g, *b)
         }
     )
