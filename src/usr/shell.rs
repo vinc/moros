@@ -517,6 +517,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "2048"     => usr::pow::main(args),
         "alias"    => cmd_alias(args, config),
         "beep"     => usr::beep::main(args),
+        "blank"    => usr::blank::main(args),
         "calc"     => usr::calc::main(args),
         "chess"    => usr::chess::main(args),
         "copy"     => usr::copy::main(args),

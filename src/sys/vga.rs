@@ -514,6 +514,7 @@ fn vga_color(color: u8) -> u8 {
     color >> 2
 }
 
+// TODO: Remove this
 fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
     debug_assert!(palette.len() == 8);
     debug_assert!(palette.starts_with('P'));

@@ -2,7 +2,7 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
 use crate::api::process::ExitCode;
-use crate::usr::shell;
+use crate::api::vga;
 use crate::sys;
 
 use alloc::vec::Vec;
@@ -12,6 +12,15 @@ use core::mem::size_of;
 const FRAMEBUFFER: usize = 0xA0000;
 const WIDTH: usize = 320;
 const HEIGHT: usize = 200;
+
+fn clear() {
+    let ptr = FRAMEBUFFER as *mut u8;
+    let size = WIDTH * HEIGHT;
+    unsafe {
+        let buf = core::slice::from_raw_parts_mut(ptr, size);
+        buf.fill(0x00);
+    }
+}
 
 #[derive(Debug)]
 #[repr(C, packed)]
@@ -84,15 +93,6 @@ fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
     Ok(BmpInfo { width, height, palette, pixels })
 }
 
-fn clear() {
-    let ptr = FRAMEBUFFER as *mut u8;
-    let size = WIDTH * HEIGHT;
-    unsafe {
-        let buf = core::slice::from_raw_parts_mut(ptr, size);
-        buf.fill(0x00);
-    }
-}
-
 fn help() {
     let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
@@ -127,34 +127,19 @@ impl Config {
 
     pub fn text_mode(&mut self) {
         if self.mode == Mode::Graphic {
-            text_mode();
+            clear();
+            vga::text_mode();
             self.mode = Mode::Text;
         }
     }
 
     pub fn graphic_mode(&mut self) {
         if self.mode == Mode::Text {
-            graphic_mode();
+            vga::graphic_mode();
+            clear();
             self.mode = Mode::Graphic;
         }
     }
-}
-
-fn graphic_mode() {
-    // TODO: Backup font and palette
-    sys::vga::set_320x200_mode();
-    clear();
-}
-
-fn text_mode() {
-    clear();
-    sys::vga::set_80x25_mode();
-
-    // TODO: Restore font and palette backup instead of this
-    shell::exec("shell /ini/palettes/gruvbox-dark.sh").ok();
-    shell::exec("read /ini/fonts/zap-light-8x16.psf => /dev/vga/font").ok();
-
-    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
 }
 
 fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
@@ -261,7 +246,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(());
     }
     let files = &args[1..];
-
     let mut config = Config::new();
     let mut i = 0;
     let n = files.len();

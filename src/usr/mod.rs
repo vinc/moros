@@ -1,4 +1,5 @@
 pub mod beep;
+pub mod blank;
 pub mod calc;
 pub mod chess;
 pub mod copy;
