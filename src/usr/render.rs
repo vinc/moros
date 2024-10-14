@@ -176,7 +176,8 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                 palette[i * 3 + 1] = *g;
                 palette[i * 3 + 2] = *b;
             }
-            if fs::write("/dev/vga/palette", &palette).is_err() {
+            let dev = "/dev/vga/palette";
+            if !fs::is_device(dev) || fs::write(dev, &palette).is_err() {
                 error!("Could not set palette");
                 return Err(ExitCode::Failure);
             }
