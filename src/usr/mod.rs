@@ -39,6 +39,5 @@ pub mod socket;
 pub mod tcp;
 pub mod time;
 pub mod user;
-pub mod vga;
 pub mod view;
 pub mod write;
