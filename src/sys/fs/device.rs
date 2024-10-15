@@ -30,10 +30,10 @@ pub enum DeviceType {
     TcpSocket  = 7,
     UdpSocket  = 8,
     Drive      = 9,
-    VgaFont    = 10,
-    VgaMode    = 11,
-    VgaPalette = 12,
-    VgaBuffer  = 13,
+    VgaBuffer  = 10,
+    VgaFont    = 11,
+    VgaMode    = 12,
+    VgaPalette = 13,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -51,10 +51,10 @@ impl TryFrom<&[u8]> for DeviceType {
              7 => Ok(DeviceType::TcpSocket),
              8 => Ok(DeviceType::UdpSocket),
              9 => Ok(DeviceType::Drive),
-            10 => Ok(DeviceType::VgaFont),
-            11 => Ok(DeviceType::VgaMode),
-            12 => Ok(DeviceType::VgaPalette),
-            13 => Ok(DeviceType::VgaBuffer),
+            10 => Ok(DeviceType::VgaBuffer),
+            11 => Ok(DeviceType::VgaFont),
+            12 => Ok(DeviceType::VgaMode),
+            13 => Ok(DeviceType::VgaPalette),
              _ => Err(()),
         }
     }
@@ -73,9 +73,9 @@ impl DeviceType {
             DeviceType::TcpSocket  => TcpSocket::size(),
             DeviceType::UdpSocket  => UdpSocket::size(),
             DeviceType::Drive      => Drive::size(),
+            DeviceType::VgaBuffer  => VgaBuffer::size(),
             DeviceType::VgaMode    => VgaMode::size(),
             DeviceType::VgaPalette => VgaPalette::size(),
-            DeviceType::VgaBuffer  => VgaBuffer::size(),
             _                      => 1,
         };
         let mut res = vec![0; len];
@@ -95,10 +95,10 @@ pub enum Device {
     RTC(RTC),
     TcpSocket(TcpSocket),
     UdpSocket(UdpSocket),
+    VgaBuffer(VgaBuffer),
     VgaFont(VgaFont),
     VgaMode(VgaMode),
     VgaPalette(VgaPalette),
-    VgaBuffer(VgaBuffer),
     Drive(Drive),
 }
 
@@ -116,10 +116,10 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::RTC        => Ok(Device::RTC(RTC::new())),
             DeviceType::TcpSocket  => Ok(Device::TcpSocket(TcpSocket::new())),
             DeviceType::UdpSocket  => Ok(Device::UdpSocket(UdpSocket::new())),
+            DeviceType::VgaBuffer  => Ok(Device::VgaBuffer(VgaBuffer::new())),
             DeviceType::VgaFont    => Ok(Device::VgaFont(VgaFont::new())),
             DeviceType::VgaMode    => Ok(Device::VgaMode(VgaMode::new())),
             DeviceType::VgaPalette => Ok(Device::VgaPalette(VgaPalette::new())),
-            DeviceType::VgaBuffer  => Ok(Device::VgaBuffer(VgaBuffer::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -178,10 +178,10 @@ impl FileIO for Device {
             Device::RTC(io)        => io.read(buf),
             Device::TcpSocket(io)  => io.read(buf),
             Device::UdpSocket(io)  => io.read(buf),
+            Device::VgaBuffer(io)  => io.read(buf),
             Device::VgaFont(io)    => io.read(buf),
             Device::VgaMode(io)    => io.read(buf),
             Device::VgaPalette(io) => io.read(buf),
-            Device::VgaBuffer(io)  => io.read(buf),
             Device::Drive(io)      => io.read(buf),
         }
     }
@@ -197,10 +197,10 @@ impl FileIO for Device {
             Device::RTC(io)        => io.write(buf),
             Device::TcpSocket(io)  => io.write(buf),
             Device::UdpSocket(io)  => io.write(buf),
+            Device::VgaBuffer(io)  => io.write(buf),
             Device::VgaFont(io)    => io.write(buf),
             Device::VgaMode(io)    => io.write(buf),
             Device::VgaPalette(io) => io.write(buf),
-            Device::VgaBuffer(io)  => io.write(buf),
             Device::Drive(io)      => io.write(buf),
         }
     }
@@ -216,10 +216,10 @@ impl FileIO for Device {
             Device::RTC(io)        => io.close(),
             Device::TcpSocket(io)  => io.close(),
             Device::UdpSocket(io)  => io.close(),
+            Device::VgaBuffer(io)  => io.close(),
             Device::VgaFont(io)    => io.close(),
             Device::VgaMode(io)    => io.close(),
             Device::VgaPalette(io) => io.close(),
-            Device::VgaBuffer(io)  => io.close(),
             Device::Drive(io)      => io.close(),
         }
     }
@@ -235,10 +235,10 @@ impl FileIO for Device {
             Device::RTC(io)        => io.poll(event),
             Device::TcpSocket(io)  => io.poll(event),
             Device::UdpSocket(io)  => io.poll(event),
+            Device::VgaBuffer(io)  => io.poll(event),
             Device::VgaFont(io)    => io.poll(event),
             Device::VgaMode(io)    => io.poll(event),
             Device::VgaPalette(io) => io.poll(event),
-            Device::VgaBuffer(io)  => io.poll(event),
             Device::Drive(io)      => io.poll(event),
         }
     }

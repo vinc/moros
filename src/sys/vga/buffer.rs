@@ -13,7 +13,7 @@ impl Buffer {
     }
 
     pub fn size() -> usize {
-        320 * 200 // FIXME
+        320 * 200
     }
 }
 
@@ -40,7 +40,7 @@ impl FileIO for Buffer {
     fn poll(&mut self, event: IO) -> bool {
         match event {
             IO::Read => false, // TODO
-            IO::Write => false, // TODO
+            IO::Write => true,
         }
     }
 }
