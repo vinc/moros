@@ -2,6 +2,17 @@ use super::*;
 
 use crate::api::fs::{FileIO, IO};
 
+use spin::Mutex;
+
+#[derive(Copy, Clone)]
+enum ModeName {
+    T80x25,
+    G320x200x256,
+    G640x480x16,
+}
+
+static MODE: Mutex<Option<ModeName>> = Mutex::new(None);
+
 // Source: https://www.singlix.com/trdos/archive/vga/Graphics%20in%20pmode.pdf
 const T_80_25: [u8; 61] = [
     // MISC
@@ -57,7 +68,14 @@ const GC_REGS_COUNT: usize = 9;
 const AC_REGS_COUNT: usize = 21;
 
 // Source: https://www.singlix.com/trdos/archive/vga/Graphics%20in%20pmode.pdf
-fn set_mode(regs: &[u8]) {
+fn set_mode(mode: ModeName) {
+    *MODE.lock() = Some(mode);
+    let mut regs = match mode {
+        ModeName::T80x25 => T_80_25,
+        ModeName::G320x200x256 => G_320_200_256,
+        ModeName::G640x480x16 => G_640_480_16,
+    }.to_vec();
+
     interrupts::without_interrupts(|| {
         let mut misc_write: Port<u8> = Port::new(MISC_WRITE_REG);
         let mut crtc_addr: Port<u8> = Port::new(CRTC_ADDR_REG);
@@ -70,7 +88,6 @@ fn set_mode(regs: &[u8]) {
         let mut ac_write: Port<u8> = Port::new(ATTR_WRITE_REG);
         let mut instat_read: Port<u8> = Port::new(INSTAT_READ_REG);
 
-        let mut regs = regs.to_vec();
         let mut i = 0;
 
         unsafe {
@@ -121,25 +138,34 @@ fn set_mode(regs: &[u8]) {
     });
 }
 
-pub fn set_80x25_mode() {
-    set_mode(&T_80_25);
-    disable_blinking();
-    disable_underline();
-    font::restore_font();
-    palette::restore_palette();
+fn is_80x25_mode() -> bool {
+    match *MODE.lock() {
+        Some(ModeName::T80x25) | None => true,
+        _ => false
+    }
 }
 
-pub fn set_320x200_mode() {
-    // NOTE: Setting a graphic mode twice without going back to text mode will
-    // overwrite the backup palette.
-    palette::backup_palette();
-    set_mode(&G_320_200_256);
+fn set_80x25_mode() {
+    set_mode(ModeName::T80x25);
+    disable_blinking();
+    disable_underline();
+    palette::restore_palette();
+    font::restore_font();
+}
+
+fn set_320x200_mode() {
+    if is_80x25_mode() {
+        palette::backup_palette();
+    }
+    set_mode(ModeName::G320x200x256);
     // TODO: Clear screen
 }
 
-pub fn set_640x480_mode() {
-    palette::backup_palette();
-    set_mode(&G_640_480_16);
+fn set_640x480_mode() {
+    if is_80x25_mode() {
+        palette::backup_palette();
+    }
+    set_mode(ModeName::G640x480x16);
     // TODO: Clear screen
 }
 

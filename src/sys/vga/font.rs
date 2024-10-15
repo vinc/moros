@@ -7,6 +7,8 @@ use core::convert::TryFrom;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 
+static FONT: Mutex<Option<Font>> = Mutex::new(None);
+
 #[derive(Debug, Clone)]
 pub struct VgaFont;
 
@@ -40,8 +42,6 @@ impl FileIO for VgaFont {
         }
     }
 }
-
-static FONT: Mutex<Option<Font>> = Mutex::new(None);
 
 pub fn set_font(font: &Font) {
     interrupts::without_interrupts(||
