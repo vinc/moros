@@ -194,11 +194,19 @@ impl VgaMode {
     pub fn new() -> Self {
         Self
     }
+
+    pub fn size() -> usize {
+        16 // Must be larger than 8 bytes to be readable as a block device
+    }
 }
 
 impl FileIO for VgaMode {
-    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
-        Err(()) // TODO
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        match *MODE.lock() {
+            Some(ModeName::T80x25) | None => write_mode(buf, b"80x25"),
+            Some(ModeName::G320x200x256) => write_mode(buf, b"320x200"),
+            Some(ModeName::G640x480x16) => write_mode(buf, b"640x480"),
+        }
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
@@ -215,8 +223,18 @@ impl FileIO for VgaMode {
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
-            IO::Read => false, // TODO
+            IO::Read => true,
             IO::Write => true,
         }
+    }
+}
+
+fn write_mode(buf: &mut [u8], mode: &[u8]) -> Result<usize, ()> {
+    let n = mode.len();
+    if buf.len() < n {
+        Err(())
+    } else {
+        buf[0..n].clone_from_slice(mode);
+        Ok(n)
     }
 }

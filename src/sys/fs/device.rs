@@ -71,6 +71,7 @@ impl DeviceType {
             DeviceType::TcpSocket  => TcpSocket::size(),
             DeviceType::UdpSocket  => UdpSocket::size(),
             DeviceType::Drive      => Drive::size(),
+            DeviceType::VgaMode    => VgaMode::size(),
             DeviceType::VgaPalette => VgaPalette::size(),
             _                      => 1,
         };
