@@ -87,3 +87,10 @@ impl Color {
         }
     }
 }
+
+#[test_case]
+fn test_color() {
+    assert_eq!(Color::from_index(6), Color::DarkYellow);
+    assert_eq!(Color::from_ansi(33), Color::DarkYellow);
+    assert_eq!(Color::DarkYellow.register(), 0x14);
+}
