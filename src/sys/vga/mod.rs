@@ -1,6 +1,6 @@
 mod color;
 mod font;
-mod framebuffer;
+mod buffer;
 mod palette;
 mod screen;
 mod writer;
@@ -8,6 +8,7 @@ mod writer;
 pub use font::VgaFont;
 pub use screen::VgaMode;
 pub use palette::Palette as VgaPalette;
+pub use buffer::Buffer as VgaBuffer;
 
 use color::Color;
 use palette::Palette;

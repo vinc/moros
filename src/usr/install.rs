@@ -58,6 +58,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/vga/font", "vga-font", verbose);
     create_dev("/dev/vga/mode", "vga-mode", verbose);
     create_dev("/dev/vga/palette", "vga-palette", verbose);
+    create_dev("/dev/vga/buffer", "vga-buffer", verbose);
 
     copy_file!("/ini/banner.txt", verbose);
     copy_file!("/ini/boot.sh", verbose);

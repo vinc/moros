@@ -8,7 +8,6 @@ use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use core::mem::size_of;
 
-const FRAMEBUFFER: usize = 0xA0000;
 const WIDTH: usize = 320;
 const HEIGHT: usize = 200;
 
@@ -167,15 +166,17 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
             }
             let dev = "/dev/vga/palette";
             if !fs::is_device(dev) || fs::write(dev, &palette).is_err() {
-                error!("Could not set palette");
+                config.text_mode();
+                error!("Could not write to '{}'", dev);
                 return Err(ExitCode::Failure);
             }
 
             // Display image
-            let src = img.as_ptr();
-            let dst = FRAMEBUFFER as *mut u8;
-            unsafe {
-                core::ptr::copy_nonoverlapping(src, dst, size);
+            let dev = "/dev/vga/buffer";
+            if !fs::is_device(dev) || fs::write(dev, &img).is_err() {
+                config.text_mode();
+                error!("Could not write to '{}'", dev);
+                return Err(ExitCode::Failure);
             }
 
             Ok(read_command())

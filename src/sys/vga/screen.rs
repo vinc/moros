@@ -1,5 +1,7 @@
 use super::*;
 
+use buffer::Buffer;
+
 use crate::api::fs::{FileIO, IO};
 
 use spin::Mutex;
@@ -180,7 +182,7 @@ fn clear_screen() {
         _ => return,
     };
     let src = BUFFER.as_ptr();
-    let dst = framebuffer::addr() as *mut u8;
+    let dst = Buffer::addr() as *mut u8;
     unsafe {
         core::ptr::copy_nonoverlapping(src, dst, size);
     }

@@ -10,7 +10,7 @@ use crate::sys::console::Console;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
-use crate::sys::vga::{VgaFont, VgaMode, VgaPalette};
+use crate::sys::vga::{VgaFont, VgaMode, VgaPalette, VgaBuffer};
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -33,6 +33,7 @@ pub enum DeviceType {
     VgaFont    = 10,
     VgaMode    = 11,
     VgaPalette = 12,
+    VgaBuffer  = 13,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -53,6 +54,7 @@ impl TryFrom<&[u8]> for DeviceType {
             10 => Ok(DeviceType::VgaFont),
             11 => Ok(DeviceType::VgaMode),
             12 => Ok(DeviceType::VgaPalette),
+            13 => Ok(DeviceType::VgaBuffer),
              _ => Err(()),
         }
     }
@@ -73,6 +75,7 @@ impl DeviceType {
             DeviceType::Drive      => Drive::size(),
             DeviceType::VgaMode    => VgaMode::size(),
             DeviceType::VgaPalette => VgaPalette::size(),
+            DeviceType::VgaBuffer  => VgaBuffer::size(),
             _                      => 1,
         };
         let mut res = vec![0; len];
@@ -95,6 +98,7 @@ pub enum Device {
     VgaFont(VgaFont),
     VgaMode(VgaMode),
     VgaPalette(VgaPalette),
+    VgaBuffer(VgaBuffer),
     Drive(Drive),
 }
 
@@ -115,6 +119,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::VgaFont    => Ok(Device::VgaFont(VgaFont::new())),
             DeviceType::VgaMode    => Ok(Device::VgaMode(VgaMode::new())),
             DeviceType::VgaPalette => Ok(Device::VgaPalette(VgaPalette::new())),
+            DeviceType::VgaBuffer  => Ok(Device::VgaBuffer(VgaBuffer::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -176,6 +181,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.read(buf),
             Device::VgaMode(io)    => io.read(buf),
             Device::VgaPalette(io) => io.read(buf),
+            Device::VgaBuffer(io)  => io.read(buf),
             Device::Drive(io)      => io.read(buf),
         }
     }
@@ -194,6 +200,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.write(buf),
             Device::VgaMode(io)    => io.write(buf),
             Device::VgaPalette(io) => io.write(buf),
+            Device::VgaBuffer(io)  => io.write(buf),
             Device::Drive(io)      => io.write(buf),
         }
     }
@@ -212,6 +219,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.close(),
             Device::VgaMode(io)    => io.close(),
             Device::VgaPalette(io) => io.close(),
+            Device::VgaBuffer(io)  => io.close(),
             Device::Drive(io)      => io.close(),
         }
     }
@@ -230,6 +238,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.poll(event),
             Device::VgaMode(io)    => io.poll(event),
             Device::VgaPalette(io) => io.poll(event),
+            Device::VgaBuffer(io)  => io.poll(event),
             Device::Drive(io)      => io.poll(event),
         }
     }
