@@ -12,15 +12,6 @@ const FRAMEBUFFER: usize = 0xA0000;
 const WIDTH: usize = 320;
 const HEIGHT: usize = 200;
 
-fn clear() {
-    let ptr = FRAMEBUFFER as *mut u8;
-    let size = WIDTH * HEIGHT;
-    unsafe {
-        let buf = core::slice::from_raw_parts_mut(ptr, size);
-        buf.fill(0x00);
-    }
-}
-
 #[derive(Debug)]
 #[repr(C, packed)]
 struct BmpHeader {
@@ -126,7 +117,6 @@ impl Config {
 
     pub fn text_mode(&mut self) {
         if self.mode == Mode::Graphic {
-            clear();
             vga::text_mode();
             self.mode = Mode::Text;
         }
@@ -135,7 +125,6 @@ impl Config {
     pub fn graphic_mode(&mut self) {
         if self.mode == Mode::Text {
             vga::graphic_mode();
-            clear();
             self.mode = Mode::Graphic;
         }
     }

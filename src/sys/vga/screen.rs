@@ -11,6 +11,8 @@ enum ModeName {
     G640x480x16,
 }
 
+const FRAMEBUFFER: usize = 0xA0000;
+
 static MODE: Mutex<Option<ModeName>> = Mutex::new(None);
 
 // Source: https://www.singlix.com/trdos/archive/vga/Graphics%20in%20pmode.pdf
@@ -146,6 +148,7 @@ fn is_80x25_mode() -> bool {
 }
 
 fn set_80x25_mode() {
+    clear_screen();
     set_mode(ModeName::T80x25);
     disable_blinking();
     disable_underline();
@@ -158,7 +161,7 @@ fn set_320x200_mode() {
         palette::backup_palette();
     }
     set_mode(ModeName::G320x200x256);
-    // TODO: Clear screen
+    clear_screen();
 }
 
 fn set_640x480_mode() {
@@ -166,7 +169,22 @@ fn set_640x480_mode() {
         palette::backup_palette();
     }
     set_mode(ModeName::G640x480x16);
-    // TODO: Clear screen
+    clear_screen();
+}
+
+fn clear_screen() {
+    // Clear screen
+    let screen = [0; 640 * 480];
+    let size = match *MODE.lock() {
+        Some(ModeName::G320x200x256) => 320 * 200,
+        Some(ModeName::G640x480x16) => 640 * 480,
+        _ => return,
+    };
+    let src = screen.as_ptr();
+    let dst = FRAMEBUFFER as *mut u8;
+    unsafe {
+        core::ptr::copy_nonoverlapping(src, dst, size);
+    }
 }
 
 #[derive(Debug, Clone)]
