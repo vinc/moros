@@ -74,7 +74,7 @@ fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
 
     let pixels = data[pixels_offset..].to_vec();
     let width = dib_header.width as u32;
-    let height = dib_header.height.abs() as u32;
+    let height = dib_header.height.unsigned_abs();
     if pixels.len() != (width * height) as usize {
         return Err("Invalid BMP file: wrong pixels count".to_string());
     }
@@ -130,7 +130,7 @@ impl Config {
 }
 
 fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
-    if let Ok(buf) = fs::read_to_bytes(&path) {
+    if let Ok(buf) = fs::read_to_bytes(path) {
         if let Ok(bmp) = parse_bmp(&buf) {
             let width = bmp.width as usize;
             let height = bmp.height as usize;
@@ -150,7 +150,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                     // BMP stores images bottom-up
                     let bmp_y = height - 1 - y;
 
-                    let i = (bmp_y * (width + row_padding) + x) as usize;
+                    let i = bmp_y * (width + row_padding) + x;
                     img.push(bmp.pixels[i]);
                 }
             }
