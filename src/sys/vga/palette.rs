@@ -45,17 +45,17 @@ impl Palette {
         palette
     }
 
-    pub fn get() -> Self {
+    pub fn read() -> Self {
         let mut palette = Palette::new();
         for i in 0..256 {
-            palette.colors[i] = get_palette(i);
+            palette.colors[i] = read_palette(i);
         }
         palette
     }
 
-    pub fn set(&self) {
+    pub fn write(&self) {
         for (i, (r, g, b)) in self.colors.iter().enumerate() {
-            set_palette(i, *r, *g, *b);
+            write_palette(i, *r, *g, *b);
         }
     }
 
@@ -92,7 +92,7 @@ impl TryFrom<&[u8]> for Palette {
 
 impl FileIO for VgaPalette {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let res = Palette::get().to_bytes();
+        let res = Palette::read().to_bytes();
         if buf.len() < res.len() {
             return Err(());
         }
@@ -102,7 +102,7 @@ impl FileIO for VgaPalette {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let palette = Palette::try_from(buf)?;
-        palette.set();
+        palette.write();
         Ok(buf.len())
     }
 
@@ -116,15 +116,13 @@ impl FileIO for VgaPalette {
     }
 }
 
-// TODO: Rename to `write_palette_index`
-fn set_palette(i: usize, r: u8, g: u8, b: u8) {
+fn write_palette(i: usize, r: u8, g: u8, b: u8) {
     interrupts::without_interrupts(||
         WRITER.lock().set_palette(i, r, g, b)
     )
 }
 
-// TODO: Rename to `read_palette_index`
-fn get_palette(i: usize) -> (u8, u8, u8) {
+fn read_palette(i: usize) -> (u8, u8, u8) {
     interrupts::without_interrupts(||
         WRITER.lock().palette(i)
     )
@@ -132,10 +130,10 @@ fn get_palette(i: usize) -> (u8, u8, u8) {
 
 pub fn restore_palette() {
     if let Some(ref palette) = *PALETTE.lock() {
-        palette.set();
+        palette.write();
     }
 }
 
 pub fn backup_palette() {
-    *PALETTE.lock() = Some(Palette::get())
+    *PALETTE.lock() = Some(Palette::read())
 }

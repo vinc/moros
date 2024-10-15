@@ -26,7 +26,7 @@ impl FileIO for VgaFont {
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         if let Ok(font) = Font::try_from(buf) {
             *FONT.lock() = Some(font.clone());
-            set_font(&font);
+            write_font(&font);
             Ok(buf.len()) // TODO: Use font.data.len() ?
         } else {
             Err(())
@@ -43,7 +43,7 @@ impl FileIO for VgaFont {
     }
 }
 
-pub fn set_font(font: &Font) {
+fn write_font(font: &Font) {
     interrupts::without_interrupts(||
         WRITER.lock().set_font(font)
     )
@@ -51,6 +51,6 @@ pub fn set_font(font: &Font) {
 
 pub fn restore_font() {
     if let Some(ref font) = *FONT.lock() {
-        set_font(font);
+        write_font(font);
     }
 }
