@@ -10,6 +10,45 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use vte::{Params, Parser, Perform};
 
+const FG: Color = Color::DarkWhite;
+const BG: Color = Color::DarkBlack;
+const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
+struct ColorCode(u8);
+
+impl ColorCode {
+    fn new(foreground: Color, background: Color) -> ColorCode {
+        ColorCode((background as u8) << 4 | (foreground as u8))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+struct ScreenChar {
+    ascii_code: u8,
+    color_code: ColorCode,
+}
+
+impl ScreenChar {
+    fn new() -> Self {
+        Self {
+            ascii_code: b' ',
+            color_code: ColorCode::new(FG, BG),
+        }
+    }
+}
+
+const SCREEN_WIDTH: usize = 80;
+const SCREEN_HEIGHT: usize = 25;
+const SCROLL_HEIGHT: usize = 250;
+
+#[repr(transparent)]
+struct ScreenBuffer {
+    chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
+}
+
 lazy_static! {
     pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
@@ -224,15 +263,8 @@ impl Writer {
         }
     }
 
-    pub fn set_color(&mut self, foreground: Color, background: Color) {
+    fn set_color(&mut self, foreground: Color, background: Color) {
         self.color_code = ColorCode::new(foreground, background);
-    }
-
-    pub fn color(&self) -> (Color, Color) {
-        let cc = self.color_code.0;
-        let fg = Color::from_index(cc.get_bits(0..4) as usize);
-        let bg = Color::from_index(cc.get_bits(4..8) as usize);
-        (fg, bg)
     }
 
     // Source: https://slideplayer.com/slide/3888880
@@ -512,6 +544,18 @@ impl fmt::Write for Writer {
         self.set_cursor_position(x, y);
         Ok(())
     }
+}
+
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
+    debug_assert!(palette.len() == 8);
+    debug_assert!(palette.starts_with('P'));
+
+    let i = usize::from_str_radix(&palette[1..2], 16)?;
+    let r = u8::from_str_radix(&palette[2..4], 16)?;
+    let g = u8::from_str_radix(&palette[4..6], 16)?;
+    let b = u8::from_str_radix(&palette[6..8], 16)?;
+
+    Ok((i, r, g, b))
 }
 
 #[test_case]

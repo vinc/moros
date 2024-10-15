@@ -39,74 +39,10 @@ const CRTC_DATA_REG:           u16 = 0x3D5;
 const INPUT_STATUS_REG:        u16 = 0x3DA;
 const INSTAT_READ_REG:         u16 = 0x3DA;
 
-const FG: Color = Color::DarkWhite;
-const BG: Color = Color::DarkBlack;
-const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(transparent)]
-struct ColorCode(u8);
-
-impl ColorCode {
-    fn new(foreground: Color, background: Color) -> ColorCode {
-        ColorCode((background as u8) << 4 | (foreground as u8))
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(C)]
-struct ScreenChar {
-    ascii_code: u8,
-    color_code: ColorCode,
-}
-
-impl ScreenChar {
-    fn new() -> Self {
-        Self {
-            ascii_code: b' ',
-            color_code: ColorCode::new(FG, BG),
-        }
-    }
-}
-
-const SCREEN_WIDTH: usize = 80;
-const SCREEN_HEIGHT: usize = 25;
-const SCROLL_HEIGHT: usize = 250;
-
-#[repr(transparent)]
-struct ScreenBuffer {
-    chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
-}
-
-// TODO: Remove this
-fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
-    debug_assert!(palette.len() == 8);
-    debug_assert!(palette.starts_with('P'));
-
-    let i = usize::from_str_radix(&palette[1..2], 16)?;
-    let r = u8::from_str_radix(&palette[2..4], 16)?;
-    let g = u8::from_str_radix(&palette[4..6], 16)?;
-    let b = u8::from_str_radix(&palette[6..8], 16)?;
-
-    Ok((i, r, g, b))
-}
-
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
     interrupts::without_interrupts(||
         WRITER.lock().write_fmt(args).expect("Could not print to VGA")
-    )
-}
-
-pub fn color() -> (Color, Color) {
-    interrupts::without_interrupts(||
-        WRITER.lock().color()
-    )
-}
-
-pub fn set_color(foreground: Color, background: Color) {
-    interrupts::without_interrupts(||
-        WRITER.lock().set_color(foreground, background)
     )
 }
 
