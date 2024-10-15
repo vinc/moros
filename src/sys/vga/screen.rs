@@ -11,8 +11,7 @@ enum ModeName {
     G640x480x16,
 }
 
-const FRAME_BUFFER_ADDR: usize = 0xA0000;
-const DOUBLE_BUFFER: [u8; 640 * 480] = [0; 640 * 480];
+const BUFFER: [u8; 640 * 480] = [0; 640 * 480];
 
 static MODE: Mutex<Option<ModeName>> = Mutex::new(None);
 
@@ -180,8 +179,8 @@ fn clear_screen() {
         Some(ModeName::G640x480x16) => 640 * 480,
         _ => return,
     };
-    let src = DOUBLE_BUFFER.as_ptr();
-    let dst = FRAME_BUFFER_ADDR as *mut u8;
+    let src = BUFFER.as_ptr();
+    let dst = framebuffer::addr() as *mut u8;
     unsafe {
         core::ptr::copy_nonoverlapping(src, dst, size);
     }

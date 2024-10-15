@@ -1,5 +1,6 @@
 mod color;
 mod font;
+mod framebuffer;
 mod palette;
 mod screen;
 mod writer;

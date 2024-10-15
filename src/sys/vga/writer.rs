@@ -237,7 +237,7 @@ impl Writer {
     pub fn set_font(&mut self, font: &Font) {
         let mut sequencer: Port<u16> = Port::new(SEQUENCER_ADDR_REG);
         let mut graphics: Port<u16> = Port::new(GRAPHICS_ADDR_REG);
-        let buffer = 0xA0000 as *mut u8;
+        let buffer = framebuffer::addr() as *mut u8;
 
         unsafe {
             sequencer.write(0x0100); // do a sync reset
