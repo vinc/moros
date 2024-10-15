@@ -513,3 +513,11 @@ impl fmt::Write for Writer {
         Ok(())
     }
 }
+
+#[test_case]
+fn test_parse_palette() {
+    assert_eq!(parse_palette("P0282828"), Ok((0, 0x28, 0x28, 0x28)));
+    assert_eq!(parse_palette("P4CC241D"), Ok((4, 0xCC, 0x24, 0x1D)));
+    assert!(parse_palette("BAAAAAAD").is_ok());
+    assert!(parse_palette("GOOOOOOD").is_err());
+}
