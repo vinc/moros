@@ -31,41 +31,62 @@ fn palette(color: bool) -> [u8; 768] {
     palette
 }
 
+const WIDTH: usize = 320;
+const HEIGHT: usize = 200;
+
 fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
-    let x_scale = 3.0 / 320.0 / zoom;
-    let y_scale = 2.0 / 200.0 / zoom;
-    for py in 0..200 {
-        for px in 0..320 {
+    let x_scale = 3.0 / (zoom * WIDTH as f64);
+    let y_scale = 2.0 / (zoom * HEIGHT as f64);
+    for py in 0..HEIGHT {
+        for px in 0..WIDTH {
             // Map pixel position to complex plane
-            let x0 = px as f64 * x_scale - 2.0 + x_offset;
-            let y0 = py as f64 * y_scale - 1.0 + y_offset;
+            let x0 = x_offset + ((px as f64) - (WIDTH as f64) / 2.0) * x_scale;
+            let y0 = y_offset + ((py as f64) - (HEIGHT as f64) / 2.0) * y_scale;
 
             // Compute whether the point is in the Mandelbrot Set
+            /*
             let mut x = 0.0;
             let mut y = 0.0;
             let mut x2 = 0.0;
             let mut y2 = 0.0;
             let mut i = 0;
             let n = 255;
-
-            while x2 + y2 <= 4.0 && i < n {
+            while x2 + y2 <= 4.0 && i < 32 {
                 y = 2.0 * x * y + y0;
                 x = x2 - y2 + x0;
                 x2 = x * x;
                 y2 = y * y;
                 i += 1;
             }
+            */
+
+            let mut x = 0.0;
+            let mut y = 0.0;
+            let mut i = 0;
+            let n = 256;
+            while x * x + y * y <= 4.0 && i < n {
+                let tmp = x * x - y * y + x0;
+                y = 2.0 * x * y + y0;
+                x = tmp;
+                i += 1;
+            }
 
             // Color the pixel based on the number of iterations
-            buffer[py * 320 + px] = (i % 256) as u8;
+            buffer[py * 320 + px] = (i % n) as u8;
         }
     }
 }
 
 fn main(args: &[&str]) {
     let mut color = false;
-    for arg in args {
-        match *arg {
+    let mut x = -0.5;
+    let mut y = 0.0;
+    let mut z = 1.0;
+
+    let n = args.len();
+    let mut i = 0;
+    while i < n {
+        match args[i] {
             "-h" | "--help" => {
                 help();
                 return;
@@ -73,20 +94,29 @@ fn main(args: &[&str]) {
             "-c" | "--color" => {
                 color = true;
             }
+            "-x" if i < n - 1 => {
+                i += 1;
+                x = args[i].parse().unwrap_or(x);
+            }
+            "-y" if i < n - 1 => {
+                i += 1;
+                y = args[i].parse().unwrap_or(y);
+            }
+            "-z" | "--zoom" if i < n - 1 => {
+                i += 1;
+                z = args[i].parse().unwrap_or(z);
+            }
             _ => {}
         }
+        i += 1;
     }
 
     vga::graphic_mode();
     fs::write("/dev/vga/palette", &palette(color)).ok();
 
-    let mut x = 0.0;
-    let mut y = 0.0;
-    let mut z = 1.0;
-
     let mut escape = false;
     let mut csi = false;
-    let mut buffer = [0; 320 * 200];
+    let mut buffer = [0; WIDTH * HEIGHT];
     loop {
         mandelbrot(&mut buffer, x, y, z);
         fs::write("/dev/vga/buffer", &buffer).ok();
@@ -119,18 +149,18 @@ fn main(args: &[&str]) {
                 x -= 0.2 / z;
             }
             ' ' => { // Space
-                let x_center = x + (1.5 / z);
-                let y_center = y + (1.0 / z);
-                z *= 1.5; // Increase zoom
-                x = x_center - (1.5 / z);
-                y = y_center - (1.0 / z);
+                //let x_center = x + (1.5 / z);
+                //let y_center = y + (1.0 / z);
+                z *= 1.2; // Increase zoom
+                //x = x_center - (1.5 / z);
+                //y = y_center - (1.0 / z);
             }
             '\x08' => { // Backspace
-                let x_center = x + (1.5 / z);
-                let y_center = y + (1.0 / z);
-                z /= 1.5; // Increase zoom
-                x = x_center - (1.5 / z);
-                y = y_center - (1.0 / z);
+                //let x_center = x + (1.5 / z);
+                //let y_center = y + (1.0 / z);
+                z /= 1.2; // Increase zoom
+                //x = x_center - (1.5 / z);
+                //y = y_center - (1.0 / z);
             }
             _ => {}
         }
