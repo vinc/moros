@@ -34,27 +34,27 @@ fn palette(color: bool) -> [u8; 768] {
 fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
     let x_scale = 3.0 / 320.0 / zoom;
     let y_scale = 2.0 / 200.0 / zoom;
-    for y in 0..200 {
-        for x in 0..320 {
+    for py in 0..200 {
+        for px in 0..320 {
             // Map pixel position to complex plane
-            let cx = x as f64 * x_scale - 2.0 + x_offset;
-            let cy = y as f64 * y_scale - 1.0 + y_offset;
+            let x0 = px as f64 * x_scale - 2.0 + x_offset;
+            let y0 = py as f64 * y_scale - 1.0 + y_offset;
 
             // Compute whether the point is in the Mandelbrot Set
-            let mut zx = 0.0;
-            let mut zy = 0.0;
+            let mut x = 0.0;
+            let mut y = 0.0;
             let mut i = 0;
             let n = 255;
 
-            while zx * zx + zy * zy < 4.0 && i < n {
-                let tmp = zx * zx - zy * zy + cx;
-                zy = 2.0 * zx * zy + cy;
-                zx = tmp;
+            while x * x + y * y <= 4.0 && i < n {
+                let tmp = x * x - y * y + x0;
+                y = 2.0 * x * y + y0;
+                x = tmp;
                 i += 1;
             }
 
             // Color the pixel based on the number of iterations
-            buffer[y * 320 + x] = i as u8;
+            buffer[py * 320 + px] = (i % 256) as u8;
         }
     }
 }
