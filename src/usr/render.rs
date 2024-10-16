@@ -2,14 +2,12 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
 use crate::api::process::ExitCode;
-use crate::usr::shell;
-use crate::sys;
+use crate::api::vga;
 
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use core::mem::size_of;
 
-const FRAMEBUFFER: usize = 0xA0000;
 const WIDTH: usize = 320;
 const HEIGHT: usize = 200;
 
@@ -76,21 +74,12 @@ fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
 
     let pixels = data[pixels_offset..].to_vec();
     let width = dib_header.width as u32;
-    let height = dib_header.height.abs() as u32;
+    let height = dib_header.height.unsigned_abs();
     if pixels.len() != (width * height) as usize {
         return Err("Invalid BMP file: wrong pixels count".to_string());
     }
 
     Ok(BmpInfo { width, height, palette, pixels })
-}
-
-fn clear() {
-    let ptr = FRAMEBUFFER as *mut u8;
-    let size = WIDTH * HEIGHT;
-    unsafe {
-        let buf = core::slice::from_raw_parts_mut(ptr, size);
-        buf.fill(0x00);
-    }
 }
 
 fn help() {
@@ -127,38 +116,21 @@ impl Config {
 
     pub fn text_mode(&mut self) {
         if self.mode == Mode::Graphic {
-            text_mode();
+            vga::text_mode();
             self.mode = Mode::Text;
         }
     }
 
     pub fn graphic_mode(&mut self) {
         if self.mode == Mode::Text {
-            graphic_mode();
+            vga::graphic_mode();
             self.mode = Mode::Graphic;
         }
     }
 }
 
-fn graphic_mode() {
-    // TODO: Backup font and palette
-    sys::vga::set_320x200_mode();
-    clear();
-}
-
-fn text_mode() {
-    clear();
-    sys::vga::set_80x25_mode();
-
-    // TODO: Restore font and palette backup instead of this
-    shell::exec("shell /ini/palettes/gruvbox-dark.sh").ok();
-    shell::exec("read /ini/fonts/zap-light-8x16.psf => /dev/vga/font").ok();
-
-    print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
-}
-
 fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
-    if let Ok(buf) = fs::read_to_bytes(&path) {
+    if let Ok(buf) = fs::read_to_bytes(path) {
         if let Ok(bmp) = parse_bmp(&buf) {
             let width = bmp.width as usize;
             let height = bmp.height as usize;
@@ -178,7 +150,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                     // BMP stores images bottom-up
                     let bmp_y = height - 1 - y;
 
-                    let i = (bmp_y * (width + row_padding) + x) as usize;
+                    let i = bmp_y * (width + row_padding) + x;
                     img.push(bmp.pixels[i]);
                 }
             }
@@ -186,15 +158,25 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
             config.graphic_mode();
 
             // Load palette
+            let mut palette = [0; 256 * 3];
             for (i, (r, g, b)) in bmp.palette.iter().enumerate() {
-                sys::vga::set_palette_color(i, *r, *g, *b);
+                palette[i * 3 + 0] = *r;
+                palette[i * 3 + 1] = *g;
+                palette[i * 3 + 2] = *b;
+            }
+            let dev = "/dev/vga/palette";
+            if !fs::is_device(dev) || fs::write(dev, &palette).is_err() {
+                config.text_mode();
+                error!("Could not write to '{}'", dev);
+                return Err(ExitCode::Failure);
             }
 
             // Display image
-            let src = img.as_ptr();
-            let dst = FRAMEBUFFER as *mut u8;
-            unsafe {
-                core::ptr::copy_nonoverlapping(src, dst, size);
+            let dev = "/dev/vga/buffer";
+            if !fs::is_device(dev) || fs::write(dev, &img).is_err() {
+                config.text_mode();
+                error!("Could not write to '{}'", dev);
+                return Err(ExitCode::Failure);
             }
 
             Ok(read_command())
@@ -261,7 +243,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(());
     }
     let files = &args[1..];
-
     let mut config = Config::new();
     let mut i = 0;
     let n = files.len();

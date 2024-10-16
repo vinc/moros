@@ -10,7 +10,7 @@ use crate::sys::console::Console;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
-use crate::sys::vga::VgaFont;
+use crate::sys::vga::{VgaFont, VgaMode, VgaPalette, VgaBuffer};
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -20,17 +20,20 @@ use core::convert::TryInto;
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum DeviceType {
-    Null      = 0,
-    File      = 1,
-    Console   = 2,
-    Random    = 3,
-    Uptime    = 4,
-    Realtime  = 5,
-    RTC       = 6,
-    TcpSocket = 7,
-    UdpSocket = 8,
-    Drive     = 9,
-    VgaFont   = 10,
+    Null       = 0,
+    File       = 1,
+    Console    = 2,
+    Random     = 3,
+    Uptime     = 4,
+    Realtime   = 5,
+    RTC        = 6,
+    TcpSocket  = 7,
+    UdpSocket  = 8,
+    Drive      = 9,
+    VgaBuffer  = 10,
+    VgaFont    = 11,
+    VgaMode    = 12,
+    VgaPalette = 13,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -48,7 +51,10 @@ impl TryFrom<&[u8]> for DeviceType {
              7 => Ok(DeviceType::TcpSocket),
              8 => Ok(DeviceType::UdpSocket),
              9 => Ok(DeviceType::Drive),
-            10 => Ok(DeviceType::VgaFont),
+            10 => Ok(DeviceType::VgaBuffer),
+            11 => Ok(DeviceType::VgaFont),
+            12 => Ok(DeviceType::VgaMode),
+            13 => Ok(DeviceType::VgaPalette),
              _ => Err(()),
         }
     }
@@ -60,14 +66,17 @@ impl DeviceType {
     // store specific device informations.
     pub fn buf(self) -> Vec<u8> {
         let len = match self {
-            DeviceType::RTC       => RTC::size(),
-            DeviceType::Uptime    => Uptime::size(),
-            DeviceType::Realtime  => Realtime::size(),
-            DeviceType::Console   => Console::size(),
-            DeviceType::TcpSocket => TcpSocket::size(),
-            DeviceType::UdpSocket => UdpSocket::size(),
-            DeviceType::Drive     => Drive::size(),
-            _                     => 1,
+            DeviceType::RTC        => RTC::size(),
+            DeviceType::Uptime     => Uptime::size(),
+            DeviceType::Realtime   => Realtime::size(),
+            DeviceType::Console    => Console::size(),
+            DeviceType::TcpSocket  => TcpSocket::size(),
+            DeviceType::UdpSocket  => UdpSocket::size(),
+            DeviceType::Drive      => Drive::size(),
+            DeviceType::VgaBuffer  => VgaBuffer::size(),
+            DeviceType::VgaMode    => VgaMode::size(),
+            DeviceType::VgaPalette => VgaPalette::size(),
+            _                      => 1,
         };
         let mut res = vec![0; len];
         res[0] = self as u8; // Device type
@@ -86,7 +95,10 @@ pub enum Device {
     RTC(RTC),
     TcpSocket(TcpSocket),
     UdpSocket(UdpSocket),
+    VgaBuffer(VgaBuffer),
     VgaFont(VgaFont),
+    VgaMode(VgaMode),
+    VgaPalette(VgaPalette),
     Drive(Drive),
 }
 
@@ -95,16 +107,19 @@ impl TryFrom<&[u8]> for Device {
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
         match buf.try_into()? {
-            DeviceType::Null      => Ok(Device::Null),
-            DeviceType::File      => Ok(Device::File(File::new())),
-            DeviceType::Console   => Ok(Device::Console(Console::new())),
-            DeviceType::Random    => Ok(Device::Random(Random::new())),
-            DeviceType::Uptime    => Ok(Device::Uptime(Uptime::new())),
-            DeviceType::Realtime  => Ok(Device::Realtime(Realtime::new())),
-            DeviceType::RTC       => Ok(Device::RTC(RTC::new())),
-            DeviceType::TcpSocket => Ok(Device::TcpSocket(TcpSocket::new())),
-            DeviceType::UdpSocket => Ok(Device::UdpSocket(UdpSocket::new())),
-            DeviceType::VgaFont   => Ok(Device::VgaFont(VgaFont::new())),
+            DeviceType::Null       => Ok(Device::Null),
+            DeviceType::File       => Ok(Device::File(File::new())),
+            DeviceType::Console    => Ok(Device::Console(Console::new())),
+            DeviceType::Random     => Ok(Device::Random(Random::new())),
+            DeviceType::Uptime     => Ok(Device::Uptime(Uptime::new())),
+            DeviceType::Realtime   => Ok(Device::Realtime(Realtime::new())),
+            DeviceType::RTC        => Ok(Device::RTC(RTC::new())),
+            DeviceType::TcpSocket  => Ok(Device::TcpSocket(TcpSocket::new())),
+            DeviceType::UdpSocket  => Ok(Device::UdpSocket(UdpSocket::new())),
+            DeviceType::VgaBuffer  => Ok(Device::VgaBuffer(VgaBuffer::new())),
+            DeviceType::VgaFont    => Ok(Device::VgaFont(VgaFont::new())),
+            DeviceType::VgaMode    => Ok(Device::VgaMode(VgaMode::new())),
+            DeviceType::VgaPalette => Ok(Device::VgaPalette(VgaPalette::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -154,65 +169,77 @@ impl Device {
 impl FileIO for Device {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match self {
-            Device::Null          => Err(()),
-            Device::File(io)      => io.read(buf),
-            Device::Console(io)   => io.read(buf),
-            Device::Random(io)    => io.read(buf),
-            Device::Uptime(io)    => io.read(buf),
-            Device::Realtime(io)  => io.read(buf),
-            Device::RTC(io)       => io.read(buf),
-            Device::TcpSocket(io) => io.read(buf),
-            Device::UdpSocket(io) => io.read(buf),
-            Device::VgaFont(io)   => io.read(buf),
-            Device::Drive(io)     => io.read(buf),
+            Device::Null           => Err(()),
+            Device::File(io)       => io.read(buf),
+            Device::Console(io)    => io.read(buf),
+            Device::Random(io)     => io.read(buf),
+            Device::Uptime(io)     => io.read(buf),
+            Device::Realtime(io)   => io.read(buf),
+            Device::RTC(io)        => io.read(buf),
+            Device::TcpSocket(io)  => io.read(buf),
+            Device::UdpSocket(io)  => io.read(buf),
+            Device::VgaBuffer(io)  => io.read(buf),
+            Device::VgaFont(io)    => io.read(buf),
+            Device::VgaMode(io)    => io.read(buf),
+            Device::VgaPalette(io) => io.read(buf),
+            Device::Drive(io)      => io.read(buf),
         }
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match self {
-            Device::Null          => Ok(0),
-            Device::File(io)      => io.write(buf),
-            Device::Console(io)   => io.write(buf),
-            Device::Random(io)    => io.write(buf),
-            Device::Uptime(io)    => io.write(buf),
-            Device::Realtime(io)  => io.write(buf),
-            Device::RTC(io)       => io.write(buf),
-            Device::TcpSocket(io) => io.write(buf),
-            Device::UdpSocket(io) => io.write(buf),
-            Device::VgaFont(io)   => io.write(buf),
-            Device::Drive(io)     => io.write(buf),
+            Device::Null           => Ok(0),
+            Device::File(io)       => io.write(buf),
+            Device::Console(io)    => io.write(buf),
+            Device::Random(io)     => io.write(buf),
+            Device::Uptime(io)     => io.write(buf),
+            Device::Realtime(io)   => io.write(buf),
+            Device::RTC(io)        => io.write(buf),
+            Device::TcpSocket(io)  => io.write(buf),
+            Device::UdpSocket(io)  => io.write(buf),
+            Device::VgaBuffer(io)  => io.write(buf),
+            Device::VgaFont(io)    => io.write(buf),
+            Device::VgaMode(io)    => io.write(buf),
+            Device::VgaPalette(io) => io.write(buf),
+            Device::Drive(io)      => io.write(buf),
         }
     }
 
     fn close(&mut self) {
         match self {
-            Device::Null          => {}
-            Device::File(io)      => io.close(),
-            Device::Console(io)   => io.close(),
-            Device::Random(io)    => io.close(),
-            Device::Uptime(io)    => io.close(),
-            Device::Realtime(io)  => io.close(),
-            Device::RTC(io)       => io.close(),
-            Device::TcpSocket(io) => io.close(),
-            Device::UdpSocket(io) => io.close(),
-            Device::VgaFont(io)   => io.close(),
-            Device::Drive(io)     => io.close(),
+            Device::Null           => {}
+            Device::File(io)       => io.close(),
+            Device::Console(io)    => io.close(),
+            Device::Random(io)     => io.close(),
+            Device::Uptime(io)     => io.close(),
+            Device::Realtime(io)   => io.close(),
+            Device::RTC(io)        => io.close(),
+            Device::TcpSocket(io)  => io.close(),
+            Device::UdpSocket(io)  => io.close(),
+            Device::VgaBuffer(io)  => io.close(),
+            Device::VgaFont(io)    => io.close(),
+            Device::VgaMode(io)    => io.close(),
+            Device::VgaPalette(io) => io.close(),
+            Device::Drive(io)      => io.close(),
         }
     }
 
     fn poll(&mut self, event: IO) -> bool {
         match self {
-            Device::Null          => false,
-            Device::File(io)      => io.poll(event),
-            Device::Console(io)   => io.poll(event),
-            Device::Random(io)    => io.poll(event),
-            Device::Uptime(io)    => io.poll(event),
-            Device::Realtime(io)  => io.poll(event),
-            Device::RTC(io)       => io.poll(event),
-            Device::TcpSocket(io) => io.poll(event),
-            Device::UdpSocket(io) => io.poll(event),
-            Device::VgaFont(io)   => io.poll(event),
-            Device::Drive(io)     => io.poll(event),
+            Device::Null           => false,
+            Device::File(io)       => io.poll(event),
+            Device::Console(io)    => io.poll(event),
+            Device::Random(io)     => io.poll(event),
+            Device::Uptime(io)     => io.poll(event),
+            Device::Realtime(io)   => io.poll(event),
+            Device::RTC(io)        => io.poll(event),
+            Device::TcpSocket(io)  => io.poll(event),
+            Device::UdpSocket(io)  => io.poll(event),
+            Device::VgaBuffer(io)  => io.poll(event),
+            Device::VgaFont(io)    => io.poll(event),
+            Device::VgaMode(io)    => io.poll(event),
+            Device::VgaPalette(io) => io.poll(event),
+            Device::Drive(io)      => io.poll(event),
         }
     }
 }

@@ -49,6 +49,7 @@ user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cargo rustc $(user-cargo-opts) --bin {}
 	cargo rustc $(user-cargo-opts) --bin exec -- $(linker-opts)
+	cargo rustc $(user-cargo-opts) --bin blank -- $(linker-opts)
 	cargo rustc $(user-cargo-opts) --bin hello -- $(linker-opts)
 	cargo rustc $(user-cargo-opts) --bin geocal -- $(linker-opts)
 	cargo rustc $(user-cargo-opts) --bin geodate -- $(linker-opts)
