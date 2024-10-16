@@ -43,13 +43,16 @@ fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
             // Compute whether the point is in the Mandelbrot Set
             let mut x = 0.0;
             let mut y = 0.0;
+            let mut x2 = 0.0;
+            let mut y2 = 0.0;
             let mut i = 0;
             let n = 255;
 
-            while x * x + y * y <= 4.0 && i < n {
-                let tmp = x * x - y * y + x0;
+            while x2 + y2 <= 4.0 && i < n {
                 y = 2.0 * x * y + y0;
-                x = tmp;
+                x = x2 - y2 + x0;
+                x2 = x * x;
+                y2 = y * y;
                 i += 1;
             }
 
