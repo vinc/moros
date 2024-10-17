@@ -156,19 +156,11 @@ fn main(args: &[&str]) {
             'D' if csi => { // Arrow Left
                 x -= 0.2 / z;
             }
-            ' ' => { // Space
-                //let x_center = x + (1.5 / z);
-                //let y_center = y + (1.0 / z);
-                z *= 1.2; // Increase zoom
-                //x = x_center - (1.5 / z);
-                //y = y_center - (1.0 / z);
+            ' ' => { // Space: zoom in
+                z *= 1.5;
             }
-            '\x08' => { // Backspace
-                //let x_center = x + (1.5 / z);
-                //let y_center = y + (1.0 / z);
-                z /= 1.2; // Increase zoom
-                //x = x_center - (1.5 / z);
-                //y = y_center - (1.0 / z);
+            '\x08' => { // Backspace: zoom out
+                z /= 1.5;
             }
             _ => {}
         }
