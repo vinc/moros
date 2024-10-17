@@ -196,7 +196,6 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
 fn read_command() -> Command {
     let mut escape = false;
     let mut csi = false;
-    let mut csi_params = String::new();
     loop {
         let c = io::stdin().read_char().unwrap_or('\0');
         match c {
@@ -212,7 +211,6 @@ fn read_command() -> Command {
             }
             '[' if escape => {
                 csi = true;
-                csi_params.clear();
                 continue;
             }
             'C' if csi => { // Arrow Right
@@ -221,9 +219,8 @@ fn read_command() -> Command {
             'D' if csi => { // Arrow Left
                 return Command::Prev;
             }
-            c => {
+            _ => {
                 if csi {
-                    csi_params.push(c);
                     continue;
                 } else {
                     return Command::Next;
