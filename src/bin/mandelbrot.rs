@@ -200,17 +200,27 @@ fn main(args: &[&str]) {
 }
 
 fn help() {
-    let csi_option = Style::color("aqua");
+    let csi_opt = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} mandelbrot {}<options>{1}",
-        csi_title, csi_reset, csi_option
+        "{}Usage:{} mandelbrot {}<options>{1}", csi_title, csi_reset, csi_opt
     );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-c{1}, {0}--color{1}    Colorize output",
-        csi_option, csi_reset
+        "  {0}-c{1}, {0}--color{1}         Colorize output", csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-n <int>{1}            Number of iterations", csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-x <float>{1}          Horizontal offset", csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-y <float>{1}          Vertical offset", csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-z{1}, {0}--zoom <float>{1}  Zoom level", csi_opt, csi_reset
     );
 }
