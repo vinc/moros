@@ -14,6 +14,7 @@ entry_point!(main);
 
 const WIDTH: usize = 320;
 const HEIGHT: usize = 200;
+const COLORS: usize = 256;
 
 struct Point {
     x: f64,
@@ -27,17 +28,18 @@ struct Config {
     n: usize,
 }
 
-fn palette(config: &Config) -> [u8; 768] {
-    let mut palette = [0; 768];
-    for i in 0..256 {
-        let mut r = 255 - i as u8;
-        let mut g = 255 - i as u8;
-        let mut b = 255 - i as u8;
+fn palette(config: &Config) -> [u8; COLORS * 3] {
+    let mut palette = [0; COLORS * 3];
+    for i in 0..COLORS {
+        let mut r = (COLORS - 1 - i) as u8;
+        let mut g = (COLORS - 1 - i) as u8;
+        let mut b = (COLORS - 1 - i) as u8;
         if config.color {
-            let t = i as f32 / 255.0;
-            r = (9.0 * (1.0 - t) * t * t * t * 255.0) as u8;
-            g = (15.0 * (1.0 - t) * (1.0 - t) * t * t * 255.0) as u8;
-            b = (8.5 * (1.0 - t) * (1.0 - t) * (1.0 - t) * t * 255.0) as u8;
+            let c = COLORS as f64 - 1.0;
+            let t = i as f64 / c;
+            r = (9.0 * (1.0 - t) * t * t * t * c) as u8;
+            g = (15.0 * (1.0 - t) * (1.0 - t) * t * t * c) as u8;
+            b = (8.5 * (1.0 - t) * (1.0 - t) * (1.0 - t) * t * c) as u8;
         }
         palette[i * 3 + 0] = r;
         palette[i * 3 + 1] = g;
@@ -64,17 +66,16 @@ fn mandelbrot(buffer: &mut [u8], config: &Config) {
             let mut y2 = 0.0;
             let mut i = 0;
 
-
             // Cardioid check
             let q = libm::pow(x0 - 0.25, 2.0) + libm::pow(y0, 2.0);
             if q * (q + (x0 - 0.25)) <= 0.25 * libm::pow(y0, 2.0) {
-                buffer[py * 320 + px] = black(config);
+                buffer[py * WIDTH + px] = black(config) as u8;
                 continue;
             }
 
             // Period-2 bulb check
             if libm::pow(x0 + 1.0, 2.0) + libm::pow(y0, 2.0) <= 0.0625 {
-                buffer[py * 320 + px] = black(config);
+                buffer[py * WIDTH + px] = black(config) as u8;
                 continue;
             }
 
@@ -91,22 +92,22 @@ fn mandelbrot(buffer: &mut [u8], config: &Config) {
                 i += 1;
             }
 
-            buffer[py * 320 + px] = if i < config.n {
+            buffer[py * WIDTH + px] = if i < config.n {
                 // Color the pixel based on the number of iterations
-                (i % 256) as u8
+                (i % COLORS) as u8
             } else {
                 // Or black for points that are in the set
-                black(config)
+                black(config) as u8
             };
         }
     }
 }
 
-fn black(config: &Config) -> u8 {
+fn black(config: &Config) -> usize {
     if config.color {
         0
     } else {
-        255
+        COLORS - 1
     }
 }
 
@@ -115,7 +116,7 @@ fn main(args: &[&str]) {
         color: false,
         offset: Point { x: -0.5, y: 0.0 },
         zoom: 1.0,
-        n: 256,
+        n: COLORS,
     };
     let n = args.len();
     let mut i = 0;
