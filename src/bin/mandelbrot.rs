@@ -12,13 +12,28 @@ use moros::entry_point;
 
 entry_point!(main);
 
-fn palette(color: bool) -> [u8; 768] {
+const WIDTH: usize = 320;
+const HEIGHT: usize = 200;
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+struct Config {
+    offset: Point,
+    zoom: f64,
+    color: bool,
+    n: usize,
+}
+
+fn palette(config: &Config) -> [u8; 768] {
     let mut palette = [0; 768];
     for i in 0..256 {
-        let mut r = i as u8;
-        let mut g = i as u8;
-        let mut b = i as u8;
-        if i > 0 && color {
+        let mut r = 255 - i as u8;
+        let mut g = 255 - i as u8;
+        let mut b = 255 - i as u8;
+        if config.color {
             let t = i as f32 / 255.0;
             r = (9.0 * (1.0 - t) * t * t * t * 255.0) as u8;
             g = (15.0 * (1.0 - t) * (1.0 - t) * t * t * 255.0) as u8;
@@ -31,18 +46,16 @@ fn palette(color: bool) -> [u8; 768] {
     palette
 }
 
-const WIDTH: usize = 320;
-const HEIGHT: usize = 200;
-
-fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
-    let n = 256; // Max number of iterations
-    let x_scale = 3.0 / (zoom * WIDTH as f64);
-    let y_scale = 2.0 / (zoom * HEIGHT as f64);
+fn mandelbrot(buffer: &mut [u8], config: &Config) {
+    let w = WIDTH as f64;
+    let h = HEIGHT as f64;
+    let x_scale = 3.0 / (config.zoom * w);
+    let y_scale = 2.0 / (config.zoom * h);
     for py in 0..HEIGHT {
         for px in 0..WIDTH {
             // Map pixel position to complex plane
-            let x0 = x_offset + ((px as f64) - (WIDTH as f64) / 2.0) * x_scale;
-            let y0 = y_offset + ((py as f64) - (HEIGHT as f64) / 2.0) * y_scale;
+            let x0 = config.offset.x + ((px as f64) - w / 2.0) * x_scale;
+            let y0 = config.offset.y + ((py as f64) - h / 2.0) * y_scale;
 
             // Compute whether the point is in the Mandelbrot Set
             let mut x = 0.0;
@@ -55,17 +68,17 @@ fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
             // Cardioid check
             let q = libm::pow(x0 - 0.25, 2.0) + libm::pow(y0, 2.0);
             if q * (q + (x0 - 0.25)) <= 0.25 * libm::pow(y0, 2.0) {
-                buffer[py * 320 + px] = 0;
+                buffer[py * 320 + px] = black(config);
                 continue;
             }
 
             // Period-2 bulb check
             if libm::pow(x0 + 1.0, 2.0) + libm::pow(y0, 2.0) <= 0.0625 {
-                buffer[py * 320 + px] = 0;
+                buffer[py * 320 + px] = black(config);
                 continue;
             }
 
-            while i < n {
+            while i < config.n {
                 y = 2.0 * x * y + y0;
                 x = x2 - y2 + x0;
                 x2 = x * x;
@@ -78,23 +91,32 @@ fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
                 i += 1;
             }
 
-            buffer[py * 320 + px] = if i < n {
+            buffer[py * 320 + px] = if i < config.n {
                 // Color the pixel based on the number of iterations
-                (i % 255) as u8
+                (i % 256) as u8
             } else {
                 // Or black for points that are in the set
-                0
+                black(config)
             };
         }
     }
 }
 
-fn main(args: &[&str]) {
-    let mut color = false;
-    let mut x = -0.5;
-    let mut y = 0.0;
-    let mut z = 1.0;
+fn black(config: &Config) -> u8 {
+    if config.color {
+        0
+    } else {
+        255
+    }
+}
 
+fn main(args: &[&str]) {
+    let mut config = Config {
+        color: false,
+        offset: Point { x: -0.5, y: 0.0 },
+        zoom: 1.0,
+        n: 256,
+    };
     let n = args.len();
     let mut i = 0;
     while i < n {
@@ -104,19 +126,23 @@ fn main(args: &[&str]) {
                 return;
             }
             "-c" | "--color" => {
-                color = true;
+                config.color = true;
             }
             "-x" if i < n - 1 => {
                 i += 1;
-                x = args[i].parse().unwrap_or(x);
+                config.offset.x = args[i].parse().unwrap_or(config.offset.x);
             }
             "-y" if i < n - 1 => {
                 i += 1;
-                y = args[i].parse().unwrap_or(y);
+                config.offset.y = args[i].parse().unwrap_or(config.offset.y);
             }
             "-z" | "--zoom" if i < n - 1 => {
                 i += 1;
-                z = args[i].parse().unwrap_or(z);
+                config.zoom = args[i].parse().unwrap_or(config.zoom);
+            }
+            "-n" if i < n - 1 => {
+                i += 1;
+                config.n = args[i].parse().unwrap_or(config.n);
             }
             _ => {}
         }
@@ -124,13 +150,13 @@ fn main(args: &[&str]) {
     }
 
     vga::graphic_mode();
-    fs::write("/dev/vga/palette", &palette(color)).ok();
+    fs::write("/dev/vga/palette", &palette(&config)).ok();
 
     let mut escape = false;
     let mut csi = false;
     let mut buffer = [0; WIDTH * HEIGHT];
     loop {
-        mandelbrot(&mut buffer, x, y, z);
+        mandelbrot(&mut buffer, &config);
         fs::write("/dev/vga/buffer", &buffer).ok();
         let c = io::stdin().read_char().unwrap_or('\0');
         match c {
@@ -149,22 +175,22 @@ fn main(args: &[&str]) {
                 continue;
             }
             'A' if csi => { // Arrow Up
-                y -= 0.2 / z;
+                config.offset.y -= 0.2 / config.zoom;
             }
             'B' if csi => { // Arrow Down
-                y += 0.2 / z;
+                config.offset.y += 0.2 / config.zoom;
             }
             'C' if csi => { // Arrow Right
-                x += 0.2 / z;
+                config.offset.x += 0.2 / config.zoom;
             }
             'D' if csi => { // Arrow Left
-                x -= 0.2 / z;
+                config.offset.x -= 0.2 / config.zoom;
             }
             ' ' => { // Space: zoom in
-                z *= 1.5;
+                config.zoom *= 1.5;
             }
             '\x08' => { // Backspace: zoom out
-                z /= 1.5;
+                config.zoom /= 1.5;
             }
             _ => {}
         }
