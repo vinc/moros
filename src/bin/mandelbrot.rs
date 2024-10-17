@@ -35,6 +35,7 @@ const WIDTH: usize = 320;
 const HEIGHT: usize = 200;
 
 fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
+    let n = 256; // Max number of iterations
     let x_scale = 3.0 / (zoom * WIDTH as f64);
     let y_scale = 2.0 / (zoom * HEIGHT as f64);
     for py in 0..HEIGHT {
@@ -44,35 +45,42 @@ fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
             let y0 = y_offset + ((py as f64) - (HEIGHT as f64) / 2.0) * y_scale;
 
             // Compute whether the point is in the Mandelbrot Set
-            /*
             let mut x = 0.0;
             let mut y = 0.0;
             let mut x2 = 0.0;
             let mut y2 = 0.0;
             let mut i = 0;
-            let n = 255;
-            while x2 + y2 <= 4.0 && i < 32 {
+
+
+            // Cardioid check
+            let q = libm::pow(x0 - 0.25, 2.0) + libm::pow(y0, 2.0);
+            if q * (q + (x0 - 0.25)) <= 0.25 * libm::pow(y0, 2.0) {
+                buffer[py * 320 + px] = 0;
+                continue;
+            }
+
+            while x2 + y2 <= 4.0 && i < n {
                 y = 2.0 * x * y + y0;
                 x = x2 - y2 + x0;
                 x2 = x * x;
                 y2 = y * y;
                 i += 1;
             }
-            */
 
+            /*
             let mut x = 0.0;
             let mut y = 0.0;
             let mut i = 0;
-            let n = 256;
             while x * x + y * y <= 4.0 && i < n {
                 let tmp = x * x - y * y + x0;
                 y = 2.0 * x * y + y0;
                 x = tmp;
                 i += 1;
             }
+            */
 
             // Color the pixel based on the number of iterations
-            buffer[py * 320 + px] = (i % n) as u8;
+            buffer[py * 320 + px] = if i == n { 0 } else { (i % 255) as u8 };
         }
     }
 }
