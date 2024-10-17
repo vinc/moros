@@ -59,28 +59,32 @@ fn mandelbrot(buffer: &mut [u8], x_offset: f64, y_offset: f64, zoom: f64) {
                 continue;
             }
 
-            while x2 + y2 <= 4.0 && i < n {
+            // Period-2 bulb check
+            if libm::pow(x0 + 1.0, 2.0) + libm::pow(y0, 2.0) <= 0.0625 {
+                buffer[py * 320 + px] = 0;
+                continue;
+            }
+
+            while i < n {
                 y = 2.0 * x * y + y0;
                 x = x2 - y2 + x0;
                 x2 = x * x;
                 y2 = y * y;
+
+                if x2 + y2 > 4.0 {
+                    break;
+                }
+
                 i += 1;
             }
 
-            /*
-            let mut x = 0.0;
-            let mut y = 0.0;
-            let mut i = 0;
-            while x * x + y * y <= 4.0 && i < n {
-                let tmp = x * x - y * y + x0;
-                y = 2.0 * x * y + y0;
-                x = tmp;
-                i += 1;
-            }
-            */
-
-            // Color the pixel based on the number of iterations
-            buffer[py * 320 + px] = if i == n { 0 } else { (i % 255) as u8 };
+            buffer[py * 320 + px] = if i < n {
+                // Color the pixel based on the number of iterations
+                (i % 255) as u8
+            } else {
+                // Or black for points that are in the set
+                0
+            };
         }
     }
 }
