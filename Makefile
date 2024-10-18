@@ -47,13 +47,8 @@ user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
-		cargo rustc $(user-cargo-opts) --bin {}
-	cargo rustc $(user-cargo-opts) --bin exec -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin blank -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin hello -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin geocal -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin geodate -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin mandelbrot -- $(linker-opts)
+		cargo rustc $(user-cargo-opts) --bin {} \
+			-- $(linker-opts)
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
