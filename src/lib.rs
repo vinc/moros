@@ -23,21 +23,19 @@ use bootloader::BootInfo;
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
 pub fn init(boot_info: &'static BootInfo) {
-    use x86_64::instructions::read_rip;
-    let virt_addr = read_rip();
 
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
     sys::pic::init(); // Enable interrupts
     sys::serial::init();
+    sys::keyboard::init();
     sys::time::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
     log!("SYS MOROS v{}", v);
 
     sys::mem::init(boot_info);
-    sys::keyboard::init(); // Must not run before MEM
     sys::acpi::init(); // Require MEM
     sys::cpu::init();
     sys::rng::init();

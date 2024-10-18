@@ -15,6 +15,7 @@ static MEMORY_SIZE: AtomicU64 = AtomicU64::new(0);
 static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
 
 pub fn init(boot_info: &'static BootInfo) {
+    sys::idt::set_irq_mask(1); // Mask keyboard interrupt
     //interrupts::without_interrupts(|| {
         let mut memory_size = 0;
         let mut last_end_addr = 0;
@@ -60,6 +61,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
         sys::allocator::init_heap().expect("heap initialization failed");
     //});
+    sys::idt::clear_irq_mask(1);
 }
 
 pub fn mapper() -> &'static mut OffsetPageTable<'static> {
