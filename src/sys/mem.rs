@@ -9,26 +9,42 @@ use x86_64::structures::paging::{
 use x86_64::{PhysAddr, VirtAddr};
 
 pub static mut PHYS_MEM_OFFSET: Option<u64> = None;
-pub static mut MEMORY_MAP: Option<&MemoryMap> = None;
-pub static mut MAPPER: Option<OffsetPageTable<'static>> = None;
-
-pub static MEMORY_SIZE: AtomicU64 = AtomicU64::new(0);
-
+static mut MEMORY_MAP: Option<&MemoryMap> = None;
+static mut MAPPER: Option<OffsetPageTable<'static>> = None;
+static MEMORY_SIZE: AtomicU64 = AtomicU64::new(0);
 static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
 
 pub fn init(boot_info: &'static BootInfo) {
     interrupts::without_interrupts(|| {
         let mut memory_size = 0;
+        let mut last_end_addr = 0;
         for region in boot_info.memory_map.iter() {
             let start_addr = region.range.start_addr();
             let end_addr = region.range.end_addr();
-            memory_size += end_addr - start_addr;
+            let size = end_addr - start_addr;
+            let hole = start_addr - last_end_addr;
+            if hole > 0 {
+                log!(
+                    //"MEM [{:#016X}-{:#016X}] {} ({} KB)",
+                    "MEM [{:#016X}-{:#016X}] {}",
+                    last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
+                );
+            }
             log!(
+                //"MEM [{:#016X}-{:#016X}] {:?} ({} KB)",
                 "MEM [{:#016X}-{:#016X}] {:?}",
-                start_addr, end_addr - 1, region.region_type
+                start_addr, end_addr - 1, region.region_type //, size >> 10
             );
+            memory_size += size;
+            last_end_addr = end_addr;
         }
-        log!("MEM {} KB", memory_size >> 10);
+
+        // 0x000000000A0000-0x000000000EFFFF: + 320 KB of BIOS memory
+        // 0x000000FEFFC000-0x000000FEFFFFFF: - 256 KB of virtual memory
+        // 0x000000FFFC0000-0x000000FFFFFFFF: -  16 KB of virtual memory
+        memory_size += (320 - 256 - 16) << 10;
+
+        log!("RAM {} MB", memory_size >> 20);
         MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
 
         let phys_mem_offset = boot_info.physical_memory_offset;
