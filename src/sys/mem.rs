@@ -1,7 +1,7 @@
 use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use x86_64::instructions::interrupts;
+//use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
     FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate,
@@ -15,7 +15,7 @@ static MEMORY_SIZE: AtomicU64 = AtomicU64::new(0);
 static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
 
 pub fn init(boot_info: &'static BootInfo) {
-    interrupts::without_interrupts(|| {
+    //interrupts::without_interrupts(|| {
         let mut memory_size = 0;
         let mut last_end_addr = 0;
         for region in boot_info.memory_map.iter() {
@@ -59,7 +59,7 @@ pub fn init(boot_info: &'static BootInfo) {
         };
 
         sys::allocator::init_heap().expect("heap initialization failed");
-    });
+    //});
 }
 
 pub fn mapper() -> &'static mut OffsetPageTable<'static> {
