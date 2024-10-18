@@ -25,11 +25,15 @@ pub fn copy_files(verbose: bool) {
     create_dir("/usr", verbose); // User directories
     create_dir("/var", verbose); // Variables
 
+    //copy_file!("/bin/blank", verbose);
     copy_file!("/bin/clear", verbose);
     //copy_file!("/bin/exec", verbose);
+    //copy_file!("/bin/geocal", verbose);
+    //copy_file!("/bin/geodate", verbose);
     copy_file!("/bin/get", verbose);
     copy_file!("/bin/halt", verbose);
     //copy_file!("/bin/hello", verbose);
+    //copy_file!("/bin/mandelbrot", verbose);
     copy_file!("/bin/ntp", verbose);
     copy_file!("/bin/pkg", verbose);
     copy_file!("/bin/print", verbose);
