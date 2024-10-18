@@ -25,6 +25,9 @@ pub fn copy_files(verbose: bool) {
     create_dir("/usr", verbose); // User directories
     create_dir("/var", verbose); // Variables
 
+    // NOTE: Here are the binaries to be included in the build image, but they
+    // can also be installed later with the `pkg install` command.
+
     //copy_file!("/bin/blank", verbose);
     copy_file!("/bin/clear", verbose);
     //copy_file!("/bin/exec", verbose);
