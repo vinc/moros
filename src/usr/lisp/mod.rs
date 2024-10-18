@@ -399,6 +399,7 @@ fn test_exp() {
     assert_eq!(Exp::List(vec![]).is_truthy(), false);
 }
 
+#[allow(unused_must_use)]
 #[test_case]
 fn test_lisp() {
     use core::f64::consts::PI;
