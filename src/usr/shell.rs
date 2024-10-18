@@ -18,8 +18,8 @@ const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
     "2048", "calc", "chess", "copy", "date", "decode", "delete", "dhcp",
     "diff", "disk", "edit", "elf", "encode", "env", "goto", "hash", "help",
     "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
-    "list", "memory", "move", "net", "pci", "quit", "read", "shell", "socket",
-    "tcp", "time", "user", "vga", "view", "write",
+    "list", "memory", "move", "net", "pci", "quit", "read", "render", "shell",
+    "socket", "tcp", "time", "user", "view", "write",
 ];
 
 struct Config {
@@ -552,6 +552,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "pi"       => usr::pi::main(args),
         "quit"     => Err(ExitCode::ShellExit),
         "read"     => usr::read::main(args),
+        "render"   => usr::render::main(args),
         "set"      => cmd_set(args, config),
         "shell"    => usr::shell::main(args),
         "socket"   => usr::socket::main(args),
@@ -561,7 +562,6 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "unset"    => cmd_unset(args, config),
         "version"  => cmd_version(),
         "user"     => usr::user::main(args),
-        "vga"      => usr::vga::main(args),
         "view"     => usr::view::main(args),
         "write"    => usr::write::main(args),
         "panic"    => panic!("{}", args[1..].join(" ")),

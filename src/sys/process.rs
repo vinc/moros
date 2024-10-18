@@ -20,7 +20,9 @@ use spin::RwLock;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame
+    FrameAllocator, OffsetPageTable, PageTable, PhysFrame,
+    Translate, PageTableFlags, // Page, Size4KiB,
+    mapper::TranslateResult
 };
 use x86_64::VirtAddr;
 
@@ -30,6 +32,11 @@ const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 const MAX_HANDLES: usize = 64;
 const MAX_PROCS: usize = 4; // TODO: Increase this
 const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
+
+// TODO: Remove this when the kernel is no longer at 0x200000 in userspace.
+// Currently this address must be used by the linker for user programs that
+// need to allocate memory to avoid using kernel memory.
+static USER_ADDR: u64 = 0x800000;
 
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
 pub static PID: AtomicUsize = AtomicUsize::new(0);
@@ -223,20 +230,14 @@ pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
     proc.stack_frame = Some(stack_frame);
 }
 
+// TODO: Remove this when the kernel is no longer at 0x200000 in userspace
+pub fn is_userspace(addr: u64) -> bool {
+    USER_ADDR <= addr && addr <= USER_ADDR + MAX_PROC_SIZE as u64
+}
+
 pub fn exit() {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-
-    let page_table = unsafe {
-        sys::mem::create_page_table(proc.page_table_frame)
-    };
-    let phys_mem_offset = unsafe {
-        sys::mem::PHYS_MEM_OFFSET.unwrap()
-    };
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
-    };
-    sys::allocator::free_pages(&mut mapper, proc.code_addr, MAX_PROC_SIZE);
 
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(proc.parent_id);
@@ -245,6 +246,8 @@ pub fn exit() {
         let (_, flags) = Cr3::read();
         Cr3::write(page_table_frame(), flags);
     }
+
+    proc.free_pages();
 }
 
 unsafe fn page_table_frame() -> PhysFrame {
@@ -495,6 +498,35 @@ impl Process {
                 in("rdi") args_ptr,
                 in("rsi") args_len,
             );
+        }
+    }
+
+    fn mapper(&self) -> OffsetPageTable {
+        let page_table = unsafe {
+            sys::mem::create_page_table(self.page_table_frame)
+        };
+        let phys_mem_offset = unsafe {
+            sys::mem::PHYS_MEM_OFFSET.unwrap()
+        };
+        unsafe {
+            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
+        }
+    }
+
+    fn free_pages(&self) {
+        let mut mapper = self.mapper();
+
+        let size = MAX_PROC_SIZE;
+        sys::allocator::free_pages(&mut mapper, self.code_addr, size);
+
+        let addr = USER_ADDR;
+        match mapper.translate(VirtAddr::new(addr)) {
+            TranslateResult::Mapped { frame: _, offset: _, flags } => {
+                if flags.contains(PageTableFlags::USER_ACCESSIBLE) {
+                    sys::allocator::free_pages(&mut mapper, addr, size);
+                }
+            }
+            _ => {}
         }
     }
 }

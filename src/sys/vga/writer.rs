@@ -1,31 +1,14 @@
+use super::*;
+
+use buffer::Buffer;
+
 use crate::api::font::Font;
-use crate::api::fs::{FileIO, IO};
-use crate::api::vga::color;
-use crate::api::vga::{Color, Palette};
 use crate::sys;
 
-use alloc::string::String;
-use bit_field::BitField;
-use core::convert::TryFrom;
-use core::cmp;
-use core::fmt;
-use core::fmt::Write;
-use core::num::ParseIntError;
+//use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use vte::{Params, Parser, Perform};
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
-
-const ATTR_ADDR_DATA_REG: u16 = 0x3C0;
-const ATTR_DATA_READ_REG: u16 = 0x3C1;
-const SEQUENCER_ADDR_REG: u16 = 0x3C4;
-const DAC_ADDR_WRITE_MODE_REG: u16 = 0x3C8;
-const DAC_DATA_REG: u16 = 0x3C9;
-const GRAPHICS_ADDR_REG: u16 = 0x3CE;
-const CRTC_ADDR_REG: u16 = 0x3D4;
-const CRTC_DATA_REG: u16 = 0x3D5;
-const INPUT_STATUS_REG: u16 = 0x3DA;
 
 const FG: Color = Color::DarkWhite;
 const BG: Color = Color::DarkBlack;
@@ -149,8 +132,8 @@ impl Writer {
         }
     }
 
+    // Source: http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
     fn disable_cursor(&self) {
-        // http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
         let mut addr = Port::new(CRTC_ADDR_REG);
         let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
@@ -272,7 +255,7 @@ impl Writer {
         self.scroll_buffer[y + dy][x..SCREEN_WIDTH].fill(c);
     }
 
-    fn clear_screen(&mut self) {
+    pub fn clear_screen(&mut self) {
         self.scroll_reader = 0;
         self.scroll_bottom = SCREEN_HEIGHT;
         for y in 0..SCREEN_HEIGHT {
@@ -280,22 +263,15 @@ impl Writer {
         }
     }
 
-    pub fn set_color(&mut self, foreground: Color, background: Color) {
+    fn set_color(&mut self, foreground: Color, background: Color) {
         self.color_code = ColorCode::new(foreground, background);
     }
 
-    pub fn color(&self) -> (Color, Color) {
-        let cc = self.color_code.0;
-        let fg = color::from_index(cc.get_bits(0..4) as usize);
-        let bg = color::from_index(cc.get_bits(4..8) as usize);
-        (fg, bg)
-    }
-
-    // See: https://slideplayer.com/slide/3888880
+    // Source: https://slideplayer.com/slide/3888880
     pub fn set_font(&mut self, font: &Font) {
         let mut sequencer: Port<u16> = Port::new(SEQUENCER_ADDR_REG);
         let mut graphics: Port<u16> = Port::new(GRAPHICS_ADDR_REG);
-        let buffer = 0xA0000 as *mut u8;
+        let buffer = Buffer::addr() as *mut u8;
 
         unsafe {
             sequencer.write(0x0100); // do a sync reset
@@ -328,14 +304,23 @@ impl Writer {
     pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
         let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
         let mut data: Port<u8> = Port::new(DAC_DATA_REG);
-        if i < 16 {
-            let reg = color::from_index(i).to_vga_reg();
-            unsafe {
-                addr.write(reg);
-                data.write(vga_color(r));
-                data.write(vga_color(g));
-                data.write(vga_color(b));
-            }
+        unsafe {
+            addr.write(i as u8);
+            data.write(r >> 2); // Convert 8-bit to 6-bit color
+            data.write(g >> 2);
+            data.write(b >> 2);
+        }
+    }
+
+    pub fn palette(&mut self, i: usize) -> (u8, u8, u8) {
+        let mut addr: Port<u8> = Port::new(DAC_ADDR_READ_MODE_REG);
+        let mut data: Port<u8> = Port::new(DAC_DATA_REG);
+        unsafe {
+            addr.write(i as u8);
+            let r = data.read() << 2; // Convert 6-bit to 8-bit color
+            let g = data.read() << 2;
+            let b = data.read() << 2;
+            (r, g, b)
         }
     }
 
@@ -374,24 +359,7 @@ impl Writer {
     }
 }
 
-// Convert 8-bit to 6-bit color
-fn vga_color(color: u8) -> u8 {
-    color >> 2
-}
-
-fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
-    debug_assert!(palette.len() == 8);
-    debug_assert!(palette.starts_with('P'));
-
-    let i = usize::from_str_radix(&palette[1..2], 16)?;
-    let r = u8::from_str_radix(&palette[2..4], 16)?;
-    let g = u8::from_str_radix(&palette[4..6], 16)?;
-    let b = u8::from_str_radix(&palette[6..8], 16)?;
-
-    Ok((i, r, g, b))
-}
-
-/// See https://vt100.net/emu/dec_ansi_parser
+/// Source: https://vt100.net/emu/dec_ansi_parser
 impl Perform for Writer {
     fn print(&mut self, c: char) {
         self.write_byte(c as u8);
@@ -413,10 +381,10 @@ impl Perform for Writer {
                             bg = BG;
                         }
                         30..=37 | 90..=97 => {
-                            fg = color::from_ansi(param[0] as u8);
+                            fg = Color::from_ansi(param[0] as u8);
                         }
                         40..=47 | 100..=107 => {
-                            bg = color::from_ansi((param[0] as u8) - 10);
+                            bg = Color::from_ansi((param[0] as u8) - 10);
                         }
                         _ => {}
                     }
@@ -550,6 +518,7 @@ impl Perform for Writer {
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
                     if let Ok((i, r, g, b)) = parse_palette(&s) {
+                        let i = Color::from_index(i).register();
                         self.set_palette(i, r, g, b);
                     }
                 }
@@ -577,158 +546,16 @@ impl fmt::Write for Writer {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct VgaFont;
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
+    debug_assert!(palette.len() == 8);
+    debug_assert!(palette.starts_with('P'));
 
-impl VgaFont {
-    pub fn new() -> Self {
-        Self
-    }
-}
+    let i = usize::from_str_radix(&palette[1..2], 16)?;
+    let r = u8::from_str_radix(&palette[2..4], 16)?;
+    let g = u8::from_str_radix(&palette[4..6], 16)?;
+    let b = u8::from_str_radix(&palette[6..8], 16)?;
 
-impl FileIO for VgaFont {
-    fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
-        Err(()) // TODO
-    }
-
-    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        if let Ok(font) = Font::try_from(buf) {
-            set_font(&font);
-            Ok(buf.len()) // TODO: Use font.data.len() ?
-        } else {
-            Err(())
-        }
-    }
-
-    fn close(&mut self) {}
-
-    fn poll(&mut self, event: IO) -> bool {
-        match event {
-            IO::Read => false, // TODO
-            IO::Write => true,
-        }
-    }
-}
-
-#[doc(hidden)]
-pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
-        WRITER.lock().write_fmt(args).expect("Could not print to VGA")
-    )
-}
-
-pub fn color() -> (Color, Color) {
-    interrupts::without_interrupts(||
-        WRITER.lock().color()
-    )
-}
-
-pub fn set_color(foreground: Color, background: Color) {
-    interrupts::without_interrupts(||
-        WRITER.lock().set_color(foreground, background)
-    )
-}
-
-// ASCII Printable
-// Backspace
-// New Line
-// Carriage Return
-// Extended ASCII Printable
-pub fn is_printable(c: u8) -> bool {
-    matches!(c, 0x20..=0x7E | 0x08 | 0x0A | 0x0D | 0x80..=0xFF)
-}
-
-// TODO: Remove this
-pub fn set_font(font: &Font) {
-    interrupts::without_interrupts(||
-        WRITER.lock().set_font(font)
-    )
-}
-
-// TODO: Remove this
-pub fn set_palette(palette: Palette) {
-    interrupts::without_interrupts(||
-        for (i, (r, g, b)) in palette.colors.iter().enumerate() {
-            WRITER.lock().set_palette(i, *r, *g, *b)
-        }
-    )
-}
-
-// 0x00 -> top
-// 0x0F -> bottom
-// 0x1F -> max (invisible)
-fn set_underline_location(location: u8) {
-    interrupts::without_interrupts(|| {
-        let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
-        let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
-        unsafe {
-            addr.write(0x14); // Underline Location Register
-            data.write(location);
-        }
-    })
-}
-
-fn set_attr_ctrl_reg(index: u8, value: u8) {
-    interrupts::without_interrupts(|| {
-        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
-        let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
-        unsafe {
-            isr.read(); // Reset to address mode
-            let tmp = addr.read();
-            addr.write(index);
-            addr.write(value);
-            addr.write(tmp);
-        }
-    })
-}
-
-fn get_attr_ctrl_reg(index: u8) -> u8 {
-    interrupts::without_interrupts(|| {
-        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
-        let mut addr: Port<u8> = Port::new(ATTR_ADDR_DATA_REG);
-        let mut data: Port<u8> = Port::new(ATTR_DATA_READ_REG);
-        let index = index | 0x20; // Set "Palette Address Source" bit
-        unsafe {
-            isr.read(); // Reset to address mode
-            let tmp = addr.read();
-            addr.write(index);
-            let res = data.read();
-            addr.write(tmp);
-            res
-        }
-    })
-}
-
-pub fn init() {
-    // Map palette registers to color registers
-    set_attr_ctrl_reg(0x0, 0x00);
-    set_attr_ctrl_reg(0x1, 0x01);
-    set_attr_ctrl_reg(0x2, 0x02);
-    set_attr_ctrl_reg(0x3, 0x03);
-    set_attr_ctrl_reg(0x4, 0x04);
-    set_attr_ctrl_reg(0x5, 0x05);
-    set_attr_ctrl_reg(0x6, 0x14);
-    set_attr_ctrl_reg(0x7, 0x07);
-    set_attr_ctrl_reg(0x8, 0x38);
-    set_attr_ctrl_reg(0x9, 0x39);
-    set_attr_ctrl_reg(0xA, 0x3A);
-    set_attr_ctrl_reg(0xB, 0x3B);
-    set_attr_ctrl_reg(0xC, 0x3C);
-    set_attr_ctrl_reg(0xD, 0x3D);
-    set_attr_ctrl_reg(0xE, 0x3E);
-    set_attr_ctrl_reg(0xF, 0x3F);
-
-    set_palette(Palette::default());
-
-    // Disable blinking
-    let reg = 0x10; // Attribute Mode Control Register
-    let mut attr = get_attr_ctrl_reg(reg);
-    attr.set_bit(3, false); // Clear "Blinking Enable" bit
-    set_attr_ctrl_reg(reg, attr);
-
-    set_underline_location(0x1F); // Disable underline
-
-    WRITER.lock().clear_screen();
+    Ok((i, r, g, b))
 }
 
 #[test_case]

@@ -25,11 +25,18 @@ pub fn copy_files(verbose: bool) {
     create_dir("/usr", verbose); // User directories
     create_dir("/var", verbose); // Variables
 
+    // NOTE: Here are the binaries to be included in the build image, but they
+    // can also be installed later with the `pkg install` command.
+
+    //copy_file!("/bin/blank", verbose);
     copy_file!("/bin/clear", verbose);
     //copy_file!("/bin/exec", verbose);
+    //copy_file!("/bin/geocal", verbose);
+    //copy_file!("/bin/geodate", verbose);
     copy_file!("/bin/get", verbose);
     copy_file!("/bin/halt", verbose);
     //copy_file!("/bin/hello", verbose);
+    //copy_file!("/bin/mandelbrot", verbose);
     copy_file!("/bin/ntp", verbose);
     copy_file!("/bin/pkg", verbose);
     copy_file!("/bin/print", verbose);
@@ -55,7 +62,10 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/console", "console", verbose);
     create_dev("/dev/net/tcp", "tcp", verbose);
     create_dev("/dev/net/udp", "udp", verbose);
-    create_dev("/dev/vga/font", "font", verbose);
+    create_dev("/dev/vga/buffer", "vga-buffer", verbose);
+    create_dev("/dev/vga/font", "vga-font", verbose);
+    create_dev("/dev/vga/mode", "vga-mode", verbose);
+    create_dev("/dev/vga/palette", "vga-palette", verbose);
 
     copy_file!("/ini/banner.txt", verbose);
     copy_file!("/ini/boot.sh", verbose);

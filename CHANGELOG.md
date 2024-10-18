@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+- Add mandelbrot program (#689)
+- Refactor vga driver (#688)
+- Add VGA graphics (#687)
+- Free process memory on exit (#686)
+- Bump raw-cpuid from 11.1.0 to 11.2.0 (#683)
+- Bump object from 0.36.4 to 0.36.5 (#685)
+- Ensure uninitialized data is zeroed when loading binary (#681)
+- Update panic handler (#680)
+- Add geocal program (#679)
+- Fix shell autocomplete command path (#678)
 - Add geodate program (#304)
 - Copy memory on instruction fetch page fault (#677)
 - Enable userspace memory deallocation (#676)

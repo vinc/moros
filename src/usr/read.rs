@@ -73,6 +73,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
             }
         }
+    } else if path.ends_with(".bmp") {
+        usr::render::main(args)
     } else if let Some(info) = syscall::info(path) {
         if info.is_file() {
             if let Ok(buf) = api::fs::read_to_bytes(path) {

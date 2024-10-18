@@ -36,19 +36,19 @@ user-nasm:
 
 user-cargo-opts = --no-default-features --features userspace --release
 
-# FIXME: Userspace alloc panic when the default `lld` linker is used, but the
-# resulting binaries are much larger with `ld`
-linker-opts = -C linker-flavor=ld -C link-args="-Ttext=650000 -Trodata=670000"
+# FIXME: Userspace alloc panic when the default `lld` linker is used because it
+# sets the entry point 0x200000 which is used by the kernel, so we use `ld` to
+# set it at 0x800000 that is free. With `ld` the resulting binaries are much
+# larger though. This is useful only for programs that allocate memory.
+ld-opts = -Ttext=800000 -Trodata=900000 -Tbss=950000
+linker-opts = -C linker-flavor=ld -C link-args="$(ld-opts)"
 
 user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
-		cargo rustc $(user-cargo-opts) --bin {}
-	cargo rustc $(user-cargo-opts) --bin exec -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin hello -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin geocal -- $(linker-opts)
-	cargo rustc $(user-cargo-opts) --bin geodate -- $(linker-opts)
+		cargo rustc $(user-cargo-opts) --bin {} \
+			-- $(linker-opts)
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \

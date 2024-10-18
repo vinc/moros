@@ -138,6 +138,7 @@ impl Chess {
             ("l", "oad <file>", "Load game from <file>\n"),
             ("s", "ave <file>", "Save game to <file>\n"),
             ("", "perf [<depth>] ", "Count the nodes at each depth\n"),
+            ("", "puzzle <file> ", "Load random puzzle from <file>\n"),
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("lime");
