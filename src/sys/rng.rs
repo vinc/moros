@@ -82,8 +82,8 @@ pub fn init() {
         log!("RNG RDRAND unavailable");
         let mut hasher = Sha256::new();
         hasher.update(sys::clk::ticks().to_be_bytes());
-        hasher.update(sys::clock::realtime().to_be_bytes());
-        hasher.update(sys::clock::uptime().to_be_bytes());
+        hasher.update(sys::clk::realtime().to_be_bytes());
+        hasher.update(sys::clk::uptime().to_be_bytes());
         seed = hasher.finalize().into();
     }
 

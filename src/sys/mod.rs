@@ -20,7 +20,7 @@ macro_rules! debug {
 macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
-            let uptime = $crate::sys::clock::uptime();
+            let uptime = $crate::sys::clk::uptime();
             let csi_color = $crate::api::console::Style::color("lime");
             let csi_reset = $crate::api::console::Style::reset();
             $crate::sys::console::print_fmt(format_args!(
@@ -28,7 +28,7 @@ macro_rules! log {
                 csi_color, uptime, csi_reset, format_args!($($arg)*)
             ));
 
-            let realtime = $crate::sys::clock::realtime();
+            let realtime = $crate::sys::clk::realtime();
             $crate::sys::log::write_fmt(format_args!(
                 "[{:.6}] {}\n",
                 realtime, format_args!($($arg)*)
@@ -39,7 +39,6 @@ macro_rules! log {
 
 pub mod acpi;
 pub mod ata;
-pub mod clock;
 pub mod clk;
 pub mod console;
 pub mod cpu;

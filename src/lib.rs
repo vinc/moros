@@ -42,7 +42,8 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::net::init(); // Require PCI
     sys::ata::init();
     sys::fs::init(); // Require ATA
-    sys::clock::init(); // Require MEM
+
+    sys::clk::log_rtc(); // Require MEM
 }
 
 #[allow(dead_code)]

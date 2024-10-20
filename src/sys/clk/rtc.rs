@@ -84,7 +84,7 @@ impl FileIO for RTC {
             return Err(());
         }
         CMOS::new().update_rtc(self);
-        sys::clock::init();
+        sys::clk::log_rtc();
         Ok(buf.len())
     }
 

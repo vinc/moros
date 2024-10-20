@@ -12,8 +12,8 @@ pub fn halt() {
 }
 
 pub fn sleep(seconds: f64) {
-    let start = sys::clock::uptime();
-    while sys::clock::uptime() - start < seconds {
+    let start = sys::clk::uptime();
+    while sys::clk::uptime() - start < seconds {
         halt();
     }
 }

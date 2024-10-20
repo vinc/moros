@@ -4,8 +4,7 @@ use super::file::File;
 use super::{dirname, filename, realpath, FileIO, IO};
 
 use crate::sys::ata::Drive;
-use crate::sys::clock::{Realtime, Uptime};
-use crate::sys::clk::RTC;
+use crate::sys::clk::{RTC, Realtime, Uptime};
 use crate::sys::console::Console;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;

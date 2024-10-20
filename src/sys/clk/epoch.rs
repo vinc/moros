@@ -1,57 +1,10 @@
-use crate::api::clock::DATE_TIME_ZONE;
-use crate::api::fs::{FileIO, IO};
-use crate::sys;
-use crate::sys::clk::CMOS;
+use super::CMOS;
 
-use time::{Duration, OffsetDateTime};
+use crate::api::fs::{FileIO, IO};
 
 const DAYS_BEFORE_MONTH: [u64; 13] = [
     0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365
 ];
-
-#[derive(Debug, Clone)]
-pub struct Uptime;
-
-impl Uptime {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn size() -> usize {
-        core::mem::size_of::<f64>()
-    }
-}
-
-impl FileIO for Uptime {
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let time = uptime().to_be_bytes();
-        let n = time.len();
-        if buf.len() >= n {
-            buf[0..n].clone_from_slice(&time);
-            Ok(n)
-        } else {
-            Err(())
-        }
-    }
-
-    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
-        unimplemented!();
-    }
-
-    fn close(&mut self) {}
-
-    fn poll(&mut self, event: IO) -> bool {
-        match event {
-            IO::Read => true,
-            IO::Write => false,
-        }
-    }
-}
-
-// NOTE: This clock is monotonic
-pub fn uptime() -> f64 {
-    sys::clk::time_between_ticks() * sys::clk::ticks() as f64
-}
 
 #[derive(Debug, Clone)]
 pub struct Realtime;
@@ -103,8 +56,8 @@ pub fn realtime() -> f64 {
            + 60 * rtc.minute as u64
            + rtc.second as u64;
 
-    let fract = sys::clk::time_between_ticks()
-              * (sys::clk::ticks() - sys::clk::last_rtc_update()) as f64;
+    let fract = super::time_between_ticks()
+              * (super::ticks() - super::last_rtc_update()) as f64;
 
     (ts as f64) + fract
 }
@@ -130,21 +83,6 @@ fn is_leap_year(year: u64) -> bool {
     } else {
         true
     }
-}
-
-pub fn init() {
-    let s = realtime();
-    let ns = Duration::nanoseconds(
-        libm::floor(1e9 * (s - libm::floor(s))) as i64
-    );
-    let dt = OffsetDateTime::from_unix_timestamp(s as i64) + ns;
-    let rtc = dt.format(DATE_TIME_ZONE);
-    log!("RTC {}", rtc);
-}
-
-#[test_case]
-fn test_uptime() {
-    assert!(uptime() > 0.0);
 }
 
 #[test_case]

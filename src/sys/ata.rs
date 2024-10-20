@@ -132,9 +132,9 @@ impl Bus {
     }
 
     fn poll(&mut self, bit: Status, val: bool) -> Result<(), ()> {
-        let start = sys::clock::uptime();
+        let start = sys::clk::uptime();
         while self.status().get_bit(bit as usize) != val {
-            if sys::clock::uptime() - start > 1.0 {
+            if sys::clk::uptime() - start > 1.0 {
                 debug!(
                     "ATA hanged while polling {:?} bit in status register",
                     bit
