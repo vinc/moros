@@ -56,5 +56,4 @@ pub mod process;
 pub mod rng;
 pub mod serial;
 pub mod syscall;
-pub mod time;
 pub mod vga;

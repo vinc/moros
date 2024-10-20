@@ -50,7 +50,7 @@ impl FileIO for Uptime {
 
 // NOTE: This clock is monotonic
 pub fn uptime() -> f64 {
-    sys::time::time_between_ticks() * sys::time::ticks() as f64
+    sys::clk::time_between_ticks() * sys::clk::ticks() as f64
 }
 
 #[derive(Debug, Clone)]
@@ -103,8 +103,8 @@ pub fn realtime() -> f64 {
            + 60 * rtc.minute as u64
            + rtc.second as u64;
 
-    let fract = sys::time::time_between_ticks()
-              * (sys::time::ticks() - sys::time::last_rtc_update()) as f64;
+    let fract = sys::clk::time_between_ticks()
+              * (sys::clk::ticks() - sys::clk::last_rtc_update()) as f64;
 
     (ts as f64) + fract
 }

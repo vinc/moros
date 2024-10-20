@@ -168,7 +168,7 @@ impl Device {
         // Reset device
         let ctrl = self.read(REG_CTRL);
         self.write(REG_CTRL, ctrl | CTRL_RST); // Reset
-        sys::time::nanowait(500); // TODO: How long should we wait?
+        sys::clk::nanowait(500); // TODO: How long should we wait?
 
         // Disable interrupts again
         self.write(REG_IMC, 0xFFFF);

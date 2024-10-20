@@ -29,7 +29,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::pic::init(); // Enable interrupts
     sys::serial::init();
     sys::keyboard::init();
-    sys::time::init();
+    sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
     log!("SYS MOROS v{}", v);

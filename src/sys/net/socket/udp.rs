@@ -79,7 +79,7 @@ impl UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
         }
         self.remote_endpoint = Some(IpEndpoint::new(addr, port));
@@ -122,7 +122,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
             Ok(bytes)
         } else {
@@ -160,7 +160,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
             Ok(buf.len())
         } else {
@@ -185,7 +185,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
         }
     }

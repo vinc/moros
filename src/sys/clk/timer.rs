@@ -1,6 +1,5 @@
 use crate::sys;
 use crate::sys::clk::CMOS;
-use core::hint::spin_loop;
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
@@ -15,7 +14,7 @@ const PIT_INTERVAL: f64 = (PIT_DIVIDER as f64) / PIT_FREQUENCY;
 
 static PIT_TICKS: AtomicUsize = AtomicUsize::new(0);
 static LAST_RTC_UPDATE: AtomicUsize = AtomicUsize::new(0);
-static CLOCKS_PER_NANOSECOND: AtomicU64 = AtomicU64::new(0);
+pub static CLOCKS_PER_NANOSECOND: AtomicU64 = AtomicU64::new(0);
 
 pub fn ticks() -> usize {
     PIT_TICKS.load(Ordering::Relaxed)
@@ -29,34 +28,8 @@ pub fn last_rtc_update() -> usize {
     LAST_RTC_UPDATE.load(Ordering::Relaxed)
 }
 
-pub fn halt() {
-    let disabled = !interrupts::are_enabled();
-    interrupts::enable_and_hlt();
-    if disabled {
-        interrupts::disable();
-    }
-}
-
-fn rdtsc() -> u64 {
-    unsafe {
-        core::arch::x86_64::_mm_lfence();
-        core::arch::x86_64::_rdtsc()
-    }
-}
-
-pub fn sleep(seconds: f64) {
-    let start = sys::clock::uptime();
-    while sys::clock::uptime() - start < seconds {
-        halt();
-    }
-}
-
-pub fn nanowait(nanoseconds: u64) {
-    let start = rdtsc();
-    let delta = nanoseconds * CLOCKS_PER_NANOSECOND.load(Ordering::Relaxed);
-    while rdtsc() - start < delta {
-        spin_loop();
-    }
+pub fn pit_frequency() -> f64 {
+    PIT_FREQUENCY
 }
 
 /// The frequency divider must be between 0 and 65535, with 0 acting as 65536
@@ -73,6 +46,14 @@ pub fn set_pit_frequency_divider(divider: u16, channel: u8) {
             data.write(bytes[1]);
         }
     });
+}
+
+// Read Time Stamp Counter
+pub fn rdtsc() -> u64 {
+    unsafe {
+        core::arch::x86_64::_mm_lfence();
+        core::arch::x86_64::_rdtsc()
+    }
 }
 
 pub fn pit_interrupt_handler() {
@@ -98,7 +79,7 @@ pub fn init() {
     // TSC timmer
     let calibration_time = 250_000; // 0.25 seconds
     let a = rdtsc();
-    sleep(calibration_time as f64 / 1e6);
+    super::sleep(calibration_time as f64 / 1e6);
     let b = rdtsc();
     CLOCKS_PER_NANOSECOND.store((b - a) / calibration_time, Ordering::Relaxed);
 }
