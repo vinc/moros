@@ -38,7 +38,6 @@ macro_rules! log {
 }
 
 pub mod acpi;
-pub mod allocator;
 pub mod ata;
 pub mod clock;
 pub mod cmos;

@@ -431,7 +431,7 @@ impl Process {
 
         // Copy args to user memory
         let args_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        sys::allocator::alloc_pages(&mut mapper, args_addr, 1).
+        sys::mem::alloc_pages(&mut mapper, args_addr, 1).
             expect("proc args alloc");
         let args: &[&str] = unsafe {
             let ptr = ptr_from_addr(args_ptr as u64) as usize;
@@ -508,13 +508,13 @@ impl Process {
         let mut mapper = self.mapper();
 
         let size = MAX_PROC_SIZE;
-        sys::allocator::free_pages(&mut mapper, self.code_addr, size);
+        sys::mem::free_pages(&mut mapper, self.code_addr, size);
 
         let addr = USER_ADDR;
         match mapper.translate(VirtAddr::new(addr)) {
             TranslateResult::Mapped { frame: _, offset: _, flags } => {
                 if flags.contains(PageTableFlags::USER_ACCESSIBLE) {
-                    sys::allocator::free_pages(&mut mapper, addr, size);
+                    sys::mem::free_pages(&mut mapper, addr, size);
                 }
             }
             _ => {}
@@ -526,7 +526,7 @@ fn load_binary(
     mapper: &mut OffsetPageTable, addr: u64, size: usize, buf: &[u8]
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
-    sys::allocator::alloc_pages(mapper, addr, size)?;
+    sys::mem::alloc_pages(mapper, addr, size)?;
     let src = buf.as_ptr();
     let dst = addr as *mut u8;
     unsafe {
