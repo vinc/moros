@@ -8,7 +8,6 @@ pub use phys::{phys_addr, PhysBuf};
 use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use core::sync::atomic::{AtomicUsize, Ordering};
-//use x86_64::instructions::interrupts;
 use x86_64::structures::paging::{
     FrameAllocator, OffsetPageTable, PhysFrame, Size4KiB, Translate,
 };
@@ -21,52 +20,53 @@ static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
 
 pub fn init(boot_info: &'static BootInfo) {
-    sys::idt::set_irq_mask(1); // Mask keyboard interrupt
-    //interrupts::without_interrupts(|| {
-        let mut memory_size = 0;
-        let mut last_end_addr = 0;
-        for region in boot_info.memory_map.iter() {
-            let start_addr = region.range.start_addr();
-            let end_addr = region.range.end_addr();
-            let size = end_addr - start_addr;
-            let hole = start_addr - last_end_addr;
-            if hole > 0 {
-                log!(
-                    //"MEM [{:#016X}-{:#016X}] {} ({} KB)",
-                    "MEM [{:#016X}-{:#016X}] {}",
-                    last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
-                );
-            }
+    // Keep the timer interrupt to have accurate boot time measurement but mask
+    // the keyboard interrupt that would create a panic if a key is pressed
+    // during memory allocation otherwise.
+    sys::idt::set_irq_mask(1);
+
+    let mut memory_size = 0;
+    let mut last_end_addr = 0;
+    for region in boot_info.memory_map.iter() {
+        let start_addr = region.range.start_addr();
+        let end_addr = region.range.end_addr();
+        let size = end_addr - start_addr;
+        let hole = start_addr - last_end_addr;
+        if hole > 0 {
             log!(
-                //"MEM [{:#016X}-{:#016X}] {:?} ({} KB)",
-                "MEM [{:#016X}-{:#016X}] {:?}",
-                start_addr, end_addr - 1, region.region_type //, size >> 10
+                "MEM [{:#016X}-{:#016X}] {}", // "({} KB)"
+                last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
             );
-            memory_size += size;
-            last_end_addr = end_addr;
         }
+        log!(
+            "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
+            start_addr, end_addr - 1, region.region_type //, size >> 10
+        );
+        memory_size += size;
+        last_end_addr = end_addr;
+    }
 
-        // 0x000000000A0000-0x000000000EFFFF: + 320 KB of BIOS memory
-        // 0x000000FEFFC000-0x000000FEFFFFFF: - 256 KB of virtual memory
-        // 0x000000FFFC0000-0x000000FFFFFFFF: -  16 KB of virtual memory
-        memory_size += (320 - 256 - 16) << 10;
+    // 0x000000000A0000-0x000000000EFFFF: + 320 KB of BIOS memory
+    // 0x000000FEFFC000-0x000000FEFFFFFF: - 256 KB of virtual memory
+    // 0x000000FFFC0000-0x000000FFFFFFFF: -  16 KB of virtual memory
+    memory_size += (320 - 256 - 16) << 10;
 
-        log!("RAM {} MB", memory_size >> 20);
-        MEMORY_SIZE.store(memory_size as usize, Ordering::Relaxed);
+    log!("RAM {} MB", memory_size >> 20);
+    MEMORY_SIZE.store(memory_size as usize, Ordering::Relaxed);
 
-        let phys_mem_offset = boot_info.physical_memory_offset;
+    let phys_mem_offset = boot_info.physical_memory_offset;
 
-        unsafe { PHYS_MEM_OFFSET.replace(phys_mem_offset) };
-        unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
-        unsafe {
-            MAPPER.replace(OffsetPageTable::new(
-                paging::active_page_table(),
-                VirtAddr::new(phys_mem_offset),
-            ))
-        };
+    unsafe { PHYS_MEM_OFFSET.replace(phys_mem_offset) };
+    unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
+    unsafe {
+        MAPPER.replace(OffsetPageTable::new(
+            paging::active_page_table(),
+            VirtAddr::new(phys_mem_offset),
+        ))
+    };
 
-        heap::init_heap().expect("heap initialization failed");
-    //});
+    heap::init_heap().expect("heap initialization failed");
+
     sys::idt::clear_irq_mask(1);
 }
 
