@@ -12,18 +12,13 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub const HEAP_START: u64 = 0x4444_4444_0000;
 
-fn max_memory() -> usize {
-    // Default to 32 MB
-    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<usize>().unwrap() << 20
-}
-
 pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
     let mapper = super::mapper();
     let mut frame_allocator = super::frame_allocator();
 
     // Use half of the memory for the heap caped to 16 MB by default
     // because the allocator is slow.
-    let heap_size = (cmp::min(super::memory_size(), max_memory()) / 2) as u64;
+    let heap_size = (cmp::min(super::memory_size(), heap_max()) / 2) as u64;
     let heap_start = VirtAddr::new(HEAP_START);
     sys::process::init_process_addr(HEAP_START + heap_size);
 
@@ -49,6 +44,11 @@ pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
     }
 
     Ok(())
+}
+
+fn heap_max() -> usize {
+    // Default to 32 MB
+    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<usize>().unwrap() << 20
 }
 
 pub fn heap_size() -> usize {
