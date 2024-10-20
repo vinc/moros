@@ -83,7 +83,7 @@ pub fn memory_used() -> usize {
 }
 
 pub fn memory_free() -> usize {
-    (memory_size() - heap::heap_size()) + heap::heap_free()
+    heap::heap_free()
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {

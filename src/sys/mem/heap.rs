@@ -140,6 +140,8 @@ fn many_boxes() {
 
 #[test_case]
 fn large_vec() {
+    use alloc::vec::Vec;
+
     let n = 1000;
     let mut vec = Vec::new();
     for i in 0..n {
