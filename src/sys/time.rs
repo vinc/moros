@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::cmos::CMOS;
+use crate::sys::clk::CMOS;
 use core::hint::spin_loop;
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;

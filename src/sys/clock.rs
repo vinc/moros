@@ -1,7 +1,7 @@
 use crate::api::clock::DATE_TIME_ZONE;
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
-use crate::sys::cmos::CMOS;
+use crate::sys::clk::CMOS;
 
 use time::{Duration, OffsetDateTime};
 
