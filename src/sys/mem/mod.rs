@@ -1,16 +1,16 @@
 mod heap;
+mod paging;
 mod phys;
 
-pub use heap::{alloc_pages, free_pages};
+pub use paging::{alloc_pages, free_pages, active_page_table, create_page_table};
 pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use core::sync::atomic::{AtomicUsize, Ordering};
 //use x86_64::instructions::interrupts;
-use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB, Translate,
+    FrameAllocator, OffsetPageTable, PhysFrame, Size4KiB, Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -60,7 +60,7 @@ pub fn init(boot_info: &'static BootInfo) {
         unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
         unsafe {
             MAPPER.replace(OffsetPageTable::new(
-                active_page_table(),
+                paging::active_page_table(),
                 VirtAddr::new(phys_mem_offset),
             ))
         };
@@ -71,7 +71,7 @@ pub fn init(boot_info: &'static BootInfo) {
 }
 
 pub fn mapper() -> &'static mut OffsetPageTable<'static> {
-    unsafe { sys::mem::MAPPER.as_mut().unwrap() }
+    unsafe { MAPPER.as_mut().unwrap() }
 }
 
 pub fn memory_size() -> usize {
@@ -95,21 +95,6 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
 
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr)
-}
-
-pub unsafe fn active_page_table() -> &'static mut PageTable {
-    let (frame, _) = Cr3::read();
-    let phys_addr = frame.start_address();
-    let virt_addr = phys_to_virt(phys_addr);
-    let page_table_ptr: *mut PageTable = virt_addr.as_mut_ptr();
-    &mut *page_table_ptr // unsafe
-}
-
-pub unsafe fn create_page_table(frame: PhysFrame) -> &'static mut PageTable {
-    let phys_addr = frame.start_address();
-    let virt_addr = phys_to_virt(phys_addr);
-    let page_table_ptr: *mut PageTable = virt_addr.as_mut_ptr();
-    &mut *page_table_ptr // unsafe
 }
 
 pub struct BootInfoFrameAllocator {
