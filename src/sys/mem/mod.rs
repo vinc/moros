@@ -1,6 +1,12 @@
+mod heap;
+mod phys;
+
+pub use heap::{alloc_pages, free_pages};
+pub use phys::{phys_addr, PhysBuf};
+
 use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
-use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicUsize, Ordering};
 //use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
@@ -11,7 +17,7 @@ use x86_64::{PhysAddr, VirtAddr};
 pub static mut PHYS_MEM_OFFSET: Option<u64> = None;
 static mut MEMORY_MAP: Option<&MemoryMap> = None;
 static mut MAPPER: Option<OffsetPageTable<'static>> = None;
-static MEMORY_SIZE: AtomicU64 = AtomicU64::new(0);
+static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
 
 pub fn init(boot_info: &'static BootInfo) {
@@ -46,7 +52,7 @@ pub fn init(boot_info: &'static BootInfo) {
         memory_size += (320 - 256 - 16) << 10;
 
         log!("RAM {} MB", memory_size >> 20);
-        MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
+        MEMORY_SIZE.store(memory_size as usize, Ordering::Relaxed);
 
         let phys_mem_offset = boot_info.physical_memory_offset;
 
@@ -59,7 +65,7 @@ pub fn init(boot_info: &'static BootInfo) {
             ))
         };
 
-        sys::allocator::init_heap().expect("heap initialization failed");
+        heap::init_heap().expect("heap initialization failed");
     //});
     sys::idt::clear_irq_mask(1);
 }
@@ -68,8 +74,16 @@ pub fn mapper() -> &'static mut OffsetPageTable<'static> {
     unsafe { sys::mem::MAPPER.as_mut().unwrap() }
 }
 
-pub fn memory_size() -> u64 {
+pub fn memory_size() -> usize {
     MEMORY_SIZE.load(Ordering::Relaxed)
+}
+
+pub fn memory_used() -> usize {
+    (memory_size() - heap::heap_size()) + heap::heap_used()
+}
+
+pub fn memory_free() -> usize {
+    (memory_size() - heap::heap_size()) + heap::heap_free()
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {

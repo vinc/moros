@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::allocator::PhysBuf;
+use crate::sys::mem::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
 use spin::Mutex;
 
@@ -209,7 +209,7 @@ impl Device {
         }
 
         let ptr = ptr::addr_of!(rx_descs[0]) as *const u8;
-        let phys_addr = sys::allocator::phys_addr(ptr);
+        let phys_addr = sys::mem::phys_addr(ptr);
 
         // Ring address and length
         self.write(REG_RDBAL, phys_addr.get_bits(0..32) as u32);
@@ -235,7 +235,7 @@ impl Device {
         }
 
         let ptr = ptr::addr_of!(tx_descs[0]) as *const _;
-        let phys_addr = sys::allocator::phys_addr(ptr);
+        let phys_addr = sys::mem::phys_addr(ptr);
 
         // Ring address and length
         self.write(REG_TDBAL, phys_addr.get_bits(0..32) as u32);
@@ -352,7 +352,7 @@ impl Device {
         let rx_descs = self.rx_descs.lock();
         for i in 0..RX_BUFFERS_COUNT {
             let ptr = ptr::addr_of!(rx_descs[i]) as *const u8;
-            let phy = sys::allocator::phys_addr(ptr);
+            let phy = sys::mem::phys_addr(ptr);
             debug!(
                 "NET E1000: [{}] {:?} ({:#X} -> {:#X})",
                 i, rx_descs[i], ptr as u64, phy
@@ -363,7 +363,7 @@ impl Device {
         let tx_descs = self.tx_descs.lock();
         for i in 0..TX_BUFFERS_COUNT {
             let ptr = ptr::addr_of!(tx_descs[i]) as *const u8;
-            let phy = sys::allocator::phys_addr(ptr);
+            let phy = sys::mem::phys_addr(ptr);
             debug!(
                 "NET E1000: [{}] {:?} ({:#X} -> {:#X})",
                 i, tx_descs[i], ptr as u64, phy

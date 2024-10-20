@@ -72,8 +72,8 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     }
-    let size = sys::allocator::memory_size();
-    let used = sys::allocator::memory_used();
+    let size = sys::mem::memory_size();
+    let used = sys::mem::memory_used();
     let free = size - used;
     let width = [size, used, free].iter().fold(0, |acc, num|
         core::cmp::max(acc, unit.format(*num).len())

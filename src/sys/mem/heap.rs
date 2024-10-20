@@ -1,13 +1,7 @@
 use crate::sys;
 
-use alloc::slice::SliceIndex;
-use alloc::sync::Arc;
-use alloc::vec;
-use alloc::vec::Vec;
 use core::cmp;
-use core::ops::{Index, IndexMut};
 use linked_list_allocator::LockedHeap;
-use spin::Mutex;
 use x86_64::structures::paging::{
     mapper::MapToError, page::PageRangeInclusive,
     FrameAllocator, Mapper, OffsetPageTable, Page, PageTableFlags, Size4KiB,
@@ -19,18 +13,18 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub const HEAP_START: u64 = 0x4444_4444_0000;
 
-fn max_memory() -> u64 {
+fn max_memory() -> usize {
     // Default to 32 MB
-    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<u64>().unwrap() << 20
+    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<usize>().unwrap() << 20
 }
 
 pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
-    let mapper = sys::mem::mapper();
-    let mut frame_allocator = sys::mem::frame_allocator();
+    let mapper = super::mapper();
+    let mut frame_allocator = super::frame_allocator();
 
     // Use half of the memory for the heap caped to 16 MB by default
     // because the allocator is slow.
-    let heap_size = cmp::min(sys::mem::memory_size(), max_memory()) / 2;
+    let heap_size = (cmp::min(super::memory_size(), max_memory()) / 2) as u64;
     let heap_start = VirtAddr::new(HEAP_START);
     sys::process::init_process_addr(HEAP_START + heap_size);
 
@@ -117,83 +111,15 @@ pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
     }
 }
 
-#[derive(Clone)]
-pub struct PhysBuf {
-    buf: Arc<Mutex<Vec<u8>>>,
-}
-
-impl PhysBuf {
-    pub fn new(len: usize) -> Self {
-        Self::from(vec![0; len])
-    }
-
-    // Realloc vec until it uses a chunk of contiguous physical memory
-    fn from(vec: Vec<u8>) -> Self {
-        let buffer_end = vec.len() - 1;
-        let memory_end = phys_addr(&vec[buffer_end]) - phys_addr(&vec[0]);
-        if buffer_end == memory_end as usize {
-            Self {
-                buf: Arc::new(Mutex::new(vec)),
-            }
-        } else {
-            Self::from(vec.clone()) // Clone vec and try again
-        }
-    }
-
-    pub fn addr(&self) -> u64 {
-        phys_addr(&self.buf.lock()[0])
-    }
-}
-
-pub fn phys_addr(ptr: *const u8) -> u64 {
-    let virt_addr = VirtAddr::new(ptr as u64);
-    let phys_addr = sys::mem::virt_to_phys(virt_addr).unwrap();
-    phys_addr.as_u64()
-}
-
-impl<I: SliceIndex<[u8]>> Index<I> for PhysBuf {
-    type Output = I::Output;
-
-    #[inline]
-    fn index(&self, index: I) -> &Self::Output {
-        Index::index(&**self, index)
-    }
-}
-
-impl<I: SliceIndex<[u8]>> IndexMut<I> for PhysBuf {
-    #[inline]
-    fn index_mut(&mut self, index: I) -> &mut Self::Output {
-        IndexMut::index_mut(&mut **self, index)
-    }
-}
-
-impl core::ops::Deref for PhysBuf {
-    type Target = [u8];
-
-    fn deref(&self) -> &[u8] {
-        let vec = self.buf.lock();
-        unsafe { alloc::slice::from_raw_parts(vec.as_ptr(), vec.len()) }
-    }
-}
-
-impl core::ops::DerefMut for PhysBuf {
-    fn deref_mut(&mut self) -> &mut [u8] {
-        let mut vec = self.buf.lock();
-        unsafe {
-            alloc::slice::from_raw_parts_mut(vec.as_mut_ptr(), vec.len())
-        }
-    }
-}
-
-pub fn memory_size() -> usize {
+pub fn heap_size() -> usize {
     ALLOCATOR.lock().size()
 }
 
-pub fn memory_used() -> usize {
+pub fn heap_used() -> usize {
     ALLOCATOR.lock().used()
 }
 
-pub fn memory_free() -> usize {
+pub fn heap_free() -> usize {
     ALLOCATOR.lock().free()
 }
 
