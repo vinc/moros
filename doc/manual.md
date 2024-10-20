@@ -85,9 +85,9 @@ commands to test the system or `install` to setup the
     Created '/dev/ata/1/0'
     Created '/dev/ata/1/1'
     Created '/dev/clk'
-    Created '/dev/clk/uptime'
-    Created '/dev/clk/realtime'
-    Created '/dev/rtc'
+    Created '/dev/clk/boot'
+    Created '/dev/clk/epoch'
+    Created '/dev/clk/rtc'
     Created '/dev/null'
     Created '/dev/random'
     Created '/dev/console'
@@ -270,7 +270,7 @@ You can print the date with `date`:
 You can update the real time clock by writing the correct time to its device
 file:
 
-    > print "2023-03-21 10:00:00" => /dev/rtc
+    > print "2023-03-21 10:00:00" => /dev/clk/rtc
 
     > date
     2023-03-21 10:00:00 +0000
@@ -297,12 +297,12 @@ Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
 There's a device file to get the number of seconds elapsed since Unix Epoch:
 
-    > read /dev/clk/realtime
+    > read /dev/clk/epoch
     1682105344.624905
 
 And another one since boot:
 
-    > read /dev/clk/uptime
+    > read /dev/clk/boot
     1169.384929
 
 ## Aliases
@@ -312,7 +312,7 @@ You can add custom commands to the shell with the `alias` command.
 For example you can define an `uptime` command that will read the device file
 described above:
 
-    > alias uptime "read /dev/clk/uptime"
+    > alias uptime "read /dev/clk/boot"
 
     > uptime
     1406.304852
@@ -377,5 +377,5 @@ There is also a `ntp` script to synchronize the clock over the network:
     > ntp
     2023-03-21 10:00:00
 
-    > ntp => /dev/rtc
+    > ntp => /dev/clk/rtc
     [12.111156] RTC 2023-03-21 10:00:00 +0000

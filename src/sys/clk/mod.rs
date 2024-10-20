@@ -5,8 +5,8 @@ mod rtc;
 mod sleep;
 mod timer;
 
-pub use boot::{uptime, Uptime}; // TODO: Rename to boot_time
-pub use epoch::{realtime, Realtime}; // TODO: Rename to epoch_time
+pub use boot::{boot_time, BootTime}; // TODO: Rename to boot_time
+pub use epoch::{epoch_time, EpochTime}; // TODO: Rename to epoch_time
 pub use cmos::CMOS;
 pub use rtc::RTC;
 pub use sleep::{sleep, nanowait, halt};
@@ -27,7 +27,7 @@ pub fn init() {
 }
 
 pub fn log_rtc() {
-    let s = realtime();
+    let s = epoch_time();
     let ns = Duration::nanoseconds(
         libm::floor(1e9 * (s - libm::floor(s))) as i64
     );

@@ -135,7 +135,7 @@ impl Dir {
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;
-        let entry_time = sys::clk::realtime() as u64;
+        let entry_time = sys::clk::epoch_time() as u64;
         let entry_name = truncate(name, u8::MAX as usize);
         let n = entry_name.len();
         let i = entries.block_offset();
@@ -193,7 +193,7 @@ impl Dir {
     }
 
     pub fn update_entry(&self, name: &str, size: u32) {
-        let time = sys::clk::realtime() as u64;
+        let time = sys::clk::epoch_time() as u64;
         let mut entries = self.entries();
         for entry in &mut entries {
             if entry.name() == name {

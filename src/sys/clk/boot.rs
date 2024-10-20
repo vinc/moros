@@ -1,9 +1,9 @@
 use crate::api::fs::{FileIO, IO};
 
 #[derive(Debug, Clone)]
-pub struct Uptime;
+pub struct BootTime;
 
-impl Uptime {
+impl BootTime {
     pub fn new() -> Self {
         Self {}
     }
@@ -13,9 +13,9 @@ impl Uptime {
     }
 }
 
-impl FileIO for Uptime {
+impl FileIO for BootTime {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let time = uptime().to_be_bytes();
+        let time = boot_time().to_be_bytes();
         let n = time.len();
         if buf.len() >= n {
             buf[0..n].clone_from_slice(&time);
@@ -40,11 +40,11 @@ impl FileIO for Uptime {
 }
 
 // NOTE: This clock is monotonic
-pub fn uptime() -> f64 {
+pub fn boot_time() -> f64 {
     super::time_between_ticks() * super::ticks() as f64
 }
 
 #[test_case]
-fn test_uptime() {
-    assert!(uptime() > 0.0);
+fn test_boot_time() {
+    assert!(boot_time() > 0.0);
 }

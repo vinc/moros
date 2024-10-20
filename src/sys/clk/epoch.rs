@@ -7,9 +7,9 @@ const DAYS_BEFORE_MONTH: [u64; 13] = [
 ];
 
 #[derive(Debug, Clone)]
-pub struct Realtime;
+pub struct EpochTime;
 
-impl Realtime {
+impl EpochTime {
     pub fn new() -> Self {
         Self {}
     }
@@ -19,9 +19,9 @@ impl Realtime {
     }
 }
 
-impl FileIO for Realtime {
+impl FileIO for EpochTime {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let time = realtime().to_be_bytes();
+        let time = epoch_time().to_be_bytes();
         let n = time.len();
         if buf.len() >= n {
             buf[0..n].clone_from_slice(&time);
@@ -46,7 +46,7 @@ impl FileIO for Realtime {
 }
 
 // NOTE: This clock is not monotonic
-pub fn realtime() -> f64 {
+pub fn epoch_time() -> f64 {
     let rtc = CMOS::new().rtc(); // Assuming GMT
 
     let ts = 86400 * days_before_year(rtc.year as u64)
@@ -86,6 +86,6 @@ fn is_leap_year(year: u64) -> bool {
 }
 
 #[test_case]
-fn test_realtime() {
-    assert!(realtime() > 1234567890.0);
+fn test_epoch_time() {
+    assert!(epoch_time() > 1234567890.0);
 }

@@ -79,7 +79,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `read`, `write`, `append`
 - `read-binary`, `write-binary`, `append-binary`
 - `read-line`, `read-char`
-- `uptime`, `realtime`
+- `clock/boot`, `clock/epoch`
 - `p`, `print`, `eprint`, `error`
 
 ### Math Library
@@ -176,6 +176,7 @@ Would produce the following output:
 
 ### Unreleased
 - Add `dirname`, `filename`, `eprint`, and `error` functions
+- Rename `uptime` to `clk/boot` and `realtime` to `clk/epoch`
 
 ### 0.7.1 (2024-06-20)
 - Add `floor`, `ceil`, and `round` functions

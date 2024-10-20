@@ -32,7 +32,7 @@
 
 (print
   (if (= (len args) 1)
-    (geotime (str->num (first args)) (realtime))
+    (geotime (str->num (first args)) (clk/epoch))
     (if (= (len args) 2)
       (geotime (str->num (first args)) (str->num (second args)))
       "Usage: geotime <longitude> [<timestamp>]")))

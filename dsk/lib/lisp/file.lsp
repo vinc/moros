@@ -75,13 +75,13 @@
 
 # Clocks
 
-(def (uptime)
-  "Returns the current value of the uptime clock"
-  (binary->number (read-binary "/dev/clk/uptime") "float"))
+(def (clock/boot)
+  "Returns the number of seconds since boot"
+  (binary->number (read-binary "/dev/clk/boot") "float"))
 
-(def (realtime)
-  "Returns the current value of the realtime clock"
-  (binary->number (read-binary "/dev/clk/realtime") "float"))
+(def (clock/epoch)
+  "Returns the number of seconds since epoch"
+  (binary->number (read-binary "/dev/clk/epoch") "float"))
 
 # Path
 
