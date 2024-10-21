@@ -1,6 +1,7 @@
 use crate::sys;
 
 use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
+use acpi::platform::{Processor, ProcessorState};
 use alloc::boxed::Box;
 use aml::value::AmlValue;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
@@ -16,6 +17,14 @@ pub fn init() {
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
         Ok(acpi) => {
+            if let Ok(info) = acpi.platform_info() {
+                if let Some(info) = info.processor_info {
+                    log_cpu(&info.boot_processor);
+                    for processor in info.application_processors.iter() {
+                        log_cpu(&processor);
+                    }
+                }
+            }
             if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
                 if let Ok(block) = fadt.pm1a_control_block() {
                     unsafe {
@@ -23,7 +32,7 @@ pub fn init() {
                     }
                 }
             }
-            if let Ok(dsdt) = &acpi.dsdt() {
+            if let Ok(dsdt) = acpi.dsdt() {
                 let phys_addr = PhysAddr::new(dsdt.address as u64);
                 let virt_addr = sys::mem::phys_to_virt(phys_addr);
                 let ptr = virt_addr.as_ptr();
@@ -156,4 +165,14 @@ impl Handler for MorosAmlHandler {
 fn read_addr<T>(addr: usize) -> T where T: Copy {
     let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(addr as u64));
     unsafe { *virtual_address.as_ptr::<T>() }
+}
+
+fn log_cpu(processor: &Processor) {
+    let kind = if processor.is_ap { "AP" } else { "BP" };
+    let state = match processor.state {
+        ProcessorState::Disabled       => "disabled",
+        ProcessorState::Running        => "running",
+        ProcessorState::WaitingForSipi => "waiting",
+    };
+    log!("CPU {}:{} {}", kind, processor.processor_uid, state);
 }
