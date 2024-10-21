@@ -48,7 +48,7 @@ impl fmt::Write for Serial {
     }
 }
 
-/// See https://vt100.net/emu/dec_ansi_parser
+// Source: https://vt100.net/emu/dec_ansi_parser
 impl Perform for Serial {
     fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
         match c {

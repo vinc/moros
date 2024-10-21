@@ -1,3 +1,5 @@
+use super::timer;
+
 use crate::api::fs::{FileIO, IO};
 
 #[derive(Debug, Clone)]
@@ -39,9 +41,11 @@ impl FileIO for BootTime {
     }
 }
 
-// NOTE: This clock is monotonic
+/// Returns the number of seconds since boot.
+///
+/// This clock is monotonic.
 pub fn boot_time() -> f64 {
-    super::time_between_ticks() * super::ticks() as f64
+    timer::time_between_ticks() * timer::ticks() as f64
 }
 
 #[test_case]

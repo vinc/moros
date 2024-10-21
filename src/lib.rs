@@ -43,7 +43,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::ata::init();
     sys::fs::init(); // Require ATA
 
-    sys::clk::log_rtc(); // Require MEM
+    log!("RTC {}", sys::clk::date());
 }
 
 #[allow(dead_code)]

@@ -1,4 +1,5 @@
-use super::CMOS;
+use super::cmos::CMOS;
+use super::timer;
 
 use crate::api::fs::{FileIO, IO};
 
@@ -45,7 +46,9 @@ impl FileIO for EpochTime {
     }
 }
 
-// NOTE: This clock is not monotonic
+/// Returns the number of seconds since Unix epoch (1970-01-01 00:00:00 UTC).
+///
+/// This clock is not monotonic.
 pub fn epoch_time() -> f64 {
     let rtc = CMOS::new().rtc(); // Assuming GMT
 
@@ -56,8 +59,8 @@ pub fn epoch_time() -> f64 {
            + 60 * rtc.minute as u64
            + rtc.second as u64;
 
-    let fract = super::time_between_ticks()
-              * (super::ticks() - super::last_rtc_update()) as f64;
+    let fract = timer::time_between_ticks()
+              * (timer::ticks() - timer::last_rtc_update()) as f64;
 
     (ts as f64) + fract
 }

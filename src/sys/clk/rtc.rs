@@ -1,6 +1,5 @@
-use super::CMOS;
+use super::cmos::CMOS;
 
-use crate::sys;
 use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
 use crate::api::fs::{FileIO, IO};
 
@@ -84,7 +83,7 @@ impl FileIO for RTC {
             return Err(());
         }
         CMOS::new().update_rtc(self);
-        sys::clk::log_rtc();
+        log!("RTC {}", super::date());
         Ok(buf.len())
     }
 

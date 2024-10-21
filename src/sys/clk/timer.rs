@@ -1,5 +1,8 @@
+use super::sleep;
+use super::cmos::CMOS;
+
 use crate::sys;
-use crate::sys::clk::CMOS;
+
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
@@ -8,13 +11,13 @@ use x86_64::instructions::port::Port;
 // which will result in about 54.926 ms between ticks.
 // During init we will change the divider to 1193 to have about 1.000 ms
 // between ticks to improve time measurements accuracy.
-pub const PIT_FREQUENCY: f64 = 3_579_545.0 / 3.0; // 1_193_181.666 Hz
+const PIT_FREQUENCY: f64 = 3_579_545.0 / 3.0; // 1_193_181.666 Hz
 const PIT_DIVIDER: usize = 1193;
 const PIT_INTERVAL: f64 = (PIT_DIVIDER as f64) / PIT_FREQUENCY;
 
 static PIT_TICKS: AtomicUsize = AtomicUsize::new(0);
 static LAST_RTC_UPDATE: AtomicUsize = AtomicUsize::new(0);
-pub static CLOCKS_PER_NANOSECOND: AtomicU64 = AtomicU64::new(0);
+static TSC_FREQUENCY: AtomicU64 = AtomicU64::new(0);
 
 pub fn ticks() -> usize {
     PIT_TICKS.load(Ordering::Relaxed)
@@ -32,8 +35,8 @@ pub fn pit_frequency() -> f64 {
     PIT_FREQUENCY
 }
 
-/// The frequency divider must be between 0 and 65535, with 0 acting as 65536
-pub fn set_pit_frequency_divider(divider: u16, channel: u8) {
+// The frequency divider must be between 0 and 65535, with 0 acting as 65536
+pub fn set_pit_frequency(divider: u16, channel: u8) {
     interrupts::without_interrupts(|| {
         let bytes = divider.to_le_bytes();
         let mut cmd: Port<u8> = Port::new(0x43);
@@ -48,12 +51,16 @@ pub fn set_pit_frequency_divider(divider: u16, channel: u8) {
     });
 }
 
-// Read Time Stamp Counter
-pub fn rdtsc() -> u64 {
+// Time Stamp Counter
+pub fn tsc() -> u64 {
     unsafe {
         core::arch::x86_64::_mm_lfence();
         core::arch::x86_64::_rdtsc()
     }
+}
+
+pub fn tsc_frequency() -> u64 {
+    TSC_FREQUENCY.load(Ordering::Relaxed)
 }
 
 pub fn pit_interrupt_handler() {
@@ -69,7 +76,7 @@ pub fn init() {
     // PIT timmer
     let divider = if PIT_DIVIDER < 65536 { PIT_DIVIDER } else { 0 };
     let channel = 0;
-    set_pit_frequency_divider(divider as u16, channel);
+    set_pit_frequency(divider as u16, channel);
     sys::idt::set_irq_handler(0, pit_interrupt_handler);
 
     // RTC timmer
@@ -78,8 +85,8 @@ pub fn init() {
 
     // TSC timmer
     let calibration_time = 250_000; // 0.25 seconds
-    let a = rdtsc();
-    super::sleep(calibration_time as f64 / 1e6);
-    let b = rdtsc();
-    CLOCKS_PER_NANOSECOND.store((b - a) / calibration_time, Ordering::Relaxed);
+    let a = tsc();
+    sleep::sleep(calibration_time as f64 / 1e6);
+    let b = tsc();
+    TSC_FREQUENCY.store((b - a) / calibration_time, Ordering::Relaxed);
 }

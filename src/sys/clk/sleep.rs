@@ -1,6 +1,6 @@
-use crate::sys;
+use super::boot;
+use super::timer;
 
-use core::sync::atomic::Ordering;
 use x86_64::instructions::interrupts;
 
 pub fn halt() {
@@ -12,17 +12,17 @@ pub fn halt() {
 }
 
 pub fn sleep(seconds: f64) {
-    let start = sys::clk::boot_time();
-    while sys::clk::boot_time() - start < seconds {
+    let start = boot::boot_time();
+    while boot::boot_time() - start < seconds {
         halt();
     }
 }
 
 pub fn nanowait(nanoseconds: u64) {
-    let start = super::rdtsc();
-    let clock = super::CLOCKS_PER_NANOSECOND.load(Ordering::Relaxed);
-    let delta = nanoseconds * clock;
-    while super::rdtsc() - start < delta {
+    let start = timer::tsc();
+    let freq = timer::tsc_frequency();
+    let delta = nanoseconds * freq;
+    while timer::tsc() - start < delta {
         core::hint::spin_loop();
     }
 }

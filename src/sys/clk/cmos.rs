@@ -1,4 +1,4 @@
-use super::{Interrupt, RTC, Register, RTC_CENTURY};
+use super::rtc::{Interrupt, RTC, Register, RTC_CENTURY};
 
 use bit_field::BitField;
 use core::hint::spin_loop;
@@ -107,10 +107,12 @@ impl CMOS {
         self.write_register(Register::Year, year as u8);
     }
 
+    #[allow(dead_code)]
     pub fn enable_periodic_interrupt(&mut self) {
         self.enable_interrupt(Interrupt::Periodic);
     }
 
+    #[allow(dead_code)]
     pub fn enable_alarm_interrupt(&mut self) {
         self.enable_interrupt(Interrupt::Alarm);
     }
@@ -119,8 +121,9 @@ impl CMOS {
         self.enable_interrupt(Interrupt::Update);
     }
 
-    /// Rate must be between 3 and 15
-    /// Resulting in the following frequency: 32768 >> (rate - 1)
+    // Rate must be between 3 and 15
+    // Resulting in the following frequency: 32768 >> (rate - 1)
+    #[allow(dead_code)]
     pub fn set_periodic_interrupt_rate(&mut self, rate: u8) {
         interrupts::without_interrupts(|| {
             self.disable_nmi();
