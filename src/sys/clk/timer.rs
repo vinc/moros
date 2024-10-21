@@ -1,4 +1,4 @@
-use super::sleep;
+use super::sync;
 use super::cmos::CMOS;
 
 use crate::sys;
@@ -86,7 +86,7 @@ pub fn init() {
     // TSC timmer
     let calibration_time = 250_000; // 0.25 seconds
     let a = tsc();
-    sleep::sleep(calibration_time as f64 / 1e6);
+    sync::sleep(calibration_time as f64 / 1e6);
     let b = tsc();
     TSC_FREQUENCY.store((b - a) / calibration_time, Ordering::Relaxed);
 }

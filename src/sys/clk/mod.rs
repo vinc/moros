@@ -2,13 +2,13 @@ mod cmos;
 mod boot;
 mod epoch;
 mod rtc;
-mod sleep;
+mod sync;
 mod timer;
 
 pub use boot::{boot_time, BootTime};
 pub use epoch::{epoch_time, EpochTime};
 pub use rtc::RTC;
-pub use sleep::{sleep, nanowait, halt};
+pub use sync::{halt, sleep, wait};
 pub use timer::{ticks, pit_frequency, set_pit_frequency};
 
 use crate::api;

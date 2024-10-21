@@ -100,7 +100,7 @@ impl Bus {
     }
 
     fn wait(&mut self, ns: u64) {
-        sys::clk::nanowait(ns);
+        sys::clk::wait(ns);
     }
 
     fn clear_interrupt(&mut self) -> u8 {
@@ -164,7 +164,7 @@ impl Bus {
             // Bit 7 => 1
             self.drive_register.write(0xA0 | (drive << 4))
         }
-        sys::clk::nanowait(400); // Wait at least 400 ns
+        sys::clk::wait(400); // Wait at least 400 ns
         self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, false)?;
         Ok(())
