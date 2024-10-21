@@ -20,5 +20,5 @@ fn random_port() -> u16 {
 }
 
 fn wait(duration: Duration) {
-    sys::time::sleep((duration.total_micros() as f64) / 1000000.0);
+    sys::clk::sleep((duration.total_micros() as f64) / 1000000.0);
 }

@@ -54,9 +54,9 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/ata/0/1", "ata-0-1", verbose);
     create_dev("/dev/ata/1/0", "ata-1-0", verbose);
     create_dev("/dev/ata/1/1", "ata-1-1", verbose);
-    create_dev("/dev/clk/uptime", "uptime", verbose);
-    create_dev("/dev/clk/realtime", "realtime", verbose);
-    create_dev("/dev/rtc", "rtc", verbose);
+    create_dev("/dev/clk/boot", "clk-boot", verbose);
+    create_dev("/dev/clk/epoch", "clk-epoch", verbose);
+    create_dev("/dev/clk/rtc", "clk-rtc", verbose);
     create_dev("/dev/null", "null", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/console", "console", verbose);

@@ -34,9 +34,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             debug!("DHCP Discover transmitted");
         }
         let timeout = 30.0;
-        let started = clock::realtime();
+        let started = clock::epoch_time();
         loop {
-            if clock::realtime() - started > timeout {
+            if clock::epoch_time() - started > timeout {
                 error!("Timeout reached");
                 return Err(ExitCode::Failure);
             }
@@ -45,7 +45,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 return Err(ExitCode::Failure);
             }
 
-            let ms = (clock::realtime() * 1000000.0) as i64;
+            let ms = (clock::epoch_time() * 1000000.0) as i64;
             let time = Instant::from_micros(ms);
             iface.poll(time, device, &mut sockets);
             let event = sockets.get_mut::<dhcpv4::Socket>(dhcp_handle).poll();

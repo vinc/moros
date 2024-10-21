@@ -368,7 +368,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 return Ok(());
             }
 
-            let ms = (clock::realtime() * 1000000.0) as i64;
+            let ms = (clock::epoch_time() * 1000000.0) as i64;
             let time = Instant::from_micros(ms);
             iface.poll(time, device, &mut sockets);
 

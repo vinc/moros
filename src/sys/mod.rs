@@ -20,18 +20,18 @@ macro_rules! debug {
 macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
-            let uptime = $crate::sys::clock::uptime();
+            let time = $crate::sys::clk::boot_time();
             let csi_color = $crate::api::console::Style::color("lime");
             let csi_reset = $crate::api::console::Style::reset();
             $crate::sys::console::print_fmt(format_args!(
                 "{}[{:.6}]{} {}\n",
-                csi_color, uptime, csi_reset, format_args!($($arg)*)
+                csi_color, time, csi_reset, format_args!($($arg)*)
             ));
 
-            let realtime = $crate::sys::clock::realtime();
+            let time = $crate::sys::clk::epoch_time();
             $crate::sys::log::write_fmt(format_args!(
                 "[{:.6}] {}\n",
-                realtime, format_args!($($arg)*)
+                time, format_args!($($arg)*)
             ));
         }
     });
@@ -39,8 +39,7 @@ macro_rules! log {
 
 pub mod acpi;
 pub mod ata;
-pub mod clock;
-pub mod cmos;
+pub mod clk;
 pub mod console;
 pub mod cpu;
 pub mod fs;
@@ -56,5 +55,4 @@ pub mod process;
 pub mod rng;
 pub mod serial;
 pub mod syscall;
-pub mod time;
 pub mod vga;

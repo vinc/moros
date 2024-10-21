@@ -15,7 +15,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let timestamp = if args.len() == 3 {
         args[2].parse().expect("Could not parse timestamp")
     } else {
-        clock::realtime()
+        clock::epoch_time()
     };
 
     let t = geodate::get_formatted_date(format, timestamp as i64, longitude);

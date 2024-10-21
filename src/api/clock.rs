@@ -18,10 +18,10 @@ fn read_float(path: &str) -> f64 {
     0.0
 }
 
-pub fn uptime() -> f64 {
-    read_float("/dev/clk/uptime")
+pub fn boot_time() -> f64 {
+    read_float("/dev/clk/boot")
 }
 
-pub fn realtime() -> f64 {
-    read_float("/dev/clk/realtime")
+pub fn epoch_time() -> f64 {
+    read_float("/dev/clk/epoch")
 }

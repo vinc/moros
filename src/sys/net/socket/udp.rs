@@ -60,10 +60,10 @@ impl UdpSocket {
 
     pub fn connect(&mut self, addr: IpAddress, port: u16) -> Result<(), ()> {
         let timeout = 5.0;
-        let started = sys::clock::realtime();
+        let started = sys::clk::epoch_time();
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             loop {
-                if sys::clock::realtime() - started > timeout {
+                if sys::clk::epoch_time() - started > timeout {
                     return Err(());
                 }
                 let mut sockets = SOCKETS.lock();
@@ -79,7 +79,7 @@ impl UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
         }
         self.remote_endpoint = Some(IpEndpoint::new(addr, port));
@@ -98,12 +98,12 @@ impl UdpSocket {
 impl FileIO for UdpSocket {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let timeout = 5.0;
-        let started = sys::clock::realtime();
+        let started = sys::clk::epoch_time();
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             let bytes;
             let mut sockets = SOCKETS.lock();
             loop {
-                if sys::clock::realtime() - started > timeout {
+                if sys::clk::epoch_time() - started > timeout {
                     return Err(());
                 }
                 iface.poll(sys::net::time(), device, &mut sockets);
@@ -122,7 +122,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
             Ok(bytes)
         } else {
@@ -132,12 +132,12 @@ impl FileIO for UdpSocket {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let timeout = 5.0;
-        let started = sys::clock::realtime();
+        let started = sys::clk::epoch_time();
         let mut sent = false;
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             let mut sockets = SOCKETS.lock();
             loop {
-                if sys::clock::realtime() - started > timeout {
+                if sys::clk::epoch_time() - started > timeout {
                     return Err(());
                 }
                 iface.poll(sys::net::time(), device, &mut sockets);
@@ -160,7 +160,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
             Ok(buf.len())
         } else {
@@ -185,7 +185,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
         }
     }

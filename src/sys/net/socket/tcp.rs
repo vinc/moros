@@ -56,10 +56,10 @@ impl TcpSocket {
     pub fn connect(&mut self, addr: IpAddress, port: u16) -> Result<(), ()> {
         let mut connecting = false;
         let timeout = 5.0;
-        let started = sys::clock::realtime();
+        let started = sys::clk::epoch_time();
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             loop {
-                if sys::clock::realtime() - started > timeout {
+                if sys::clk::epoch_time() - started > timeout {
                     return Err(());
                 }
                 let mut sockets = SOCKETS.lock();
@@ -91,7 +91,7 @@ impl TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
         }
         Ok(())
@@ -110,7 +110,7 @@ impl TcpSocket {
             if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                 wait(d);
             }
-            sys::time::halt();
+            sys::clk::halt();
             Ok(())
         } else {
             Err(())
@@ -119,10 +119,10 @@ impl TcpSocket {
 
     pub fn accept(&mut self) -> Result<IpAddress, ()> {
         let timeout = 5.0;
-        let started = sys::clock::realtime();
+        let started = sys::clk::epoch_time();
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             loop {
-                if sys::clock::realtime() - started > timeout {
+                if sys::clk::epoch_time() - started > timeout {
                     return Err(());
                 }
                 let mut sockets = SOCKETS.lock();
@@ -136,7 +136,7 @@ impl TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
         } else {
             Err(())
@@ -147,12 +147,12 @@ impl TcpSocket {
 impl FileIO for TcpSocket {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let timeout = 5.0;
-        let started = sys::clock::realtime();
+        let started = sys::clk::epoch_time();
         let mut bytes = 0;
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             let mut sockets = SOCKETS.lock();
             loop {
-                if sys::clock::realtime() - started > timeout {
+                if sys::clk::epoch_time() - started > timeout {
                     return Err(());
                 }
                 iface.poll(sys::net::time(), device, &mut sockets);
@@ -174,7 +174,7 @@ impl FileIO for TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
             Ok(bytes)
         } else {
@@ -184,12 +184,12 @@ impl FileIO for TcpSocket {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let timeout = 5.0;
-        let started = sys::clock::realtime();
+        let started = sys::clk::epoch_time();
         let mut sent = false;
         if let Some((ref mut iface, ref mut device)) = *sys::net::NET.lock() {
             let mut sockets = SOCKETS.lock();
             loop {
-                if sys::clock::realtime() - started > timeout {
+                if sys::clk::epoch_time() - started > timeout {
                     return Err(());
                 }
                 iface.poll(sys::net::time(), device, &mut sockets);
@@ -208,7 +208,7 @@ impl FileIO for TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
             Ok(buf.len())
         } else {
@@ -233,7 +233,7 @@ impl FileIO for TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::time::halt();
+                sys::clk::halt();
             }
         }
     }

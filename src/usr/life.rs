@@ -61,7 +61,7 @@ impl Game {
                 return;
             }
             print!("{}", self);
-            sys::time::sleep(1.0 / self.speed);
+            sys::clk::sleep(1.0 / self.speed);
             if self.is_game_over() {
                 continue; // Display the screen until ^C is received
             }

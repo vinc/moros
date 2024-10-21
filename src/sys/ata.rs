@@ -100,7 +100,7 @@ impl Bus {
     }
 
     fn wait(&mut self, ns: u64) {
-        sys::time::nanowait(ns);
+        sys::clk::wait(ns);
     }
 
     fn clear_interrupt(&mut self) -> u8 {
@@ -132,9 +132,9 @@ impl Bus {
     }
 
     fn poll(&mut self, bit: Status, val: bool) -> Result<(), ()> {
-        let start = sys::clock::uptime();
+        let start = sys::clk::boot_time();
         while self.status().get_bit(bit as usize) != val {
-            if sys::clock::uptime() - start > 1.0 {
+            if sys::clk::boot_time() - start > 1.0 {
                 debug!(
                     "ATA hanged while polling {:?} bit in status register",
                     bit
@@ -164,7 +164,7 @@ impl Bus {
             // Bit 7 => 1
             self.drive_register.write(0xA0 | (drive << 4))
         }
-        sys::time::nanowait(400); // Wait at least 400 ns
+        sys::clk::wait(400); // Wait at least 400 ns
         self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, false)?;
         Ok(())
@@ -392,7 +392,7 @@ impl FileIO for Drive {
     }
 
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
-        unimplemented!();
+        Err(())
     }
 
     fn close(&mut self) {

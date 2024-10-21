@@ -275,7 +275,7 @@ fn monitor() {
             }
             syscall::sleep(0.1);
 
-            let ms = (clock::realtime() * 1000000.0) as i64;
+            let ms = (clock::epoch_time() * 1000000.0) as i64;
             let time = Instant::from_micros(ms);
             iface.poll(time, device, &mut sockets);
             let socket = sockets.get_mut::<tcp::Socket>(tcp_handle);

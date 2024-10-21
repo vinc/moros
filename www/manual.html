@@ -94,9 +94,9 @@ Created &#39;/dev/ata/1&#39;
 Created &#39;/dev/ata/1/0&#39;
 Created &#39;/dev/ata/1/1&#39;
 Created &#39;/dev/clk&#39;
-Created &#39;/dev/clk/uptime&#39;
-Created &#39;/dev/clk/realtime&#39;
-Created &#39;/dev/rtc&#39;
+Created &#39;/dev/clk/boot&#39;
+Created &#39;/dev/clk/epoch&#39;
+Created &#39;/dev/clk/rtc&#39;
 Created &#39;/dev/null&#39;
 Created &#39;/dev/random&#39;
 Created &#39;/dev/console&#39;
@@ -290,7 +290,7 @@ Commands:
     <p>You can update the real time clock by writing the correct time to its device
 file:</p>
 
-    <pre><code>&gt; print &quot;2023-03-21 10:00:00&quot; =&gt; /dev/rtc
+    <pre><code>&gt; print &quot;2023-03-21 10:00:00&quot; =&gt; /dev/clk/rtc
 
 &gt; date
 2023-03-21 10:00:00 +0000
@@ -320,13 +320,13 @@ shell
 
     <p>There&#39;s a device file to get the number of seconds elapsed since Unix Epoch:</p>
 
-    <pre><code>&gt; read /dev/clk/realtime
+    <pre><code>&gt; read /dev/clk/epoch
 1682105344.624905
 </code></pre>
 
     <p>And another one since boot:</p>
 
-    <pre><code>&gt; read /dev/clk/uptime
+    <pre><code>&gt; read /dev/clk/boot
 1169.384929
 </code></pre>
 
@@ -337,7 +337,7 @@ shell
     <p>For example you can define an <code>uptime</code> command that will read the device file
 described above:</p>
 
-    <pre><code>&gt; alias uptime &quot;read /dev/clk/uptime&quot;
+    <pre><code>&gt; alias uptime &quot;read /dev/clk/boot&quot;
 
 &gt; uptime
 1406.304852
@@ -407,7 +407,7 @@ Hello, World!
     <pre><code>&gt; ntp
 2023-03-21 10:00:00
 
-&gt; ntp =&gt; /dev/rtc
+&gt; ntp =&gt; /dev/clk/rtc
 [12.111156] RTC 2023-03-21 10:00:00 +0000
 </code></pre>
   <footer><p><a href="/">MOROS</a></footer>

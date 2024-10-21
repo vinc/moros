@@ -163,5 +163,5 @@ passed as an argument or defined in `/ini/ntp`:
 
 It can be used to synchronize the real-time clock (RTC):
 
-    > ntp => /dev/rtc
+    > ntp => /dev/clk/rtc
     [42.123456] RTC 2023-03-21 10:00:00 +0000

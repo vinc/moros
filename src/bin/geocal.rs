@@ -37,7 +37,7 @@ fn main(args: &[&str]) {
     let timestamp = if args.len() == 4 {
         args[3].parse().unwrap()
     } else {
-        clock::realtime() as i64
+        clock::epoch_time() as i64
     };
 
     let week;

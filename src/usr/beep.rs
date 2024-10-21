@@ -9,9 +9,9 @@ use x86_64::instructions::port::Port;
 const SPEAKER_PORT: u16 = 0x61;
 
 fn start_sound(freq: f64) {
-    let divider = (sys::time::PIT_FREQUENCY / freq) as u16;
+    let divider = (sys::clk::pit_frequency() / freq) as u16;
     let channel = 2;
-    sys::time::set_pit_frequency_divider(divider, channel);
+    sys::clk::set_pit_frequency(divider, channel);
 
     let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
     let tmp = unsafe { speaker.read() };
