@@ -1,4 +1,4 @@
-pub mod beep;
+// pub mod beep; // TODO: Remove file
 pub mod calc;
 pub mod chess;
 pub mod copy;
@@ -13,7 +13,7 @@ pub mod elf;
 pub mod encode;
 pub mod env;
 pub mod find;
-//pub mod geodate;
+//pub mod geodate; // TODO: Remove file
 pub mod hash;
 pub mod help;
 pub mod hex;
