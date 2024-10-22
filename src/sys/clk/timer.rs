@@ -12,7 +12,7 @@ use x86_64::instructions::port::Port;
 // During init we will change the divider to 1193 to have about 1.000 ms
 // between ticks to improve time measurements accuracy.
 const PIT_FREQUENCY: f64 = 3_579_545.0 / 3.0; // 1_193_181.666 Hz
-const PIT_DIVIDER: usize = 1193;
+const PIT_DIVIDER: u16 = 1193;
 const PIT_INTERVAL: f64 = (PIT_DIVIDER as f64) / PIT_FREQUENCY;
 
 static PIT_TICKS: AtomicUsize = AtomicUsize::new(0);
@@ -74,9 +74,9 @@ pub fn rtc_interrupt_handler() {
 
 pub fn init() {
     // PIT timmer
-    let divider = if PIT_DIVIDER < 65536 { PIT_DIVIDER } else { 0 };
-    let channel = 0;
-    set_pit_frequency(divider as u16, channel);
+    let divider = PIT_DIVIDER;
+    let channel = 0; // PIC
+    set_pit_frequency(divider, channel);
     sys::idt::set_irq_handler(0, pit_interrupt_handler);
 
     // RTC timmer

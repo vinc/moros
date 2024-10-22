@@ -47,7 +47,7 @@ const SPEAKER_PORT: u16 = 0x61;
 fn start_sound(freq: f64) {
     debug!("speaker::start_sound({})", freq);
     let divider = (clk::pit_frequency() / freq) as u16;
-    let channel = 2;
+    let channel = 2; // PC Speaker
     clk::set_pit_frequency(divider, channel);
 
     let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
