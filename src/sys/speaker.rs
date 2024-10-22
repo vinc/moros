@@ -2,7 +2,7 @@ use super::clk;
 
 use crate::api::fs::{FileIO, IO};
 
-use core::convert::TryInto;
+use alloc::string::String;
 use x86_64::instructions::port::Port;
 
 #[derive(Debug, Clone)]
@@ -20,10 +20,13 @@ impl FileIO for Speaker {
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        if let Ok(bytes) = buf.try_into() {
-            match f64::from_be_bytes(bytes) {
-                0.0 => stop_sound(),
-                freq => start_sound(freq),
+        if let Ok(s) = String::from_utf8(buf.to_vec()) {
+            if let Ok(n) = s.parse() {
+                if n > 0.0 {
+                    start_sound(n);
+                } else {
+                    stop_sound();
+                }
             }
             return Ok(8);
         }
@@ -45,7 +48,6 @@ impl FileIO for Speaker {
 const SPEAKER_PORT: u16 = 0x61;
 
 fn start_sound(freq: f64) {
-    debug!("speaker::start_sound({})", freq);
     let divider = (clk::pit_frequency() / freq) as u16;
     let channel = 2; // PC Speaker
     clk::set_pit_frequency(divider, channel);
@@ -58,7 +60,6 @@ fn start_sound(freq: f64) {
 }
 
 fn stop_sound() {
-    debug!("speaker::stop_sound()");
     let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
     let tmp = unsafe { speaker.read() } & 0xFC;
     unsafe { speaker.write(tmp) };

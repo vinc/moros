@@ -3,11 +3,13 @@ use crate::api::process::ExitCode;
 use crate::api::fs;
 use crate::api::syscall;
 
+use alloc::string::ToString;
+
 const SPEAKER: &'static str = "/dev/speaker";
 
 fn start_sound(freq: f64) -> Result<(), ExitCode> {
-    let buf = freq.to_be_bytes();
-    if !fs::is_device(SPEAKER) || fs::write(SPEAKER, &buf).is_err() {
+    let buf = freq.to_string();
+    if !fs::is_device(SPEAKER) || fs::write(SPEAKER, buf.as_bytes()).is_err() {
         error!("Could not write to '{}'", SPEAKER);
         Err(ExitCode::Failure)
     } else {
