@@ -9,6 +9,7 @@ use crate::sys::console::Console;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
+use crate::sys::speaker::Speaker;
 use crate::sys::vga::{VgaFont, VgaMode, VgaPalette, VgaBuffer};
 
 use alloc::vec;
@@ -33,6 +34,7 @@ pub enum DeviceType {
     VgaFont    = 11,
     VgaMode    = 12,
     VgaPalette = 13,
+    Speaker    = 14,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -54,6 +56,7 @@ impl TryFrom<&[u8]> for DeviceType {
             11 => Ok(DeviceType::VgaFont),
             12 => Ok(DeviceType::VgaMode),
             13 => Ok(DeviceType::VgaPalette),
+            14 => Ok(DeviceType::Speaker),
              _ => Err(()),
         }
     }
@@ -98,6 +101,7 @@ pub enum Device {
     VgaFont(VgaFont),
     VgaMode(VgaMode),
     VgaPalette(VgaPalette),
+    Speaker(Speaker),
     Drive(Drive),
 }
 
@@ -119,6 +123,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::VgaFont    => Ok(Device::VgaFont(VgaFont::new())),
             DeviceType::VgaMode    => Ok(Device::VgaMode(VgaMode::new())),
             DeviceType::VgaPalette => Ok(Device::VgaPalette(VgaPalette::new())),
+            DeviceType::Speaker    => Ok(Device::Speaker(Speaker::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -181,6 +186,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.read(buf),
             Device::VgaMode(io)    => io.read(buf),
             Device::VgaPalette(io) => io.read(buf),
+            Device::Speaker(io)    => io.read(buf),
             Device::Drive(io)      => io.read(buf),
         }
     }
@@ -200,6 +206,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.write(buf),
             Device::VgaMode(io)    => io.write(buf),
             Device::VgaPalette(io) => io.write(buf),
+            Device::Speaker(io)    => io.write(buf),
             Device::Drive(io)      => io.write(buf),
         }
     }
@@ -219,6 +226,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.close(),
             Device::VgaMode(io)    => io.close(),
             Device::VgaPalette(io) => io.close(),
+            Device::Speaker(io)    => io.close(),
             Device::Drive(io)      => io.close(),
         }
     }
@@ -238,6 +246,7 @@ impl FileIO for Device {
             Device::VgaFont(io)    => io.poll(event),
             Device::VgaMode(io)    => io.poll(event),
             Device::VgaPalette(io) => io.poll(event),
+            Device::Speaker(io)    => io.poll(event),
             Device::Drive(io)      => io.poll(event),
         }
     }

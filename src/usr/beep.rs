@@ -1,35 +1,28 @@
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
-use crate::{api, sys};
+use crate::api::fs;
+use crate::api::syscall;
 
-use x86_64::instructions::port::Port;
+const SPEAKER: &'static str = "/dev/speaker";
 
-// See: https://wiki.osdev.org/PC_Speaker
-
-const SPEAKER_PORT: u16 = 0x61;
-
-fn start_sound(freq: f64) {
-    let divider = (sys::clk::pit_frequency() / freq) as u16;
-    let channel = 2;
-    sys::clk::set_pit_frequency(divider, channel);
-
-    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
-    let tmp = unsafe { speaker.read() };
-    if tmp != (tmp | 3) {
-        unsafe { speaker.write(tmp | 3) };
+fn start_sound(freq: f64) -> Result<(), ExitCode> {
+    let buf = freq.to_be_bytes();
+    if !fs::is_device(SPEAKER) || fs::write(SPEAKER, &buf).is_err() {
+        error!("Could not write to '{}'", SPEAKER);
+        Err(ExitCode::Failure)
+    } else {
+        Ok(())
     }
 }
 
-fn stop_sound() {
-    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
-    let tmp = unsafe { speaker.read() } & 0xFC;
-    unsafe { speaker.write(tmp) };
+fn stop_sound() -> Result<(), ExitCode> {
+    start_sound(0.0)
 }
 
-fn beep(freq: f64, len: f64) {
-    start_sound(freq);
-    api::syscall::sleep(len);
-    stop_sound();
+fn beep(freq: f64, len: f64) -> Result<(), ExitCode> {
+    start_sound(freq)?;
+    syscall::sleep(len);
+    stop_sound()
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -75,8 +68,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         i += 1;
     }
 
-    beep(freq, len / 1000.0);
-    Ok(())
+    beep(freq, len / 1000.0)
 }
 
 fn help() -> Result<(), ExitCode> {
