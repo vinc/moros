@@ -170,6 +170,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "vga-font"    => Ok(DeviceType::VgaFont),
         "vga-mode"    => Ok(DeviceType::VgaMode),
         "vga-palette" => Ok(DeviceType::VgaPalette),
+        "speaker"     => Ok(DeviceType::Speaker),
         "ata"         => Ok(DeviceType::Drive),
         _             => Err(()),
     }

@@ -57,11 +57,12 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/clk/boot", "clk-boot", verbose);
     create_dev("/dev/clk/epoch", "clk-epoch", verbose);
     create_dev("/dev/clk/rtc", "clk-rtc", verbose);
-    create_dev("/dev/null", "null", verbose);
-    create_dev("/dev/random", "random", verbose);
     create_dev("/dev/console", "console", verbose);
     create_dev("/dev/net/tcp", "tcp", verbose);
     create_dev("/dev/net/udp", "udp", verbose);
+    create_dev("/dev/null", "null", verbose);
+    create_dev("/dev/random", "random", verbose);
+    create_dev("/dev/speaker", "speaker", verbose);
     create_dev("/dev/vga/buffer", "vga-buffer", verbose);
     create_dev("/dev/vga/font", "vga-font", verbose);
     create_dev("/dev/vga/mode", "vga-mode", verbose);

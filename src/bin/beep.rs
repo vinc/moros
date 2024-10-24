@@ -1,33 +1,43 @@
-use crate::api::console::Style;
-use crate::api::process::ExitCode;
-use crate::api::fs;
-use crate::api::syscall;
+#![no_std]
+#![no_main]
+
+extern crate alloc;
+
+use moros::entry_point;
+use moros::{error, eprintln, eprint, println, print};
+
+use moros::api::console::Style;
+use moros::api::process::ExitCode;
+use moros::api::fs;
+use moros::api::syscall;
 
 use alloc::string::ToString;
 
+entry_point!(main);
+
 const SPEAKER: &'static str = "/dev/speaker";
 
-fn start_sound(freq: f64) -> Result<(), ExitCode> {
+fn start_sound(freq: f64) -> Result<(), ()> {
     let buf = freq.to_string();
     if !fs::is_device(SPEAKER) || fs::write(SPEAKER, buf.as_bytes()).is_err() {
         error!("Could not write to '{}'", SPEAKER);
-        Err(ExitCode::Failure)
+        Err(())
     } else {
         Ok(())
     }
 }
 
-fn stop_sound() -> Result<(), ExitCode> {
+fn stop_sound() -> Result<(), ()> {
     start_sound(0.0)
 }
 
-fn beep(freq: f64, len: f64) -> Result<(), ExitCode> {
+fn beep(freq: f64, len: f64) -> Result<(), ()> {
     start_sound(freq)?;
     syscall::sleep(len);
     stop_sound()
 }
 
-pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+pub fn main(args: &[&str]) {
     let mut freq = 440.0;
     let mut len = 200.0;
     let mut i = 1;
@@ -35,7 +45,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     while i < n {
         match args[i] {
             "-h" | "--help" => {
-                return help();
+                help();
+                return;
             }
             "-f" | "--freq" => {
                 if i + 1 < n {
@@ -44,11 +55,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         freq = value;
                     } else {
                         error!("Could not parse freq");
-                        return Err(ExitCode::Failure);
+                        syscall::exit(ExitCode::Failure);
                     }
                 } else {
                     error!("Missing freq");
-                    return Err(ExitCode::UsageError);
+                    syscall::exit(ExitCode::UsageError);
                 }
             }
             "-l" | "--len" => {
@@ -58,11 +69,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         len = value;
                     } else {
                         error!("Could not parse len");
-                        return Err(ExitCode::Failure);
+                        syscall::exit(ExitCode::Failure);
                     }
                 } else {
                     error!("Missing len");
-                    return Err(ExitCode::UsageError);
+                    syscall::exit(ExitCode::UsageError);
                 }
             }
             _ => {}
@@ -70,10 +81,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         i += 1;
     }
 
-    beep(freq, len / 1000.0)
+    if beep(freq, len / 1000.0).is_err() {
+        syscall::exit(ExitCode::Failure);
+    }
 }
 
-fn help() -> Result<(), ExitCode> {
+fn help() {
     let csi_option = Style::color("aqua");
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
@@ -91,5 +104,4 @@ fn help() -> Result<(), ExitCode> {
         "  {0}-l{1}, {0}--len <milliseconds>{1}    Tone length",
         csi_option, csi_reset
     );
-    Ok(())
 }
