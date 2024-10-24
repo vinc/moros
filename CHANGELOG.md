@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Add speaker device (#693)
+- List processors at boot (#692)
+- Create clock module (#691)
+- Create memory module (#690)
 - Add mandelbrot program (#689)
 - Refactor vga driver (#688)
 - Add VGA graphics (#687)
