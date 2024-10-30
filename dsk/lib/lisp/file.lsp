@@ -77,11 +77,11 @@
 
 (def (clock/boot)
   "Returns the number of seconds since boot"
-  (binary->number (read-binary "/dev/clk/boot") "float"))
+  (str->num (read "/dev/clk/boot")))
 
 (def (clock/epoch)
   "Returns the number of seconds since epoch"
-  (binary->number (read-binary "/dev/clk/epoch") "float"))
+  (str->num (read "/dev/clk/epoch")))
 
 # Path
 
