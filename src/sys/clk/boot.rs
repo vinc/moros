@@ -2,6 +2,8 @@ use super::timer;
 
 use crate::api::fs::{FileIO, IO};
 
+use alloc::format;
+
 #[derive(Debug, Clone)]
 pub struct BootTime;
 
@@ -11,16 +13,18 @@ impl BootTime {
     }
 
     pub fn size() -> usize {
-        core::mem::size_of::<f64>()
+        // Must be larger than 8 bytes to be readable as a block device
+        // Format: "<seconds>.<nanoseconds>" => at least 20 + 1 + 6 bytes
+        32
     }
 }
 
 impl FileIO for BootTime {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let time = boot_time().to_be_bytes();
+        let time = format!("{:.6}", boot_time());
         let n = time.len();
         if buf.len() >= n {
-            buf[0..n].clone_from_slice(&time);
+            buf[0..n].clone_from_slice(time.as_bytes());
             Ok(n)
         } else {
             Err(())
