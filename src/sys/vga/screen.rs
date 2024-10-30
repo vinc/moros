@@ -197,7 +197,8 @@ impl VgaMode {
     }
 
     pub fn size() -> usize {
-        16 // Must be larger than 8 bytes to be readable as a block device
+        // Must be at least 4 + 1 + 4 bytes: "<width>x<height>"
+        16
     }
 }
 

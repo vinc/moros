@@ -13,8 +13,7 @@ impl BootTime {
     }
 
     pub fn size() -> usize {
-        // Must be larger than 8 bytes to be readable as a block device
-        // Format: "<seconds>.<nanoseconds>" => at least 20 + 1 + 6 bytes
+        // Must be at least 20 + 1 + 6 bytes: "<seconds>.<nanoseconds>"
         32
     }
 }
