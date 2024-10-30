@@ -8,7 +8,6 @@ use crate::{api, usr};
 use alloc::borrow::ToOwned;
 use alloc::format;
 use alloc::vec::Vec;
-use core::convert::TryInto;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
@@ -94,7 +93,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             // file.
             let n = info.size();
             let is_char_device = n == 4;
-            let is_float_device = n == 8;
             let is_block_device = n > 8;
             loop {
                 if console::end_of_text() || console::end_of_transmission() {
@@ -114,12 +112,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             }
                             _ => {}
                         }
-                    }
-                    if is_float_device && bytes.len() == 8 {
-                        let f = f64::from_be_bytes(bytes[0..8].try_into().
-                            unwrap());
-                        println!("{:.6}", f);
-                        return Ok(());
                     }
                     for b in bytes {
                         print!("{}", b as char);
