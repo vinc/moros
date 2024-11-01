@@ -88,6 +88,7 @@ Reading a socket with a 1 byte buffer will return the status of the socket:
 |  4  | May Send     |
 |  5  | Can Recv     |
 |  6  | May Recv     |
+|  7  | Reserved     |
 +-----+--------------+
 ```
 
