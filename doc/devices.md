@@ -77,8 +77,10 @@ when reading or writing to a socket:
 
 Reading a socket with a 1 byte buffer will return the status of the socket:
 
+```
++-----+--------------+
 | Bit | Status       |
-| --- | ------------ |
++-----+--------------+
 |  0  | Is Listening |
 |  1  | Is Active    |
 |  2  | Is Open      |
@@ -86,6 +88,8 @@ Reading a socket with a 1 byte buffer will return the status of the socket:
 |  4  | May Send     |
 |  5  | Can Recv     |
 |  6  | May Recv     |
++-----+--------------+
+```
 
 ## Speaker
 
