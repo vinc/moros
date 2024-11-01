@@ -1,6 +1,6 @@
 # MOROS Devices
 
-Creating the device file system:
+Creating the devices in the file system:
 
 ```sh
 write /dev/
