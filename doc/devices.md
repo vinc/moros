@@ -66,6 +66,29 @@ flag will return a file handle for a TCP or UDP socket supporting the standard
 `READ` and `WRITE` syscalls after establishing a connection using the
 `CONNECT`, or `LISTEN` and `ACCEPT` syscalls.
 
+The size of those files give the maximum size of the buffer that can be used
+when reading or writing to a socket:
+
+```
+> list /dev/net
+1446 2024-09-28 09:57:55 tcp
+1458 2024-09-28 09:57:55 udp
+```
+
+Reading a socket with a 1 byte buffer will return the status of the socket:
+
+```rust
+pub enum SocketStatus {
+    IsListening = 0,
+    IsActive = 1,
+    IsOpen = 2,
+    CanSend = 3,
+    MaySend = 4,
+    CanRecv = 5,
+    MayRecv = 6,
+}
+```
+
 ## Speaker
 
 Playing a 440 Hz sound on the PC speaker:
