@@ -77,17 +77,15 @@ when reading or writing to a socket:
 
 Reading a socket with a 1 byte buffer will return the status of the socket:
 
-```rust
-pub enum SocketStatus {
-    IsListening = 0,
-    IsActive = 1,
-    IsOpen = 2,
-    CanSend = 3,
-    MaySend = 4,
-    CanRecv = 5,
-    MayRecv = 6,
-}
-```
+| Bit | Status       |
+| --- | ------------ |
+|  0  | Is Listening |
+|  1  | Is Active    |
+|  2  | Is Open      |
+|  3  | Can Send     |
+|  4  | May Send     |
+|  5  | Can Recv     |
+|  6  | May Recv     |
 
 ## Speaker
 
