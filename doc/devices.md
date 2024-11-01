@@ -59,6 +59,12 @@ Changing the system time:
 [580.327629] RTC 2025-01-01 00:00:00 +0000
 ```
 
+## Console Device
+
+Reading `/dev/console` with a 4 bytes buffer will return a character from the
+keyboard or the serial interface. Reading with a larger buffer will return a
+complete line.
+
 ## Network Devices
 
 Opening `/dev/net/tcp` or `/dev/net/udp` with the `OPEN` syscall and the device
