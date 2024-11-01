@@ -1,6 +1,9 @@
 # MOROS Devices
 
+Creating the device file system:
+
 ```sh
+write /dev/
 write /dev/ata/
 write /dev/ata/0/
 write /dev/ata/0/0 -d ata-0-0
