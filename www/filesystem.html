@@ -68,6 +68,9 @@ directory.</p>
 &gt; write /var/           # Variable files
 </code></pre>
 
+    <p>See the <a href="devices.html">devices</a> documentation to create the device files in the
+    <code>/dev</code> directory.</p>
+
     <p>Then the following should be added to the boot script with the
 command <code>edit /ini/boot.sh</code> to allow MOROS to finish booting:</p>
 
@@ -167,7 +170,7 @@ n = 512
     <p>A directory entry represents a file or a directory contained inside a
 directory. Each entry use a variable number of bytes that must fit inside the
 data of one block. Those bytes represent the kind of entry (file or dir), the
-address of the first block, the filesize (max 4GB), the last modified time in
+address of the first block, the filesize (max 4 GB), the last modified time in
 seconds since Unix Epoch, the length of the filename, and the filename (max
 255 chars) of the entry.</p>
 
@@ -186,7 +189,7 @@ m = 17 + n
 
     <h3>FileInfo</h3>
 
-    <p>The <code>info</code> syscall on a file or directory and the <code>read</code> syscall on a directory
+    <p>The <code>INFO</code> syscall on a file or directory and the <code>READ</code> syscall on a directory
 return a subset of a directory entry for userspace programs.</p>
 
     <p>Structure:</p>
