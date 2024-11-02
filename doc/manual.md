@@ -270,7 +270,7 @@ You can print the date with `date`:
 You can update the real time clock by writing the correct time to its device
 file:
 
-    > print "2023-03-21 10:00:00" => /dev/clk/rtc
+    > print 2023-03-21 10:00:00 => /dev/clk/rtc
 
     > date
     2023-03-21 10:00:00 +0000

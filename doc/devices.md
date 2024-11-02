@@ -55,7 +55,7 @@ Reading the real time clock (RTC):
 Changing the system time:
 
 ```
-> print "2025-01-01 00:00:00" => /dev/clk/rtc
+> print 2025-01-01 00:00:00 => /dev/clk/rtc
 [580.327629] RTC 2025-01-01 00:00:00 +0000
 ```
 
