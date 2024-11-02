@@ -180,7 +180,8 @@ Structure:
 ### FileInfo
 
 The `INFO` syscall on a file or directory and the `READ` syscall on a directory
-return a subset of a directory entry for userspace programs.
+return a subset of a directory entry for userspace programs. See the
+[syscalls](syscalls.md) documentation for more information.
 
 Structure:
 
