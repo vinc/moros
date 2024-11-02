@@ -14,7 +14,7 @@ fn exit(code: usize) -> usize
 ## SPAWN (0x02)
 
 ```rust
-fn spawn(path: &str) -> isize
+fn spawn(path: &str, args: &[&str]) -> isize
 ```
 
 ## READ (0x03)
@@ -129,9 +129,9 @@ fn connect(handle, usize, addr: IpAddress, port: u16) -> isize
 Connect a socket to an endpoint at the given `IpAddress` and port:
 
 ```rust
-struct Ipv4Address(pub [u8; 4]);
+struct Ipv4Address([u8; 4]);
 
-struct Ipv6Address(pub [u8; 16]);
+struct Ipv6Address([u8; 16]);
 
 enum IpAddress {
     Ipv4(Ipv4Address),
