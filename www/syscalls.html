@@ -35,6 +35,19 @@
     <pre><code class="rust">fn open(path: &amp;str, flags: usize) -&gt; isize
 </code></pre>
 
+    <p>The flags can be one or more of the following:</p>
+
+    <pre><code class="rust">enum OpenFlag {
+    Read     = 1,
+    Write    = 2,
+    Append   = 4,
+    Create   = 8,
+    Truncate = 16,
+    Dir      = 32,
+    Device   = 64,
+}
+</code></pre>
+
     <h2>CLOSE (0x06)</h2>
 
     <pre><code class="rust">fn close(handle: usize)
@@ -47,7 +60,7 @@
 
     <p>This syscall will set the following attributes of the given structure:</p>
 
-    <pre><code class="rust">pub struct FileInfo {
+    <pre><code class="rust">struct FileInfo {
     kind: FileType,
     size: u32,
     time: u64,
@@ -82,10 +95,39 @@
     <pre><code class="rust">fn poll(list: &amp;[(usize, IO)]) -&gt; isize
 </code></pre>
 
+    <p>Given a list of file handles and <code>IO</code> operations:</p>
+
+    <pre><code class="rust">enum IO {
+    Read,
+    Write,
+}
+</code></pre>
+
+    <p>This syscall will return the index of the first file handle in the list that is
+ready for the given <code>IO</code> operation or a negative number if no operations are
+available for any file handles.</p>
+
+    <p>For example polling the console will notify when a line is ready to be read,
+or polling a socket will notify when it can receive or send.</p>
+
     <h2>CONNECT (0x0D)</h2>
 
-    <pre><code class="rust">fn connect(handle, usize, addr: &amp;str, port: u16) -&gt; isize
+    <pre><code class="rust">fn connect(handle, usize, addr: IpAddress, port: u16) -&gt; isize
 </code></pre>
+
+    <p>Connect a socket to an endpoint at the given <code>IpAddress</code> and port:</p>
+
+    <pre><code class="rust">struct Ipv4Address(pub [u8; 4]);
+
+struct Ipv6Address(pub [u8; 16]);
+
+enum IpAddress {
+    Ipv4(Ipv4Address),
+    Ipv6(Ipv6Address),
+}
+</code></pre>
+
+    <p>NOTE: Only IPv4 is currently supported.</p>
 
     <h2>LISTEN (0x0E)</h2>
 
@@ -94,7 +136,7 @@
 
     <h2>ACCEPT (0x0F)</h2>
 
-    <pre><code class="rust">fn accept(handle, usize, addr: &amp;str) -&gt; isize
+    <pre><code class="rust">fn accept(handle, usize, addr: IpAddress) -&gt; isize
 </code></pre>
 
     <h2>ALLOC (0x10)</h2>
@@ -115,7 +157,7 @@
     <p>This syscall will return a integer corresponding to the <code>FileType</code> of the given
 file handle when successful:</p>
 
-    <pre><code class="rust">pub enum FileType {
+    <pre><code class="rust">enum FileType {
     Dir = 0,
     File = 1,
     Device = 2,

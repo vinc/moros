@@ -32,6 +32,20 @@ fn write(handle: usize, buf: &mut [u8]) -> isize
 fn open(path: &str, flags: usize) -> isize
 ```
 
+The flags can be one or more of the following:
+
+```rust
+enum OpenFlag {
+    Read     = 1,
+    Write    = 2,
+    Append   = 4,
+    Create   = 8,
+    Truncate = 16,
+    Dir      = 32,
+    Device   = 64,
+}
+```
+
 ## CLOSE (0x06)
 
 ```rust
@@ -47,7 +61,7 @@ fn info(path: &str, info: &mut FileInfo) -> isize
 This syscall will set the following attributes of the given structure:
 
 ```rust
-pub struct FileInfo {
+struct FileInfo {
     kind: FileType,
     size: u32,
     time: u64,
@@ -87,11 +101,42 @@ fn sleep(seconds: f64)
 fn poll(list: &[(usize, IO)]) -> isize
 ```
 
+Given a list of file handles and `IO` operations:
+
+```rust
+enum IO {
+    Read,
+    Write,
+}
+```
+
+This syscall will return the index of the first file handle in the list that is
+ready for the given `IO` operation or a negative number if no operations are
+available for any file handles.
+
+For example polling the console will notify when a line is ready to be read,
+or polling a socket will notify when it can receive or send.
+
 ## CONNECT (0x0D)
 
 ```rust
-fn connect(handle, usize, addr: &str, port: u16) -> isize
+fn connect(handle, usize, addr: IpAddress, port: u16) -> isize
 ```
+
+Connect a socket to an endpoint at the given `IpAddress` and port:
+
+```rust
+struct Ipv4Address(pub [u8; 4]);
+
+struct Ipv6Address(pub [u8; 16]);
+
+enum IpAddress {
+    Ipv4(Ipv4Address),
+    Ipv6(Ipv6Address),
+}
+```
+
+NOTE: Only IPv4 is currently supported.
 
 ## LISTEN (0x0E)
 
@@ -102,7 +147,7 @@ fn listen(handle, usize, port: u16) -> isize
 ## ACCEPT (0x0F)
 
 ```rust
-fn accept(handle, usize, addr: &str) -> isize
+fn accept(handle, usize, addr: IpAddress) -> isize
 ```
 
 ## ALLOC (0x10)
@@ -127,7 +172,7 @@ This syscall will return a integer corresponding to the `FileType` of the given
 file handle when successful:
 
 ```rust
-pub enum FileType {
+enum FileType {
     Dir = 0,
     File = 1,
     Device = 2,
