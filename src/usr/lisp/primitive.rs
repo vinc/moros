@@ -481,16 +481,16 @@ pub fn lisp_file_open(args: &[Exp]) -> Result<Exp, Err> {
     let mode = string(&args[1])?;
 
     let mut flags = match mode.as_ref() {
-        "a" => OpenFlag::Append as usize,
-        "r" => OpenFlag::Read as usize,
-        "w" => OpenFlag::Write as usize,
+        "a" => OpenFlag::Append as u8,
+        "r" => OpenFlag::Read as u8,
+        "w" => OpenFlag::Write as u8,
         _ => return expected!("valid mode"),
     };
     flags |= match syscall::info(&path) {
-        Some(info) if info.is_device() => OpenFlag::Device as usize,
-        Some(info) if info.is_dir() => OpenFlag::Dir as usize,
+        Some(info) if info.is_device() => OpenFlag::Device as u8,
+        Some(info) if info.is_dir() => OpenFlag::Dir as u8,
         None if &mode == "r" => return could_not!("open file"),
-        None => OpenFlag::Create as usize,
+        None => OpenFlag::Create as u8,
         _ => 0,
     };
 
@@ -549,7 +549,7 @@ pub fn lisp_socket_connect(args: &[Exp]) -> Result<Exp, Err> {
         Err(()) => return expected!("valid IP address"),
     };
     let port: usize = number(&args[2])?.try_into()?;
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(&format!("/dev/net/{}", kind), flags) {
         if syscall::connect(handle, addr, port as u16).is_ok() {
             return Ok(Exp::Num(Number::from(handle)));
@@ -562,7 +562,7 @@ pub fn lisp_socket_listen(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let kind = string(&args[0])?;
     let port: usize = number(&args[1])?.try_into()?;
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(&format!("/dev/net/{}", kind), flags) {
         if syscall::listen(handle, port as u16).is_ok() {
             return Ok(Exp::Num(Number::from(handle)));

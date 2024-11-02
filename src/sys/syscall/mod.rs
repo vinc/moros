@@ -50,7 +50,7 @@ pub fn dispatcher(
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
             let path = utf8_from_raw_parts(ptr, len);
-            let flags = arg3;
+            let flags = arg3 as u8;
             service::open(path, flags) as usize
         }
         number::READ => {

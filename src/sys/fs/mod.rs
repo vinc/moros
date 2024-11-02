@@ -43,12 +43,12 @@ pub enum OpenFlag {
 }
 
 impl OpenFlag {
-    fn is_set(&self, flags: usize) -> bool {
-        flags & (*self as usize) != 0
+    fn is_set(&self, flags: u8) -> bool {
+        flags & (*self as u8) != 0
     }
 }
 
-pub fn open(path: &str, flags: usize) -> Option<Resource> {
+pub fn open(path: &str, flags: u8) -> Option<Resource> {
     if OpenFlag::Dir.is_set(flags) {
         let res = Dir::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {

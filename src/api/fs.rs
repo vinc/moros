@@ -103,33 +103,33 @@ pub fn open_file(path: &str) -> Option<usize> {
 }
 
 pub fn append_file(path: &str) -> Option<usize> {
-    let flags = OpenFlag::Append as usize;
+    let flags = OpenFlag::Append as u8;
     syscall::open(path, flags)
 }
 
 pub fn create_file(path: &str) -> Option<usize> {
-    let flags = OpenFlag::Create as usize;
+    let flags = OpenFlag::Create as u8;
     syscall::open(path, flags)
 }
 
 pub fn open_dir(path: &str) -> Option<usize> {
-    let flags = OpenFlag::Dir as usize;
+    let flags = OpenFlag::Dir as u8;
     syscall::open(path, flags)
 }
 
 pub fn create_dir(path: &str) -> Option<usize> {
-    let flags = OpenFlag::Create as usize | OpenFlag::Dir as usize;
+    let flags = OpenFlag::Create as u8 | OpenFlag::Dir as u8;
     syscall::open(path, flags)
 }
 
 pub fn open_device(path: &str) -> Option<usize> {
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     syscall::open(path, flags)
 }
 
 pub fn create_device(path: &str, name: &str) -> Option<usize> {
     if let Ok(buf) = device_buffer(name) {
-        let flags = OpenFlag::Create as usize | OpenFlag::Device as usize;
+        let flags = OpenFlag::Create as u8 | OpenFlag::Device as u8;
         if let Some(handle) = syscall::open(path, flags) {
             syscall::write(handle, &buf);
             return Some(handle);

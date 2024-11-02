@@ -49,7 +49,7 @@ pub fn kind(handle: usize) -> Option<FileType> {
     }
 }
 
-pub fn open(path: &str, flags: usize) -> Option<usize> {
+pub fn open(path: &str, flags: u8) -> Option<usize> {
     let ptr = path.as_ptr() as usize;
     let len = path.len();
     let res = unsafe { syscall!(OPEN, ptr, len, flags) } as isize;
@@ -188,7 +188,7 @@ fn test_file() {
     assert_eq!(open("/test", flags), None);
 
     // Write file
-    let flags = OpenFlag::Create as usize;
+    let flags = OpenFlag::Create as u8;
     assert_eq!(open("/test", flags), Some(4));
     let input = "Hello, world!".as_bytes();
     assert_eq!(write(4, &input), Some(input.len()));

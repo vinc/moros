@@ -49,7 +49,7 @@ pub fn kind(handle: usize) -> isize {
     }
 }
 
-pub fn open(path: &str, flags: usize) -> isize {
+pub fn open(path: &str, flags: u8) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return -1,
