@@ -140,10 +140,11 @@ enum IO {
 
 This syscall will return the index of the first file handle in the list that is
 ready for the given `IO` operation or a negative number if no operations are
-available for any file handles.
+available for any file handles. The syscall is not blocking and will return
+immediately.
 
-For example polling the console will notify when a line is ready to be read,
-or polling a socket will notify when it can receive or send.
+For example polling the console will show when a line is ready to be read,
+or polling a socket will show when it can receive or send data.
 
 ## CONNECT (0x0D)
 
