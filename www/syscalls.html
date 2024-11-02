@@ -18,25 +18,35 @@ before the syscall is made.</p>
     <pre><code class="rust">fn exit(code: usize) -&gt; usize
 </code></pre>
 
+    <p>Terminate the calling process.</p>
+
     <h2>SPAWN (0x02)</h2>
 
-    <pre><code class="rust">fn spawn(path: &amp;str) -&gt; isize
+    <pre><code class="rust">fn spawn(path: &amp;str, args: &amp;[&amp;str]) -&gt; isize
 </code></pre>
+
+    <p>Spawn a process with the given list of arguments.</p>
 
     <h2>READ (0x03)</h2>
 
     <pre><code class="rust">fn read(handle: usize, buf: &amp;mut [u8]) -&gt; isize
 </code></pre>
 
+    <p>Read from a file handle to a buffer.</p>
+
     <h2>WRITE (0x04)</h2>
 
     <pre><code class="rust">fn write(handle: usize, buf: &amp;mut [u8]) -&gt; isize
 </code></pre>
 
+    <p>Write from a buffer to a file handle.</p>
+
     <h2>OPEN (0x05)</h2>
 
     <pre><code class="rust">fn open(path: &amp;str, flags: usize) -&gt; isize
 </code></pre>
+
+    <p>Open a file and return a file handle.</p>
 
     <p>The flags can be one or more of the following:</p>
 
@@ -51,15 +61,24 @@ before the syscall is made.</p>
 }
 </code></pre>
 
+    <p>The flags <code>OpenFlag::Create | OpenFlag::Dir</code> can be used to create a directory.</p>
+
+    <p>Reading a directory opened with <code>OpenFlag::Read | OpenFlag::Dir</code> will return a
+list of <code>FileInfo</code>, one for each file in the directory.</p>
+
     <h2>CLOSE (0x06)</h2>
 
     <pre><code class="rust">fn close(handle: usize)
 </code></pre>
 
+    <p>Close a file handle.</p>
+
     <h2>INFO (0x07)</h2>
 
     <pre><code class="rust">fn info(path: &amp;str, info: &amp;mut FileInfo) -&gt; isize
 </code></pre>
+
+    <p>Get informations on a file.</p>
 
     <p>This syscall will set the following attributes of the given structure:</p>
 
@@ -76,10 +95,14 @@ before the syscall is made.</p>
     <pre><code class="rust">fn dup(old_handle: usize, new_handle: usize) -&gt; isize
 </code></pre>
 
+    <p>Duplicate a file handle.</p>
+
     <h2>DELETE (0x09)</h2>
 
     <pre><code class="rust">fn delete(path: &amp;str) -&gt; isize
 </code></pre>
+
+    <p>Delete a file.</p>
 
     <h2>STOP (0x0A)</h2>
 
@@ -92,6 +115,8 @@ before the syscall is made.</p>
 
     <pre><code class="rust">fn sleep(seconds: f64)
 </code></pre>
+
+    <p>The system will sleep for the given amount of seconds.</p>
 
     <h2>POLL (0x0C)</h2>
 
@@ -120,9 +145,9 @@ or polling a socket will notify when it can receive or send.</p>
 
     <p>Connect a socket to an endpoint at the given <code>IpAddress</code> and port:</p>
 
-    <pre><code class="rust">struct Ipv4Address(pub [u8; 4]);
+    <pre><code class="rust">struct Ipv4Address([u8; 4]);
 
-struct Ipv6Address(pub [u8; 16]);
+struct Ipv6Address([u8; 16]);
 
 enum IpAddress {
     Ipv4(Ipv4Address),
@@ -137,20 +162,28 @@ enum IpAddress {
     <pre><code class="rust">fn listen(handle, usize, port: u16) -&gt; isize
 </code></pre>
 
+    <p>Listen for incoming connections on a socket.</p>
+
     <h2>ACCEPT (0x0F)</h2>
 
     <pre><code class="rust">fn accept(handle, usize, addr: IpAddress) -&gt; isize
 </code></pre>
+
+    <p>Accept incoming connection on a socket.</p>
 
     <h2>ALLOC (0x10)</h2>
 
     <pre><code class="rust">fn alloc(size: usize, align: usize) -&gt; *mut u8
 </code></pre>
 
+    <p>Allocate memory.</p>
+
     <h2>FREE (0x11)</h2>
 
     <pre><code class="rust">fn free(ptr: *mut u8, size: usize, align: usize)
 </code></pre>
+
+    <p>Free memory.</p>
 
     <h2>KIND (0x12)</h2>
 

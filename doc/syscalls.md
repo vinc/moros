@@ -59,6 +59,11 @@ enum OpenFlag {
 }
 ```
 
+The flags `OpenFlag::Create | OpenFlag::Dir` can be used to create a directory.
+
+Reading a directory opened with `OpenFlag::Read | OpenFlag::Dir` will return a
+list of `FileInfo`, one for each file in the directory.
+
 ## CLOSE (0x06)
 
 ```rust
