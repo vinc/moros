@@ -10,6 +10,9 @@
 
     <p>This list is unstable and subject to change between versions of MOROS.</p>
 
+    <p>Any structure in the arguments will be converted into a pointer and a length
+before the syscall is made.</p>
+
     <h2>EXIT (0x01)</h2>
 
     <pre><code class="rust">fn exit(code: usize) -&gt; usize

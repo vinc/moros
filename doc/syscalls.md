@@ -2,6 +2,9 @@
 
 This list is unstable and subject to change between versions of MOROS.
 
+Any structure in the arguments will be converted into a pointer and a length
+before the syscall is made.
+
 ## EXIT (0x01)
 
 ```rust
