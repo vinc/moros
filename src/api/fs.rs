@@ -118,7 +118,7 @@ pub fn open_dir(path: &str) -> Option<usize> {
 }
 
 pub fn create_dir(path: &str) -> Option<usize> {
-    let flags = OpenFlag::Create as u8 | OpenFlag::Dir as u8;
+    let flags = OpenFlag::Create | OpenFlag::Dir;
     syscall::open(path, flags)
 }
 
@@ -129,7 +129,7 @@ pub fn open_device(path: &str) -> Option<usize> {
 
 pub fn create_device(path: &str, name: &str) -> Option<usize> {
     if let Ok(buf) = device_buffer(name) {
-        let flags = OpenFlag::Create as u8 | OpenFlag::Device as u8;
+        let flags = OpenFlag::Create | OpenFlag::Device;
         if let Some(handle) = syscall::open(path, flags) {
             syscall::write(handle, &buf);
             return Some(handle);

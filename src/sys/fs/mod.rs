@@ -26,6 +26,7 @@ use super_block::SuperBlock;
 
 use alloc::string::{String, ToString};
 use core::convert::TryFrom;
+use core::ops::BitOr;
 
 pub const VERSION: u8 = 2;
 
@@ -46,6 +47,14 @@ impl OpenFlag {
     fn is_set(&self, flags: u8) -> bool {
         flags & (*self as u8) != 0
     }
+}
+
+impl BitOr for OpenFlag {
+   type Output = u8;
+
+   fn bitor(self, rhs: Self) -> Self::Output {
+       (self as u8) | (rhs as u8)
+   }
 }
 
 pub fn open(path: &str, flags: u8) -> Option<Resource> {
