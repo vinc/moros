@@ -1,5 +1,5 @@
 use crate::api::fs;
-use core::convert::TryInto;
+use alloc::string::String;
 
 pub const DATE_TIME_ZONE: &str = "%Y-%m-%d %H:%M:%S %z";
 pub const DATE_TIME: &str = "%Y-%m-%d %H:%M:%S";
@@ -11,8 +11,10 @@ pub const DATE_LEN: usize = 10;
 
 fn read_float(path: &str) -> f64 {
     if let Ok(bytes) = fs::read_to_bytes(path) {
-        if bytes.len() == 8 {
-            return f64::from_be_bytes(bytes[0..8].try_into().unwrap());
+        if let Ok(s) = String::from_utf8(bytes) {
+            if let Ok(n) = s.parse() {
+                return n;
+            }
         }
     }
     0.0
