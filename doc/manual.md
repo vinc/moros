@@ -5,37 +5,40 @@
 During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.
 
-    [0.250962] MOROS v0.10.4
-    [0.256961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
-    [0.256961] MEM [0x00000000001000-0x00000000004FFF] PageTable
-    [0.256961] MEM [0x00000000005000-0x00000000016FFF] Bootloader
-    [0.256961] MEM [0x00000000017000-0x00000000017FFF] BootInfo
-    [0.256961] MEM [0x00000000018000-0x0000000009EFFF] Kernel
-    [0.256961] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
-    [0.256961] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
-    [0.256961] MEM [0x00000000100000-0x00000000104FFF] Kernel
-    [0.256961] MEM [0x00000000105000-0x00000000304FFF] KernelStack
-    [0.256961] MEM [0x00000000305000-0x000000003FFFFF] Usable
-    [0.256961] MEM [0x00000000400000-0x000000005EEFFF] Kernel
-    [0.256961] MEM [0x000000005EF000-0x000000005FFFFF] PageTable
-    [0.256961] MEM [0x00000000600000-0x00000001FDFFFF] Usable
-    [0.256961] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
-    [0.256961] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
-    [0.256961] MEM 32704 KB
-    [0.282957] CPU GenuineIntel
-    [0.283957] CPU Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
-    [0.284957] RNG RDRAND unavailable
-    [0.291956] PCI 0000:00:00 [8086:1237]
-    [0.292955] PCI 0000:01:00 [8086:7000]
-    [0.292955] PCI 0000:01:01 [8086:7010]
-    [0.292955] PCI 0000:01:03 [8086:7113]
-    [0.293955] PCI 0000:02:00 [1234:1111]
-    [0.293955] PCI 0000:03:00 [8086:100E]
-    [0.301954] NET DRV E1000
-    [0.303954] NET MAC 52-54-00-12-34-56
-    [0.308953] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
-    [0.310953] MFS Superblock found in ATA 0:0
-    [0.315952] RTC 2024-06-19 11:54:13 +0000
+    [0.250962] SYS MOROS v0.10.4-89-g6b3f825
+    [0.254961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
+    [0.255961] MEM [0x00000000001000-0x00000000004FFF] PageTable
+    [0.256961] MEM [0x00000000005000-0x00000000014FFF] Bootloader
+    [0.256961] MEM [0x00000000015000-0x00000000015FFF] BootInfo
+    [0.257961] MEM [0x00000000016000-0x0000000009EFFF] Kernel
+    [0.258961] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
+    [0.259960] MEM [0x000000000A0000-0x000000000EFFFF] Unmapped
+    [0.260960] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
+    [0.261960] MEM [0x00000000100000-0x0000000010BFFF] Kernel
+    [0.261960] MEM [0x0000000010C000-0x0000000030BFFF] KernelStack
+    [0.262960] MEM [0x0000000030C000-0x000000003FFFFF] Usable
+    [0.262960] MEM [0x00000000400000-0x000000005FDFFF] Kernel
+    [0.263960] MEM [0x000000005FE000-0x0000000060EFFF] PageTable
+    [0.264960] MEM [0x0000000060F000-0x00000001FDFFFF] Usable
+    [0.264960] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
+    [0.265960] MEM [0x00000002000000-0x000000FFFBFFFF] Unmapped
+    [0.265960] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
+    [0.266959] RAM 31 MB
+    [0.363945] CPU GenuineIntel
+    [0.363945] CPU Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
+    [0.368944] CPU BP:0 running
+    [0.369944] CPU AP:1 waiting
+    [0.398939] RNG RDRAND unavailable
+    [0.413937] PCI 0000:00:00 [8086:1237]
+    [0.414937] PCI 0000:01:00 [8086:7000]
+    [0.414937] PCI 0000:01:01 [8086:7010]
+    [0.414937] PCI 0000:01:03 [8086:7113]
+    [0.415937] PCI 0000:02:00 [1234:1111]
+    [0.415937] PCI 0000:03:00 [8086:100E]
+    [0.422936] NET DRV E1000
+    [0.424935] NET MAC 52-54-00-12-34-56
+    [0.431934] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
+    [0.436933] RTC 2024-11-02 18:18:38 +0000
 
 ## Installation
 
@@ -62,82 +65,70 @@ commands to test the system or `install` to setup the
     MFS is now mounted to '/'
 
     Populating filesystem...
-    Created '/bin'
-    Created '/dev'
-    Created '/ini'
-    Created '/lib'
-    Created '/net'
-    Created '/src'
-    Created '/tmp'
-    Created '/usr'
-    Created '/var'
-    Fetched '/bin/clear'
-    Fetched '/bin/halt'
-    Fetched '/bin/ntp'
-    Fetched '/bin/print'
-    Fetched '/bin/reboot'
-    Fetched '/bin/sleep'
-    Created '/dev/ata'
-    Created '/dev/ata/0'
-    Created '/dev/ata/0/0'
-    Created '/dev/ata/0/1'
-    Created '/dev/ata/1'
-    Created '/dev/ata/1/0'
-    Created '/dev/ata/1/1'
-    Created '/dev/clk'
-    Created '/dev/clk/boot'
-    Created '/dev/clk/epoch'
-    Created '/dev/clk/rtc'
-    Created '/dev/null'
-    Created '/dev/random'
-    Created '/dev/console'
-    Created '/dev/net'
-    Created '/dev/net/tcp'
-    Created '/dev/net/udp'
-    Fetched '/ini/banner.txt'
-    Fetched '/ini/boot.sh'
-    Fetched '/ini/lisp.lsp'
-    Fetched '/ini/shell.sh'
-    Fetched '/ini/version.txt'
-    Created '/ini/palettes'
-    Fetched '/ini/palettes/gruvbox-dark.sh'
-    Fetched '/ini/palettes/gruvbox-light.sh'
-    Created '/ini/fonts'
-    Fetched '/ini/fonts/zap-light-8x16.psf'
-    Fetched '/ini/fonts/zap-vga-8x16.psf'
-    Created '/lib/lisp'
-    Fetched '/lib/lisp/alias.lsp'
-    Fetched '/lib/lisp/core.lsp'
-    Fetched '/lib/lisp/file.lsp'
-    Fetched '/tmp/alice.txt'
-    Fetched '/tmp/machines.txt'
-    Created '/tmp/lisp'
-    Fetched '/tmp/lisp/colors.lsp'
-    Fetched '/tmp/lisp/doc.lsp'
-    Fetched '/tmp/lisp/factorial.lsp'
-    Fetched '/tmp/lisp/fibonacci.lsp'
-    Fetched '/tmp/lisp/geotime.lsp'
-    Fetched '/tmp/lisp/pi.lsp'
-    Fetched '/tmp/lisp/sum.lsp'
-    Created '/tmp/life'
-    Fetched '/tmp/life/centinal.cells'
-    Fetched '/tmp/life/flower-of-eden.cells'
-    Fetched '/tmp/life/garden-of-eden.cells'
-    Fetched '/tmp/life/glider-gun.cells'
-    Fetched '/tmp/life/pentadecathlon.cells'
-    Fetched '/tmp/life/queen-bee-shuttle.cells'
-    Fetched '/tmp/life/ship-in-a-bottle.cells'
-    Fetched '/tmp/life/thunderbird.cells'
-    Fetched '/tmp/life/wing.cells'
-    Created '/tmp/beep'
-    Fetched '/tmp/beep/tetris.sh'
-    Fetched '/tmp/beep/starwars.sh'
-    Fetched '/tmp/beep/mario.sh'
-    Created '/var/log'
-    Created '/var/www'
-    Fetched '/var/www/index.html'
-    Fetched '/var/www/moros.css'
-    Fetched '/var/www/moros.png'
+    Creating '/bin'
+    Creating '/dev'
+    Creating '/ini'
+    Creating '/lib'
+    Creating '/net'
+    Creating '/src'
+    Creating '/tmp'
+    Creating '/usr'
+    Creating '/var'
+    Fetching '/bin/clear'
+    Fetching '/bin/get'
+    Fetching '/bin/halt'
+    Fetching '/bin/ntp'
+    Fetching '/bin/pkg'
+    Fetching '/bin/print'
+    Fetching '/bin/reboot'
+    Fetching '/bin/sleep'
+    Creating '/dev/ata'
+    Creating '/dev/ata/0'
+    Creating '/dev/ata/1'
+    Creating '/dev/clk'
+    Creating '/dev/net'
+    Creating '/dev/vga'
+    Creating '/dev/ata/0/0'
+    Creating '/dev/ata/0/1'
+    Creating '/dev/ata/1/0'
+    Creating '/dev/ata/1/1'
+    Creating '/dev/clk/boot'
+    Creating '/dev/clk/epoch'
+    Creating '/dev/clk/rtc'
+    Creating '/dev/console'
+    Creating '/dev/net/tcp'
+    Creating '/dev/net/udp'
+    Creating '/dev/null'
+    Creating '/dev/random'
+    Creating '/dev/speaker'
+    Creating '/dev/vga/buffer'
+    Creating '/dev/vga/font'
+    Creating '/dev/vga/mode'
+    Creating '/dev/vga/palette'
+    Fetching '/ini/banner.txt'
+    Fetching '/ini/boot.sh'
+    Fetching '/ini/lisp.lsp'
+    Fetching '/ini/shell.sh'
+    Fetching '/ini/version.txt'
+    Creating '/ini/palettes'
+    Fetching '/ini/palettes/default.sh'
+    Fetching '/ini/palettes/gruvbox-dark.sh'
+    Fetching '/ini/palettes/gruvbox-light.sh'
+    Creating '/ini/fonts'
+    Fetching '/ini/fonts/zap-light-8x16.psf'
+    Creating '/lib/lisp'
+    Fetching '/lib/lisp/alias.lsp'
+    Fetching '/lib/lisp/core.lsp'
+    Fetching '/lib/lisp/file.lsp'
+    Fetching '/lib/lisp/math.lsp'
+    Fetching '/tmp/alice.txt'
+    Fetching '/tmp/machines.txt'
+    Creating '/var/log'
+    Creating '/var/www'
+    Fetching '/var/www/index.html'
+    Fetching '/var/www/moros.css'
+    Fetching '/var/www/moros.png'
+    Creating '/var/pkg'
 
     Creating user...
     Username: vinc
