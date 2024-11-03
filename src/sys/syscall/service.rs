@@ -65,7 +65,7 @@ pub fn open(path: &str, flags: u8) -> isize {
 pub fn dup(old_handle: usize, new_handle: usize) -> isize {
     if let Some(file) = sys::process::handle(old_handle) {
         sys::process::update_handle(new_handle, *file);
-        return new_handle as isize;
+        return 0;
     }
     -1
 }

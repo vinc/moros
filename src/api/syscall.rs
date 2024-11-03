@@ -60,12 +60,12 @@ pub fn open(path: &str, flags: u8) -> Option<usize> {
     }
 }
 
-pub fn dup(old_handle: usize, new_handle: usize) -> Option<usize> {
+pub fn dup(old_handle: usize, new_handle: usize) -> Result<(), ()> {
     let res = unsafe { syscall!(DUP, old_handle, new_handle) } as isize;
     if res >= 0 {
-        Some(res as usize)
+        Ok(())
     } else {
-        None
+        Err(())
     }
 }
 

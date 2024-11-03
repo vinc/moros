@@ -248,9 +248,10 @@ pub fn reopen(path: &str, handle: usize, append: bool) -> Result<usize, ()> {
         create_file(path)
     };
     if let Some(old_handle) = res {
-        syscall::dup(old_handle, handle);
-        syscall::close(old_handle);
-        return Ok(handle);
+        if syscall::dup(old_handle, handle).is_ok() {
+            syscall::close(old_handle);
+            return Ok(handle);
+        }
     }
     Err(())
 }
