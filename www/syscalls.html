@@ -10,11 +10,11 @@
 
     <p>This list is unstable and subject to change between versions of MOROS.</p>
 
-    <p>Any structure in the arguments will be converted into a pointer and a length
-before the syscall is made.</p>
+    <p>Any reference to a slice in the arguments (like <code>&amp;str</code> or <code>&amp;[u8]</code>) will be
+converted into a pointer and a length before the syscall is made.</p>
 
-    <p>A negative number returned indicates that an error has occurred. In the
-userspace Rust API this will be often converted to a <code>Result</code> type.</p>
+    <p>Any negative number returned indicates that an error has occurred. In the
+higher level API, this will be typically converted to a <code>Result</code> type.</p>
 
     <h2>EXIT (0x01)</h2>
 
@@ -41,7 +41,7 @@ userspace Rust API this will be often converted to a <code>Result</code> type.</
 
     <h2>WRITE (0x04)</h2>
 
-    <pre><code class="rust">fn write(handle: usize, buf: &amp;mut [u8]) -&gt; isize
+    <pre><code class="rust">fn write(handle: usize, buf: &amp;[u8]) -&gt; isize
 </code></pre>
 
     <p>Write from a buffer to a file handle.</p>

@@ -2,11 +2,11 @@
 
 This list is unstable and subject to change between versions of MOROS.
 
-Any structure in the arguments will be converted into a pointer and a length
-before the syscall is made.
+Any reference to a slice in the arguments (like `&str` or `&[u8]`) will be
+converted into a pointer and a length before the syscall is made.
 
-A negative number returned indicates that an error has occurred. In the
-userspace Rust API this will be often converted to a `Result` type.
+Any negative number returned indicates that an error has occurred. In the
+higher level API, this will be typically converted to a `Result` type.
 
 ## EXIT (0x01)
 
@@ -37,7 +37,7 @@ Return the number of bytes read.
 ## WRITE (0x04)
 
 ```rust
-fn write(handle: usize, buf: &mut [u8]) -> isize
+fn write(handle: usize, buf: &[u8]) -> isize
 ```
 
 Write from a buffer to a file handle.
