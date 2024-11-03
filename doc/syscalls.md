@@ -17,7 +17,7 @@ syscall number set in the `RAX` register, and its arguments in the `RDI`,
 `RSI`, `RDX`, and `R8` registers. The `RAX` register is used for the return
 value.
 
-Hello world example in assembly:
+Hello world example in assembly using the `WRITE` and `EXIT` syscalls:
 
 ```nasm
 [bits 64]
@@ -135,7 +135,7 @@ Close a file handle.
 fn info(path: &str) -> Option<FileInfo>
 ```
 
-Get informations on a file.
+Get information on a file.
 
 A `FileInfo` will be returned when successful:
 

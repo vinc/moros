@@ -25,7 +25,7 @@ syscall number set in the <code>RAX</code> register, and its arguments in the <c
     <code>RSI</code>, <code>RDX</code>, and <code>R8</code> registers. The <code>RAX</code> register is used for the return
 value.</p>
 
-    <p>Hello world example in assembly:</p>
+    <p>Hello world example in assembly using the <code>WRITE</code> and <code>EXIT</code> syscalls:</p>
 
     <pre><code class="nasm">[bits 64]
 
@@ -133,7 +133,7 @@ list of <code>FileInfo</code>, one for each file in the directory.</p>
     <pre><code class="rust">fn info(path: &amp;str) -&gt; Option&lt;FileInfo&gt;
 </code></pre>
 
-    <p>Get informations on a file.</p>
+    <p>Get information on a file.</p>
 
     <p>A <code>FileInfo</code> will be returned when successful:</p>
 
