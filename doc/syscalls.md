@@ -5,6 +5,9 @@ This list is unstable and subject to change between versions of MOROS.
 Any structure in the arguments will be converted into a pointer and a length
 before the syscall is made.
 
+A negative number returned indicates that an error has occurred. In the
+userspace Rust API this will be often converted to a `Result` type.
+
 ## EXIT (0x01)
 
 ```rust

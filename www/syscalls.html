@@ -13,6 +13,9 @@
     <p>Any structure in the arguments will be converted into a pointer and a length
 before the syscall is made.</p>
 
+    <p>A negative number returned indicates that an error has occurred. In the
+userspace Rust API this will be often converted to a <code>Result</code> type.</p>
+
     <h2>EXIT (0x01)</h2>
 
     <pre><code class="rust">fn exit(code: usize)
