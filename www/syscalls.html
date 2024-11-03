@@ -15,7 +15,7 @@ before the syscall is made.</p>
 
     <h2>EXIT (0x01)</h2>
 
-    <pre><code class="rust">fn exit(code: usize) -&gt; usize
+    <pre><code class="rust">fn exit(code: usize)
 </code></pre>
 
     <p>Terminate the calling process.</p>
@@ -34,12 +34,16 @@ before the syscall is made.</p>
 
     <p>Read from a file handle to a buffer.</p>
 
+    <p>Return the number of bytes read.</p>
+
     <h2>WRITE (0x04)</h2>
 
     <pre><code class="rust">fn write(handle: usize, buf: &amp;mut [u8]) -&gt; isize
 </code></pre>
 
     <p>Write from a buffer to a file handle.</p>
+
+    <p>Return the number of bytes written.</p>
 
     <h2>OPEN (0x05)</h2>
 
@@ -141,7 +145,7 @@ or polling a socket will show when it can receive or send data.</p>
 
     <h2>CONNECT (0x0D)</h2>
 
-    <pre><code class="rust">fn connect(handle, usize, addr: IpAddress, port: u16) -&gt; isize
+    <pre><code class="rust">fn connect(handle: usize, addr: IpAddress, port: u16) -&gt; isize
 </code></pre>
 
     <p>Connect a socket to an endpoint at the given <code>IpAddress</code> and port:</p>
@@ -160,14 +164,14 @@ enum IpAddress {
 
     <h2>LISTEN (0x0E)</h2>
 
-    <pre><code class="rust">fn listen(handle, usize, port: u16) -&gt; isize
+    <pre><code class="rust">fn listen(handle: usize, port: u16) -&gt; isize
 </code></pre>
 
     <p>Listen for incoming connections on a socket.</p>
 
     <h2>ACCEPT (0x0F)</h2>
 
-    <pre><code class="rust">fn accept(handle, usize, addr: IpAddress) -&gt; isize
+    <pre><code class="rust">fn accept(handle: usize, addr: IpAddress) -&gt; isize
 </code></pre>
 
     <p>Accept incoming connection on a socket.</p>

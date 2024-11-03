@@ -8,7 +8,7 @@ before the syscall is made.
 ## EXIT (0x01)
 
 ```rust
-fn exit(code: usize) -> usize
+fn exit(code: usize)
 ```
 
 Terminate the calling process.
@@ -29,6 +29,8 @@ fn read(handle: usize, buf: &mut [u8]) -> isize
 
 Read from a file handle to a buffer.
 
+Return the number of bytes read.
+
 ## WRITE (0x04)
 
 ```rust
@@ -36,6 +38,8 @@ fn write(handle: usize, buf: &mut [u8]) -> isize
 ```
 
 Write from a buffer to a file handle.
+
+Return the number of bytes written.
 
 ## OPEN (0x05)
 
@@ -149,7 +153,7 @@ or polling a socket will show when it can receive or send data.
 ## CONNECT (0x0D)
 
 ```rust
-fn connect(handle, usize, addr: IpAddress, port: u16) -> isize
+fn connect(handle: usize, addr: IpAddress, port: u16) -> isize
 ```
 
 Connect a socket to an endpoint at the given `IpAddress` and port:
@@ -170,7 +174,7 @@ NOTE: Only IPv4 is currently supported.
 ## LISTEN (0x0E)
 
 ```rust
-fn listen(handle, usize, port: u16) -> isize
+fn listen(handle: usize, port: u16) -> isize
 ```
 
 Listen for incoming connections on a socket.
@@ -178,7 +182,7 @@ Listen for incoming connections on a socket.
 ## ACCEPT (0x0F)
 
 ```rust
-fn accept(handle, usize, addr: IpAddress) -> isize
+fn accept(handle: usize, addr: IpAddress) -> isize
 ```
 
 Accept incoming connection on a socket.
