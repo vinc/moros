@@ -180,7 +180,9 @@ pub fn free(ptr: *mut u8, size: usize, align: usize) {
 #[test_case]
 fn test_file() {
     use crate::sys::fs::{dismount, format_mem, mount_mem, OpenFlag};
+    use alloc::string::ToString;
     use alloc::vec;
+
     mount_mem();
     format_mem();
 
@@ -204,6 +206,9 @@ fn test_file() {
     close(5);
 
     assert_eq!(open("/test", flags), Some(4));
+    assert_eq!(info("/test").map(|info| info.kind()), kind(4));
+    assert_eq!(info("/test").map(|info| info.name()), Some("test".to_string()));
+    assert_eq!(info("/test").map(|info| info.size()), Some(input.len() as u32));
 
     close(4);
 
