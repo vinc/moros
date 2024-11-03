@@ -10,18 +10,66 @@
 
     <p>This list is unstable and subject to change between versions of MOROS.</p>
 
-    <p>Any reference to a slice in the arguments (like <code>&amp;str</code> or <code>&amp;[u8]</code>) will be
-converted into a pointer and a length before the syscall is made.</p>
+    <p>Each syscall is documented with its raw interface and its high-level Rust API
+wrapper.</p>
+
+    <p>Any reference to a slice in the arguments (like <code>&amp;str</code> or <code>&amp;[u8]</code>) will need to
+be converted into a pointer and a length for the raw syscall.</p>
 
     <p>Any negative number returned indicates that an error has occurred. In the
-higher level API, this will be typically converted to a <code>Result</code> type.</p>
+higher-level API, this will be typically converted to an <code>Option</code> or a <code>Result</code>
+type.</p>
+
+    <p>At the lowest level a syscalls follows the System V ABI convention with the
+syscall number set in the <code>RAX</code> register, and its arguments in the <code>RDI</code>,
+    <code>RSI</code>, <code>RDX</code>, and <code>R8</code> registers. The <code>RAX</code> register is used for the return
+value.</p>
+
+    <p>Hello world example in assembly:</p>
+
+    <pre><code class="nasm">[bits 64]
+
+section .data
+msg: db &quot;Hello, World!&quot;, 10
+len: equ $-msg
+
+global _start
+section .text
+_start:
+  mov rax, 4                ; syscall number for WRITE
+  mov rdi, 1                ; standard output
+  mov rsi, msg              ; addr of string
+  mov rdx, len              ; size of string
+  int 0x80
+
+  mov rax, 1                ; syscall number for EXIT
+  mov rdi, 0                ; no error
+  int 0x80
+</code></pre>
 
     <h2>EXIT (0x01)</h2>
 
-    <pre><code class="rust">fn exit(code: usize)
+    <pre><code class="rust">fn exit(code: ExitCode)
 </code></pre>
 
     <p>Terminate the calling process.</p>
+
+    <p>The code can be one of the following:</p>
+
+    <pre><code class="rust">pub enum ExitCode {
+    Success        =   0,
+    Failure        =   1,
+    UsageError     =  64,
+    DataError      =  65,
+    OpenError      = 128,
+    ReadError      = 129,
+    ExecError      = 130,
+    PageFaultError = 200,
+    ShellExit      = 255,
+}
+</code></pre>
+
+    <p>The <code>ExitCode</code> is converted to a <code>usize</code> for the raw syscall.</p>
 
     <h2>SPAWN (0x02)</h2>
 
@@ -50,7 +98,7 @@ higher level API, this will be typically converted to a <code>Result</code> type
 
     <h2>OPEN (0x05)</h2>
 
-    <pre><code class="rust">fn open(path: &amp;str, flags: usize) -&gt; isize
+    <pre><code class="rust">fn open(path: &amp;str, flags: u8) -&gt; isize
 </code></pre>
 
     <p>Open a file and return a file handle.</p>
@@ -82,12 +130,12 @@ list of <code>FileInfo</code>, one for each file in the directory.</p>
 
     <h2>INFO (0x07)</h2>
 
-    <pre><code class="rust">fn info(path: &amp;str, info: &amp;mut FileInfo) -&gt; isize
+    <pre><code class="rust">fn info(path: &amp;str) -&gt; Option&lt;FileInfo&gt;
 </code></pre>
 
     <p>Get informations on a file.</p>
 
-    <p>This syscall will set the following attributes of the given structure:</p>
+    <p>A <code>FileInfo</code> will be returned when successful:</p>
 
     <pre><code class="rust">struct FileInfo {
     kind: FileType,
@@ -96,6 +144,10 @@ list of <code>FileInfo</code>, one for each file in the directory.</p>
     name: String,
 }
 </code></pre>
+
+    <p>The raw syscall takes the pointer and the length of a mutable reference to a
+    <code>FileInfo</code> that will be overwritten on success and returns an <code>isize</code> to
+indicate the result of the operation.</p>
 
     <h2>DUP (0x08)</h2>
 
@@ -170,14 +222,18 @@ enum IpAddress {
     <pre><code class="rust">fn listen(handle: usize, port: u16) -&gt; isize
 </code></pre>
 
-    <p>Listen for incoming connections on a socket.</p>
+    <p>Listen for incoming connections to a socket.</p>
 
     <h2>ACCEPT (0x0F)</h2>
 
-    <pre><code class="rust">fn accept(handle: usize, addr: IpAddress) -&gt; isize
+    <pre><code class="rust">fn accept(handle: usize) -&gt; Result&lt;IpAddress&gt;
 </code></pre>
 
-    <p>Accept incoming connection on a socket.</p>
+    <p>Accept an incoming connection to a socket.</p>
+
+    <p>The raw syscall takes the pointer and the length of a mutable reference to an
+    <code>IpAddress</code> that will be overwritten on success and returns an <code>isize</code>
+indicating the result of the operation.</p>
 
     <h2>ALLOC (0x10)</h2>
 
@@ -195,11 +251,12 @@ enum IpAddress {
 
     <h2>KIND (0x12)</h2>
 
-    <pre><code class="rust">fn kind(handle: usize) -&gt; isize
+    <pre><code class="rust">fn kind(handle: usize) -&gt; Option&lt;FileType&gt;
 </code></pre>
 
-    <p>This syscall will return a integer corresponding to the <code>FileType</code> of the given
-file handle when successful:</p>
+    <p>Return the file type of a file handle.</p>
+
+    <p>A <code>FileType</code> will be returned when successful:</p>
 
     <pre><code class="rust">enum FileType {
     Dir = 0,
@@ -207,6 +264,9 @@ file handle when successful:</p>
     Device = 2,
 }
 </code></pre>
+
+    <p>The raw syscall returns an <code>isize</code> that will be converted a <code>FileType</code> if the
+number is positive.</p>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

@@ -2,19 +2,69 @@
 
 This list is unstable and subject to change between versions of MOROS.
 
-Any reference to a slice in the arguments (like `&str` or `&[u8]`) will be
-converted into a pointer and a length before the syscall is made.
+Each syscall is documented with its raw interface and its high-level Rust API
+wrapper.
+
+Any reference to a slice in the arguments (like `&str` or `&[u8]`) will need to
+be converted into a pointer and a length for the raw syscall.
 
 Any negative number returned indicates that an error has occurred. In the
-higher level API, this will be typically converted to a `Result` type.
+higher-level API, this will be typically converted to an `Option` or a `Result`
+type.
+
+At the lowest level a syscalls follows the System V ABI convention with the
+syscall number set in the `RAX` register, and its arguments in the `RDI`,
+`RSI`, `RDX`, and `R8` registers. The `RAX` register is used for the return
+value.
+
+Hello world example in assembly:
+
+```nasm
+[bits 64]
+
+section .data
+msg: db "Hello, World!", 10
+len: equ $-msg
+
+global _start
+section .text
+_start:
+  mov rax, 4                ; syscall number for WRITE
+  mov rdi, 1                ; standard output
+  mov rsi, msg              ; addr of string
+  mov rdx, len              ; size of string
+  int 0x80
+
+  mov rax, 1                ; syscall number for EXIT
+  mov rdi, 0                ; no error
+  int 0x80
+```
 
 ## EXIT (0x01)
 
 ```rust
-fn exit(code: usize)
+fn exit(code: ExitCode)
 ```
 
 Terminate the calling process.
+
+The code can be one of the following:
+
+```rust
+pub enum ExitCode {
+    Success        =   0,
+    Failure        =   1,
+    UsageError     =  64,
+    DataError      =  65,
+    OpenError      = 128,
+    ReadError      = 129,
+    ExecError      = 130,
+    PageFaultError = 200,
+    ShellExit      = 255,
+}
+```
+
+The `ExitCode` is converted to a `usize` for the raw syscall.
 
 ## SPAWN (0x02)
 
@@ -47,7 +97,7 @@ Return the number of bytes written.
 ## OPEN (0x05)
 
 ```rust
-fn open(path: &str, flags: usize) -> isize
+fn open(path: &str, flags: u8) -> isize
 ```
 
 Open a file and return a file handle.
@@ -82,12 +132,12 @@ Close a file handle.
 ## INFO (0x07)
 
 ```rust
-fn info(path: &str, info: &mut FileInfo) -> isize
+fn info(path: &str) -> Option<FileInfo>
 ```
 
 Get informations on a file.
 
-This syscall will set the following attributes of the given structure:
+A `FileInfo` will be returned when successful:
 
 ```rust
 struct FileInfo {
@@ -97,6 +147,10 @@ struct FileInfo {
     name: String,
 }
 ```
+
+The raw syscall takes the pointer and the length of a mutable reference to a
+`FileInfo` that will be overwritten on success and returns an `isize` to
+indicate the result of the operation.
 
 ## DUP (0x08)
 
@@ -180,15 +234,19 @@ NOTE: Only IPv4 is currently supported.
 fn listen(handle: usize, port: u16) -> isize
 ```
 
-Listen for incoming connections on a socket.
+Listen for incoming connections to a socket.
 
 ## ACCEPT (0x0F)
 
 ```rust
-fn accept(handle: usize, addr: IpAddress) -> isize
+fn accept(handle: usize) -> Result<IpAddress>
 ```
 
-Accept incoming connection on a socket.
+Accept an incoming connection to a socket.
+
+The raw syscall takes the pointer and the length of a mutable reference to an
+`IpAddress` that will be overwritten on success and returns an `isize`
+indicating the result of the operation.
 
 ## ALLOC (0x10)
 
@@ -209,11 +267,12 @@ Free memory.
 ## KIND (0x12)
 
 ```rust
-fn kind(handle: usize) -> isize
+fn kind(handle: usize) -> Option<FileType>
 ```
 
-This syscall will return a integer corresponding to the `FileType` of the given
-file handle when successful:
+Return the file type of a file handle.
+
+A `FileType` will be returned when successful:
 
 ```rust
 enum FileType {
@@ -222,3 +281,6 @@ enum FileType {
     Device = 2,
 }
 ```
+
+The raw syscall returns an `isize` that will be converted a `FileType` if the
+number is positive.
