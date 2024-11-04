@@ -114,14 +114,6 @@ pub fn stop(code: usize) {
     unsafe { syscall!(STOP, code) };
 }
 
-pub fn reboot() {
-    stop(0xCAFE);
-}
-
-pub fn halt() {
-    stop(0xDEAD);
-}
-
 pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {
     let ptr = list.as_ptr() as usize;
     let len = list.len();

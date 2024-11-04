@@ -1,4 +1,4 @@
-use crate::api::syscall;
+use crate::api;
 use crate::sys;
 
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -109,7 +109,7 @@ fn interrupt_handler() {
                 match key {
                     // Ctrl-Alt-Del
                     DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => {
-                        syscall::reboot()
+                        api::power::reboot()
                     }
 
                     DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
