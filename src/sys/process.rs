@@ -320,7 +320,7 @@ impl Process {
                 table[id].clone()
             };
             proc.exec(args_ptr, args_len);
-            Ok(())
+            unreachable!(); // The kernel switched to the child process
         } else {
             Err(ExitCode::ExecError)
         }

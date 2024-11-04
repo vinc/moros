@@ -72,10 +72,13 @@ _start:
 
     <h2>SPAWN (0x02)</h2>
 
-    <pre><code class="rust">fn spawn(path: &amp;str, args: &amp;[&amp;str]) -&gt; Result&lt;(), ExitCode&gt;
+    <pre><code class="rust">fn spawn(path: &amp;str, args: &amp;[&amp;str]) -&gt; ExitCode
 </code></pre>
 
     <p>Spawn a process with the given list of arguments.</p>
+
+    <p>This syscall will block until the child process is terminated. It will return
+the <code>ExitCode</code> passed by the child process to the <code>EXIT</code> syscall.</p>
 
     <h2>READ (0x03)</h2>
 

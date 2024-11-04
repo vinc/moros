@@ -1,6 +1,6 @@
 use crate::api::syscall;
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ExitCode {
     Success        =   0,
@@ -32,7 +32,10 @@ impl From<usize> for ExitCode {
 
 pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     if syscall::info(path).is_some() {
-        syscall::spawn(path, args)
+        match syscall::spawn(path, args) {
+            ExitCode::Success => Ok(()),
+            code => Err(code),
+        }
     } else {
         Err(ExitCode::OpenError)
     }

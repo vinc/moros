@@ -5,8 +5,8 @@ use crate::sys::syscall::number::*;
 use crate::syscall;
 
 use core::convert::TryFrom;
-use smoltcp::wire::IpAddress;
-use smoltcp::wire::Ipv4Address;
+use core::sync::atomic::{fence, Ordering};
+use smoltcp::wire::{IpAddress, Ipv4Address};
 
 pub fn exit(code: ExitCode) {
     unsafe { syscall!(EXIT, code as usize) };
@@ -95,7 +95,7 @@ pub fn close(handle: usize) {
     unsafe { syscall!(CLOSE, handle) };
 }
 
-pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
+pub fn spawn(path: &str, args: &[&str]) -> ExitCode {
     let path_ptr = path.as_ptr() as usize;
     let args_ptr = args.as_ptr() as usize;
     let path_len = path.len();
@@ -103,11 +103,12 @@ pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     let res = unsafe {
         syscall!(SPAWN, path_ptr, path_len, args_ptr, args_len)
     };
-    if res == 0 {
-        Ok(())
-    } else {
-        Err(ExitCode::from(res))
-    }
+
+    // Without the fence `res` would always be `0` instead of the code passed
+    // to the `exit` syscall by the child process.
+    fence(Ordering::SeqCst);
+
+    ExitCode::from(res)
 }
 
 pub fn stop(code: usize) {

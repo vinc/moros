@@ -109,7 +109,7 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
             if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
                 code
             } else {
-                ExitCode::Success
+                unreachable!(); // The kernel switched to the child process
             }
         } else {
             ExitCode::ReadError

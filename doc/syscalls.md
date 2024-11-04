@@ -68,10 +68,13 @@ The `ExitCode` is converted to a `usize` for the raw syscall.
 ## SPAWN (0x02)
 
 ```rust
-fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode>
+fn spawn(path: &str, args: &[&str]) -> ExitCode
 ```
 
 Spawn a process with the given list of arguments.
+
+This syscall will block until the child process is terminated. It will return
+the `ExitCode` passed by the child process to the `EXIT` syscall.
 
 ## READ (0x03)
 
