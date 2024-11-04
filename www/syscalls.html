@@ -16,9 +16,9 @@ wrapper.</p>
     <p>Any reference to a slice in the arguments (like <code>&amp;str</code> or <code>&amp;[u8]</code>) will need to
 be converted into a pointer and a length for the raw syscall.</p>
 
-    <p>Any negative number returned indicates that an error has occurred. In the
-higher-level API, this will be typically converted to an <code>Option</code> or a <code>Result</code>
-type.</p>
+    <p>Any negative number returned by a raw syscall indicates that an error has
+occurred. In the higher-level API, this will be typically converted to an
+    <code>Option</code> or a <code>Result</code> type.</p>
 
     <p>At the lowest level a syscalls follows the System V ABI convention with the
 syscall number set in the <code>RAX</code> register, and its arguments in the <code>RDI</code>,
@@ -73,32 +73,32 @@ _start:
 
     <h2>SPAWN (0x02)</h2>
 
-    <pre><code class="rust">fn spawn(path: &amp;str, args: &amp;[&amp;str]) -&gt; isize
+    <pre><code class="rust">fn spawn(path: &amp;str, args: &amp;[&amp;str]) -&gt; Result&lt;(), ExitCode&gt;
 </code></pre>
 
     <p>Spawn a process with the given list of arguments.</p>
 
     <h2>READ (0x03)</h2>
 
-    <pre><code class="rust">fn read(handle: usize, buf: &amp;mut [u8]) -&gt; isize
+    <pre><code class="rust">fn read(handle: usize, buf: &amp;mut [u8]) -&gt; Option&lt;usize&gt;
 </code></pre>
 
     <p>Read from a file handle to a buffer.</p>
 
-    <p>Return the number of bytes read.</p>
+    <p>Return the number of bytes read on success.</p>
 
     <h2>WRITE (0x04)</h2>
 
-    <pre><code class="rust">fn write(handle: usize, buf: &amp;[u8]) -&gt; isize
+    <pre><code class="rust">fn write(handle: usize, buf: &amp;[u8]) -&gt; Option&lt;usize&gt;
 </code></pre>
 
     <p>Write from a buffer to a file handle.</p>
 
-    <p>Return the number of bytes written.</p>
+    <p>Return the number of bytes written on success.</p>
 
     <h2>OPEN (0x05)</h2>
 
-    <pre><code class="rust">fn open(path: &amp;str, flags: u8) -&gt; isize
+    <pre><code class="rust">fn open(path: &amp;str, flags: u8) -&gt; Option&lt;usize&gt;
 </code></pre>
 
     <p>Open a file and return a file handle.</p>
@@ -151,14 +151,14 @@ indicate the result of the operation.</p>
 
     <h2>DUP (0x08)</h2>
 
-    <pre><code class="rust">fn dup(old_handle: usize, new_handle: usize) -&gt; isize
+    <pre><code class="rust">fn dup(old_handle: usize, new_handle: usize) -&gt; Result&lt;(), ()&gt;
 </code></pre>
 
     <p>Duplicate a file handle.</p>
 
     <h2>DELETE (0x09)</h2>
 
-    <pre><code class="rust">fn delete(path: &amp;str) -&gt; isize
+    <pre><code class="rust">fn delete(path: &amp;str) -&gt; Result&lt;(), ()&gt;
 </code></pre>
 
     <p>Delete a file.</p>
@@ -179,7 +179,7 @@ indicate the result of the operation.</p>
 
     <h2>POLL (0x0C)</h2>
 
-    <pre><code class="rust">fn poll(list: &amp;[(usize, IO)]) -&gt; isize
+    <pre><code class="rust">fn poll(list: &amp;[(usize, IO)]) -&gt; Option&lt;(usize, IO)&gt;
 </code></pre>
 
     <p>Given a list of file handles and <code>IO</code> operations:</p>
@@ -190,17 +190,17 @@ indicate the result of the operation.</p>
 }
 </code></pre>
 
-    <p>This syscall will return the index of the first file handle in the list that is
-ready for the given <code>IO</code> operation or a negative number if no operations are
-available for any file handles. The syscall is not blocking and will return
-immediately.</p>
+    <p>The index of the first file handle in the list that is ready for the given <code>IO</code>
+operation is returned by the raw syscall on success or a negative number if no
+operations are available for any file handles. The syscall is not blocking and
+will return immediately.</p>
 
     <p>For example polling the console will show when a line is ready to be read,
 or polling a socket will show when it can receive or send data.</p>
 
     <h2>CONNECT (0x0D)</h2>
 
-    <pre><code class="rust">fn connect(handle: usize, addr: IpAddress, port: u16) -&gt; isize
+    <pre><code class="rust">fn connect(handle: usize, addr: IpAddress, port: u16) -&gt; Result&lt;(), ()&gt;
 </code></pre>
 
     <p>Connect a socket to an endpoint at the given <code>IpAddress</code> and port:</p>
@@ -219,14 +219,14 @@ enum IpAddress {
 
     <h2>LISTEN (0x0E)</h2>
 
-    <pre><code class="rust">fn listen(handle: usize, port: u16) -&gt; isize
+    <pre><code class="rust">fn listen(handle: usize, port: u16) -&gt; Result&lt;(), ()&gt;
 </code></pre>
 
     <p>Listen for incoming connections to a socket.</p>
 
     <h2>ACCEPT (0x0F)</h2>
 
-    <pre><code class="rust">fn accept(handle: usize) -&gt; Result&lt;IpAddress&gt;
+    <pre><code class="rust">fn accept(handle: usize) -&gt; Result&lt;IpAddress, ()&gt;
 </code></pre>
 
     <p>Accept an incoming connection to a socket.</p>

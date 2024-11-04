@@ -8,9 +8,9 @@ wrapper.
 Any reference to a slice in the arguments (like `&str` or `&[u8]`) will need to
 be converted into a pointer and a length for the raw syscall.
 
-Any negative number returned indicates that an error has occurred. In the
-higher-level API, this will be typically converted to an `Option` or a `Result`
-type.
+Any negative number returned by a raw syscall indicates that an error has
+occurred. In the higher-level API, this will be typically converted to an
+`Option` or a `Result` type.
 
 At the lowest level a syscalls follows the System V ABI convention with the
 syscall number set in the `RAX` register, and its arguments in the `RDI`,
@@ -69,7 +69,7 @@ The `ExitCode` is converted to a `usize` for the raw syscall.
 ## SPAWN (0x02)
 
 ```rust
-fn spawn(path: &str, args: &[&str]) -> isize
+fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode>
 ```
 
 Spawn a process with the given list of arguments.
@@ -77,27 +77,27 @@ Spawn a process with the given list of arguments.
 ## READ (0x03)
 
 ```rust
-fn read(handle: usize, buf: &mut [u8]) -> isize
+fn read(handle: usize, buf: &mut [u8]) -> Option<usize>
 ```
 
 Read from a file handle to a buffer.
 
-Return the number of bytes read.
+Return the number of bytes read on success.
 
 ## WRITE (0x04)
 
 ```rust
-fn write(handle: usize, buf: &[u8]) -> isize
+fn write(handle: usize, buf: &[u8]) -> Option<usize>
 ```
 
 Write from a buffer to a file handle.
 
-Return the number of bytes written.
+Return the number of bytes written on success.
 
 ## OPEN (0x05)
 
 ```rust
-fn open(path: &str, flags: u8) -> isize
+fn open(path: &str, flags: u8) -> Option<usize>
 ```
 
 Open a file and return a file handle.
@@ -155,7 +155,7 @@ indicate the result of the operation.
 ## DUP (0x08)
 
 ```rust
-fn dup(old_handle: usize, new_handle: usize) -> isize
+fn dup(old_handle: usize, new_handle: usize) -> Result<(), ()>
 ```
 
 Duplicate a file handle.
@@ -163,7 +163,7 @@ Duplicate a file handle.
 ## DELETE (0x09)
 
 ```rust
-fn delete(path: &str) -> isize
+fn delete(path: &str) -> Result<(), ()>
 ```
 
 Delete a file.
@@ -187,7 +187,7 @@ The system will sleep for the given amount of seconds.
 ## POLL (0x0C)
 
 ```rust
-fn poll(list: &[(usize, IO)]) -> isize
+fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)>
 ```
 
 Given a list of file handles and `IO` operations:
@@ -199,10 +199,10 @@ enum IO {
 }
 ```
 
-This syscall will return the index of the first file handle in the list that is
-ready for the given `IO` operation or a negative number if no operations are
-available for any file handles. The syscall is not blocking and will return
-immediately.
+The index of the first file handle in the list that is ready for the given `IO`
+operation is returned by the raw syscall on success or a negative number if no
+operations are available for any file handles. The syscall is not blocking and
+will return immediately.
 
 For example polling the console will show when a line is ready to be read,
 or polling a socket will show when it can receive or send data.
@@ -210,7 +210,7 @@ or polling a socket will show when it can receive or send data.
 ## CONNECT (0x0D)
 
 ```rust
-fn connect(handle: usize, addr: IpAddress, port: u16) -> isize
+fn connect(handle: usize, addr: IpAddress, port: u16) -> Result<(), ()>
 ```
 
 Connect a socket to an endpoint at the given `IpAddress` and port:
@@ -231,7 +231,7 @@ NOTE: Only IPv4 is currently supported.
 ## LISTEN (0x0E)
 
 ```rust
-fn listen(handle: usize, port: u16) -> isize
+fn listen(handle: usize, port: u16) -> Result<(), ()>
 ```
 
 Listen for incoming connections to a socket.
@@ -239,7 +239,7 @@ Listen for incoming connections to a socket.
 ## ACCEPT (0x0F)
 
 ```rust
-fn accept(handle: usize) -> Result<IpAddress>
+fn accept(handle: usize) -> Result<IpAddress, ()>
 ```
 
 Accept an incoming connection to a socket.
