@@ -2,20 +2,19 @@
 
 This list is unstable and subject to change between versions of MOROS.
 
-Each syscall is documented with its raw interface and its high-level Rust API
-wrapper.
+Each syscall is documented with its high-level Rust API wrapper and details
+of the raw interface when needed.
 
 Any reference to a slice in the arguments (like `&str` or `&[u8]`) will need to
 be converted into a pointer and a length for the raw syscall.
 
 Any negative number returned by a raw syscall indicates that an error has
-occurred. In the higher-level API, this will be typically converted to an
+occurred. In the high-level API, this will be typically converted to an
 `Option` or a `Result` type.
 
-At the lowest level a syscalls follows the System V ABI convention with the
-syscall number set in the `RAX` register, and its arguments in the `RDI`,
-`RSI`, `RDX`, and `R8` registers. The `RAX` register is used for the return
-value.
+At the lowest level a syscall follows the System V ABI convention with its
+number set in the `RAX` register, and its arguments in the `RDI`, `RSI`, `RDX`,
+and `R8` registers. The `RAX` register is reused for the return value.
 
 Hello world example in assembly using the `WRITE` and `EXIT` syscalls:
 
@@ -149,7 +148,7 @@ struct FileInfo {
 ```
 
 The raw syscall takes the pointer and the length of a mutable reference to a
-`FileInfo` that will be overwritten on success and returns an `isize` to
+`FileInfo` that will be overwritten on success and returns a `isize` to
 indicate the result of the operation.
 
 ## DUP (0x08)
@@ -245,7 +244,7 @@ fn accept(handle: usize) -> Result<IpAddress, ()>
 Accept an incoming connection to a socket.
 
 The raw syscall takes the pointer and the length of a mutable reference to an
-`IpAddress` that will be overwritten on success and returns an `isize`
+`IpAddress` that will be overwritten on success and returns a `isize`
 indicating the result of the operation.
 
 ## ALLOC (0x10)
@@ -282,5 +281,5 @@ enum FileType {
 }
 ```
 
-The raw syscall returns an `isize` that will be converted a `FileType` if the
+The raw syscall returns a `isize` that will be converted a `FileType` if the
 number is positive.

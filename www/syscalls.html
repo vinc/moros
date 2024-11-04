@@ -10,20 +10,19 @@
 
     <p>This list is unstable and subject to change between versions of MOROS.</p>
 
-    <p>Each syscall is documented with its raw interface and its high-level Rust API
-wrapper.</p>
+    <p>Each syscall is documented with its high-level Rust API wrapper and details
+of the raw interface when needed.</p>
 
     <p>Any reference to a slice in the arguments (like <code>&amp;str</code> or <code>&amp;[u8]</code>) will need to
 be converted into a pointer and a length for the raw syscall.</p>
 
     <p>Any negative number returned by a raw syscall indicates that an error has
-occurred. In the higher-level API, this will be typically converted to an
+occurred. In the high-level API, this will be typically converted to an
     <code>Option</code> or a <code>Result</code> type.</p>
 
-    <p>At the lowest level a syscalls follows the System V ABI convention with the
-syscall number set in the <code>RAX</code> register, and its arguments in the <code>RDI</code>,
-    <code>RSI</code>, <code>RDX</code>, and <code>R8</code> registers. The <code>RAX</code> register is used for the return
-value.</p>
+    <p>At the lowest level a syscall follows the System V ABI convention with its
+number set in the <code>RAX</code> register, and its arguments in the <code>RDI</code>, <code>RSI</code>, <code>RDX</code>,
+and <code>R8</code> registers. The <code>RAX</code> register is reused for the return value.</p>
 
     <p>Hello world example in assembly using the <code>WRITE</code> and <code>EXIT</code> syscalls:</p>
 
@@ -146,7 +145,7 @@ list of <code>FileInfo</code>, one for each file in the directory.</p>
 </code></pre>
 
     <p>The raw syscall takes the pointer and the length of a mutable reference to a
-    <code>FileInfo</code> that will be overwritten on success and returns an <code>isize</code> to
+    <code>FileInfo</code> that will be overwritten on success and returns a <code>isize</code> to
 indicate the result of the operation.</p>
 
     <h2>DUP (0x08)</h2>
@@ -232,7 +231,7 @@ enum IpAddress {
     <p>Accept an incoming connection to a socket.</p>
 
     <p>The raw syscall takes the pointer and the length of a mutable reference to an
-    <code>IpAddress</code> that will be overwritten on success and returns an <code>isize</code>
+    <code>IpAddress</code> that will be overwritten on success and returns a <code>isize</code>
 indicating the result of the operation.</p>
 
     <h2>ALLOC (0x10)</h2>
@@ -265,7 +264,7 @@ indicating the result of the operation.</p>
 }
 </code></pre>
 
-    <p>The raw syscall returns an <code>isize</code> that will be converted a <code>FileType</code> if the
+    <p>The raw syscall returns a <code>isize</code> that will be converted a <code>FileType</code> if the
 number is positive.</p>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
