@@ -23,7 +23,7 @@ memory size, processor, devices, network cards, disks, and the real time clock.
     [0.264960] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
     [0.265960] MEM [0x00000002000000-0x000000FFFBFFFF] Unmapped
     [0.265960] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
-    [0.266959] RAM 31 MB
+    [0.266959] RAM 32 MB
     [0.363945] CPU GenuineIntel
     [0.363945] CPU Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
     [0.368944] CPU BP:0 running
