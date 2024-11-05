@@ -26,8 +26,13 @@ impl Base64 {
 
 #[test_case]
 fn test_base64() {
-    let decoded = b"Hello, World!";
-    let encoded = b"SGVsbG8sIFdvcmxkIQ";
-    assert_eq!(Base64::encode(decoded), encoded.to_vec());
-    assert_eq!(Base64::decode(encoded), Ok(decoded.to_vec()));
+    let tests = [
+        (b"abcdefghijklm", b"YWJjZGVmZ2hpamtsbQ"),
+        (b"Hello, World!", b"SGVsbG8sIFdvcmxkIQ"),
+        (b"~~~~~, ?????!", b"fn5+fn4sID8/Pz8/IQ"),
+    ];
+    for (decoded, encoded) in tests {
+        assert_eq!(Base64::encode(decoded), encoded.to_vec());
+        assert_eq!(Base64::decode(encoded), Ok(decoded.to_vec()));
+    }
 }
