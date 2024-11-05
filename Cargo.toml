@@ -18,7 +18,7 @@ userspace = []
 [dependencies]
 acpi = "5.0.0"
 aml = "0.16.4"
-base64 = { version = "0.13.1", default-features = false }
+base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 bit_field = "0.10.2"
 bootloader = { version = "0.9.29", features = ["map_physical_memory"] }
 lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
