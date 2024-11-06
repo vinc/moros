@@ -168,6 +168,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "net-udp"     => Ok(DeviceType::UdpSocket),
         "net-gw"      => Ok(DeviceType::NetGw),
         "net-ip"      => Ok(DeviceType::NetIp),
+        "net-mac"     => Ok(DeviceType::NetMac),
         "vga-buffer"  => Ok(DeviceType::VgaBuffer),
         "vga-font"    => Ok(DeviceType::VgaFont),
         "vga-mode"    => Ok(DeviceType::VgaMode),
