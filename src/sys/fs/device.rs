@@ -7,6 +7,7 @@ use crate::sys::ata::Drive;
 use crate::sys::clk::{RTC, EpochTime, BootTime};
 use crate::sys::console::Console;
 use crate::sys::net::gw::NetGw;
+use crate::sys::net::ip::NetIp;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
@@ -37,6 +38,7 @@ pub enum DeviceType {
     VgaPalette = 13,
     Speaker    = 14,
     NetGw      = 15,
+    NetIp      = 16,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -60,6 +62,7 @@ impl TryFrom<&[u8]> for DeviceType {
             13 => Ok(DeviceType::VgaPalette),
             14 => Ok(DeviceType::Speaker),
             15 => Ok(DeviceType::NetGw),
+            16 => Ok(DeviceType::NetIp),
              _ => Err(()),
         }
     }
@@ -82,6 +85,7 @@ impl DeviceType {
             DeviceType::VgaMode    => VgaMode::size(),
             DeviceType::VgaPalette => VgaPalette::size(),
             DeviceType::NetGw      => NetGw::size(),
+            DeviceType::NetIp      => NetIp::size(),
             _                      => 1,
         };
         let mut res = vec![0; len];
@@ -108,6 +112,7 @@ pub enum Device {
     VgaPalette(VgaPalette),
     Speaker(Speaker),
     NetGw(NetGw),
+    NetIp(NetIp),
 }
 
 impl TryFrom<&[u8]> for Device {
@@ -130,6 +135,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::VgaPalette => Ok(Device::VgaPalette(VgaPalette::new())),
             DeviceType::Speaker    => Ok(Device::Speaker(Speaker::new())),
             DeviceType::NetGw      => Ok(Device::NetGw(NetGw::new())),
+            DeviceType::NetIp      => Ok(Device::NetIp(NetIp::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -195,6 +201,7 @@ impl FileIO for Device {
             Device::Speaker(io)    => io.read(buf),
             Device::Drive(io)      => io.read(buf),
             Device::NetGw(io)      => io.read(buf),
+            Device::NetIp(io)      => io.read(buf),
         }
     }
 
@@ -216,6 +223,7 @@ impl FileIO for Device {
             Device::Speaker(io)    => io.write(buf),
             Device::Drive(io)      => io.write(buf),
             Device::NetGw(io)      => io.write(buf),
+            Device::NetIp(io)      => io.write(buf),
         }
     }
 
@@ -237,6 +245,7 @@ impl FileIO for Device {
             Device::Speaker(io)    => io.close(),
             Device::Drive(io)      => io.close(),
             Device::NetGw(io)      => io.close(),
+            Device::NetIp(io)      => io.close(),
         }
     }
 
@@ -258,6 +267,7 @@ impl FileIO for Device {
             Device::Speaker(io)    => io.poll(event),
             Device::Drive(io)      => io.poll(event),
             Device::NetGw(io)      => io.poll(event),
+            Device::NetIp(io)      => io.poll(event),
         }
     }
 }

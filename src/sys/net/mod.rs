@@ -1,5 +1,6 @@
 mod nic;
 pub mod gw;
+pub mod ip;
 pub mod socket;
 
 use crate::{sys, usr};
