@@ -58,8 +58,9 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/clk/epoch", "clk-epoch", verbose);
     create_dev("/dev/clk/rtc", "clk-rtc", verbose);
     create_dev("/dev/console", "console", verbose);
-    create_dev("/dev/net/tcp", "tcp", verbose);
-    create_dev("/dev/net/udp", "udp", verbose);
+    create_dev("/dev/net/tcp", "net-tcp", verbose);
+    create_dev("/dev/net/udp", "net-udp", verbose);
+    create_dev("/dev/net/gw", "net-gw", verbose);
     create_dev("/dev/null", "null", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/speaker", "speaker", verbose);
