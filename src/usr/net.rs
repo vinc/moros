@@ -109,6 +109,7 @@ fn print_config(attribute: &str) {
 const DNS_FILE: &str = "/ini/dns";
 
 fn dns_config() -> Option<String> {
+    warning!("This command is deprecated, use /dev/net/dns instead");
     if let Ok(value) = fs::read_to_string(DNS_FILE) {
         let servers = value.trim();
         if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
@@ -124,6 +125,7 @@ fn dns_config() -> Option<String> {
 }
 
 fn gw_config() -> Option<String> {
+    warning!("This command is deprecated, use /dev/net/gw instead");
     let mut res = None;
     if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
         iface.routes_mut().update(|storage| {
@@ -138,6 +140,7 @@ fn gw_config() -> Option<String> {
 }
 
 fn ip_config() -> Option<String> {
+    warning!("This command is deprecated, use /dev/net/ip instead");
     if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
         if let Some(ip_cidr) = iface.ip_addrs().iter().next() {
             return Some(format!(
@@ -151,6 +154,7 @@ fn ip_config() -> Option<String> {
 }
 
 fn mac_config() -> Option<String> {
+    warning!("This command is deprecated, use /dev/net/mac instead");
     if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
         return Some(iface.hardware_addr().to_string());
     } else {
@@ -186,6 +190,7 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "ip" => {
+            warning!("This command is deprecated, use /dev/net/ip instead");
             if let Ok(addr) = IpCidr::from_str(value) {
                 if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
                     iface.update_ip_addrs(|addrs| {
@@ -201,6 +206,7 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "gw" => {
+            warning!("This command is deprecated, use /dev/net/gw instead");
             if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
                 if value == "0.0.0.0" {
                     iface.routes_mut().remove_default_ipv4_route();
@@ -215,6 +221,7 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "dns" => {
+            warning!("This command is deprecated, use /ini/dns instead");
             let servers = value.trim();
             if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
                 let s = format!("{}\n", servers);
@@ -234,6 +241,7 @@ pub fn set_config(attribute: &str, value: &str) {
 }
 
 pub fn stat() {
+    warning!("This command is deprecated, use /dev/net/usage instead");
     if let Some((_, ref mut device)) = *sys::net::NET.lock() {
         let stats = device.stats();
         let csi_color = Style::color("aqua");
