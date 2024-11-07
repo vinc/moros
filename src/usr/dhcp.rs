@@ -1,10 +1,10 @@
 use crate::api::clock;
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::sys::console;
 use crate::sys::net;
-use crate::usr::shell;
 
 use alloc::format;
 use alloc::string::ToString;
@@ -74,21 +74,22 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::Failure);
     }
 
-    if let Some((address, router, dns_servers)) = dhcp_config {
-        shell::exec(&format!("net config ip {}", address)).ok();
+    if let Some((ip, gw, dns)) = dhcp_config {
+        fs::write("/dev/net/ip", ip.to_string().as_bytes()).ok();
 
-        if let Some(router) = router {
-            shell::exec(&format!("net config gw {}", router)).ok();
+        if let Some(gw) = gw {
+            fs::write("/dev/net/gw", gw.to_string().as_bytes()).ok();
         } else {
-            shell::exec("net config gw 0.0.0.0").ok();
+            fs::write("/dev/net/gw", b"0.0.0.0").ok();
         }
 
-        let dns: Vec<_> = dns_servers.iter().map(|s| s.to_string()).collect();
+        let dns: Vec<_> = dns.iter().map(|s| s.to_string()).collect();
         if !dns.is_empty() {
-            shell::exec(&format!("net config dns {}", dns.join(","))).ok();
+            let servers = dns.join(",");
+            if fs::write("/ini/dns", servers.as_bytes()).is_ok() {
+                log!("NET DNS {}", servers);
+            }
         }
-
-        return Ok(());
     }
 
     Err(ExitCode::Failure)
