@@ -9,6 +9,7 @@ use crate::sys::console::Console;
 use crate::sys::net::gw::NetGw;
 use crate::sys::net::ip::NetIp;
 use crate::sys::net::mac::NetMac;
+use crate::sys::net::usage::NetUsage;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
@@ -41,6 +42,7 @@ pub enum DeviceType {
     NetGw      = 15,
     NetIp      = 16,
     NetMac     = 17,
+    NetUsage   = 18,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -66,6 +68,7 @@ impl TryFrom<&[u8]> for DeviceType {
             15 => Ok(DeviceType::NetGw),
             16 => Ok(DeviceType::NetIp),
             17 => Ok(DeviceType::NetMac),
+            18 => Ok(DeviceType::NetUsage),
              _ => Err(()),
         }
     }
@@ -90,6 +93,7 @@ impl DeviceType {
             DeviceType::NetGw      => NetGw::size(),
             DeviceType::NetIp      => NetIp::size(),
             DeviceType::NetMac     => NetMac::size(),
+            DeviceType::NetUsage   => NetUsage::size(),
             _                      => 1,
         };
         let mut res = vec![0; len];
@@ -118,6 +122,7 @@ pub enum Device {
     NetGw(NetGw),
     NetIp(NetIp),
     NetMac(NetMac),
+    NetUsage(NetUsage),
 }
 
 impl TryFrom<&[u8]> for Device {
@@ -142,6 +147,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::NetGw      => Ok(Device::NetGw(NetGw::new())),
             DeviceType::NetIp      => Ok(Device::NetIp(NetIp::new())),
             DeviceType::NetMac     => Ok(Device::NetMac(NetMac::new())),
+            DeviceType::NetUsage   => Ok(Device::NetUsage(NetUsage::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -209,6 +215,7 @@ impl FileIO for Device {
             Device::NetGw(io)      => io.read(buf),
             Device::NetIp(io)      => io.read(buf),
             Device::NetMac(io)     => io.read(buf),
+            Device::NetUsage(io)   => io.read(buf),
         }
     }
 
@@ -232,6 +239,7 @@ impl FileIO for Device {
             Device::NetGw(io)      => io.write(buf),
             Device::NetIp(io)      => io.write(buf),
             Device::NetMac(io)     => io.write(buf),
+            Device::NetUsage(io)   => io.write(buf),
         }
     }
 
@@ -255,6 +263,7 @@ impl FileIO for Device {
             Device::NetGw(io)      => io.close(),
             Device::NetIp(io)      => io.close(),
             Device::NetMac(io)     => io.close(),
+            Device::NetUsage(io)   => io.close(),
         }
     }
 
@@ -278,6 +287,7 @@ impl FileIO for Device {
             Device::NetGw(io)      => io.poll(event),
             Device::NetIp(io)      => io.poll(event),
             Device::NetMac(io)     => io.poll(event),
+            Device::NetUsage(io)   => io.poll(event),
         }
     }
 }
