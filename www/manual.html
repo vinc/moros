@@ -107,6 +107,10 @@ Creating &#39;/dev/clk/rtc&#39;
 Creating &#39;/dev/console&#39;
 Creating &#39;/dev/net/tcp&#39;
 Creating &#39;/dev/net/udp&#39;
+Creating &#39;/dev/net/gw&#39;
+Creating &#39;/dev/net/ip&#39;
+Creating &#39;/dev/net/mac&#39;
+Creating &#39;/dev/net/usage&#39;
 Creating &#39;/dev/null&#39;
 Creating &#39;/dev/random&#39;
 Creating &#39;/dev/speaker&#39;
@@ -361,8 +365,8 @@ alias kbd  keyboard
 
     <h2>Network</h2>
 
-    <p>You can setup the <a href="network.html">network</a> manually with <code>net</code> or automatically
-with <code>dhcp</code>:</p>
+    <p>You can setup the <a href="network.html">network</a> manually with some network
+    <a href="devices.html">device files</a> or automatically with the <code>dhcp</code> command:</p>
 
     <pre><code>&gt; dhcp
 [8.801660] NET IP 10.0.2.15/24

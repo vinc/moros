@@ -1,6 +1,9 @@
 # MOROS Network
 
-## NET
+See the [devices](devices.md) documentation to manually setup the network using
+device files.
+
+## NET (deprecated)
 
 Display the network configuration:
 

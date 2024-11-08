@@ -17,8 +17,12 @@ write /dev/clk/epoch -d clk-epoch
 write /dev/clk/rtc -d clk-rtc
 write /dev/console -d console
 write /dev/net/
-write /dev/net/tcp -d tcp
-write /dev/net/udp -d udp
+write /dev/net/tcp -d net-tcp
+write /dev/net/udp -d net-udp
+write /dev/net/gw -d net-gw
+write /dev/net/ip -d net-ip
+write /dev/net/mac -d net-mac
+write /dev/net/usage -d net-usage
 write /dev/null -d null
 write /dev/random -d random
 write /dev/speaker -d speaker
@@ -66,6 +70,67 @@ keyboard or the serial interface. Reading with a larger buffer will return a
 complete line.
 
 ## Network Devices
+
+### Network Config Devices
+
+The prefered way to setup the network is to use the `dhcp` command:
+
+```
+> dhcp
+[958.810995] NET IP 10.0.2.15/24
+[958.812995] NET GW 10.0.2.2
+[958.818994] NET DNS 10.0.2.3
+```
+
+But it is possible to do it manually with the `/dev/net/ip` and `/dev/net/gw`
+device files, and the `/ini/dns` configuration file:
+
+```
+> print 10.0.2.15/24 => /dev/net/ip
+[975.123511] NET IP 10.0.2.15/24
+
+> print 10.0.2.2 => /dev/net/gw
+[985.646908] NET GW 10.0.2.2
+
+> print 10.0.2.3 => /ini/dns
+```
+
+Reading `/dev/net/mac` will return the MAC address:
+
+```
+> read /dev/net/mac
+52-54-00-12-34-56
+```
+
+### Network Usage Device
+
+Reading `/dev/net/usage` will return the network usage:
+
+```
+> read /dev/net/usage
+0 0 0 0
+
+> dhcp
+[7.910795] NET IP 10.0.2.15/24
+[7.911795] NET GW 10.0.2.2
+[7.915795] NET DNS 10.0.2.3
+
+> read /dev/net/usage
+2 1180 2 620
+
+> http example.com => /dev/null
+
+> read /dev/net/usage
+10 3306 10 1151
+```
+
+The output format is:
+
+```
+<recv packets> <recv bytes> <sent packets> <sent bytes>
+```
+
+### Network Socket Devices
 
 Opening `/dev/net/tcp` or `/dev/net/udp` with the `OPEN` syscall and the device
 flag will return a file handle for a TCP or UDP socket supporting the standard

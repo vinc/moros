@@ -98,6 +98,10 @@ commands to test the system or `install` to setup the
     Creating '/dev/console'
     Creating '/dev/net/tcp'
     Creating '/dev/net/udp'
+    Creating '/dev/net/gw'
+    Creating '/dev/net/ip'
+    Creating '/dev/net/mac'
+    Creating '/dev/net/usage'
     Creating '/dev/null'
     Creating '/dev/random'
     Creating '/dev/speaker'
@@ -334,8 +338,8 @@ for example you can use `e` instead of `edit` to edit a file.
 
 ## Network
 
-You can setup the [network](network.md) manually with `net` or automatically
-with `dhcp`:
+You can setup the [network](network.md) manually with some network
+[device files](devices.md) or automatically with the `dhcp` command:
 
     > dhcp
     [8.801660] NET IP 10.0.2.15/24
