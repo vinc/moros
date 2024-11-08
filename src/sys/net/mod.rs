@@ -1,4 +1,8 @@
 mod nic;
+pub mod gw;
+pub mod ip;
+pub mod mac;
+pub mod usage;
 pub mod socket;
 
 use crate::{sys, usr};
