@@ -1,9 +1,10 @@
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
-use crate::usr;
+
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -117,7 +118,7 @@ impl Message {
 }
 
 fn dns_address() -> Option<IpAddress> {
-    if let Some(servers) = usr::net::get_config("dns") {
+    if let Ok(servers) = fs::read_to_string("/ini/dns") {
         if let Some((server, _)) = servers.split_once(',') {
             if let Ok(addr) = IpAddress::from_str(server) {
                 return Some(addr);
