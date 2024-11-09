@@ -90,6 +90,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 log!("NET DNS {}", servers);
             }
         }
+        return Ok(());
     }
 
     Err(ExitCode::Failure)
