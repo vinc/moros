@@ -458,6 +458,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 fn content_type(path: &str) -> String {
     let ext = path.rsplit_once('.').unwrap_or(("", "")).1;
     match ext {
+        "bmp"          => "image/bmp",
         "css"          => "text/css",
         "csv"          => "text/csv",
         "gif"          => "text/gif",
