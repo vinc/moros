@@ -210,7 +210,7 @@ fn get(req: &Request, res: &mut Response) {
             "Location".to_string(),
             format!("{}/", req.path),
         );
-        res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
+        res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\n");
     } else {
         let mut not_found = true;
         for index in INDEX {
@@ -221,16 +221,7 @@ fn get(req: &Request, res: &mut Response) {
             if let Ok(buf) = fs::read_to_bytes(&real_path) {
                 res.code = 200;
                 res.mime = content_type(&real_path);
-                let tmp;
-                res.body.extend_from_slice(
-                    if res.mime.starts_with("text/") {
-                        tmp = String::from_utf8_lossy(&buf).to_string().
-                            replace("\n", "\r\n");
-                        tmp.as_bytes()
-                    } else {
-                        &buf
-                    },
-                );
+                res.body.extend_from_slice(&buf);
                 not_found = false;
                 break;
             }
@@ -240,22 +231,22 @@ fn get(req: &Request, res: &mut Response) {
                 res.code = 200;
                 res.mime = "text/html".to_string();
                 res.body.extend_from_slice(
-                    format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes()
+                    format!("<h1>Index of {}</h1>\n", req.path).as_bytes()
                 );
                 files.sort_by_key(|f| f.name());
                 for file in files {
-                    let path = format!("{}{}", req.path, file.name());
+                    let path = format!(
+                        "{}{}", req.path, file.name()
+                    );
                     let link = format!(
-                        "<li><a href=\"{}\">{}</a></li>\n",
-                        path,
-                        file.name()
+                        "<li><a href=\"{}\">{}</a></li>\n", path, file.name()
                     );
                     res.body.extend_from_slice(link.as_bytes());
                 }
             } else {
                 res.code = 404;
                 res.mime = "text/html".to_string();
-                res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
+                res.body.extend_from_slice(b"<h1>Not Found</h1>\n");
             }
         }
     }
@@ -413,7 +404,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         delete(&req, &mut res)
                                     }
                                     _ => {
-                                        let s = b"<h1>Bad Request</h1>\r\n";
+                                        let s = b"<h1>Bad Request</h1>\n";
                                         res.body.extend_from_slice(s);
                                         res.code = 400;
                                         res.mime = "text/html".to_string();
@@ -467,6 +458,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 fn content_type(path: &str) -> String {
     let ext = path.rsplit_once('.').unwrap_or(("", "")).1;
     match ext {
+        "bmp"          => "image/bmp",
         "css"          => "text/css",
         "csv"          => "text/csv",
         "gif"          => "text/gif",
