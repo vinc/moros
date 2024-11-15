@@ -205,6 +205,6 @@ It is possible to read the current palette from this device file.
 
 ### VGA Buffer Device
 
-Changing the VGA framebuffer is done by writting a 64 KB bytes buffer to
-`/dev/vga/buffer` containing the index of the color of each pixel on the
-screen while in `320x200` mode.
+Changing the VGA framebuffer is done by writting a 64 KB buffer to
+`/dev/vga/buffer` containing the color index of each pixel on the screen while
+in `320x200` mode.
