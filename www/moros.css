@@ -60,3 +60,11 @@ footer {
   margin-top: 2em;
   text-align: center;
 }
+h2::before {
+  color: #B17286;
+  content: "# ";
+}
+h3::before {
+  color: #B17286;
+  content: "## ";
+}
