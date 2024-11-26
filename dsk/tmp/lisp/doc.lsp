@@ -6,7 +6,8 @@
   (print (str
     "("
     (if (function? (eval f)) "\e[96m" "\e[92m") f "\e[0m" # name
-    (str " " (if (list? s) (str/join s " ") s)) # args
+    (if (nil? s) ""
+      (str " " (if (list? s) (str/join s " ") s))) # args
     ")"
     "\e[90m" (if (empty? d) "" " # ") d "\e[0m")))) # desc
 
