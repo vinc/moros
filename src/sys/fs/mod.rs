@@ -26,6 +26,7 @@ use super_block::SuperBlock;
 
 use alloc::string::{String, ToString};
 use core::convert::TryFrom;
+use core::ops::BitOr;
 
 pub const VERSION: u8 = 2;
 
@@ -43,12 +44,20 @@ pub enum OpenFlag {
 }
 
 impl OpenFlag {
-    fn is_set(&self, flags: usize) -> bool {
-        flags & (*self as usize) != 0
+    fn is_set(&self, flags: u8) -> bool {
+        flags & (*self as u8) != 0
     }
 }
 
-pub fn open(path: &str, flags: usize) -> Option<Resource> {
+impl BitOr for OpenFlag {
+   type Output = u8;
+
+   fn bitor(self, rhs: Self) -> Self::Output {
+       (self as u8) | (rhs as u8)
+   }
+}
+
+pub fn open(path: &str, flags: u8) -> Option<Resource> {
     if OpenFlag::Dir.is_set(flags) {
         let res = Dir::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {

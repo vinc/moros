@@ -82,7 +82,7 @@ When executed without arguments, this command will print the current directory.
     > read foo.txt or read bar.txt
 
 
-## Pipes and redirections (WIP)
+## Pipes and Redirections (WIP)
 
 A thin arrow `->` can be used for piping the output from one command to the
 input of another command (TODO):

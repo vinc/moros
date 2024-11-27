@@ -1,0 +1,238 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MOROS Devices</title>
+    <link rel="stylesheet" type="text/css" href="moros.css">
+  </head>
+  <body>
+    <h1>MOROS Devices</h1>
+
+    <p>Creating the devices in the file system:</p>
+
+    <pre><code>write /dev/
+write /dev/ata/
+write /dev/ata/0/
+write /dev/ata/0/0 -d ata-0-0
+write /dev/ata/0/1 -d ata-0-1
+write /dev/ata/1/
+write /dev/ata/1/0 -d ata-1-0
+write /dev/ata/1/1 -d ata-1-1
+write /dev/clk/
+write /dev/clk/boot -d clk-boot
+write /dev/clk/epoch -d clk-epoch
+write /dev/clk/rtc -d clk-rtc
+write /dev/console -d console
+write /dev/net/
+write /dev/net/tcp -d net-tcp
+write /dev/net/udp -d net-udp
+write /dev/net/gw -d net-gw
+write /dev/net/ip -d net-ip
+write /dev/net/mac -d net-mac
+write /dev/net/usage -d net-usage
+write /dev/null -d null
+write /dev/random -d random
+write /dev/speaker -d speaker
+write /dev/vga/
+write /dev/vga/buffer -d vga-buffer
+write /dev/vga/font -d vga-font
+write /dev/vga/mode -d vga-mode
+write /dev/vga/palette -d vga-palette
+</code></pre>
+
+    <h2>Clock Devices</h2>
+
+    <p>Reading the number of seconds since boot:</p>
+
+    <pre><code>&gt; read /dev/clk/boot
+89.570360
+</code></pre>
+
+    <p>Reading the number of seconds since Unix Epoch:</p>
+
+    <pre><code>&gt; read /dev/clk/epoch
+1730398385.175973
+</code></pre>
+
+    <p>Reading the real time clock (RTC):</p>
+
+    <pre><code>&gt; read /dev/clk/rtc
+2024-10-31 18:20:02
+</code></pre>
+
+    <p>Changing the system time:</p>
+
+    <pre><code>&gt; print 2025-01-01 00:00:00 =&gt; /dev/clk/rtc
+[580.327629] RTC 2025-01-01 00:00:00 +0000
+</code></pre>
+
+    <h2>Console Device</h2>
+
+    <p>Reading <code>/dev/console</code> with a 4 bytes buffer will return a character from the
+keyboard or the serial interface. Reading with a larger buffer will return a
+complete line.</p>
+
+    <h2>Network Devices</h2>
+
+    <h3>Network Config Devices</h3>
+
+    <p>The prefered way to setup the network is to use the <code>dhcp</code> command:</p>
+
+    <pre><code>&gt; dhcp
+[958.810995] NET IP 10.0.2.15/24
+[958.812995] NET GW 10.0.2.2
+[958.818994] NET DNS 10.0.2.3
+</code></pre>
+
+    <p>But it is possible to do it manually with the <code>/dev/net/ip</code> and <code>/dev/net/gw</code>
+device files, and the <code>/ini/dns</code> configuration file:</p>
+
+    <pre><code>&gt; print 10.0.2.15/24 =&gt; /dev/net/ip
+[975.123511] NET IP 10.0.2.15/24
+
+&gt; print 10.0.2.2 =&gt; /dev/net/gw
+[985.646908] NET GW 10.0.2.2
+
+&gt; print 10.0.2.3 =&gt; /ini/dns
+</code></pre>
+
+    <p>Reading <code>/dev/net/mac</code> will return the MAC address:</p>
+
+    <pre><code>&gt; read /dev/net/mac
+52-54-00-12-34-56
+</code></pre>
+
+    <h3>Network Usage Device</h3>
+
+    <p>Reading <code>/dev/net/usage</code> will return the network usage:</p>
+
+    <pre><code>&gt; read /dev/net/usage
+0 0 0 0
+
+&gt; dhcp
+[7.910795] NET IP 10.0.2.15/24
+[7.911795] NET GW 10.0.2.2
+[7.915795] NET DNS 10.0.2.3
+
+&gt; read /dev/net/usage
+2 1180 2 620
+
+&gt; http example.com =&gt; /dev/null
+
+&gt; read /dev/net/usage
+10 3306 10 1151
+</code></pre>
+
+    <p>The output format is:</p>
+
+    <pre><code>&lt;recv packets&gt; &lt;recv bytes&gt; &lt;sent packets&gt; &lt;sent bytes&gt;
+</code></pre>
+
+    <h3>Network Socket Devices</h3>
+
+    <p>Opening <code>/dev/net/tcp</code> or <code>/dev/net/udp</code> with the <code>OPEN</code> syscall and the device
+flag will return a file handle for a TCP or UDP socket supporting the standard
+    <code>READ</code> and <code>WRITE</code> syscalls after establishing a connection using the
+    <code>CONNECT</code>, or <code>LISTEN</code> and <code>ACCEPT</code> syscalls.</p>
+
+    <p>The size of those files give the maximum size of the buffer that can be used
+when reading or writing to a socket:</p>
+
+    <pre><code>&gt; list /dev/net
+1446 2024-09-28 09:57:55 tcp
+1458 2024-09-28 09:57:55 udp
+</code></pre>
+
+    <p>Reading a socket with a 1 byte buffer will return the status of the socket:</p>
+
+    <pre><code>+-----+--------------+
+| Bit | Status       |
++-----+--------------+
+|  0  | Is Listening |
+|  1  | Is Active    |
+|  2  | Is Open      |
+|  3  | Can Send     |
+|  4  | May Send     |
+|  5  | Can Recv     |
+|  6  | May Recv     |
+|  7  | Reserved     |
++-----+--------------+
+</code></pre>
+
+    <h2>Speaker Device</h2>
+
+    <p>Playing a 440 Hz sound on the PC speaker:</p>
+
+    <pre><code>&gt; print 440 =&gt; /dev/speaker
+</code></pre>
+
+    <p>Stopping the sound:</p>
+
+    <pre><code>&gt; print 0 =&gt; /dev/speaker
+</code></pre>
+
+    <h2>Null Device</h2>
+
+    <p>Writing to <code>/dev/null</code> will discard any data sent to it:</p>
+
+    <pre><code>&gt; print hello
+hello
+
+&gt; print hello =&gt; /dev/null
+</code></pre>
+
+    <p>It can be used to suppress errors:</p>
+
+    <pre><code>&gt; copy none.txt some.txt
+Error: Could not read file &#39;none.txt&#39;
+
+&gt; copy none.txt some.txt [2]=&gt; /dev/null
+</code></pre>
+
+    <h2>Random Device</h2>
+
+    <p>Reading from <code>/dev/random</code> will return bytes from a cryptographically secure
+random number generator that uses the <a href="https://en.wikipedia.org/wiki/HC-256">HC-128</a> algorithm seeded from the
+    <a href="https://en.wikipedia.org/wiki/RDRAND">RDRAND</a> instruction when available.</p>
+
+    <h2>VGA Devices</h2>
+
+    <h3>VGA Font Device</h3>
+
+    <p>Changing the VGA font:</p>
+
+    <pre><code>&gt; copy /ini/fonts/zap-light-8x16.psf /dev/vga/font
+</code></pre>
+
+    <h3>VGA Mode Device</h3>
+
+    <p>Changing the VGA mode:</p>
+
+    <pre><code>&gt; print 320x200 =&gt; /dev/vga/mode
+</code></pre>
+
+    <p>The accepted modes are:</p>
+
+    <ul>
+    <li><code>80x25</code> for the primary text mode with 16 colors</li>
+    <li><code>320x200</code> for the primary graphics mode with 256 colors</li>
+    <li><code>640x480</code> for the secondary graphics mode with 16 colors</li>
+    </ul>
+
+    <p>It is possible to read the current mode from this device file.</p>
+
+    <h3>VGA Palette Device</h3>
+
+    <p>Changing the VGA palette is done by writting a 768 bytes buffer to
+    <code>/dev/vga/palette</code> containing the RGB values of 256 colors.</p>
+
+    <p>It is possible to read the current palette from this device file.</p>
+
+    <h3>VGA Buffer Device</h3>
+
+    <p>Changing the VGA framebuffer is done by writting a 64 KB buffer to
+    <code>/dev/vga/buffer</code> containing the color index of each pixel on the screen while
+in <code>320x200</code> mode.</p>
+  <footer><p><a href="/">MOROS</a></footer>
+  </body>
+</html>

@@ -56,8 +56,15 @@ img {
   background: #28282878;
   padding: 2px;
 }
-
 footer {
   margin-top: 2em;
   text-align: center;
+}
+h2::before {
+  color: #B17286;
+  content: "# ";
+}
+h3::before {
+  color: #B17286;
+  content: "## ";
 }

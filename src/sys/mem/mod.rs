@@ -37,6 +37,9 @@ pub fn init(boot_info: &'static BootInfo) {
                 "MEM [{:#016X}-{:#016X}] {}", // "({} KB)"
                 last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
             );
+            if start_addr < (1 << 20) {
+                memory_size += hole; // BIOS memory
+            }
         }
         log!(
             "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
@@ -46,11 +49,10 @@ pub fn init(boot_info: &'static BootInfo) {
         last_end_addr = end_addr;
     }
 
-    // 0x000000000A0000-0x000000000EFFFF: + 320 KB of BIOS memory
-    // 0x000000FEFFC000-0x000000FEFFFFFF: - 256 KB of virtual memory
-    // 0x000000FFFC0000-0x000000FFFFFFFF: -  16 KB of virtual memory
-    memory_size += (320 - 256 - 16) << 10;
-
+    // FIXME: There are two small reserved areas at the end of the physical
+    // memory that should be removed from the count to be fully accurate but
+    // their sizes and location vary depending on the amount of RAM on the
+    // system. It doesn't affect the count in megabytes.
     log!("RAM {} MB", memory_size >> 20);
     MEMORY_SIZE.store(memory_size as usize, Ordering::Relaxed);
 

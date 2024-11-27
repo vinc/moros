@@ -77,7 +77,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut connected = false;
     let stdin = 0;
     let stdout = 1;
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(socket_path, flags) {
         if listen {
             if syscall::listen(handle, port).is_err() {

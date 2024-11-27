@@ -49,7 +49,7 @@ pub fn kind(handle: usize) -> isize {
     }
 }
 
-pub fn open(path: &str, flags: usize) -> isize {
+pub fn open(path: &str, flags: u8) -> isize {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
         Err(_) => return -1,
@@ -65,7 +65,7 @@ pub fn open(path: &str, flags: usize) -> isize {
 pub fn dup(old_handle: usize, new_handle: usize) -> isize {
     if let Some(file) = sys::process::handle(old_handle) {
         sys::process::update_handle(new_handle, *file);
-        return new_handle as isize;
+        return 0;
     }
     -1
 }
@@ -109,7 +109,7 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
             if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
                 code
             } else {
-                ExitCode::Success
+                unreachable!(); // The kernel switched to the child process
             }
         } else {
             ExitCode::ReadError

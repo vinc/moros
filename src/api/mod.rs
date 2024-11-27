@@ -89,6 +89,7 @@ pub mod console;
 pub mod font;
 pub mod fs;
 pub mod io;
+pub mod power;
 pub mod process;
 pub mod prompt;
 pub mod rng;

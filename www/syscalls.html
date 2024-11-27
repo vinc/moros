@@ -10,97 +10,265 @@
 
     <p>This list is unstable and subject to change between versions of MOROS.</p>
 
-    <h2>EXIT (0x1)</h2>
+    <p>Each syscall is documented with its high-level Rust API wrapper and details
+of the raw interface when needed.</p>
 
-    <pre><code class="rust">pub fn exit(code: usize) -&gt; usize
+    <p>Any reference to a slice in the arguments (like <code>&amp;str</code> or <code>&amp;[u8]</code>) will need to
+be converted into a pointer and a length for the raw syscall.</p>
+
+    <p>Any negative number returned by a raw syscall indicates that an error has
+occurred. In the high-level API, this will be typically converted to an
+    <code>Option</code> or a <code>Result</code> type.</p>
+
+    <p>At the lowest level a syscall follows the System V ABI convention with its
+number set in the <code>RAX</code> register, and its arguments in the <code>RDI</code>, <code>RSI</code>, <code>RDX</code>,
+and <code>R8</code> registers. The <code>RAX</code> register is reused for the return value.</p>
+
+    <p>Hello world example in assembly using the <code>WRITE</code> and <code>EXIT</code> syscalls:</p>
+
+    <pre><code class="nasm">[bits 64]
+
+section .data
+msg: db &quot;Hello, World!&quot;, 10
+len: equ $-msg
+
+global _start
+section .text
+_start:
+  mov rax, 4                ; syscall number for WRITE
+  mov rdi, 1                ; standard output
+  mov rsi, msg              ; addr of string
+  mov rdx, len              ; size of string
+  int 0x80
+
+  mov rax, 1                ; syscall number for EXIT
+  mov rdi, 0                ; no error
+  int 0x80
 </code></pre>
 
-    <h2>SPAWN (0x2)</h2>
+    <h2>EXIT (0x01)</h2>
 
-    <pre><code class="rust">pub fn spawn(path: &amp;str) -&gt; isize
+    <pre><code class="rust">fn exit(code: ExitCode)
 </code></pre>
 
-    <h2>READ (0x3)</h2>
+    <p>Terminate the calling process.</p>
 
-    <pre><code class="rust">pub fn read(handle: usize, buf: &amp;mut [u8]) -&gt; isize
+    <p>The code can be one of the following:</p>
+
+    <pre><code class="rust">pub enum ExitCode {
+    Success        =   0,
+    Failure        =   1,
+    UsageError     =  64,
+    DataError      =  65,
+    OpenError      = 128,
+    ReadError      = 129,
+    ExecError      = 130,
+    PageFaultError = 200,
+    ShellExit      = 255,
+}
 </code></pre>
 
-    <h2>WRITE (0x4)</h2>
+    <p>The <code>ExitCode</code> is converted to a <code>usize</code> for the raw syscall.</p>
 
-    <pre><code class="rust">pub fn write(handle: usize, buf: &amp;mut [u8]) -&gt; isize
+    <h2>SPAWN (0x02)</h2>
+
+    <pre><code class="rust">fn spawn(path: &amp;str, args: &amp;[&amp;str]) -&gt; ExitCode
 </code></pre>
 
-    <h2>OPEN (0x5)</h2>
+    <p>Spawn a process with the given list of arguments.</p>
 
-    <pre><code class="rust">pub fn open(path: &amp;str, flags: usize) -&gt; isize
+    <p>This syscall will block until the child process is terminated. It will return
+the <code>ExitCode</code> passed by the child process to the <code>EXIT</code> syscall.</p>
+
+    <h2>READ (0x03)</h2>
+
+    <pre><code class="rust">fn read(handle: usize, buf: &amp;mut [u8]) -&gt; Option&lt;usize&gt;
 </code></pre>
 
-    <h2>CLOSE (0x6)</h2>
+    <p>Read from a file handle to a buffer.</p>
 
-    <pre><code class="rust">pub fn close(handle: usize)
+    <p>Return the number of bytes read on success.</p>
+
+    <h2>WRITE (0x04)</h2>
+
+    <pre><code class="rust">fn write(handle: usize, buf: &amp;[u8]) -&gt; Option&lt;usize&gt;
 </code></pre>
 
-    <h2>INFO (0x7)</h2>
+    <p>Write from a buffer to a file handle.</p>
 
-    <pre><code class="rust">pub fn info(path: &amp;str, info: &amp;mut FileInfo) -&gt; isize
+    <p>Return the number of bytes written on success.</p>
+
+    <h2>OPEN (0x05)</h2>
+
+    <pre><code class="rust">fn open(path: &amp;str, flags: u8) -&gt; Option&lt;usize&gt;
 </code></pre>
 
-    <h2>DUP (0x8)</h2>
+    <p>Open a file and return a file handle.</p>
 
-    <pre><code class="rust">pub fn dup(old_handle: usize, new_handle: usize) -&gt; isize
+    <p>The flags can be one or more of the following:</p>
+
+    <pre><code class="rust">enum OpenFlag {
+    Read     = 1,
+    Write    = 2,
+    Append   = 4,
+    Create   = 8,
+    Truncate = 16,
+    Dir      = 32,
+    Device   = 64,
+}
 </code></pre>
 
-    <h2>DELETE (0x9)</h2>
+    <p>The flags <code>OpenFlag::Create | OpenFlag::Dir</code> can be used to create a directory.</p>
 
-    <pre><code class="rust">pub fn delete(path: &amp;str) -&gt; isize
+    <p>Reading a directory opened with <code>OpenFlag::Read | OpenFlag::Dir</code> will return a
+list of <code>FileInfo</code>, one for each file in the directory.</p>
+
+    <h2>CLOSE (0x06)</h2>
+
+    <pre><code class="rust">fn close(handle: usize)
 </code></pre>
 
-    <h2>STOP (0xA)</h2>
+    <p>Close a file handle.</p>
 
-    <pre><code class="rust">pub fn stop(code: usize)
+    <h2>INFO (0x07)</h2>
+
+    <pre><code class="rust">fn info(path: &amp;str) -&gt; Option&lt;FileInfo&gt;
+</code></pre>
+
+    <p>Get information on a file.</p>
+
+    <p>A <code>FileInfo</code> will be returned when successful:</p>
+
+    <pre><code class="rust">struct FileInfo {
+    kind: FileType,
+    size: u32,
+    time: u64,
+    name: String,
+}
+</code></pre>
+
+    <p>The raw syscall takes the pointer and the length of a mutable reference to a
+    <code>FileInfo</code> that will be overwritten on success and returns a <code>isize</code> to
+indicate the result of the operation.</p>
+
+    <h2>DUP (0x08)</h2>
+
+    <pre><code class="rust">fn dup(old_handle: usize, new_handle: usize) -&gt; Result&lt;(), ()&gt;
+</code></pre>
+
+    <p>Duplicate a file handle.</p>
+
+    <h2>DELETE (0x09)</h2>
+
+    <pre><code class="rust">fn delete(path: &amp;str) -&gt; Result&lt;(), ()&gt;
+</code></pre>
+
+    <p>Delete a file.</p>
+
+    <h2>STOP (0x0A)</h2>
+
+    <pre><code class="rust">fn stop(code: usize)
 </code></pre>
 
     <p>The system will reboot with <code>0xCAFE</code> and halt with <code>0xDEAD</code>.</p>
 
-    <h2>SLEEP (0xB)</h2>
+    <h2>SLEEP (0x0B)</h2>
 
-    <pre><code class="rust">pub fn sleep(seconds: f64)
+    <pre><code class="rust">fn sleep(seconds: f64)
 </code></pre>
 
-    <h2>POLL (0xC)</h2>
+    <p>The system will sleep for the given amount of seconds.</p>
 
-    <pre><code class="rust">pub fn poll(list: &amp;[(usize, IO)]) -&gt; isize
+    <h2>POLL (0x0C)</h2>
+
+    <pre><code class="rust">fn poll(list: &amp;[(usize, IO)]) -&gt; Option&lt;(usize, IO)&gt;
 </code></pre>
 
-    <h2>CONNECT (0xD)</h2>
+    <p>Given a list of file handles and <code>IO</code> operations:</p>
 
-    <pre><code class="rust">pub fn connect(handle, usize, addr: &amp;str, port: u16) -&gt; isize
+    <pre><code class="rust">enum IO {
+    Read,
+    Write,
+}
 </code></pre>
 
-    <h2>LISTEN (0xE)</h2>
+    <p>The index of the first file handle in the list that is ready for the given <code>IO</code>
+operation is returned by the raw syscall on success or a negative number if no
+operations are available for any file handles. The syscall is not blocking and
+will return immediately.</p>
 
-    <pre><code class="rust">pub fn listen(handle, usize, port: u16) -&gt; isize
+    <p>For example polling the console will show when a line is ready to be read,
+or polling a socket will show when it can receive or send data.</p>
+
+    <h2>CONNECT (0x0D)</h2>
+
+    <pre><code class="rust">fn connect(handle: usize, addr: IpAddress, port: u16) -&gt; Result&lt;(), ()&gt;
 </code></pre>
 
-    <h2>ACCEPT (0xF)</h2>
+    <p>Connect a socket to an endpoint at the given <code>IpAddress</code> and port:</p>
 
-    <pre><code class="rust">pub fn accept(handle, usize, addr: &amp;str) -&gt; isize
+    <pre><code class="rust">struct Ipv4Address([u8; 4]);
+
+struct Ipv6Address([u8; 16]);
+
+enum IpAddress {
+    Ipv4(Ipv4Address),
+    Ipv6(Ipv6Address),
+}
 </code></pre>
+
+    <p>NOTE: Only IPv4 is currently supported.</p>
+
+    <h2>LISTEN (0x0E)</h2>
+
+    <pre><code class="rust">fn listen(handle: usize, port: u16) -&gt; Result&lt;(), ()&gt;
+</code></pre>
+
+    <p>Listen for incoming connections to a socket.</p>
+
+    <h2>ACCEPT (0x0F)</h2>
+
+    <pre><code class="rust">fn accept(handle: usize) -&gt; Result&lt;IpAddress, ()&gt;
+</code></pre>
+
+    <p>Accept an incoming connection to a socket.</p>
+
+    <p>The raw syscall takes the pointer and the length of a mutable reference to an
+    <code>IpAddress</code> that will be overwritten on success and returns a <code>isize</code>
+indicating the result of the operation.</p>
 
     <h2>ALLOC (0x10)</h2>
 
-    <pre><code class="rust">pub fn alloc(size: usize, align: usize) -&gt; *mut u8
+    <pre><code class="rust">fn alloc(size: usize, align: usize) -&gt; *mut u8
 </code></pre>
+
+    <p>Allocate memory.</p>
 
     <h2>FREE (0x11)</h2>
 
-    <pre><code class="rust">pub fn free(ptr: *mut u8, size: usize, align: usize)
+    <pre><code class="rust">fn free(ptr: *mut u8, size: usize, align: usize)
 </code></pre>
+
+    <p>Free memory.</p>
 
     <h2>KIND (0x12)</h2>
 
-    <pre><code class="rust">pub fn kind(handle: usize) -&gt; isize
+    <pre><code class="rust">fn kind(handle: usize) -&gt; Option&lt;FileType&gt;
 </code></pre>
+
+    <p>Return the file type of a file handle.</p>
+
+    <p>A <code>FileType</code> will be returned when successful:</p>
+
+    <pre><code class="rust">enum FileType {
+    Dir = 0,
+    File = 1,
+    Device = 2,
+}
+</code></pre>
+
+    <p>The raw syscall returns a <code>isize</code> that will be converted a <code>FileType</code> if the
+number is positive.</p>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

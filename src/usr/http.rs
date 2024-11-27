@@ -134,7 +134,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     };
 
     let mut code = None;
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             error!("Could not connect to {}:{}", addr, port);
