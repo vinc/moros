@@ -636,7 +636,7 @@ impl Editor {
             self.lines.insert(i + 1, line);
             self.cursor.x = 0;
             self.offset.x = 0;
-            self.print_screen();
+            self.handle_arrow_down(); // Move cursor to pasted line
         }
     }
 
