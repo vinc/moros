@@ -338,64 +338,19 @@ impl Editor {
                     return res;
                 }
                 '\n' => { // Newline
-                    let y = self.offset.y + self.cursor.y;
-                    let old_line = self.lines[y].clone();
-                    let mut row: Vec<char> = old_line.chars().collect();
-                    let new_line = row.
-                        split_off(self.offset.x + self.cursor.x).
-                        into_iter().collect();
-                    self.lines[y] = row.into_iter().collect();
-                    self.lines.insert(y + 1, new_line);
-                    if self.cursor.y == rows() - 1 {
-                        self.offset.y += 1;
-                    } else {
-                        self.cursor.y += 1;
-                    }
-                    self.cursor.x = 0;
-                    self.offset.x = 0;
-                    self.print_screen();
+                    self.handle_newline();
                 }
                 '~' if csi && csi_params == "5" => { // Page Up
-                    let scroll = rows() - 1; // Keep one line on screen
-                    self.offset.y -= cmp::min(scroll, self.offset.y);
-                    self.align_cursor();
-                    self.print_screen();
+                    self.handle_page_up();
                 }
                 '~' if csi && csi_params == "6" => { // Page Down
-                    let scroll = rows() - 1; // Keep one line on screen
-                    let n = cmp::max(self.lines.len(), 1);
-                    let remaining = n - self.offset.y - 1;
-                    self.offset.y += cmp::min(scroll, remaining);
-                    if self.cursor.y + scroll > remaining {
-                        self.cursor.y = 0;
-                    }
-                    self.align_cursor();
-                    self.print_screen();
+                    self.handle_page_down();
                 }
                 'A' if csi => { // Arrow Up
-                    if self.cursor.y > 0 {
-                        self.cursor.y -= 1
-                    } else if self.offset.y > 0 {
-                        self.offset.y -= 1;
-                    }
-                    self.align_cursor();
-                    self.print_screen();
+                    self.handle_arrow_up();
                 }
                 'B' if csi => { // Arrow Down
-                    let n = self.lines.len() - 1;
-                    let is_eof = n == (self.offset.y + self.cursor.y);
-                    let is_bottom = self.cursor.y == rows() - 1;
-                    if self.cursor.y < cmp::min(rows(), n) {
-                        if is_bottom || is_eof {
-                            if !is_eof {
-                                self.offset.y += 1;
-                            }
-                        } else {
-                            self.cursor.y += 1;
-                        }
-                        self.align_cursor();
-                        self.print_screen();
-                    }
+                    self.handle_arrow_down();
                 }
                 'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
@@ -460,37 +415,13 @@ impl Editor {
                     self.print_screen();
                 }
                 '\x04' => { // Ctrl D -> Delete (cut) line
-                    let i = self.offset.y + self.cursor.y;
-                    self.clipboard = Some(self.lines.remove(i));
-                    if self.lines.is_empty() {
-                        self.lines.push(String::new());
-                    }
-
-                    // Move cursor up to the previous line
-                    if i >= self.lines.len() {
-                        if self.cursor.y > 0 {
-                            self.cursor.y -= 1;
-                        } else if self.offset.y > 0 {
-                            self.offset.y -= 1;
-                        }
-                    }
-                    self.cursor.x = 0;
-                    self.offset.x = 0;
-
-                    self.print_screen();
+                    self.cut_line();
                 }
                 '\x19' => { // Ctrl Y -> Yank (copy) line
-                    let i = self.offset.y + self.cursor.y;
-                    self.clipboard = Some(self.lines[i].clone());
+                    self.copy_line();
                 }
                 '\x10' => { // Ctrl P -> Put (paste) line
-                    let i = self.offset.y + self.cursor.y;
-                    if let Some(line) = self.clipboard.clone() {
-                        self.lines.insert(i + 1, line);
-                    }
-                    self.cursor.x = 0;
-                    self.offset.x = 0;
-                    self.print_screen();
+                    self.paste_line();
                 }
                 '\x06' => { // Ctrl F -> Find
                     self.find();
@@ -609,6 +540,104 @@ impl Editor {
             csi = false;
         }
         Ok(())
+    }
+
+    fn handle_newline(&mut self) {
+        let x = self.offset.x + self.cursor.x;
+        let y = self.offset.y + self.cursor.y;
+
+        let old_line = self.lines[y].clone();
+        let mut row: Vec<char> = old_line.chars().collect();
+        let new_line = row.split_off(x).into_iter().collect();
+        self.lines[y] = row.into_iter().collect();
+        self.lines.insert(y + 1, new_line);
+        if self.cursor.y == rows() - 1 {
+            self.offset.y += 1;
+        } else {
+            self.cursor.y += 1;
+        }
+        self.cursor.x = 0;
+        self.offset.x = 0;
+        self.print_screen();
+    }
+
+    fn handle_page_up(&mut self) {
+        let scroll = rows() - 1; // Keep one line on screen
+        self.offset.y -= cmp::min(scroll, self.offset.y);
+        self.align_cursor();
+        self.print_screen();
+    }
+
+    fn handle_page_down(&mut self) {
+        let scroll = rows() - 1; // Keep one line on screen
+        let n = cmp::max(self.lines.len(), 1);
+        let remaining = n - self.offset.y - 1;
+        self.offset.y += cmp::min(scroll, remaining);
+        if self.cursor.y + scroll > remaining {
+            self.cursor.y = 0;
+        }
+        self.align_cursor();
+        self.print_screen();
+    }
+
+    fn handle_arrow_up(&mut self) {
+        if self.cursor.y > 0 {
+            self.cursor.y -= 1
+        } else if self.offset.y > 0 {
+            self.offset.y -= 1;
+        }
+        self.align_cursor();
+        self.print_screen();
+    }
+
+    fn handle_arrow_down(&mut self) {
+        let n = self.lines.len() - 1;
+        let is_eof = n == (self.offset.y + self.cursor.y);
+        let is_bottom = self.cursor.y == rows() - 1;
+        if self.cursor.y < cmp::min(rows(), n) {
+            if is_bottom || is_eof {
+                if !is_eof {
+                    self.offset.y += 1;
+                }
+            } else {
+                self.cursor.y += 1;
+            }
+            self.align_cursor();
+            self.print_screen();
+        }
+    }
+
+    fn cut_line(&mut self) {
+        let i = self.offset.y + self.cursor.y;
+        self.clipboard = Some(self.lines.remove(i));
+        if self.lines.is_empty() {
+            self.lines.push(String::new());
+        }
+        if i >= self.lines.len() { // Move cursor up to the previous line
+            if self.cursor.y > 0 {
+                self.cursor.y -= 1;
+            } else if self.offset.y > 0 {
+                self.offset.y -= 1;
+            }
+        }
+        self.cursor.x = 0;
+        self.offset.x = 0;
+        self.print_screen();
+    }
+
+    fn copy_line(&mut self) {
+        let i = self.offset.y + self.cursor.y;
+        self.clipboard = Some(self.lines[i].clone());
+    }
+
+    fn paste_line(&mut self) {
+        let i = self.offset.y + self.cursor.y;
+        if let Some(line) = self.clipboard.clone() {
+            self.lines.insert(i + 1, line);
+            self.cursor.x = 0;
+            self.offset.x = 0;
+            self.print_screen();
+        }
     }
 
     fn exec(&mut self) -> Option<Cmd> {
