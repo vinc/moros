@@ -28,7 +28,7 @@ struct Coords {
 
 pub struct Editor {
     pathname: String,
-    clipboard: Vec<String>,
+    clipboard: Option<String>,
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
@@ -45,7 +45,7 @@ impl Editor {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
         let highlighted = Vec::new();
-        let clipboard = Vec::new();
+        let clipboard = None;
         let mut lines = Vec::new();
         let config = EditorConfig { tab_size: 4 };
 
@@ -461,7 +461,7 @@ impl Editor {
                 }
                 '\x04' => { // Ctrl D -> Delete (cut) line
                     let i = self.offset.y + self.cursor.y;
-                    self.clipboard.push(self.lines.remove(i));
+                    self.clipboard = Some(self.lines.remove(i));
                     if self.lines.is_empty() {
                         self.lines.push(String::new());
                     }
@@ -481,11 +481,11 @@ impl Editor {
                 }
                 '\x19' => { // Ctrl Y -> Yank (copy) line
                     let i = self.offset.y + self.cursor.y;
-                    self.clipboard.push(self.lines[i].clone());
+                    self.clipboard = Some(self.lines[i].clone());
                 }
                 '\x10' => { // Ctrl P -> Put (paste) line
                     let i = self.offset.y + self.cursor.y;
-                    if let Some(line) = self.clipboard.pop() {
+                    if let Some(line) = self.clipboard.clone() {
                         self.lines.insert(i + 1, line);
                     }
                     self.cursor.x = 0;
