@@ -613,16 +613,7 @@ impl Editor {
         if self.lines.is_empty() {
             self.lines.push(String::new());
         }
-        if i >= self.lines.len() { // Move cursor up to the previous line
-            if self.cursor.y > 0 {
-                self.cursor.y -= 1;
-            } else if self.offset.y > 0 {
-                self.offset.y -= 1;
-            }
-        }
-        self.cursor.x = 0;
-        self.offset.x = 0;
-        self.print_screen();
+        self.handle_arrow_up(); // Move cursor to previous line
     }
 
     fn copy_line(&mut self) {
