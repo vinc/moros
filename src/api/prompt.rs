@@ -21,15 +21,19 @@ impl Prompt {
             eol: true,
             offset: 0,
             cursor: 0,
-            line: Vec::with_capacity(80),
+            line: Vec::with_capacity(console::cols()),
         }
+    }
+
+    fn max(&self) -> usize {
+        console::cols() - self.offset
     }
 
     pub fn input(&mut self, prompt: &str) -> Option<String> {
         print!("{}", prompt);
         self.offset = offset_from_prompt(prompt);
         self.cursor = self.offset;
-        self.line = Vec::with_capacity(80);
+        self.line = Vec::with_capacity(self.max());
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
@@ -246,7 +250,7 @@ impl Prompt {
     fn handle_printable_key(&mut self, c: char) {
         self.update_completion();
         self.update_history();
-        if console::is_printable(c) {
+        if console::is_printable(c) && self.line.len() < self.max() {
             let i = self.cursor - self.offset;
             self.line.insert(i, c);
             let s = &self.line[i..]; // UTF-32
