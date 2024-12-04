@@ -1,8 +1,9 @@
+use crate::sys::mem::phys_mem_offset;
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
 use crate::{api, hlt_loop, sys};
 
-use core::arch::asm;
+use core::arch::naked_asm;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
@@ -132,9 +133,8 @@ extern "x86-interrupt" fn page_fault_handler(
     //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
     let page_table = unsafe { sys::process::page_table() };
-    let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
     let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
     };
 
     if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
@@ -213,7 +213,7 @@ macro_rules! wrap {
     ($fn: ident => $w:ident) => {
         #[naked]
         pub unsafe extern "sysv64" fn $w() {
-            asm!(
+            naked_asm!(
                 "push rax",
                 "push rcx",
                 "push rdx",
@@ -237,8 +237,7 @@ macro_rules! wrap {
                 "pop rcx",
                 "pop rax",
                 "iretq",
-                sym $fn,
-                options(noreturn)
+                sym $fn
             );
         }
     };

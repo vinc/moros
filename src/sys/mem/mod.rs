@@ -8,14 +8,17 @@ pub use phys::{phys_addr, PhysBuf};
 use crate::sys;
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use core::sync::atomic::{AtomicUsize, Ordering};
+use spin::Once;
 use x86_64::structures::paging::{
     FrameAllocator, OffsetPageTable, PhysFrame, Size4KiB, Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
-pub static mut PHYS_MEM_OFFSET: Option<u64> = None;
-static mut MEMORY_MAP: Option<&MemoryMap> = None;
-static mut MAPPER: Option<OffsetPageTable<'static>> = None;
+#[allow(static_mut_refs)]
+static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
+
+static PHYS_MEM_OFFSET: Once<u64> = Once::new();
+static MEMORY_MAP: Once<&MemoryMap> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
 
@@ -56,24 +59,29 @@ pub fn init(boot_info: &'static BootInfo) {
     log!("RAM {} MB", memory_size >> 20);
     MEMORY_SIZE.store(memory_size as usize, Ordering::Relaxed);
 
-    let phys_mem_offset = boot_info.physical_memory_offset;
-
-    unsafe { PHYS_MEM_OFFSET.replace(phys_mem_offset) };
-    unsafe { MEMORY_MAP.replace(&boot_info.memory_map) };
+    #[allow(static_mut_refs)]
     unsafe {
-        MAPPER.replace(OffsetPageTable::new(
+        MAPPER.call_once(|| OffsetPageTable::new(
             paging::active_page_table(),
-            VirtAddr::new(phys_mem_offset),
+            VirtAddr::new(boot_info.physical_memory_offset),
         ))
     };
+
+    PHYS_MEM_OFFSET.call_once(|| boot_info.physical_memory_offset);
+    MEMORY_MAP.call_once(|| &boot_info.memory_map);
 
     heap::init_heap().expect("heap initialization failed");
 
     sys::idt::clear_irq_mask(1);
 }
 
+pub fn phys_mem_offset() -> u64 {
+    unsafe { *PHYS_MEM_OFFSET.get_unchecked() }
+}
+
 pub fn mapper() -> &'static mut OffsetPageTable<'static> {
-    unsafe { MAPPER.as_mut().unwrap() }
+    #[allow(static_mut_refs)]
+    unsafe { MAPPER.get_mut_unchecked() }
 }
 
 pub fn memory_size() -> usize {
@@ -89,10 +97,7 @@ pub fn memory_free() -> usize {
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
-    let phys_mem_offset = unsafe {
-        PHYS_MEM_OFFSET.unwrap()
-    };
-    VirtAddr::new(addr.as_u64() + phys_mem_offset)
+    VirtAddr::new(addr.as_u64() + phys_mem_offset())
 }
 
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
@@ -135,5 +140,5 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
 }
 
 pub fn frame_allocator() -> BootInfoFrameAllocator {
-    unsafe { BootInfoFrameAllocator::init(MEMORY_MAP.unwrap()) }
+    unsafe { BootInfoFrameAllocator::init(MEMORY_MAP.get_unchecked()) }
 }

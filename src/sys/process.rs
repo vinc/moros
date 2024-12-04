@@ -3,6 +3,7 @@ use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys;
 use crate::sys::gdt::GDT;
+use crate::sys::mem::phys_mem_offset;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -348,9 +349,8 @@ impl Process {
             *user_page = kernel_page.clone();
         }
 
-        let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
         let mut mapper = unsafe {
-            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
+            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
         };
 
         let proc_size = MAX_PROC_SIZE as u64;
@@ -424,9 +424,8 @@ impl Process {
     // Switch to user mode and execute the program
     fn exec(&self, args_ptr: usize, args_len: usize) {
         let page_table = unsafe { sys::process::page_table() };
-        let phys_mem_offset = unsafe { sys::mem::PHYS_MEM_OFFSET.unwrap() };
         let mut mapper = unsafe {
-            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
+            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
         };
 
         // Copy args to user memory
@@ -496,11 +495,8 @@ impl Process {
         let page_table = unsafe {
             sys::mem::create_page_table(self.page_table_frame)
         };
-        let phys_mem_offset = unsafe {
-            sys::mem::PHYS_MEM_OFFSET.unwrap()
-        };
         unsafe {
-            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset))
+            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
         }
     }
 
