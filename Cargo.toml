@@ -42,7 +42,7 @@ time = { version = "0.2.27", default-features = false }
 geodate = { version = "0.5.0", default-features = false }
 uart_16550 = "0.3.2"
 vte = "0.13.0"
-x86_64 = "0.15.1"
+x86_64 = "0.15.2"
 
 [package.metadata.bootloader]
 physical-memory-offset = "0xFFFF800000000000"
