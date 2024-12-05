@@ -4,6 +4,7 @@ use crate::sys::fs::{FileInfo, FileType};
 use crate::sys::syscall::number::*;
 use crate::syscall;
 
+use core::convert::TryInto;
 use core::convert::TryFrom;
 use core::sync::atomic::{fence, Ordering};
 use smoltcp::wire::{IpAddress, Ipv4Address};
@@ -127,7 +128,9 @@ pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {
 }
 
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> Result<(), ()> {
-    let buf = addr.as_bytes();
+    let IpAddress::Ipv4(addr) = addr; // Only IPv4 is supported
+    let tmp = addr.octets();
+    let buf = tmp.as_slice();
     let ptr = buf.as_ptr() as usize;
     let len = buf.len();
     let res = unsafe { syscall!(CONNECT, handle, ptr, len, port) } as isize;
@@ -148,16 +151,18 @@ pub fn listen(handle: usize, port: u16) -> Result<(), ()> {
 }
 
 pub fn accept(handle: usize) -> Result<IpAddress, ()> {
-    let addr = IpAddress::v4(0, 0, 0, 0);
-    let buf = addr.as_bytes();
+    let addr = Ipv4Address::new(0, 0, 0, 0);
+    let tmp = addr.octets();
+    let buf = tmp.as_slice();
     let ptr = buf.as_ptr() as usize;
     let len = buf.len();
     let res = unsafe { syscall!(ACCEPT, handle, ptr, len) } as isize;
     if res >= 0 {
-        Ok(IpAddress::from(Ipv4Address::from_bytes(buf)))
-    } else {
-        Err(())
+        if let Ok(buf) = buf.try_into() {
+            return Ok(IpAddress::from(Ipv4Address::from_octets(buf)));
+        }
     }
+    Err(())
 }
 
 pub fn alloc(size: usize, align: usize) -> *mut u8 {

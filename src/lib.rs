@@ -1,10 +1,11 @@
 #![no_std]
 #![cfg_attr(test, no_main)]
-#![feature(vec_pop_if)]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
-#![feature(naked_functions)]
 #![feature(custom_test_frameworks)]
+#![feature(ip_from)]
+#![feature(naked_functions)]
+#![feature(vec_pop_if)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
