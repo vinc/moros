@@ -6,6 +6,7 @@ use crate::sys;
 use crate::sys::fs::FileInfo;
 
 use core::arch::asm;
+use core::convert::TryInto;
 use smoltcp::wire::IpAddress;
 use smoltcp::wire::Ipv4Address;
 
@@ -104,9 +105,13 @@ pub fn dispatcher(
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
             let buf = unsafe { core::slice::from_raw_parts(ptr, len) };
-            let addr = IpAddress::from(Ipv4Address::from_bytes(buf));
-            let port = arg4 as u16;
-            service::connect(handle, addr, port) as usize
+            if let Ok(buf) = buf.try_into() {
+                let addr = IpAddress::from(Ipv4Address::from_octets(buf));
+                let port = arg4 as u16;
+                service::connect(handle, addr, port) as usize
+            } else {
+                -1 as isize as usize
+            }
         }
         number::LISTEN => {
             let handle = arg1;
@@ -118,8 +123,8 @@ pub fn dispatcher(
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
             let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
-            if let Ok(addr) = service::accept(handle) {
-                buf[0..len].clone_from_slice(addr.as_bytes());
+            if let Ok(IpAddress::Ipv4(addr)) = service::accept(handle) {
+                buf[0..len].clone_from_slice(&addr.octets());
                 0
             } else {
                 -1 as isize as usize
