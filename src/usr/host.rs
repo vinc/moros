@@ -168,11 +168,15 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
                             // the last 4 bytes
                             let n = message.datagram.len();
                             let data = &message.datagram[(n - 4)..];
-                            let ipv4 = Ipv4Address::from_bytes(data);
-                            if ipv4.is_unspecified() {
-                                Err(ResponseCode::NameError) // FIXME
+                            if let Ok(data) = data.try_into() {
+                                let ipv4 = Ipv4Address::from_octets(data);
+                                if ipv4.is_unspecified() {
+                                    Err(ResponseCode::NameError) // FIXME
+                                } else {
+                                    Ok(IpAddress::from(ipv4))
+                                }
                             } else {
-                                Ok(IpAddress::from(ipv4))
+                                Err(ResponseCode::NameError) // FIXME
                             }
                         }
                         code => Err(code),
