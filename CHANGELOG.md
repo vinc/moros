@@ -1,6 +1,20 @@
 # Changelog
 
 ## Unreleased
+- Limit prompt line to screen width (#704)
+- Upgrade smoltcp to 0.12.0 (#709)
+- Upgrade Rust to nightly-2024-12-01 (#708)
+- Update clipboard behavior in editor (#706)
+- Update web commands (#703)
+- Improve documentation (#697)
+- Bump uart_16550 from 0.3.1 to 0.3.2 (#701)
+- Update HTTP server (#702)
+- Add network config devices (#700)
+- Upgrade base64 module (#699)
+- Bump libm from 0.2.8 to 0.2.11 (#695)
+- Improve Lisp (#684)
+- Fix clock API (#698)
+- Use string instead of float as clock device output format (#696)
 - Add speaker device (#693)
 - List processors at boot (#692)
 - Create clock module (#691)
