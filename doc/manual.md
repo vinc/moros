@@ -5,7 +5,7 @@
 During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.
 
-    [0.250962] SYS MOROS v0.10.4-89-g6b3f825
+    [0.250962] SYS MOROS v0.11.0
     [0.254961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
     [0.255961] MEM [0x00000000001000-0x00000000004FFF] PageTable
     [0.256961] MEM [0x00000000005000-0x00000000014FFF] Bootloader
@@ -50,7 +50,7 @@ commands to test the system or `install` to setup the
 
     /
     > install
-    Welcome to MOROS v0.10.4 installation program!
+    Welcome to MOROS v0.11.0 installation program!
 
     Proceed? [y/N] y
 
