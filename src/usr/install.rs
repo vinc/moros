@@ -97,7 +97,8 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/lib/lisp/math.lsp", verbose);
 
     copy_file!("/tmp/alice.txt", verbose);
-    copy_file!("/tmp/machines.txt", verbose);
+    //copy_file!("/tmp/machines.txt", verbose);
+    //copy_file!("/tmp/roads.txt", verbose);
 
     //create_dir("/tmp/chess", verbose);
     //copy_file!("/tmp/chess/mi2.epd", verbose);
