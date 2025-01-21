@@ -45,7 +45,9 @@ impl KeyboardLayout {
                 layouts::Azerty,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(ScancodeSet1::new(), layouts::Dvorak104Key,
+            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(
+                ScancodeSet1::new(),
+                layouts::Dvorak104Key,
                 HandleControl::MapLettersToUnicode,
             ))),
             "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(ScancodeSet1::new(), layouts::Us104Key,
