@@ -40,7 +40,9 @@ impl KeyboardLayout {
 
     fn from(name: &str) -> Option<Self> {
         match name {
-            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(ScancodeSet1::new(), layouts::Azerty,
+            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(
+                ScancodeSet1::new(),
+                layouts::Azerty,
                 HandleControl::MapLettersToUnicode,
             ))),
             "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(ScancodeSet1::new(), layouts::Dvorak104Key,
