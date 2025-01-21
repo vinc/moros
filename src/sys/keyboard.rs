@@ -50,7 +50,9 @@ impl KeyboardLayout {
                 layouts::Dvorak104Key,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(ScancodeSet1::new(), layouts::Us104Key,
+            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(
+                ScancodeSet1::new(),
+                layouts::Us104Key,
                 HandleControl::MapLettersToUnicode,
             ))),
             _ => None,
