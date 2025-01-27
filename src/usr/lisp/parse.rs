@@ -22,9 +22,9 @@ use nom::multi::many1;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
-use nom::sequence::tuple;
 use nom::Err::Error;
 use nom::IResult;
+use nom::Parser;
 
 // https://docs.rs/nom/latest/nom/recipes/index.html#hexadecimal
 fn hexadecimal(input: &str) -> IResult<&str, &str> {
@@ -34,20 +34,22 @@ fn hexadecimal(input: &str) -> IResult<&str, &str> {
             one_of("0123456789abcdefABCDEF"),
             many0(char('_')),
         ))),
-    )(input)
+    ).parse(input)
 }
 
 // https://docs.rs/nom/latest/nom/recipes/index.html#decimal
 fn decimal(input: &str) -> IResult<&str, &str> {
-    recognize(many1(terminated(one_of("0123456789"), many0(char('_')))))(input)
+    recognize(
+        many1(terminated(one_of("0123456789"), many0(char('_'))))
+    ).parse(input)
 }
 
 // https://docs.rs/nom/latest/nom/recipes/index.html#binary
 fn binary(input: &str) -> IResult<&str, &str> {
     preceded(
         tag("0b"),
-        recognize(many1(terminated(one_of("01"), many0(char('_'))))),
-    )(input)
+        recognize(many1(terminated(one_of("01"), many0(char('_')))))
+    ).parse(input)
 }
 
 // https://docs.rs/nom/latest/nom/recipes/index.html#floating-point-numbers
@@ -55,27 +57,27 @@ fn float(input: &str) -> IResult<&str, &str> {
     alt((
         recognize(
             // .42
-            tuple((
+            (
                 char('.'),
                 decimal,
-                opt(tuple((one_of("eE"), opt(one_of("+-")), decimal))),
-            )),
+                opt((one_of("eE"), opt(one_of("+-")), decimal))
+            ),
         ),
         recognize(
             // 42e42 and 42.42e42
-            tuple((
+            (
                 decimal,
                 opt(preceded(char('.'), decimal)),
                 one_of("eE"),
                 opt(one_of("+-")),
-                decimal,
-            )),
+                decimal
+            ),
         ),
         recognize(
             // 42. and 42.42
-            tuple((decimal, char('.'), opt(decimal))),
+            (decimal, char('.'), opt(decimal))
         ),
-    ))(input)
+    )).parse(input)
 }
 
 fn is_symbol_letter(c: char) -> bool {
@@ -95,76 +97,76 @@ fn parse_str(input: &str) -> IResult<&str, Exp> {
                 value("\r", tag("r")),
                 value("\t", tag("t")),
                 value("\x08", tag("b")),
-                value("\x1B", tag("e")),
+                value("\x1B", tag("e"))
             )),
         )),
         |inner| inner.unwrap_or("".to_string()),
     );
-    let (input, s) = delimited(char('"'), escaped, char('"'))(input)?;
+    let (input, s) = delimited(char('"'), escaped, char('"')).parse(input)?;
     Ok((input, Exp::Str(s)))
 }
 
 fn parse_sym(input: &str) -> IResult<&str, Exp> {
-    let (input, sym) = take_while1(is_symbol_letter)(input)?;
+    let (input, sym) = take_while1(is_symbol_letter).parse(input)?;
     Ok((input, Exp::Sym(sym.to_string())))
 }
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
-    let (input, num) = recognize(tuple((
+    let (input, num) = recognize((
         opt(alt((char('+'), char('-')))),
         alt((float, hexadecimal, binary, decimal)),
-    )))(input)?;
+    )).parse(input)?;
     Ok((input, Exp::Num(Number::from(num))))
 }
 
 fn parse_bool(input: &str) -> IResult<&str, Exp> {
-    let (input, s) = alt((tag("true"), tag("false")))(input)?;
+    let (input, s) = alt((tag("true"), tag("false"))).parse(input)?;
     Ok((input, Exp::Bool(s == "true")))
 }
 
 fn parse_list(input: &str) -> IResult<&str, Exp> {
     let (input, list) = delimited(
         char('('), many0(parse_exp), char(')')
-    )(input)?;
+    ).parse(input)?;
     Ok((input, Exp::List(list)))
 }
 
 fn parse_quote(input: &str) -> IResult<&str, Exp> {
-    let (input, list) = preceded(char('\''), parse_exp)(input)?;
+    let (input, list) = preceded(char('\''), parse_exp).parse(input)?;
     let list = vec![Exp::Sym("quote".to_string()), list];
     Ok((input, Exp::List(list)))
 }
 
 fn parse_unquote_splice(input: &str) -> IResult<&str, Exp> {
-    let (input, list) = preceded(tag(",@"), parse_exp)(input)?;
+    let (input, list) = preceded(tag(",@"), parse_exp).parse(input)?;
     let list = vec![Exp::Sym("unquote-splice".to_string()), list];
     Ok((input, Exp::List(list)))
 }
 
 fn parse_splice(input: &str) -> IResult<&str, Exp> {
-    let (input, list) = preceded(tag("@"), parse_exp)(input)?;
+    let (input, list) = preceded(tag("@"), parse_exp).parse(input)?;
     let list = vec![Exp::Sym("splice".to_string()), list];
     Ok((input, Exp::List(list)))
 }
 
 fn parse_unquote(input: &str) -> IResult<&str, Exp> {
-    let (input, list) = preceded(char(','), parse_exp)(input)?;
+    let (input, list) = preceded(char(','), parse_exp).parse(input)?;
     let list = vec![Exp::Sym("unquote".to_string()), list];
     Ok((input, Exp::List(list)))
 }
 
 fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
-    let (input, list) = preceded(char('`'), parse_exp)(input)?;
+    let (input, list) = preceded(char('`'), parse_exp).parse(input)?;
     let list = vec![Exp::Sym("quasiquote".to_string()), list];
     Ok((input, Exp::List(list)))
 }
 
 fn parse_comment(input: &str) -> IResult<&str, &str> {
-    preceded(multispace0, preceded(char('#'), is_not("\n")))(input)
+    preceded(multispace0, preceded(char('#'), is_not("\n"))).parse(input)
 }
 
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
-    let (input, _) = opt(many0(parse_comment))(input)?;
+    let (input, _) = opt(many0(parse_comment)).parse(input)?;
     delimited(
         multispace0,
         alt((
@@ -177,10 +179,10 @@ fn parse_exp(input: &str) -> IResult<&str, Exp> {
             parse_unquote_splice,
             parse_unquote,
             parse_splice,
-            parse_sym,
+            parse_sym
         )),
-        alt((parse_comment, multispace0)),
-    )(input)
+        alt((parse_comment, multispace0))
+    ).parse(input)
 }
 
 pub fn parse(input: &str) -> Result<(String, Exp), Err> {

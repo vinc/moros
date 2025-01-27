@@ -12,8 +12,9 @@ use nom::character::complete::{char, space0};
 use nom::combinator::map;
 use nom::multi::many0;
 use nom::number::complete::double;
-use nom::sequence::{delimited, tuple};
+use nom::sequence::delimited;
 use nom::IResult;
+use nom::Parser;
 
 // Adapted from Basic Calculator
 // Copyright 2021 Balaji Sivaraman
@@ -35,32 +36,35 @@ pub enum Exp {
 fn parse(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_term(input)?;
     let (input, exps) = many0(
-        tuple((alt((char('+'), char('-'))), parse_term))
-    )(input)?;
+        (alt((char('+'), char('-'))), parse_term)
+    ).parse(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
 fn parse_term(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_factor(input)?;
-    let (input, exps) = many0(tuple((
+    let (input, exps) = many0((
         alt((char('%'), char('/'), char('*'))),
         parse_factor,
-    )))(input)?;
+    )).parse(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
 fn parse_factor(input: &str) -> IResult<&str, Exp> {
-    let (input, num1) = alt((parse_parens, parse_num))(input)?;
-    let (input, exps) = many0(tuple((char('^'), parse_factor)))(input)?;
+    let (input, num1) = alt((parse_parens, parse_num)).parse(input)?;
+    let (input, exps) = many0((char('^'), parse_factor)).parse(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
 fn parse_parens(input: &str) -> IResult<&str, Exp> {
-    delimited(space0, delimited(char('('), parse, char(')')), space0)(input)
+    delimited(
+        space0,
+        delimited(char('('), parse, char(')')), space0
+    ).parse(input)
 }
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
-    map(delimited(space0, double, space0), Exp::Num)(input)
+    map(delimited(space0, double, space0), Exp::Num).parse(input)
 }
 
 fn parse_exp(exp: Exp, rem: Vec<(char, Exp)>) -> Exp {
