@@ -45,7 +45,7 @@ fn parse_term(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_factor(input)?;
     let (input, exps) = many0((
         alt((char('%'), char('/'), char('*'))),
-        parse_factor,
+        parse_factor
     )).parse(input)?;
     Ok((input, parse_exp(num1, exps)))
 }

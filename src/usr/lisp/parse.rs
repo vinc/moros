@@ -32,8 +32,8 @@ fn hexadecimal(input: &str) -> IResult<&str, &str> {
         tag("0x"),
         recognize(many1(terminated(
             one_of("0123456789abcdefABCDEF"),
-            many0(char('_')),
-        ))),
+            many0(char('_'))
+        )))
     ).parse(input)
 }
 
@@ -61,7 +61,7 @@ fn float(input: &str) -> IResult<&str, &str> {
                 char('.'),
                 decimal,
                 opt((one_of("eE"), opt(one_of("+-")), decimal))
-            ),
+            )
         ),
         recognize(
             // 42e42 and 42.42e42
@@ -71,12 +71,12 @@ fn float(input: &str) -> IResult<&str, &str> {
                 one_of("eE"),
                 opt(one_of("+-")),
                 decimal
-            ),
+            )
         ),
         recognize(
             // 42. and 42.42
             (decimal, char('.'), opt(decimal))
-        ),
+        )
     )).parse(input)
 }
 
@@ -98,9 +98,9 @@ fn parse_str(input: &str) -> IResult<&str, Exp> {
                 value("\t", tag("t")),
                 value("\x08", tag("b")),
                 value("\x1B", tag("e"))
-            )),
+            ))
         )),
-        |inner| inner.unwrap_or("".to_string()),
+        |inner| inner.unwrap_or("".to_string())
     );
     let (input, s) = delimited(char('"'), escaped, char('"')).parse(input)?;
     Ok((input, Exp::Str(s)))
@@ -114,7 +114,7 @@ fn parse_sym(input: &str) -> IResult<&str, Exp> {
 fn parse_num(input: &str) -> IResult<&str, Exp> {
     let (input, num) = recognize((
         opt(alt((char('+'), char('-')))),
-        alt((float, hexadecimal, binary, decimal)),
+        alt((float, hexadecimal, binary, decimal))
     )).parse(input)?;
     Ok((input, Exp::Num(Number::from(num))))
 }
