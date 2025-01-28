@@ -32,7 +32,7 @@ object = { version = "0.36.7", default-features = false, features = ["read"] }
 pbkdf2 = { version = "0.12.2", default-features = false, features = ["hmac"] }
 pc-keyboard = "0.8.0"
 pic8259 = "0.11.0"
-rand = { version = "0.8.5", default-features = false }
+rand = { version = "0.9.0", default-features = false }
 rand_hc = "0.3.1"
 raw-cpuid = "11.3.0"
 sha2 = { version = "0.10.8", default-features = false, features = ["force-soft"] }
