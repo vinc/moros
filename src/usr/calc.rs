@@ -142,7 +142,7 @@ fn repl() -> Result<(), ExitCode> {
             }
         }
 
-        prompt.history.add(&line);
+        prompt.history.add(line);
         prompt.history.save(history_file);
     }
     Ok(())

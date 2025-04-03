@@ -240,7 +240,7 @@ impl Viewer {
 
         if let Some(query) = res {
             if !query.is_empty() {
-                self.search_prompt.history.add(&query);
+                self.search_prompt.history.add(query.clone());
                 self.search_query = query;
                 self.find_next();
             }

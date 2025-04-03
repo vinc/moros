@@ -2,38 +2,71 @@ use crate::api::{console, fs, io};
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use alloc::vec;
 use vte::{Params, Parser, Perform};
+use core::sync::atomic::Ordering;
+use crate::sys::keyboard::SHIFT;
 
 pub struct Prompt {
-    pub completion: Completion,
-    pub history: History,
+    // Multi-line state
+    lines: Vec<Vec<char>>,
+    cursor_row: usize,
+    cursor_col: usize,
+    offset: usize,
     pub eol: bool,
-    offset: usize, // Offset line by the length of the prompt string
-    cursor: usize,
-    line: Vec<char>, // UTF-32
+    
+    // History state
+    pub history: History,
+    
+    // Autocomplete state
+    pub completion: Completion,
 }
 
 impl Prompt {
     pub fn new() -> Self {
         Self {
-            completion: Completion::new(),
-            history: History::new(),
+            history: History {
+                entries: Vec::new(),
+                limit: 1000,
+                pos: None,
+            },
+            completion: Completion {
+                completer: Box::new(|_| Vec::new()),
+                entries: Vec::new(),
+                pos: None,
+            },
             eol: true,
             offset: 0,
-            cursor: 0,
-            line: Vec::with_capacity(console::cols()),
+            lines: vec![Vec::with_capacity(console::cols())],
+            cursor_row: 0,
+            cursor_col: 0,
         }
     }
 
     fn max(&self) -> usize {
-        console::cols() - self.offset
+        console::cols() - if self.cursor_row == 0 { self.offset } else { 1 }
+    }
+
+    fn current_line_index(&self) -> usize {
+        self.cursor_col.saturating_sub(
+            if self.cursor_row == 0 { self.offset } else { 0 }
+        )
+    }
+
+    fn current_line(&self) -> &Vec<char> {
+        &self.lines[self.cursor_row]
+    }
+
+    fn current_line_mut(&mut self) -> &mut Vec<char> {
+        &mut self.lines[self.cursor_row]
     }
 
     pub fn input(&mut self, prompt: &str) -> Option<String> {
         print!("{}", prompt);
         self.offset = offset_from_prompt(prompt);
-        self.cursor = self.offset;
-        self.line = Vec::with_capacity(self.max());
+        self.cursor_row = 0;
+        self.cursor_col = self.offset;
+        self.lines = vec![Vec::with_capacity(console::cols())];
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
@@ -45,24 +78,36 @@ impl Prompt {
                     return Some(String::new());
                 }
                 console::EOT_KEY => { // End of Transmission (^D)
-                    self.update_completion();
-                    if self.eol {
-                        println!();
+                    if self.current_line().is_empty() {
+                        if self.eol { println!(); }
+                        let result = self.collect_input();
+                        if !result.is_empty() {
+                            self.history.add(&result);
+                        }
+                        return Some(result)
+                    } else {
+                        self.handle_delete_key();
                     }
-                    return None;
                 }
                 '\n' => { // New Line
-                    self.update_completion();
-                    self.update_history();
-                    if self.eol {
-                        println!();
+                    if SHIFT.load(Ordering::Relaxed) {
+                        self.insert_newline();
+                    } else {
+                        if self.eol { 
+                            println!(); 
+                        }
+                        let result = self.collect_input();
+                        if !result.is_empty() {
+                            self.history.add(&result);
+                        }
+                        return Some(result)
                     }
-                    return Some(self.line.iter().collect());
                 }
-                c => {
+                _ => {
                     for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
                     }
+                    self.completion.entries.clear();
                 }
             }
         }
@@ -70,22 +115,43 @@ impl Prompt {
         None
     }
 
-    fn update_history(&mut self) {
-        if let Some(i) = self.history.pos {
-            self.line = self.history.entries[i].chars().collect();
-            self.history.pos = None;
-        }
+    fn insert_newline(&mut self) {
+        // Primeiro obtemos o índice de forma imutável
+        let split_pos = self.current_line_index();
+        
+        // Depois obtemos a referência mutável
+        let current_line = self.current_line_mut();
+        let new_line = current_line.split_off(split_pos);
+        
+        // Restante das operações
+        self.lines.insert(self.cursor_row + 1, new_line);
+        self.cursor_row += 1;
+        self.cursor_col = 0;
     }
 
-    fn update_completion(&mut self) {
-        if let Some(i) = self.completion.pos {
-            let complete = self.completion.entries[i].chars();
-            self.cursor += complete.clone().count();
-            self.line.extend(complete);
-            self.completion.pos = None;
-            self.completion.entries = Vec::new();
-        }
+    fn collect_input(&self) -> String {
+        self.lines.iter()
+            .map(|line| line.iter().collect())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
+
+    // fn update_history(&mut self) {
+    //     if let Some(i) = self.history.pos {
+    //         self.line = self.history.entries[i].chars().collect();
+    //         self.history.pos = None;
+    //     }
+    // }
+
+    // fn update_completion(&mut self) {
+    //     if let Some(i) = self.completion.pos {
+    //         let complete = self.completion.entries[i].chars();
+    //         self.cursor += complete.clone().count();
+    //         self.line.extend(complete);
+    //         self.completion.pos = None;
+    //         self.completion.entries = Vec::new();
+    //     }
+    // }
 
     fn handle_tab_key(&mut self) {
         self.update_history();
@@ -312,13 +378,6 @@ fn empty_completer(_line: &str) -> Vec<String> {
 }
 
 impl Completion {
-    pub fn new() -> Self {
-        Self {
-            completer: Box::new(empty_completer),
-            entries: Vec::new(),
-            pos: None,
-        }
-    }
     pub fn set(&mut self, completer: &'static dyn Fn(&str) -> Vec<String>) {
         self.completer = Box::new(completer);
     }
@@ -331,14 +390,6 @@ pub struct History {
 }
 
 impl History {
-    pub fn new() -> Self {
-        Self {
-            entries: Vec::new(),
-            limit: 1000,
-            pos: None,
-        }
-    }
-
     pub fn load(&mut self, path: &str) {
         if let Ok(contents) = fs::read_to_string(path) {
             self.entries = contents.lines().map(|s| s.to_string()).collect();

@@ -85,6 +85,20 @@ pub fn is_file(path: &str) -> bool {
     }
 }
 
+pub fn list_dir(path: &str) -> Vec<String> {
+    let mut entries = Vec::new();
+
+    // Abre o diretório
+    if let Some(handle) = open_dir(path) {
+        while let Some(entry) = syscall::read_dir_entry(handle) {
+            entries.push(entry);
+        }
+        syscall::close(handle);
+    }
+
+    entries
+}
+
 pub fn is_device(path: &str) -> bool {
     if let Some(info) = syscall::info(path) {
         info.is_device()

@@ -14,17 +14,17 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
-    "2048", "calc", "chess", "copy", "date", "decode", "delete", "dhcp",
+const AUTOCOMPLETE_COMMANDS: [&str; 42] = [
+    "2048", "calc", "cd", "chess", "copy", "date", "decode", "delete", "dhcp",
     "diff", "disk", "edit", "elf", "encode", "env", "goto", "hash", "help",
     "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
-    "list", "memory", "move", "net", "pci", "quit", "read", "render", "shell",
-    "socket", "tcp", "time", "user", "view", "write",
+    "list", "memory","mkdir",  "move", "net", "pci", "quit", "read", "render", "shell",
+    "socket", "tcp", "time", "user", "view", "write"
 ];
 
-struct Config {
-    env: BTreeMap<String, String>,
-    aliases: BTreeMap<String, String>,
+pub struct Config {
+    pub env: BTreeMap<String, String>,
+    pub aliases: BTreeMap<String, String>,
 }
 
 impl Config {
@@ -276,29 +276,29 @@ fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     cmd
 }
 
-fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
-    match args.len() {
-        1 => {
-            println!("{}", sys::process::dir());
-            Ok(())
-        }
-        2 => {
-            let mut path = fs::realpath(args[1]);
-            if path.len() > 1 {
-                path = path.trim_end_matches('/').into();
-            }
-            if api::fs::is_dir(&path) {
-                sys::process::set_dir(&path);
-                config.env.insert("DIR".to_string(), sys::process::dir());
-                Ok(())
-            } else {
-                error!("Could not find file '{}'", path);
-                Err(ExitCode::Failure)
-            }
-        }
-        _ => Err(ExitCode::Failure),
-    }
-}
+// fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+//     match args.len() {
+//         1 => {
+//             println!("{}", sys::process::dir());
+//             Ok(())
+//         }
+//         2 => {
+//             let mut path = fs::realpath(args[1]);
+//             if path.len() > 1 {
+//                 path = path.trim_end_matches('/').into();
+//             }
+//             if api::fs::is_dir(&path) {
+//                 sys::process::set_dir(&path);
+//                 config.env.insert("DIR".to_string(), sys::process::dir());
+//                 Ok(())
+//             } else {
+//                 error!("Could not find file '{}'", path);
+//                 Err(ExitCode::Failure)
+//             }
+//         }
+//         _ => Err(ExitCode::Failure),
+//     }
+// }
 
 fn cmd_alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     if args.len() != 3 {
@@ -518,6 +518,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "alias"    => cmd_alias(args, config),
         //"beep"     => usr::beep::main(args),
         "calc"     => usr::calc::main(args),
+        "cd"       => usr::cd::main(args, config),
         "chess"    => usr::chess::main(args),
         "copy"     => usr::copy::main(args),
         "date"     => usr::date::main(args),
@@ -532,7 +533,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "env"      => usr::env::main(args),
         "find"     => usr::find::main(args),
         //"geodate"  => usr::geodate::main(args),
-        "goto"     => cmd_change_dir(args, config), // TODO: Remove this
+        // "goto"     => cmd_change_dir(args, config), // TODO: Remove this
         "hash"     => usr::hash::main(args),
         "help"     => usr::help::main(args),
         "hex"      => usr::hex::main(args),
@@ -546,6 +547,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "list"     => usr::list::main(args),
         "logs"     => cmd_logs(),
         "memory"   => usr::memory::main(args),
+        "mkdir"    => usr::mkdir::main(args),
         "move"     => usr::r#move::main(args),
         "net"      => usr::net::main(args),
         "pci"      => usr::pci::main(args),

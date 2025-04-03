@@ -7,7 +7,10 @@ use crate::syscall;
 use core::convert::TryInto;
 use core::convert::TryFrom;
 use core::sync::atomic::{fence, Ordering};
+use alloc::string::{String, ToString};
 use smoltcp::wire::{IpAddress, Ipv4Address};
+
+const SYS_READ_DIR_ENTRY: usize = 45; // Verifique o número correto da syscall no kernel
 
 pub fn exit(code: ExitCode) {
     unsafe { syscall!(EXIT, code as usize) };
@@ -96,6 +99,18 @@ pub fn close(handle: usize) {
     unsafe { syscall!(CLOSE, handle) };
 }
 
+pub fn read_dir_entry(handle: usize) -> Option<String> {
+    let mut buf = [0u8; 256]; // Buffer para armazenar o nome do arquivo/diretório
+    let res = unsafe { syscall!(SYS_READ_DIR_ENTRY, handle, buf.as_mut_ptr() as usize, buf.len()) } as isize;
+
+    if res > 0 {
+        // Converte os bytes lidos para uma String
+        Some(String::from_utf8_lossy(&buf[..res as usize]).to_string())
+    } else {
+        None
+    }
+}
+
 pub fn spawn(path: &str, args: &[&str]) -> ExitCode {
     let path_ptr = path.as_ptr() as usize;
     let args_ptr = args.as_ptr() as usize;
@@ -172,6 +187,43 @@ pub fn alloc(size: usize, align: usize) -> *mut u8 {
 pub fn free(ptr: *mut u8, size: usize, align: usize) {
     unsafe {
         syscall!(FREE, ptr, size, align);
+    }
+}
+
+pub unsafe fn ioctl(fd: i32, request: usize, arg: usize) -> i32 {
+    #[cfg(target_arch = "x86_64")]
+    {
+        let result: i32;
+        core::arch::asm!(
+            "syscall",
+            in("rax") 16,      // Número da syscall ioctl (16 no Linux x86_64)
+            in("rdi") fd,      // Descritor de arquivo (0 = stdin)
+            in("rsi") request, // Código da requisição (TIOCGWINSZ)
+            in("rdx") arg,     // Ponteiro para struct winsize
+            lateout("rax") result,
+            options(nostack, preserves_flags)
+        );
+        result
+    }
+    
+    #[cfg(target_arch = "aarch64")]
+    {
+        let result: i64;
+        core::arch::asm!(
+            "mov x8, 29",      // Número da syscall ioctl (29 no Linux ARM64)
+            "svc 0",
+            in("x0") fd as i64,
+            in("x1") request as i64,
+            in("x2") arg as i64,
+            lateout("x0") result,
+            options(nostack, preserves_flags)
+        );
+        result as i32
+    }
+    
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    {
+        -1 // Implementação genérica para erro
     }
 }
 

@@ -5,6 +5,7 @@ use crate::api::regex::Regex;
 use crate::api::{console, fs, io};
 use crate::api;
 
+use alloc::borrow::ToOwned;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
@@ -54,7 +55,7 @@ impl Editor {
         search_prompt.eol = false;
 
         let mut command_prompt = Prompt::new();
-        let command_history = String::from("~/.edit-history");
+        let command_history = String::from("~/.edit-history".to_owned());
         command_prompt.history.load(&command_history);
         command_prompt.eol = false;
 

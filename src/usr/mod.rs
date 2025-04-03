@@ -1,5 +1,6 @@
 // pub mod beep; // TODO: Remove file
 pub mod calc;
+pub mod cd;
 pub mod chess;
 pub mod copy;
 pub mod date;
@@ -26,6 +27,7 @@ pub mod life;
 pub mod lisp;
 pub mod list;
 pub mod memory;
+pub mod mkdir;
 pub mod net;
 pub mod pci;
 pub mod pi;

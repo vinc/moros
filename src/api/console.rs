@@ -1,4 +1,4 @@
-use crate::sys;
+use crate::{api::syscall, sys};
 
 use alloc::string::ToString;
 use core::fmt;
@@ -119,4 +119,41 @@ pub fn cols() -> usize {
 pub fn rows() -> usize {
     let n = 25; // lines
     sys::process::env("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)
+}
+
+pub fn size() -> (usize, usize) {
+    // Define a estrutura do winsize (mesmo layout da libc)
+    #[repr(C)]
+    struct WinSize {
+        ws_row: u16,
+        ws_col: u16,
+        _xpixel: u16,
+        _ypixel: u16,
+    }
+
+    // Valores típicos para ioctl (dependem do sistema)
+    const TIOCGWINSZ: usize = 0x5413;
+    
+    let mut ws = WinSize {
+        ws_row: 0,
+        ws_col: 0,
+        _xpixel: 0,
+        _ypixel: 0,
+    };
+
+    // Chamada direta ao sistema usando syscall
+    let result = unsafe {
+        syscall::ioctl(
+            0, // stdin file descriptor
+            TIOCGWINSZ,
+            &mut ws as *mut _ as usize
+        )
+    };
+
+    if result == 0 {
+        (ws.ws_col as usize, ws.ws_row as usize)
+    } else {
+        // Fallback seguro se a chamada falhar
+        (80, 24) // Valores padrão tradicionais
+    }
 }
