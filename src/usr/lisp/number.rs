@@ -342,7 +342,7 @@ impl FromStr for Number {
 
 impl From<&str> for Number {
     fn from(s: &str) -> Self {
-        if let Ok(num) = s.parse() {
+        if let Ok(num) = s.replace("_", "").parse() {
             num
         } else {
             Number::Float(f64::NAN)
