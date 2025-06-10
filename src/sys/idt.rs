@@ -211,7 +211,7 @@ extern "x86-interrupt" fn segment_not_present_handler(
 // See: https://os.phil-opp.com/returning-from-exceptions/
 macro_rules! wrap {
     ($fn: ident => $w:ident) => {
-        #[naked]
+        #[unsafe(naked)]
         pub unsafe extern "sysv64" fn $w() {
             naked_asm!(
                 "push rax",
