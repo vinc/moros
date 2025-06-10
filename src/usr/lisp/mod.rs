@@ -433,6 +433,9 @@ fn test_lisp() {
     assert_eq!(eval!("-1.5"), "-1.5");
     assert_eq!(eval!("-0xff"), "-255");
     assert_eq!(eval!("-0b11"), "-3");
+    assert_eq!(eval!("123_456"), "123456");
+    assert_eq!(eval!("0x123_456"), "1193046");
+    assert_eq!(eval!("0.123_456"), "0.123456");
 
     // quote
     assert_eq!(eval!("(quote (1 2 3))"), "(1 2 3)");
