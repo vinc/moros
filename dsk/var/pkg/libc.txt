@@ -1,0 +1,30 @@
+MOROS libc Package
+
+This package provides C library support for MOROS, including:
+
+- Standard C library functions (stdio, stdlib, string)
+- Memory management (malloc, free, calloc, realloc)
+- String manipulation (strlen, strcpy, strcat, etc.)
+- Input/output functions (printf, puts, getchar, etc.)
+- Two example C programs demonstrating libc usage
+
+Included Files:
+- /bin/hello - Simple Hello World program in C
+- /bin/malloc_test - Memory allocation demonstration
+- /var/doc/libc.md - Complete libc documentation
+- /var/doc/build-macos.md - macOS build instructions
+- /var/doc/c-tutorial.md - C programming tutorial for MOROS
+- /var/src/hello.c - Hello World source code
+- /var/src/malloc_test.c - Memory test source code
+
+The libc implementation provides a subset of standard C library functions
+that interface directly with MOROS system calls, allowing standard C
+programs to run natively on MOROS.
+
+Usage:
+Run the example programs with: hello or malloc_test
+Read documentation with: read /var/doc/c-tutorial.md
+View source code with: read /var/src/hello.c
+
+Author: MOROS libc implementation
+Version: 1.0.0

@@ -1,4 +1,4 @@
-.PHONY: setup image qemu
+.PHONY: setup image qemu libc libc-clean user-c user user-nasm user-rust
 .EXPORT_ALL_VARIABLES:
 
 setup:
@@ -7,16 +7,16 @@ setup:
 	cargo install bootimage
 
 # Compilation options
-memory = 32
+memory = 64
 output = video# video, serial
-keyboard = qwerty# qwerty, azerty, dvorak
+keyboard = dvorak# qwerty, azerty, dvorak
 mode = release
 
 # Emulation options
 smp = 2
-nic = rtl8139# rtl8139, pcnet, e1000
-audio = sdl# sdl, coreaudio
-signal = off# on
+nic = e1000# rtl8139, pcnet, e1000
+audio = coreaudio# sdl, coreaudio
+signal = on# on
 kvm = false
 pcap = false
 trace = false# e1000
@@ -25,6 +25,33 @@ monitor = false
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_MEMORY = $(memory)
 export MOROS_KEYBOARD = $(keyboard)
+
+# Build libc library
+libc:
+	$(MAKE) -C libc
+
+libc-clean:
+	$(MAKE) -C libc clean
+
+# Build C programs using libc
+user-c: libc
+	@if [ -d "dsk/src/c" ]; then \
+		mkdir -p dsk/bin; \
+		for src in dsk/src/c/*.c; do \
+			if [ -f "$$src" ]; then \
+				name=$$(basename "$$src" .c); \
+				echo "Building C program: $$name"; \
+				clang -target x86_64-unknown-none -ffreestanding -nostdlib \
+					-fno-stack-protector -Wall -Wextra -std=c99 -O2 \
+					-Ilibc/include -fno-builtin -fno-omit-frame-pointer \
+					-mno-red-zone -mno-mmx -mno-sse -mno-sse2 \
+					-c "$$src" -o "/tmp/$$name.o" && \
+				x86_64-elf-ld -Ttext=0x800000 -e _start -o "dsk/bin/$$name" "/tmp/$$name.o" \
+					libc/lib/libc.a && \
+				rm "/tmp/$$name.o"; \
+			fi; \
+		done; \
+	fi
 
 # Build userspace binaries
 
@@ -42,7 +69,11 @@ user-cargo-opts = --no-default-features --features userspace --release
 # set it at 0x800000 that is free. With `ld` the resulting binaries are much
 # larger though. This is useful only for programs that allocate memory.
 ld-opts = -Ttext=800000 -Trodata=900000 -Tbss=950000
-linker-opts = -C linker-flavor=ld -C link-args="$(ld-opts)"
+ifeq ($(shell uname),Darwin)
+	linker-opts = -C linker=x86_64-elf-ld -C link-args="$(ld-opts)"
+else
+	linker-opts = -C linker-flavor=ld -C link-args="$(ld-opts)"
+endif
 
 user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
@@ -54,6 +85,9 @@ user-rust:
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		strip dsk/bin/{}
+
+# Build all userspace programs
+user: user-nasm user-rust user-c
 
 bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
 img = disk.img
@@ -122,6 +156,7 @@ website:
 pkg:
 	ls -1 dsk/var/pkg | grep -v index.html > dsk/var/pkg/index.html
 
-clean:
+clean: libc-clean
 	cargo clean
 	rm -f www/*.html www/images/*.png
+	rm -f dsk/bin/*
