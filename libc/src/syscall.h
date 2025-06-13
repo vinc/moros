@@ -35,17 +35,15 @@ static inline size_t strlen(const char* s) {
 #define SYS_FREE    0x11
 #define SYS_KIND    0x12
 
-/* Syscall wrapper - x86_64 ABI */
+/* Syscall wrapper - MOROS uses int 0x80 */
 static inline long syscall(long number, long arg1, long arg2, long arg3, long arg4, long arg5, long arg6) {
     long result;
-    register long r10 asm("r10") = arg4;
-    register long r8 asm("r8") = arg5;
-    register long r9 asm("r9") = arg6;
+    (void)arg4; (void)arg5; (void)arg6; /* Unused for now */
     
-    __asm__ volatile ("syscall"
+    __asm__ volatile ("int $0x80"
                       : "=a" (result)
-                      : "a" (number), "D" (arg1), "S" (arg2), "d" (arg3), "r" (r10), "r" (r8), "r" (r9)
-                      : "rcx", "r11", "memory");
+                      : "a" (number), "D" (arg1), "S" (arg2), "d" (arg3)
+                      : "memory");
     
     return result;
 }

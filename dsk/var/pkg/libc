@@ -1,1 +1,4 @@
 /bin/hello
+/bin/malloc_test
+/src/c/hello.c
+/src/c/malloc_test.c
