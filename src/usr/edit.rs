@@ -1,9 +1,9 @@
+use crate::api;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::regex::Regex;
 use crate::api::{console, fs, io};
-use crate::api;
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -613,7 +613,12 @@ impl Editor {
         if self.lines.is_empty() {
             self.lines.push(String::new());
         }
-        self.handle_arrow_up(); // Move cursor to previous line
+        if i == self.lines.len() {
+            self.handle_arrow_up();
+        } else {
+            self.align_cursor();
+            self.print_screen();
+        }
     }
 
     fn copy_line(&mut self) {
