@@ -52,6 +52,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex/find`
 - `shell` (aliased to `sh`)
+- `date`, `sleep`
 - Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `rem` (aliased to `%`), `trunc`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
@@ -175,6 +176,9 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Add `sleep` function
+
+### 0.8.0 (2024-12-21)
 - Add `dirname`, `filename`, `eprint`, and `error` functions
 - Rename `uptime` to `clk/boot` and `realtime` to `clk/epoch`
 
