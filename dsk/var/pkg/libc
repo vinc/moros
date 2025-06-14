@@ -1,3 +1,9 @@
+/bin/gmtime_test
 /bin/hello
 /bin/libc_test
 /bin/moros_paths_test
+/bin/time_debug
+/bin/time_verify
+/bin/simple_time_test
+/bin/memory_debug
+/bin/corruption_debug
