@@ -111,7 +111,7 @@ make image
 
 # This will:
 # 1. Build the libc library from dsk/lib/c/
-# 2. Compile any C programs in dsk/src/c/
+# 2. Compile any C programs in dsk/src/c/bin/
 # 3. Package them into the MOROS filesystem
 ```
 
@@ -119,7 +119,7 @@ make image
 
 ### Writing C Programs for MOROS
 
-Create C source files in `dsk/src/c/` directory:
+Create C source files in `dsk/src/c/bin/` directory:
 
 ```c
 #include <stdio.h>
@@ -181,7 +181,7 @@ Test programs are provided in the `test/` directory:
 make -C dsk/lib/c test
 ```
 
-Example test programs in `dsk/src/c/`:
+Example test programs in `dsk/src/c/bin/`:
 - `hello.c` - Basic Hello World program
 - `malloc_test.c` - Memory allocation testing
 

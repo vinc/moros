@@ -35,9 +35,9 @@ libc-clean:
 
 # Build C programs using libc
 user-c: libc
-	@if [ -d "dsk/src/c" ]; then \
+	@if [ -d "dsk/src/c/bin" ]; then \
 		mkdir -p dsk/bin; \
-		for src in dsk/src/c/*.c; do \
+		for src in dsk/src/c/bin/*.c; do \
 			if [ -f "$$src" ]; then \
 				name=$$(basename "$$src" .c); \
 				echo "Building C program: $$name"; \

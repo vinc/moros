@@ -88,11 +88,11 @@ File operations are mapped to MOROS file handles:
 ### Build Commands
 
 ```bash
-# Build the libc library
-make -C libc
+# Build the libc library (from MOROS root)
+make libc
 
-# Clean build artifacts
-make -C libc clean
+# Clean build artifacts (from MOROS root)
+make libc-clean
 
 # Build C programs (from MOROS root)
 make user-c
@@ -110,8 +110,8 @@ The main MOROS Makefile automatically builds libc and C programs:
 make image
 
 # This will:
-# 1. Build the libc library
-# 2. Compile any C programs in dsk/src/c/
+# 1. Build the libc library from dsk/lib/c/
+# 2. Compile any C programs in dsk/src/c/bin/
 # 3. Package them into the MOROS filesystem
 ```
 
@@ -119,7 +119,7 @@ make image
 
 ### Writing C Programs for MOROS
 
-Create C source files in `dsk/src/c/` directory:
+Create C source files in `dsk/src/c/bin/` directory:
 
 ```c
 #include <stdio.h>
@@ -177,11 +177,11 @@ Additional format specifiers can be added to `vfprintf()` in `src/stdio.c`.
 Test programs are provided in the `test/` directory:
 
 ```bash
-# Build and run basic functionality test
-make -C libc test
+# Build and run basic functionality test (from MOROS root)
+make -C dsk/lib/c test
 ```
 
-Example test programs in `dsk/src/c/`:
+Example test programs in `dsk/src/c/bin/`:
 - `hello.c` - Basic Hello World program
 - `malloc_test.c` - Memory allocation testing
 

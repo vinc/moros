@@ -100,10 +100,10 @@ make qemu nic=e1000
 
 ### 1. Create C Source Files
 
-Place your C programs in `dsk/src/c/`:
+Place your C programs in `dsk/src/c/bin/`:
 
 ```c
-// dsk/src/c/myprogram.c
+// dsk/src/c/bin/myprogram.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -229,7 +229,7 @@ C programs are compiled as:
 
 ## Next Steps
 
-- Explore example programs in `dsk/src/c/`
+- Explore example programs in `dsk/src/c/bin/`
 - Read the libc documentation in `dsk/lib/c/README.md`
 - Try porting simple C programs to MOROS
 - Contribute improvements to the libc implementation
