@@ -1,0 +1,12 @@
+#! shell
+
+set url "$1"
+set tmp "/tmp/web.txt"
+
+http $url => $tmp
+
+# set web "10.0.2.2:8888"
+# print "GET $url" => $tmp
+# socket $web <=> $tmp
+
+view $tmp

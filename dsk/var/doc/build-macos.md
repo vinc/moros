@@ -230,6 +230,6 @@ C programs are compiled as:
 ## Next Steps
 
 - Explore example programs in `dsk/src/c/`
-- Read the libc documentation in `libc/README.md`
+- Read the libc documentation in `dsk/lib/c/README.md`
 - Try porting simple C programs to MOROS
 - Contribute improvements to the libc implementation

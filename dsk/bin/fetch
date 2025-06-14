@@ -1,0 +1,8 @@
+#! lisp
+
+(load "/lib/lisp/core.lsp")
+
+(var url (first args))
+(var dst (filename url))
+
+(shell (str "http " url " => " dst))

@@ -28,10 +28,10 @@ export MOROS_KEYBOARD = $(keyboard)
 
 # Build libc library
 libc:
-	$(MAKE) -C libc
+	$(MAKE) -C dsk/lib/c
 
 libc-clean:
-	$(MAKE) -C libc clean
+	$(MAKE) -C dsk/lib/c clean
 
 # Build C programs using libc
 user-c: libc
@@ -43,11 +43,11 @@ user-c: libc
 				echo "Building C program: $$name"; \
 				clang -target x86_64-unknown-none -ffreestanding -nostdlib \
 					-fno-stack-protector -Wall -Wextra -std=c99 -O2 \
-					-Ilibc/include -fno-builtin -fno-omit-frame-pointer \
+					-Idsk/lib/c/include -fno-builtin -fno-omit-frame-pointer \
 					-mno-red-zone -mno-mmx -mno-sse -mno-sse2 \
 					-c "$$src" -o "/tmp/$$name.o" && \
 				x86_64-elf-ld -Ttext=0x800000 -e _start -o "dsk/bin/$$name" "/tmp/$$name.o" \
-					libc/lib/libc.a && \
+					dsk/lib/c/lib/libc.a && \
 				rm "/tmp/$$name.o"; \
 			fi; \
 		done; \
