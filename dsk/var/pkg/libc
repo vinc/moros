@@ -1,6 +1,2 @@
 /bin/hello
-/bin/libc_test
-/bin/ctime_debug
-/bin/localtime_debug
-/bin/asctime_r_test
-/bin/simple_time_test
+/bin/libc-test
