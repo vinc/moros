@@ -172,9 +172,6 @@ make libc-clean
 
 # Build C programs (from MOROS root)
 make user-c
-
-# Build everything including libc
-make user
 ```
 
 ### Integration with MOROS
