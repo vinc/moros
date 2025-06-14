@@ -9,6 +9,7 @@ extern "C" {
 typedef unsigned long size_t;
 typedef long ptrdiff_t;
 typedef long ssize_t;
+typedef long off_t;
 
 #ifndef NULL
 #define NULL ((void*)0)

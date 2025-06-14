@@ -36,15 +36,16 @@ int unsetenv(const char* name);
 int atoi(const char* str);
 long atol(const char* str);
 long long atoll(const char* str);
-double atof(const char* str);
+/* Note: floating point functions disabled to avoid SSE issues */
+/* double atof(const char* str); */
 
 long strtol(const char* str, char** endptr, int base);
 unsigned long strtoul(const char* str, char** endptr, int base);
 long long strtoll(const char* str, char** endptr, int base);
 unsigned long long strtoull(const char* str, char** endptr, int base);
-float strtof(const char* str, char** endptr);
-double strtod(const char* str, char** endptr);
-long double strtold(const char* str, char** endptr);
+/* float strtof(const char* str, char** endptr); */
+/* double strtod(const char* str, char** endptr); */
+/* long double strtold(const char* str, char** endptr); */
 
 /* Pseudo-random sequence generation */
 int rand(void);

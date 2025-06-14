@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
 #include "syscall.h"
+
+/* Temporary filename constants */
+#define L_tmpnam 32
 
 /* File handles for standard streams */
 static FILE _stdin = { 0, 0, 0, 0 };
@@ -16,6 +21,7 @@ FILE* stderr = &_stderr;
 #define MOROS_OPEN_READ   0x01
 #define MOROS_OPEN_WRITE  0x02
 #define MOROS_OPEN_CREATE 0x04
+#define MOROS_OPEN_DEVICE 0x40
 
 /* File operations */
 FILE* fopen(const char* filename, const char* mode) {
@@ -43,6 +49,11 @@ FILE* fopen(const char* filename, const char* mode) {
     /* Handle + modifier */
     if (mode[1] == '+') {
         flags |= MOROS_OPEN_READ | MOROS_OPEN_WRITE;
+    }
+    
+    /* Check if this is a device file and add device flag if needed */
+    if (strncmp(filename, "/dev/", 5) == 0) {
+        flags |= MOROS_OPEN_DEVICE;
     }
     
     long handle = sys_open(filename, flags);
@@ -353,6 +364,41 @@ int vfprintf(FILE* stream, const char* format, va_list ap) {
                     count += 8; /* Approximate */
                     break;
                 }
+                case 'l': {
+                    format++; /* Skip 'l' */
+                    if (*format == 'd' || *format == 'i') {
+                        long n = va_arg(ap, long);
+                        print_number(n, 10, stream);
+                        count += 12; /* Approximate */
+                    } else if (*format == 'u') {
+                        unsigned long n = va_arg(ap, unsigned long);
+                        print_number(n, 10, stream);
+                        count += 12; /* Approximate */
+                    } else if (*format == 'x') {
+                        unsigned long n = va_arg(ap, unsigned long);
+                        print_number(n, 16, stream);
+                        count += 10; /* Approximate */
+                    } else {
+                        fputc('%', stream);
+                        fputc('l', stream);
+                        fputc(*format, stream);
+                        count += 3;
+                    }
+                    break;
+                }
+                case 'p': {
+                    void* ptr = va_arg(ap, void*);
+                    if (ptr == NULL) {
+                        print_string("(null)", stream);
+                        count += 6;
+                    } else {
+                        fputc('0', stream);
+                        fputc('x', stream);
+                        print_number((unsigned long)ptr, 16, stream);
+                        count += 12; /* Approximate */
+                    }
+                    break;
+                }
                 case '%':
                     fputc('%', stream);
                     count++;
@@ -417,6 +463,107 @@ long ftell(FILE* stream) {
 void rewind(FILE* stream) {
     (void)stream;
     /* Not implemented */
+}
+
+/* File removal and renaming */
+int remove(const char* filename) {
+    if (!filename) {
+        return -1;
+    }
+    
+    /* Use unlink for file removal */
+    return unlink(filename);
+}
+
+int rename(const char* old_name, const char* new_name) {
+    if (!old_name || !new_name) {
+        return -1;
+    }
+    
+    /* MOROS doesn't have rename syscall yet */
+    /* Would need to implement this in the kernel */
+    return -1;
+}
+
+/* System command execution */
+int system(const char* command) {
+    if (!command) {
+        return -1;
+    }
+    
+    /* Use SYS_SPAWN to execute command */
+    /* This is a simplified implementation */
+    char* argv[] = { "/bin/shell", "-c", (char*)command, NULL };
+    long result = sys_spawn("/bin/shell", argv);
+    
+    return (int)result;
+}
+
+/* Temporary file operations */
+FILE* tmpfile(void) {
+    /* Create a temporary file */
+    /* This is a simplified implementation */
+    static int tmp_counter = 0;
+    char tmp_name[32];
+    
+    /* Simple temporary filename generation */
+    int i = 0;
+    const char* prefix = "/tmp/tmp";
+    while (*prefix) {
+        tmp_name[i++] = *prefix++;
+    }
+    
+    /* Add counter as simple number */
+    int counter = tmp_counter++;
+    if (counter == 0) {
+        tmp_name[i++] = '0';
+    } else {
+        char digits[16];
+        int digit_count = 0;
+        while (counter > 0) {
+            digits[digit_count++] = '0' + (counter % 10);
+            counter /= 10;
+        }
+        while (digit_count > 0) {
+            tmp_name[i++] = digits[--digit_count];
+        }
+    }
+    tmp_name[i] = '\0';
+    
+    return fopen(tmp_name, "w+");
+}
+
+char* tmpnam(char* s) {
+    static char internal_buffer[L_tmpnam];
+    static int tmp_counter = 0;
+    
+    char* buffer = s ? s : internal_buffer;
+    
+    /* Simple temporary filename generation */
+    const char* prefix = "/tmp/tmp";
+    int i = 0;
+    while (*prefix) {
+        buffer[i++] = *prefix++;
+    }
+    
+    /* Add counter */
+    int counter = tmp_counter++;
+    if (counter == 0) {
+        buffer[i++] = '0';
+    } else {
+        char digits[16];
+        int digit_count = 0;
+        while (counter > 0) {
+            digits[digit_count++] = '0' + (counter % 10);
+            counter /= 10;
+        }
+        while (digit_count > 0) {
+            buffer[i++] = digits[--digit_count];
+        }
+    }
+    buffer[i] = '\0';
+    
+    return buffer;
 }
 
 /* strlen is now implemented in syscall.h */

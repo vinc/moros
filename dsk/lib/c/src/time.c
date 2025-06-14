@@ -1,0 +1,327 @@
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Static buffer for asctime/ctime */
+static char time_buffer[26];
+
+/* Simple epoch start - January 1, 2000 00:00:00 UTC */
+static const time_t EPOCH_START = 946684800;
+
+/* Days in each month (non-leap year) */
+static const int days_in_month[] = {
+    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+};
+
+/* Day names */
+static const char* day_names[] = {
+    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+};
+
+/* Month names */
+static const char* month_names[] = {
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
+
+/* Check if year is leap year */
+static int is_leap_year(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+/* Get number of days in month */
+static int get_days_in_month(int month, int year) {
+    if (month == 1 && is_leap_year(year)) {
+        return 29;
+    }
+    return days_in_month[month];
+}
+
+/* Clock function - simplified implementation */
+clock_t clock(void) {
+    /* MOROS doesn't have high-resolution timing yet */
+    /* Return a simple approximation */
+    static clock_t start_time = 0;
+    static int initialized = 0;
+    
+    if (!initialized) {
+        start_time = 0;
+        initialized = 1;
+    }
+    
+    /* For now, just return an incrementing value */
+    start_time += 1000;
+    return start_time;
+}
+
+/* Get current time */
+time_t time(time_t* tloc) {
+    /* MOROS doesn't have real-time clock syscall yet */
+    /* Return a simple time value based on system uptime */
+    static time_t current_time = EPOCH_START;
+    current_time++;
+    
+    if (tloc) {
+        *tloc = current_time;
+    }
+    
+    return current_time;
+}
+
+/* Calculate difference between two times */
+long difftime(time_t time1, time_t time0) {
+    return (long)(time1 - time0);
+}
+
+/* Convert tm structure to time_t */
+time_t mktime(struct tm* timeptr) {
+    if (!timeptr) {
+        return (time_t)-1;
+    }
+    
+    /* Simple conversion - not handling all edge cases */
+    int year = timeptr->tm_year + 1900;
+    int month = timeptr->tm_mon;
+    int day = timeptr->tm_mday;
+    
+    /* Count days since epoch (approximate) */
+    time_t days = 0;
+    
+    /* Add days for years */
+    for (int y = 1970; y < year; y++) {
+        days += is_leap_year(y) ? 366 : 365;
+    }
+    
+    /* Add days for months */
+    for (int m = 0; m < month; m++) {
+        days += get_days_in_month(m, year);
+    }
+    
+    /* Add days in current month */
+    days += day - 1;
+    
+    /* Convert to seconds and add time components */
+    time_t result = days * 24 * 60 * 60;
+    result += timeptr->tm_hour * 60 * 60;
+    result += timeptr->tm_min * 60;
+    result += timeptr->tm_sec;
+    
+    return result;
+}
+
+/* Convert time_t to tm structure (UTC) */
+struct tm* gmtime(const time_t* timer) {
+    if (!timer) {
+        return NULL;
+    }
+    
+    static struct tm tm_result;
+    time_t t = *timer;
+    
+    /* Simple conversion - starting from Unix epoch */
+    tm_result.tm_sec = t % 60;
+    t /= 60;
+    tm_result.tm_min = t % 60;
+    t /= 60;
+    tm_result.tm_hour = t % 24;
+    t /= 24;
+    
+    /* Calculate year and day of year */
+    int year = 1970;
+    int days_in_year;
+    
+    while (t >= (days_in_year = is_leap_year(year) ? 366 : 365)) {
+        t -= days_in_year;
+        year++;
+    }
+    
+    tm_result.tm_year = year - 1900;
+    tm_result.tm_yday = t;
+    
+    /* Calculate month and day */
+    int month = 0;
+    int days_in_current_month;
+    
+    while (t >= (days_in_current_month = get_days_in_month(month, year))) {
+        t -= days_in_current_month;
+        month++;
+    }
+    
+    tm_result.tm_mon = month;
+    tm_result.tm_mday = t + 1;
+    
+    /* Calculate day of week (simplified) */
+    time_t total_days = (*timer) / (24 * 60 * 60);
+    tm_result.tm_wday = (total_days + 4) % 7; /* Unix epoch was Thursday */
+    
+    tm_result.tm_isdst = 0; /* No DST support */
+    
+    return &tm_result;
+}
+
+/* Convert time_t to tm structure (local time) */
+struct tm* localtime(const time_t* timer) {
+    /* For MOROS, local time is same as UTC */
+    return gmtime(timer);
+}
+
+/* Convert tm structure to string */
+char* asctime(const struct tm* timeptr) {
+    if (!timeptr) {
+        return NULL;
+    }
+    
+    /* Format: "Wed Jun 30 21:49:08 1993\n" */
+    /* Manual formatting to avoid snprintf dependency */
+    int pos = 0;
+    
+    /* Day name */
+    const char* day = day_names[timeptr->tm_wday % 7];
+    time_buffer[pos++] = day[0];
+    time_buffer[pos++] = day[1];
+    time_buffer[pos++] = day[2];
+    time_buffer[pos++] = ' ';
+    
+    /* Month name */
+    const char* month = month_names[timeptr->tm_mon % 12];
+    time_buffer[pos++] = month[0];
+    time_buffer[pos++] = month[1];
+    time_buffer[pos++] = month[2];
+    time_buffer[pos++] = ' ';
+    
+    /* Day */
+    if (timeptr->tm_mday >= 10) {
+        time_buffer[pos++] = '0' + (timeptr->tm_mday / 10);
+    } else {
+        time_buffer[pos++] = ' ';
+    }
+    time_buffer[pos++] = '0' + (timeptr->tm_mday % 10);
+    time_buffer[pos++] = ' ';
+    
+    /* Hour */
+    time_buffer[pos++] = '0' + (timeptr->tm_hour / 10);
+    time_buffer[pos++] = '0' + (timeptr->tm_hour % 10);
+    time_buffer[pos++] = ':';
+    
+    /* Minute */
+    time_buffer[pos++] = '0' + (timeptr->tm_min / 10);
+    time_buffer[pos++] = '0' + (timeptr->tm_min % 10);
+    time_buffer[pos++] = ':';
+    
+    /* Second */
+    time_buffer[pos++] = '0' + (timeptr->tm_sec / 10);
+    time_buffer[pos++] = '0' + (timeptr->tm_sec % 10);
+    time_buffer[pos++] = ' ';
+    
+    /* Year */
+    int year = timeptr->tm_year + 1900;
+    time_buffer[pos++] = '0' + (year / 1000);
+    time_buffer[pos++] = '0' + ((year / 100) % 10);
+    time_buffer[pos++] = '0' + ((year / 10) % 10);
+    time_buffer[pos++] = '0' + (year % 10);
+    time_buffer[pos++] = '\n';
+    time_buffer[pos] = '\0';
+    
+    return time_buffer;
+}
+
+/* Convert time_t to string */
+char* ctime(const time_t* timer) {
+    if (!timer) {
+        return NULL;
+    }
+    
+    struct tm* tm_ptr = localtime(timer);
+    if (!tm_ptr) {
+        return NULL;
+    }
+    
+    return asctime(tm_ptr);
+}
+
+/* Format time string */
+size_t strftime(char* s, size_t maxsize, const char* format, const struct tm* timeptr) {
+    if (!s || !format || !timeptr || maxsize == 0) {
+        return 0;
+    }
+    
+    size_t pos = 0;
+    
+    while (*format && pos < maxsize - 1) {
+        if (*format == '%' && *(format + 1)) {
+            format++; /* Skip '%' */
+            
+            switch (*format) {
+                case 'a': /* Abbreviated weekday name */
+                    if (pos + 3 < maxsize) {
+                        strcpy(s + pos, day_names[timeptr->tm_wday % 7]);
+                        pos += 3;
+                    }
+                    break;
+                    
+                case 'b': /* Abbreviated month name */
+                    if (pos + 3 < maxsize) {
+                        strcpy(s + pos, month_names[timeptr->tm_mon % 12]);
+                        pos += 3;
+                    }
+                    break;
+                    
+                case 'd': /* Day of month (01-31) */
+                    if (pos + 2 < maxsize) {
+                        s[pos++] = '0' + (timeptr->tm_mday / 10);
+                        s[pos++] = '0' + (timeptr->tm_mday % 10);
+                    }
+                    break;
+                    
+                case 'H': /* Hour (00-23) */
+                    if (pos + 2 < maxsize) {
+                        s[pos++] = '0' + (timeptr->tm_hour / 10);
+                        s[pos++] = '0' + (timeptr->tm_hour % 10);
+                    }
+                    break;
+                    
+                case 'M': /* Minute (00-59) */
+                    if (pos + 2 < maxsize) {
+                        s[pos++] = '0' + (timeptr->tm_min / 10);
+                        s[pos++] = '0' + (timeptr->tm_min % 10);
+                    }
+                    break;
+                    
+                case 'S': /* Second (00-59) */
+                    if (pos + 2 < maxsize) {
+                        s[pos++] = '0' + (timeptr->tm_sec / 10);
+                        s[pos++] = '0' + (timeptr->tm_sec % 10);
+                    }
+                    break;
+                    
+                case 'Y': /* Year with century */
+                    if (pos + 4 < maxsize) {
+                        int year = timeptr->tm_year + 1900;
+                        s[pos++] = '0' + (year / 1000);
+                        s[pos++] = '0' + ((year / 100) % 10);
+                        s[pos++] = '0' + ((year / 10) % 10);
+                        s[pos++] = '0' + (year % 10);
+                    }
+                    break;
+                    
+                case '%': /* Literal % */
+                    s[pos++] = '%';
+                    break;
+                    
+                default:
+                    /* Unknown format specifier, just copy it */
+                    s[pos++] = '%';
+                    if (pos < maxsize - 1) {
+                        s[pos++] = *format;
+                    }
+                    break;
+            }
+        } else {
+            s[pos++] = *format;
+        }
+        format++;
+    }
+    
+    s[pos] = '\0';
+    return pos;
+}

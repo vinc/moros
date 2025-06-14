@@ -7,13 +7,8 @@
 extern "C" {
 #endif
 
-/* strlen implementation - needed by syscall functions */
-static inline size_t strlen(const char* s) {
-    if (!s) return 0;
-    size_t len = 0;
-    while (s[len]) len++;
-    return len;
-}
+/* Forward declaration for strlen - implemented in string.c */
+extern size_t strlen(const char* s);
 
 /* MOROS syscall numbers - matching moros/src/sys/syscall/number.rs */
 #define SYS_EXIT    0x1
@@ -99,7 +94,9 @@ static inline long sys_spawn(const char* path, char* const argv[]) {
     return syscall4(SYS_SPAWN, path, path_len, argv, argc);
 }
 
-
+static inline long sys_info(const char* path, void* info_buf) {
+    return syscall3(SYS_INFO, path, strlen(path), info_buf);
+}
 
 #ifdef __cplusplus
 }

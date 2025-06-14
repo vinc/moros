@@ -378,18 +378,7 @@ void* memchr(const void* s, int c, size_t n) {
 }
 
 /* Error string */
-char* strerror(int errnum) {
-    /* Simple implementation */
-    switch (errnum) {
-        case 0: return "Success";
-        case 1: return "Operation not permitted";
-        case 2: return "No such file or directory";
-        case 3: return "No such process";
-        case 4: return "Interrupted system call";
-        case 5: return "Input/output error";
-        default: return "Unknown error";
-    }
-}
+/* strerror is implemented in errno.c */
 
 /* Case conversion helpers */
 char* strupper(char* s) {
