@@ -1,10 +1,6 @@
-/bin/gmtime_test
 /bin/hello
 /bin/libc_test
-/bin/moros_paths_test
-/bin/time_debug
-/bin/time_verify
+/bin/ctime_debug
+/bin/localtime_debug
+/bin/asctime_r_test
 /bin/simple_time_test
-/bin/memory_debug
-/bin/corruption_debug
-/bin/gmtime_r_test

@@ -42,6 +42,7 @@ time_t mktime(struct tm* timeptr);
 
 /* Time conversion functions */
 char* asctime(const struct tm* timeptr);
+char* asctime_r(const struct tm* timeptr, char* buf);
 char* ctime(const time_t* timer);
 struct tm* gmtime(const time_t* timer);
 struct tm* localtime(const time_t* timer);

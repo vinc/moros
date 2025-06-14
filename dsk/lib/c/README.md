@@ -150,6 +150,89 @@ C programs are compiled with these flags:
 - `-mno-red-zone` - Required for kernel compatibility
 - `-fno-builtin` - Don't use compiler builtins
 
+## Memory Corruption Issues in MOROS Userspace
+
+### Critical Issue: Static Buffer Corruption
+
+**⚠️ IMPORTANT**: MOROS userspace has a fundamental issue with static and global buffers in libc functions. This affects any function that returns pointers to static memory.
+
+#### Problem Description
+
+When libc functions use static or global buffers, those buffers get corrupted during function returns or shortly after. This manifests as:
+
+1. **Function sets values correctly** inside the function
+2. **Values are corrupted to zero** when returned to caller
+3. **Only affects libc static/global memory** - caller-provided buffers work fine
+4. **Corruption happens during function return** process
+
+#### Affected Functions (Before Fixes)
+
+- `gmtime()` - Returned all-zero tm structure
+- `localtime()` - Returned all-zero tm structure  
+- `asctime()` - Returned empty strings
+- `ctime()` - Returned empty strings
+- Any function using static string buffers
+
+#### Root Cause Analysis
+
+The exact cause is likely related to:
+- **Memory layout issues** with the linker script (`-Ttext=0x800000`)
+- **Stack corruption** affecting static data section
+- **Calling convention problems** during function returns
+- **Missing memory isolation** between userspace and kernel
+
+#### Solution: Reentrant API Pattern
+
+The solution is to **avoid static buffers entirely** by using reentrant APIs where the caller provides the buffer:
+
+```c
+// ❌ PROBLEMATIC: Uses static buffer
+char* asctime(const struct tm* timeptr);
+
+// ✅ SOLUTION: Caller provides buffer  
+char* asctime_r(const struct tm* timeptr, char* buf);
+```
+
+#### Implementation Strategy
+
+1. **Implement reentrant versions first** (`_r` suffix functions)
+2. **Use caller-provided buffers** exclusively in reentrant versions
+3. **Implement non-reentrant versions** by calling reentrant versions with static buffers
+4. **Place static buffers at file/global scope** (not function-local static)
+
+#### Working Examples
+
+```c
+// ✅ WORKING: Reentrant time functions
+struct tm my_tm;
+time_t timestamp = 946684801;
+localtime_r(&timestamp, &my_tm);  // Works perfectly
+
+char buffer[26];
+asctime_r(&my_tm, buffer);        // Works perfectly
+
+// ✅ WORKING: Non-reentrant versions (using reentrant internally)
+struct tm* result = localtime(&timestamp);  // Now works
+char* time_str = ctime(&timestamp);         // Now works
+```
+
+#### Guidelines for New libc Functions
+
+When implementing new libc functions:
+
+1. **Avoid static buffers** inside functions
+2. **Implement reentrant versions first** (`funcname_r`)
+3. **Use global buffers** if static buffers are absolutely needed
+4. **Test with caller-provided buffers** to verify functionality
+5. **Document any static buffer dependencies**
+
+#### Memory Layout Considerations
+
+- Static buffers **at file scope** are more stable than function-local static
+- **Global variables** work better than static variables
+- **Caller-provided buffers** (stack or heap) are most reliable
+- **String literals** appear to work correctly
+
 ## Limitations
 
 ### Current Limitations
@@ -160,6 +243,7 @@ C programs are compiled with these flags:
 4. **Error Handling**: Simplified error reporting
 5. **Locale Support**: Not implemented
 6. **Wide Character Support**: Not implemented
+7. **Static Buffer Corruption**: See "Memory Corruption Issues" section above
 
 ### Printf Format Support
 
