@@ -102,10 +102,18 @@ int main(void) {
         printf("   ✓ fopen(\"/dev/clk/epoch\", \"r\") successful\n");
         
         char buffer[64];
-        if (fgets(buffer, sizeof(buffer), epoch_file)) {
-            printf("   Read from epoch: %s", buffer);
+        /* Use fread instead of fgets since device files might not have newlines */
+        size_t bytes_read = fread(buffer, 1, sizeof(buffer) - 1, epoch_file);
+        if (bytes_read > 0) {
+            buffer[bytes_read] = '\0';  /* Null terminate */
+            printf("   ✓ Read from epoch: '%s' (%d bytes)\n", buffer, (int)bytes_read);
         } else {
-            printf("   Could not read from epoch file\n");
+            /* Try fgets as fallback */
+            if (fgets(buffer, sizeof(buffer), epoch_file)) {
+                printf("   ✓ Read from epoch (fgets): '%s'\n", buffer);
+            } else {
+                printf("   ✗ Could not read from epoch file\n");
+            }
         }
         
         fclose(epoch_file);

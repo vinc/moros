@@ -19,10 +19,10 @@ int main(int argc, char* argv[]) {
     /* Test 1: Basic file operations */
     printf("1. Testing file operations:\n");
     
-    if (access("/etc", F_OK) == 0) {
-        printf("   ✓ access() - /etc exists\n");
+    if (access("/ini", F_OK) == 0) {
+        printf("   ✓ access() - /ini exists\n");
     } else {
-        printf("   ✗ access() - /etc not found (errno: %d)\n", errno);
+        printf("   ✗ access() - /ini not found (errno: %d)\n", errno);
     }
     
     /* Test 2: Environment variables */
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
     if (stat("/", &st) == 0) {
         printf("   ✓ stat(\"/\") successful\n");
         printf("     Size: %ld bytes\n", st.st_size);
-        printf("     Mode: 0%o\n", st.st_mode);
+        printf("     Mode: 0%x\n", st.st_mode);
         if (S_ISDIR(st.st_mode)) {
             printf("     Type: Directory\n");
         } else if (S_ISREG(st.st_mode)) {
@@ -112,11 +112,17 @@ int main(int argc, char* argv[]) {
         printf("   localtime: %ld-%ld-%ld %ld:%ld:%ld\n",
                (long)(tm_info->tm_year + 1900), (long)(tm_info->tm_mon + 1), (long)tm_info->tm_mday,
                (long)tm_info->tm_hour, (long)tm_info->tm_min, (long)tm_info->tm_sec);
+        printf("   tm_info ptr: %p, wday: %d, mon: %d\n", (void*)tm_info, tm_info->tm_wday, tm_info->tm_mon);
+    } else {
+        printf("   localtime returned NULL!\n");
     }
     
     char* time_str = ctime(&current_time);
     if (time_str) {
-        printf("   ctime: %s", time_str); /* ctime includes newline */
+        printf("   ctime: '%s'", time_str); /* ctime includes newline */
+        printf("   ctime length: %d\n", (int)strlen(time_str));
+    } else {
+        printf("   ctime returned NULL!\n");
     }
     
     /* Test 8: Memory allocation */

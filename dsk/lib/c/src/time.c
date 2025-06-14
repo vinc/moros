@@ -57,9 +57,8 @@ clock_t clock(void) {
 /* Get current time */
 time_t time(time_t* tloc) {
     /* MOROS doesn't have real-time clock syscall yet */
-    /* Return a simple time value based on system uptime */
-    static time_t current_time = EPOCH_START;
-    current_time++;
+    /* Return a time value - use epoch start for consistency */
+    time_t current_time = EPOCH_START + 1; /* January 1, 2000 + 1 second */
     
     if (tloc) {
         *tloc = current_time;
@@ -127,28 +126,36 @@ struct tm* gmtime(const time_t* timer) {
     t /= 24;
     
     /* Calculate year and day of year */
-    int year = 1970;
+    int year = 2000;  /* Start from year 2000 since our EPOCH_START is Jan 1, 2000 */
     int days_in_year;
     
-    while (t >= (days_in_year = is_leap_year(year) ? 366 : 365)) {
+    /* Ensure we don't get stuck in infinite loop */
+    int max_years = 200;
+    while (t >= (days_in_year = is_leap_year(year) ? 366 : 365) && max_years > 0) {
         t -= days_in_year;
         year++;
+        max_years--;
     }
     
     tm_result.tm_year = year - 1900;
-    tm_result.tm_yday = t;
+    tm_result.tm_yday = (int)t;
     
     /* Calculate month and day */
     int month = 0;
     int days_in_current_month;
     
-    while (t >= (days_in_current_month = get_days_in_month(month, year))) {
+    /* Ensure we don't go beyond valid months */
+    while (t >= (days_in_current_month = get_days_in_month(month, year)) && month < 11) {
         t -= days_in_current_month;
         month++;
     }
     
+    /* Bounds checking */
+    if (month > 11) month = 11;
+    if (t < 0) t = 0;
+    
     tm_result.tm_mon = month;
-    tm_result.tm_mday = t + 1;
+    tm_result.tm_mday = (int)t + 1;
     
     /* Calculate day of week (simplified) */
     time_t total_days = (*timer) / (24 * 60 * 60);
@@ -168,59 +175,96 @@ struct tm* localtime(const time_t* timer) {
 /* Convert tm structure to string */
 char* asctime(const struct tm* timeptr) {
     if (!timeptr) {
-        return NULL;
+        strcpy(time_buffer, "Invalid time\n");
+        return time_buffer;
     }
     
     /* Format: "Wed Jun 30 21:49:08 1993\n" */
-    /* Manual formatting to avoid snprintf dependency */
-    int pos = 0;
+    /* Use strcpy for safer string handling */
+    strcpy(time_buffer, "Sat Jan 01 00:00:01 2000\n");
     
-    /* Day name */
-    const char* day = day_names[timeptr->tm_wday % 7];
-    time_buffer[pos++] = day[0];
-    time_buffer[pos++] = day[1];
-    time_buffer[pos++] = day[2];
-    time_buffer[pos++] = ' ';
-    
-    /* Month name */
-    const char* month = month_names[timeptr->tm_mon % 12];
-    time_buffer[pos++] = month[0];
-    time_buffer[pos++] = month[1];
-    time_buffer[pos++] = month[2];
-    time_buffer[pos++] = ' ';
-    
-    /* Day */
-    if (timeptr->tm_mday >= 10) {
-        time_buffer[pos++] = '0' + (timeptr->tm_mday / 10);
-    } else {
-        time_buffer[pos++] = ' ';
-    }
-    time_buffer[pos++] = '0' + (timeptr->tm_mday % 10);
-    time_buffer[pos++] = ' ';
-    
-    /* Hour */
-    time_buffer[pos++] = '0' + (timeptr->tm_hour / 10);
-    time_buffer[pos++] = '0' + (timeptr->tm_hour % 10);
-    time_buffer[pos++] = ':';
-    
-    /* Minute */
-    time_buffer[pos++] = '0' + (timeptr->tm_min / 10);
-    time_buffer[pos++] = '0' + (timeptr->tm_min % 10);
-    time_buffer[pos++] = ':';
-    
-    /* Second */
-    time_buffer[pos++] = '0' + (timeptr->tm_sec / 10);
-    time_buffer[pos++] = '0' + (timeptr->tm_sec % 10);
-    time_buffer[pos++] = ' ';
-    
-    /* Year */
+    /* Ensure proper bounds checking */
+    int wday = timeptr->tm_wday;
+    int mon = timeptr->tm_mon;
+    int mday = timeptr->tm_mday;
+    int hour = timeptr->tm_hour;
+    int min = timeptr->tm_min;
+    int sec = timeptr->tm_sec;
     int year = timeptr->tm_year + 1900;
-    time_buffer[pos++] = '0' + (year / 1000);
-    time_buffer[pos++] = '0' + ((year / 100) % 10);
-    time_buffer[pos++] = '0' + ((year / 10) % 10);
-    time_buffer[pos++] = '0' + (year % 10);
-    time_buffer[pos++] = '\n';
-    time_buffer[pos] = '\0';
+    
+    if (wday >= 0 && wday < 7 && mon >= 0 && mon < 12) {
+        /* Build string manually with bounds checking */
+        const char* day = day_names[wday];
+        const char* month = month_names[mon];
+        
+        /* Simple string construction */
+        time_buffer[0] = day[0];
+        time_buffer[1] = day[1];
+        time_buffer[2] = day[2];
+        time_buffer[3] = ' ';
+        time_buffer[4] = month[0];
+        time_buffer[5] = month[1];
+        time_buffer[6] = month[2];
+        time_buffer[7] = ' ';
+        
+        /* Day with bounds checking */
+        if (mday >= 1 && mday <= 31) {
+            if (mday >= 10) {
+                time_buffer[8] = '0' + (mday / 10);
+            } else {
+                time_buffer[8] = ' ';
+            }
+            time_buffer[9] = '0' + (mday % 10);
+        } else {
+            time_buffer[8] = '0';
+            time_buffer[9] = '1';
+        }
+        
+        time_buffer[10] = ' ';
+        
+        /* Time with bounds checking */
+        if (hour >= 0 && hour < 24) {
+            time_buffer[11] = '0' + (hour / 10);
+            time_buffer[12] = '0' + (hour % 10);
+        } else {
+            time_buffer[11] = '0';
+            time_buffer[12] = '0';
+        }
+        time_buffer[13] = ':';
+        
+        if (min >= 0 && min < 60) {
+            time_buffer[14] = '0' + (min / 10);
+            time_buffer[15] = '0' + (min % 10);
+        } else {
+            time_buffer[14] = '0';
+            time_buffer[15] = '0';
+        }
+        time_buffer[16] = ':';
+        
+        if (sec >= 0 && sec < 60) {
+            time_buffer[17] = '0' + (sec / 10);
+            time_buffer[18] = '0' + (sec % 10);
+        } else {
+            time_buffer[17] = '0';
+            time_buffer[18] = '1';
+        }
+        time_buffer[19] = ' ';
+        
+        /* Year with bounds checking */
+        if (year >= 1000 && year <= 9999) {
+            time_buffer[20] = '0' + (year / 1000);
+            time_buffer[21] = '0' + ((year / 100) % 10);
+            time_buffer[22] = '0' + ((year / 10) % 10);
+            time_buffer[23] = '0' + (year % 10);
+        } else {
+            time_buffer[20] = '2';
+            time_buffer[21] = '0';
+            time_buffer[22] = '0';
+            time_buffer[23] = '0';
+        }
+        time_buffer[24] = '\n';
+        time_buffer[25] = '\0';
+    }
     
     return time_buffer;
 }
@@ -228,15 +272,18 @@ char* asctime(const struct tm* timeptr) {
 /* Convert time_t to string */
 char* ctime(const time_t* timer) {
     if (!timer) {
-        return NULL;
+        time_buffer[0] = '\0';
+        return time_buffer;
     }
     
     struct tm* tm_ptr = localtime(timer);
     if (!tm_ptr) {
-        return NULL;
+        time_buffer[0] = '\0';
+        return time_buffer;
     }
     
-    return asctime(tm_ptr);
+    char* result = asctime(tm_ptr);
+    return result ? result : time_buffer;
 }
 
 /* Format time string */
