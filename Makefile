@@ -156,4 +156,3 @@ pkg:
 clean: libc-clean
 	cargo clean
 	rm -f www/*.html www/images/*.png
-	rm -f dsk/bin/*
