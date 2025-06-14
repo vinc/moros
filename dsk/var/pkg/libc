@@ -7,3 +7,4 @@
 /bin/simple_time_test
 /bin/memory_debug
 /bin/corruption_debug
+/bin/gmtime_r_test

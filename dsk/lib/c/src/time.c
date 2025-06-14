@@ -111,69 +111,69 @@ time_t mktime(struct tm* timeptr) {
     return result;
 }
 
-/* Convert time_t to tm structure (UTC) */
-struct tm* gmtime(const time_t* timer) {
-    if (!timer) {
+/* Reentrant version - caller provides buffer */
+struct tm* gmtime_r(const time_t* timer, struct tm* result) {
+    if (!timer || !result) {
         return NULL;
     }
     
     time_t timestamp = *timer;
     
     /* Clear the result structure */
-    memset(&global_tm_buffer, 0, sizeof(struct tm));
+    memset(result, 0, sizeof(struct tm));
     
     /* For timestamp 946684801: Jan 1, 2000 00:00:01 UTC */
     if (timestamp == 946684801) {
-        global_tm_buffer.tm_sec = 1;
-        global_tm_buffer.tm_min = 0;
-        global_tm_buffer.tm_hour = 0;
-        global_tm_buffer.tm_mday = 1;
-        global_tm_buffer.tm_mon = 0;
-        global_tm_buffer.tm_year = 100;
-        global_tm_buffer.tm_wday = 6;
-        global_tm_buffer.tm_yday = 0;
-        global_tm_buffer.tm_isdst = 0;
-        return &global_tm_buffer;
+        result->tm_sec = 1;
+        result->tm_min = 0;
+        result->tm_hour = 0;
+        result->tm_mday = 1;
+        result->tm_mon = 0;
+        result->tm_year = 100;
+        result->tm_wday = 6;
+        result->tm_yday = 0;
+        result->tm_isdst = 0;
+        return result;
     }
     
     /* For Y2K timestamp: Jan 1, 2000 00:00:00 UTC */
     if (timestamp == 946684800) {
-        global_tm_buffer.tm_sec = 0;
-        global_tm_buffer.tm_min = 0;
-        global_tm_buffer.tm_hour = 0;
-        global_tm_buffer.tm_mday = 1;
-        global_tm_buffer.tm_mon = 0;
-        global_tm_buffer.tm_year = 100;
-        global_tm_buffer.tm_wday = 6;
-        global_tm_buffer.tm_yday = 0;
-        global_tm_buffer.tm_isdst = 0;
-        return &global_tm_buffer;
+        result->tm_sec = 0;
+        result->tm_min = 0;
+        result->tm_hour = 0;
+        result->tm_mday = 1;
+        result->tm_mon = 0;
+        result->tm_year = 100;
+        result->tm_wday = 6;
+        result->tm_yday = 0;
+        result->tm_isdst = 0;
+        return result;
     }
     
     /* Unix epoch: Jan 1, 1970 00:00:00 UTC */
     if (timestamp == 0) {
-        global_tm_buffer.tm_sec = 0;
-        global_tm_buffer.tm_min = 0;
-        global_tm_buffer.tm_hour = 0;
-        global_tm_buffer.tm_mday = 1;
-        global_tm_buffer.tm_mon = 0;
-        global_tm_buffer.tm_year = 70;
-        global_tm_buffer.tm_wday = 4;
-        global_tm_buffer.tm_yday = 0;
-        global_tm_buffer.tm_isdst = 0;
-        return &global_tm_buffer;
+        result->tm_sec = 0;
+        result->tm_min = 0;
+        result->tm_hour = 0;
+        result->tm_mday = 1;
+        result->tm_mon = 0;
+        result->tm_year = 70;
+        result->tm_wday = 4;
+        result->tm_yday = 0;
+        result->tm_isdst = 0;
+        return result;
     }
     
     /* General case - initialize with defaults */
-    global_tm_buffer.tm_sec = 0;
-    global_tm_buffer.tm_min = 0;
-    global_tm_buffer.tm_hour = 0;
-    global_tm_buffer.tm_mday = 1;
-    global_tm_buffer.tm_mon = 0;
-    global_tm_buffer.tm_year = 70;
-    global_tm_buffer.tm_wday = 4;
-    global_tm_buffer.tm_yday = 0;
-    global_tm_buffer.tm_isdst = 0;
+    result->tm_sec = 0;
+    result->tm_min = 0;
+    result->tm_hour = 0;
+    result->tm_mday = 1;
+    result->tm_mon = 0;
+    result->tm_year = 70;
+    result->tm_wday = 4;
+    result->tm_yday = 0;
+    result->tm_isdst = 0;
     
     /* Extract time components */
     long seconds = (long)timestamp;
@@ -209,17 +209,28 @@ struct tm* gmtime(const time_t* timer) {
     }
     
     /* Set final values */
-    global_tm_buffer.tm_sec = sec;
-    global_tm_buffer.tm_min = min;
-    global_tm_buffer.tm_hour = hour;
-    global_tm_buffer.tm_mday = (int)remaining_days + 1;
-    global_tm_buffer.tm_mon = month;
-    global_tm_buffer.tm_year = year - 1900;
-    global_tm_buffer.tm_wday = (int)((days_since_epoch + 4) % 7);
-    global_tm_buffer.tm_yday = 0; /* Simplified */
-    global_tm_buffer.tm_isdst = 0;
+    result->tm_sec = sec;
+    result->tm_min = min;
+    result->tm_hour = hour;
+    result->tm_mday = (int)remaining_days + 1;
+    result->tm_mon = month;
+    result->tm_year = year - 1900;
+    result->tm_wday = (int)((days_since_epoch + 4) % 7);
+    result->tm_yday = 0; /* Simplified */
+    result->tm_isdst = 0;
     
-    return &global_tm_buffer;
+    return result;
+}
+
+/* Convert time_t to tm structure (UTC) */
+struct tm* gmtime(const time_t* timer) {
+    return gmtime_r(timer, &global_tm_buffer);
+}
+
+/* Reentrant version - caller provides buffer */
+struct tm* localtime_r(const time_t* timer, struct tm* result) {
+    /* For MOROS, local time is same as UTC */
+    return gmtime_r(timer, result);
 }
 
 /* Convert time_t to tm structure (local time) */
@@ -305,7 +316,8 @@ char* ctime(const time_t* timer) {
         return time_buffer;
     }
     
-    struct tm* tm_ptr = localtime(timer);
+    struct tm tm_buf;
+    struct tm* tm_ptr = localtime_r(timer, &tm_buf);
     if (!tm_ptr) {
         strcpy(time_buffer, "Invalid time\n");
         return time_buffer;
