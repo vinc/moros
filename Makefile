@@ -1,4 +1,4 @@
-.PHONY: setup image qemu libc libc-clean user-c user user-nasm user-rust
+.PHONY: setup image qemu libc libc-clean user-asm user-c user-rust
 .EXPORT_ALL_VARIABLES:
 
 setup:
@@ -55,10 +55,10 @@ user-c: libc
 
 # Build userspace binaries
 
-user-nasm:
-	basename -s .s dsk/src/bin/*.s | xargs -I {} \
-    nasm dsk/src/bin/{}.s -o dsk/bin/{}.tmp
-	basename -s .s dsk/src/bin/*.s | xargs -I {} \
+user-asm:
+	basename -s .s dsk/src/asm/bin/*.s | xargs -I {} \
+    nasm dsk/src/asm/bin/{}.s -o dsk/bin/{}.tmp
+	basename -s .s dsk/src/asm/bin/*.s | xargs -I {} \
 		sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
 	rm dsk/bin/*.tmp
 
@@ -85,9 +85,6 @@ user-rust:
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		strip dsk/bin/{}
-
-# Build all userspace programs
-user: user-nasm user-rust user-c
 
 bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
 img = disk.img
