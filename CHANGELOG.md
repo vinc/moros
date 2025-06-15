@@ -1,6 +1,20 @@
 # Changelog
 
 ## Unreleased
+- Add sleep to lisp (#743)
+- Bump object from 0.37.0 to 0.37.1 (#742)
+- Bump object from 0.36.7 to 0.37.0 (#739)
+- Bump sha2 from 0.10.8 to 0.10.9 (#738)
+- Fix Lisp float underscore parsing (#741)
+- Bump actions/checkout from 2 to 4 (#737)
+- Upgrade Rust to nightly-2025-06-01 (#734)
+- Bump actions/cache from 2 to 4 (#736)
+- Update dependabot (#735)
+- Upgrade nom to 8.0.0 (#718)
+- Bump pc-keyboard from 0.6.1 to 0.8.0 (#715)
+- Bump raw-cpuid from 11.2.0 to 11.3.0 (#714)
+- Bump vte from 0.13.0 to 0.13.1 (#713)
+- Bump object from 0.36.5 to 0.36.7 (#712)
 
 ## 0.11.0 (2024-12-21)
 - Add VGA graphics ([#687](https://github.com/vinc/moros/pull/687))
