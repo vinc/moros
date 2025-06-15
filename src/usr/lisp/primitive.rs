@@ -670,3 +670,10 @@ pub fn lisp_date(args: &[Exp]) -> Result<Exp, Err> {
     let date = api::time::from_timestamp_utc(ts).format(fmt);
     Ok(Exp::Str(date))
 }
+
+pub fn lisp_sleep(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let s = float(&args[0])?;
+    syscall::sleep(s);
+    Ok(Exp::List(Vec::new()))
+}
