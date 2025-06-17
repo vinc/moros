@@ -22,8 +22,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     for arg in &args[1..] {
         let mut pathname = *arg;
 
-        // The commands `delete /usr/alice/` and `delete /usr/alice`
-        // are equivalent, but `delete /` should not be modified.
+        // The commands `drop /usr/alice/` and `drop /usr/alice`
+        // are equivalent, but `drop /` should not be modified.
         if pathname.len() > 1 {
             pathname = pathname.trim_end_matches('/');
         }
@@ -41,7 +41,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
 
         if fs::delete(pathname).is_err() {
-            error!("Could not delete file '{}'", pathname);
+            error!("Could not drop file '{}'", pathname);
             return Err(ExitCode::Failure);
         }
     }
@@ -53,7 +53,7 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} delete {}<path>{}",
+        "{}Usage:{} drop {}<path>{}",
         csi_title, csi_reset, csi_option, csi_reset
     );
     println!();
