@@ -1,9 +1,9 @@
+use crate::api;
 use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::regex::Regex;
 use crate::api::{console, fs, io};
-use crate::api;
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -12,9 +12,10 @@ use alloc::vec::Vec;
 use core::cmp;
 
 enum Cmd {
-    Save,
-    Replace,
     Delete,
+    Quit,
+    Replace,
+    Save,
 }
 
 struct EditorConfig {
@@ -433,6 +434,12 @@ impl Editor {
                 }
                 '\x0C' => { // Ctrl L -> Line mode
                     match self.exec() {
+                        Some(Cmd::Quit) => {
+                            print!("\x1b[2J"); // Clear screen
+                            print!("\x1b[1;1H"); // Move to top
+                            print!("\x1b[?25h"); // Enable cursor
+                            break;
+                        }
                         Some(Cmd::Save) => {
                             print!("\x1b[?25h"); // Enable cursor
                             continue;
@@ -613,7 +620,12 @@ impl Editor {
         if self.lines.is_empty() {
             self.lines.push(String::new());
         }
-        self.handle_arrow_up(); // Move cursor to previous line
+        if i == self.lines.len() {
+            self.handle_arrow_up();
+        } else {
+            self.align_cursor();
+            self.print_screen();
+        }
     }
 
     fn copy_line(&mut self) {
@@ -672,6 +684,9 @@ impl Editor {
                     self.lines.retain(|line| !re.is_match(line));
                     res = Some(Cmd::Delete);
                 }
+            }
+            "q" if params.len() == 1 => { // Quit
+                res = Some(Cmd::Quit);
             }
             "s" if params.len() == 4 => { // Substitute current line
                 let re = Regex::new(params[1]);

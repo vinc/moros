@@ -78,23 +78,29 @@ fn help_summary() -> Result<(), ExitCode> {
 fn help_edit() -> Result<(), ExitCode> {
     let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
-    println!(
-        "MOROS text editor is a very simple editor inspired by Pico.");
+    let description = [
+        "MOROS Editor is a minimal keyboard-driven text editor with shortcuts",
+        "for navigation, editing, and file management."
+    ];
+    for line in description {
+        println!("{}", line);
+    }
     println!();
     println!("{}Commands:{}", csi_color, csi_reset);
     let commands = [
-        ("^Q", "Quit editor"),
+        ("^A", "Move cursor to beginning of line"),
+        ("^B", "Move cursor to end of file"),
+        ("^C", "Quit"),
+        ("^D", "Cut line"),
+        ("^E", "Move cursor to enf of line"),
+        ("^F", "Find string in file"),
+        ("^N", "Find next string in file"),
+        ("^P", "Paste line"),
+        ("^Q", "Quit"),
+        ("^T", "Move cursor to beginning of file"),
         ("^W", "Write to file"),
         ("^X", "Write to file and quit"),
-        ("^T", "Go to top of file"),
-        ("^B", "Go to bottom of file"),
-        ("^A", "Go to beginning of line"),
-        ("^E", "Go to end of line"),
-        ("^D", "Cut line"),
         ("^Y", "Copy line"),
-        ("^P", "Paste line"),
-        ("^F", "Find string"),
-        ("^N", "Find next string"),
     ];
     for (command, usage) in &commands {
         let csi_color = Style::color("aqua");
