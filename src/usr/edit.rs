@@ -12,9 +12,10 @@ use alloc::vec::Vec;
 use core::cmp;
 
 enum Cmd {
-    Save,
-    Replace,
     Delete,
+    Quit,
+    Replace,
+    Save,
 }
 
 struct EditorConfig {
@@ -433,6 +434,12 @@ impl Editor {
                 }
                 '\x0C' => { // Ctrl L -> Line mode
                     match self.exec() {
+                        Some(Cmd::Quit) => {
+                            print!("\x1b[2J"); // Clear screen
+                            print!("\x1b[1;1H"); // Move to top
+                            print!("\x1b[?25h"); // Enable cursor
+                            break;
+                        }
                         Some(Cmd::Save) => {
                             print!("\x1b[?25h"); // Enable cursor
                             continue;
@@ -677,6 +684,9 @@ impl Editor {
                     self.lines.retain(|line| !re.is_match(line));
                     res = Some(Cmd::Delete);
                 }
+            }
+            "q" if params.len() == 1 => { // Quit
+                res = Some(Cmd::Quit);
             }
             "s" if params.len() == 4 => { // Substitute current line
                 let re = Regex::new(params[1]);
