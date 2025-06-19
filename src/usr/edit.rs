@@ -446,6 +446,10 @@ impl Editor {
                 'Z' if csi => { // Backtab (Shift + Tab)
                      // Do nothing
                 }
+                'I' if csi && csi_params == "1;5" => { // Ctrl + Tab
+                    self.next_buffer();
+                    self.print_screen();
+                }
                 '\x14' => { // Ctrl T -> Go to top of file
                     self.cursor.x = 0;
                     self.cursor.y = 0;
@@ -861,6 +865,12 @@ impl Editor {
         self.load_buffer(&buffer);
         self.buf += 1;
         self.buffers.insert(self.buf, buffer);
+    }
+
+    pub fn next_buffer(&mut self) {
+        self.buffers[self.buf] = Buffer::from(&*self);
+        self.buf = (self.buf + 1) % self.buffers.len();
+        self.load_buffer(&self.buffers[self.buf].clone());
     }
 
     pub fn load_buffer(&mut self, buffer: &Buffer) {
