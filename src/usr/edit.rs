@@ -942,7 +942,7 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} edit {}<options> <file>{1}",
+        "{}Usage:{} edit {}<options> <path>+{1}",
         csi_title, csi_reset, csi_option
     );
     println!();
@@ -954,7 +954,7 @@ fn help() {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut path = "";
+    let mut paths = Vec::new();
     let mut cmd = "";
     let mut i = 1;
     let n = args.len();
@@ -977,27 +977,31 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if args[i].starts_with('-') {
                     error!("Invalid option '{}'", args[i]);
                     return Err(ExitCode::UsageError);
-                } else if path.is_empty() {
-                    path = args[i];
                 } else {
-                    error!("Too many arguments");
-                    return Err(ExitCode::UsageError);
+                    paths.push(args[i])
                 }
             }
         }
         i += 1;
     }
-    if path.is_empty() {
+    if paths.is_empty() {
         help();
         return Err(ExitCode::UsageError);
     }
 
-    let mut editor = Editor::new(path);
+    let mut editor = Editor::new(paths[0]);
+    let n = paths.len();
+    for i in 1..n {
+        editor.open_buffer(paths[i]);
+    }
 
     if !cmd.is_empty() {
-        editor.exec_command(cmd);
-        for line in editor.lines {
-            println!("{}", line);
+        for _ in 0..n {
+            editor.next_buffer();
+            editor.exec_command(cmd);
+            for line in &editor.lines {
+                println!("{}", line);
+            }
         }
         return Ok(());
     }
