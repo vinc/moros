@@ -54,7 +54,7 @@ fn help_summary() -> Result<(), ExitCode> {
         "opy <file> <file>",
         "Copy file from source to destination",
     );
-    print_usage("d", "elete <file>", "Delete file or empty directory");
+    print_usage("d", "rop <file>", "Drop file or empty directory");
     print_usage("e", "dit <file>", "Edit existing or new file");
     print_usage("f", "ind <str> <path>", "Find pattern in path");
     print_usage("h", "elp <cmd>", "Display help about a command");

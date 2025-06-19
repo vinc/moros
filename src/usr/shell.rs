@@ -15,8 +15,8 @@ use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
 const AUTOCOMPLETE_COMMANDS: [&str; 40] = [
-    "2048", "calc", "chess", "copy", "date", "decode", "delete", "dhcp",
-    "diff", "disk", "edit", "elf", "encode", "env", "goto", "hash", "help",
+    "2048", "calc", "chess", "copy", "date", "decode", "dhcp", "diff",
+    "disk", "drop", "edit", "elf", "encode", "env", "goto", "hash", "help",
     "hex", "host", "http", "httpd", "install", "keyboard", "life", "lisp",
     "list", "memory", "move", "net", "pci", "quit", "read", "render", "shell",
     "socket", "tcp", "time", "user", "view", "write",
@@ -522,10 +522,10 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "copy"     => usr::copy::main(args),
         "date"     => usr::date::main(args),
         "decode"   => usr::decode::main(args),
-        "delete"   => usr::delete::main(args),
         "dhcp"     => usr::dhcp::main(args),
         "diff"     => usr::diff::main(args),
         "disk"     => usr::disk::main(args),
+        "drop"     => usr::drop::main(args),
         "edit"     => usr::edit::main(args),
         "elf"      => usr::elf::main(args),
         "encode"   => usr::encode::main(args),

@@ -18,9 +18,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }
 
-    // TODO: Avoid doing copy+delete
+    // TODO: Avoid doing copy + drop
     if usr::copy::main(args).is_ok() {
-        usr::delete::main(&args[0..2])
+        usr::drop::main(&args[0..2])
     } else {
         Err(ExitCode::Failure)
     }
