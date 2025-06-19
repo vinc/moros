@@ -502,6 +502,10 @@ impl Editor {
                     self.open();
                     self.print_screen();
                 }
+                '\x0B' => { // Ctrl X -> Kill buffer
+                    self.kill_buffer();
+                    self.print_screen();
+                }
                 '\x0C' => { // Ctrl L -> Line mode
                     match self.exec() {
                         Some(Cmd::Quit) => {
@@ -886,6 +890,13 @@ impl Editor {
             self.buf -= 1;
         }
         self.load_buffer(&self.buffers[self.buf].clone());
+    }
+
+    pub fn kill_buffer(&mut self) {
+        if self.buffers.len() > 1 {
+            self.previous_buffer();
+            self.buffers.remove((self.buf + 1) % self.buffers.len());
+        }
     }
 
     pub fn load_buffer(&mut self, buffer: &Buffer) {
