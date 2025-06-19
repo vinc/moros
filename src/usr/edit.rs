@@ -22,42 +22,27 @@ struct EditorConfig {
     tab_size: usize,
 }
 
+#[derive(Clone)]
 struct Coords {
     pub x: usize,
     pub y: usize,
 }
 
-pub struct Editor {
+#[derive(Clone)]
+pub struct Buffer {
     pathname: String,
-    clipboard: Option<String>,
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
     highlighted: Vec<(usize, usize, char)>,
-    config: EditorConfig,
-    search_prompt: Prompt,
-    search_query: String,
-    command_prompt: Prompt,
-    command_history: String,
 }
 
-impl Editor {
-    pub fn new(pathname: &str) -> Self {
+impl From<&str> for Buffer {
+    fn from(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
         let highlighted = Vec::new();
-        let clipboard = None;
         let mut lines = Vec::new();
-        let config = EditorConfig { tab_size: 4 };
-
-        let search_query = String::new();
-        let mut search_prompt = Prompt::new();
-        search_prompt.eol = false;
-
-        let mut command_prompt = Prompt::new();
-        let command_history = String::from("~/.edit-history");
-        command_prompt.history.load(&command_history);
-        command_prompt.eol = false;
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
@@ -72,10 +57,82 @@ impl Editor {
                 lines.push(String::new());
             }
         };
-
         let pathname = pathname.into();
 
         Self {
+            pathname,
+            lines,
+            cursor,
+            offset,
+            highlighted,
+        }
+    }
+}
+
+impl From<&Editor> for Buffer {
+    fn from(editor: &Editor) -> Self {
+        Buffer {
+            pathname: editor.pathname.clone(),
+            lines: editor.lines.clone(),
+            cursor: editor.cursor.clone(),
+            offset: editor.offset.clone(),
+            highlighted: editor.highlighted.clone(),
+        }
+    }
+}
+
+pub struct Editor {
+    buffer_prompt: Prompt,
+    buffers: Vec<Buffer>,
+    buf: usize,
+
+    pathname: String,
+    lines: Vec<String>,
+    cursor: Coords,
+    offset: Coords,
+    highlighted: Vec<(usize, usize, char)>,
+
+    clipboard: Option<String>,
+    config: EditorConfig,
+    search_prompt: Prompt,
+    search_query: String,
+    command_prompt: Prompt,
+    command_history: String,
+}
+
+impl Editor {
+    pub fn new(pathname: &str) -> Self {
+        let clipboard = None;
+        let config = EditorConfig { tab_size: 4 };
+
+        let search_query = String::new();
+        let mut search_prompt = Prompt::new();
+        search_prompt.eol = false;
+
+        let mut command_prompt = Prompt::new();
+        let command_history = "~/.edit-history".to_string();
+        command_prompt.history.load(&command_history);
+        command_prompt.eol = false;
+
+        // TODO: Add path autocompletion
+        let mut buffer_prompt = Prompt::new();
+        buffer_prompt.eol = false;
+
+        let buf = Buffer::from(pathname);
+
+        let pathname = buf.pathname.clone();
+        let lines = buf.lines.clone();
+        let cursor = buf.cursor.clone();
+        let offset = buf.offset.clone();
+        let highlighted = buf.highlighted.clone();
+
+        let buffers = vec![buf];
+        let buf = 0;
+
+        Self {
+            buffer_prompt,
+            buffers,
+            buf,
             pathname,
             clipboard,
             lines,
