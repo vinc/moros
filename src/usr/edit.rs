@@ -450,6 +450,10 @@ impl Editor {
                     self.next_buffer();
                     self.print_screen();
                 }
+                'I' if csi && csi_params == "1;6" => { // Ctrl + Shift + Tab
+                    self.previous_buffer();
+                    self.print_screen();
+                }
                 '\x14' => { // Ctrl T -> Go to top of file
                     self.cursor.x = 0;
                     self.cursor.y = 0;
@@ -870,6 +874,17 @@ impl Editor {
     pub fn next_buffer(&mut self) {
         self.buffers[self.buf] = Buffer::from(&*self);
         self.buf = (self.buf + 1) % self.buffers.len();
+        self.load_buffer(&self.buffers[self.buf].clone());
+    }
+
+    pub fn previous_buffer(&mut self) {
+        self.buffers[self.buf] = Buffer::from(&*self);
+        if self.buffers.len() > 1 {
+            if self.buf == 0 {
+                self.buf = self.buffers.len();
+            }
+            self.buf -= 1;
+        }
         self.load_buffer(&self.buffers[self.buf].clone());
     }
 
