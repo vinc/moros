@@ -13,6 +13,7 @@ use core::cmp;
 
 enum Cmd {
     Delete,
+    Open,
     Quit,
     Replace,
     Save,
@@ -489,6 +490,10 @@ impl Editor {
                     self.find_next();
                     self.print_screen();
                 }
+                '\x0F' => { // Ctrl O -> Open buffer
+                    self.open();
+                    self.print_screen();
+                }
                 '\x0C' => { // Ctrl L -> Line mode
                     match self.exec() {
                         Some(Cmd::Quit) => {
@@ -717,7 +722,7 @@ impl Editor {
     fn exec_command(&mut self, cmd: &str) -> Option<Cmd> {
         let mut res = None;
         let params: Vec<&str> = match cmd.chars().next() {
-            Some('w') =>  {
+            Some('w') | Some('o') =>  {
                 cmd.split(' ').collect()
             }
             _ => {
@@ -742,7 +747,11 @@ impl Editor {
                     res = Some(Cmd::Delete);
                 }
             }
-            "q" if params.len() == 1 => { // Quit
+            "o" | "open" if params.len() == 2 => { // Open
+                self.open_buffer(params[1]);
+                res = Some(Cmd::Open);
+            }
+            "q" | "quit" if params.len() == 1 => { // Quit
                 res = Some(Cmd::Quit);
             }
             "s" if params.len() == 4 => { // Substitute current line
@@ -769,7 +778,7 @@ impl Editor {
                 }
                 res = Some(Cmd::Replace);
             }
-            "w" => { // Save file
+            "w" | "write" => { // Save file
                 let path = if params.len() == 2 {
                     params[1]
                 } else {
@@ -832,6 +841,34 @@ impl Editor {
                 break;
             }
         }
+    }
+
+    pub fn open(&mut self) {
+        if let Some(path) = prompt(&mut self.buffer_prompt, "Open: ") {
+            if !path.is_empty() {
+                self.buffer_prompt.history.add(&path);
+                self.open_buffer(&path);
+            }
+        }
+    }
+
+    pub fn open_buffer(&mut self, path: &str) {
+        // Copy current buffer
+        self.buffers[self.buf] = Buffer::from(&*self);
+
+        // Open new buffer
+        let buffer = Buffer::from(path);
+        self.load_buffer(&buffer);
+        self.buf += 1;
+        self.buffers.insert(self.buf, buffer);
+    }
+
+    pub fn load_buffer(&mut self, buffer: &Buffer) {
+        self.lines = buffer.lines.clone();
+        self.pathname = buffer.pathname.clone();
+        self.cursor = buffer.cursor.clone();
+        self.offset = buffer.offset.clone();
+        self.highlighted = buffer.highlighted.clone();
     }
 }
 
