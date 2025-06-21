@@ -58,6 +58,6 @@ fn help() {
     );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
-    println!("  {0}<dir>/{1}     Delete directory", csi_option, csi_reset);
-    println!("  {0}<file>{1}     Delete file", csi_option, csi_reset);
+    println!("  {0}<dir>/{1}     Drop dir", csi_option, csi_reset);
+    println!("  {0}<file>{1}     Drop file", csi_option, csi_reset);
 }
