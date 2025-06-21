@@ -22,5 +22,6 @@ shortcuts for navigation, editing, and file management.
 - `CTRL` + `W` to write to file
 - `CTRL` + `X` to write to file and quit
 - `CTRL` + `Y` to copy (yank) line
+
 - `CTRL` + `TAB` to load next buffer
 - `CTRL` + `SHIFT` + `TAB` to load previous buffer
