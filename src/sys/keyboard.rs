@@ -113,12 +113,12 @@ fn interrupt_handler() {
             let is_shift = SHIFT.load(ord);
             if let Some(key) = keyboard.process_keyevent(event) {
                 match key {
-                    // Ctrl Alt Del
+                    // Ctrl + Alt + Del
                     DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => {
                         api::power::reboot()
                     }
 
-                    // [Ctrl] [Shift] Tab
+                    // [Ctrl +] [Shift +] Tab
                     DecodedKey::Unicode('\t') => {
                         if is_ctrl {
                             if is_shift {

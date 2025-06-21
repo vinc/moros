@@ -157,7 +157,7 @@ impl Viewer {
             let c = io::stdin().read_char().unwrap_or('\0');
 
             match c {
-                '\x1B' => { // ESC
+                '\x1B' => { // Esc
                     escape = true;
                     continue;
                 }
@@ -169,7 +169,7 @@ impl Viewer {
                 '\0' => {
                     continue;
                 }
-                '\x11' | '\x03' => { // Ctrl Q or Ctrl C
+                '\x11' | '\x03' => { // Ctrl + Q or Ctrl + C
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
                     break;
@@ -204,19 +204,19 @@ impl Viewer {
                         self.print_screen();
                     }
                 }
-                '\x14' => { // Ctrl T -> Go to top of file
+                '\x14' => { // Ctrl + T -> Go to top of file
                     self.y = 0;
                     self.print_screen();
                 }
-                '\x02' => { // Ctrl B -> Go to bottom of file
+                '\x02' => { // Ctrl + B -> Go to bottom of file
                     self.y = self.lines.len() - rows();
                     self.print_screen();
                 }
-                '\x06' => { // Ctrl F -> Find
+                '\x06' => { // Ctrl + F -> Find
                     self.find();
                     self.print_screen();
                 }
-                '\x0E' => { // Ctrl N -> Find next
+                '\x0E' => { // Ctrl + N -> Find next
                     self.find_next();
                     self.print_screen();
                 }

@@ -368,7 +368,7 @@ impl Editor {
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
 
             match c {
-                '\x1B' => { // ESC
+                '\x1B' => { // Esc
                     escape = true;
                     continue;
                 }
@@ -380,17 +380,17 @@ impl Editor {
                 '\0' => {
                     continue;
                 }
-                '\x11' | '\x03' => { // Ctrl Q or Ctrl C
+                '\x11' | '\x03' => { // Ctrl + Q or Ctrl + C
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
                     break;
                 }
-                '\x17' => { // Ctrl W
+                '\x17' => { // Ctrl + W
                     self.save(&self.pathname.clone()).ok();
                     print!("\x1b[?25h"); // Enable cursor
                     continue;
                 }
-                '\x18' => { // Ctrl X
+                '\x18' => { // Ctrl + X
                     let res = self.save(&self.pathname.clone());
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
@@ -454,26 +454,26 @@ impl Editor {
                     self.previous_buffer();
                     self.print_screen();
                 }
-                '\x14' => { // Ctrl T -> Go to top of file
+                '\x14' => { // Ctrl + T -> Go to top of file
                     self.cursor.x = 0;
                     self.cursor.y = 0;
                     self.offset.x = 0;
                     self.offset.y = 0;
                     self.print_screen();
                 }
-                '\x02' => { // Ctrl B -> Go to bottom of file
+                '\x02' => { // Ctrl + B -> Go to bottom of file
                     self.cursor.x = 0;
                     self.cursor.y = cmp::min(rows(), self.lines.len()) - 1;
                     self.offset.x = 0;
                     self.offset.y = self.lines.len() - 1 - self.cursor.y;
                     self.print_screen();
                 }
-                '\x01' => { // Ctrl A -> Go to beginning of line
+                '\x01' => { // Ctrl + A -> Go to beginning of line
                     self.cursor.x = 0;
                     self.offset.x = 0;
                     self.print_screen();
                 }
-                '\x05' => { // Ctrl E -> Go to end of line
+                '\x05' => { // Ctrl + E -> Go to end of line
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     let n = line.chars().count();
                     let w = cols();
@@ -481,32 +481,32 @@ impl Editor {
                     self.offset.x = w * (n / w);
                     self.print_screen();
                 }
-                '\x04' => { // Ctrl D -> Delete (cut) line
+                '\x04' => { // Ctrl + D -> Delete (cut) line
                     self.cut_line();
                 }
-                '\x19' => { // Ctrl Y -> Yank (copy) line
+                '\x19' => { // Ctrl + Y -> Yank (copy) line
                     self.copy_line();
                 }
-                '\x10' => { // Ctrl P -> Put (paste) line
+                '\x10' => { // Ctrl + P -> Put (paste) line
                     self.paste_line();
                 }
-                '\x06' => { // Ctrl F -> Find
+                '\x06' => { // Ctrl + F -> Find
                     self.find();
                     self.print_screen();
                 }
-                '\x0E' => { // Ctrl N -> Find next
+                '\x0E' => { // Ctrl + N -> Find next
                     self.find_next();
                     self.print_screen();
                 }
-                '\x0F' => { // Ctrl O -> Open buffer
+                '\x0F' => { // Ctrl + O -> Open buffer
                     self.open();
                     self.print_screen();
                 }
-                '\x0B' => { // Ctrl X -> Kill buffer
+                '\x0B' => { // Ctrl + X -> Kill buffer
                     self.kill_buffer();
                     self.print_screen();
                 }
-                '\x0C' => { // Ctrl L -> Line mode
+                '\x0C' => { // Ctrl + L -> Line mode
                     match self.exec() {
                         Some(Cmd::Quit) => {
                             print!("\x1b[2J"); // Clear screen
