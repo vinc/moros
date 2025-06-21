@@ -13,6 +13,7 @@ use core::cmp;
 
 enum Cmd {
     Delete,
+    Open,
     Quit,
     Replace,
     Save,
@@ -22,42 +23,27 @@ struct EditorConfig {
     tab_size: usize,
 }
 
+#[derive(Clone)]
 struct Coords {
     pub x: usize,
     pub y: usize,
 }
 
-pub struct Editor {
+#[derive(Clone)]
+pub struct Buffer {
     pathname: String,
-    clipboard: Option<String>,
     lines: Vec<String>,
     cursor: Coords,
     offset: Coords,
     highlighted: Vec<(usize, usize, char)>,
-    config: EditorConfig,
-    search_prompt: Prompt,
-    search_query: String,
-    command_prompt: Prompt,
-    command_history: String,
 }
 
-impl Editor {
-    pub fn new(pathname: &str) -> Self {
+impl From<&str> for Buffer {
+    fn from(pathname: &str) -> Self {
         let cursor = Coords { x: 0, y: 0 };
         let offset = Coords { x: 0, y: 0 };
         let highlighted = Vec::new();
-        let clipboard = None;
         let mut lines = Vec::new();
-        let config = EditorConfig { tab_size: 4 };
-
-        let search_query = String::new();
-        let mut search_prompt = Prompt::new();
-        search_prompt.eol = false;
-
-        let mut command_prompt = Prompt::new();
-        let command_history = String::from("~/.edit-history");
-        command_prompt.history.load(&command_history);
-        command_prompt.eol = false;
 
         match fs::read_to_string(pathname) {
             Ok(contents) => {
@@ -72,10 +58,82 @@ impl Editor {
                 lines.push(String::new());
             }
         };
-
         let pathname = pathname.into();
 
         Self {
+            pathname,
+            lines,
+            cursor,
+            offset,
+            highlighted,
+        }
+    }
+}
+
+impl From<&Editor> for Buffer {
+    fn from(editor: &Editor) -> Self {
+        Buffer {
+            pathname: editor.pathname.clone(),
+            lines: editor.lines.clone(),
+            cursor: editor.cursor.clone(),
+            offset: editor.offset.clone(),
+            highlighted: editor.highlighted.clone(),
+        }
+    }
+}
+
+pub struct Editor {
+    buffer_prompt: Prompt,
+    buffers: Vec<Buffer>,
+    buf: usize,
+
+    pathname: String,
+    lines: Vec<String>,
+    cursor: Coords,
+    offset: Coords,
+    highlighted: Vec<(usize, usize, char)>,
+
+    clipboard: Option<String>,
+    config: EditorConfig,
+    search_prompt: Prompt,
+    search_query: String,
+    command_prompt: Prompt,
+    command_history: String,
+}
+
+impl Editor {
+    pub fn new(pathname: &str) -> Self {
+        let clipboard = None;
+        let config = EditorConfig { tab_size: 4 };
+
+        let search_query = String::new();
+        let mut search_prompt = Prompt::new();
+        search_prompt.eol = false;
+
+        let mut command_prompt = Prompt::new();
+        let command_history = "~/.edit-history".to_string();
+        command_prompt.history.load(&command_history);
+        command_prompt.eol = false;
+
+        // TODO: Add path autocompletion
+        let mut buffer_prompt = Prompt::new();
+        buffer_prompt.eol = false;
+
+        let buf = Buffer::from(pathname);
+
+        let pathname = buf.pathname.clone();
+        let lines = buf.lines.clone();
+        let cursor = buf.cursor.clone();
+        let offset = buf.offset.clone();
+        let highlighted = buf.highlighted.clone();
+
+        let buffers = vec![buf];
+        let buf = 0;
+
+        Self {
+            buffer_prompt,
+            buffers,
+            buf,
             pathname,
             clipboard,
             lines,
@@ -388,6 +446,14 @@ impl Editor {
                 'Z' if csi => { // Backtab (Shift + Tab)
                      // Do nothing
                 }
+                'I' if csi && csi_params == "1;5" => { // Ctrl + Tab
+                    self.next_buffer();
+                    self.print_screen();
+                }
+                'I' if csi && csi_params == "1;6" => { // Ctrl + Shift + Tab
+                    self.previous_buffer();
+                    self.print_screen();
+                }
                 '\x14' => { // Ctrl T -> Go to top of file
                     self.cursor.x = 0;
                     self.cursor.y = 0;
@@ -430,6 +496,14 @@ impl Editor {
                 }
                 '\x0E' => { // Ctrl N -> Find next
                     self.find_next();
+                    self.print_screen();
+                }
+                '\x0F' => { // Ctrl O -> Open buffer
+                    self.open();
+                    self.print_screen();
+                }
+                '\x0B' => { // Ctrl X -> Kill buffer
+                    self.kill_buffer();
                     self.print_screen();
                 }
                 '\x0C' => { // Ctrl L -> Line mode
@@ -660,7 +734,7 @@ impl Editor {
     fn exec_command(&mut self, cmd: &str) -> Option<Cmd> {
         let mut res = None;
         let params: Vec<&str> = match cmd.chars().next() {
-            Some('w') =>  {
+            Some('w') | Some('o') =>  {
                 cmd.split(' ').collect()
             }
             _ => {
@@ -685,7 +759,11 @@ impl Editor {
                     res = Some(Cmd::Delete);
                 }
             }
-            "q" if params.len() == 1 => { // Quit
+            "o" | "open" if params.len() == 2 => { // Open
+                self.open_buffer(params[1]);
+                res = Some(Cmd::Open);
+            }
+            "q" | "quit" if params.len() == 1 => { // Quit
                 res = Some(Cmd::Quit);
             }
             "s" if params.len() == 4 => { // Substitute current line
@@ -712,7 +790,7 @@ impl Editor {
                 }
                 res = Some(Cmd::Replace);
             }
-            "w" => { // Save file
+            "w" | "write" => { // Save file
                 let path = if params.len() == 2 {
                     params[1]
                 } else {
@@ -776,6 +854,58 @@ impl Editor {
             }
         }
     }
+
+    pub fn open(&mut self) {
+        if let Some(path) = prompt(&mut self.buffer_prompt, "Open: ") {
+            if !path.is_empty() {
+                self.buffer_prompt.history.add(&path);
+                self.open_buffer(&path);
+            }
+        }
+    }
+
+    pub fn open_buffer(&mut self, path: &str) {
+        // Copy current buffer
+        self.buffers[self.buf] = Buffer::from(&*self);
+
+        // Open new buffer
+        let buffer = Buffer::from(path);
+        self.load_buffer(&buffer);
+        self.buf += 1;
+        self.buffers.insert(self.buf, buffer);
+    }
+
+    pub fn next_buffer(&mut self) {
+        self.buffers[self.buf] = Buffer::from(&*self);
+        self.buf = (self.buf + 1) % self.buffers.len();
+        self.load_buffer(&self.buffers[self.buf].clone());
+    }
+
+    pub fn previous_buffer(&mut self) {
+        self.buffers[self.buf] = Buffer::from(&*self);
+        if self.buffers.len() > 1 {
+            if self.buf == 0 {
+                self.buf = self.buffers.len();
+            }
+            self.buf -= 1;
+        }
+        self.load_buffer(&self.buffers[self.buf].clone());
+    }
+
+    pub fn kill_buffer(&mut self) {
+        if self.buffers.len() > 1 {
+            self.previous_buffer();
+            self.buffers.remove((self.buf + 1) % self.buffers.len());
+        }
+    }
+
+    pub fn load_buffer(&mut self, buffer: &Buffer) {
+        self.lines = buffer.lines.clone();
+        self.pathname = buffer.pathname.clone();
+        self.cursor = buffer.cursor.clone();
+        self.offset = buffer.offset.clone();
+        self.highlighted = buffer.highlighted.clone();
+    }
 }
 
 pub fn prompt(prompt: &mut Prompt, label: &str) -> Option<String> {
@@ -812,7 +942,7 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} edit {}<options> <file>{1}",
+        "{}Usage:{} edit {}<options> <path>+{1}",
         csi_title, csi_reset, csi_option
     );
     println!();
@@ -824,7 +954,7 @@ fn help() {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut path = "";
+    let mut paths = Vec::new();
     let mut cmd = "";
     let mut i = 1;
     let n = args.len();
@@ -847,27 +977,31 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if args[i].starts_with('-') {
                     error!("Invalid option '{}'", args[i]);
                     return Err(ExitCode::UsageError);
-                } else if path.is_empty() {
-                    path = args[i];
                 } else {
-                    error!("Too many arguments");
-                    return Err(ExitCode::UsageError);
+                    paths.push(args[i])
                 }
             }
         }
         i += 1;
     }
-    if path.is_empty() {
+    if paths.is_empty() {
         help();
         return Err(ExitCode::UsageError);
     }
 
-    let mut editor = Editor::new(path);
+    let mut editor = Editor::new(paths[0]);
+    let n = paths.len();
+    for i in 1..n {
+        editor.open_buffer(paths[i]);
+    }
 
     if !cmd.is_empty() {
-        editor.exec_command(cmd);
-        for line in editor.lines {
-            println!("{}", line);
+        for _ in 0..n {
+            editor.next_buffer();
+            editor.exec_command(cmd);
+            for line in &editor.lines {
+                println!("{}", line);
+            }
         }
         return Ok(());
     }

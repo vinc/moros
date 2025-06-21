@@ -113,20 +113,35 @@ fn interrupt_handler() {
             let is_shift = SHIFT.load(ord);
             if let Some(key) = keyboard.process_keyevent(event) {
                 match key {
-                    // Ctrl-Alt-Del
+                    // Ctrl Alt Del
                     DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => {
                         api::power::reboot()
                     }
 
-                    DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
-                    DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),
+                    // [Ctrl] [Shift] Tab
+                    DecodedKey::Unicode('\t') => {
+                        if is_ctrl {
+                            if is_shift {
+                                send_csi("1;6I")
+                            } else {
+                                send_csi("1;5I")
+                            }
+                        } else {
+                            if is_shift {
+                                send_csi("Z") // Backtab
+                            } else {
+                                send_key('\t') // Tab
+                            }
+                        }
+                    }
+
                     DecodedKey::RawKey(KeyCode::ArrowUp) => send_csi("A"),
                     DecodedKey::RawKey(KeyCode::ArrowDown) => send_csi("B"),
                     DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi("C"),
                     DecodedKey::RawKey(KeyCode::ArrowLeft) => send_csi("D"),
 
-                    // Convert Shift-Tab into Backtab
-                    DecodedKey::Unicode('\t') if is_shift => send_csi("Z"),
+                    DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
+                    DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),
 
                     DecodedKey::Unicode(c) => send_key(c),
 
