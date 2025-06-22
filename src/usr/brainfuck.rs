@@ -1,3 +1,4 @@
+use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::io;
 use crate::api::fs;
@@ -66,7 +67,19 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let buf = &buf;
         match parser().parse(buf).into_result() {
             Ok(ast) => execute(&ast, &mut 0, &mut [0; TAPE_LEN]),
-            Err(errs) => errs.into_iter().for_each(|e| error!("{e}")),
+            Err(errs) => errs.into_iter().for_each(|e| {
+                let col = e.span().start + 1;
+                let row = 1; // TODO
+                error!("Unexpected token at {path}:{row}:{col}");
+
+                use alloc::format;
+                let red = Style::color("red");
+                let reset = Style::reset();
+                let msg = format!("{}", e.reason());
+                let space = " ".repeat(e.span().start);
+                let arrow = "^".repeat(e.span().end - e.span().start);
+                eprintln!("\n{buf}\n{space}{red}{arrow} {msg}{reset}");
+            })
         };
         Ok(())
     } else {
