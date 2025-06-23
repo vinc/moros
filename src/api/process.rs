@@ -10,7 +10,8 @@ pub enum ExitCode {
     OpenError      = 128,
     ReadError      = 129,
     ExecError      = 130,
-    PageFaultError = 200,
+    PanicError     = 200,
+    PageFaultError = 201,
     ShellExit      = 255,
 }
 
@@ -23,7 +24,8 @@ impl From<usize> for ExitCode {
             128 => ExitCode::OpenError,
             129 => ExitCode::ReadError,
             130 => ExitCode::ExecError,
-            200 => ExitCode::PageFaultError,
+            200 => ExitCode::PanicError,
+            201 => ExitCode::PageFaultError,
             255 => ExitCode::ShellExit,
               _ => ExitCode::Failure,
         }
