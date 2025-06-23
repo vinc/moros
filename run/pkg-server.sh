@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python -m http.server -d dsk 8181
+python3 -m http.server -d dsk 8181
