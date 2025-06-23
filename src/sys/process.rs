@@ -360,7 +360,7 @@ impl Process {
         let mut entry_point_addr = 0;
 
         //debug!("Process memory:");
-        if bin[0..4] == ELF_MAGIC { // ELF binary
+        if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
             if let Ok(obj) = object::File::parse(bin) {
                 entry_point_addr = obj.entry();
 
@@ -383,7 +383,7 @@ impl Process {
                     }
                 }
             }
-        } else if bin[0..4] == BIN_MAGIC { // Flat binary
+        } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
             load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..])?;
         } else {
             return Err(());
