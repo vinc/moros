@@ -5,8 +5,10 @@ extern crate alloc;
 
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
+use alloc::string::ToString;
+use moros::api::console::Style;
 use moros::{
-    debug, error, warning, hlt_loop, eprint, eprintln, print, println, sys, usr
+    error, warning, hlt_loop, eprint, eprintln, print, println, sys, usr
 };
 
 entry_point!(main);
@@ -42,6 +44,23 @@ fn user_boot() {
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    debug!("{}", info);
+    if let Some(location) = info.location() {
+        let title = "Panicked";
+        let path = location.file();
+        let row = location.line();
+        let col = location.column();
+        error!("{title} at {path}:{row}:{col}");
+
+        let msg = info.message().to_string();
+        if !msg.is_empty() {
+            let red = Style::color("red");
+            let reset = Style::reset();
+            let space = " ".repeat("Error: ".len());
+            let arrow = "^".repeat(title.len());
+            eprintln!("{space}{red}{arrow} {msg}{reset}");
+        }
+    } else {
+        error!("{info}");
+    }
     hlt_loop();
 }
