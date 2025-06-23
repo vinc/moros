@@ -3,8 +3,8 @@ use crate::api::process::ExitCode;
 use crate::api::io;
 use crate::api::fs;
 
+//use alloc::string::ToString;
 use alloc::vec::Vec;
-use alloc::string::String;
 
 use chumsky::prelude::*;
 
@@ -25,7 +25,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Instr>, extra::Err<Rich<'a, char
         just(',').to(Instr::Read),
         just('.').to(Instr::Write),
         bf.delimited_by(just('['), just(']')).map(Instr::Loop),
-    )).repeated().collect())
+    )).padded().repeated().collect())
 }
 
 const TAPE_LEN: usize = 10_000;
@@ -52,33 +52,51 @@ fn execute(ast: &[Instr], ptr: &mut usize, tape: &mut [u8; TAPE_LEN]) {
     }
 }
 
+fn pos(buf: &str, i: usize) -> (usize, usize) {
+    let mut col = 1;
+    let mut row = 1;
+    let mut j = 0;
+    for line in buf.lines() {
+        let n = line.len();
+        if i < j + n {
+            col = i - j + 1;
+            break;
+        }
+        j += n + 1;
+        row += 1;
+    }
+    (row, col)
+}
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
-        //help();
+        help();
         return Err(ExitCode::UsageError);
     }
     if args[1] == "-h" || args[1] == "--help" {
-        //help();
+        help();
         return Ok(());
     }
+
+    let red = Style::color("red");
+    let reset = Style::reset();
+
     let path = args[1];
     if let Ok(buf) = fs::read_to_string(path) {
-        let buf = buf.lines().map(|line| line.trim()).collect::<String>();
-        let buf = &buf;
-        match parser().parse(buf).into_result() {
+        match parser().parse(&buf).into_result() {
             Ok(ast) => execute(&ast, &mut 0, &mut [0; TAPE_LEN]),
             Err(errs) => errs.into_iter().for_each(|e| {
-                let col = e.span().start + 1;
-                let row = 1; // TODO
+                let (row, col) = pos(&buf, e.span().start);
+                //let token = e.found().unwrap();
+                //error!("Unexpected token '{token}' at {path}:{row}:{col}");
                 error!("Unexpected token at {path}:{row}:{col}");
 
-                use alloc::format;
-                let red = Style::color("red");
-                let reset = Style::reset();
-                let msg = format!("{}", e.reason());
-                let space = " ".repeat(e.span().start);
+                let line = buf.lines().skip(row - 1).next().unwrap();
+                let space = " ".repeat(col - 1);
                 let arrow = "^".repeat(e.span().end - e.span().start);
-                eprintln!("\n{buf}\n{space}{red}{arrow} {msg}{reset}");
+                //let reason = e.reason().to_string();
+                let reason = "unexpected token";
+                eprintln!("\n{line}\n{space}{red}{arrow} {reason}{reset}");
             })
         };
         Ok(())
@@ -86,4 +104,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         error!("Could not read '{}'", path);
         Err(ExitCode::Failure)
     }
+}
+
+fn help() {
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
+    let csi_reset = Style::reset();
+    println!(
+        "{}Usage:{} brainfuck {}<path>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }
