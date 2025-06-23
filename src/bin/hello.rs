@@ -14,6 +14,9 @@ fn main(args: &[&str]) {
         let n = args.len();
         for i in 1..n {
             let mut hello = "Hello, ".to_string();
+            if args[i] == "panic" {
+                hello.push_str(args[42]);
+            }
             hello.push_str(args[i]);
             hello.push_str("!\n");
             syscall::write(1, hello.as_bytes());
