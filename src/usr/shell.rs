@@ -608,17 +608,17 @@ fn spawn(
 
     // Binary
     match api::process::spawn(path, args) {
-        Err(ExitCode::ExecError) => {
-            error!("Could not execute '{}'", args[0]);
-            Err(ExitCode::ExecError)
+        Err(ExitCode::OpenError) => {
+            error!("Could not open '{}'", args[0]);
+            Err(ExitCode::OpenError)
         }
         Err(ExitCode::ReadError) => {
             error!("Could not read '{}'", args[0]);
             Err(ExitCode::ReadError)
         }
-        Err(ExitCode::OpenError) => {
-            error!("Could not open '{}'", args[0]);
-            Err(ExitCode::OpenError)
+        Err(ExitCode::ExecError) => {
+            error!("Could not execute '{}'", args[0]);
+            Err(ExitCode::ExecError)
         }
         res => res,
     }
