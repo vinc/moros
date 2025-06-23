@@ -6,7 +6,7 @@ macro_rules! entry_point {
         fn panic(_info: &core::panic::PanicInfo) -> ! {
             let msg = b"\x1b[91mError:\x1b[m An exception occured\n";
             $crate::api::syscall::write(2, msg);
-            let code = $crate::api::process::ExitCode::ExecError;
+            let code = $crate::api::process::ExitCode::PanicError;
             $crate::api::syscall::exit(code);
             loop {}
         }
