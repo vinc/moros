@@ -134,8 +134,8 @@ Would produce the following output:
 
 (print "Hello, World!")
 
-(var foo 42)                       # Variable definition
-(set foo (+ 40 2))                 # Variable assignement
+(var foo 42)                       # Variable binding
+(set foo (+ 40 2))                 # Variable rebinding
 
 (var double (fun (x) (* x 2)))     # Function definition
 (def (double x) (* x 2))           # Shortcut
