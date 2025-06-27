@@ -2,8 +2,8 @@
 
 (load "/lib/lisp/core.lsp")
 
-(var config "/ini/pkg")
-(var base (if (file/exists? config) (str/trim (read config)) "10.0.2.2:8181"))
+(var init "/ini/pkg")
+(var base (if (file/exists? init) (str/trim (read init)) "10.0.2.2:8181"))
 
 (def (pkg/fetch path) (do
   "Download the given file"
