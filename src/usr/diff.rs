@@ -72,6 +72,16 @@ fn backtrack(old: &[&str], new: &[&str], lcs: &[Vec<usize>]) -> Vec<Diff> {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    for arg in args {
+        if *arg == "-h" || *arg == "--help" {
+            help();
+            return Ok(());
+        }
+    }
+    if args.len() != 3 {
+        help();
+        return Err(ExitCode::UsageError);
+    }
     let csi_insert = Style::color("green");
     let csi_delete = Style::color("red");
     let csi_reset = Style::reset();
@@ -93,6 +103,16 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }
     Ok(())
+}
+
+fn help() {
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
+    let csi_reset = Style::reset();
+    println!(
+        "{}Usage:{} diff {}<path1> <path2>{}",
+        csi_title, csi_reset, csi_option, csi_reset
+    );
 }
 
 #[test_case]
