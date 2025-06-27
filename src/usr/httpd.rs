@@ -466,9 +466,10 @@ fn content_type(path: &str) -> String {
         "jpg" | "jpeg" => "image/jpeg",
         "js"           => "text/javascript",
         "json"         => "application/json",
-        "lsp" | "lisp" => "text/plain",
         "png"          => "image/png",
         "sh"           => "application/x-sh",
+        "lsp" | "lisp" => "text/plain",
+        "ini" | "conf" => "text/plain",
         "txt" | "md"   => "text/plain",
         _              => "application/octet-stream",
     }.to_string()
