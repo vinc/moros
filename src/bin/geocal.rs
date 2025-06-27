@@ -10,8 +10,8 @@ use geodate::geodate::*;
 use geodate::reverse::*;
 use geodate::ephemeris::*;
 use moros::entry_point;
+use moros::{eprintln, eprint, println, print};
 use moros::api::clock;
-use moros::api::syscall;
 
 entry_point!(main);
 
@@ -28,7 +28,7 @@ fn main(args: &[&str]) {
     }).collect();
 
     if args.len() < 3 {
-        syscall::write(1, b"Usage: geocal <latitude> <longitude> [<timestamp>]\n");
+        eprintln!("Usage: geocal <latitude> <longitude> [<timestamp>]");
         return;
     }
 
@@ -55,21 +55,22 @@ fn main(args: &[&str]) {
     let formatted_date = get_formatted_date(&format, timestamp, longitude);
     let date: Vec<_> = formatted_date.split(":").collect();
 
-    syscall::write(1, b"\n");
+    println!();
     let sep = "|";
     print_line(week);
 
     // Date
     let is_negative = date[0].starts_with('-');
     let colored_title = "Date";
-    let colored_date = ["\x1b[91m", date[0], date[1], "-", date[2], "-", date[3], "\x1b[0m"].join("");
+    let colored_date = [
+        "\x1b[91m", date[0], date[1], "-", date[2], "-", date[3], "\x1b[0m"
+    ].join("");
     let mut spacing = (3 * week) - 17;
     if is_negative {
         spacing -= 1;
     }
     let space = " ".repeat(spacing);
-    let line = [" ", sep, colored_title, &space, &colored_date, sep, "\n"].join(" ");
-    syscall::write(1, line.as_bytes());
+    println!("  {sep} {colored_title} {space} {colored_date} {sep}");
     print_line(week);
 
     // Calendar
@@ -78,43 +79,40 @@ fn main(args: &[&str]) {
     } else {
         [" ", sep, "So Me Ve Te Ma Ju Sa Lu", ""].join(" ")
     };
-    syscall::write(1, line.as_bytes());
+    print!("{line}");
     let n = last_day + 1;
     for i in 0..n {
         // Weekend
         if solar_calendar {
             if i % week == 0 {
-                let line = ["|\n ", sep, ""].join(" ");
-                syscall::write(1, line.as_bytes());
+                print!("|\n  {sep} ");
             }
         } else if i == 0 || i == 7 || i == 15 || i == 22 {
             // The lunisolar calendar has a leap day at the end of the
             // second week and another at the end of the last week if
             // the month is long (30 days).
             if i == 7 || i == 22 {
-                syscall::write(1, b"   ");
+                print!("   ");
             }
-            let line = ["|\n ", sep, ""].join(" ");
-            syscall::write(1, line.as_bytes());
+            print!("|\n  {sep} ");
         }
 
         let mut day = format!("{:02}", i);
         if day == date[3] {
             day = ["\x1b[91m", &day, "\x1b[0m"].join("");
         }
-        syscall::write(1, day.as_bytes());
-        syscall::write(1, b" ");
+        print!("{day} ");
     }
-    if solar_calendar {
-        if last_day > 89 {
-            syscall::write(1, "   ".repeat(99 - last_day).as_bytes());
-        } else {
-            syscall::write(1, "   ".repeat(89 - last_day).as_bytes());
-        }
+
+    let n = if solar_calendar {
+        (if last_day > 89 { 99 } else { 89 }) - last_day
     } else if last_day == 28 {
-        syscall::write(1, b"   ");
-    }
-    syscall::write(1, b"|\n");
+        1
+    } else {
+        0
+    };
+    let space = "   ".repeat(n);
+    println!("{space}|");
     print_line(week);
 
     // Time
@@ -122,8 +120,7 @@ fn main(args: &[&str]) {
     let colored_time = ["\x1b[91m", date[4], ":", date[5], "\x1b[0m"].join("");
     let spacing = (3 * week) - 12;
     let space = " ".repeat(spacing);
-    let line = [" ", sep, colored_title, &space, &colored_time, sep, "\n"].join(" ");
-    syscall::write(1, line.as_bytes());
+    println!("  {sep} {colored_title} {space} {colored_time} {sep}");
     print_line(week);
 
     // Ephemeris
@@ -139,8 +136,7 @@ fn main(args: &[&str]) {
             let time = get_formatted_date("%c:%b", t, longitude);
             let spacing = (3 * week) - 8 - name.len();
             let space = " ".repeat(spacing);
-            let line = [" ", sep, name, &space, &time, sep, "\n"].join(" ");
-            syscall::write(1, line.as_bytes());
+            println!("  {sep} {name} {space} {time} {sep}");
         }
         print_line(week);
     }
@@ -180,7 +176,6 @@ fn last_day_of_solar_month(timestamp: i64, longitude: f64) -> usize {
 }
 
 fn print_line(week: usize) {
-    syscall::write(1, b"  +-");
-    syscall::write(1, "-".repeat(3 * week).as_bytes());
-    syscall::write(1, b"+\n");
+    let s = "-".repeat(3 * week);
+    println!("  +-{s}+");
 }

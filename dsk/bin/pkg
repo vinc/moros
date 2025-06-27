@@ -17,7 +17,7 @@
   "Delete the given file"
   (print (str "Deleting '" path "'"))
   (var dir (dirname path))
-  (sh (str "delete " path))))
+  (sh (str "drop " path))))
 
 (def (pkg/install pkg) (do
   "Installs the given package"
@@ -28,7 +28,7 @@
         (var files (reverse (lines (read path))))
         (map pkg/fetch files))
       (do
-        (sh (str "delete " path))
+        (sh (str "drop " path))
         (error (str "Could not find package '" pkg "'"))))
     (error (str "Could not find package '" pkg "'")))))
 
@@ -45,7 +45,7 @@
           (var files (reverse (lines (read path))))
           (map pkg/delete files))
         (do
-          (sh (str "delete " path))
+          (sh (str "drop " path))
           (error (str "Could not find package '" pkg "'")))))
     (error (str "Could not find package '" pkg "'")))))
 
