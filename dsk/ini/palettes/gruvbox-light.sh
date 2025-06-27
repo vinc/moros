@@ -2,9 +2,9 @@ print "\e]P0FBF1C7\e[1A" # Black
 print "\e]P1458588\e[1A" # Navy
 print "\e]P298971A\e[1A" # Green
 print "\e]P3689D6A\e[1A" # Teal
-print "\e]P4CC241D\e[1A" # Red
+print "\e]P4CC241D\e[1A" # Maroon
 print "\e]P5B16286\e[1A" # Purple
-print "\e]P6D79921\e[1A" # Maroon
+print "\e]P6D79921\e[1A" # Olive
 print "\e]P73C3836\e[1A" # Silver
 print "\e]P87C6F64\e[1A" # Gray
 print "\e]P9076678\e[1A" # Blue
