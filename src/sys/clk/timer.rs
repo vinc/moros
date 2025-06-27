@@ -35,7 +35,7 @@ pub fn pit_frequency() -> f64 {
     PIT_FREQUENCY
 }
 
-// The frequency divider must be between 0 and 65535, with 0 acting as 65536
+// The divider must be between 0 and 65535, with 0 acting as 65536
 pub fn set_pit_frequency(divider: u16, channel: u8) {
     interrupts::without_interrupts(|| {
         let bytes = divider.to_le_bytes();

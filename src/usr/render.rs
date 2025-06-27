@@ -202,13 +202,13 @@ fn read_command() -> Command {
     loop {
         let c = io::stdin().read_char().unwrap_or('\0');
         match c {
-            'q' | '\x11' | '\x03' => { // Ctrl Q or Ctrl C
+            'q' | '\x11' | '\x03' => { // Ctrl + Q or Ctrl + C
                 return Command::Quit;
             }
             '\0' => {
                 continue;
             }
-            '\x1B' => { // ESC
+            '\x1B' => { // Esc
                 escape = true;
                 continue;
             }

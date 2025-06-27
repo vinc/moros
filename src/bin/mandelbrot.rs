@@ -161,13 +161,13 @@ fn main(args: &[&str]) {
         fs::write("/dev/vga/buffer", &buffer).ok();
         let c = io::stdin().read_char().unwrap_or('\0');
         match c {
-            'q' | '\x11' | '\x03' => { // Ctrl Q or Ctrl C
+            'q' | '\x11' | '\x03' => { // Ctrl + Q or Ctrl + C
                 break;
             }
             '\0' => {
                 continue;
             }
-            '\x1B' => { // ESC
+            '\x1B' => { // Esc
                 escape = true;
                 continue;
             }
