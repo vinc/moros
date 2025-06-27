@@ -3,7 +3,6 @@ use crate::api::process::ExitCode;
 use crate::api::io;
 use crate::api::fs;
 
-//use alloc::string::ToString;
 use alloc::vec::Vec;
 
 use chumsky::prelude::*;
@@ -17,6 +16,8 @@ enum Instr {
 }
 
 fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Instr>, extra::Err<Rich<'a, char>>> {
+    let comment = none_of("<>+-,.[]").ignored();
+
     recursive(|bf| choice((
         just('<').to(Instr::Left),
         just('>').to(Instr::Right),
@@ -25,7 +26,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Instr>, extra::Err<Rich<'a, char
         just(',').to(Instr::Read),
         just('.').to(Instr::Write),
         bf.delimited_by(just('['), just(']')).map(Instr::Loop),
-    )).padded().repeated().collect())
+    )).padded_by(comment.repeated()).repeated().collect())
 }
 
 const TAPE_LEN: usize = 10_000;
