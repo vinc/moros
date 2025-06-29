@@ -497,12 +497,6 @@ fn test_lisp() {
     assert_eq!(eval!("(if 42 1 2)"), "1");
     assert_eq!(eval!("(if \"\" 1 2)"), "1");
 
-    // while
-    assert_eq!(
-        eval!("(do (variable i 0) (while (< i 5) (set i (+ i 1))) i)"),
-        "5"
-    );
-
     // variable
     eval!("(variable a 2)");
     assert_eq!(eval!("(+ a 1)"), "3");
@@ -511,6 +505,16 @@ fn test_lisp() {
     eval!("(variable fibonacci (function (n) \
              (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
     assert_eq!(eval!("(fibonacci 6)"), "8");
+
+    // mutate
+    assert_eq!(eval!("(mutate a 3)"), "3");
+    assert_eq!(eval!("a"), "3");
+
+    // while
+    assert_eq!(
+        eval!("(do (variable i 0) (while (< i 5) (mutate i (+ i 1))) i)"),
+        "5"
+    );
 
     // function
     assert_eq!(eval!("((function (a) (+ 1 a)) 2)"), "3");
@@ -695,8 +699,8 @@ fn test_lisp() {
 
     // macro
     eval!("(variable foo 42)");
-    eval!("(variable set-10 (macro (x) `(set ,x 10)))");
-    eval!("(set-10 foo)");
+    eval!("(variable mut-10 (macro (x) `(mutate ,x 10)))");
+    eval!("(mut-10 foo)");
     assert_eq!(eval!("foo"), "10");
 
     // args

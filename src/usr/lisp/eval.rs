@@ -106,7 +106,7 @@ pub fn eval_variable_args(
     }
 }
 
-fn eval_set_args(
+fn eval_mutate_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
 ) -> Result<Exp, Err> {
@@ -277,9 +277,6 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "cons" => {
                         return eval_cons_args(args, env);
                     }
-                    Exp::Sym(s) if s == "set" => {
-                        return eval_set_args(args, env);
-                    }
                     Exp::Sym(s) if s == "while" => {
                         return eval_while_args(args, env);
                     }
@@ -300,6 +297,9 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "variable" => {
                         return eval_variable_args(args, env);
+                    }
+                    Exp::Sym(s) if s == "mutate" => {
+                        return eval_mutate_args(args, env);
                     }
                     Exp::Sym(s) if s == "env" => {
                         return eval_env_args(args, env);
