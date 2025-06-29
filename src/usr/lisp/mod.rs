@@ -506,6 +506,10 @@ fn test_lisp() {
              (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
     assert_eq!(eval!("(fibonacci 6)"), "8");
 
+    // variable?
+    assert_eq!(eval!("(variable? a)"), "true");
+    assert_eq!(eval!("(variable? b)"), "false");
+
     // mutate
     assert_eq!(eval!("(mutate a 3)"), "3");
     assert_eq!(eval!("a"), "3");

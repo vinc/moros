@@ -1,6 +1,9 @@
 (variable var
   (macro args `(variable ,@args)))
 
+(var var?
+  (macro args `(variable? ,@args)))
+
 (var mut
   (macro args `(mutate ,@args)))
 
