@@ -1,4 +1,5 @@
 // pub mod beep; // TODO: Remove file
+pub mod brainfuck;
 pub mod calc;
 pub mod chess;
 pub mod copy;

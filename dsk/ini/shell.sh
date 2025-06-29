@@ -13,12 +13,13 @@ alias r      read
 alias v      view
 alias w      write
 
-alias delete drop
+alias delete drop # Deprecated
 alias go     goto
 alias sh     shell
 alias dsk    disk
 alias mem    memory
 alias kbd    keyboard
+alias bf     brainfuck
 
 # Unix compatibility
 # alias cd     goto
