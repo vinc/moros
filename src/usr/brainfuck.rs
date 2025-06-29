@@ -1,13 +1,18 @@
 use crate::api::console::Style;
-use crate::api::process::ExitCode;
-use crate::api::io;
 use crate::api::fs;
+use crate::api::io;
+use crate::api::process::ExitCode;
 
 use alloc::vec::Vec;
-
 use chumsky::prelude::*;
 
-#[derive(Clone)]
+const TAPE_LEN: usize = 30_000;
+
+fn read_byte() -> u8 {
+    io::stdin().read_char().unwrap_or('\0') as u8
+}
+
+#[derive(Clone, Debug, PartialEq)]
 enum Instr {
     Left, Right,
     Incr, Decr,
@@ -17,7 +22,6 @@ enum Instr {
 
 fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Instr>, extra::Err<Rich<'a, char>>> {
     let comment = none_of("<>+-,.[]").ignored();
-
     recursive(|bf| choice((
         just('<').to(Instr::Left),
         just('>').to(Instr::Right),
@@ -29,15 +33,9 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Instr>, extra::Err<Rich<'a, char
     )).padded_by(comment.repeated()).repeated().collect())
 }
 
-const TAPE_LEN: usize = 30_000;
-
-fn read_byte() -> u8 {
-    io::stdin().read_char().unwrap_or('\0') as u8
-}
-
-fn execute(ast: &[Instr], ptr: &mut usize, tape: &mut [u8; TAPE_LEN]) {
-    for symbol in ast {
-        match symbol {
+fn eval(ast: &[Instr], ptr: &mut usize, tape: &mut [u8; TAPE_LEN]) {
+    for sym in ast {
+        match sym {
             Instr::Left => *ptr = (*ptr + TAPE_LEN - 1).rem_euclid(TAPE_LEN),
             Instr::Right => *ptr = (*ptr + 1).rem_euclid(TAPE_LEN),
             Instr::Incr => tape[*ptr] = tape[*ptr].wrapping_add(1),
@@ -46,7 +44,7 @@ fn execute(ast: &[Instr], ptr: &mut usize, tape: &mut [u8; TAPE_LEN]) {
             Instr::Write => print!("{}", tape[*ptr] as char),
             Instr::Loop(ast) => {
                 while tape[*ptr] != 0 {
-                    execute(ast, ptr, tape)
+                    eval(ast, ptr, tape)
                 }
             }
         }
@@ -81,21 +79,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     let red = Style::color("red");
     let reset = Style::reset();
-
     let path = args[1];
     if let Ok(buf) = fs::read_to_string(path) {
         match parser().parse(&buf).into_result() {
-            Ok(ast) => execute(&ast, &mut 0, &mut [0; TAPE_LEN]),
+            Ok(ast) => eval(&ast, &mut 0, &mut [0; TAPE_LEN]),
             Err(errs) => errs.into_iter().for_each(|e| {
                 let (row, col) = pos(&buf, e.span().start);
-                //let token = e.found().unwrap();
-                //error!("Unexpected token '{token}' at {path}:{row}:{col}");
                 error!("Unexpected token at {path}:{row}:{col}");
 
                 let line = buf.lines().skip(row - 1).next().unwrap();
                 let space = " ".repeat(col - 1);
                 let arrow = "^".repeat(e.span().end - e.span().start);
-                //let reason = e.reason().to_string();
                 let reason = "unexpected token";
                 eprintln!("\n{line}\n{space}{red}{arrow} {reason}{reset}");
             })
@@ -115,4 +109,15 @@ fn help() {
         "{}Usage:{} brainfuck {}<path>{}",
         csi_title, csi_reset, csi_option, csi_reset
     );
+}
+
+#[test_case]
+fn test_parser() {
+    use alloc::vec;
+    let src = "+++++[-] Increment a cell five times then loop to clear it";
+    let ast = vec![
+        Instr::Incr, Instr::Incr, Instr::Incr, Instr::Incr, Instr::Incr,
+        Instr::Loop(vec![Instr::Decr])
+    ];
+    assert_eq!(parser().parse(src).into_result(), Ok(ast));
 }
