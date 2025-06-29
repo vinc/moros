@@ -29,7 +29,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Instr>, extra::Err<Rich<'a, char
     )).padded_by(comment.repeated()).repeated().collect())
 }
 
-const TAPE_LEN: usize = 10_000;
+const TAPE_LEN: usize = 30_000;
 
 fn read_byte() -> u8 {
     io::stdin().read_char().unwrap_or('\0') as u8
