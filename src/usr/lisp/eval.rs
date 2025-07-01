@@ -91,6 +91,19 @@ fn eval_cons_args(
     }
 }
 
+fn eval_is_variable_args(
+    args: &[Exp],
+    env: &mut Rc<RefCell<Env>>
+) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    match &args[0] {
+        Exp::Sym(name) => {
+            Ok(Exp::Bool(env_get(name, env).is_ok()))
+        }
+        _ => expected!("first argument to be a symbol"),
+    }
+}
+
 pub fn eval_variable_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
@@ -106,7 +119,7 @@ pub fn eval_variable_args(
     }
 }
 
-fn eval_set_args(
+fn eval_mutate_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
 ) -> Result<Exp, Err> {
@@ -215,7 +228,7 @@ pub fn eval_args(
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 26] = [
+pub const BUILT_INS: [&str; 27] = [
     "quote",
     "quasiquote",
     "unquote",
@@ -228,13 +241,14 @@ pub const BUILT_INS: [&str; 26] = [
     "if",
     "cond",
     "while",
-    "variable",
     "function",
+    "variable",
+    "variable?",
+    "mutate",
     "macro",
     "define-function",
     "define",
     "define-macro",
-    "set",
     "apply",
     "eval",
     "expand",
@@ -277,9 +291,6 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "cons" => {
                         return eval_cons_args(args, env);
                     }
-                    Exp::Sym(s) if s == "set" => {
-                        return eval_set_args(args, env);
-                    }
                     Exp::Sym(s) if s == "while" => {
                         return eval_while_args(args, env);
                     }
@@ -298,8 +309,14 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "doc" => {
                         return eval_doc_args(args, env);
                     }
+                    Exp::Sym(s) if s == "variable?" => {
+                        return eval_is_variable_args(args, env);
+                    }
                     Exp::Sym(s) if s == "variable" => {
                         return eval_variable_args(args, env);
+                    }
+                    Exp::Sym(s) if s == "mutate" => {
+                        return eval_mutate_args(args, env);
                     }
                     Exp::Sym(s) if s == "env" => {
                         return eval_env_args(args, env);

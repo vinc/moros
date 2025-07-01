@@ -1,8 +1,8 @@
 (load "/lib/lisp/core.lsp")
 
 (def (print-doc f) (do
-  (var s (second (parse (str (eval f)))))
-  (var d (doc (eval f)))
+  (set s (second (parse (str (eval f)))))
+  (set d (doc (eval f)))
   (print (str
     "("
     (if (function? (eval f)) "\e[96m" "\e[92m") f "\e[0m" # name
@@ -11,7 +11,7 @@
     ")"
     "\e[90m" (if (empty? d) "" " # ") d "\e[0m")))) # desc
 
-(var fs
+(set fs
   (filter
     (fun (f) (or (fun? (eval f)) (mac? (eval f))))
     (rev (env))))

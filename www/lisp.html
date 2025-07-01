@@ -46,10 +46,11 @@ of the Shell.</p>
     <li><code>if</code></li>
     <li><code>cond</code></li>
     <li><code>while</code></li>
-    <li><code>variable</code> (aliased to <code>var</code>)</li>
-    <li><code>function</code> (aliased to <code>fun</code>)</li>
     <li><code>macro</code> (aliased to <code>mac</code>)</li>
-    <li><code>set</code></li>
+    <li><code>function</code> (aliased to <code>fun</code>)</li>
+    <li><code>variable</code> (aliased to <code>var</code>)</li>
+    <li><code>variable?</code> (aliased to <code>var?</code>)</li>
+    <li><code>mutate</code> (aliased to <code>mut</code>)</li>
     <li><code>define</code> (aliased to <code>def</code> and equivalent to <code>define-function</code>)</li>
     <li><code>define-function</code> (aliased to <code>def-fun</code>)</li>
     <li><code>define-macro</code> (aliased to <code>def-mac</code>)</li>
@@ -93,7 +94,7 @@ of the Shell.</p>
     <li><code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>push</code></li>
     <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>reject</code>, <code>intersection</code></li>
     <li><code>not</code>, <code>and</code>, <code>or</code></li>
-    <li><code>let</code></li>
+    <li><code>set</code>, <code>let</code></li>
     <li><code>string/join</code> (aliased to <code>str/join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
     <li><code>regex/match?</code></li>
     </ul>
@@ -161,10 +162,10 @@ with the following content:</p>
 
 (print &quot;Hello, World!&quot;)
 
-(var foo 42)                       # Variable definition
-(set foo (+ 40 2))                 # Variable assignement
+(set bar 10)                       # Variable binding
+(set bar (+ bar 10))               # Variable rebinding
 
-(var double (fun (x) (* x 2)))     # Function definition
+(set double (fun (x) (* x 2)))     # Function definition
 (def (double x) (* x 2))           # Shortcut
 
 (double foo)                       # =&gt; 84
@@ -172,7 +173,7 @@ with the following content:</p>
 (def-mac (++ x)                    # Macro definition
   `(set ,x (+ ,x 1)))
 
-(var i 0)
+(set i 0)
 (while (&lt; i 10)
   (++ i))
 (= i 10)                           # =&gt; true
@@ -186,14 +187,14 @@ with the following content:</p>
 
 (doc map)                          # =&gt; &quot;Apply function to list&quot;
 
-(var bar (quote (1 2 3)))
-(var bar &#39;(1 2 3))                 # Shortcut
+(set bar (quote (1 2 3)))
+(set bar &#39;(1 2 3))                 # Shortcut
 
 (map double bar)                   # =&gt; (2 4 6)
 
 (map (fun (x) (+ x 1)) &#39;(4 5 6))   # =&gt; (5 6 7)
 
-(var name &quot;Alice&quot;)
+(set name &quot;Alice&quot;)
 
 (str &quot;Hello, &quot; name)               # =&gt; &quot;Hello, Alice&quot;
 
@@ -205,6 +206,9 @@ with the following content:</p>
     <h3>Unreleased</h3>
 
     <ul>
+    <li>Rename old <code>set</code> to <code>mutate</code> (aliased to <code>mut</code>)</li>
+    <li>Add new <code>set</code> macro that does either <code>var</code> or <code>mut</code></li>
+    <li>Add <code>var?</code> function</li>
     <li>Add <code>sleep</code> function</li>
     </ul>
 
