@@ -138,10 +138,7 @@ Would produce the following output:
 (set bar 10)                       # Variable binding
 (set bar (+ bar 10))               # Variable rebinding
 
-(var foo 42)                       # Variable binding
-(mut foo (+ 40 2))                 # Variable rebinding
-
-(var double (fun (x) (* x 2)))     # Function definition
+(set double (fun (x) (* x 2)))     # Function definition
 (def (double x) (* x 2))           # Shortcut
 
 (double foo)                       # => 84
