@@ -368,6 +368,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
                 if !socket.is_open() {
                     socket.listen(port).unwrap();
+                    *keep_alive = true;
                 }
                 let endpoint = match socket.remote_endpoint() {
                     Some(endpoint) => endpoint,
