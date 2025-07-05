@@ -1,6 +1,12 @@
 # Changelog
 
 ## Unreleased
+- Add brainfuck interpreter (#750)
+- Improve panic handling (#751)
+- Refactor code style and formatting (#748)
+- Add buffers to editor (#747)
+- Rename delete command to drop (#746)
+- Improve editor (#744)
 - Add sleep to lisp (#743)
 - Bump object from 0.37.0 to 0.37.1 (#742)
 - Bump object from 0.36.7 to 0.37.0 (#739)

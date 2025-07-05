@@ -30,10 +30,11 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `if`
 - `cond`
 - `while`
-- `variable` (aliased to `var`)
-- `function` (aliased to `fun`)
 - `macro` (aliased to `mac`)
-- `set`
+- `function` (aliased to `fun`)
+- `variable` (aliased to `var`)
+- `variable?` (aliased to `var?`)
+- `mutate` (aliased to `mut`)
 - `define` (aliased to `def` and equivalent to `define-function`)
 - `define-function` (aliased to `def-fun`)
 - `define-macro` (aliased to `def-mac`)
@@ -71,7 +72,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `first`, `second`, `third`, `last`, `rest`, `push`
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
-- `let`
+- `set`, `let`
 - `string/join` (aliased to `str/join`), `lines`, `words`, `chars`
 - `regex/match?`
 
@@ -134,10 +135,10 @@ Would produce the following output:
 
 (print "Hello, World!")
 
-(var foo 42)                       # Variable definition
-(set foo (+ 40 2))                 # Variable assignement
+(set bar 10)                       # Variable binding
+(set bar (+ bar 10))               # Variable rebinding
 
-(var double (fun (x) (* x 2)))     # Function definition
+(set double (fun (x) (* x 2)))     # Function definition
 (def (double x) (* x 2))           # Shortcut
 
 (double foo)                       # => 84
@@ -145,7 +146,7 @@ Would produce the following output:
 (def-mac (++ x)                    # Macro definition
   `(set ,x (+ ,x 1)))
 
-(var i 0)
+(set i 0)
 (while (< i 10)
   (++ i))
 (= i 10)                           # => true
@@ -159,14 +160,14 @@ Would produce the following output:
 
 (doc map)                          # => "Apply function to list"
 
-(var bar (quote (1 2 3)))
-(var bar '(1 2 3))                 # Shortcut
+(set bar (quote (1 2 3)))
+(set bar '(1 2 3))                 # Shortcut
 
 (map double bar)                   # => (2 4 6)
 
 (map (fun (x) (+ x 1)) '(4 5 6))   # => (5 6 7)
 
-(var name "Alice")
+(set name "Alice")
 
 (str "Hello, " name)               # => "Hello, Alice"
 
@@ -176,6 +177,9 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Rename old `set` to `mutate` (aliased to `mut`)
+- Add new `set` macro that does either `var` or `mut`
+- Add `var?` function
 - Add `sleep` function
 
 ### 0.8.0 (2024-12-21)

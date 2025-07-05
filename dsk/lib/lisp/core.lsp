@@ -40,6 +40,11 @@
     (equal? x nil)
     (equal? x "")))
 
+(def-mac (set k v)
+  `(if (var? ,k)
+     (mut ,k ,v)
+     (var ,k ,v)))
+
 (def-mac (let params values body)
   `((fun ,params ,body) ,@values))
 
