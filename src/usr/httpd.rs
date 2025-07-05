@@ -21,7 +21,7 @@ use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-const MAX_CONNECTIONS: usize = 32;
+const MAX_CONNECTIONS: usize = 32; // TODO: Add dynamic pooling
 const POLL_DELAY_DIV: usize = 128;
 const INDEX: [&str; 4] = ["", "/index.html", "/index.htm", "/index.txt"];
 
