@@ -370,17 +370,19 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     socket.listen(port).unwrap();
                     *keep_alive = true; // Reset to default
                 }
+
                 let endpoint = match socket.remote_endpoint() {
                     Some(endpoint) => endpoint,
                     None => continue,
                 };
+
                 if socket.may_recv() {
                     // The amount of octets queued in the receive buffer may be
                     // larger than the contiguous slice returned by `recv` so
                     // we need to loop over chunks of it until it is empty.
                     let recv_queue = socket.recv_queue();
-                    let mut receiving = true;
                     let mut buf = vec![];
+                    let mut receiving = true;
                     while receiving {
                         let res = socket.recv(|chunk| {
                             buf.extend_from_slice(chunk);
@@ -415,7 +417,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 println!("{}", res);
                                 (chunk.len(), Some(res))
                             } else {
-                                (0, None)
+                                (0, None) // (chunk.len(), None) // TODO?
                             }
                         });
                         if receiving {
@@ -428,11 +430,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             }
                         }
                     }
+
                     if socket.can_send() {
                         if let Some(chunk) = send_queue.pop_front() {
-                            let sent = socket.send_slice(&chunk).
-                                expect("Could not send chunk");
-                            debug_assert!(sent == chunk.len());
+                            if socket.send_slice(&chunk).is_err() {
+                                // send_queue.push_front(chunk); // TODO?
+                            }
                         }
                     }
                     if send_queue.is_empty() && !*keep_alive {
@@ -440,9 +443,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                 } else if socket.may_send() {
                     socket.close();
-                    send_queue.clear();
+                    send_queue.clear(); // TODO: Remove this?
                 }
             }
+
             if let Some(delay) = iface.poll_delay(time, &sockets) {
                 let d = delay.total_micros() / POLL_DELAY_DIV as u64;
                 if d > 0 {
