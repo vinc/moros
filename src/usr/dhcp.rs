@@ -86,7 +86,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let dns: Vec<_> = dns.iter().map(|s| s.to_string()).collect();
         if !dns.is_empty() {
             let servers = dns.join(",");
-            if fs::write("/ini/dns", servers.as_bytes()).is_ok() {
+            let config = format!("dns = {}\n", servers);
+            if fs::write("/ini/dns.ini", config.as_bytes()).is_ok() {
                 log!("NET DNS {}", servers);
             }
         }

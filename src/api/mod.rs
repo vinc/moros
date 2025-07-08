@@ -88,6 +88,7 @@ pub mod clock;
 pub mod console;
 pub mod font;
 pub mod fs;
+pub mod ini;
 pub mod io;
 pub mod power;
 pub mod process;

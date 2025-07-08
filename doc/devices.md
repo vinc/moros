@@ -71,7 +71,7 @@ The prefered way to setup the network is to use the `dhcp` command:
     [958.818994] NET DNS 10.0.2.3
 
 But it is possible to do it manually with the `/dev/net/ip` and `/dev/net/gw`
-device files, and the `/ini/dns` configuration file:
+device files, and the `/ini/dns.ini` configuration file:
 
     > print 10.0.2.15/24 => /dev/net/ip
     [975.123511] NET IP 10.0.2.15/24
@@ -79,7 +79,7 @@ device files, and the `/ini/dns` configuration file:
     > print 10.0.2.2 => /dev/net/gw
     [985.646908] NET GW 10.0.2.2
 
-    > print 10.0.2.3 => /ini/dns
+    > print "dns = 10.0.2.3" => /ini/dns.ini
 
 Reading `/dev/net/mac` will return the MAC address:
 
