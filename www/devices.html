@@ -85,7 +85,7 @@ complete line.</p>
 </code></pre>
 
     <p>But it is possible to do it manually with the <code>/dev/net/ip</code> and <code>/dev/net/gw</code>
-device files, and the <code>/ini/dns</code> configuration file:</p>
+device files, and the <code>/ini/dns.ini</code> configuration file:</p>
 
     <pre><code>&gt; print 10.0.2.15/24 =&gt; /dev/net/ip
 [975.123511] NET IP 10.0.2.15/24
@@ -93,7 +93,7 @@ device files, and the <code>/ini/dns</code> configuration file:</p>
 &gt; print 10.0.2.2 =&gt; /dev/net/gw
 [985.646908] NET GW 10.0.2.2
 
-&gt; print 10.0.2.3 =&gt; /ini/dns
+&gt; print &quot;dns = 10.0.2.3&quot; =&gt; /ini/dns.ini
 </code></pre>
 
     <p>Reading <code>/dev/net/mac</code> will return the MAC address:</p>
