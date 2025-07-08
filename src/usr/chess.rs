@@ -95,19 +95,19 @@ impl Chess {
 
         update_autocomplete(&mut prompt, &mut self.game);
         while let Some(cmd) = prompt.input(&prompt_string) {
-            let args: Vec<&str> = cmd.trim().split(' ').collect();
+            let args: Vec<_> = cmd.trim().split(' ').collect();
             match args[0] {
                 "q" | "quit" => break,
-                "h" | "help" => self.cmd_help(args),
-                "i" | "init" => self.cmd_init(args),
-                "t" | "time" => self.cmd_time(args),
-                "p" | "play" => self.cmd_play(args),
-                "m" | "move" => self.cmd_move(args),
-                "u" | "undo" => self.cmd_undo(args),
-                "l" | "load" => self.cmd_load(args),
-                "s" | "save" => self.cmd_save(args),
-                "puzzle" => self.cmd_puzzle(args),
-                "perf" => self.cmd_perf(args),
+                "h" | "help" => self.cmd_help(&args),
+                "i" | "init" => self.cmd_init(&args),
+                "t" | "time" => self.cmd_time(&args),
+                "p" | "play" => self.cmd_play(&args),
+                "m" | "move" => self.cmd_move(&args),
+                "u" | "undo" => self.cmd_undo(&args),
+                "l" | "load" => self.cmd_load(&args),
+                "s" | "save" => self.cmd_save(&args),
+                "puzzle" => self.cmd_puzzle(&args),
+                "perf" => self.cmd_perf(&args),
                 cmd => {
                     if cmd.is_empty() {
                         println!();
@@ -122,7 +122,7 @@ impl Chess {
         }
     }
 
-    fn cmd_help(&mut self, _args: Vec<&str>) {
+    fn cmd_help(&mut self, _args: &[&str]) {
         println!("{}Commands:{}", self.csi_notif, self.csi_reset);
         let cmds = [
             ("q", "uit", "Exit this program\n"),
@@ -152,14 +152,14 @@ impl Chess {
         println!();
     }
 
-    fn cmd_init(&mut self, _args: Vec<&str>) {
+    fn cmd_init(&mut self, _args: &[&str]) {
         self.game.clear();
         self.game.load_fen(FEN).unwrap();
         println!();
         println!("{}", self.game);
     }
 
-    fn cmd_puzzle(&mut self, args: Vec<&str>) {
+    fn cmd_puzzle(&mut self, args: &[&str]) {
         let mut path = args.get(1).map(|&s| s.to_string());
         if path.is_none() {
             if let Ok(buf) = fs::read_to_string("/ini/chess.ini") {
@@ -182,7 +182,7 @@ impl Chess {
         }
     }
 
-    fn cmd_load(&mut self, args: Vec<&str>) {
+    fn cmd_load(&mut self, args: &[&str]) {
         if args.len() != 2 {
             error!("No <path> given\n");
             return;
@@ -195,7 +195,7 @@ impl Chess {
         }
     }
 
-    fn cmd_save(&mut self, args: Vec<&str>) {
+    fn cmd_save(&mut self, args: &[&str]) {
         if args.len() != 2 {
             error!("No <path> given\n");
             return;
@@ -209,7 +209,7 @@ impl Chess {
         }
     }
 
-    fn cmd_time(&mut self, args: Vec<&str>) {
+    fn cmd_time(&mut self, args: &[&str]) {
         match args.len() {
             1 => {
                 error!("No <moves> and <time> given\n");
@@ -234,7 +234,7 @@ impl Chess {
         }
     }
 
-    fn cmd_play(&mut self, args: Vec<&str>) {
+    fn cmd_play(&mut self, args: &[&str]) {
         self.side = match args.get(1) {
             None => self.game.side(),
             Some(&"white") => WHITE,
@@ -250,7 +250,7 @@ impl Chess {
         }
     }
 
-    fn cmd_move(&mut self, args: Vec<&str>) {
+    fn cmd_move(&mut self, args: &[&str]) {
         if args.len() < 2 {
             error!("No <move> given\n");
             return;
@@ -288,7 +288,7 @@ impl Chess {
         print!("\x1b[?25h"); // Enable cursor
     }
 
-    fn cmd_undo(&mut self, _args: Vec<&str>) {
+    fn cmd_undo(&mut self, _args: &[&str]) {
         if !self.game.history.is_empty() {
             if let Some(m) = self.game.history.pop() {
                 self.game.undo_move(m);
@@ -298,7 +298,7 @@ impl Chess {
         println!("{}", self.game);
     }
 
-    fn cmd_perf(&mut self, args: Vec<&str>) {
+    fn cmd_perf(&mut self, args: &[&str]) {
         let csi_depth = Style::color("aqua");
         let csi_count = Style::color("fushia");
         let csi_reset = Style::reset();
