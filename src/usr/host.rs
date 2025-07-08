@@ -120,7 +120,7 @@ impl Message {
 
 fn dns_address() -> Option<IpAddress> {
     if let Ok(buf) = fs::read_to_string("/ini/dns.ini") {
-        if let Ok(config) = ini::parse(&buf) {
+        if let Some(config) = ini::parse(&buf) {
             if let Some(servers) = config.get("dns") {
                 if let Some((server, _)) = servers.split_once(',') {
                     if let Ok(addr) = IpAddress::from_str(server) {

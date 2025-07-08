@@ -163,7 +163,7 @@ impl Chess {
         let mut path = args.get(1).map(|&s| s.to_string());
         if path.is_none() {
             if let Ok(buf) = fs::read_to_string("/ini/chess.ini") {
-                if let Ok(config) = ini::parse(&buf) {
+                if let Some(config) = ini::parse(&buf) {
                     path = config.get("puzzle").cloned();
                 }
             }

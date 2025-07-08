@@ -112,7 +112,7 @@ const DNS_FILE: &str = "/ini/dns.ini";
 fn dns_config() -> Option<String> {
     warning!("This command is deprecated, use '{}' instead", DNS_FILE);
     if let Ok(buf) = fs::read_to_string(DNS_FILE) {
-        if let Ok(config) = ini::parse(&buf) {
+        if let Some(config) = ini::parse(&buf) {
             if let Some(servers) = config.get("dns") {
                 if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
                     return Some(servers.to_string());
