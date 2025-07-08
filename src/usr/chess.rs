@@ -1,12 +1,13 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::ini;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::rng;
 use crate::{api, sys};
 
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String,ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
@@ -159,18 +160,25 @@ impl Chess {
     }
 
     fn cmd_puzzle(&mut self, args: Vec<&str>) {
-        if args.len() != 2 {
-            error!("No <path> given\n");
-            return;
+        let mut path = args.get(1).map(|&s| s.to_string());
+        if path.is_none() {
+            if let Ok(buf) = fs::read_to_string("/ini/chess.ini") {
+                if let Ok(config) = ini::parse(&buf) {
+                    path = config.get("puzzle").cloned();
+                }
+            }
         }
-        let path = args[1];
-        if let Ok(text) = fs::read_to_string(path) {
-            let lines: Vec<&str> = text.lines().collect();
-            let i = (rng::get_u64() as usize) % lines.len();
-            let fen = lines[i];
-            self.load(fen);
+        if let Some(path) = path {
+            if let Ok(text) = fs::read_to_string(&path) {
+                let lines: Vec<&str> = text.lines().collect();
+                let i = (rng::get_u64() as usize) % lines.len();
+                let fen = lines[i];
+                self.load(fen);
+            } else {
+                error!("Could not read '{}'\n", path);
+            }
         } else {
-            error!("Could not read '{}'\n", path);
+            error!("No <path> given\n");
         }
     }
 
