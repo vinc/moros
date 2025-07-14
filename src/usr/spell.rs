@@ -52,18 +52,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         contents.lines().map(|line| line.trim().into()).collect()
     }).unwrap_or_default();
 
-    /*
-    let dict: Vec<String> = fs::read_to_string("/lib/spell/english.dict").map(|contents| {
-        contents.lines().map(|line| line.trim().into()).collect()
-    }).unwrap_or_default();
-
-    let dict2: Vec<String> = fs::read_to_string("/lib/spell/english-ext.dict").map(|contents| {
-        contents.lines().map(|line| line.trim().into()).collect()
-    }).unwrap_or_default();
-
-    let dict = [dict, dict2].concat();
-    */
-
     if let Ok(contents) = fs::read_to_string(&path) {
         for (row, line) in contents.lines().enumerate() {
             let mut j = 0;
