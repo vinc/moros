@@ -4,6 +4,7 @@ use crate::api::process::ExitCode;
 
 use alloc::format;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use chumsky::prelude::*;
 
@@ -53,6 +54,31 @@ fn pos(buf: &str, i: usize) -> (usize, usize) {
         row += 1;
     }
     (row, col)
+}
+
+fn levenshtein_distance(a: &str, b: &str) -> usize {
+    let len_a = a.chars().count();
+    let len_b = b.chars().count();
+    let mut d = vec![vec![0; len_b + 1]; len_a + 1];
+
+    for i in 0..=len_a {
+        d[i][0] = i;
+    }
+    for j in 0..=len_b {
+        d[0][j] = j;
+    }
+    for (i, ca) in a.chars().enumerate() {
+        for (j, cb) in b.chars().enumerate() {
+            let n = if ca == cb { 0 } else { 1 };
+            d[i + 1][j + 1] = d[i][j + 1].min(d[i + 1][j]).min(d[i][j]) + n;
+        }
+    }
+
+    d[len_a][len_b]
+}
+
+fn find_closest_match(dict: &Vec<String>, word: &str) -> Option<String> {
+    dict.iter().min_by_key(|&w| levenshtein_distance(word, w)).cloned()
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -114,6 +140,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if verbose {
                     let error = Style::color("red");
                     let reset = Style::reset();
+
+                    let word = &buf[e.span().start..e.span().end];
+                    if let Some(suggestion) = find_closest_match(&dict, word) {
+                        eprintln!("{error}-----> {reset}Did you mean \"{suggestion}\"?");
+                    }
+
                     let len = e.span().end - e.span().start;
                     let mut line = buf.lines().skip(row - 1).next().unwrap().to_string();
                     line.insert_str(col + len - 1, &format!("{}", reset));
@@ -145,4 +177,22 @@ fn help() {
         "  {0}-d{1}, {0}--dict \"<path>\"{1}    Load dictionary {0}<path>{1}",
         csi_option, csi_reset
     );
+}
+
+#[test_case]
+fn test_levenshtein_distance() {
+    assert_eq!(levenshtein_distance("kitten", "kitten"), 0);
+    assert_eq!(levenshtein_distance("kitten", "sitting"), 3);
+}
+
+#[test_case]
+fn test_find_closest_match() {
+    let dict = vec![
+        "aaaaa".to_string(),
+        "abcde".to_string(),
+        "bbbbb".to_string(),
+    ];
+    assert_eq!(find_closest_match(&dict, "aaaaa"), Some("aaaaa".to_string()));
+    assert_eq!(find_closest_match(&dict, "abcda"), Some("abcde".to_string()));
+    assert_eq!(find_closest_match(&dict, "bbbba"), Some("bbbbb".to_string()));
 }
