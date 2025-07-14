@@ -153,6 +153,32 @@ impl FileIO for File {
         let mut addr = self.addr;
         let mut bytes = 0; // Number of bytes written
         let mut pos = 0; // Position in the file
+
+        // Optimization: when appending, skip to the last block
+        if self.offset == self.size && self.size > 0 {
+            let mut block = LinkedBlock::read(addr);
+            while let Some(next_block) = block.next() {
+                addr = next_block.addr();
+                block = LinkedBlock::read(addr);
+            }
+            // If last block is full, allocate a new one
+            let block_data_len = block.len() as u32;
+            if self.size % block_data_len == 0 {
+                match LinkedBlock::alloc() {
+                    Some(new_block) => {
+                        let mut last_block = LinkedBlock::read(addr);
+                        last_block.set_next_addr(new_block.addr());
+                        last_block.write();
+                        addr = new_block.addr();
+                        pos = self.size;
+                    }
+                    None => return Err(()),
+                }
+            } else {
+                pos = self.size - (self.size % block_data_len);
+            }
+        }
+
         while bytes < buf_len {
             let mut block = LinkedBlock::read(addr);
             let data = block.data_mut();
