@@ -77,7 +77,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(());
     }
 
-    let red = Style::color("red");
+    let error = Style::color("red");
     let reset = Style::reset();
     let path = args[1];
     if let Ok(buf) = fs::read_to_string(path) {
@@ -91,7 +91,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 let space = " ".repeat(col - 1);
                 let arrow = "^".repeat(e.span().end - e.span().start);
                 let reason = "unexpected token";
-                eprintln!("\n{line}\n{space}{red}{arrow} {reason}{reset}");
+                eprintln!("\n{line}\n{space}{error}{arrow} {reason}{reset}");
             })
         };
         Ok(())

@@ -3,12 +3,60 @@ use crate::api::fs;
 use crate::api::process::ExitCode;
 
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use chumsky::prelude::*;
 
 const DEFAULT_DICT: &str = "/lib/spell/english.dict";
 
+fn is_word_char(c: &char) -> bool {
+    c.is_alphabetic() || *c == '\''
+}
+
+fn is_not_word_char(c: &char) -> bool {
+    !is_word_char(c)
+}
+
+fn parser<'a>(dict: &'a Vec<String>) -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> {
+    let non_word = any().
+        filter(is_not_word_char).
+        repeated();
+
+    let word = any().
+        filter(is_word_char).
+        repeated().
+        at_least(1).
+        collect::<String>();
+
+    let valid_word = word.clone().validate(move |word: String, e, emitter| {
+        if !dict.contains(&word) && !dict.contains(&word.to_lowercase()) {
+            let reason = format!("Unknown word \"{}\"", word);
+            emitter.emit(Rich::custom(e.span(), reason));
+        }
+        word
+    });
+
+    valid_word.padded_by(non_word).repeated()
+}
+
+fn pos(buf: &str, i: usize) -> (usize, usize) {
+    let mut col = 1;
+    let mut row = 1;
+    let mut j = 0;
+    for line in buf.lines() {
+        let n = line.len();
+        if i < j + n {
+            col = i - j + 1;
+            break;
+        }
+        j += n + 1;
+        row += 1;
+    }
+    (row, col)
+}
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    let mut verbose = false;
     let mut path = String::new();
     let mut dict = DEFAULT_DICT;
     let mut i = 1;
@@ -18,6 +66,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-h" | "--help" => {
                 help();
                 return Ok(());
+            }
+            "-v" | "--verbose" => {
+                verbose = true;
             }
             "-d" | "--dict" => {
                 if i + 1 < n {
@@ -43,7 +94,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         i += 1;
     }
 
-    if args.len() != 2 {
+    if path.is_empty() {
         help();
         return Err(ExitCode::UsageError);
     }
@@ -52,43 +103,32 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         contents.lines().map(|line| line.trim().into()).collect()
     }).unwrap_or_default();
 
-    if let Ok(contents) = fs::read_to_string(&path) {
-        for (row, line) in contents.lines().enumerate() {
-            let mut j = 0;
-            for word in line.split(" ") {
-                let col = j;
-                let len = word.len();
-                j += len + 1;
-                let word = word.trim().trim_matches(|c: char| {
-                    c.is_ascii_punctuation()
-                });
-                if word.is_empty() {
-                    continue;
-                }
-                if !word.chars().all(|c| c.is_alphabetic() || c == '\'') {
-                    continue;
-                }
-                if dict.contains(&word.into()) {
-                    continue;
-                }
-                if dict.contains(&word.to_lowercase()) {
-                    continue;
-                }
+    if let Ok(buf) = fs::read_to_string(&path) {
+        match parser(&dict).parse(&buf).into_result() {
+            Ok(()) => {},
+            Err(errs) => errs.into_iter().for_each(|e| {
+                let (row, col) = pos(&buf, e.span().start);
+                let reason = e.reason().to_string();
+                error!("{reason} at {path}:{row}:{col}");
 
-                let mut line: String = line.into();
-                let error = Style::color("red");
-                let reset = Style::reset();
-                let space = " ".repeat(col);
-                let arrow = "^".repeat(len);
-                line.insert_str(col + len, &format!("{}", reset));
-                line.insert_str(col, &format!("{}", error));
-                error!("Unknown word at {path}:{row}:{col}");
-                eprintln!("\n{line}\n{space}{error}{arrow}{reset}\n");
-            }
-        }
+                if verbose {
+                    let error = Style::color("red");
+                    let reset = Style::reset();
+                    let len = e.span().end - e.span().start;
+                    let mut line = buf.lines().skip(row - 1).next().unwrap().to_string();
+                    line.insert_str(col + len - 1, &format!("{}", reset));
+                    line.insert_str(col - 1, &format!("{}", error));
+                    let space = " ".repeat(col - 1);
+                    let arrow = "^".repeat(e.span().end - e.span().start);
+                    eprintln!("\n{line}\n{space}{error}{arrow}{reset}\n");
+                }
+            })
+        };
+        Ok(())
+    } else {
+        error!("Could not read '{}'", path);
+        Err(ExitCode::Failure)
     }
-
-    Ok(())
 }
 
 fn help() {
@@ -102,8 +142,7 @@ fn help() {
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-d{1}, {0}--dict \"<path>\"{1}    \
-        Load dictionary {0}<path>{1}",
+        "  {0}-d{1}, {0}--dict \"<path>\"{1}    Load dictionary {0}<path>{1}",
         csi_option, csi_reset
     );
 }
