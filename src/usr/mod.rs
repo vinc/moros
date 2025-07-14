@@ -36,6 +36,7 @@ pub mod read;
 pub mod render;
 pub mod shell;
 pub mod socket;
+pub mod spell;
 pub mod tcp;
 pub mod time;
 pub mod user;
