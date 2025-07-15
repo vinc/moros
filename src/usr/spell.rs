@@ -152,7 +152,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     line.insert_str(col - 1, &format!("{}", error));
                     let space = " ".repeat(col - 1);
                     let arrow = "^".repeat(e.span().end - e.span().start);
-                    eprintln!("\n{line}\n{space}{error}{arrow}{reset}\n");
+                    eprintln!("\n{line}\n{space}{error}{arrow}{reset}");
                 }
             })
         };
