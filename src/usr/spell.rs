@@ -10,6 +10,8 @@ use chumsky::prelude::*;
 
 const DEFAULT_DICT: &str = "/lib/spell/english.dict";
 
+type Dict = Vec<String>;
+
 fn is_word_char(c: &char) -> bool {
     c.is_alphabetic() || *c == '\''
 }
@@ -18,7 +20,7 @@ fn is_not_word_char(c: &char) -> bool {
     !is_word_char(c)
 }
 
-fn parser<'a>(dict: &'a Vec<String>) -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> {
+fn parser<'a>(dict: &'a Dict) -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> {
     let non_word = any().
         filter(is_not_word_char).
         repeated();
@@ -77,7 +79,7 @@ fn levenshtein_distance(a: &str, b: &str) -> usize {
     d[len_a][len_b]
 }
 
-fn find_closest_match(dict: &Vec<String>, word: &str) -> Option<String> {
+fn find_closest_match(dict: &Dict, word: &str) -> Option<String> {
     dict.iter().min_by_key(|&w| levenshtein_distance(word, w)).cloned()
 }
 
@@ -125,7 +127,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    let dict: Vec<String> = fs::read_to_string(&dict).map(|contents| {
+    let dict: Dict = fs::read_to_string(&dict).map(|contents| {
         contents.lines().map(|line| line.trim().into()).collect()
     }).unwrap_or_default();
 
