@@ -80,7 +80,42 @@ fn levenshtein_distance(a: &str, b: &str) -> usize {
 }
 
 fn find_closest_match(dict: &Dict, word: &str) -> Option<String> {
-    dict.iter().min_by_key(|&w| levenshtein_distance(word, w)).cloned()
+    let max_prefix = 3;
+    let max_distance = 5;
+    let mut best_distance = usize::MAX;
+    let mut best_candidate = None;
+
+    let n = word.len().min(max_prefix) + 1;
+    for i in 1..n {
+        let prefix: String = word.chars().take(i).collect();
+
+        for candidate in dict.range(prefix.clone()..) {
+            if !candidate.starts_with(&prefix) {
+                break;
+            }
+
+            let distance = candidate.len().abs_diff(word.len());
+            if distance > max_distance || distance >= best_distance {
+                continue;
+            }
+
+            let distance = levenshtein_distance(word, candidate);
+            if distance < best_distance {
+                best_distance = distance;
+                best_candidate = Some(candidate.clone());
+
+                if distance <= 1 {
+                    break;
+                }
+            }
+        }
+
+        if best_distance <= 1 {
+            break;
+        }
+    }
+
+    best_candidate
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
