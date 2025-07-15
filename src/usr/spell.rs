@@ -2,15 +2,15 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 
+use alloc::collections::btree_set::BTreeSet;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
-use alloc::vec::Vec;
 use chumsky::prelude::*;
 
 const DEFAULT_DICT: &str = "/lib/spell/english.dict";
 
-type Dict = Vec<String>;
+type Dict = BTreeSet<String>;
 
 fn is_word_char(c: &char) -> bool {
     c.is_alphabetic() || *c == '\''
@@ -193,7 +193,7 @@ fn test_find_closest_match() {
         "aaaaa".to_string(),
         "abcde".to_string(),
         "bbbbb".to_string(),
-    ];
+    ].into_iter().collect();
     assert_eq!(find_closest_match(&dict, "aaaaa"), Some("aaaaa".to_string()));
     assert_eq!(find_closest_match(&dict, "abcda"), Some("abcde".to_string()));
     assert_eq!(find_closest_match(&dict, "bbbba"), Some("bbbbb".to_string()));
