@@ -11,26 +11,32 @@ const DEFAULT_DICT: &str = "/lib/spell/english.dict";
 
 type Dict = BTreeSet<String>;
 
+fn levenshtein_distance(s: &str, t: &str) -> usize {
+    let n = s.chars().count();
+    let m = t.chars().count();
+    if n == 0 {
+        return m;
+    }
+    if m == 0 {
+        return n;
+    }
 
-fn levenshtein_distance(a: &str, b: &str) -> usize {
-    let len_a = a.chars().count();
-    let len_b = b.chars().count();
-    let mut d = vec![vec![0; len_b + 1]; len_a + 1];
+    let mut d = vec![vec![0; m + 1]; n + 1];
 
-    for i in 0..=len_a {
+    for i in 0..=n {
         d[i][0] = i;
     }
-    for j in 0..=len_b {
+    for j in 0..=m {
         d[0][j] = j;
     }
-    for (i, ca) in a.chars().enumerate() {
-        for (j, cb) in b.chars().enumerate() {
-            let n = if ca == cb { 0 } else { 1 };
-            d[i + 1][j + 1] = d[i][j + 1].min(d[i + 1][j]).min(d[i][j]) + n;
+    for (i, cs) in s.chars().enumerate() {
+        for (j, ct) in t.chars().enumerate() {
+            let cost = if cs == ct { 0 } else { 1 };
+            d[i + 1][j + 1] = d[i][j + 1].min(d[i + 1][j]).min(d[i][j]) + cost;
         }
     }
 
-    d[len_a][len_b]
+    d[n][m]
 }
 
 fn find_closest_match(dict: &Dict, word: &str) -> Option<String> {
