@@ -42,8 +42,12 @@ impl From<&str> for Buffer {
     fn from(pathname: &str) -> Self {
         let p: Vec<&str> = pathname.split(':').collect();
         let pathname = p[0].to_string();
-        let y = p.get(1).and_then(|s| s.parse::<usize>().ok()).unwrap_or(1) - 1;
-        let x = p.get(2).and_then(|s| s.parse::<usize>().ok()).unwrap_or(1) - 1;
+        let y = p.get(1).and_then(|s| {
+            s.parse::<usize>().ok()
+        }).unwrap_or(1).saturating_sub(1);
+        let x = p.get(2).and_then(|s| {
+            s.parse::<usize>().ok()
+        }).unwrap_or(1).saturating_sub(1);
 
         let cursor = Coords { x: x % cols(), y: y % rows() };
         let offset = Coords { x: x - cursor.x, y: y - cursor.y };
