@@ -88,6 +88,7 @@ fn spellcheck(dict: &Dict, word: &str) -> bool {
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut path = String::new();
     let mut dict = DEFAULT_DICT;
+    let mut suggest = false;
     let mut verbose = false;
     let mut i = 1;
     let n = args.len();
@@ -105,6 +106,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     error!("Missing dictionary path");
                     return Err(ExitCode::UsageError);
                 }
+            }
+            "-s" | "--suggest" => {
+                suggest = true;
             }
             "-v" | "--verbose" => {
                 verbose = true;
@@ -157,12 +161,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     let col = col - len;
                     error!("Unknown word \"{word}\" at {path}:{row}:{col}");
 
-                    if verbose {
-                        let error = Style::color("red");
-                        let reset = Style::reset();
+                    let error = Style::color("red");
+                    let reset = Style::reset();
+                    if suggest {
                         if let Some(w) = find_closest_match(&dict, &word) {
                             eprintln!("       Did you mean \"{w}\"?");
                         }
+                    }
+                    if verbose {
                         let mut line = line.to_string();
                         line.insert_str(col - 1 + len, &format!("{}", reset));
                         line.insert_str(col - 1, &format!("{}", error));
@@ -189,13 +195,21 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} spell {}<options> [<path>]{1}",
+        "{}Usage:{} spell {}<options> <path>{1}",
         csi_title, csi_reset, csi_option
     );
     println!();
     println!("{}Options:{}", csi_title, csi_reset);
     println!(
-        "  {0}-d{1}, {0}--dict \"<path>\"{1}    Load dictionary {0}<path>{1}",
+        "  {0}-d{1}, {0}--dict <path>{1}    Load dictionary {0}<path>{1}",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-s{1}, {0}--suggest{1}        Display suggestion",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-v{1}, {0}--verbose{1}        Increase verbosity",
         csi_option, csi_reset
     );
 }
