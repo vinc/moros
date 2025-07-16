@@ -6,57 +6,11 @@ use alloc::collections::btree_set::BTreeSet;
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec;
-use chumsky::prelude::*;
 
 const DEFAULT_DICT: &str = "/lib/spell/english.dict";
 
 type Dict = BTreeSet<String>;
 
-fn is_word_char(c: &char) -> bool {
-    c.is_alphabetic() || *c == '\''
-}
-
-fn is_not_word_char(c: &char) -> bool {
-    !is_word_char(c)
-}
-
-fn parser<'a>(dict: &'a Dict) -> impl Parser<'a, &'a str, (), extra::Err<Rich<'a, char>>> {
-    let non_word = any().
-        filter(is_not_word_char).
-        repeated();
-
-    let word = any().
-        filter(is_word_char).
-        repeated().
-        at_least(1).
-        collect::<String>();
-
-    let valid_word = word.clone().validate(move |word: String, e, emitter| {
-        if !dict.contains(&word) && !dict.contains(&word.to_lowercase()) {
-            let reason = format!("Unknown word \"{}\"", word);
-            emitter.emit(Rich::custom(e.span(), reason));
-        }
-        word
-    });
-
-    valid_word.padded_by(non_word).repeated()
-}
-
-fn pos(buf: &str, i: usize) -> (usize, usize) {
-    let mut col = 1;
-    let mut row = 1;
-    let mut j = 0;
-    for line in buf.lines() {
-        let n = line.len();
-        if i < j + n {
-            col = i - j + 1;
-            break;
-        }
-        j += n + 1;
-        row += 1;
-    }
-    (row, col)
-}
 
 fn levenshtein_distance(a: &str, b: &str) -> usize {
     let len_a = a.chars().count();
@@ -118,10 +72,17 @@ fn find_closest_match(dict: &Dict, word: &str) -> Option<String> {
     best_candidate
 }
 
+fn spellcheck(dict: &Dict, word: &str) -> bool {
+    word.is_empty() || dict.contains(word) || (
+        word.find(char::is_uppercase).is_some() &&
+        dict.contains(&word.to_lowercase())
+    )
+}
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut verbose = false;
     let mut path = String::new();
     let mut dict = DEFAULT_DICT;
+    let mut verbose = false;
     let mut i = 1;
     let n = args.len();
     while i < n {
@@ -129,9 +90,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-h" | "--help" => {
                 help();
                 return Ok(());
-            }
-            "-v" | "--verbose" => {
-                verbose = true;
             }
             "-d" | "--dict" => {
                 if i + 1 < n {
@@ -141,6 +99,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     error!("Missing dictionary path");
                     return Err(ExitCode::UsageError);
                 }
+            }
+            "-v" | "--verbose" => {
+                verbose = true;
             }
             _ => {
                 if args[i].starts_with('-') {
@@ -167,32 +128,49 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }).unwrap_or_default();
 
     if let Ok(buf) = fs::read_to_string(&path) {
-        match parser(&dict).parse(&buf).into_result() {
-            Ok(()) => {},
-            Err(errs) => errs.into_iter().for_each(|e| {
-                let (row, col) = pos(&buf, e.span().start);
-                let reason = e.reason().to_string();
-                error!("{reason} at {path}:{row}:{col}");
-
-                if verbose {
-                    let error = Style::color("red");
-                    let reset = Style::reset();
-
-                    let word = &buf[e.span().start..e.span().end];
-                    if let Some(suggestion) = find_closest_match(&dict, word) {
-                        eprintln!("{error}-----> {reset}Did you mean \"{suggestion}\"?");
-                    }
-
-                    let len = e.span().end - e.span().start;
-                    let mut line = buf.lines().skip(row - 1).next().unwrap().to_string();
-                    line.insert_str(col + len - 1, &format!("{}", reset));
-                    line.insert_str(col - 1, &format!("{}", error));
-                    let space = " ".repeat(col - 1);
-                    let arrow = "^".repeat(e.span().end - e.span().start);
-                    eprintln!("\n{line}\n{space}{error}{arrow}{reset}");
+        let mut row = 1;
+        for line in buf.lines() {
+            let mut col = 1;
+            let mut word = String::new();
+            for c in line.chars() {
+                // Recognize "isn't" and "parents'" but not "'quote'"
+                if c.is_alphabetic() || (c == '\'' && !word.is_empty()) {
+                    word.push(c);
+                    col += 1;
+                    continue;
                 }
-            })
-        };
+
+                // Transform "parents'" into "parents"
+                if word.ends_with('\'') {
+                    word.pop();
+                    col -= 1;
+                }
+
+                if !spellcheck(&dict, &word) {
+                    let len = word.chars().count();
+                    let col = col - len;
+                    error!("Unknown word \"{word}\" at {path}:{row}:{col}");
+
+                    if verbose {
+                        let error = Style::color("red");
+                        let reset = Style::reset();
+                        if let Some(w) = find_closest_match(&dict, &word) {
+                            eprintln!("       Did you mean \"{w}\"?");
+                        }
+                        let mut line = line.to_string();
+                        line.insert_str(col - 1 + len, &format!("{}", reset));
+                        line.insert_str(col - 1, &format!("{}", error));
+                        let space = " ".repeat(col - 1);
+                        let arrow = "^".repeat(len);
+                        eprintln!("\n{line}\n{space}{error}{arrow}{reset}");
+                    }
+                }
+
+                word.clear();
+                col += 1;
+            }
+            row += 1;
+        }
         Ok(())
     } else {
         error!("Could not read '{}'", path);
@@ -232,4 +210,18 @@ fn test_find_closest_match() {
     assert_eq!(find_closest_match(&dict, "aaaaa"), Some("aaaaa".to_string()));
     assert_eq!(find_closest_match(&dict, "abcda"), Some("abcde".to_string()));
     assert_eq!(find_closest_match(&dict, "bbbba"), Some("bbbbb".to_string()));
+}
+
+#[test_case]
+fn test_spellcheck() {
+    let dict = vec![
+        "the".to_string(),
+        "quick".to_string(),
+        "brown".to_string(),
+        "fox".to_string(),
+    ].into_iter().collect();
+    assert_eq!(spellcheck(&dict, "the"), true);
+    assert_eq!(spellcheck(&dict, "The"), true);
+    assert_eq!(spellcheck(&dict, "fox"), true);
+    assert_eq!(spellcheck(&dict, "dog"), false);
 }
