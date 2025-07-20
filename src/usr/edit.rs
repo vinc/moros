@@ -40,12 +40,21 @@ pub struct Buffer {
 
 impl From<&str> for Buffer {
     fn from(pathname: &str) -> Self {
-        let cursor = Coords { x: 0, y: 0 };
-        let offset = Coords { x: 0, y: 0 };
+        let p: Vec<&str> = pathname.split(':').collect();
+        let pathname = p[0].to_string();
+        let y = p.get(1).and_then(|s| {
+            s.parse::<usize>().ok()
+        }).unwrap_or(1).saturating_sub(1);
+        let x = p.get(2).and_then(|s| {
+            s.parse::<usize>().ok()
+        }).unwrap_or(1).saturating_sub(1);
+
+        let cursor = Coords { x: x % cols(), y: y % rows() };
+        let offset = Coords { x: x - cursor.x, y: y - cursor.y };
         let highlighted = Vec::new();
         let mut lines = Vec::new();
 
-        match fs::read_to_string(pathname) {
+        match fs::read_to_string(&pathname) {
             Ok(contents) => {
                 for line in contents.lines() {
                     lines.push(line.into());
@@ -58,7 +67,6 @@ impl From<&str> for Buffer {
                 lines.push(String::new());
             }
         };
-        let pathname = pathname.into();
 
         Self {
             pathname,
@@ -356,7 +364,7 @@ impl Editor {
         self.print_screen();
         self.print_editing_status();
         self.print_highlighted();
-        print!("\x1b[1;1H"); // Move cursor to the top of the screen
+        print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
 
         let mut escape = false;
         let mut csi = false;
@@ -942,7 +950,7 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} edit {}<options> <path>+{1}",
+        "{}Usage:{} edit {}<options> (<path>[:row[:col]])+{1}",
         csi_title, csi_reset, csi_option
     );
     println!();
