@@ -120,6 +120,9 @@ test:
 website:
 	cd www && sh build.sh
 
+spell:
+	cd dsk/lib/spell && sh build.sh
+
 pkg:
 	ls -1 dsk/var/pkg | grep -v index.html > dsk/var/pkg/index.html
 
