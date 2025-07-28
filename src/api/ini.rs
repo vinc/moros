@@ -9,33 +9,39 @@ type ParseError<'a> = extra::Err<Simple<'a, char>>;
 
 fn parser<'a>() -> impl Parser<'a, &'a str, ParseResult<'a>, ParseError<'a>> {
     let whitespace = one_of(" \t").repeated();
-
+    let newline = one_of("\n\r").repeated().at_least(1);
     let key = text::ident();
+    let comment = just('#').then(none_of("\n\r").repeated()).ignored();
 
     let quoted_val = none_of("\"").
         repeated().
         collect::<String>().
-        delimited_by(just('"'), just('"')).
-        map(|s| s.trim().to_string());
+        delimited_by(just('"'), just('"'));
 
-    let unquoted_val = none_of("\n\r").
+    let unquoted_val = none_of("\n\r#").
         repeated().
-        collect::<String>().
-        map(|s| s.trim().to_string());
+        collect::<String>();
 
-    let val = quoted_val.or(unquoted_val);
+    let val = quoted_val.or(unquoted_val).map(|s| s.trim().to_string());
 
     let pair = key.
-        padded_by(whitespace.clone()).
+        then_ignore(whitespace.clone()).
         then_ignore(just('=')).
-        padded_by(whitespace.clone()).
+        then_ignore(whitespace.clone()).
         then(val).
+        then_ignore(whitespace.clone()).
+        then_ignore(comment.or_not()).
         map(|(k, v): (&str, String)| (k.to_string(), v));
 
-    pair.padded_by(text::newline().repeated()).
-        repeated().
+    let line = pair.
+        map(Some).
+        or(comment.to(None)).
+        or(whitespace.clone().to(None));
+
+    line.separated_by(newline).
+        allow_trailing().
         collect::<Vec<_>>().
-        map(|pairs| pairs.into_iter().collect())
+        map(|items| items.into_iter().flatten().collect())
 }
 
 pub fn parse(input: &str) -> Option<ConfigMap> {
@@ -122,6 +128,17 @@ fn test_parse_with_special_chars() {
 #[test_case]
 fn test_parse_with_quotes() {
     let input = "key1 = \"value1\"\nkey2 = \"value2\"";
+    let expected = BTreeMap::from([
+        ("key1".to_string(), "value1".to_string()),
+        ("key2".to_string(), "value2".to_string()),
+    ]);
+
+    assert_eq!(parse(input), Some(expected));
+}
+
+#[test_case]
+fn test_parse_with_comments() {
+    let input = "# comment\nkey1 = value1 # comment\nkey2 = value2";
     let expected = BTreeMap::from([
         ("key1".to_string(), "value1".to_string()),
         ("key2".to_string(), "value2".to_string()),
