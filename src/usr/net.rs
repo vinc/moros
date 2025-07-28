@@ -1,6 +1,7 @@
 use crate::api::clock;
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::ini;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::sys;
@@ -106,16 +107,25 @@ fn print_config(attribute: &str) {
     }
 }
 
-const DNS_FILE: &str = "/ini/dns";
+const DNS_FILE: &str = "/ini/dns.ini";
 
 fn dns_config() -> Option<String> {
-    warning!("This command is deprecated, use /dev/net/dns instead");
-    if let Ok(value) = fs::read_to_string(DNS_FILE) {
-        let servers = value.trim();
-        if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
-            Some(servers.to_string())
+    warning!("This command is deprecated, use '{}' instead", DNS_FILE);
+    if let Ok(buf) = fs::read_to_string(DNS_FILE) {
+        if let Some(config) = ini::parse(&buf) {
+            if let Some(servers) = config.get("dns") {
+                if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
+                    return Some(servers.to_string());
+                } else {
+                    error!("Could not parse '{}'", servers);
+                    return None;
+                }
+            } else {
+                error!("Could not find 'dns' in '{}'", DNS_FILE);
+                None
+            }
         } else {
-            error!("Could not parse '{}'", servers);
+            error!("Could not parse '{}'", DNS_FILE);
             None
         }
     } else {
@@ -125,7 +135,7 @@ fn dns_config() -> Option<String> {
 }
 
 fn gw_config() -> Option<String> {
-    warning!("This command is deprecated, use /dev/net/gw instead");
+    warning!("This command is deprecated, use '/dev/net/gw' instead");
     let mut res = None;
     if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
         iface.routes_mut().update(|storage| {
@@ -140,7 +150,7 @@ fn gw_config() -> Option<String> {
 }
 
 fn ip_config() -> Option<String> {
-    warning!("This command is deprecated, use /dev/net/ip instead");
+    warning!("This command is deprecated, use '/dev/net/ip' instead");
     if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
         if let Some(ip_cidr) = iface.ip_addrs().iter().next() {
             return Some(format!(
@@ -154,7 +164,7 @@ fn ip_config() -> Option<String> {
 }
 
 fn mac_config() -> Option<String> {
-    warning!("This command is deprecated, use /dev/net/mac instead");
+    warning!("This command is deprecated, use '/dev/net/mac' instead");
     if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
         return Some(iface.hardware_addr().to_string());
     } else {
@@ -190,7 +200,7 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "ip" => {
-            warning!("This command is deprecated, use /dev/net/ip instead");
+            warning!("This command is deprecated, use '/dev/net/ip' instead");
             if let Ok(addr) = IpCidr::from_str(value) {
                 if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
                     iface.update_ip_addrs(|addrs| {
@@ -206,7 +216,7 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "gw" => {
-            warning!("This command is deprecated, use /dev/net/gw instead");
+            warning!("This command is deprecated, use '/dev/net/gw' instead");
             if let Some((ref mut iface, _)) = *sys::net::NET.lock() {
                 if value == "0.0.0.0" {
                     iface.routes_mut().remove_default_ipv4_route();
@@ -221,11 +231,11 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "dns" => {
-            warning!("This command is deprecated, use /ini/dns instead");
+            warning!("This command is deprecated, use '{}' instead", DNS_FILE);
             let servers = value.trim();
             if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
-                let s = format!("{}\n", servers);
-                if fs::write(DNS_FILE, s.as_bytes()).is_ok() {
+                let config = format!("dns = {}\n", servers);
+                if fs::write(DNS_FILE, config.as_bytes()).is_ok() {
                     log!("NET DNS {}", servers);
                 } else {
                     error!("Could not write to '{}'", DNS_FILE);
@@ -241,7 +251,7 @@ pub fn set_config(attribute: &str, value: &str) {
 }
 
 pub fn stat() {
-    warning!("This command is deprecated, use /dev/net/usage instead");
+    warning!("This command is deprecated, use '/dev/net/usage' instead");
     if let Some((_, ref mut device)) = *sys::net::NET.lock() {
         let stats = device.stats();
         let csi_color = Style::color("aqua");

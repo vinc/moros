@@ -1,5 +1,6 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::ini;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
@@ -118,10 +119,14 @@ impl Message {
 }
 
 fn dns_address() -> Option<IpAddress> {
-    if let Ok(servers) = fs::read_to_string("/ini/dns") {
-        if let Some((server, _)) = servers.split_once(',') {
-            if let Ok(addr) = IpAddress::from_str(server) {
-                return Some(addr);
+    if let Ok(buf) = fs::read_to_string("/ini/dns.ini") {
+        if let Some(config) = ini::parse(&buf) {
+            if let Some(servers) = config.get("dns") {
+                if let Some((server, _)) = servers.split_once(',') {
+                    if let Ok(addr) = IpAddress::from_str(server) {
+                        return Some(addr);
+                    }
+                }
             }
         }
     }
