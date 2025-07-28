@@ -12,10 +12,18 @@ fn parser<'a>() -> impl Parser<'a, &'a str, ParseResult<'a>, ParseError<'a>> {
 
     let key = text::ident();
 
-    let val = none_of("\n\r").
+    let quoted_val = none_of("\"").
+        repeated().
+        collect::<String>().
+        delimited_by(just('"'), just('"')).
+        map(|s| s.trim().to_string());
+
+    let unquoted_val = none_of("\n\r").
         repeated().
         collect::<String>().
         map(|s| s.trim().to_string());
+
+    let val = quoted_val.or(unquoted_val);
 
     let pair = key.
         padded_by(whitespace.clone()).
@@ -101,7 +109,7 @@ fn test_parse_with_empty_value() {
 }
 
 #[test_case]
-fn test_parse_with_special_chars_in_value() {
+fn test_parse_with_special_chars() {
     let input = "path=/usr/bin/test\nurl=https://example.com:8080";
     let expected = BTreeMap::from([
         ("path".to_string(), "/usr/bin/test".to_string()),
@@ -112,11 +120,11 @@ fn test_parse_with_special_chars_in_value() {
 }
 
 #[test_case]
-fn test_parse_with_special_chars_in_key() {
-    let input = "path=/usr/bin/test\nurl=https://example.com:8080";
+fn test_parse_with_quotes() {
+    let input = "key1 = \"value1\"\nkey2 = \"value2\"";
     let expected = BTreeMap::from([
-        ("path".to_string(), "/usr/bin/test".to_string()),
-        ("url".to_string(), "https://example.com:8080".to_string()),
+        ("key1".to_string(), "value1".to_string()),
+        ("key2".to_string(), "value2".to_string()),
     ]);
 
     assert_eq!(parse(input), Some(expected));
