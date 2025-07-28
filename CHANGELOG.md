@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Add init parser (#759)
+- Bump uart_16550 from 0.3.2 to 0.4.0 (#764)
+- Bump rand from 0.9.1 to 0.9.2 (#763)
+- Add optional row and col params to path in editor (#762)
+- Add spell command (#761)
+- Optimize append in file::write (#760)
+- Fix HTTP server keep alive (#757)
+- Update pkg-server.sh (#756)
+- Add higher level set macro to lisp (#754)
 - Add brainfuck interpreter (#750)
 - Improve panic handling (#751)
 - Refactor code style and formatting (#748)
