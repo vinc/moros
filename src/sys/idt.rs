@@ -16,9 +16,6 @@ use x86_64::structures::idt::{
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
 
-const PIC1: u16 = 0x21;
-const PIC2: u16 = 0xA1;
-
 pub fn init() {
     IDT.load();
 }
@@ -287,6 +284,34 @@ extern "sysv64" fn syscall_handler(
     unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
 
+const PIC1: u16 = 0x21;
+const PIC2: u16 = 0xA1;
+
+fn irq_port(irq: u8) -> Port<u8> {
+    let addr = if irq < 8 { PIC1 } else { PIC2 };
+    Port::new(addr)
+}
+
+fn irq_line(irq: u8) -> u8 {
+    if irq < 8 { irq } else { irq - 8 }
+}
+
+pub fn set_irq_mask(irq: u8) {
+    let mut port = irq_port(irq);
+    unsafe {
+        let value = port.read() | (1 << irq_line(irq));
+        port.write(value);
+    }
+}
+
+pub fn clear_irq_mask(irq: u8) {
+    let mut port = irq_port(irq);
+    unsafe {
+        let value = port.read() & !(1 << irq_line(irq));
+        port.write(value);
+    }
+}
+
 pub fn set_irq_handler(irq: u8, handler: fn()) {
     interrupts::without_interrupts(|| {
         let mut handlers = IRQ_HANDLERS.lock();
@@ -294,20 +319,4 @@ pub fn set_irq_handler(irq: u8, handler: fn()) {
 
         clear_irq_mask(irq);
     });
-}
-
-pub fn set_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 });
-    unsafe {
-        let value = port.read() | (1 << (if irq < 8 { irq } else { irq - 8 }));
-        port.write(value);
-    }
-}
-
-pub fn clear_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 });
-    unsafe {
-        let value = port.read() & !(1 << if irq < 8 { irq } else { irq - 8 });
-        port.write(value);
-    }
 }
