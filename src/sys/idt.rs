@@ -280,8 +280,6 @@ extern "sysv64" fn syscall_handler(
     }
 
     regs.rax = res;
-
-    unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
 }
 
 const PIC1: u16 = 0x21;
