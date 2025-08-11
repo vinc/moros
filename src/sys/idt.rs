@@ -209,7 +209,7 @@ extern "x86-interrupt" fn segment_not_present_handler(
 #[unsafe(naked)]
 extern "C" fn wrapped_syscall_handler() -> ! {
     naked_asm!(
-        "cld",
+        "cld",            // Clear direction flag
         "push rax",
         "push rcx",
         "push rdx",
@@ -219,10 +219,10 @@ extern "C" fn wrapped_syscall_handler() -> ! {
         "push r9",
         "push r10",
         "push r11",
-        "mov rsi, rsp", // Arg #2: register list
-        "mov rdi, rsp", // Arg #1: interrupt frame
+        "mov rsi, rsp",   // Arg #2: register list
+        "mov rdi, rsp",   // Arg #1: interrupt frame
         "add rdi, 9 * 8", // 9 registers * 8 bytes
-        "sti",
+        "sti",            // Enable interrupts during syscall
         "call {}",
         "cli",
         "pop r11",
