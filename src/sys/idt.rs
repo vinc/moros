@@ -48,9 +48,9 @@ lazy_static! {
                 set_handler_fn(general_protection_fault_handler).
                 set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST);
 
-            let f = wrapped_syscall_handler as *mut fn();
+            let addr = VirtAddr::from_ptr(wrapped_syscall_handler as *const ());
             idt[0x80].
-                set_handler_fn(core::mem::transmute(f)).
+                set_handler_addr(addr).
                 set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
         idt[interrupt_index(0)].set_handler_fn(irq0_handler);
@@ -206,41 +206,38 @@ extern "x86-interrupt" fn segment_not_present_handler(
 
 // Naked function wrapper saving all scratch registers to the stack
 // See: https://os.phil-opp.com/returning-from-exceptions/
-macro_rules! wrap {
-    ($fn: ident => $w:ident) => {
-        #[unsafe(naked)]
-        pub unsafe extern "sysv64" fn $w() {
-            naked_asm!(
-                "push rax",
-                "push rcx",
-                "push rdx",
-                "push rsi",
-                "push rdi",
-                "push r8",
-                "push r9",
-                "push r10",
-                "push r11",
-                "mov rsi, rsp", // Arg #2: register list
-                "mov rdi, rsp", // Arg #1: interupt frame
-                "add rdi, 9 * 8", // 9 registers * 8 bytes
-                "call {}",
-                "pop r11",
-                "pop r10",
-                "pop r9",
-                "pop r8",
-                "pop rdi",
-                "pop rsi",
-                "pop rdx",
-                "pop rcx",
-                "pop rax",
-                "iretq",
-                sym $fn
-            );
-        }
-    };
+#[unsafe(naked)]
+extern "C" fn wrapped_syscall_handler() -> ! {
+    naked_asm!(
+        "cld",
+        "push rax",
+        "push rcx",
+        "push rdx",
+        "push rsi",
+        "push rdi",
+        "push r8",
+        "push r9",
+        "push r10",
+        "push r11",
+        "mov rsi, rsp", // Arg #2: register list
+        "mov rdi, rsp", // Arg #1: interrupt frame
+        "add rdi, 9 * 8", // 9 registers * 8 bytes
+        "sti",
+        "call {}",
+        "cli",
+        "pop r11",
+        "pop r10",
+        "pop r9",
+        "pop r8",
+        "pop rdi",
+        "pop rsi",
+        "pop rdx",
+        "pop rcx",
+        "pop rax",
+        "iretq",
+        sym syscall_handler
+    );
 }
-
-wrap!(syscall_handler => wrapped_syscall_handler);
 
 // NOTE: We can't use "x86-interrupt" for syscall_handler because we need to
 // return a result in the RAX register and it will be overwritten when the
