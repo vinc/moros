@@ -273,9 +273,9 @@ extern "sysv64" fn syscall_handler(
             //stack_frame.as_mut().write(sf);
             let inner = stack_frame.as_mut().extract_inner();
             let ptr = inner as *mut InterruptStackFrameValue;
-            core::ptr::write_volatile(ptr, sf);
+            core::ptr::write(ptr, sf);
 
-            core::ptr::write_volatile(regs, sys::process::registers());
+            core::ptr::write(regs, sys::process::registers());
         }
     }
 
