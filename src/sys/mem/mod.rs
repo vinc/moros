@@ -11,7 +11,8 @@ use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::{Once, Mutex};
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PhysFrame, Size4KiB, Translate,
+    FrameAllocator, FrameDeallocator,
+    OffsetPageTable, PhysFrame, Size4KiB, Translate,
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -194,6 +195,20 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
         }
         None
     }
+}
+
+impl FrameDeallocator<Size4KiB> for BootInfoFrameAllocator {
+    unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+        if let Some(index) = self.frame_to_bitmap_index(frame) {
+            if self.is_frame_allocated(index) {
+                self.set_frame_allocated(index, false);
+            }
+        }
+    }
+}
+
+pub unsafe fn deallocate_frame(frame: PhysFrame) {
+    frame_allocator().lock().deallocate_frame(frame);
 }
 
 pub fn frame_allocator() -> &'static Mutex<BootInfoFrameAllocator> {
