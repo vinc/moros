@@ -6,9 +6,10 @@ pub use paging::{alloc_pages, free_pages, active_page_table, create_page_table};
 pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys;
+
 use bootloader::bootinfo::{BootInfo, MemoryMap, MemoryRegionType};
 use core::sync::atomic::{AtomicUsize, Ordering};
-use spin::Once;
+use spin::{Once, Mutex};
 use x86_64::structures::paging::{
     FrameAllocator, OffsetPageTable, PhysFrame, Size4KiB, Translate,
 };
@@ -20,7 +21,7 @@ static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 static PHYS_MEM_OFFSET: Once<u64> = Once::new();
 static MEMORY_MAP: Once<&MemoryMap> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
-static ALLOCATED_FRAMES: AtomicUsize = AtomicUsize::new(0);
+static FRAME_ALLOCATOR: Once<Mutex<BootInfoFrameAllocator>> = Once::new();
 
 pub fn init(boot_info: &'static BootInfo) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
@@ -69,7 +70,11 @@ pub fn init(boot_info: &'static BootInfo) {
 
     PHYS_MEM_OFFSET.call_once(|| boot_info.physical_memory_offset);
     MEMORY_MAP.call_once(|| &boot_info.memory_map);
-
+    FRAME_ALLOCATOR.call_once(|| {
+        Mutex::new(unsafe {
+            BootInfoFrameAllocator::init(MEMORY_MAP.get_unchecked())
+        })
+    });
     heap::init_heap().expect("heap initialization failed");
 
     sys::idt::clear_irq_mask(1);
@@ -104,13 +109,20 @@ pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr)
 }
 
+const MAX_FRAMES: usize = (4 << 30) / 4096; // 4 GB of RAM
+const BITMAP_SIZE: usize = MAX_FRAMES / 64;
+
 pub struct BootInfoFrameAllocator {
     memory_map: &'static MemoryMap,
+    allocated_bitmap: [u64; BITMAP_SIZE],
 }
 
 impl BootInfoFrameAllocator {
     pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
-        BootInfoFrameAllocator { memory_map }
+        Self {
+            memory_map,
+            allocated_bitmap: [0; BITMAP_SIZE],
+        }
     }
 
     fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
@@ -128,17 +140,70 @@ impl BootInfoFrameAllocator {
             PhysFrame::containing_address(PhysAddr::new(addr))
         )
     }
+
+    fn frame_to_bitmap_index(&self, frame: PhysFrame) -> Option<usize> {
+        for (i, usable_frame) in self.usable_frames().enumerate() {
+            if usable_frame.start_address() == frame.start_address() {
+                return if i < MAX_FRAMES { Some(i) } else { None };
+            }
+            if i >= MAX_FRAMES {
+                break;
+            }
+        }
+
+        None
+    }
+
+    fn is_frame_allocated(&self, index: usize) -> bool {
+        if index >= MAX_FRAMES {
+            return false;
+        }
+        let word_index = index / 64;
+        let bit_index = index % 64;
+        (self.allocated_bitmap[word_index] & (1 << bit_index)) != 0
+    }
+
+    fn set_frame_allocated(&mut self, index: usize, allocated: bool) {
+        if index >= MAX_FRAMES {
+            return;
+        }
+        let word_index = index / 64;
+        let bit_index = index % 64;
+        if allocated {
+            self.allocated_bitmap[word_index] |= 1 << bit_index;
+        } else {
+            self.allocated_bitmap[word_index] &= !(1 << bit_index);
+        }
+    }
+
+    pub fn total_usable_frames(&self) -> usize {
+        self.usable_frames().take(MAX_FRAMES).count()
+    }
 }
 
 unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
-        let next = ALLOCATED_FRAMES.fetch_add(1, Ordering::SeqCst);
-        // FIXME: When the heap is larger than a few megabytes,
-        // creating an iterator for each allocation become very slow.
-        self.usable_frames().nth(next)
+        for (i, frame) in self.usable_frames().enumerate() {
+            if i >= MAX_FRAMES {
+                break;
+            }
+            if !self.is_frame_allocated(i) {
+                self.set_frame_allocated(i, true);
+                return Some(frame);
+            }
+        }
+        None
     }
 }
 
-pub fn frame_allocator() -> BootInfoFrameAllocator {
-    unsafe { BootInfoFrameAllocator::init(MEMORY_MAP.get_unchecked()) }
+pub fn frame_allocator() -> &'static Mutex<BootInfoFrameAllocator> {
+    FRAME_ALLOCATOR.get().expect("frame allocator not initialized")
+}
+
+pub fn with_frame_allocator<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut BootInfoFrameAllocator) -> R,
+{
+    let mut allocator = frame_allocator().lock();
+    f(&mut *allocator)
 }

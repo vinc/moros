@@ -332,8 +332,9 @@ impl Process {
             return Err(());
         }
 
-        let page_table_frame = sys::mem::frame_allocator().allocate_frame().
-            expect("frame allocation failed");
+        let page_table_frame = sys::mem::with_frame_allocator(|frame_allocator| {
+            frame_allocator.allocate_frame().expect("frame allocation failed")
+        });
 
         let page_table = unsafe {
             sys::mem::create_page_table(page_table_frame)

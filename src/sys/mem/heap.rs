@@ -1,3 +1,5 @@
+use super::with_frame_allocator;
+
 use crate::sys;
 
 use core::cmp;
@@ -14,7 +16,6 @@ pub const HEAP_START: u64 = 0x4444_4444_0000;
 
 pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
     let mapper = super::mapper();
-    let mut frame_allocator = super::frame_allocator();
 
     // Use half of the memory for the heap caped to 16 MB by default
     // because the allocator is slow.
@@ -31,13 +32,16 @@ pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
 
-    for page in pages {
-        let err = MapToError::FrameAllocationFailed;
-        let frame = frame_allocator.allocate_frame().ok_or(err)?;
-        unsafe {
-            mapper.map_to(page, frame, flags, &mut frame_allocator)?.flush();
+    with_frame_allocator(|frame_allocator| -> Result<(), MapToError<Size4KiB>> {
+        for page in pages {
+            let err = MapToError::FrameAllocationFailed;
+            let frame = frame_allocator.allocate_frame().ok_or(err)?;
+            unsafe {
+                mapper.map_to(page, frame, flags, frame_allocator)?.flush();
+            }
         }
-    }
+        Ok(())
+    })?;
 
     unsafe {
         ALLOCATOR.lock().init(heap_start.as_mut_ptr(), heap_size as usize);

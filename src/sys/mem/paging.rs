@@ -1,3 +1,5 @@
+use super::with_frame_allocator;
+
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
     page::PageRangeInclusive,
@@ -25,7 +27,6 @@ pub fn alloc_pages(
     mapper: &mut OffsetPageTable, addr: u64, size: usize
 ) -> Result<(), ()> {
     let size = size.saturating_sub(1) as u64;
-    let mut frame_allocator = super::frame_allocator();
 
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
@@ -37,28 +38,28 @@ pub fn alloc_pages(
               | PageTableFlags::WRITABLE
               | PageTableFlags::USER_ACCESSIBLE;
 
-    for page in pages {
-        if let Some(frame) = frame_allocator.allocate_frame() {
-            let res = unsafe {
-                mapper.map_to(page, frame, flags, &mut frame_allocator)
-            };
-            if let Ok(mapping) = res {
-                //debug!("Mapped {:?} to {:?}", page, frame);
-                mapping.flush();
-            } else {
-                debug!("Could not map {:?} to {:?}", page, frame);
-                if let Ok(old_frame) = mapper.translate_page(page) {
-                    debug!("Already mapped to {:?}", old_frame);
+    with_frame_allocator(|frame_allocator| {
+        for page in pages {
+            if let Some(frame) = frame_allocator.allocate_frame() {
+                let res = unsafe {
+                    mapper.map_to(page, frame, flags, frame_allocator)
+                };
+                if let Ok(mapping) = res {
+                    mapping.flush();
+                } else {
+                    debug!("Could not map {:?} to {:?}", page, frame);
+                    if let Ok(old_frame) = mapper.translate_page(page) {
+                        debug!("Already mapped to {:?}", old_frame);
+                    }
+                    return Err(());
                 }
+            } else {
+                debug!("Could not allocate frame for {:?}", page);
                 return Err(());
             }
-        } else {
-            debug!("Could not allocate frame for {:?}", page);
-            return Err(());
         }
-    }
-
-    Ok(())
+        Ok(())
+    })
 }
 
 // TODO: Replace `free` by `dealloc`
