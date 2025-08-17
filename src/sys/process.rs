@@ -3,7 +3,7 @@ use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys;
 use crate::sys::gdt::GDT;
-use crate::sys::mem::phys_mem_offset;
+use crate::sys::mem::{phys_mem_offset, with_frame_allocator};
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -20,7 +20,7 @@ use spin::RwLock;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PhysFrame,
+    FrameAllocator, FrameDeallocator, OffsetPageTable, PageTable, PhysFrame,
     Translate, PageTableFlags, // Page, Size4KiB,
     mapper::TranslateResult
 };
@@ -246,10 +246,10 @@ pub fn exit() {
     unsafe {
         let (_, flags) = Cr3::read();
         Cr3::write(page_table_frame(), flags);
-    }
 
-    unsafe {
-        sys::mem::deallocate_frame(proc.page_table_frame);
+        with_frame_allocator(|allocator| {
+            allocator.deallocate_frame(proc.page_table_frame);
+        });
     }
 }
 

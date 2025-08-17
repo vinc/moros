@@ -5,7 +5,7 @@ use x86_64::structures::paging::{
     mapper::CleanUp,
     page::PageRangeInclusive,
     OffsetPageTable, PageTable, PhysFrame, Size4KiB,
-    Page, PageTableFlags, Mapper, FrameAllocator,
+    Page, PageTableFlags, Mapper, FrameAllocator, FrameDeallocator
 };
 use x86_64::VirtAddr;
 
@@ -77,10 +77,10 @@ pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
         if let Ok((frame, mapping)) = mapper.unmap(page) {
             mapping.flush();
             unsafe {
-                with_frame_allocator(|frame_allocator| {
-                    mapper.clean_up(frame_allocator);
+                with_frame_allocator(|allocator| {
+                    mapper.clean_up(allocator);
+                    allocator.deallocate_frame(frame);
                 });
-                super::deallocate_frame(frame);
             }
         } else {
             //debug!("Could not unmap {:?}", page);

@@ -207,10 +207,6 @@ impl FrameDeallocator<Size4KiB> for BootInfoFrameAllocator {
     }
 }
 
-pub unsafe fn deallocate_frame(frame: PhysFrame) {
-    frame_allocator().lock().deallocate_frame(frame);
-}
-
 pub fn frame_allocator() -> &'static Mutex<BootInfoFrameAllocator> {
     FRAME_ALLOCATOR.get().expect("frame allocator not initialized")
 }
