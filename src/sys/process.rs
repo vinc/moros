@@ -242,12 +242,15 @@ pub fn exit() {
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(proc.parent_id);
 
+    proc.free_pages();
     unsafe {
         let (_, flags) = Cr3::read();
         Cr3::write(page_table_frame(), flags);
     }
 
-    proc.free_pages();
+    unsafe {
+        sys::mem::deallocate_frame(proc.page_table_frame);
+    }
 }
 
 unsafe fn page_table_frame() -> PhysFrame {
