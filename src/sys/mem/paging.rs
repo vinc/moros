@@ -73,8 +73,11 @@ pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
     };
 
     for page in pages {
-        if let Ok((_, mapping)) = mapper.unmap(page) {
+        if let Ok((frame, mapping)) = mapper.unmap(page) {
             mapping.flush();
+            unsafe {
+                super::deallocate_frame(frame);
+            }
         } else {
             //debug!("Could not unmap {:?}", page);
         }
