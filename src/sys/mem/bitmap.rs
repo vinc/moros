@@ -69,7 +69,7 @@ impl BitmapFrameAllocator {
         });
         for region in usable_regions {
             let start_frame = frame_at(region.range.start_addr());
-            let end_frame = frame_at(region.range.end_addr());
+            let end_frame = frame_at(region.range.end_addr() - 1);
             let size = end_frame.start_address() - start_frame.start_address();
             let frame_count = 1 + (size / 4096) as usize;
 
