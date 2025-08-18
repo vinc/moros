@@ -1,5 +1,6 @@
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 use spin::{Once, Mutex};
+use bit_field::BitField;
 use x86_64::structures::paging::{
     FrameAllocator, FrameDeallocator,
     PhysFrame, Size4KiB
@@ -8,17 +9,21 @@ use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
 struct UsableRegion {
-    base: PhysFrame,
+    start_frame: PhysFrame,
     frame_count: usize,
 }
 
 impl UsableRegion {
     pub fn start_frame(&self) -> PhysFrame {
-        self.base
+        self.start_frame
     }
 
     pub fn end_frame(&self) -> PhysFrame {
-        self.base + (self.frame_count - 1) as u64
+        self.start_frame + (self.frame_count - 1) as u64
+    }
+
+    pub fn len(&self) -> usize {
+        self.frame_count
     }
 
     pub fn contains(&self, frame: PhysFrame) -> bool {
@@ -26,7 +31,7 @@ impl UsableRegion {
     }
 
     pub fn offset(&self, frame: PhysFrame) -> u64 {
-        (frame.start_address() - self.base.start_address()) / 4096
+        (frame.start_address() - self.start_frame.start_address()) / 4096
     }
 }
 
@@ -63,8 +68,7 @@ impl BitmapFrameAllocator {
             frames_count: 0,
         };
 
-        let regions = memory_map.iter();
-        let usable_regions = regions.filter(|r| {
+        let usable_regions = memory_map.iter().filter(|r| {
             r.region_type == MemoryRegionType::Usable
         });
         for region in usable_regions {
@@ -74,7 +78,7 @@ impl BitmapFrameAllocator {
             let frame_count = 1 + (size / 4096) as usize;
 
             debug_assert!(allocator.regions_count < MAX_REGIONS);
-            let desc = UsableRegion { base: start_frame, frame_count };
+            let desc = UsableRegion { start_frame, frame_count };
             allocator.usable_regions[allocator.regions_count] = Some(desc);
             allocator.regions_count += 1;
             allocator.frames_count += frame_count;
@@ -88,28 +92,28 @@ impl BitmapFrameAllocator {
             return None;
         }
 
-        let mut current_base_index = 0;
+        let mut base = 0;
         for i in 0..self.regions_count {
             if let Some(region) = self.usable_regions[i] {
-                if index < current_base_index + region.frame_count {
-                    let frame_offset = index - current_base_index;
-                    return Some(region.base + frame_offset as u64);
+                if index < base + region.len() {
+                    let frame_offset = index - base;
+                    return Some(region.start_frame() + frame_offset as u64);
                 }
-                current_base_index += region.frame_count;
+                base += region.len();
             }
         }
         None
     }
 
     fn frame_to_index(&self, frame: PhysFrame) -> Option<usize> {
-        let mut current_base_index = 0;
+        let mut base = 0;
         for i in 0..self.regions_count {
             if let Some(region) = self.usable_regions[i] {
                 if region.contains(frame) {
                     let frame_offset = region.offset(frame);
-                    return Some(current_base_index + frame_offset as usize);
+                    return Some(base + frame_offset as usize);
                 }
-                current_base_index += region.frame_count;
+                base += region.len();
             }
         }
         None
@@ -118,21 +122,13 @@ impl BitmapFrameAllocator {
     fn is_frame_allocated(&self, index: usize) -> bool {
         let word_index = index / 64;
         let bit_index = index % 64;
-        (self.allocated_bitmap[word_index] & (1 << bit_index)) != 0
+        self.allocated_bitmap[word_index].get_bit(bit_index)
     }
 
     fn set_frame_allocated(&mut self, index: usize, allocated: bool) {
         let word_index = index / 64;
         let bit_index = index % 64;
-        if allocated {
-            self.allocated_bitmap[word_index] |= 1 << bit_index;
-        } else {
-            self.allocated_bitmap[word_index] &= !(1 << bit_index);
-        }
-    }
-
-    pub fn total_usable_frames(&self) -> usize {
-        self.frames_count
+        self.allocated_bitmap[word_index].set_bit(bit_index, allocated);
     }
 }
 
