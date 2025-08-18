@@ -71,7 +71,7 @@ pub fn init(boot_info: &'static BootInfo) {
 
     PHYS_MEM_OFFSET.call_once(|| boot_info.physical_memory_offset);
     MEMORY_MAP.call_once(|| &boot_info.memory_map);
-    bitmap::init_frame_allocator();
+    bitmap::init_frame_allocator(&boot_info.memory_map);
     heap::init_heap().expect("heap initialization failed");
 
     sys::idt::clear_irq_mask(1);
