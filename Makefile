@@ -114,7 +114,7 @@ qemu:
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
-		-m $(memory) -display none -serial stdio \
+		-m $(memory) -cpu core2duo -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04
 
 website:
