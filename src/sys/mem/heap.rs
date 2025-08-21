@@ -2,7 +2,6 @@ use super::with_frame_allocator;
 
 use crate::sys;
 
-use core::cmp;
 use linked_list_allocator::LockedHeap;
 use x86_64::structures::paging::{
     mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB
@@ -17,9 +16,8 @@ pub const HEAP_START: u64 = 0x4444_4444_0000;
 pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
     let mapper = super::mapper();
 
-    // Use half of the memory for the heap caped to 16 MB by default
-    // because the allocator is slow.
-    let heap_size = (cmp::min(super::memory_size(), heap_max()) / 2) as u64;
+    // Use half of the memory for the heap
+    let heap_size = (super::memory_size() / 2) as u64;
     let heap_start = VirtAddr::new(HEAP_START);
     sys::process::init_process_addr(HEAP_START + heap_size);
 
@@ -48,11 +46,6 @@ pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
     }
 
     Ok(())
-}
-
-fn heap_max() -> usize {
-    // Default to 32 MB
-    option_env!("MOROS_MEMORY").unwrap_or("32").parse::<usize>().unwrap() << 20
 }
 
 pub fn heap_size() -> usize {
