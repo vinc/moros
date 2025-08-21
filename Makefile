@@ -7,12 +7,12 @@ setup:
 	cargo install bootimage
 
 # Compilation options
-memory = 32
 output = video# video, serial
 keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
 
 # Emulation options
+memory = 32
 smp = 2
 nic = rtl8139# rtl8139, pcnet, e1000
 audio = sdl# sdl, coreaudio
@@ -23,7 +23,6 @@ trace = false# e1000
 monitor = false
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
-export MOROS_MEMORY = $(memory)
 export MOROS_KEYBOARD = $(keyboard)
 
 # Build userspace binaries
