@@ -206,7 +206,7 @@ extern "x86-interrupt" fn segment_not_present_handler(
 // Naked function wrapper saving all scratch registers to the stack
 // See: https://os.phil-opp.com/returning-from-exceptions/
 #[unsafe(naked)]
-extern "C" fn wrapped_syscall_handler() -> ! {
+extern "sysv64" fn wrapped_syscall_handler() -> ! {
     naked_asm!(
         "cld",            // Clear direction flag
         "push rax",
