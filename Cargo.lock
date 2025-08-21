@@ -90,9 +90,9 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.9.31"
+version = "0.9.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "974e79cf1b0b737839f01330fb5393095daf1124d52693696494e32523ae9ef5"
+checksum = "1ea119c3ed05625c179e09d17d0914570a3753ca09c890a73d98f6b72aea00d2"
 
 [[package]]
 name = "byteorder"
@@ -411,9 +411,9 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.37.1"
+version = "0.37.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03fd943161069e1768b4b3d050890ba48730e590f57e56d4aa04e7e090e61b4a"
+checksum = "ff76201f031d8863c38aa7f905eca4f53abbfa15f609db4277d44cd8938f33fe"
 dependencies = [
  "memchr",
 ]
