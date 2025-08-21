@@ -10,14 +10,10 @@ use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
-    InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue,
-    PageFaultErrorCode,
+    InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
-
-const PIC1: u16 = 0x21;
-const PIC2: u16 = 0xA1;
 
 pub fn init() {
     IDT.load();
@@ -51,9 +47,9 @@ lazy_static! {
                 set_handler_fn(general_protection_fault_handler).
                 set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST);
 
-            let f = wrapped_syscall_handler as *mut fn();
+            let addr = VirtAddr::from_ptr(wrapped_syscall_handler as *const ());
             idt[0x80].
-                set_handler_fn(core::mem::transmute(f)).
+                set_handler_addr(addr).
                 set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
         idt[interrupt_index(0)].set_handler_fn(irq0_handler);
@@ -209,41 +205,38 @@ extern "x86-interrupt" fn segment_not_present_handler(
 
 // Naked function wrapper saving all scratch registers to the stack
 // See: https://os.phil-opp.com/returning-from-exceptions/
-macro_rules! wrap {
-    ($fn: ident => $w:ident) => {
-        #[unsafe(naked)]
-        pub unsafe extern "sysv64" fn $w() {
-            naked_asm!(
-                "push rax",
-                "push rcx",
-                "push rdx",
-                "push rsi",
-                "push rdi",
-                "push r8",
-                "push r9",
-                "push r10",
-                "push r11",
-                "mov rsi, rsp", // Arg #2: register list
-                "mov rdi, rsp", // Arg #1: interupt frame
-                "add rdi, 9 * 8", // 9 registers * 8 bytes
-                "call {}",
-                "pop r11",
-                "pop r10",
-                "pop r9",
-                "pop r8",
-                "pop rdi",
-                "pop rsi",
-                "pop rdx",
-                "pop rcx",
-                "pop rax",
-                "iretq",
-                sym $fn
-            );
-        }
-    };
+#[unsafe(naked)]
+extern "sysv64" fn wrapped_syscall_handler() -> ! {
+    naked_asm!(
+        "cld",            // Clear direction flag
+        "push rax",
+        "push rcx",
+        "push rdx",
+        "push rsi",
+        "push rdi",
+        "push r8",
+        "push r9",
+        "push r10",
+        "push r11",
+        "mov rsi, rsp",   // Arg #2: register list
+        "mov rdi, rsp",   // Arg #1: interrupt frame
+        "add rdi, 9 * 8", // 9 registers * 8 bytes
+        "sti",            // Enable interrupts during syscall
+        "call {}",
+        "cli",
+        "pop r11",
+        "pop r10",
+        "pop r9",
+        "pop r8",
+        "pop rdi",
+        "pop rsi",
+        "pop rdx",
+        "pop rcx",
+        "pop rax",
+        "iretq",
+        sym syscall_handler
+    );
 }
-
-wrap!(syscall_handler => wrapped_syscall_handler);
 
 // NOTE: We can't use "x86-interrupt" for syscall_handler because we need to
 // return a result in the RAX register and it will be overwritten when the
@@ -272,19 +265,40 @@ extern "sysv64" fn syscall_handler(
     if n == sys::syscall::number::EXIT {
         let sf = sys::process::stack_frame();
         unsafe {
-            // FIXME: the following line should replace the next ones
-            //stack_frame.as_mut().write(sf);
-            let inner = stack_frame.as_mut().extract_inner();
-            let ptr = inner as *mut InterruptStackFrameValue;
-            core::ptr::write_volatile(ptr, sf);
-
-            core::ptr::write_volatile(regs, sys::process::registers());
+            stack_frame.as_mut().write(sf);
         }
+        *regs = sys::process::registers();
     }
 
     regs.rax = res;
+}
 
-    unsafe { sys::pic::PICS.lock().notify_end_of_interrupt(0x80) };
+const PIC1: u16 = 0x21;
+const PIC2: u16 = 0xA1;
+
+fn irq_port(irq: u8) -> Port<u8> {
+    let addr = if irq < 8 { PIC1 } else { PIC2 };
+    Port::new(addr)
+}
+
+fn irq_line(irq: u8) -> u8 {
+    if irq < 8 { irq } else { irq - 8 }
+}
+
+pub fn set_irq_mask(irq: u8) {
+    let mut port = irq_port(irq);
+    unsafe {
+        let value = port.read() | (1 << irq_line(irq));
+        port.write(value);
+    }
+}
+
+pub fn clear_irq_mask(irq: u8) {
+    let mut port = irq_port(irq);
+    unsafe {
+        let value = port.read() & !(1 << irq_line(irq));
+        port.write(value);
+    }
 }
 
 pub fn set_irq_handler(irq: u8, handler: fn()) {
@@ -294,20 +308,4 @@ pub fn set_irq_handler(irq: u8, handler: fn()) {
 
         clear_irq_mask(irq);
     });
-}
-
-pub fn set_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 });
-    unsafe {
-        let value = port.read() | (1 << (if irq < 8 { irq } else { irq - 8 }));
-        port.write(value);
-    }
-}
-
-pub fn clear_irq_mask(irq: u8) {
-    let mut port: Port<u8> = Port::new(if irq < 8 { PIC1 } else { PIC2 });
-    unsafe {
-        let value = port.read() & !(1 << if irq < 8 { irq } else { irq - 8 });
-        port.write(value);
-    }
 }
