@@ -266,9 +266,8 @@ extern "sysv64" fn syscall_handler(
         let sf = sys::process::stack_frame();
         unsafe {
             stack_frame.as_mut().write(sf);
-
-            core::ptr::write(regs, sys::process::registers());
         }
+        *regs = sys::process::registers();
     }
 
     regs.rax = res;
