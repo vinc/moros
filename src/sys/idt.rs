@@ -10,8 +10,7 @@ use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
-    InterruptDescriptorTable, InterruptStackFrame, InterruptStackFrameValue,
-    PageFaultErrorCode,
+    InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
@@ -266,11 +265,7 @@ extern "sysv64" fn syscall_handler(
     if n == sys::syscall::number::EXIT {
         let sf = sys::process::stack_frame();
         unsafe {
-            // FIXME: the following line should replace the next ones
-            //stack_frame.as_mut().write(sf);
-            let inner = stack_frame.as_mut().extract_inner();
-            let ptr = inner as *mut InterruptStackFrameValue;
-            core::ptr::write(ptr, sf);
+            stack_frame.as_mut().write(sf);
 
             core::ptr::write(regs, sys::process::registers());
         }
