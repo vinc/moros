@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Replace bump frame allocator with bitmap frame allocator (#771)
+- Refactor IDT (#768)
+- Bump bootloader from 0.9.31 to 0.9.32 (#767)
+- Bump actions/checkout from 4 to 5 (#769)
+- Bump object from 0.37.1 to 0.37.3 (#770)
 - Add init parser (#759)
 - Bump uart_16550 from 0.3.2 to 0.4.0 (#764)
 - Bump rand from 0.9.1 to 0.9.2 (#763)
