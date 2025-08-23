@@ -2,13 +2,16 @@
 
 ![screenshot](doc/images/moros.png)
 
-MOROS is a hobby operating system written in Rust by [Vincent Ollivier][0].
+MOROS is a text-based hobby operating system written in Rust
+by [Vincent Ollivier][0].
 
-It targets computers with a x86-64 architecture and a BIOS, so mostly from 2005
-to 2020, but it also runs well on most emulators (Bochs, QEMU, and VirtualBox).
+It targets computers with a x86-64 architecture and a BIOS, drawing inspiration
+from Unix, Plan 9, and DOS to provide a simple and efficient environment for
+computing and communication from the command line.
 
 This project started from the [seventh post][1] of the second edition of
-[Writing an OS in Rust][2] by Philipp Oppermann and by reading the
+[Writing an OS in Rust][2] by Philipp Oppermann  and aims to showcase what can
+be accomplished after completing an OSDev tutorial, while reading the
 [OSDev wiki][3] along with many open source kernels.
 
 [![GitHub Actions][s1]](https://github.com/vinc/moros)
@@ -19,24 +22,27 @@ This project started from the [seventh post][1] of the second edition of
 - External bootloader (using [bootloader][4])
 - x86 CPU support (using [x86_64][5])
 - Hardware interrupts (using [pic8259][6])
-- PS/2 Keyboard with customizable layout (using [pc-keyboard][7])
-- VGA Text mode with customizable font and color palette
+- PS/2 keyboard with customizable layout (using [pc-keyboard][7])
+- VGA text mode and 320x200 graphics buffer (for games and images) with
+  customizable font and color palette
 - Serial output (using [uart_16550][8])
-- Paging
+- Paging with bitmap frame allocator
 - Heap allocation (using [linked_list_allocator][9])
 - ACPI shutdown (using [acpi][10] and [aml][11])
-- RTC clock
+- RTC clock with userspace NTP synchronization
 - PCI devices
 - ATA PIO mode
+- Custom [filesystem](doc/filesystem.md) with bitmap allocation, linked blocks,
+  block caching, and support for files, directories, and device nodes
 - Random number generator (using [rand_hc][12])
 - Intel PRO/1000, RTL8139, and AMD PCNET network cards
 - DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][13])
-- Basic [filesystem](doc/filesystem.md)
 - Basic [shell](doc/shell.md)
 - Basic [text editor](doc/editor.md)
 - Basic [lisp](doc/lisp.md) interpreter
-- Basic userspace for NASM and Rust programs
-- Some file and [network](doc/network.md) commands
+- Basic userspace for NASM and Rust programs communicating with the
+  kernel through [syscalls](doc/syscalls.md) and device file I/O
+- Some [file](doc/shell.md) and [network](doc/network.md) commands
 - Some [games](doc/games.md)
 
 ## Documentation
@@ -44,6 +50,10 @@ This project started from the [seventh post][1] of the second edition of
 Documentation is available [here](doc/index.md)
 
 ## Setup
+
+MOROS runs on x86-64 [computers](doc/hardware.md) from around 2005 to 2020,
+as well as emulators like Bochs, VirtualBox, and QEMU with the latter being
+the main development platform.
 
 You will need `git`, `gcc`, `make`, `curl`, `qemu-img`,
 and `qemu-system-x86_64` on the host system.
