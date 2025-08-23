@@ -3,7 +3,7 @@ use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys;
 use crate::sys::gdt::GDT;
-use crate::sys::mem::phys_mem_offset;
+use crate::sys::mem::{phys_mem_offset, with_frame_allocator};
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -20,7 +20,7 @@ use spin::RwLock;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, PhysFrame,
+    FrameAllocator, FrameDeallocator, OffsetPageTable, PageTable, PhysFrame,
     Translate, PageTableFlags, // Page, Size4KiB,
     mapper::TranslateResult
 };
@@ -242,12 +242,15 @@ pub fn exit() {
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(proc.parent_id);
 
+    proc.free_pages();
     unsafe {
         let (_, flags) = Cr3::read();
         Cr3::write(page_table_frame(), flags);
-    }
 
-    proc.free_pages();
+        with_frame_allocator(|allocator| {
+            allocator.deallocate_frame(proc.page_table_frame);
+        });
+    }
 }
 
 unsafe fn page_table_frame() -> PhysFrame {
@@ -332,8 +335,9 @@ impl Process {
             return Err(());
         }
 
-        let page_table_frame = sys::mem::frame_allocator().allocate_frame().
-            expect("frame allocation failed");
+        let page_table_frame = sys::mem::with_frame_allocator(|frame_allocator| {
+            frame_allocator.allocate_frame().expect("frame allocation failed")
+        });
 
         let page_table = unsafe {
             sys::mem::create_page_table(page_table_frame)

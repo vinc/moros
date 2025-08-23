@@ -7,12 +7,12 @@ setup:
 	cargo install bootimage
 
 # Compilation options
-memory = 32
 output = video# video, serial
 keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
 
 # Emulation options
+memory = 32
 smp = 2
 nic = rtl8139# rtl8139, pcnet, e1000
 audio = sdl# sdl, coreaudio
@@ -23,7 +23,6 @@ trace = false# e1000
 monitor = false
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
-export MOROS_MEMORY = $(memory)
 export MOROS_KEYBOARD = $(keyboard)
 
 # Build userspace binaries
@@ -114,7 +113,7 @@ qemu:
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
-		-m $(memory) -display none -serial stdio \
+		-m $(memory) -cpu core2duo -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04
 
 website:
