@@ -60,7 +60,6 @@ img = disk.img
 $(img):
 	qemu-img create $(img) 32M
 
-
 cargo-opts = --no-default-features --features $(output) --bin moros
 ifeq ($(mode),release)
 	cargo-opts += --release
