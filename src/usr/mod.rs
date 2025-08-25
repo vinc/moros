@@ -21,6 +21,7 @@ pub mod hex;
 pub mod host;
 pub mod http;
 pub mod httpd;
+pub mod inflate;
 pub mod install;
 pub mod keyboard;
 pub mod life;
