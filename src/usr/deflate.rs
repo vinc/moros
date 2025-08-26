@@ -5,6 +5,8 @@ use crate::api::process::ExitCode;
 use alloc::format;
 use miniz_oxide::deflate::compress_to_vec_zlib as deflate;
 
+const LEVEL: u8 = 9; // From 1 (fast) to 9 (best)
+
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() != 2 {
         help();
@@ -18,7 +20,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let path = args[1];
     if fs::is_file(path) {
         if let Ok(bytes) = fs::read_to_bytes(path) {
-            let buf = deflate(&bytes, 9);
+            let buf = deflate(&bytes, LEVEL);
             let dest = format!("{}.z", path);
             if fs::write(&dest, &buf).is_ok() {
                 if fs::delete(path).is_ok() {
