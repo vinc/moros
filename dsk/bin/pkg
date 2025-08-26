@@ -15,7 +15,7 @@
   (if (= res 0)
     (if (regex/match? "\\.z" path)
       (do
-        (print (str "Inflatting '" path "'"))
+        (print (str "Inflating '" path "'"))
         (sh (str "inflate " path)))
       res)
     res)))
