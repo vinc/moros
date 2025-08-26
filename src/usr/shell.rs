@@ -14,12 +14,12 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 43] = [
-    "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "dhcp",
-    "diff", "disk", "drop", "edit", "elf", "encode", "env", "goto", "hash",
-    "help", "hex", "host", "http", "httpd", "inflate", "install", "keyboard",
-    "life", "lisp", "list", "memory", "move", "net", "pci", "quit", "read",
-    "render", "shell", "socket", "spell", "tcp", "time", "user", "view",
+const AUTOCOMPLETE_COMMANDS: [&str; 44] = [
+    "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "deflate",
+    "dhcp", "diff", "disk", "drop", "edit", "elf", "encode", "env", "goto",
+    "hash", "help", "hex", "host", "http", "httpd", "inflate", "install",
+    "keyboard", "life", "lisp", "list", "memory", "move", "net", "pci", "quit",
+    "read", "render", "shell", "socket", "spell", "tcp", "time", "user", "view",
     "write",
 ];
 
@@ -524,6 +524,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "copy"      => usr::copy::main(args),
         "date"      => usr::date::main(args),
         "decode"    => usr::decode::main(args),
+        "deflate"   => usr::deflate::main(args),
         "dhcp"      => usr::dhcp::main(args),
         "diff"      => usr::diff::main(args),
         "disk"      => usr::disk::main(args),

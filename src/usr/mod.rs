@@ -5,6 +5,7 @@ pub mod chess;
 pub mod copy;
 pub mod date;
 pub mod decode;
+pub mod deflate;
 pub mod dhcp;
 pub mod diff;
 pub mod disk;
