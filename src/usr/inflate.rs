@@ -33,7 +33,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         Err(ExitCode::Failure)
                     }
                 } else {
-                    error!("Could not drop .z extension from '{}'", path);
+                    error!("Could not drop '.z' suffix from '{}'", path);
                     Err(ExitCode::Failure)
                 }
             } else {
