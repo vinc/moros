@@ -55,7 +55,7 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} inflate {}<file.z>{}",
+        "{}Usage:{} inflate {}<file>{}",
         csi_title, csi_reset, csi_option, csi_reset
     );
 }
