@@ -11,7 +11,14 @@
   (set dir (dirname path))
   (if (not (file/exists? dir))
     (sh (str "write -p " dir "/")))
-  (sh (str "http " base path " => " path))))
+  (set res (sh (str "http " base path " => " path)))
+  (if (= res 0)
+    (if (regex/match? "\\.z" path)
+      (do
+        (print (str "Inflatting '" path "'"))
+        (sh (str "inflate " path)))
+      res)
+    res)))
 
 (def (pkg/delete path) (do
   "Delete the given file"
