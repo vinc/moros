@@ -385,14 +385,33 @@ impl FileIO for Drive {
         }
 
         let mut buses = BUSES.lock();
-        let _ = buses[self.bus as usize].read(self.dsk, self.block_index, buf);
-        let n = buf.len();
+        let bus = &mut buses[self.bus as usize];
+        bus.read(self.dsk, self.block_index, buf)?;
         self.block_index += 1;
-        Ok(n)
+        Ok(buf.len())
     }
 
-    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
-        Err(())
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        let mut buses = BUSES.lock();
+        let bus = &mut buses[self.bus as usize];
+
+        let mut count = 0;
+        for chunk in buf.chunks(BLOCK_SIZE) {
+            if self.block_index == self.block_count {
+                return Err(());
+            }
+            let n = chunk.len();
+            if n == BLOCK_SIZE {
+                bus.write(self.dsk, self.block_index, &chunk)?;
+            } else {
+                let mut block = [0; BLOCK_SIZE];
+                block[0..n].clone_from_slice(chunk);
+                bus.write(self.dsk, self.block_index, &block)?;
+            }
+            self.block_index += 1;
+            count += chunk.len();
+        }
+        Ok(count)
     }
 
     fn close(&mut self) {
@@ -401,7 +420,7 @@ impl FileIO for Drive {
     fn poll(&mut self, event: IO) -> bool {
         match event {
             IO::Read => true,
-            IO::Write => false,
+            IO::Write => true,
         }
     }
 }
