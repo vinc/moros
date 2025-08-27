@@ -40,7 +40,7 @@ fn frame_at(addr: u64) -> PhysFrame<Size4KiB> {
 }
 
 const MAX_REGIONS: usize = 32;
-const MAX_FRAMES: usize = (4 << 30) / 4096; // 4 GB of RAM
+const MAX_FRAMES: usize = super::MAX_MEMORY_SIZE / 4096;
 const BITMAP_SIZE: usize = MAX_FRAMES / 64;
 static FRAME_ALLOCATOR: Once<Mutex<BitmapFrameAllocator>> = Once::new();
 
