@@ -107,7 +107,7 @@ fn help() -> Result<(), ExitCode> {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} list {}<options> [<dir>]{}",
+        "{}Usage:{} list {}<options> [<dir>[/]]{}",
         csi_title, csi_reset, csi_option, csi_reset
     );
     println!();
