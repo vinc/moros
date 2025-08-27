@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Add FileIO::write to ATA (#772)
+- Add zlib support (#773)
 - Replace bump frame allocator with bitmap frame allocator (#771)
 - Refactor IDT (#768)
 - Bump bootloader from 0.9.31 to 0.9.32 (#767)
