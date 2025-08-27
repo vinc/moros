@@ -150,7 +150,7 @@ fn main(args: &[&str]) {
         i += 1;
     }
 
-    vga::graphic_mode();
+    vga::graphic_mode("320x200");
     fs::write("/dev/vga/palette", &palette(&config)).ok();
 
     let mut escape = false;

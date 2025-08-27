@@ -123,7 +123,7 @@ impl Config {
 
     pub fn graphic_mode(&mut self) {
         if self.mode == Mode::Text {
-            vga::graphic_mode();
+            vga::graphic_mode("320x200");
             self.mode = Mode::Graphic;
         }
     }

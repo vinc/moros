@@ -1,9 +1,9 @@
 use crate::api::fs;
 
-pub fn graphic_mode() {
+pub fn graphic_mode(resolution: &str) {
     let dev = "/dev/vga/mode";
     if fs::is_device(dev) {
-        fs::write(dev, b"320x200").ok();
+        fs::write(dev, resolution.as_bytes()).ok();
     }
 }
 
