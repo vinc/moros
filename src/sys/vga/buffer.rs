@@ -8,12 +8,12 @@ impl Buffer {
         Self
     }
 
-    pub fn addr() -> u64 {
+    pub const fn addr() -> u64 {
         0xA0000
     }
 
-    pub fn size() -> usize {
-        320 * 200
+    pub const fn size() -> usize {
+        640 * 480 // Max buffer size
     }
 }
 
