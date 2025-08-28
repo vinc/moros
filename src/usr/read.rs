@@ -145,6 +145,7 @@ fn help() {
     );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
-    println!("  {0}<dir>/{1}     Read directory", csi_option, csi_reset);
+    println!("  {0}<dev>{1}      Read device", csi_option, csi_reset);
+    println!("  {0}<dir>[/]{1}   Read directory", csi_option, csi_reset);
     println!("  {0}<file>{1}     Read file", csi_option, csi_reset);
 }
