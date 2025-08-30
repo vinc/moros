@@ -311,7 +311,7 @@ static NULL_IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
 pub fn reset() -> ! {
     NULL_IDT.load(); // No exception handlers
     unsafe {
-        asm!("int 0", options(noreturn)); // Division by zero --> Triple fault
+        asm!("int 0", options(noreturn)); // Division by zero -> Triple fault
     }
 }
 
