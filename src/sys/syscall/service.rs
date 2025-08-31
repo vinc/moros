@@ -8,7 +8,6 @@ use crate::sys::process::Process;
 
 use alloc::vec;
 use core::alloc::Layout;
-use core::arch::asm;
 use smoltcp::wire::IpAddress;
 
 pub fn exit(code: ExitCode) -> ExitCode {
@@ -122,9 +121,8 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
 pub fn stop(code: usize) -> usize {
     match code {
         0xCAFE => { // Reboot
-            unsafe {
-                asm!("xor rax, rax", "mov cr3, rax");
-            }
+            // TODO: Implement ACPI reset but keep IDT reset as fallback
+            sys::idt::reset();
         }
         0xDEAD => { // Halt
             sys::process::exit();
