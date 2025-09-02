@@ -100,6 +100,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     return Ok(());
                 }
                 if let Ok(bytes) = fs::read_to_bytes(path) {
+                    if bytes.is_empty() {
+                        print!("");
+                        return Ok(());
+                    }
                     if is_char_device && bytes.len() == 1 {
                         match bytes[0] as char {
                             api::console::ETX_KEY => {

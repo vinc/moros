@@ -203,7 +203,7 @@ impl Device {
 impl FileIO for Device {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match self {
-            Device::Null           => Err(()),
+            Device::Null           => Ok(0),
             Device::File(io)       => io.read(buf),
             Device::Console(io)    => io.read(buf),
             Device::Random(io)     => io.read(buf),
