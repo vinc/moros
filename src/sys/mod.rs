@@ -54,6 +54,7 @@ pub mod pic;
 pub mod process;
 pub mod rng;
 pub mod serial;
+pub mod snd;
 pub mod speaker;
 pub mod syscall;
 pub mod vga;

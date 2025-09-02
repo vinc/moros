@@ -38,6 +38,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::acpi::init(); // Require MEM
     sys::rng::init();
     sys::pci::init(); // Require MEM
+    sys::snd::init();
     sys::net::init(); // Require PCI
     sys::ata::init();
     sys::fs::init(); // Require ATA
