@@ -124,6 +124,10 @@ spell:
 pkg:
 	ls -1 dsk/var/pkg | grep -v index.html > dsk/var/pkg/index.html
 
+pkg-kernel:
+	cp $(bin) dsk/ini/kernel.img
+	sh run/deflate.sh dsk/ini/kernel.img
+
 clean:
 	cargo clean
 	rm -f www/*.html www/images/*.png
