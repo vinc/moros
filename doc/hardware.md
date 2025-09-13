@@ -22,14 +22,21 @@
 
 ### Desktops
 
+- [x] Custom (2004)
+  - [x] MB: MSI RS482M
+  - [x] DSK: ATA
+  - [x] CPU: AMD Athlon 64 3200+ (2.0 GHz)
+  - [x] NET: Realtek RTL8100C
+  - [ ] SND: AC97
+
 - [x] Custom (2007)
   - [x] MB: Asus P5K
   - [x] DSK: ATA
   - [x] CPU: Intel Core 2 Duo E6850 (3.0 GHz)
-  - [x] NET: Intel PRO/1000 GT Desktop
-  - [x] NET: Realtek RTL8139B
-  - [x] NET: Realtek RTL8139C
-  - [x] NET: Realtek RTL8139D
+  - [x] NET: Intel PRO/1000 GT Desktop (PCI)
+  - [x] NET: Realtek RTL8139B (PCI)
+  - [x] NET: Realtek RTL8139C (PCI)
+  - [x] NET: Realtek RTL8139D (PCI)
 
 - [x] HP ProLiant MicroServer N40L (2012)
   - [x] CPU: AMD Athlon II Dual Core
