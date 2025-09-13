@@ -55,12 +55,14 @@
 
 - [x] Dell Latitude E6400 (2008)
   - [x] CPU: Intel Core 2 Duo P8600 (2.4 GHz)
-  - [x] DSK: ATA / AHCI
+  - [x] DSK: ATA
+  - [ ] DSK: AHCI
   - [x] NET: Intel 82567LM
 
 - [x] Lenovo ThinkPad X200 (2008)
   - [x] CPU: Intel Core 2 Duo P8600 (2.4 GHz)
-  - [x] DSK: ATA / AHCI
+  - [x] DSK: ATA
+  - [ ] DSK: AHCI
   - [x] NET: Intel 82567LM
 
 - [x] Lenovo ThinkPad T440p (2013)
