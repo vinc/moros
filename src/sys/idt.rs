@@ -3,7 +3,7 @@ use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
 use crate::{api, hlt_loop, sys};
 
-use core::arch::naked_asm;
+use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::instructions::interrupts;
@@ -14,10 +14,6 @@ use x86_64::structures::idt::{
 };
 use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
-
-pub fn init() {
-    IDT.load();
-}
 
 // Translate IRQ into system interrupt
 fn interrupt_index(irq: u8) -> u8 {
@@ -308,4 +304,17 @@ pub fn set_irq_handler(irq: u8, handler: fn()) {
 
         clear_irq_mask(irq);
     });
+}
+
+static NULL_IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
+
+pub fn reset() -> ! {
+    NULL_IDT.load(); // No exception handlers
+    unsafe {
+        asm!("int 0", options(noreturn)); // Division by zero -> Triple fault
+    }
+}
+
+pub fn init() {
+    IDT.load();
 }
