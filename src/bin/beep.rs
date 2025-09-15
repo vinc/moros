@@ -15,7 +15,7 @@ use alloc::string::ToString;
 
 entry_point!(main);
 
-const SPEAKER: &'static str = "/dev/speaker";
+const SPEAKER: &str = "/dev/speaker";
 
 fn start_sound(freq: f64) -> Result<(), ()> {
     let buf = freq.to_string();

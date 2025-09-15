@@ -128,10 +128,7 @@ impl Dir {
         }
 
         // Create a new entry
-        let entry_block = match LinkedBlock::alloc() {
-            None => return None,
-            Some(block) => block,
-        };
+        let entry_block = LinkedBlock::alloc()?;
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;

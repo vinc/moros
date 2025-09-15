@@ -139,7 +139,9 @@ pub fn dispatcher(
             let ptr = arg1 as *mut u8;
             let size = arg2;
             let align = arg3;
-            service::free(ptr, size, align);
+            unsafe {
+                service::free(ptr, size, align);
+            }
             0
         }
         _ => {

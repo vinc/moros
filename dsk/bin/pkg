@@ -7,15 +7,15 @@
 
 (def (pkg/fetch path) (do
   "Download the given file"
-  (print (str "Fetching '" path "'"))
+  (print (str "Retrieving '" path "'"))
   (set dir (dirname path))
   (if (not (file/exists? dir))
     (sh (str "write -p " dir "/")))
   (set res (sh (str "http " base path " => " path)))
   (if (= res 0)
-    (if (regex/match? "\\.z" path)
+    (if (regex/match? "\\.z$" path)
       (do
-        (print (str "Inflating '" path "'"))
+        (print (str "Extracting '" (slice path 0 (- (len path) 2)) "'"))
         (sh (str "inflate " path)))
       res)
     res)))

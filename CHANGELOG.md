@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Add Intel I219 support in e1000 network driver (#778)
+- Fix interrupts issue in RTL8139 network driver (#784)
+- Add kernel package (#785)
+- Add missing ini.lsp to install
+- Bump raw-cpuid from 11.5.0 to 11.6.0 (#783)
+- Add IDT reset via triple fault (#780)
+- Add geo.ini support to geo utilities (#777)
+- Bump bit_field from 0.10.2 to 0.10.3 (#774)
+- Fix max memory size to 4 GB (#775)
 - Add FileIO::write to ATA (#772)
 - Add zlib support (#773)
 - Replace bump frame allocator with bitmap frame allocator (#771)

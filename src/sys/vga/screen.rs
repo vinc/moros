@@ -13,7 +13,7 @@ enum ModeName {
     G640x480x16,
 }
 
-const BUFFER: [u8; 640 * 480] = [0; 640 * 480];
+static BUFFER: [u8; 640 * 480] = [0; 640 * 480];
 
 static MODE: Mutex<Option<ModeName>> = Mutex::new(None);
 

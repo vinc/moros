@@ -21,7 +21,7 @@ pub fn init() {
                 if let Some(info) = info.processor_info {
                     log_cpu(&info.boot_processor);
                     for processor in info.application_processors.iter() {
-                        log_cpu(&processor);
+                        log_cpu(processor);
                     }
                 }
             }

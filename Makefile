@@ -25,8 +25,6 @@ monitor = false
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_KEYBOARD = $(keyboard)
 
-# Build userspace binaries
-
 user-nasm:
 	basename -s .s dsk/src/bin/*.s | xargs -I {} \
     nasm dsk/src/bin/{}.s -o dsk/bin/{}.tmp
@@ -124,6 +122,10 @@ spell:
 
 pkg:
 	ls -1 dsk/var/pkg | grep -v index.html > dsk/var/pkg/index.html
+
+pkg-kernel:
+	cp $(bin) dsk/ini/kernel.img
+	sh run/deflate.sh dsk/ini/kernel.img
 
 clean:
 	cargo clean
