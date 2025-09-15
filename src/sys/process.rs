@@ -495,7 +495,7 @@ impl Process {
         }
     }
 
-    fn mapper(&self) -> OffsetPageTable {
+    fn mapper(&self) -> OffsetPageTable<'_> {
         let page_table = unsafe {
             sys::mem::create_page_table(self.page_table_frame)
         };
