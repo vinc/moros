@@ -3,7 +3,6 @@
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(custom_test_frameworks)]
-#![feature(ip_from)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 

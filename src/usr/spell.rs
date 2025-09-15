@@ -101,7 +101,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             "-d" | "--dict" => {
                 if i + 1 < n {
                     i += 1;
-                    dict = args[i].into();
+                    dict = args[i];
                 } else {
                     error!("Missing dictionary path");
                     return Err(ExitCode::UsageError);
@@ -133,7 +133,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    let dict: Dict = fs::read_to_string(&dict).map(|contents| {
+    let dict: Dict = fs::read_to_string(dict).map(|contents| {
         contents.lines().map(|line| line.trim().into()).collect()
     }).unwrap_or_default();
 
