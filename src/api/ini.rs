@@ -25,18 +25,18 @@ fn parser<'a>() -> impl Parser<'a, &'a str, ParseResult<'a>, ParseError<'a>> {
     let val = quoted_val.or(unquoted_val).map(|s| s.trim().to_string());
 
     let pair = key.
-        then_ignore(whitespace.clone()).
+        then_ignore(whitespace).
         then_ignore(just('=')).
-        then_ignore(whitespace.clone()).
+        then_ignore(whitespace).
         then(val).
-        then_ignore(whitespace.clone()).
+        then_ignore(whitespace).
         then_ignore(comment.or_not()).
         map(|(k, v): (&str, String)| (k.to_string(), v));
 
     let line = pair.
         map(Some).
         or(comment.to(None)).
-        or(whitespace.clone().to(None));
+        or(whitespace.to(None));
 
     line.separated_by(newline).
         allow_trailing().

@@ -170,5 +170,5 @@ where
     F: FnOnce(&mut BitmapFrameAllocator) -> R,
 {
     let mut allocator = frame_allocator().lock();
-    f(&mut *allocator)
+    f(&mut allocator)
 }

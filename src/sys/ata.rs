@@ -402,7 +402,7 @@ impl FileIO for Drive {
             }
             let n = chunk.len();
             if n == BLOCK_SIZE {
-                bus.write(self.dsk, self.block_index, &chunk)?;
+                bus.write(self.dsk, self.block_index, chunk)?;
             } else {
                 let mut block = [0; BLOCK_SIZE];
                 block[0..n].clone_from_slice(chunk);

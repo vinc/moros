@@ -198,8 +198,8 @@ pub fn alloc(size: usize, align: usize) -> *mut u8 {
     }
 }
 
-pub fn free(ptr: *mut u8, size: usize, align: usize) {
+pub unsafe fn free(ptr: *mut u8, size: usize, align: usize) {
     if let Ok(layout) = Layout::from_size_align(size, align) {
-        unsafe { sys::process::free(ptr, layout) };
+        sys::process::free(ptr, layout);
     }
 }
