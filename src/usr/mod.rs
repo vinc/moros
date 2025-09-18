@@ -28,6 +28,7 @@ pub mod keyboard;
 pub mod life;
 pub mod lisp;
 pub mod list;
+pub mod mail;
 pub mod memory;
 pub mod net;
 pub mod pci;

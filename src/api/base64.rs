@@ -11,6 +11,14 @@ impl Base64 {
     pub fn decode(s: &[u8]) -> Result<Vec<u8>, ()> {
         BASE64_STANDARD_NO_PAD.decode(s).map_err(|_| ())
     }
+
+    pub fn encode_with_pad(s: &[u8]) -> Vec<u8> {
+        BASE64_STANDARD.encode(s).as_bytes().to_vec()
+    }
+
+    pub fn decode_with_pad(s: &[u8]) -> Result<Vec<u8>, ()> {
+        BASE64_STANDARD.decode(s).map_err(|_| ())
+    }
 }
 
 #[test_case]
