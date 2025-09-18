@@ -1,23 +1,18 @@
 use crate::api::base64::Base64;
-//use crate::api::console::Style;
-use crate::api::time;
 use crate::api::fs;
 use crate::api::ini;
 use crate::api::io;
 use crate::api::process::ExitCode;
-//use crate::api::rng;
 use crate::api::syscall;
-use crate::usr;
+use crate::api::time;
 use crate::sys::fs::{IO, OpenFlag};
 use crate::sys::net::SocketStatus;
+use crate::usr::host;
 
-use bit_field::BitField;
-//use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec;
-//use alloc::vec::Vec;
-//use core::convert::TryInto;
+use bit_field::BitField;
 use core::str::FromStr;
 use smoltcp::wire::IpAddress;
 
@@ -58,7 +53,7 @@ pub fn smtp(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     } else {
-        match usr::host::resolve(&host) {
+        match host::resolve(&host) {
             Ok(ip_addr) => ip_addr,
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
@@ -84,7 +79,7 @@ pub fn smtp(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     let socket_path = "/dev/net/tcp";
-    let buf_len = if let Some(info) = syscall::info(socket_path) {
+    let size = if let Some(info) = syscall::info(socket_path) {
         info.size() as usize
     } else {
         error!("Could not open '{}'", socket_path);
@@ -97,28 +92,28 @@ pub fn smtp(args: &[&str]) -> Result<(), ExitCode> {
             syscall::close(handle);
             return Err(ExitCode::Failure);
         }
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("HELO {}\n", host).as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("AUTH LOGIN\n").as_bytes());
-        read_once(handle, buf_len);
+        recv(handle, size);
+        send(handle, &format!("HELO {}\n", host));
+        recv(handle, size);
+        send(handle, &format!("AUTH LOGIN\n"));
+        recv(handle, size);
         let encoded_user = String::from_utf8(Base64::encode_with_pad(&user.as_bytes())).unwrap();
-        syscall::write(handle, format!("{}\n", encoded_user).as_bytes());
-        read_once(handle, buf_len);
+        send(handle, &format!("{}\n", encoded_user));
+        recv(handle, size);
         let encoded_pass = String::from_utf8(Base64::encode_with_pad(&pass.as_bytes())).unwrap();
-        syscall::write(handle, format!("{}\n", encoded_pass).as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("MAIL FROM:<{}>\n", user).as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("RCPT TO:<{}>\n", args[1]).as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("DATA\n").as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, data.as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("QUIT\n").as_bytes());
+        send(handle, &format!("{}\n", encoded_pass));
+        recv(handle, size);
+        send(handle, &format!("MAIL FROM:<{}>\n", user));
+        recv(handle, size);
+        send(handle, &format!("RCPT TO:<{}>\n", args[1]));
+        recv(handle, size);
+        send(handle, &format!("DATA\n"));
+        recv(handle, size);
+        send(handle, &data);
+        recv(handle, size);
+        send(handle, &format!("QUIT\n"));
         loop {
-            if read_once(handle, buf_len) == 0 {
+            if recv(handle, size) == 0 {
                 break;
             }
         }
@@ -139,7 +134,7 @@ pub fn pop3(args: &[&str]) -> Result<(), ExitCode> {
         error!("Could not read config file");
         return Err(ExitCode::Failure);
     };
-    let cmd = args[1..].join(" ");
+    let cmd = args.join(" ");
     let user = config.get("user").unwrap();
     let pass = config.get("pass").unwrap();
     let pop3 = config.get("pop3").unwrap();
@@ -153,7 +148,7 @@ pub fn pop3(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     } else {
-        match usr::host::resolve(&host) {
+        match host::resolve(&host) {
             Ok(ip_addr) => ip_addr,
             Err(e) => {
                 error!("Could not resolve host: {:?}", e);
@@ -164,7 +159,7 @@ pub fn pop3(args: &[&str]) -> Result<(), ExitCode> {
     let port = port.parse().unwrap();
 
     let socket_path = "/dev/net/tcp";
-    let buf_len = if let Some(info) = syscall::info(socket_path) {
+    let size = if let Some(info) = syscall::info(socket_path) {
         info.size() as usize
     } else {
         error!("Could not open '{}'", socket_path);
@@ -177,15 +172,15 @@ pub fn pop3(args: &[&str]) -> Result<(), ExitCode> {
             syscall::close(handle);
             return Err(ExitCode::Failure);
         }
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("USER {}\n", user).as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("PASS {}\n", pass).as_bytes());
-        read_once(handle, buf_len);
-        syscall::write(handle, format!("{}\n", cmd).as_bytes());
-        syscall::write(handle, format!("QUIT\n").as_bytes());
+        recv(handle, size);
+        send(handle, &format!("USER {}\n", user));
+        recv(handle, size);
+        send(handle, &format!("PASS {}\n", pass));
+        recv(handle, size);
+        send(handle, &format!("{}\n", cmd));
+        send(handle, "QUIT\n");
         loop {
-            if read_once(handle, buf_len) == 0 {
+            if recv(handle, size) == 0 {
                 break;
             }
         }
@@ -194,11 +189,11 @@ pub fn pop3(args: &[&str]) -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn read_poll(handle: usize, len: usize) {
+fn poll(handle: usize, len: usize) {
     loop {
         let list = vec![(handle, IO::Read)];
         if syscall::poll(&list).is_some() {
-            read_once(handle, len);
+            recv(handle, len);
         } else if is_closed(handle) {
             break;
         } else {
@@ -207,7 +202,11 @@ fn read_poll(handle: usize, len: usize) {
     }
 }
 
-fn read_once(handle: usize, len: usize) -> usize {
+fn send(handle: usize, data: &str) {
+    syscall::write(handle, data.as_bytes());
+}
+
+fn recv(handle: usize, len: usize) -> usize {
     let mut buf = vec![0; len];
     if let Some(bytes) = syscall::read(handle, &mut buf) {
         buf.resize(bytes, 0);
