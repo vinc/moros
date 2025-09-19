@@ -79,8 +79,8 @@ impl BitmapFrameAllocator {
 
         // TODO: Sum the size of the usable regions only
         let highest_addr = memory_map.last().unwrap().range.end_addr();
-        let max_frames = (highest_addr / 4096) as usize;
-        let bitmap_size = (max_frames + 63) / 64 * 8;
+        let frames_count = (highest_addr / 4096) as usize;
+        let bitmap_size = ((frames_count + 63) / 64) * 8;
 
         let mut allocator = Self {
             bitmap: &mut [],
