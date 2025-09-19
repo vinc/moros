@@ -10,7 +10,6 @@ pub use phys::{phys_addr, PhysBuf};
 use crate::sys;
 
 use bootloader::bootinfo::{BootInfo, MemoryMap};
-use core::cmp;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
 use x86_64::structures::paging::{
@@ -24,7 +23,6 @@ static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 static PHYS_MEM_OFFSET: Once<u64> = Once::new();
 static MEMORY_MAP: Once<&MemoryMap> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
-static MAX_MEMORY_SIZE: usize = 4 << 30; // 4 GB
 
 pub fn init(boot_info: &'static BootInfo) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
@@ -45,14 +43,14 @@ pub fn init(boot_info: &'static BootInfo) {
                 last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
             );
             if start_addr < (1 << 20) {
-                memory_size += hole; // BIOS memory
+                memory_size += hole as usize; // BIOS memory
             }
         }
         log!(
             "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
             start_addr, end_addr - 1, region.region_type //, size >> 10
         );
-        memory_size += size;
+        memory_size += size as usize;
         last_end_addr = end_addr;
     }
 
@@ -62,7 +60,6 @@ pub fn init(boot_info: &'static BootInfo) {
     // system. It doesn't affect the count in megabytes.
     log!("RAM {} MB", memory_size >> 20);
 
-    let memory_size = cmp::min(memory_size as usize, MAX_MEMORY_SIZE);
     MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
 
     #[allow(static_mut_refs)]
