@@ -77,9 +77,15 @@ impl BitmapFrameAllocator {
     pub fn init(memory_map: &'static MemoryMap) -> Self {
         let mut bitmap_addr = None;
 
-        // TODO: Sum the size of the usable regions only
-        let highest_addr = memory_map.last().unwrap().range.end_addr();
-        let frames_count = (highest_addr / 4096) as usize;
+        let frames_count: usize = memory_map.iter().map(|region| {
+            if region.region_type == MemoryRegionType::Usable {
+                let size = region.range.end_addr() - region.range.start_addr();
+                debug_assert_eq!(size % 4096, 0);
+                (size / 4096) as usize
+            } else {
+                0
+            }
+        }).sum();
         let bitmap_size = ((frames_count + 63) / 64) * 8;
 
         let mut allocator = Self {
