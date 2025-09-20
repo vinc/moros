@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Store frame bitmap in memory region (#793)
+- Fix lisp issues (#791)
+- Bump chumsky from 0.10.1 to 0.11.1 (#787)
+- Upgrade Rust to nightly-2025-09-01 (#789)
+- Add rfc package (#788)
 - Add Intel I219 support in e1000 network driver (#778)
 - Fix interrupts issue in RTL8139 network driver (#784)
 - Add kernel package (#785)
