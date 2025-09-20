@@ -21,7 +21,6 @@
 - Fix Lisp float underscore parsing ([#741](https://github.com/vinc/moros/pull/741))
 - Fix interrupts issue in RTL8139 network driver ([#784](https://github.com/vinc/moros/pull/784))
 - Fix lisp issues ([#791](https://github.com/vinc/moros/pull/791))
-- Fix max memory size to 4 GB ([#775](https://github.com/vinc/moros/pull/775))
 - Improve editor ([#744](https://github.com/vinc/moros/pull/744))
 - Improve panic handling ([#751](https://github.com/vinc/moros/pull/751))
 - Optimize append in file::write ([#760](https://github.com/vinc/moros/pull/760))
