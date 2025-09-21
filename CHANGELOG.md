@@ -3,6 +3,7 @@
 ## Unreleased
 
 ## 0.12.0 (2025-09-22)
+- Fix ANSI palette mapping ([#795](https://github.com/vinc/moros/pull/795))
 - Add FileIO::write to ATA ([#772](https://github.com/vinc/moros/pull/772))
 - Add IDT reset via triple fault ([#780](https://github.com/vinc/moros/pull/780))
 - Add Intel I219 support in e1000 network driver ([#778](https://github.com/vinc/moros/pull/778))
