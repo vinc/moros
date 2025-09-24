@@ -52,16 +52,6 @@ impl Config {
     }
 }
 
-fn help() {
-    let csi_option = Style::color("aqua");
-    let csi_title = Style::color("yellow");
-    let csi_reset = Style::reset();
-    println!(
-        "{}Usage:{} draw {}<options>{1}",
-        csi_title, csi_reset, csi_option
-    );
-}
-
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() == 1 {
         help();
@@ -194,4 +184,32 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
     config.text_mode();
     Ok(())
+}
+
+fn help() {
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
+    let csi_reset = Style::reset();
+    println!(
+        "{}Usage:{} draw {}<options>{1}",
+        csi_title, csi_reset, csi_option
+    );
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!(
+        "  {0}-t{1}, {0}--text <text>{1}         Draw <text>",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-e{1}, {0}--execute <command>{1}   Draw output of <command>",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-i{1}, {0}--interval <seconds>{1}  Run every <seconds>",
+        csi_option, csi_reset
+    );
+    println!(
+        "  {0}-c{1}, {0}--center{1}              Center text",
+        csi_option, csi_reset
+    );
 }
