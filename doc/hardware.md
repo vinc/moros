@@ -33,10 +33,12 @@
   - [x] MB: Asus P5K
   - [x] DSK: ATA
   - [x] CPU: Intel Core 2 Duo E6850 (3.0 GHz)
+  - [ ] NET: Attansic L1
   - [x] NET: Intel PRO/1000 GT Desktop (PCI)
   - [x] NET: Realtek RTL8139B (PCI)
   - [x] NET: Realtek RTL8139C (PCI)
   - [x] NET: Realtek RTL8139D (PCI)
+  - [ ] SND: Realtek ALC883
 
 - [x] HP ProLiant MicroServer N40L (2012)
   - [x] CPU: AMD Athlon II Dual Core
@@ -74,10 +76,6 @@
   - [x] CPU: Intel i3-6100U (2.3 GHz)
   - [ ] DSK: AHCI
   - [x] NET: Intel I219-V
-
-- [x] ASUS EeeBook E202SA (2017)
-  - [x] CPU: Intel Pentium N3710 (1.6 - 2.56 GHz)
-  - [ ] DSK: AHCI
 
 - [x] Lenovo ThinkPad X270 (2017)
   - [x] CPU: Intel i3-6100U (2.6 - 3.3 GHz)

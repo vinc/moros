@@ -22,8 +22,8 @@ lazy_static! {
 
 const FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const COMMANDS: [&str; 11] = [
-    "quit", "help", "init", "time", "move", "undo", "show", "perf", "save",
-    "load", "puzzle"
+    "quit", "help", "init", "time", "play", "move", "undo", "load", "save",
+    "puzzle", "perf"
 ];
 
 fn update_autocomplete(prompt: &mut Prompt, game: &mut Game) {
@@ -138,8 +138,8 @@ impl Chess {
             ("u", "ndo", "Undo the last move\n"),
             ("l", "oad <file>", "Load game from <file>\n"),
             ("s", "ave <file>", "Save game to <file>\n"),
-            ("", "perf [<depth>] ", "Count the nodes at each depth\n"),
-            ("", "puzzle <file> ", "Load random puzzle from <file>\n"),
+            ("", "puzzle <file>", " Load random puzzle from <file>\n"),
+            ("", "perf [<depth>]", " Count the nodes at each depth\n"),
         ];
         for (alias, command, usage) in &cmds {
             let csi_col1 = Style::color("lime");

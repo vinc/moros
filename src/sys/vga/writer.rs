@@ -381,10 +381,10 @@ impl Perform for Writer {
                             bg = BG;
                         }
                         30..=37 | 90..=97 => {
-                            fg = Color::from_ansi(param[0] as u8);
+                            fg = Color::from_ansi_fg(param[0] as usize);
                         }
                         40..=47 | 100..=107 => {
-                            bg = Color::from_ansi((param[0] as u8) - 10);
+                            bg = Color::from_ansi_bg(param[0] as usize);
                         }
                         _ => {}
                     }
@@ -518,7 +518,7 @@ impl Perform for Writer {
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
                     if let Ok((i, r, g, b)) = parse_palette(&s) {
-                        let i = Color::from_index(i).register();
+                        let i = Color::from_ansi_index(i).register();
                         self.set_palette(i, r, g, b);
                     }
                 }
