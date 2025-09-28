@@ -39,7 +39,7 @@ impl Palette {
     pub fn default() -> Self {
         let mut palette = Palette::new();
         for (i, (r, g, b)) in DEFAULT_COLORS.iter().enumerate() {
-            let i = Color::from_index(i).register();
+            let i = Color::from_vga_index(i).register();
             palette.colors[i] = (*r, *g, *b);
         }
         palette

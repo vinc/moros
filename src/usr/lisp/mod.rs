@@ -741,4 +741,15 @@ fn test_lisp() {
     );
     assert_eq!(eval!("(put (list 1 3) 1 2)"), "(1 2 3)");
     assert_eq!(eval!("(put \"Heo\" 2 \"ll\")"), "\"Hello\"");
+
+    // expand
+    assert_eq!(eval!("(expand ())"), "()");
+    assert_eq!(eval!("(expand '())"), "(quote ())");
+    assert_eq!(
+        eval!("(expand (define (double x) (* x x)))"),
+        "(variable double (function (x) (* x x)))"
+    );
+
+    // function
+    assert_eq!(eval!("(function () 42)"), "(function ())");
 }
