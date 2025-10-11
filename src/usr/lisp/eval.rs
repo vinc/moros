@@ -1,5 +1,6 @@
 use super::env::{env_get, env_keys, env_set, function_env};
 use super::expand::expand;
+use super::parse::parse;
 use super::string;
 use super::{parse_eval, Env, Err, Exp, Function};
 use crate::could_not;
@@ -47,6 +48,12 @@ fn eval_head_args(
 ) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
+        Exp::Dict(d) => {
+            ensure_length_gt!(d, 0);
+            let (k, v) = d.first_key_value().unwrap();
+            let (_, k) = parse(&k)?;
+            Ok(Exp::List([k, v.clone()].to_vec()))
+        }
         Exp::List(l) => {
             ensure_length_gt!(l, 0);
             Ok(l[0].clone())
@@ -55,7 +62,7 @@ fn eval_head_args(
             ensure_length_gt!(s, 0);
             Ok(Exp::Str(s.chars().next().unwrap().to_string()))
         }
-        _ => expected!("first argument to be a list or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
