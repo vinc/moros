@@ -36,9 +36,7 @@
   `(if ,x (if ,y true false) false))
 
 (def (empty? x)
-  (or
-    (equal? x nil)
-    (equal? x "")))
+  (= (len x) 0))
 
 (def-mac (set k v)
   `(if (var? ,k)
