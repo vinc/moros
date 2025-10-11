@@ -3,9 +3,9 @@ use super::expand::expand;
 use super::parse::parse;
 use super::string;
 use super::{parse_eval, Env, Err, Exp, Function};
-use crate::could_not;
 
 use crate::api::fs;
+use crate::could_not;
 use crate::{ensure_length_eq, ensure_length_gt, expected};
 
 use alloc::boxed::Box;
