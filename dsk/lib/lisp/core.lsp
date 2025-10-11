@@ -53,7 +53,7 @@
 
 (def (map f ls)
   "Applies the function to the elements of the list"
-  (if (nil? ls) nil
+  (if (empty? ls) nil
     (cons
       (f (head ls))
       (map f (tail ls)))))
