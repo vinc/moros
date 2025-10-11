@@ -337,7 +337,7 @@ pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
         Exp::Dict(d) => Ok(Exp::Bool(d.contains_key(&format!("{}", args[1])))),
         Exp::List(l) => Ok(Exp::Bool(l.contains(&args[1]))),
         Exp::Str(s) => Ok(Exp::Bool(s.contains(&string(&args[1])?))),
-        _ => expected!("first argument to be a list or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
@@ -621,7 +621,7 @@ pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
                 Ok(Exp::Str("".to_string()))
             }
         }
-        _ => expected!("first argument to be a dict, a list, or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
@@ -650,7 +650,7 @@ pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
             let s: String = s.into_iter().collect();
             Ok(Exp::Str(s))
         }
-        _ => expected!("first argument to be a dict, a list, or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
