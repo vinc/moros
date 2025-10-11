@@ -1,5 +1,6 @@
 /lib/lisp/alias.lsp
 /lib/lisp/core.lsp
+/lib/lisp/dict.lsp
 /lib/lisp/file.lsp
 /lib/lisp/ini.lsp
 /lib/lisp/legacy.lsp
