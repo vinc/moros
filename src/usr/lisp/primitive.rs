@@ -382,9 +382,10 @@ pub fn lisp_chunks(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_length(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match &args[0] {
-        Exp::List(list) => Ok(Exp::Num(Number::from(list.len()))),
-        Exp::Str(string) => Ok(Exp::Num(Number::from(string.chars().count()))),
-        _ => expected!("a list or a string"),
+        Exp::Dict(d) => Ok(Exp::Num(Number::from(d.len()))),
+        Exp::List(l) => Ok(Exp::Num(Number::from(l.len()))),
+        Exp::Str(s) => Ok(Exp::Num(Number::from(s.chars().count()))),
+        _ => expected!("an enumerable"),
     }
 }
 
