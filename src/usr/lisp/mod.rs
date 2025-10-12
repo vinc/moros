@@ -474,6 +474,9 @@ fn test_lisp() {
     // tail
     assert_eq!(eval!("(tail (quote (1)))"), "()");
     assert_eq!(eval!("(tail (quote (1 2 3)))"), "(2 3)");
+    assert_eq!(eval!("(tail \"abcd\")"), "\"bcd\"");
+    assert_eq!(eval!("(tail (list 1 2 3))"), "(2 3)");
+    assert_eq!(eval!("(tail (dict \"a\" 1 \"b\" 2))"), "(dict \"b\" 2)");
 
     // cons
     assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
