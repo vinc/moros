@@ -49,6 +49,9 @@
 (def-mac (push! l x)
   `(mut ,l (push ,l ,x)))
 
+(def-mac (put! d k v)
+  `(mut ,d (put ,d ,k ,v)))
+
 (def (reduce f ls)
   "Reduces the elements of the list with the function"
   (if (nil? (tail ls)) (head ls)
