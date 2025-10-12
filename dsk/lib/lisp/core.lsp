@@ -46,6 +46,9 @@
 (def-mac (let params values body)
   `((fun ,params ,body) ,@values))
 
+(def-mac (push! l x)
+  `(mut ,l (push ,l ,x)))
+
 (def (reduce f ls)
   "Reduces the elements of the list with the function"
   (if (nil? (tail ls)) (head ls)
