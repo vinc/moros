@@ -467,6 +467,9 @@ fn test_lisp() {
     // head
     assert_eq!(eval!("(head (quote (1)))"), "1");
     assert_eq!(eval!("(head (quote (1 2 3)))"), "1");
+    assert_eq!(eval!("(head \"abcd\")"), "\"a\"");
+    assert_eq!(eval!("(head (list 1 2 3))"), "1");
+    assert_eq!(eval!("(head (dict \"a\" 1 \"b\" 2))"), "(\"a\" 1)");
 
     // tail
     assert_eq!(eval!("(tail (quote (1)))"), "()");
