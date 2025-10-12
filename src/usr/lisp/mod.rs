@@ -726,6 +726,12 @@ fn test_lisp() {
         "(dict \"a\" 1 \"b\" 2 \"c\" 3)"
     );
 
+    // length
+    assert_eq!(eval!("(length (list))"), "0");
+    assert_eq!(eval!("(length (dict))"), "0");
+    assert_eq!(eval!("(length (list 1 2 3))"), "3");
+    assert_eq!(eval!("(length (dict 1 1 2 2 3 3))"), "3");
+
     // get
     assert_eq!(eval!("(get \"Hello\" 0)"), "\"H\"");
     assert_eq!(eval!("(get \"Hello\" 6)"), "\"\"");
