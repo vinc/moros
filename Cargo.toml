@@ -21,7 +21,7 @@ aml = "0.16.4"
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 bit_field = "0.10.3"
 bootloader = { version = "0.9.33", features = ["map_physical_memory"] }
-chumsky = { version = "0.11.2", default-features = false }
+chumsky = { version = "0.12.0", default-features = false }
 geodate = { version = "0.5.0", default-features = false }
 lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 libm = "0.2.16"
