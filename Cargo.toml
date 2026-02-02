@@ -27,7 +27,7 @@ lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 libm = "0.2.16"
 linked_list_allocator = "0.10.5"
 littlewing = { version = "0.7.0", default-features = false }
-miniz_oxide = "0.8.8"
+miniz_oxide = "0.9.0"
 nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
