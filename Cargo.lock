@@ -370,7 +370,7 @@ dependencies = [
  "pc-keyboard",
  "pic8259",
  "rand 0.9.2",
- "rand_hc 0.4.0",
+ "rand_hc 0.5.0",
  "raw-cpuid 11.6.0",
  "sha2",
  "smoltcp",
@@ -560,6 +560,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99d9a13982dcf210057a8a78572b2217b667c3beacbf3a0d8b454f6f82837d38"
 
 [[package]]
+name = "rand_core"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c8d0fd677905edcbeedbf2edb6494d676f0e98d54d5cf9bda0b061cb8fb8aba"
+
+[[package]]
 name = "rand_hc"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -570,11 +576,11 @@ dependencies = [
 
 [[package]]
 name = "rand_hc"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54fc7b35e3026136eaf1decdc66ecde3efadfd663cc0d71115ad40da7ebcff63"
+checksum = "2679e70798646edbc105ddf9d15c9d977936bdf033b8c834b83f144317c6f956"
 dependencies = [
- "rand_core 0.9.3",
+ "rand_core 0.10.0",
 ]
 
 [[package]]
