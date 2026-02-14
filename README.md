@@ -20,21 +20,21 @@ be accomplished after completing an OSDev tutorial, while reading the
 ## Features
 
 - External bootloader (using [bootloader][4])
-- x86 CPU support (using [x86_64][5])
+- x86 CPU support (using [x86 64][5])
 - Hardware interrupts (using [pic8259][6])
 - PS/2 keyboard with customizable layout (using [pc-keyboard][7])
 - VGA text mode and 320x200 graphics buffer (for games and images) with
   customizable font and color palette
-- Serial output (using [uart_16550][8])
+- Serial output (using [uart 16550][8])
 - Paging with bitmap frame allocator
-- Heap allocation (using [linked_list_allocator][9])
+- Heap allocation (using [linked list allocator][9])
 - ACPI shutdown (using [acpi][10] and [aml][11])
 - RTC clock with userspace NTP synchronization
 - PCI devices
 - ATA PIO mode
 - Custom [filesystem](doc/filesystem.md) with bitmap allocation, linked blocks,
   block caching, and support for files, directories, and device nodes
-- Random number generator (using [rand_hc][12])
+- Random number generator (using [rand hc][12])
 - Intel PRO/1000, RTL8139, and AMD PCNET network cards
 - DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][13])
 - Basic [shell](doc/shell.md)
@@ -60,7 +60,7 @@ and `qemu-system-x86_64` on the host system.
 
 Clone the repo:
 
-    $ git clone https://github.com/vinc/moros
+    $ git clone https://github.com/vinc/moros.git
     $ cd moros
 
 Install the required tools with `make setup` or the following commands:
