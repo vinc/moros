@@ -177,7 +177,7 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
-- Add dict support to `head`, `tail`, `length`
+- Add dict support to `head`, `tail`, `length`, `empty?`, and `map`
 - Add `push!` as the mutating counterpart of `push` for lists
 - Add `put!` as the mutating counterpart of `put` for dicts
 - Add `dict/keys`, and `dict/values` to dicts
