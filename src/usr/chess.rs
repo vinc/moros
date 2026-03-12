@@ -267,7 +267,7 @@ impl Chess {
 
         print!("\x1b[?25l"); // Disable cursor
         self.game.make_move(m);
-        self.game.history.push(m);
+        self.game.plies.push(m);
         println!();
         println!("{}", self.game);
 
@@ -289,8 +289,8 @@ impl Chess {
     }
 
     fn cmd_undo(&mut self, _args: &[&str]) {
-        if !self.game.history.is_empty() {
-            if let Some(m) = self.game.history.pop() {
+        if !self.game.plies.is_empty() {
+            if let Some(m) = self.game.plies.pop() {
                 self.game.undo_move(m);
             }
         }
@@ -367,7 +367,7 @@ impl Chess {
             println!("{}<{} move {}", self.csi_color, self.csi_reset, s);
             println!();
             self.game.make_move(m);
-            self.game.history.push(m);
+            self.game.plies.push(m);
             println!("{}", self.game);
         }
     }
