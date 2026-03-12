@@ -308,7 +308,9 @@ dependencies = [
 
 [[package]]
 name = "littlewing"
-version = "0.7.0"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "137fd6e70531762a43b52d613e8eb3e2422a8b52f446daf9cd74f039f9ad8258"
 dependencies = [
  "branches",
  "lazy_static",
