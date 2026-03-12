@@ -96,9 +96,9 @@ dependencies = [
 
 [[package]]
 name = "bootloader"
-version = "0.9.33"
+version = "0.9.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bdfddac270bbdd45903296bc1caf29a7fdce6b326aaf0bbab7f04c5f98b7447"
+checksum = "13f6a8a495d2f93fe3d6eb3a224f9aa749a63cfd746ed03eb5ddcbd00ade7d8f"
 
 [[package]]
 name = "byteorder"
@@ -114,9 +114,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chumsky"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cd3ef0a728f561e3b4157213d178ae7523cbc405423f862da757447588ae103"
+checksum = "4ba4a05c9ce83b07de31b31c874e87c069881ac4355db9e752e3a55c11ec75a6"
 dependencies = [
  "hashbrown",
  "unicode-ident",
@@ -284,9 +284,9 @@ checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
 
 [[package]]
 name = "libm"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9fbbcab51052fe104eb5e5d351cf728d30a5be1fe14d9be8a3b097481fb97de"
+checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "linked_list_allocator"
@@ -427,9 +427,9 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.37.3"
+version = "0.38.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff76201f031d8863c38aa7f905eca4f53abbfa15f609db4277d44cd8938f33fe"
+checksum = "271638cd5fa9cca89c4c304675ca658efc4e64a66c716b7cfe1afb4b9611dbbc"
 dependencies = [
  "memchr",
 ]
