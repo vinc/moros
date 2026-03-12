@@ -84,8 +84,7 @@ impl Chess {
         let history_file = "~/.chess-history";
         prompt.history.load(history_file);
 
-        // 40 moves in 5 minutes
-        self.game.clock = Clock::new(40, 5 * 60 * 1000);
+        self.game.clock = Clock::new(1, 10 * 1000); // 10 seconds per move
         self.game.clock.system_time = Arc::new(system_time);
         self.game.show_coordinates = true;
         let size = 1 << 20; // 1 MB
