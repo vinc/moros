@@ -152,6 +152,7 @@
 # Short aliases
 
 (var sh shell)
+(var $ shell)
 (var % rem)
 (var str string)
 (var str/split string/split)
