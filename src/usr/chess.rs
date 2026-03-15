@@ -84,8 +84,7 @@ impl Chess {
         let history_file = "~/.chess-history";
         prompt.history.load(history_file);
 
-        // 40 moves in 5 minutes
-        self.game.clock = Clock::new(40, 5 * 60 * 1000);
+        self.game.clock = Clock::new(1, 10 * 1000); // 10 seconds per move
         self.game.clock.system_time = Arc::new(system_time);
         self.game.show_coordinates = true;
         let size = 1 << 20; // 1 MB
@@ -267,7 +266,7 @@ impl Chess {
 
         print!("\x1b[?25l"); // Disable cursor
         self.game.make_move(m);
-        self.game.history.push(m);
+        self.game.plies.push(m);
         println!();
         println!("{}", self.game);
 
@@ -289,8 +288,8 @@ impl Chess {
     }
 
     fn cmd_undo(&mut self, _args: &[&str]) {
-        if !self.game.history.is_empty() {
-            if let Some(m) = self.game.history.pop() {
+        if !self.game.plies.is_empty() {
+            if let Some(m) = self.game.plies.pop() {
                 self.game.undo_move(m);
             }
         }
@@ -367,7 +366,7 @@ impl Chess {
             println!("{}<{} move {}", self.csi_color, self.csi_reset, s);
             println!();
             self.game.make_move(m);
-            self.game.history.push(m);
+            self.game.plies.push(m);
             println!("{}", self.game);
         }
     }

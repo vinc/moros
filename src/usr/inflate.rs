@@ -2,7 +2,6 @@ use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 
-use alloc::format;
 use miniz_oxide::inflate::decompress_to_vec_zlib as inflate;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {

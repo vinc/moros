@@ -9,7 +9,6 @@ use crate::could_not;
 use crate::{ensure_length_eq, ensure_length_gt, expected};
 
 use alloc::boxed::Box;
-use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::ToString;
 use alloc::vec;
