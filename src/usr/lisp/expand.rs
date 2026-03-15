@@ -6,7 +6,6 @@ use crate::{
     ensure_length_eq, ensure_length_gt, ensure_list, ensure_string, expected
 };
 
-use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::ToString;
 use alloc::vec;
