@@ -8,7 +8,6 @@ use crate::sys::fs::OpenFlag;
 use crate::sys::net::SocketStatus;
 use crate::usr;
 
-use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
