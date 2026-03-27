@@ -136,10 +136,42 @@ fn interrupt_handler() {
                         }
                     }
 
-                    DecodedKey::RawKey(KeyCode::ArrowUp) => send_csi("A"),
-                    DecodedKey::RawKey(KeyCode::ArrowDown) => send_csi("B"),
-                    DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi("C"),
-                    DecodedKey::RawKey(KeyCode::ArrowLeft) => send_csi("D"),
+                    DecodedKey::RawKey(KeyCode::ArrowUp) => {
+                        if is_ctrl {
+                            send_csi("1;5A")
+                        } else if is_alt {
+                            send_csi("1;3A")
+                        } else {
+                            send_csi("A")
+                        }
+                    }
+                    DecodedKey::RawKey(KeyCode::ArrowDown) => {
+                        if is_ctrl {
+                            send_csi("1;5B")
+                        } else if is_alt {
+                            send_csi("1;3B")
+                        } else {
+                            send_csi("B")
+                        }
+                    }
+                    DecodedKey::RawKey(KeyCode::ArrowRight) => {
+                        if is_ctrl {
+                            send_csi("1;5C")
+                        } else if is_alt {
+                            send_csi("1;3C")
+                        } else {
+                            send_csi("C")
+                        }
+                    }
+                    DecodedKey::RawKey(KeyCode::ArrowLeft) => {
+                        if is_ctrl {
+                            send_csi("1;5D")
+                        } else if is_alt {
+                            send_csi("1;3D")
+                        } else {
+                            send_csi("D")
+                        }
+                    }
 
                     DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
                     DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),

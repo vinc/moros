@@ -419,6 +419,20 @@ impl Editor {
                 'B' if csi => { // Arrow Down
                     self.handle_arrow_down();
                 }
+                'C' if csi && csi_params == "1;3" => { // Alt + Arrow Right
+                    let tmp = self.search_query.clone();
+                    self.search_query = " ".to_string(); // TODO: Use `\w+`
+                    self.find_next();
+                    self.print_screen();
+                    self.search_query = tmp;
+                }
+                'D' if csi && csi_params == "1;3" => { // Alt + Arrow Left
+                    let tmp = self.search_query.clone();
+                    self.search_query = " ".to_string(); // TODO: Use `\w+`
+                    self.find_prev();
+                    self.print_screen();
+                    self.search_query = tmp;
+                }
                 'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     let x = self.cursor.x + self.offset.x;
