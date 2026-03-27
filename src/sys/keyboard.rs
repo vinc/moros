@@ -1,6 +1,7 @@
 use crate::api;
 use crate::sys;
 
+use alloc::format;
 use core::sync::atomic::{AtomicBool, Ordering};
 use pc_keyboard::{
     layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, KeyState,
@@ -143,7 +144,15 @@ fn interrupt_handler() {
                     DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
                     DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),
 
-                    DecodedKey::Unicode(c) => send_key(c),
+                    DecodedKey::Unicode(c) => {
+                        let letter = (c as u8 | 0x40) as char;
+                        if is_ctrl && is_shift && letter.is_ascii_uppercase() {
+                            // Ctrl + Shift + Letter
+                            send_csi(&format!("1;6{}", letter));
+                        } else {
+                            send_key(c)
+                        }
+                    }
 
                     _ => {}
                 };

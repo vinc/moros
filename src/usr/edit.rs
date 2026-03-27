@@ -506,6 +506,8 @@ impl Editor {
                     self.find_next();
                     self.print_screen();
                 }
+                'N' if csi && csi_params == "1;6" => { // Ctrl + Shift + N
+                }
                 '\x0F' => { // Ctrl + O -> Open buffer
                     self.open();
                     self.print_screen();
