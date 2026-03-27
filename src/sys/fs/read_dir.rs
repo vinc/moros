@@ -2,6 +2,7 @@ use super::block::LinkedBlock;
 use super::dir::Dir;
 use super::dir_entry::DirEntry;
 use super::FileType;
+use crate::sys;
 
 use alloc::string::String;
 use core::convert::TryInto;
@@ -12,6 +13,7 @@ pub struct ReadDir {
     pub block: LinkedBlock,
     pub block_offset: usize,
     block_index: usize,
+    meta_index: usize, // 0: self, 1: parent, 2: children
 }
 
 impl From<Dir> for ReadDir {
@@ -21,6 +23,7 @@ impl From<Dir> for ReadDir {
             block: LinkedBlock::read(dir.addr()),
             block_offset: 0,
             block_index: 0,
+            meta_index: 0,
         }
     }
 }
@@ -70,6 +73,27 @@ impl Iterator for ReadDir {
     type Item = DirEntry;
 
     fn next(&mut self) -> Option<DirEntry> {
+        if self.meta_index == 0 {
+            self.meta_index += 1;
+            let entry_kind = FileType::Dir;
+            let entry_addr = self.dir.addr();
+            let entry_size = self.dir.size() as u32;
+            let entry_time = sys::clock::realtime() as u64;
+            let entry_name = ".";
+            let dir = self.dir.clone();
+            return Some(DirEntry::new(dir, entry_kind, entry_addr, entry_size, entry_time, &entry_name));
+        }
+        if self.meta_index == 1 {
+            self.meta_index += 1;
+            if let Some(dir) = self.dir.parent() {
+                let entry_kind = FileType::Dir;
+                let entry_addr = dir.addr();
+                let entry_size = dir.size() as u32;
+                let entry_time = sys::clock::realtime() as u64;
+                let entry_name = "..";
+                return Some(DirEntry::new(dir, entry_kind, entry_addr, entry_size, entry_time, &entry_name));
+            }
+        }
         loop {
             loop {
                 let offset = self.block_offset; // Backup cursor position
@@ -127,7 +151,6 @@ impl Iterator for ReadDir {
                 None => break,
             }
         }
-
         None
     }
 }
