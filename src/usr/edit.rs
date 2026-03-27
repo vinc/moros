@@ -507,6 +507,8 @@ impl Editor {
                     self.print_screen();
                 }
                 'N' if csi && csi_params == "1;6" => { // Ctrl + Shift + N
+                    self.find_prev();
+                    self.print_screen();
                 }
                 '\x0F' => { // Ctrl + O -> Open buffer
                     self.open();
@@ -856,6 +858,28 @@ impl Editor {
             }
             if let Some(i) = line[o..].find(&self.search_query) {
                 let x = o + i;
+                self.cursor.x = x % cols();
+                self.cursor.y = y % rows();
+                self.offset.x = x - self.cursor.x;
+                self.offset.y = y - self.cursor.y;
+                break;
+            }
+        }
+    }
+
+    pub fn find_prev(&mut self) {
+        let dx = self.offset.x + self.cursor.x;
+        let dy = self.offset.y + self.cursor.y;
+        for (y, line) in self.lines.iter().enumerate().rev() {
+            let mut o = line.len();
+            if y > dy {
+                continue;
+            }
+            if y == dy {
+                o = cmp::min(dx, line.len());
+            }
+            if let Some(i) = line[0..o].rfind(&self.search_query) {
+                let x = i;
                 self.cursor.x = x % cols();
                 self.cursor.y = y % rows();
                 self.offset.x = x - self.cursor.x;
