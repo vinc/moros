@@ -860,18 +860,19 @@ impl Editor {
     }
 
     pub fn find_next(&mut self) {
+        let re = Regex::new(&self.search_query);
         let dx = self.offset.x + self.cursor.x;
         let dy = self.offset.y + self.cursor.y;
         for (y, line) in self.lines.iter().enumerate() {
-            let mut o = 0;
+            let mut j = 0;
             if y < dy {
                 continue;
             }
             if y == dy {
-                o = cmp::min(dx + 1, line.len());
+                j = cmp::min(dx + 1, line.len());
             }
-            if let Some(i) = line[o..].find(&self.search_query) {
-                let x = o + i;
+            if let Some((i, _)) = re.find(&line[j..]) {
+                let x = j + i;
                 self.cursor.x = x % cols();
                 self.cursor.y = y % rows();
                 self.offset.x = x - self.cursor.x;
@@ -882,17 +883,18 @@ impl Editor {
     }
 
     pub fn find_prev(&mut self) {
+        let re = Regex::new(&self.search_query);
         let dx = self.offset.x + self.cursor.x;
         let dy = self.offset.y + self.cursor.y;
         for (y, line) in self.lines.iter().enumerate().rev() {
-            let mut o = line.len();
+            let mut j = line.len();
             if y > dy {
                 continue;
             }
             if y == dy {
-                o = cmp::min(dx, line.len());
+                j = cmp::min(dx, line.len());
             }
-            if let Some(i) = line[0..o].rfind(&self.search_query) {
+            if let Some((i, _)) = re.rfind(&line[0..j]) {
                 let x = i;
                 self.cursor.x = x % cols();
                 self.cursor.y = y % rows();
