@@ -84,7 +84,7 @@ impl Regex {
         let re: Vec<char> = self.0.chars().collect(); // UTF-32
         let mut start = 0;
         let mut end = 0;
-        if find(&re[..], &text[..], &mut start, &mut end, false) {
+        if find_first(&re[..], &text[..], &mut start, &mut end) {
             Some((start, end))
         } else {
             None
@@ -96,7 +96,7 @@ impl Regex {
         let re: Vec<char> = self.0.chars().collect(); // UTF-32
         let mut start = 0;
         let mut end = 0;
-        if find(&re[..], &text[..], &mut start, &mut end, true) {
+        if find_last(&re[..], &text[..], &mut start, &mut end) {
             Some((start, end))
         } else {
             None
@@ -128,12 +128,11 @@ impl Regex {
     }
 }
 
-fn find(
+fn find_first(
     re: &[char],
     text: &[char],
     start: &mut usize,
     end: &mut usize,
-    rev: bool,
 ) -> bool {
     if re.is_empty() {
         return true;
@@ -143,25 +142,53 @@ fn find(
         return match_here(&re[1..], text, end);
     }
     let n = text.len();
-    let mut i = if rev { n } else { 0 };
+    let mut i = 0;
     loop {
         *start = i;
         *end = i;
         if match_here(re, &text[i..], end) {
             return true;
         }
-        if rev {
-            if i == 0 {
-                return false;
-            }
-            i -= 1;
-        } else {
-            if i == n {
-                return false;
-            }
-            i += 1;
+        if i == n {
+            return false;
         }
+        i += 1;
     }
+}
+
+fn find_last(
+    re: &[char],
+    text: &[char],
+    start: &mut usize,
+    end: &mut usize,
+) -> bool {
+    if re.is_empty() {
+        return true;
+    }
+    if re[0] == '^' {
+        *end = 1;
+        return match_here(&re[1..], text, end);
+    }
+    let n = text.len();
+    let mut i = 0;
+    let mut found = false;
+    let mut old_end = 0;
+    loop {
+        let mut new_end = i;
+        if match_here(re, &text[i..], &mut new_end) {
+            if !found || i >= old_end {
+                *start = i;
+                *end = new_end;
+                found = true;
+            }
+            old_end = new_end;
+        }
+        if i == n {
+            break;
+        }
+        i += 1;
+    }
+    found
 }
 
 fn match_here(
@@ -366,6 +393,24 @@ fn test_regex_find() {
     assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
     assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
     assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 10)));
+}
+
+#[test_case]
+fn test_regex_rfind() {
+    assert_eq!(Regex::new(".*").rfind("abcd"), Some((4, 4)));
+    assert_eq!(Regex::new("b.*c").rfind("aaabbbcccddd"), Some((3, 9)));
+    assert_eq!(Regex::new("b.*?c").rfind("aaabbbcccddd"), Some((3, 7)));
+    assert_eq!(Regex::new("a\\w*d").rfind("abcdabcd"), Some((0, 8)));
+    assert_eq!(Regex::new("a\\w*?d").rfind("abcdabcd"), Some((4, 8)));
+    assert_eq!(Regex::new("\\$\\w+").rfind("test $test test"), Some((5, 10)));
+    assert_eq!(Regex::new("\\w+").rfind("this is a line"), Some((10, 14)));
+    assert_eq!(Regex::new("\\w+").rfind("this "), Some((0, 4)));
+    assert_eq!(Regex::new("\\w+").rfind("this is"), Some((5, 7)));
+    assert_eq!(Regex::new("\\w+").rfind(" test"), Some((1, 5)));
+    assert_eq!(Regex::new("\\w+").rfind(""), None);
+    assert_eq!(Regex::new("\\w+").rfind("   "), None);
+    assert_eq!(Regex::new("a").rfind("aaa"), Some((2, 3)));
+    assert_eq!(Regex::new("ab").rfind("ababab"), Some((4, 6)));
 }
 
 #[test_case]

@@ -421,14 +421,14 @@ impl Editor {
                 }
                 'C' if csi && csi_params == "1;3" => { // Alt + Arrow Right
                     let tmp = self.search_query.clone();
-                    self.search_query = " ".to_string(); // TODO: Use `\w+`
+                    self.search_query = "\\w+".to_string();
                     self.find_next();
                     self.print_screen();
                     self.search_query = tmp;
                 }
                 'D' if csi && csi_params == "1;3" => { // Alt + Arrow Left
                     let tmp = self.search_query.clone();
-                    self.search_query = " ".to_string(); // TODO: Use `\w+`
+                    self.search_query = "\\w+".to_string();
                     self.find_prev();
                     self.print_screen();
                     self.search_query = tmp;
@@ -869,7 +869,12 @@ impl Editor {
                 continue;
             }
             if y == dy {
-                j = cmp::min(dx + 1, line.len());
+                j = cmp::min(dx, line.len());
+                if let Some((i, end)) = re.find(&line[j..]) {
+                    if i == 0 {
+                        j += end; // Skip past current match
+                    }
+                }
             }
             if let Some((i, _)) = re.find(&line[j..]) {
                 let x = j + i;
@@ -893,8 +898,13 @@ impl Editor {
             }
             if y == dy {
                 j = cmp::min(dx, line.len());
+                if let Some((i, end)) = re.find(&line[..j]) {
+                    if end == j {
+                        j = i;
+                    }
+                }
             }
-            if let Some((i, _)) = re.rfind(&line[0..j]) {
+            if let Some((i, _)) = re.rfind(&line[..j]) {
                 let x = i;
                 self.cursor.x = x % cols();
                 self.cursor.y = y % rows();
