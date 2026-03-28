@@ -420,18 +420,16 @@ impl Editor {
                     self.handle_arrow_down();
                 }
                 'C' if csi && csi_params == "1;3" => { // Alt + Arrow Right
-                    let tmp = self.search_query.clone();
-                    self.search_query = "\\w+".to_string();
-                    self.find_next();
-                    self.print_screen();
-                    self.search_query = tmp;
+                    self.handle_ctrl_arrow_right();
                 }
                 'D' if csi && csi_params == "1;3" => { // Alt + Arrow Left
-                    let tmp = self.search_query.clone();
-                    self.search_query = "\\w+".to_string();
-                    self.find_prev();
-                    self.print_screen();
-                    self.search_query = tmp;
+                    self.handle_ctrl_arrow_left();
+                }
+                'C' if csi && csi_params == "1;5" => { // Ctrl + Arrow Right
+                    self.handle_ctrl_arrow_right();
+                }
+                'D' if csi && csi_params == "1;5" => { // Ctrl + Arrow Left
+                    self.handle_ctrl_arrow_left();
                 }
                 'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
@@ -712,6 +710,22 @@ impl Editor {
             self.align_cursor();
             self.print_screen();
         }
+    }
+
+    fn handle_ctrl_arrow_right(&mut self) {
+        let tmp = self.search_query.clone();
+        self.search_query = "\\w+".to_string();
+        self.find_next();
+        self.print_screen();
+        self.search_query = tmp;
+    }
+
+    fn handle_ctrl_arrow_left(&mut self) {
+        let tmp = self.search_query.clone();
+        self.search_query = "\\w+".to_string();
+        self.find_prev();
+        self.print_screen();
+        self.search_query = tmp;
     }
 
     fn cut_line(&mut self) {
