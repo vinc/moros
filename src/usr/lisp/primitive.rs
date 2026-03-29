@@ -337,7 +337,7 @@ pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
         Exp::Dict(d) => Ok(Exp::Bool(d.contains_key(&format!("{}", args[1])))),
         Exp::List(l) => Ok(Exp::Bool(l.contains(&args[1]))),
         Exp::Str(s) => Ok(Exp::Bool(s.contains(&string(&args[1])?))),
-        _ => expected!("first argument to be a list or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
@@ -382,9 +382,10 @@ pub fn lisp_chunks(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_length(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match &args[0] {
-        Exp::List(list) => Ok(Exp::Num(Number::from(list.len()))),
-        Exp::Str(string) => Ok(Exp::Num(Number::from(string.chars().count()))),
-        _ => expected!("a list or a string"),
+        Exp::Dict(d) => Ok(Exp::Num(Number::from(d.len()))),
+        Exp::List(l) => Ok(Exp::Num(Number::from(l.len()))),
+        Exp::Str(s) => Ok(Exp::Num(Number::from(s.chars().count()))),
+        _ => expected!("an enumerable"),
     }
 }
 
@@ -621,7 +622,7 @@ pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
                 Ok(Exp::Str("".to_string()))
             }
         }
-        _ => expected!("first argument to be a dict, a list, or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
@@ -650,7 +651,7 @@ pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
             let s: String = s.into_iter().collect();
             Ok(Exp::Str(s))
         }
-        _ => expected!("first argument to be a dict, a list, or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 

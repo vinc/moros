@@ -3,10 +3,10 @@ use super::eval::BUILT_INS;
 use super::primitive;
 use super::FUNCTIONS;
 use super::{Err, Exp, Number};
+
 use crate::{could_not, expected};
 
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
