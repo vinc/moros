@@ -119,16 +119,16 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             let max_rows = HEIGHT / h;
             let chars: Vec<_> = fnt.data.chunks(h).collect();
 
-            let mut draw = true;
+            let mut refresh = true;
             let mut start = clock::epoch_time(); 
             loop {
                 if console::end_of_text() {
                     break;
                 }
                 if let Some(i) = interval {
-                    draw = draw || (clock::epoch_time() > start + i);
+                    refresh = refresh || (clock::epoch_time() > start + i);
                 }
-                if draw {
+                if refresh {
                     start = clock::epoch_time(); 
                     let out = if let Some(cmd) = command {
                         let tmp = "/tmp/draw.tmp";
@@ -180,7 +180,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         error!("Could not write to '{}'", dev);
                         return Err(ExitCode::Failure);
                     }
-                    draw = false;
+                    refresh = false;
                 }
                 syscall::sleep(0.1);
             }
