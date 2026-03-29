@@ -14,13 +14,13 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 44] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 45] = [
     "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "deflate",
-    "dhcp", "diff", "disk", "drop", "edit", "elf", "encode", "env", "goto",
-    "hash", "help", "hex", "host", "http", "httpd", "inflate", "install",
-    "keyboard", "life", "lisp", "list", "memory", "move", "net", "pci", "quit",
-    "read", "render", "shell", "socket", "spell", "tcp", "time", "user", "view",
-    "write",
+    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode", "env",
+    "goto", "hash", "help", "hex", "host", "http", "httpd", "inflate",
+    "install", "keyboard", "life", "lisp", "list", "memory", "move", "net",
+    "pci", "quit", "read", "render", "shell", "socket", "spell", "tcp", "time",
+    "user", "view", "write",
 ];
 
 struct Config {
@@ -528,6 +528,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "dhcp"      => usr::dhcp::main(args),
         "diff"      => usr::diff::main(args),
         "disk"      => usr::disk::main(args),
+        "draw"      => usr::draw::main(args),
         "drop"      => usr::drop::main(args),
         "edit"      => usr::edit::main(args),
         "elf"       => usr::elf::main(args),
