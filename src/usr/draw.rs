@@ -141,7 +141,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         let _ = fs::delete(tmp);
                         res.trim().to_string()
                     } else {
-                        text.unwrap().to_string()
+                        if let Some(text) = text {
+                            text.to_string()
+                        } else {
+                            help();
+                            return Err(ExitCode::UsageError);
+                        }
                     };
                     let pad = " ".repeat(if center {
                         (max_cols.saturating_sub(out.len()) / 2)
