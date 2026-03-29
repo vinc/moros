@@ -71,9 +71,8 @@ fn eval_tail_args(
 ) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match eval(&args[0], env)? {
-        Exp::Dict(d) => {
+        Exp::Dict(mut d) => {
             ensure_length_gt!(d, 0);
-            let mut d = d.clone();
             d.pop_first();
             Ok(Exp::Dict(d))
         }
