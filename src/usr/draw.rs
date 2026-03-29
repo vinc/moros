@@ -157,7 +157,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     let out = format!("{}{}", pad, out);
                     let mut img = [BLACK; WIDTH * HEIGHT];
                     for (i, c) in out.chars().enumerate() {
-                        if i > max_cols * max_rows {
+                        if i >= max_cols * max_rows {
                             break;
                         }
                         let col = i % max_cols;
