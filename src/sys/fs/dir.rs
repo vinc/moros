@@ -109,15 +109,42 @@ impl Dir {
             return None;
         }
 
-        // Read the whole dir to add an entry at the end
-        let mut entries = self.entries();
-        while entries.next().is_some() {}
-
-        // Allocate a new block for the dir if no space left for adding
-        // the new entry.
-        let space_left = entries.block.data().len() - entries.block_offset();
+        let mut space_found = false;
         let entry_len = DirEntry::empty_len() + name.len();
-        if entry_len > space_left {
+
+        // Read the whole dir to find where we could put the new entry
+        let mut entries = self.entries();
+        entries.skip_unused = false;
+        while let Some(other) = entries.next() {
+            // A unused dir entry is a special kind of entry with a null addr
+            // and a size indicating the unused space
+            if other.addr() == 0 {
+                // Bytes read for the entry
+                let read = DirEntry::empty_len() + other.name().len();
+
+                // Bytes from the start of the entry to the end of the block
+                let rest = entries.block.len() - entries.block_offset + read;
+
+                if entry_len > rest {
+                    continue; // Not enough space
+                }
+
+                // Check if the unused space goes to the end of the block or
+                // of if it fit exactly the new entry in the case of a deleted
+                // entry from previous versions of MOROS
+                let other_len = other.size() as usize;
+                if other_len == rest || other_len == entry_len {
+                    space_found = true;
+                    entries.block_offset -= read; // Rewind to write over
+                    break;
+                }
+            }
+        }
+
+        // Allocate a new block for the dir if there's no space left for adding
+        // the new entry
+        let space_left = entries.block.data().len() - entries.block_offset();
+        if entry_len > space_left && !space_found {
             match entries.block.alloc_next() {
                 None => return None, // Disk is full
                 Some(block) => {
@@ -164,17 +191,21 @@ impl Dir {
         let mut entries = self.entries();
         for entry in &mut entries {
             if entry.name() == name {
-                // Zeroing entry addr
                 let i = entries.block_offset() - entry.len();
+                let j = entries.block.len() - entry.len();
+                let reminder = entries.block_offset()..entries.block.len();
                 let data = entries.block.data_mut();
-                data[i + 1] = 0;
-                data[i + 2] = 0;
-                data[i + 3] = 0;
-                data[i + 4] = 0;
+
+                // Shift the reminder of the block
+                data.copy_within(reminder, i);
+
+                // Clear the unused end
+                data[j..].fill(0);
+
                 entries.block.write();
                 self.update_size();
 
-                // Freeing entry blocks
+                // Free entry blocks
                 let mut free_block = LinkedBlock::read(entry.addr());
                 loop {
                     BitmapBlock::free(free_block.addr());
