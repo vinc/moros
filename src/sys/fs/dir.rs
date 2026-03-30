@@ -112,7 +112,7 @@ impl Dir {
         let mut space_found = false;
         let entry_len = DirEntry::empty_len() + name.len();
 
-        // Read the whole dir to find where we could put the new entry
+        // Read the whole dir to find where to write the new entry
         let mut entries = self.entries();
         entries.skip_unused = false;
         while let Some(other) = entries.next() {
