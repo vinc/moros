@@ -116,7 +116,7 @@ impl Dir {
         let mut entries = self.entries();
         entries.skip_unused = false;
         while let Some(other) = entries.next() {
-            // A unused dir entry is a special kind of entry with a null addr
+            // A unused dir entry is a virtual entry with a null addr
             // and a size indicating the unused space
             if other.addr() == 0 {
                 // Bytes read for the entry

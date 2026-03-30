@@ -101,7 +101,7 @@ impl Iterator for ReadDir {
                         self.block_offset = offset; // Rewind the cursor
                         break;
                     }
-                    // Mark the end of the block as a special unused dir entry
+                    // Mark the end of the block as a virtual unused entry
                     // that can be reused for a new entry
                     entry_addr = 0;
                     entry_size = (remaining + DirEntry::empty_len()) as u32;
