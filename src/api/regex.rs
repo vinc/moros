@@ -84,7 +84,19 @@ impl Regex {
         let re: Vec<char> = self.0.chars().collect(); // UTF-32
         let mut start = 0;
         let mut end = 0;
-        if is_match(&re[..], &text[..], &mut start, &mut end) {
+        if find_first(&re[..], &text[..], &mut start, &mut end) {
+            Some((start, end))
+        } else {
+            None
+        }
+    }
+
+    pub fn rfind(&self, text: &str) -> Option<(usize, usize)> {
+        let text: Vec<char> = text.chars().collect(); // UTF-32
+        let re: Vec<char> = self.0.chars().collect(); // UTF-32
+        let mut start = 0;
+        let mut end = 0;
+        if find_last(&re[..], &text[..], &mut start, &mut end) {
             Some((start, end))
         } else {
             None
@@ -116,7 +128,7 @@ impl Regex {
     }
 }
 
-fn is_match(
+fn find_first(
     re: &[char],
     text: &[char],
     start: &mut usize,
@@ -127,14 +139,14 @@ fn is_match(
     }
     if re[0] == '^' {
         *end = 1;
-        return is_match_here(&re[1..], text, end);
+        return match_here(&re[1..], text, end);
     }
-    let mut i = 0;
     let n = text.len();
+    let mut i = 0;
     loop {
         *start = i;
         *end = i;
-        if is_match_here(re, &text[i..], end) {
+        if match_here(re, &text[i..], end) {
             return true;
         }
         if i == n {
@@ -144,7 +156,42 @@ fn is_match(
     }
 }
 
-fn is_match_here(
+fn find_last(
+    re: &[char],
+    text: &[char],
+    start: &mut usize,
+    end: &mut usize,
+) -> bool {
+    if re.is_empty() {
+        return true;
+    }
+    if re[0] == '^' {
+        *end = 1;
+        return match_here(&re[1..], text, end);
+    }
+    let n = text.len();
+    let mut i = 0;
+    let mut found = false;
+    let mut old_end = 0;
+    loop {
+        let mut new_end = i;
+        if match_here(re, &text[i..], &mut new_end) {
+            if !found || i >= old_end {
+                *start = i;
+                *end = new_end;
+                found = true;
+            }
+            old_end = new_end;
+        }
+        if i == n {
+            break;
+        }
+        i += 1;
+    }
+    found
+}
+
+fn match_here(
     re: &[char],
     text: &[char],
     end: &mut usize,
@@ -165,51 +212,51 @@ fn is_match_here(
         let j = if lazy { i + 3 } else { i + 2 };
 
         match re[i + 1] {
-            '*' => return is_match_star(lazy, mc, &re[j..], text, end),
-            '+' => return is_match_plus(lazy, mc, &re[j..], text, end),
-            '?' => return is_match_ques(lazy, mc, &re[j..], text, end),
+            '*' => return match_star(lazy, mc, &re[j..], text, end),
+            '+' => return match_plus(lazy, mc, &re[j..], text, end),
+            '?' => return match_ques(lazy, mc, &re[j..], text, end),
             _ => {}
         }
     }
     if !text.is_empty() && mc.contains(text[0]) {
         *end += 1;
         let j = i + 1;
-        return is_match_here(&re[j..], &text[1..], end);
+        return match_here(&re[j..], &text[1..], end);
     }
     false
 }
 
-fn is_match_star(
+fn match_star(
     lazy: bool,
     mc: MetaChar,
     re: &[char],
     text: &[char],
     end: &mut usize,
 ) -> bool {
-    is_match_char(lazy, mc, re, text, .., end)
+    match_char(lazy, mc, re, text, .., end)
 }
 
-fn is_match_plus(
+fn match_plus(
     lazy: bool,
     mc: MetaChar,
     re: &[char],
     text: &[char],
     end: &mut usize,
 ) -> bool {
-    is_match_char(lazy, mc, re, text, 1.., end)
+    match_char(lazy, mc, re, text, 1.., end)
 }
 
-fn is_match_ques(
+fn match_ques(
     lazy: bool,
     mc: MetaChar,
     re: &[char],
     text: &[char],
     end: &mut usize,
 ) -> bool {
-    is_match_char(lazy, mc, re, text, ..2, end)
+    match_char(lazy, mc, re, text, ..2, end)
 }
 
-fn is_match_char<T: RangeBounds<usize>>(
+fn match_char<T: RangeBounds<usize>>(
     lazy: bool,
     mc: MetaChar,
     re: &[char],
@@ -230,7 +277,7 @@ fn is_match_char<T: RangeBounds<usize>>(
     }
 
     loop {
-        if is_match_here(re, &text[i..], end) && range.contains(&i) {
+        if match_here(re, &text[i..], end) && range.contains(&i) {
             *end += i;
             return true;
         }
@@ -346,6 +393,24 @@ fn test_regex_find() {
     assert_eq!(Regex::new("a\\w*d").find("abcdabcd"), Some((0, 8)));
     assert_eq!(Regex::new("a\\w*?d").find("abcdabcd"), Some((0, 4)));
     assert_eq!(Regex::new("\\$\\w+").find("test $test test"), Some((5, 10)));
+}
+
+#[test_case]
+fn test_regex_rfind() {
+    assert_eq!(Regex::new(".*").rfind("abcd"), Some((4, 4)));
+    assert_eq!(Regex::new("b.*c").rfind("aaabbbcccddd"), Some((3, 9)));
+    assert_eq!(Regex::new("b.*?c").rfind("aaabbbcccddd"), Some((3, 7)));
+    assert_eq!(Regex::new("a\\w*d").rfind("abcdabcd"), Some((0, 8)));
+    assert_eq!(Regex::new("a\\w*?d").rfind("abcdabcd"), Some((4, 8)));
+    assert_eq!(Regex::new("\\$\\w+").rfind("test $test test"), Some((5, 10)));
+    assert_eq!(Regex::new("\\w+").rfind("this is a line"), Some((10, 14)));
+    assert_eq!(Regex::new("\\w+").rfind("this "), Some((0, 4)));
+    assert_eq!(Regex::new("\\w+").rfind("this is"), Some((5, 7)));
+    assert_eq!(Regex::new("\\w+").rfind(" test"), Some((1, 5)));
+    assert_eq!(Regex::new("\\w+").rfind(""), None);
+    assert_eq!(Regex::new("\\w+").rfind("   "), None);
+    assert_eq!(Regex::new("a").rfind("aaa"), Some((2, 3)));
+    assert_eq!(Regex::new("ab").rfind("ababab"), Some((4, 6)));
 }
 
 #[test_case]
