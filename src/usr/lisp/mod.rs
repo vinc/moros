@@ -467,10 +467,16 @@ fn test_lisp() {
     // head
     assert_eq!(eval!("(head (quote (1)))"), "1");
     assert_eq!(eval!("(head (quote (1 2 3)))"), "1");
+    assert_eq!(eval!("(head \"abcd\")"), "\"a\"");
+    assert_eq!(eval!("(head (list 1 2 3))"), "1");
+    assert_eq!(eval!("(head (dict \"a\" 1 \"b\" 2))"), "(\"a\" 1)");
 
     // tail
     assert_eq!(eval!("(tail (quote (1)))"), "()");
     assert_eq!(eval!("(tail (quote (1 2 3)))"), "(2 3)");
+    assert_eq!(eval!("(tail \"abcd\")"), "\"bcd\"");
+    assert_eq!(eval!("(tail (list 1 2 3))"), "(2 3)");
+    assert_eq!(eval!("(tail (dict \"a\" 1 \"b\" 2))"), "(dict \"b\" 2)");
 
     // cons
     assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
@@ -725,6 +731,12 @@ fn test_lisp() {
         eval!("(dict \"a\" 1 \"b\" 2 \"c\" 3)"),
         "(dict \"a\" 1 \"b\" 2 \"c\" 3)"
     );
+
+    // length
+    assert_eq!(eval!("(length (list))"), "0");
+    assert_eq!(eval!("(length (dict))"), "0");
+    assert_eq!(eval!("(length (list 1 2 3))"), "3");
+    assert_eq!(eval!("(length (dict 1 1 2 2 3 3))"), "3");
 
     // get
     assert_eq!(eval!("(get \"Hello\" 0)"), "\"H\"");
