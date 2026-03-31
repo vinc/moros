@@ -185,25 +185,37 @@ impl Dir {
         ))
     }
 
-    // FIXME: Deleting an entry is done by setting the entry address to 0
-    // TODO: If the entry is a directory, remove its entries recursively
+    // NOTE: Directories must be empty before deletion
     pub fn delete_entry(&mut self, name: &str) -> Result<(), ()> {
         let mut entries = self.entries();
-        for entry in &mut entries {
+        let mut last_block_addr = 0;
+        let mut this_block_addr = 0;
+        while let Some(entry) = entries.next() {
+            if entries.block.addr() != this_block_addr {
+                last_block_addr = this_block_addr;
+                this_block_addr = entries.block.addr();
+            }
             if entry.name() == name {
                 let i = entries.block_offset() - entry.len();
                 let j = entries.block.len() - entry.len();
                 let reminder = entries.block_offset()..entries.block.len();
                 let data = entries.block.data_mut();
 
-                // Shift the reminder of the block
+                // Shift the reminder of the block over this entry
                 data.copy_within(reminder, i);
 
-                // Clear the unused end
+                // Clear the unused end of the block
                 data[j..].fill(0);
 
                 entries.block.write();
-                self.update_size();
+
+                // Free empty dir block (except the first one)
+                if entries.block.is_empty() && last_block_addr != 0 {
+                    let mut prev_block = LinkedBlock::read(last_block_addr);
+                    prev_block.set_next_addr(entries.block.next_addr());
+                    prev_block.write();
+                    BitmapBlock::free(entries.block.addr());
+                }
 
                 // Free entry blocks
                 let mut free_block = LinkedBlock::read(entry.addr());
@@ -214,9 +226,13 @@ impl Dir {
                         None => break,
                     }
                 }
+
+                self.update_size();
+
                 return Ok(());
             }
         }
+
         Err(())
     }
 
