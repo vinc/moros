@@ -419,6 +419,18 @@ impl Editor {
                 'B' if csi => { // Arrow Down
                     self.handle_arrow_down();
                 }
+                'C' if csi && csi_params == "1;3" => { // Alt + Arrow Right
+                    self.handle_ctrl_arrow_right();
+                }
+                'D' if csi && csi_params == "1;3" => { // Alt + Arrow Left
+                    self.handle_ctrl_arrow_left();
+                }
+                'C' if csi && csi_params == "1;5" => { // Ctrl + Arrow Right
+                    self.handle_ctrl_arrow_right();
+                }
+                'D' if csi && csi_params == "1;5" => { // Ctrl + Arrow Left
+                    self.handle_ctrl_arrow_left();
+                }
                 'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     let x = self.cursor.x + self.offset.x;
@@ -504,6 +516,10 @@ impl Editor {
                 }
                 '\x0E' => { // Ctrl + N -> Find next
                     self.find_next();
+                    self.print_screen();
+                }
+                'N' if csi && csi_params == "1;6" => { // Ctrl + Shift + N
+                    self.find_prev();
                     self.print_screen();
                 }
                 '\x0F' => { // Ctrl + O -> Open buffer
@@ -696,6 +712,22 @@ impl Editor {
         }
     }
 
+    fn handle_ctrl_arrow_right(&mut self) {
+        let tmp = self.search_query.clone();
+        self.search_query = "\\w+".to_string();
+        self.find_next();
+        self.print_screen();
+        self.search_query = tmp;
+    }
+
+    fn handle_ctrl_arrow_left(&mut self) {
+        let tmp = self.search_query.clone();
+        self.search_query = "\\w+".to_string();
+        self.find_prev();
+        self.print_screen();
+        self.search_query = tmp;
+    }
+
     fn cut_line(&mut self) {
         let i = self.offset.y + self.cursor.y;
         self.clipboard = Some(self.lines.remove(i));
@@ -842,18 +874,52 @@ impl Editor {
     }
 
     pub fn find_next(&mut self) {
+        let re = Regex::new(&self.search_query);
         let dx = self.offset.x + self.cursor.x;
         let dy = self.offset.y + self.cursor.y;
         for (y, line) in self.lines.iter().enumerate() {
-            let mut o = 0;
+            let mut j = 0;
             if y < dy {
                 continue;
             }
             if y == dy {
-                o = cmp::min(dx + 1, line.len());
+                j = cmp::min(dx, line.len());
+                if let Some((i, end)) = re.find(&line[j..]) {
+                    if i == 0 {
+                        j += end; // Skip past current match
+                    }
+                }
             }
-            if let Some(i) = line[o..].find(&self.search_query) {
-                let x = o + i;
+            if let Some((i, _)) = re.find(&line[j..]) {
+                let x = j + i;
+                self.cursor.x = x % cols();
+                self.cursor.y = y % rows();
+                self.offset.x = x - self.cursor.x;
+                self.offset.y = y - self.cursor.y;
+                break;
+            }
+        }
+    }
+
+    pub fn find_prev(&mut self) {
+        let re = Regex::new(&self.search_query);
+        let dx = self.offset.x + self.cursor.x;
+        let dy = self.offset.y + self.cursor.y;
+        for (y, line) in self.lines.iter().enumerate().rev() {
+            let mut j = line.len();
+            if y > dy {
+                continue;
+            }
+            if y == dy {
+                j = cmp::min(dx, line.len());
+                if let Some((i, end)) = re.find(&line[..j]) {
+                    if end == j {
+                        j = i;
+                    }
+                }
+            }
+            if let Some((i, _)) = re.rfind(&line[..j]) {
+                let x = i;
                 self.cursor.x = x % cols();
                 self.cursor.y = y % rows();
                 self.offset.x = x - self.cursor.x;
