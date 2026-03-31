@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Reuse deleted dir entries (#820)
 - Add draw command (#790)
 - Add functions to dict module in lisp (#797)
 - Bump smoltcp from 0.12.0 to 0.13.0 (#815)
