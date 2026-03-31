@@ -11,6 +11,7 @@ pub struct ReadDir {
     pub dir: Dir,
     pub block: LinkedBlock,
     pub block_offset: usize,
+    pub skip_unused: bool,
     block_index: usize,
 }
 
@@ -21,6 +22,7 @@ impl From<Dir> for ReadDir {
             block: LinkedBlock::read(dir.addr()),
             block_offset: 0,
             block_index: 0,
+            skip_unused: true,
         }
     }
 }
@@ -83,27 +85,35 @@ impl Iterator for ReadDir {
                     0 => FileType::Dir,
                     1 => FileType::File,
                     2 => FileType::Device,
-                    _ => {
+                    _ => { // Invalid file type
                         self.block_offset = offset; // Rewind the cursor
                         break;
                     }
                 };
 
-                let entry_addr = self.read_u32();
-                let entry_size = self.read_u32();
-                let entry_time = self.read_u64();
-
-                let n = self.read_u8() as usize;
-                if n == 0 || n >= self.block.len() - self.block_offset {
-                    self.block_offset = offset; // Rewind the cursor
-                    break;
+                let mut entry_addr = self.read_u32();
+                let mut entry_size = self.read_u32();
+                let mut entry_time = self.read_u64();
+                let mut n = self.read_u8() as usize;
+                let remaining = self.block.len() - self.block_offset;
+                if n == 0 || n >= remaining {
+                    if self.skip_unused {
+                        self.block_offset = offset; // Rewind the cursor
+                        break;
+                    }
+                    // Mark the end of the block as a virtual unused entry
+                    // that can be reused for a new entry
+                    entry_addr = 0;
+                    entry_size = (remaining + DirEntry::empty_len()) as u32;
+                    entry_time = 0;
+                    n = 0;
                 }
 
                 // The rest of the entry is the filename string
                 let entry_name = self.read_utf8_lossy(n);
 
                 // Skip deleted entries
-                if entry_addr == 0 {
+                if entry_addr == 0 && self.skip_unused {
                     continue;
                 }
 
