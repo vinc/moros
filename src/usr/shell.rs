@@ -10,6 +10,7 @@ use crate::{api, sys, usr};
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
@@ -659,6 +660,33 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
 pub fn exec(cmd: &str) -> Result<(), ExitCode> {
     let mut config = Config::new();
     exec_with_config(cmd, &mut config)
+}
+
+pub fn exec_to_bytes(cmd: &str) -> Result<Vec<u8>, ExitCode> {
+    let pipe = "/dev/pipe";
+    let stdout = 1;
+    if let Some(info) = syscall::info(pipe) {
+        if info.is_device() {
+            if let Some(handle) = api::fs::open_device(pipe) {
+                syscall::dup(handle, stdout).ok();
+                exec(cmd);
+                api::fs::reopen("/dev/console", stdout, false).ok();
+                let n = info.size() as usize;
+                let mut buf = vec![0; n];
+                let mut res = Vec::new();
+                while let Some(bytes) = syscall::read(handle, &mut buf) {
+                    if bytes == 0 {
+                        break;
+                    }
+                    res.extend_from_slice(&buf[..bytes]);
+                }
+                syscall::close(handle);
+                return Ok(res);
+            }
+        }
+    }
+    error!("Could not open pipe");
+    Err(ExitCode::Failure)
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
