@@ -680,7 +680,7 @@ pub fn exec_to_bytes(cmd: &str) -> Result<Vec<u8>, ExitCode> {
         if info.is_device() {
             if let Some(handle) = api::fs::open_device(pipe) {
                 syscall::dup(handle, stdout).ok();
-                exec(cmd);
+                exec(cmd)?;
                 api::fs::reopen("/dev/console", stdout, false).ok();
                 let n = info.size() as usize;
                 let mut buf = vec![0; n];
