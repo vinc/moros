@@ -1,12 +1,16 @@
-pub mod number;
+pub mod codes;
 pub mod service;
 
 use crate::api::process::ExitCode;
 use crate::sys;
 use crate::sys::fs::FileInfo;
+// use crate::sys::net::usage; Unused import
+use crate::sys::syscall::codes::SyscallCode;
 
+use core::convert::TryFrom;
 use core::arch::asm;
 use core::convert::TryInto;
+use core::usize;
 use smoltcp::wire::IpAddress;
 use smoltcp::wire::Ipv4Address;
 
@@ -18,43 +22,47 @@ fn utf8_from_raw_parts(ptr: *mut u8, len: usize) -> &'static str {
 }
 
 pub fn dispatcher(
-    n: usize,
+    syscall_code: usize,
     arg1: usize,
     arg2: usize,
     arg3: usize,
     arg4: usize
 ) -> usize {
-    match n {
-        number::EXIT => service::exit(ExitCode::from(arg1)) as usize,
-        number::SLEEP => {
+    let code = match SyscallCode::try_from(syscall_code) {
+        Ok(c) => c,
+        Err(_) => unimplemented!()
+    };
+    match code {
+        SyscallCode::Exit => service::exit(ExitCode::from(arg1)) as usize,
+        SyscallCode::Sleep => {
             service::sleep(f64::from_bits(arg1 as u64));
             0
         }
-        number::DELETE => {
+        SyscallCode::Delete => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
             let path = utf8_from_raw_parts(ptr, len);
             service::delete(path) as usize
         }
-        number::INFO => {
+        SyscallCode::Info => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
             let path = utf8_from_raw_parts(ptr, len);
             let info = unsafe { &mut *(arg3 as *mut FileInfo) };
             service::info(path, info) as usize
         }
-        number::KIND => {
+        SyscallCode::Kind => {
             let handle = arg1;
             service::kind(handle) as usize
         }
-        number::OPEN => {
+        SyscallCode::Open => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64);
             let len = arg2;
             let path = utf8_from_raw_parts(ptr, len);
             let flags = arg3 as u8;
             service::open(path, flags) as usize
         }
-        number::READ => {
+        SyscallCode::Read => {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
@@ -63,7 +71,7 @@ pub fn dispatcher(
             };
             service::read(handle, buf) as usize
         }
-        number::WRITE => {
+        SyscallCode::Write => {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
@@ -72,17 +80,17 @@ pub fn dispatcher(
             };
             service::write(handle, buf) as usize
         }
-        number::CLOSE => {
+        SyscallCode::Close => {
             let handle = arg1;
             service::close(handle);
             0
         }
-        number::DUP => {
+        SyscallCode::Dup => {
             let old_handle = arg1;
             let new_handle = arg2;
             service::dup(old_handle, new_handle) as usize
         }
-        number::SPAWN => {
+        SyscallCode::Spawn => {
             let path_ptr = sys::process::ptr_from_addr(arg1 as u64);
             let path_len = arg2;
             let path = utf8_from_raw_parts(path_ptr, path_len);
@@ -90,17 +98,17 @@ pub fn dispatcher(
             let args_len = arg4;
             service::spawn(path, args_ptr, args_len) as usize
         }
-        number::STOP => {
+        SyscallCode::Stop => {
             let code = arg1;
             service::stop(code)
         }
-        number::POLL => {
+        SyscallCode::Poll => {
             let ptr = sys::process::ptr_from_addr(arg1 as u64) as *const _;
             let len = arg2;
             let list = unsafe { core::slice::from_raw_parts(ptr, len) };
             service::poll(list) as usize
         }
-        number::CONNECT => {
+        SyscallCode::Connect => {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
@@ -113,12 +121,12 @@ pub fn dispatcher(
                 -1 as isize as usize
             }
         }
-        number::LISTEN => {
+        SyscallCode::Listen => {
             let handle = arg1;
             let port = arg2 as u16;
             service::listen(handle, port) as usize
         }
-        number::ACCEPT => {
+        SyscallCode::Accept => {
             let handle = arg1;
             let ptr = sys::process::ptr_from_addr(arg2 as u64);
             let len = arg3;
@@ -130,12 +138,12 @@ pub fn dispatcher(
                 -1 as isize as usize
             }
         }
-        number::ALLOC => {
+        SyscallCode::Alloc => {
             let size = arg1;
             let align = arg2;
             service::alloc(size, align) as usize
         }
-        number::FREE => {
+        SyscallCode::Free => {
             let ptr = arg1 as *mut u8;
             let size = arg2;
             let align = arg3;
@@ -144,27 +152,24 @@ pub fn dispatcher(
             }
             0
         }
-        _ => {
-            unimplemented!();
-        }
     }
 }
 
 #[doc(hidden)]
-pub unsafe fn syscall0(n: usize) -> usize {
+pub unsafe fn syscall0(syscall_code: usize) -> usize {
     let res: usize;
     asm!(
-        "int 0x80", in("rax") n,
+        "int 0x80", in("rax") syscall_code,
         lateout("rax") res
     );
     res
 }
 
 #[doc(hidden)]
-pub unsafe fn syscall1(n: usize, arg1: usize) -> usize {
+pub unsafe fn syscall1(syscall_code: usize, arg1: usize) -> usize {
     let res: usize;
     asm!(
-        "int 0x80", in("rax") n,
+        "int 0x80", in("rax") syscall_code,
         in("rdi") arg1,
         lateout("rax") res
     );
@@ -172,10 +177,10 @@ pub unsafe fn syscall1(n: usize, arg1: usize) -> usize {
 }
 
 #[doc(hidden)]
-pub unsafe fn syscall2(n: usize, arg1: usize, arg2: usize) -> usize {
+pub unsafe fn syscall2(syscall_code: usize, arg1: usize, arg2: usize) -> usize {
     let res: usize;
     asm!(
-        "int 0x80", in("rax") n,
+        "int 0x80", in("rax") syscall_code,
         in("rdi") arg1, in("rsi") arg2,
         lateout("rax") res
     );

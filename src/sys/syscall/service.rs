@@ -6,6 +6,7 @@ use crate::sys::fs::FileInfo;
 use crate::sys::fs::Resource;
 use crate::sys::process::Process;
 
+use alloc::string::ToString;
 use alloc::vec;
 use core::alloc::Layout;
 use smoltcp::wire::IpAddress;
@@ -32,7 +33,7 @@ pub fn info(path: &str, info: &mut FileInfo) -> isize {
         Ok(path) => path,
         Err(_) => return -1,
     };
-    if let Some(res) = sys::fs::info(&path) {
+    if let Some(res) = sys::fs::info(&path.as_str()) {
         *info = res;
         0
     } else {
@@ -53,7 +54,7 @@ pub fn open(path: &str, flags: u8) -> isize {
         Ok(path) => path,
         Err(_) => return -1,
     };
-    if let Some(resource) = sys::fs::open(&path, flags) {
+    if let Some(resource) = sys::fs::open(&path.as_str(), flags) {
         if let Ok(handle) = sys::process::create_handle(resource) {
             return handle as isize;
         }
@@ -101,11 +102,11 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
         Ok(path) => path,
         Err(_) => return ExitCode::OpenError,
     };
-    if let Some(mut file) = sys::fs::File::open(&path) {
-        let mut buf = vec![0; file.size()];
-        if let Ok(bytes) = file.read(&mut buf) {
+    if let Some(mut file) = sys::fs::File::open(&path.as_str()) {
+        let mut buf: vec::Vec<u8> = vec![0; file.size()];
+        if let Ok(bytes) = file.read(&mut buf[..]) {
             buf.resize(bytes, 0);
-            if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
+            if let Err(code) = Process::spawn(&buf[..], args_ptr, args_len) {
                 code
             } else {
                 unreachable!(); // The kernel switched to the child process
