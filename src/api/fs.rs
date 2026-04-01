@@ -176,6 +176,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "vga-palette" => Ok(DeviceType::VgaPalette),
         "speaker"     => Ok(DeviceType::Speaker),
         "ata"         => Ok(DeviceType::Drive),
+        "pipe"        => Ok(DeviceType::Pipe),
         _             => Err(()),
     }
 }

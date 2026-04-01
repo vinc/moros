@@ -1,6 +1,7 @@
 use super::block::LinkedBlock;
 use super::dir::Dir;
 use super::file::File;
+use super::pipe::Pipe;
 use super::{dirname, filename, realpath, FileIO, IO};
 
 use crate::sys::ata::Drive;
@@ -43,6 +44,7 @@ pub enum DeviceType {
     NetIp      = 16,
     NetMac     = 17,
     NetUsage   = 18,
+    Pipe       = 19,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -69,6 +71,7 @@ impl TryFrom<&[u8]> for DeviceType {
             16 => Ok(DeviceType::NetIp),
             17 => Ok(DeviceType::NetMac),
             18 => Ok(DeviceType::NetUsage),
+            19 => Ok(DeviceType::Pipe),
              _ => Err(()),
         }
     }
@@ -94,6 +97,7 @@ impl DeviceType {
             DeviceType::NetIp      => NetIp::size(),
             DeviceType::NetMac     => NetMac::size(),
             DeviceType::NetUsage   => NetUsage::size(),
+            DeviceType::Pipe       => Pipe::size(),
             _                      => 1,
         };
         let mut res = vec![0; len];
@@ -123,6 +127,7 @@ pub enum Device {
     NetIp(NetIp),
     NetMac(NetMac),
     NetUsage(NetUsage),
+    Pipe(Pipe),
 }
 
 impl TryFrom<&[u8]> for Device {
@@ -148,6 +153,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::NetIp      => Ok(Device::NetIp(NetIp::new())),
             DeviceType::NetMac     => Ok(Device::NetMac(NetMac::new())),
             DeviceType::NetUsage   => Ok(Device::NetUsage(NetUsage::new())),
+            DeviceType::Pipe       => Ok(Device::Pipe(Pipe::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -216,6 +222,7 @@ impl FileIO for Device {
             Device::NetIp(io)      => io.read(buf),
             Device::NetMac(io)     => io.read(buf),
             Device::NetUsage(io)   => io.read(buf),
+            Device::Pipe(io)       => io.read(buf),
         }
     }
 
@@ -240,6 +247,7 @@ impl FileIO for Device {
             Device::NetIp(io)      => io.write(buf),
             Device::NetMac(io)     => io.write(buf),
             Device::NetUsage(io)   => io.write(buf),
+            Device::Pipe(io)       => io.write(buf),
         }
     }
 
@@ -264,6 +272,7 @@ impl FileIO for Device {
             Device::NetIp(io)      => io.close(),
             Device::NetMac(io)     => io.close(),
             Device::NetUsage(io)   => io.close(),
+            Device::Pipe(io)       => io.close(),
         }
     }
 
@@ -288,6 +297,7 @@ impl FileIO for Device {
             Device::NetIp(io)      => io.poll(event),
             Device::NetMac(io)     => io.poll(event),
             Device::NetUsage(io)   => io.poll(event),
+            Device::Pipe(io)       => io.poll(event),
         }
     }
 }

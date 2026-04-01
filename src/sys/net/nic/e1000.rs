@@ -1,7 +1,6 @@
 use crate::sys;
 use crate::sys::mem::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
-use spin::Mutex;
 
 use alloc::slice;
 use alloc::sync::Arc;
@@ -10,6 +9,7 @@ use bit_field::BitField;
 use core::ptr;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
+use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
