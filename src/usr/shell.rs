@@ -262,17 +262,28 @@ fn tilde_expansion(arg: &str) -> String {
 fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     let mut cmd = cmd.to_string();
 
-    // Special cases for none alphanum (\w) variables
+    // Special cases for non alphanum (\w) variables
     cmd = cmd.replace("$?", "$status");
     cmd = cmd.replace("$*", "$1 $2 $3 $4 $5 $6 $7 $8 $9");
 
     // Replace alphanum `$key` with its value in the environment
-    // or an empty string.
+    // or an empty string
     let re = Regex::new("\\$\\w+");
     while let Some((a, b)) = re.find(&cmd) {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
         let val = config.env.get(&key).map_or("", String::as_str);
         cmd = cmd.replace(&format!("${}", key), val);
+    }
+
+    // Replace `$(command)` with its captured output
+    let re = Regex::new("\\$(.*?)");
+    while let Some((a, b)) = re.find(&cmd) {
+        let sub: String = cmd.drain(a..b).skip(2).take(b - a - 3).collect();
+        if let Ok(buf) = exec_to_bytes(&sub) {
+            if let Ok(txt) = String::from_utf8(buf) {
+                cmd.insert_str(a, txt.trim());
+            }
+        }
     }
 
     cmd
