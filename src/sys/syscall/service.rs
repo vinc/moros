@@ -204,3 +204,10 @@ pub unsafe fn free(ptr: *mut u8, size: usize, align: usize) {
         sys::process::free(ptr, layout);
     }
 }
+
+pub fn get_version() -> usize {
+    let major = 0; 
+    let minor = 12;
+    let patch = 0;
+    (major << 16) | (minor << 8) | patch
+}

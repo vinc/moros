@@ -151,6 +151,9 @@ pub fn dispatcher(
                 service::free(ptr, size, align);
             }
             0
+        },
+        SyscallCode::Version => {
+            service::get_version()
         }
     }
 }
