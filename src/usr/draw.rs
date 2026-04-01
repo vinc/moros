@@ -8,7 +8,7 @@ use crate::api::clock;
 use crate::sys::console;
 use crate::usr::shell;
 
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 use alloc::format;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -131,18 +131,20 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if refresh {
                     start = clock::epoch_time(); 
                     let out = if let Some(cmd) = command {
-                        let tmp = "/tmp/draw.tmp";
-                        let cmd = format!("{} => {}", cmd, tmp);
-                        if shell::exec(&cmd).is_err() {
+                        if let Ok(buf) = shell::exec_to_bytes(&cmd) {
+                            if let Ok(txt) = String::from_utf8(buf) {
+                                txt.trim().to_string()
+                            } else {
+                                config.text_mode();
+                                return Err(ExitCode::Failure);
+                            }
+                        } else {
                             config.text_mode();
                             return Err(ExitCode::Failure);
                         }
-                        let res = fs::read_to_string(tmp).unwrap();
-                        let _ = fs::delete(tmp);
-                        res.trim().to_string()
                     } else {
-                        if let Some(text) = text {
-                            text.to_string()
+                        if let Some(txt) = text {
+                            txt.to_string()
                         } else {
                             help();
                             return Err(ExitCode::UsageError);
