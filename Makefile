@@ -1,81 +1,3 @@
-# USAGE GUIDE:
-# Use 'make image' to build the OS disk.
-# Use 'make qemu' to run the emulator with default settings.
-# Use 'make qemu cpu=athlon64 memory=128 smp=1' to override settings.
-# Use 'make qemu kvm=true' for hardware acceleration (Linux only).
-# Use 'make clean' to remove build artifacts.
-
-.PHONY: setup image qemu clean user-nasm user-rust
-.EXPORT_ALL_VARIABLES:
-
-# Default Hardware Settings
-cpu     ?= Skylake-Client
-memory  ?= 512
-smp     ?= 4
-kvm     ?= false
-output  ?= video
-mode    ?= release
-nic     ?= rtl8139
-
-# Internal Paths
-bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
-img = disk.img
-
-# QEMU CPU Configuration
-ifeq ($(kvm),true)
-    QEMU_CPU = host -accel kvm
-else
-    QEMU_CPU = $(cpu)
-endif
-
-# MOROS Environment
-export MOROS_VERSION = $(shell git describe --tags 2>/dev/null || echo "0.0.0")
-export MOROS_KEYBOARD = qwerty
-
-setup:
-    curl https://rustup.rs -sSf | sh -s -- -y --default-toolchain none
-    rustup show
-    cargo install bootimage
-
-user-nasm:
-    @mkdir -p dsk/bin
-    basename -s .s dsk/src/bin/*.s | xargs -I {} \
-        nasm dsk/src/bin/{}.s -o dsk/bin/{}.tmp
-    basename -s .s dsk/src/bin/*.s | xargs -I {} \
-        sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
-    rm -f dsk/bin/*.tmp
-
-user-rust:
-    @mkdir -p dsk/bin
-    basename -s .rs src/bin/*.rs | xargs -I {} \
-        cargo rustc --no-default-features --features userspace --release --bin {} \
-        -- -C linker-flavor=ld -C link-args="-Ttext=0x800000"
-    basename -s .rs src/bin/*.rs | xargs -I {} \
-        cp target/x86_64-moros/release/{} dsk/bin/{}
-
-image: $(img)
-    touch src/lib.rs
-    cargo bootimage --no-default-features --features $(output) --bin moros $(if $(filter release,$(mode)),--release,)
-    dd conv=notrunc if=$(bin) of=$(img)
-
-$(img):
-    qemu-img create $(img) 32M
-
-qemu:
-    qemu-system-x86_64 \
-        -name "MOROS v$(MOROS_VERSION)" \
-        -cpu $(QEMU_CPU) \
-        -m $(memory) \
-        -smp $(smp) \
-        -drive file=$(img),format=raw \
-        -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0 \
-        $(if $(filter serial,$(output)),-display none -serial stdio,) \
-        $(if $(filter debug,$(mode)),-s -S,)
-
-clean:
-    cargo clean
-    rm -f $(img)
-    rm -rf dsk/bin/*
 # =============================================================================
 # MOROS MAKEFILE USAGE GUIDE
 # =============================================================================
@@ -107,7 +29,7 @@ clean:
 .EXPORT_ALL_VARIABLES:
 
 # Default Hardware Settings
-cpu     ?= Skylake-Client
+cpu     ?= core2duo
 memory  ?= 512
 smp     ?= 4
 kvm     ?= false
@@ -121,9 +43,9 @@ img = disk.img
 
 # QEMU CPU Configuration
 ifeq ($(kvm),true)
-    QEMU_CPU = host -accel kvm
+	QEMU_CPU = host -accel kvm
 else
-    QEMU_CPU = $(cpu)
+	QEMU_CPU = $(cpu)
 endif
 
 # MOROS Environment
@@ -131,46 +53,46 @@ export MOROS_VERSION = $(shell git describe --tags 2>/dev/null || echo "0.0.0")
 export MOROS_KEYBOARD = qwerty
 
 setup:
-    curl https://rustup.rs -sSf | sh -s -- -y --default-toolchain none
-    rustup show
-    cargo install bootimage
+	curl https://rustup.rs -sSf | sh -s -- -y --default-toolchain none
+	rustup show
+	cargo install bootimage
 
 user-nasm:
-    @mkdir -p dsk/bin
-    basename -s .s dsk/src/bin/*.s | xargs -I {} \
-        nasm dsk/src/bin/{}.s -o dsk/bin/{}.tmp
-    basename -s .s dsk/src/bin/*.s | xargs -I {} \
-        sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
-    rm -f dsk/bin/*.tmp
+	@mkdir -p dsk/bin
+	basename -s .s dsk/src/bin/*.s | xargs -I {} \
+		nasm dsk/src/bin/{}.s -o dsk/bin/{}.tmp
+	basename -s .s dsk/src/bin/*.s | xargs -I {} \
+		sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
+	rm -f dsk/bin/*.tmp
 
 user-rust:
-    @mkdir -p dsk/bin
-    basename -s .rs src/bin/*.rs | xargs -I {} \
-        cargo rustc --no-default-features --features userspace --release --bin {} \
-        -- -C linker-flavor=ld -C link-args="-Ttext=0x800000"
-    basename -s .rs src/bin/*.rs | xargs -I {} \
-        cp target/x86_64-moros/release/{} dsk/bin/{}
+	@mkdir -p dsk/bin
+	basename -s .rs src/bin/*.rs | xargs -I {} \
+		cargo rustc --no-default-features --features userspace --release --bin {} \
+		-- -C linker-flavor=ld -C link-args="-Ttext=0x800000"
+	basename -s .rs src/bin/*.rs | xargs -I {} \
+		cp target/x86_64-moros/release/{} dsk/bin/{}
 
 image: $(img)
-    touch src/lib.rs
-    cargo bootimage --no-default-features --features $(output) --bin moros $(if $(filter release,$(mode)),--release,)
-    dd conv=notrunc if=$(bin) of=$(img)
+	touch src/lib.rs
+	cargo bootimage --no-default-features --features $(output) --bin moros $(if $(filter release,$(mode)),--release,)
+	dd conv=notrunc if=$(bin) of=$(img)
 
 $(img):
-    qemu-img create $(img) 32M
+	qemu-img create $(img) 32M
 
 qemu:
-    qemu-system-x86_64 \
-        -name "MOROS v$(MOROS_VERSION)" \
-        -cpu $(QEMU_CPU) \
-        -m $(memory) \
-        -smp $(smp) \
-        -drive file=$(img),format=raw \
-        -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0 \
-        $(if $(filter serial,$(output)),-display none -serial stdio,) \
-        $(if $(filter debug,$(mode)),-s -S,)
+	qemu-system-x86_64 \
+		-name "MOROS v$(MOROS_VERSION)" \
+		-cpu $(QEMU_CPU) \
+		-m $(memory) \
+		-smp $(smp) \
+		-drive file=$(img),format=raw \
+		-netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0 \
+		$(if $(filter serial,$(output)),-display none -serial stdio,) \
+		$(if $(filter debug,$(mode)),-s -S,)
 
 clean:
-    cargo clean
-    rm -f $(img)
-    rm -rf dsk/bin/*
+	cargo clean
+	rm -f $(img)
+	rm -rf dsk/bin/*
