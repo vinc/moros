@@ -283,6 +283,29 @@ enum FileType {
     Device = 2,
 }
 ```
+## VERSION (0x13)
+```
+fn get_version() -> usize
+```
+Return a packed version ID.
+
+## CREATE_DIR (0x14)
+
+```
+fn create_dir(path: &str) -> Result<(), ()>
+```
+Create a new directory at the specified path.
+
+The raw syscall takes a pointer to the path string in RDI and its length in RSI. It returns 0 on success and usize::MAX (-1) on failure, for example, if the parent directory does not exist or the path is already taken.
+
+## FILE_LIST (0x15)
+```
+fn file_list(path: &str, buf: *mut u8, max_count: usize) -> usize
+```
+Fill a userspace buffer with a list of file names from the specified directory.
+
+The raw syscall takes a pointer to the directory path string in RDI and its length in RSI. It also takes a pointer to a destination buffer in RDX and the maximum number of entries in R10. Each file name is written as a 64-byte null-terminated string. The syscall returns the number of entries actually written to the buffer.
+
 
 The raw syscall returns a `isize` that will be converted a `FileType` if the
 number is positive.

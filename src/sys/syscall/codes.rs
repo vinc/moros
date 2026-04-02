@@ -21,7 +21,9 @@ pub enum SyscallCode {
     Alloc       = 0x10,
     Free        = 0x11,
     Kind        = 0x12,
-    Version = 0x13
+    Version     = 0x13,
+    CreateDir   = 0x14,
+    FileList    = 0x15,
 }
 
 impl TryFrom<usize> for SyscallCode {

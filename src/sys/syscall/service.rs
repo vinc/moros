@@ -1,12 +1,9 @@
 use crate::api::fs::{FileIO, IO};
-use crate::api::process::ExitCode;
-use crate::sys;
-use crate::sys::fs::Device;
-use crate::sys::fs::FileInfo;
-use crate::sys::fs::Resource;
+use crate::api::process::{ExitCode};
 use crate::sys::process::Process;
+use crate::sys::fs::{Device, FileInfo, Resource,Dir ,filename, dirname, realpath};
+use crate::sys;
 
-use alloc::string::ToString;
 use alloc::vec;
 use core::alloc::Layout;
 use smoltcp::wire::IpAddress;
@@ -206,8 +203,47 @@ pub unsafe fn free(ptr: *mut u8, size: usize, align: usize) {
 }
 
 pub fn get_version() -> usize {
-    let major = 0; 
+    let major = 0;
     let minor = 12;
     let patch = 0;
-    (major << 16) | (minor << 8) | patch
+    let mini_patch = 1;
+
+    return (major << 24) | (minor << 16) | (patch << 8) | mini_patch;
+}
+
+pub fn create_dir(path: &str) -> isize {
+    let path = realpath(path);
+    let dirname = dirname(&path.as_str());
+    let filename = filename(&path.as_str());
+
+    if let Some(mut dir) = Dir::open(dirname) {
+        if dir.create_dir(filename).is_some() {
+            return 0;
+        }
+    }
+
+    -1
+}
+
+pub fn file_list(path: &str, out_ptr: *mut u8, max_count: usize) -> usize {
+    let mut count = 0;
+    let entry_size = 64;
+
+    if let Some(dir) = Dir::open(path) {
+        for entry in dir.entries() {
+            if count >= max_count { break; }
+
+            let name = entry.info().name();
+            let name_bytes = name.as_bytes();
+            let len = core::cmp::min(name_bytes.len(), entry_size - 1);
+
+            unsafe {
+                let slot_ptr = out_ptr.add(count * entry_size);
+                core::ptr::write_bytes(slot_ptr, 0, entry_size);
+                core::ptr::copy_nonoverlapping(name_bytes.as_ptr(), slot_ptr, len);
+            }
+            count += 1;
+        }
+    }
+    count
 }

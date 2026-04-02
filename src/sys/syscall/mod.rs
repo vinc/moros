@@ -155,6 +155,22 @@ pub fn dispatcher(
         SyscallCode::Version => {
             service::get_version()
         }
+        SyscallCode::CreateDir => {
+            let ptr = sys::process::ptr_from_addr(arg1 as u64) as *const u8;
+            let len = arg2;
+            let path = utf8_from_raw_parts(ptr as *mut u8, len);
+            service::create_dir(path) as usize
+        }
+        SyscallCode::FileList => {
+            let path_ptr = sys::process::ptr_from_addr(arg1 as u64) as *const u8;
+            let path_len = arg2;
+            let path = utf8_from_raw_parts(path_ptr as *mut u8, path_len);
+
+            let out_ptr = arg3 as *mut u8; 
+            let max_count = arg4;
+
+            service::file_list(path, out_ptr, max_count)
+        }
     }
 }
 
