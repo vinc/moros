@@ -155,6 +155,8 @@
 
 # Short aliases
 
+(var sh->str shell->string)
+(var sh->bin shell->binary)
 (var sh shell)
 (var $ shell)
 (var % rem)
