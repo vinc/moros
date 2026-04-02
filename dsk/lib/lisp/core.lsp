@@ -149,6 +149,10 @@
   (get ls
     (if (= (length ls) 0) 0 (- (length ls) 1))))
 
+(def (shell->string cmd)
+  "Returns the output of the command"
+  (string/trim (binary->string (shell->binary cmd))))
+
 # Short aliases
 
 (var sh shell)
