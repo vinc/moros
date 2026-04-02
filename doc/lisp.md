@@ -52,7 +52,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex/find`
-- `shell` (aliased to `sh`)
+- `shell` (aliased to `sh`) and `shell->binary` (aliased to `sh->bin`)
 - `date`, `sleep`
 - Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `rem` (aliased to `%`), `trunc`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
@@ -74,6 +74,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `not`, `and`, `or`
 - `set`, `let`
 - `string/join` (aliased to `str/join`), `lines`, `words`, `chars`
+- `shell->string` (aliased to `sh->str`)
 - `regex/match?`
 
 ### File Library
@@ -177,6 +178,8 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Add `shell->binary` function (aliased to `sh->bin`)
+- Add `shell->string` function (aliased to `sh->str`)
 - Add dict support to `head`, `tail`, `length`, `empty?`, and `map`
 - Add `push!` as the mutating counterpart of `push` for lists
 - Add `put!` as the mutating counterpart of `put` for dicts
