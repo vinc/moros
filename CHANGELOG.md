@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix potential deadlocks (#824)
 - Reuse deleted dir entries (#820)
 - Improve editor search (#817)
 - Add draw command (#790)
