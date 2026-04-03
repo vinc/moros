@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add pipe device file (#822)
 - Fix potential deadlocks (#824)
 - Reuse deleted dir entries (#820)
 - Improve editor search (#817)
