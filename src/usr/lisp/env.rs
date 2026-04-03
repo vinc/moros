@@ -112,6 +112,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_shell),
     );
     data.insert(
+        "shell->binary".to_string(),
+        Exp::Primitive(primitive::lisp_shell_binary),
+    );
+    data.insert(
         "string".to_string(),
         Exp::Primitive(primitive::lisp_string),
     );

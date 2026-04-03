@@ -10,6 +10,7 @@ use crate::{api, sys, usr};
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
@@ -261,17 +262,28 @@ fn tilde_expansion(arg: &str) -> String {
 fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     let mut cmd = cmd.to_string();
 
-    // Special cases for none alphanum (\w) variables
+    // Special cases for non alphanum (\w) variables
     cmd = cmd.replace("$?", "$status");
     cmd = cmd.replace("$*", "$1 $2 $3 $4 $5 $6 $7 $8 $9");
 
     // Replace alphanum `$key` with its value in the environment
-    // or an empty string.
+    // or an empty string
     let re = Regex::new("\\$\\w+");
     while let Some((a, b)) = re.find(&cmd) {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
         let val = config.env.get(&key).map_or("", String::as_str);
         cmd = cmd.replace(&format!("${}", key), val);
+    }
+
+    // Replace `$(command)` with its captured output
+    let re = Regex::new("\\$(.*?)");
+    while let Some((a, b)) = re.find(&cmd) {
+        let sub: String = cmd.drain(a..b).skip(2).take(b - a - 3).collect();
+        if let Ok(buf) = exec_to_bytes(&sub) {
+            if let Ok(txt) = String::from_utf8(buf) {
+                cmd.insert_str(a, txt.trim());
+            }
+        }
     }
 
     cmd
@@ -659,6 +671,33 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
 pub fn exec(cmd: &str) -> Result<(), ExitCode> {
     let mut config = Config::new();
     exec_with_config(cmd, &mut config)
+}
+
+pub fn exec_to_bytes(cmd: &str) -> Result<Vec<u8>, ExitCode> {
+    let pipe = "/dev/pipe";
+    let stdout = 1;
+    if let Some(info) = syscall::info(pipe) {
+        if info.is_device() {
+            if let Some(handle) = api::fs::open_device(pipe) {
+                syscall::dup(handle, stdout).ok();
+                exec(cmd)?;
+                api::fs::reopen("/dev/console", stdout, false).ok();
+                let n = info.size() as usize;
+                let mut buf = vec![0; n];
+                let mut res = Vec::new();
+                while let Some(bytes) = syscall::read(handle, &mut buf) {
+                    if bytes == 0 {
+                        break;
+                    }
+                    res.extend_from_slice(&buf[..bytes]);
+                }
+                syscall::close(handle);
+                return Ok(res);
+            }
+        }
+    }
+    error!("Could not open pipe");
+    Err(ExitCode::Failure)
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {

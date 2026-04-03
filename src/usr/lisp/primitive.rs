@@ -185,6 +185,15 @@ pub fn lisp_shell(args: &[Exp]) -> Result<Exp, Err> {
     }
 }
 
+pub fn lisp_shell_binary(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let cmd = strings(args)?.join(" ");
+    let buf = shell::exec_to_bytes(&cmd).or(could_not!("execute command"))?;
+    Ok(Exp::List(
+        buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()
+    ))
+}
+
 pub fn lisp_string(args: &[Exp]) -> Result<Exp, Err> {
     let args: Vec<String> = args.iter().map(|arg| match arg {
         Exp::Str(s) => format!("{}", s),
