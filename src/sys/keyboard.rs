@@ -8,6 +8,7 @@ use pc_keyboard::{
     Keyboard, ScancodeSet1,
 };
 use spin::Mutex;
+use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
 pub static KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
@@ -63,7 +64,9 @@ impl KeyboardLayout {
 
 pub fn set_keyboard(layout: &str) -> bool {
     if let Some(keyboard) = KeyboardLayout::from(layout) {
-        *KEYBOARD.lock() = Some(keyboard);
+        interrupts::without_interrupts(||
+            *KEYBOARD.lock() = Some(keyboard)
+        );
         true
     } else {
         false
