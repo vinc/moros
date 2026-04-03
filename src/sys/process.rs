@@ -314,11 +314,12 @@ impl Process {
     }
 
     pub fn spawn(
-        bin: &[u8],
+        bin: Vec<u8>,
         args_ptr: usize,
         args_len: usize
     ) -> Result<(), ExitCode> {
-        if let Ok(id) = Self::create(bin) {
+        if let Ok(id) = Self::create(&bin) {
+            drop(bin);
             let proc = {
                 let table = PROCESS_TABLE.read();
                 table[id].clone()
