@@ -188,13 +188,13 @@ pub fn handles() -> Vec<Option<Box<Resource>>> {
 pub fn code_addr() -> u64 {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.code_addr
+    proc.ctx.code_addr
 }
 
 pub fn set_code_addr(addr: u64) {
     let mut table = PROCESS_TABLE.write();
     let proc = &mut table[id()];
-    proc.code_addr = addr;
+    proc.ctx.code_addr = addr;
 }
 
 pub fn ptr_from_addr(addr: u64) -> *mut u8 {
@@ -248,7 +248,7 @@ pub fn exit() {
         Cr3::write(page_table_frame(), flags);
 
         with_frame_allocator(|allocator| {
-            allocator.deallocate_frame(proc.page_table_frame);
+            allocator.deallocate_frame(proc.ctx.page_table_frame);
         });
     }
 }
@@ -256,7 +256,7 @@ pub fn exit() {
 unsafe fn page_table_frame() -> PhysFrame {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.page_table_frame
+    proc.ctx.page_table_frame
 }
 
 pub unsafe fn page_table() -> &'static mut PageTable {
@@ -266,16 +266,16 @@ pub unsafe fn page_table() -> &'static mut PageTable {
 pub unsafe fn alloc(layout: Layout) -> *mut u8 {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    proc.allocator.alloc(layout)
+    proc.ctx.allocator.alloc(layout)
 }
 
 pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let table = PROCESS_TABLE.read();
     let proc = &table[id()];
-    let bottom = proc.allocator.lock().bottom();
-    let top = proc.allocator.lock().top();
+    let bottom = proc.ctx.allocator.lock().bottom();
+    let top = proc.ctx.allocator.lock().top();
     if bottom <= ptr && ptr < top {
-        proc.allocator.dealloc(ptr, layout);
+        proc.ctx.allocator.dealloc(ptr, layout);
     } else { // FIXME: Uncomment to see errors
         //let size = layout.size();
         //let plural = if size != 1 { "s" } else { "" };
@@ -284,35 +284,52 @@ pub unsafe fn free(ptr: *mut u8, layout: Layout) {
 }
 
 #[derive(Clone)]
-pub struct Process {
+pub struct ProcessContext {
     id: usize,
-    parent_id: usize,
     code_addr: u64,
     stack_addr: u64,
     entry_point_addr: u64,
     page_table_frame: PhysFrame,
+    allocator: Arc<LockedHeap>,
+}
+
+#[derive(Clone)]
+pub struct Process {
+    parent_id: usize,
     stack_frame: Option<InterruptStackFrameValue>,
     registers: Registers,
     data: ProcessData,
-    allocator: Arc<LockedHeap>,
+    ctx: ProcessContext,
 }
 
 impl Process {
     pub fn new() -> Self {
         Self {
-            id: 0,
             parent_id: 0,
-            code_addr: 0,
-            stack_addr: 0,
-            entry_point_addr: 0,
             stack_frame: None,
-            page_table_frame: Cr3::read().0,
             registers: Registers::default(),
             data: ProcessData::new("/", None),
-            allocator: Arc::new(LockedHeap::empty()),
+            ctx: ProcessContext {
+                id: 0,
+                code_addr: 0,
+                stack_addr: 0,
+                entry_point_addr: 0,
+                page_table_frame: Cr3::read().0,
+                allocator: Arc::new(LockedHeap::empty()),
+            }
         }
     }
 
+    /// Spawn a new process from a binary.
+    ///
+    /// Takes ownership of the binary buffer because `exec` switches to
+    /// user mode via `iretq` and never returns. Any heap allocation on
+    /// the stack at that point is leaked, so we need to explicitly drop
+    /// the buffer after `create` has copied it into process pages.
+    ///
+    /// The `ProcessContext` clone that crosses the `iretq` boundary only
+    /// contains Copy types and an Arc refcount bump, so its leak is
+    /// negligible.
     pub fn spawn(
         bin: Vec<u8>,
         args_ptr: usize,
@@ -320,11 +337,12 @@ impl Process {
     ) -> Result<(), ExitCode> {
         if let Ok(id) = Self::create(&bin) {
             drop(bin);
-            let proc = {
+            let ctx = {
                 let table = PROCESS_TABLE.read();
-                table[id].clone()
+                let proc = &table[id];
+                proc.ctx.clone()
             };
-            proc.exec(args_ptr, args_len);
+            exec(ctx, args_ptr, args_len);
             unreachable!(); // The kernel switched to the child process
         } else {
             Err(ExitCode::ExecError)
@@ -406,18 +424,20 @@ impl Process {
         let allocator = Arc::new(LockedHeap::empty());
 
         let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
-        let parent_id = parent.id;
+        let parent_id = parent.ctx.id;
         let proc = Process {
-            id,
             parent_id,
-            code_addr,
-            stack_addr,
-            entry_point_addr,
-            page_table_frame,
             data,
             stack_frame,
             registers,
-            allocator,
+            ctx: ProcessContext {
+                id,
+                code_addr,
+                stack_addr,
+                entry_point_addr,
+                page_table_frame,
+                allocator,
+            }
         };
 
         let mut process_table = PROCESS_TABLE.write();
@@ -426,79 +446,9 @@ impl Process {
         Ok(id)
     }
 
-    // Switch to user mode and execute the program
-    fn exec(&self, args_ptr: usize, args_len: usize) {
-        let page_table = unsafe { sys::process::page_table() };
-        let mut mapper = unsafe {
-            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-        };
-
-        // Copy args to user memory
-        let args_addr = self.code_addr + (self.stack_addr - self.code_addr) / 2;
-        sys::mem::alloc_pages(&mut mapper, args_addr, 1).
-            expect("proc args alloc");
-        let args: &[&str] = unsafe {
-            let ptr = ptr_from_addr(args_ptr as u64) as usize;
-            core::slice::from_raw_parts(ptr as *const &str, args_len)
-        };
-        let mut addr = args_addr;
-        let vec: Vec<&str> = args.iter().map(|arg| {
-            let ptr = addr as *mut u8;
-            addr += arg.len() as u64;
-            unsafe {
-                let s = core::slice::from_raw_parts_mut(ptr, arg.len());
-                s.copy_from_slice(arg.as_bytes());
-                core::str::from_utf8_unchecked(s)
-            }
-        }).collect();
-        let align = core::mem::align_of::<&str>() as u64;
-        addr += align - (addr % align);
-        let args = vec.as_slice();
-        let ptr = addr as *mut &str;
-        let args: &[&str] = unsafe {
-            let s = core::slice::from_raw_parts_mut(ptr, args.len());
-            s.copy_from_slice(args);
-            s
-        };
-        let args_ptr = args.as_ptr() as u64;
-
-        let heap_addr = addr + 4096;
-        let heap_size = ((self.stack_addr - heap_addr) / 2) as usize;
-        unsafe {
-            self.allocator.lock().init(heap_addr as *mut u8, heap_size);
-        }
-
-        //debug!("{:#X}..{:#X}: {} bytes for the args", args_addr, args_addr + 4096, 4096); // FIXME: args size
-        //debug!("{:#X}..{:#X}: {} bytes for the heap", heap_addr, heap_addr + heap_size as u64, heap_size);
-        //debug!("{:#X}..{:#X}: {} bytes for the stack", self.stack_addr - heap_size as u64, self.stack_addr, heap_size);
-
-        set_id(self.id); // Change PID
-
-        unsafe {
-            let (_, flags) = Cr3::read();
-            Cr3::write(self.page_table_frame, flags);
-
-            asm!(
-                "cli",        // Disable interrupts
-                "push {:r}",  // Stack segment (SS)
-                "push {:r}",  // Stack pointer (RSP)
-                "push 0x200", // RFLAGS with interrupts enabled
-                "push {:r}",  // Code segment (CS)
-                "push {:r}",  // Instruction pointer (RIP)
-                "iretq",
-                in(reg) GDT.1.user_data.0,
-                in(reg) self.stack_addr,
-                in(reg) GDT.1.user_code.0,
-                in(reg) self.code_addr + self.entry_point_addr,
-                in("rdi") args_ptr,
-                in("rsi") args_len,
-            );
-        }
-    }
-
     fn mapper(&self) -> OffsetPageTable<'_> {
         let page_table = unsafe {
-            sys::mem::create_page_table(self.page_table_frame)
+            sys::mem::create_page_table(self.ctx.page_table_frame)
         };
         unsafe {
             OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
@@ -509,7 +459,7 @@ impl Process {
         let mut mapper = self.mapper();
 
         let size = MAX_PROC_SIZE;
-        sys::mem::free_pages(&mut mapper, self.code_addr, size);
+        sys::mem::free_pages(&mut mapper, self.ctx.code_addr, size);
 
         let addr = USER_ADDR;
         match mapper.translate(VirtAddr::new(addr)) {
@@ -520,6 +470,76 @@ impl Process {
             }
             _ => {}
         }
+    }
+}
+
+// Switch to user mode and execute the program
+fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
+    let page_table = unsafe { sys::process::page_table() };
+    let mut mapper = unsafe {
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+    };
+
+    // Copy args to user memory
+    let args_addr = ctx.code_addr + (ctx.stack_addr - ctx.code_addr) / 2;
+    sys::mem::alloc_pages(&mut mapper, args_addr, 1).
+        expect("proc args alloc");
+    let args: &[&str] = unsafe {
+        let ptr = ptr_from_addr(args_ptr as u64) as usize;
+        core::slice::from_raw_parts(ptr as *const &str, args_len)
+    };
+    let mut addr = args_addr;
+    let vec: Vec<&str> = args.iter().map(|arg| {
+        let ptr = addr as *mut u8;
+        addr += arg.len() as u64;
+        unsafe {
+            let s = core::slice::from_raw_parts_mut(ptr, arg.len());
+            s.copy_from_slice(arg.as_bytes());
+            core::str::from_utf8_unchecked(s)
+        }
+    }).collect();
+    let align = core::mem::align_of::<&str>() as u64;
+    addr += align - (addr % align);
+    let args = vec.as_slice();
+    let ptr = addr as *mut &str;
+    let args: &[&str] = unsafe {
+        let s = core::slice::from_raw_parts_mut(ptr, args.len());
+        s.copy_from_slice(args);
+        s
+    };
+    let args_ptr = args.as_ptr() as u64;
+
+    let heap_addr = addr + 4096;
+    let heap_size = ((ctx.stack_addr - heap_addr) / 2) as usize;
+    unsafe {
+        ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
+    }
+
+    //debug!("{:#X}..{:#X}: {} bytes for the args", args_addr, args_addr + 4096, 4096); // FIXME: args size
+    //debug!("{:#X}..{:#X}: {} bytes for the heap", heap_addr, heap_addr + heap_size as u64, heap_size);
+    //debug!("{:#X}..{:#X}: {} bytes for the stack", self.stack_addr - heap_size as u64, self.stack_addr, heap_size);
+
+    set_id(ctx.id); // Change PID
+
+    unsafe {
+        let (_, flags) = Cr3::read();
+        Cr3::write(ctx.page_table_frame, flags);
+
+        asm!(
+            "cli",        // Disable interrupts
+            "push {:r}",  // Stack segment (SS)
+            "push {:r}",  // Stack pointer (RSP)
+            "push 0x200", // RFLAGS with interrupts enabled
+            "push {:r}",  // Code segment (CS)
+            "push {:r}",  // Instruction pointer (RIP)
+            "iretq",
+            in(reg) GDT.1.user_data.0,
+            in(reg) ctx.stack_addr,
+            in(reg) GDT.1.user_code.0,
+            in(reg) ctx.code_addr + ctx.entry_point_addr,
+            in("rdi") args_ptr,
+            in("rsi") args_len,
+        );
     }
 }
 
