@@ -30,7 +30,7 @@ const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
 const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 
 const MAX_HANDLES: usize = 64;
-const MAX_PROCS: usize = 4; // TODO: Increase this
+const MAX_PROCS: usize = 32;
 const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
 // TODO: Remove this when the kernel is no longer at 0x200000 in userspace.
