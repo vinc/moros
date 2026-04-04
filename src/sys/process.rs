@@ -388,7 +388,8 @@ impl Process {
         };
 
         let proc_size = MAX_PROC_SIZE as u64;
-        let code_addr = CODE_ADDR.fetch_add(proc_size, Ordering::SeqCst);
+        let code_base = CODE_ADDR.load(Ordering::SeqCst);
+        let code_addr = code_base + proc_size * id as u64;
         let stack_addr = code_addr + proc_size - 4096;
 
         let mut entry_point_addr = 0;
