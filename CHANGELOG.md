@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improve disk caching (#826)
 - Fix memory leak during process creation (#825)
 - Add pipe device file (#822)
 - Fix potential deadlocks (#824)
