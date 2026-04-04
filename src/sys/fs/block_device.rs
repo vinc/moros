@@ -141,11 +141,6 @@ impl AtaBlockDevice {
         let h = self.hash(block_addr);
         self.cache[h] = Some((block_addr, buf.to_vec()));
     }
-
-    fn unset_cached_block(&mut self, block_addr: u32) {
-        let h = self.hash(block_addr);
-        self.cache[h] = None;
-    }
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
@@ -162,7 +157,7 @@ impl BlockDeviceIO for AtaBlockDevice {
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
         sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)?;
-        self.unset_cached_block(block_addr);
+        self.set_cached_block(block_addr, buf);
         Ok(())
     }
 
