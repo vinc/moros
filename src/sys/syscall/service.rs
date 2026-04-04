@@ -105,7 +105,7 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
+            if let Err(code) = Process::spawn(buf, args_ptr, args_len) {
                 code
             } else {
                 unreachable!(); // The kernel switched to the child process
