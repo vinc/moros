@@ -1,8 +1,8 @@
 use crate::api::process::ExitCode;
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
-use crate::sys;
 use crate::sys::gdt::GDT;
+use crate::sys::mem;
 use crate::sys::mem::{phys_mem_offset, with_frame_allocator};
 
 use alloc::boxed::Box;
@@ -43,14 +43,19 @@ pub static PID: AtomicUsize = AtomicUsize::new(0);
 pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
 
 lazy_static! {
-    pub static ref PROCESS_TABLE: RwLock<[Box<Process>; MAX_PROCS]> = {
-        RwLock::new([(); MAX_PROCS].map(|_| Box::new(Process::new())))
+    pub static ref PROCESS_TABLE: RwLock<[Option<Box<Process>>; MAX_PROCS]> = {
+        RwLock::new([(); MAX_PROCS].map(|_| None))
     };
 }
 
 // Called during kernel heap initialization
 pub fn init_process_addr(addr: u64) {
-    sys::process::CODE_ADDR.store(addr, Ordering::SeqCst);
+    CODE_ADDR.store(addr, Ordering::SeqCst);
+}
+
+pub fn init() {
+    let mut table = PROCESS_TABLE.write();
+    table[0] = Some(Box::new(Process::new()));
 }
 
 #[repr(align(8), C)]
@@ -106,49 +111,49 @@ pub fn set_id(id: usize) {
 
 pub fn env(key: &str) -> Option<String> {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.data.env.get(key).cloned()
 }
 
 pub fn envs() -> BTreeMap<String, String> {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.data.env.clone()
 }
 
 pub fn dir() -> String {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.data.dir.clone()
 }
 
 pub fn user() -> Option<String> {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.data.user.clone()
 }
 
 pub fn set_env(key: &str, val: &str) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.data.env.insert(key.into(), val.into());
 }
 
 pub fn set_dir(dir: &str) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.data.dir = dir.into();
 }
 
 pub fn set_user(user: &str) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.data.user = Some(user.into())
 }
 
 pub fn create_handle(file: Resource) -> Result<usize, ()> {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     let min = 4; // The first 4 handles are reserved
     let max = MAX_HANDLES;
     for handle in min..max {
@@ -163,37 +168,37 @@ pub fn create_handle(file: Resource) -> Result<usize, ()> {
 
 pub fn update_handle(handle: usize, file: Resource) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.data.handles[handle] = Some(Box::new(file));
 }
 
 pub fn delete_handle(handle: usize) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.data.handles[handle] = None;
 }
 
 pub fn handle(handle: usize) -> Option<Box<Resource>> {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.data.handles[handle].clone()
 }
 
 pub fn handles() -> Vec<Option<Box<Resource>>> {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.data.handles.to_vec()
 }
 
 pub fn code_addr() -> u64 {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.ctx.code_addr
 }
 
 pub fn set_code_addr(addr: u64) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.ctx.code_addr = addr;
 }
 
@@ -208,25 +213,25 @@ pub fn ptr_from_addr(addr: u64) -> *mut u8 {
 
 pub fn registers() -> Registers {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.registers
 }
 
 pub fn set_registers(regs: Registers) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.registers = regs
 }
 
 pub fn stack_frame() -> InterruptStackFrameValue {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.stack_frame.unwrap()
 }
 
 pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
     let mut table = PROCESS_TABLE.write();
-    let proc = &mut table[id()];
+    let proc = table[id()].as_mut().unwrap();
     proc.stack_frame = Some(stack_frame);
 }
 
@@ -236,8 +241,10 @@ pub fn is_userspace(addr: u64) -> bool {
 }
 
 pub fn exit() {
-    let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = {
+        let mut table = PROCESS_TABLE.write();
+        table[id()].take().unwrap()
+    };
 
     MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(proc.parent_id);
@@ -255,23 +262,23 @@ pub fn exit() {
 
 unsafe fn page_table_frame() -> PhysFrame {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.ctx.page_table_frame
 }
 
 pub unsafe fn page_table() -> &'static mut PageTable {
-    sys::mem::create_page_table(page_table_frame())
+    mem::create_page_table(page_table_frame())
 }
 
 pub unsafe fn alloc(layout: Layout) -> *mut u8 {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     proc.ctx.allocator.alloc(layout)
 }
 
 pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let table = PROCESS_TABLE.read();
-    let proc = &table[id()];
+    let proc = table[id()].as_ref().unwrap();
     let bottom = proc.ctx.allocator.lock().bottom();
     let top = proc.ctx.allocator.lock().top();
     if bottom <= ptr && ptr < top {
@@ -339,7 +346,7 @@ impl Process {
             drop(bin);
             let ctx = {
                 let table = PROCESS_TABLE.read();
-                let proc = &table[id];
+                let proc = table[id].as_ref().unwrap();
                 proc.ctx.clone()
             };
             exec(ctx, args_ptr, args_len);
@@ -353,17 +360,23 @@ impl Process {
         if MAX_PID.load(Ordering::SeqCst) >= MAX_PROCS {
             return Err(());
         }
+        let parent = {
+            let process_table = PROCESS_TABLE.read();
+            process_table[id()].clone().unwrap()
+        };
 
-        let page_table_frame = sys::mem::with_frame_allocator(|frame_allocator| {
+        let mut process_table = PROCESS_TABLE.write();
+
+        let page_table_frame = mem::with_frame_allocator(|frame_allocator| {
             frame_allocator.allocate_frame().expect("frame allocation failed")
         });
 
         let page_table = unsafe {
-            sys::mem::create_page_table(page_table_frame)
+            mem::create_page_table(page_table_frame)
         };
 
         let kernel_page_table = unsafe {
-            sys::mem::active_page_table()
+            mem::active_page_table()
         };
 
         // FIXME: for now we just copy everything
@@ -412,11 +425,6 @@ impl Process {
             return Err(());
         }
 
-        let parent = {
-            let process_table = PROCESS_TABLE.read();
-            process_table[id()].clone()
-        };
-
         let data = parent.data.clone();
         let registers = parent.registers;
         let stack_frame = parent.stack_frame;
@@ -440,15 +448,14 @@ impl Process {
             }
         };
 
-        let mut process_table = PROCESS_TABLE.write();
-        process_table[id] = Box::new(proc);
+        process_table[id] = Some(Box::new(proc));
 
         Ok(id)
     }
 
     fn mapper(&self) -> OffsetPageTable<'_> {
         let page_table = unsafe {
-            sys::mem::create_page_table(self.ctx.page_table_frame)
+            mem::create_page_table(self.ctx.page_table_frame)
         };
         unsafe {
             OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
@@ -459,13 +466,13 @@ impl Process {
         let mut mapper = self.mapper();
 
         let size = MAX_PROC_SIZE;
-        sys::mem::free_pages(&mut mapper, self.ctx.code_addr, size);
+        mem::free_pages(&mut mapper, self.ctx.code_addr, size);
 
         let addr = USER_ADDR;
         match mapper.translate(VirtAddr::new(addr)) {
             TranslateResult::Mapped { frame: _, offset: _, flags } => {
                 if flags.contains(PageTableFlags::USER_ACCESSIBLE) {
-                    sys::mem::free_pages(&mut mapper, addr, size);
+                    mem::free_pages(&mut mapper, addr, size);
                 }
             }
             _ => {}
@@ -475,14 +482,14 @@ impl Process {
 
 // Switch to user mode and execute the program
 fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
-    let page_table = unsafe { sys::process::page_table() };
+    let page_table = unsafe { page_table() };
     let mut mapper = unsafe {
         OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
     };
 
     // Copy args to user memory
     let args_addr = ctx.code_addr + (ctx.stack_addr - ctx.code_addr) / 2;
-    sys::mem::alloc_pages(&mut mapper, args_addr, 1).
+    mem::alloc_pages(&mut mapper, args_addr, 1).
         expect("proc args alloc");
     let args: &[&str] = unsafe {
         let ptr = ptr_from_addr(args_ptr as u64) as usize;
@@ -547,7 +554,7 @@ fn load_binary(
     mapper: &mut OffsetPageTable, addr: u64, size: usize, buf: &[u8]
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
-    sys::mem::alloc_pages(mapper, addr, size)?;
+    mem::alloc_pages(mapper, addr, size)?;
     let src = buf.as_ptr();
     let dst = addr as *mut u8;
     unsafe {
