@@ -78,12 +78,16 @@ pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
             mapping.flush();
             unsafe {
                 with_frame_allocator(|allocator| {
-                    mapper.clean_up(allocator);
                     allocator.deallocate_frame(frame);
                 });
             }
         } else {
             //debug!("Could not unmap {:?}", page);
         }
+    };
+    unsafe {
+        with_frame_allocator(|allocator| {
+            mapper.clean_up(allocator);
+        });
     }
 }
