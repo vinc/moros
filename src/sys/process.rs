@@ -40,7 +40,6 @@ static USER_ADDR: u64 = 0x800000;
 
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
 pub static PID: AtomicUsize = AtomicUsize::new(0);
-pub static MAX_PID: AtomicUsize = AtomicUsize::new(1);
 
 lazy_static! {
     pub static ref PROCESS_TABLE: RwLock<[Option<Box<Process>>; MAX_PROCS]> = {
@@ -246,7 +245,6 @@ pub fn exit() {
         table[id()].take().unwrap()
     };
 
-    MAX_PID.fetch_sub(1, Ordering::SeqCst);
     set_id(proc.parent_id);
 
     proc.free_pages();
@@ -357,15 +355,15 @@ impl Process {
     }
 
     fn create(bin: &[u8]) -> Result<usize, ()> {
-        if MAX_PID.load(Ordering::SeqCst) >= MAX_PROCS {
-            return Err(());
-        }
         let parent = {
             let process_table = PROCESS_TABLE.read();
             process_table[id()].clone().unwrap()
         };
 
         let mut process_table = PROCESS_TABLE.write();
+        let id = (1..MAX_PROCS)
+            .find(|&i| process_table[i].is_none())
+            .ok_or(())?;
 
         let page_table_frame = mem::with_frame_allocator(|frame_allocator| {
             frame_allocator.allocate_frame().expect("frame allocation failed")
@@ -422,17 +420,17 @@ impl Process {
         } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
             load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..])?;
         } else {
+            // TODO: Free page_table_frame and any pages allocated
             return Err(());
         }
 
+        let parent_id = parent.ctx.id;
         let data = parent.data.clone();
         let registers = parent.registers;
         let stack_frame = parent.stack_frame;
 
         let allocator = Arc::new(LockedHeap::empty());
 
-        let id = MAX_PID.fetch_add(1, Ordering::SeqCst);
-        let parent_id = parent.ctx.id;
         let proc = Process {
             parent_id,
             data,
