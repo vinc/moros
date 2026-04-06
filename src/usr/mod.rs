@@ -9,6 +9,7 @@ pub mod deflate;
 pub mod dhcp;
 pub mod diff;
 pub mod disk;
+pub mod draw;
 pub mod drop;
 pub mod edit;
 pub mod elf;

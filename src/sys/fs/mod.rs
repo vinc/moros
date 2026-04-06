@@ -5,6 +5,7 @@ mod device;
 mod dir;
 mod dir_entry;
 mod file;
+mod pipe;
 mod read_dir;
 mod super_block;
 

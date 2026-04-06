@@ -2,7 +2,6 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::{console, io, rng};
 
-use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::fmt;

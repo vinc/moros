@@ -52,10 +52,12 @@ impl FileIO for Console {
     fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
-        match event {
-            IO::Read => STDIN.lock().contains('\n'),
-            IO::Write => true,
-        }
+        interrupts::without_interrupts(||
+            match event {
+                IO::Read => STDIN.lock().contains('\n'),
+                IO::Write => true,
+            }
+        )
     }
 }
 

@@ -1,12 +1,14 @@
 use crate::api;
 use crate::sys;
 
+use alloc::format;
 use core::sync::atomic::{AtomicBool, Ordering};
 use pc_keyboard::{
     layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, KeyState,
     Keyboard, ScancodeSet1,
 };
 use spin::Mutex;
+use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
 
 pub static KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
@@ -62,7 +64,9 @@ impl KeyboardLayout {
 
 pub fn set_keyboard(layout: &str) -> bool {
     if let Some(keyboard) = KeyboardLayout::from(layout) {
-        *KEYBOARD.lock() = Some(keyboard);
+        interrupts::without_interrupts(||
+            *KEYBOARD.lock() = Some(keyboard)
+        );
         true
     } else {
         false
@@ -135,15 +139,55 @@ fn interrupt_handler() {
                         }
                     }
 
-                    DecodedKey::RawKey(KeyCode::ArrowUp) => send_csi("A"),
-                    DecodedKey::RawKey(KeyCode::ArrowDown) => send_csi("B"),
-                    DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi("C"),
-                    DecodedKey::RawKey(KeyCode::ArrowLeft) => send_csi("D"),
+                    DecodedKey::RawKey(KeyCode::ArrowUp) => {
+                        if is_ctrl {
+                            send_csi("1;5A")
+                        } else if is_alt {
+                            send_csi("1;3A")
+                        } else {
+                            send_csi("A")
+                        }
+                    }
+                    DecodedKey::RawKey(KeyCode::ArrowDown) => {
+                        if is_ctrl {
+                            send_csi("1;5B")
+                        } else if is_alt {
+                            send_csi("1;3B")
+                        } else {
+                            send_csi("B")
+                        }
+                    }
+                    DecodedKey::RawKey(KeyCode::ArrowRight) => {
+                        if is_ctrl {
+                            send_csi("1;5C")
+                        } else if is_alt {
+                            send_csi("1;3C")
+                        } else {
+                            send_csi("C")
+                        }
+                    }
+                    DecodedKey::RawKey(KeyCode::ArrowLeft) => {
+                        if is_ctrl {
+                            send_csi("1;5D")
+                        } else if is_alt {
+                            send_csi("1;3D")
+                        } else {
+                            send_csi("D")
+                        }
+                    }
 
                     DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
                     DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),
 
-                    DecodedKey::Unicode(c) => send_key(c),
+                    DecodedKey::Unicode(c) => {
+                        let letter = (c as u8 | 0x40) as char;
+                        if is_ctrl && is_shift && letter.is_ascii_uppercase() {
+                            // Ctrl + Shift + Letter
+                            send_csi(&format!("1;6{}", letter));
+                        } else {
+                            send_key(c)
+                        }
+                    }
 
                     _ => {}
                 };

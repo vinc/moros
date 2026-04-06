@@ -67,6 +67,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/net/mac", "net-mac", verbose);
     create_dev("/dev/net/usage", "net-usage", verbose);
     create_dev("/dev/null", "null", verbose);
+    create_dev("/dev/pipe", "pipe", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/snd/buf", "snd-buffer", verbose);
     create_dev("/dev/speaker", "speaker", verbose);
@@ -94,6 +95,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/lib/lisp", verbose);
     copy_file!("/lib/lisp/alias.lsp", verbose);
     copy_file!("/lib/lisp/core.lsp", verbose);
+    copy_file!("/lib/lisp/dict.lsp", verbose);
     copy_file!("/lib/lisp/file.lsp", verbose);
     copy_file!("/lib/lisp/ini.lsp", verbose);
     //copy_file!("/lib/lisp/legacy.lsp", verbose);

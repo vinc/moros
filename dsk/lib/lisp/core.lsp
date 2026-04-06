@@ -36,9 +36,7 @@
   `(if ,x (if ,y true false) false))
 
 (def (empty? x)
-  (or
-    (equal? x nil)
-    (equal? x "")))
+  (= (len x) 0))
 
 (def-mac (set k v)
   `(if (var? ,k)
@@ -48,28 +46,34 @@
 (def-mac (let params values body)
   `((fun ,params ,body) ,@values))
 
+(def-mac (push! l x)
+  `(mut ,l (push ,l ,x)))
+
+(def-mac (put! d k v)
+  `(mut ,d (put ,d ,k ,v)))
+
 (def (reduce f ls)
   "Reduces the elements of the list with the function"
-  (if (nil? (tail ls)) (head ls)
+  (if (empty? (tail ls)) (head ls)
     (f (head ls) (reduce f (tail ls)))))
 
 (def (map f ls)
   "Applies the function to the elements of the list"
-  (if (nil? ls) nil
+  (if (empty? ls) nil
     (cons
       (f (head ls))
       (map f (tail ls)))))
 
 (def (filter f ls)
   "Filters the elements of the list with the function"
-  (if (nil? ls) nil
+  (if (empty? ls) nil
     (if (f (head ls))
       (cons (head ls) (filter f (tail ls)))
       (filter f (tail ls)))))
 
 (def (reject f ls)
   "Rejects the elements of the list with the function"
-  (if (nil? ls) nil
+  (if (empty? ls) nil
     (if (not (f (head ls)))
       (cons (head ls) (reject f (tail ls)))
       (reject f (tail ls)))))
@@ -145,9 +149,16 @@
   (get ls
     (if (= (length ls) 0) 0 (- (length ls) 1))))
 
+(def (shell->string cmd)
+  "Returns the output of the command"
+  (string/trim (binary->string (shell->binary cmd))))
+
 # Short aliases
 
+(var sh->str shell->string)
+(var sh->bin shell->binary)
 (var sh shell)
+(var $ shell)
 (var % rem)
 (var str string)
 (var str/split string/split)
@@ -170,5 +181,6 @@
 (var rev reverse)
 (var uniq unique)
 
+(load "/lib/lisp/dict.lsp")
 (load "/lib/lisp/file.lsp")
 (load "/lib/lisp/math.lsp")

@@ -1,6 +1,26 @@
 # Changelog
 
 ## Unreleased
+- Improve disk caching (#826)
+- Fix memory leak during process creation (#825)
+- Add pipe device file (#822)
+- Fix potential deadlocks (#824)
+- Reuse deleted dir entries (#820)
+- Improve editor search (#817)
+- Add draw command (#790)
+- Add functions to dict module in lisp (#797)
+- Bump smoltcp from 0.12.0 to 0.13.0 (#815)
+- Bump miniz_oxide from 0.8.9 to 0.9.1 (#813)
+- Update chess engine (#812)
+- Upgrade Rust to nightly-2026-03-01 (#814)
+- Bump bootloader from 0.9.33 to 0.9.34 (#806)
+- Bump chumsky from 0.11.2 to 0.12.0 (#802)
+- Bump libm from 0.2.15 to 0.2.16 (#805)
+- Bump object from 0.38.0 to 0.38.1 (#803)
+- Bump actions/cache from 4 to 5 (#801)
+- Bump actions/checkout from 5 to 6 (#799)
+- Bump object from 0.37.3 to 0.38.0 (#800)
+- Bump chumsky from 0.11.1 to 0.11.2 (#798)
 
 ## 0.12.0 (2025-09-22)
 - Fix ANSI palette mapping ([#795](https://github.com/vinc/moros/pull/795))
