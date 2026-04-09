@@ -89,6 +89,7 @@ pub fn stop() {
     }
 }
 
+// 8-bit Auto-initialize Transfer
 pub fn play(pcm: &[u8]) {
     if let Some((ref mut buf, ref mut queue)) = *SND.lock() {
         queue.clear();
@@ -100,19 +101,23 @@ pub fn play(pcm: &[u8]) {
         buf[0..len].copy_from_slice(&pcm[0..len]);
         buf[len..].fill(0x80);
 
-        // Set sample rate
-        let rate: u16 = 44100;
-        let rate = rate.to_be_bytes();
-        outb(DSP_WRITE, 0x41); // Sample rate
-        outb(DSP_WRITE, rate[0]);
-        outb(DSP_WRITE, rate[1]);
-        
-        // Set DMA
+        // Program the DMA controller
         dma(buf.addr(), buf.size() - 1);
 
-        outb(DSP_WRITE, 0xC6); // 8 bit sound played continuously
-        outb(DSP_WRITE, 0x00); // Mono and unsigned sound data
+        // Set the DSP transfer sampling rate
+        let rate: u16 = 44100;
+        let rate = rate.to_be_bytes();
+        outb(DSP_WRITE, 0x41); // Output
+        outb(DSP_WRITE, rate[0]); // High byte
+        outb(DSP_WRITE, rate[1]); // Low byte
 
+        // Send an I/O command
+        outb(DSP_WRITE, 0xC6); // 8-bit output
+
+        // Send the transfer mode
+        outb(DSP_WRITE, 0x00); // 8-bit mono unsigned PCM
+
+        // Send the DSP block transfer size
         let bytes = (buf.size() - 1).to_le_bytes();
         outb(DSP_WRITE, bytes[0]);
         outb(DSP_WRITE, bytes[1]);
