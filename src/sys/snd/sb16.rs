@@ -100,11 +100,11 @@ pub fn play(pcm: &[u8]) {
         buf[len..].fill(0x80);
 
         // Set sample rate
-        let rate: u16 = 22050;
-        let rate = rate.to_le_bytes();
+        let rate: u16 = 44100;
+        let rate = rate.to_be_bytes();
         outb(DSP_WRITE, 0x41); // Sample rate
-        outb(DSP_WRITE, rate[1]);
         outb(DSP_WRITE, rate[0]);
+        outb(DSP_WRITE, rate[1]);
         
         outb(DSP_WRITE, 0xC6); // 8 bit sound played continuously
         outb(DSP_WRITE, 0x00); // Mono and unsigned sound data
