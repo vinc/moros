@@ -8,16 +8,18 @@ struct SndConfig {
     channels: u16,
     sample_bits: u16,
     sample_rate: u32,
-    data_offset: u16,
+    data_start: u32,
+    data_end: u32,
 }
 
 impl SndConfig {
-    pub fn new() -> Self {
+    pub fn new(buf: &[u8]) -> Self {
         Self {
             channels: 1,
             sample_bits: 8,
             sample_rate: 44100,
-            data_offset: 0,
+            data_start: 0,
+            data_end: buf.len() as u32,
         }
     }
 }
@@ -60,9 +62,18 @@ impl TryFrom<&[u8]> for SndConfig {
             debug!("SND: Error parsing 'data'");
             return Err(());
         }
-        let data_offset = 44;
+        let data_start = 44;
+        let data_end = data_start + u32::from_le_bytes(
+            buf[40..44].try_into().map_err(|_| ())?
+        );
 
-        Ok(SndConfig { channels, sample_bits, sample_rate, data_offset })
+        Ok(SndConfig {
+            channels,
+            sample_bits,
+            sample_rate,
+            data_start,
+            data_end,
+        })
     }
 }
 
@@ -91,10 +102,11 @@ impl FileIO for SndBuffer {
             let config = if buf.get(0..4) == Some(b"RIFF") {
                 SndConfig::try_from(buf)?
             } else {
-                SndConfig::new()
+                SndConfig::new(&buf)
             };
-            let offset = config.data_offset as usize;
-            sb16::play(&buf[offset..], &config);
+            let start = config.data_start as usize;
+            let end = config.data_end as usize;
+            sb16::play(&buf[start..end], &config);
         }
         Ok(buf.len())
     }
