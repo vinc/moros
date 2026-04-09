@@ -69,7 +69,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/null", "null", verbose);
     create_dev("/dev/pipe", "pipe", verbose);
     create_dev("/dev/random", "random", verbose);
-    create_dev("/dev/snd/buf", "snd-buffer", verbose);
+    create_dev("/dev/snd/buffer", "snd-buffer", verbose);
     create_dev("/dev/speaker", "speaker", verbose);
     create_dev("/dev/vga/buffer", "vga-buffer", verbose);
     create_dev("/dev/vga/font", "vga-font", verbose);
