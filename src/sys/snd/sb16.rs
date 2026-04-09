@@ -141,15 +141,6 @@ pub fn init() {
         let queue = Vec::new();
         *SND.lock() = Some((buf, queue));
         log!("SND DRV SB16");
-
-        /*
-        // Play a square wave
-        let mut pcm = [0; BUF_LEN];
-        for i in 0..pcm.len() {
-            pcm[i] = if (i / 64) % 2 == 0 { 0x00 } else { 0xFF };
-        }
-        play(&pcm);
-        */
     }
 }
 
