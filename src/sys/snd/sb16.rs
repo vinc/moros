@@ -61,7 +61,7 @@ fn reset() {
 
 fn version() -> u8 {
     outb(DSP_WRITE, 0xE1);
-    inb(DSP_WRITE)
+    inb(DSP_READ)
 }
 
 fn dma(addr: u64, size: usize) {
