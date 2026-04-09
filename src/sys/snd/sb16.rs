@@ -81,7 +81,7 @@ fn dma(addr: u64, size: usize) {
 
 pub fn stop() {
     if let Some((ref mut buf, ref mut queue)) = *SND.lock() {
-        outb(MIXER_ADDR, 0xD0);
+        outb(DSP_WRITE, 0xD0); // Pause DMA playback
         let chan = 1;
         outb(0x0A, 0x04 + chan); // Disable channel
         buf.fill(0x80);
