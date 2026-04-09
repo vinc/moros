@@ -152,6 +152,8 @@ pub fn init() {
 fn interrupt_handler() {
     if let Some((ref mut buf, ref mut queue)) = *SND.lock() {
         if queue.is_empty() {
+            outb(DSP_WRITE, 0xD0); // Pause
+
             let chan = 1;
             outb(0x0A, 0x04 + chan); // Disable channel
         } else {
