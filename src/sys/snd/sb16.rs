@@ -107,11 +107,12 @@ pub fn play(pcm: &[u8]) {
         outb(DSP_WRITE, rate[0]);
         outb(DSP_WRITE, rate[1]);
         
+        // Set DMA
+        dma(buf.addr(), buf.size() - 1);
+
         outb(DSP_WRITE, 0xC6); // 8 bit sound played continuously
         outb(DSP_WRITE, 0x00); // Mono and unsigned sound data
 
-        // Set DMA
-        dma(buf.addr(), buf.size() - 1);
         let bytes = (buf.size() - 1).to_le_bytes();
         outb(DSP_WRITE, bytes[0]);
         outb(DSP_WRITE, bytes[1]);
