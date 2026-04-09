@@ -48,13 +48,14 @@ fn inb(addr: u16) -> u8 {
 
 fn reset() {
     outb(DSP_RESET, 1);
-    sys::clk::wait(3000);
+    sys::clk::wait(3000); // 3 microseconds
     outb(DSP_RESET, 0);
     loop {
         let res = inb(DSP_READ);
         if res == 0xAA {
             break;
         }
+        // TODO: break after about 100 microseconds
     }
 }
 
