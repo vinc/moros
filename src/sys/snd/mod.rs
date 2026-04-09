@@ -1,6 +1,70 @@
 mod sb16;
 
 use crate::api::fs::{FileIO, IO};
+use core::convert::TryFrom;
+use core::convert::TryInto;
+
+struct SndConfig {
+    channels: u16,
+    sample_bits: u16,
+    sample_rate: u32,
+    data_offset: u16,
+}
+
+impl SndConfig {
+    pub fn new() -> Self {
+        Self {
+            channels: 1,
+            sample_bits: 8,
+            sample_rate: 44100,
+            data_offset: 0,
+        }
+    }
+}
+
+impl TryFrom<&[u8]> for SndConfig {
+    type Error = ();
+
+    fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+        if buf.len() < 44 {
+            debug!("SND: Error buf size");
+            return Err(());
+        }
+        if buf[0..4] != *b"RIFF" {
+            debug!("SND: Error parsing 'RIFF'");
+            return Err(());
+        }
+        if buf[8..12] != *b"WAVE" {
+            debug!("SND: Error parsing 'WAVE'");
+            return Err(());
+        }
+        if buf[12..16] != *b"fmt " {
+            debug!("SND: Error parsing 'fmt '");
+            return Err(());
+        }
+        if buf[20..22] != 1u16.to_le_bytes() { // Audio format
+            debug!("SND: Error parsing audio format");
+            return Err(());
+        }
+
+        let channels = u16::from_le_bytes(
+            buf[22..24].try_into().map_err(|_| ())?
+        );
+        let sample_rate = u32::from_le_bytes(
+            buf[24..28].try_into().map_err(|_| ())?
+        );
+        let sample_bits = u16::from_le_bytes(
+            buf[34..36].try_into().map_err(|_| ())?
+        );
+        if buf[36..40] != *b"data" {
+            debug!("SND: Error parsing 'data'");
+            return Err(());
+        }
+        let data_offset = 44;
+
+        Ok(SndConfig { channels, sample_bits, sample_rate, data_offset })
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct SndBuffer;
@@ -24,7 +88,13 @@ impl FileIO for SndBuffer {
         if buf.is_empty() {
             sb16::stop();
         } else {
-            sb16::play(buf);
+            let config = if buf.get(0..4) == Some(b"RIFF") {
+                SndConfig::try_from(buf)?
+            } else {
+                SndConfig::new()
+            };
+            let offset = config.data_offset as usize;
+            sb16::play(&buf[offset..], &config);
         }
         Ok(buf.len())
     }

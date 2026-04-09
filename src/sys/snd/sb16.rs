@@ -1,3 +1,5 @@
+use super::SndConfig;
+
 use crate::sys;
 use crate::sys::mem::PhysBuf;
 
@@ -90,23 +92,25 @@ pub fn stop() {
 }
 
 // 8-bit Auto-initialize Transfer
-pub fn play(pcm: &[u8]) {
-    if let Some((ref mut buf, ref mut queue)) = *SND.lock() {
+pub fn play(buf: &[u8], config: &SndConfig) {
+    debug_assert!(config.channels == 1);
+    debug_assert!(config.sample_bits == 8);
+    debug_assert!(config.sample_rate <= u16::MAX as u32);
+    if let Some((ref mut block, ref mut queue)) = *SND.lock() {
         queue.clear();
-        for chunk in pcm.chunks(buf.len()) {
+        for chunk in buf.chunks(block.len()) {
             queue.push(chunk.to_vec());
         }
-        let pcm = queue.remove(0);
-        let len = core::cmp::min(buf.len(), pcm.len());
-        buf[0..len].copy_from_slice(&pcm[0..len]);
-        buf[len..].fill(0x80);
+        let buf = queue.remove(0);
+        let len = core::cmp::min(block.len(), buf.len());
+        block[0..len].copy_from_slice(&buf[0..len]);
+        block[len..].fill(0x80);
 
         // Program the DMA controller
-        dma(buf.addr(), buf.size() - 1);
+        dma(block.addr(), block.size() - 1);
 
         // Set the DSP transfer sampling rate
-        let rate: u16 = 44100;
-        let rate = rate.to_be_bytes();
+        let rate = (config.sample_rate as u16).to_be_bytes();
         outb(DSP_WRITE, 0x41); // Output
         outb(DSP_WRITE, rate[0]); // High byte
         outb(DSP_WRITE, rate[1]); // Low byte
@@ -118,7 +122,7 @@ pub fn play(pcm: &[u8]) {
         outb(DSP_WRITE, 0x00); // 8-bit mono unsigned PCM
 
         // Send the DSP block transfer size
-        let bytes = (buf.size() - 1).to_le_bytes();
+        let bytes = (block.size() - 1).to_le_bytes();
         outb(DSP_WRITE, bytes[0]);
         outb(DSP_WRITE, bytes[1]);
     }
