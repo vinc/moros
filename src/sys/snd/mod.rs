@@ -1,10 +1,49 @@
 mod sb16;
 
 use crate::api::fs::{FileIO, IO};
+use crate::sys;
+
+use core::cmp;
 use core::convert::TryFrom;
 use core::convert::TryInto;
+use spin::Mutex;
 
-struct SndConfig {
+pub const IRQ: u8 = 5;
+
+pub static SND: Mutex<Option<SoundDevice>> = Mutex::new(None);
+
+pub enum SoundDevice {
+    SoundBlaster16(sb16::Device),
+}
+
+pub trait SoundDeviceIO {
+    fn play(&mut self, buffer: &[u8], config: &SoundConfig);
+    fn stop(&mut self);
+    fn handle_interrupt(&mut self);
+}
+
+impl SoundDeviceIO for SoundDevice {
+    fn play(&mut self, buffer: &[u8], config: &SoundConfig) {
+        match self {
+            SoundDevice::SoundBlaster16(dev) => dev.play(&buffer, &config),
+        }
+    }
+
+    fn stop(&mut self) {
+        match self {
+            SoundDevice::SoundBlaster16(dev) => dev.stop(),
+        }
+    }
+
+    fn handle_interrupt(&mut self) {
+        match self {
+            SoundDevice::SoundBlaster16(dev) => dev.handle_interrupt(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SoundConfig {
     channels: u16,
     sample_bits: u16,
     sample_rate: u32,
@@ -12,24 +51,30 @@ struct SndConfig {
     data_end: u32,
 }
 
-impl SndConfig {
-    pub fn new(buf: &[u8]) -> Self {
+impl SoundConfig {
+    pub fn new() -> Self {
         Self {
             channels: 1,
             sample_bits: 8,
             sample_rate: 44100,
             data_start: 0,
-            data_end: buf.len() as u32,
+            data_end: 0,
         }
+    }
+
+    pub fn with_data(len: usize) -> Self {
+        let mut config = Self::new();
+        config.data_end = len as u32;
+        config
     }
 }
 
-impl TryFrom<&[u8]> for SndConfig {
+impl TryFrom<&[u8]> for SoundConfig {
     type Error = ();
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
         if buf.len() < 44 {
-            debug!("SND: Error buf size");
+            debug!("SND: Invalid buf size");
             return Err(());
         }
         if buf[0..4] != *b"RIFF" {
@@ -67,7 +112,7 @@ impl TryFrom<&[u8]> for SndConfig {
             buf[40..44].try_into().map_err(|_| ())?
         );
 
-        Ok(SndConfig {
+        Ok(SoundConfig {
             channels,
             sample_bits,
             sample_rate,
@@ -78,37 +123,44 @@ impl TryFrom<&[u8]> for SndConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct SndBuffer;
+pub struct SoundBuffer;
 
-impl SndBuffer {
+impl SoundBuffer {
     pub fn new() -> Self {
         Self {}
     }
 
-    pub fn size() -> usize {
-        sb16::BUF_LEN
+    pub const fn size() -> usize {
+        32 << 10
     }
 }
 
-impl FileIO for SndBuffer {
+impl FileIO for SoundBuffer {
     fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
         Err(())
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        if buf.is_empty() {
-            sb16::stop();
+        let config = if buf.get(0..4) == Some(b"RIFF") {
+            SoundConfig::try_from(buf)?
         } else {
-            let config = if buf.get(0..4) == Some(b"RIFF") {
-                SndConfig::try_from(buf)?
+            SoundConfig::with_data(buf.len())
+        };
+        let start = config.data_start as usize;
+        let end = cmp::min(config.data_end as usize, buf.len());
+
+        x86_64::instructions::interrupts::without_interrupts(|| {
+            if let Some(ref mut dev) = *SND.lock() {
+                if buf.is_empty() {
+                    dev.stop();
+                } else {
+                    dev.play(&buf[start..end], &config);
+                }
+                Ok(buf.len())
             } else {
-                SndConfig::new(&buf)
-            };
-            let start = config.data_start as usize;
-            let end = config.data_end as usize;
-            sb16::play(&buf[start..end], &config);
-        }
-        Ok(buf.len())
+                Err(())
+            }
+        })
     }
 
     fn close(&mut self) {}
@@ -122,5 +174,15 @@ impl FileIO for SndBuffer {
 }
 
 pub fn init() {
-    sb16::init();
+    if let Some(dev) = sb16::find() {
+        *SND.lock() = Some(SoundDevice::SoundBlaster16(dev));
+        sys::idt::set_irq_handler(IRQ, interrupt_handler);
+        log!("SND DRV SB16");
+    }
+}
+
+fn interrupt_handler() {
+    if let Some(ref mut dev) = *SND.lock() {
+        dev.handle_interrupt();
+    }
 }
