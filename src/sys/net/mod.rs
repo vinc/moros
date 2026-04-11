@@ -286,18 +286,18 @@ pub fn init() {
         }
     };
     if let Some(dev) = find_device(0x10EC, 0x8139) {
-        let io = dev.io_base();
+        let io = dev.bar_io(0);
         let nic = nic::rtl8139::Device::new(io);
         add(EthernetDevice::RTL8139(nic), "RTL8139");
     }
     if let Some(dev) = find_device(0x1022, 0x2000) {
-        let io = dev.io_base();
+        let io = dev.bar_io(0);
         let nic = nic::pcnet::Device::new(io);
         add(EthernetDevice::PCNET(nic), "PCNET");
     }
     for id in E1000_DEVICES {
         if let Some(dev) = find_device(0x8086, id) {
-            let io = dev.io_base();
+            let io = dev.bar_io(0);
             let mem = dev.mem_base();
             let bar = dev.bar_type();
             let nic = nic::e1000::Device::new(io, mem, bar);

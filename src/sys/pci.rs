@@ -111,9 +111,9 @@ impl DeviceConfig {
         PhysAddr::new(addr)
     }
 
-    pub fn io_base(&self) -> u16 {
-        debug_assert!(self.base_addresses[0].get_bit(0) == true);
-        (self.base_addresses[0] as u16) & 0xFFF0
+    pub fn bar_io(&self, n: usize) -> u16 {
+        debug_assert!(self.base_addresses[n].get_bit(0) == true);
+        (self.base_addresses[n] as u16) & 0xFFF0
     }
 }
 
