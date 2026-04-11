@@ -8,8 +8,6 @@ use core::convert::TryFrom;
 use core::convert::TryInto;
 use spin::Mutex;
 
-pub const IRQ: u8 = 5;
-
 pub static SND: Mutex<Option<(SoundDevice, SoundConfig)>> = Mutex::new(None);
 
 pub enum SoundDevice {
@@ -180,9 +178,10 @@ impl FileIO for SoundBuffer {
 
 pub fn init() {
     let config = SoundConfig::new();
+
     if let Some(device) = sb16::find() {
         *SND.lock() = Some((SoundDevice::SoundBlaster16(device), config));
-        sys::idt::set_irq_handler(IRQ, interrupt_handler);
+        sys::idt::set_irq_handler(sb16::IRQ, interrupt_handler);
         log!("SND DRV SB16");
     }
 }
