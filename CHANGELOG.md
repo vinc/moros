@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add Sound Blaster 16 driver (#781)
 - Improve disk caching (#826)
 - Fix memory leak during process creation (#825)
 - Add pipe device file (#822)
