@@ -10,7 +10,7 @@ use spin::Mutex;
 
 pub const IRQ: u8 = 5;
 
-pub static SND: Mutex<Option<SoundDevice>> = Mutex::new(None);
+pub static SND: Mutex<Option<(SoundDevice, SoundConfig)>> = Mutex::new(None);
 
 pub enum SoundDevice {
     SoundBlaster16(sb16::Device),
@@ -47,8 +47,8 @@ pub struct SoundConfig {
     channels: u16,
     sample_bits: u16,
     sample_rate: u32,
-    data_start: u32,
-    data_end: u32,
+    data_pos: u32,
+    data_len: u32,
 }
 
 impl SoundConfig {
@@ -57,15 +57,9 @@ impl SoundConfig {
             channels: 1,
             sample_bits: 8,
             sample_rate: 44100,
-            data_start: 0,
-            data_end: 0,
+            data_pos: 0,
+            data_len: 0,
         }
-    }
-
-    pub fn with_data(len: usize) -> Self {
-        let mut config = Self::new();
-        config.data_end = len as u32;
-        config
     }
 }
 
@@ -73,6 +67,8 @@ impl TryFrom<&[u8]> for SoundConfig {
     type Error = ();
 
     fn try_from(buf: &[u8]) -> Result<Self, Self::Error> {
+        // Try to parse a WAV inside a RIFF container without additionnal
+        // metadata and only one single contiguous array of audio samples
         if buf.len() < 44 {
             debug!("SND: Invalid buf size");
             return Err(());
@@ -107,8 +103,8 @@ impl TryFrom<&[u8]> for SoundConfig {
             debug!("SND: Error parsing 'data'");
             return Err(());
         }
-        let data_start = 44;
-        let data_end = data_start + u32::from_le_bytes(
+        let data_pos = 44;
+        let data_len = u32::from_le_bytes(
             buf[40..44].try_into().map_err(|_| ())?
         );
 
@@ -116,8 +112,8 @@ impl TryFrom<&[u8]> for SoundConfig {
             channels,
             sample_bits,
             sample_rate,
-            data_start,
-            data_end,
+            data_pos,
+            data_len,
         })
     }
 }
@@ -140,23 +136,28 @@ impl FileIO for SoundBuffer {
         Err(())
     }
 
-    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
-        let config = if buf.get(0..4) == Some(b"RIFF") {
-            SoundConfig::try_from(buf)?
-        } else {
-            SoundConfig::with_data(buf.len())
-        };
-        let start = config.data_start as usize;
-        let end = cmp::min(config.data_end as usize, buf.len());
-
+    fn write(&mut self, buffer: &[u8]) -> Result<usize, ()> {
         x86_64::instructions::interrupts::without_interrupts(|| {
-            if let Some(ref mut dev) = *SND.lock() {
-                if buf.is_empty() {
-                    dev.stop();
+            if let Some((ref mut device, ref mut config)) = *SND.lock() {
+                if buffer.is_empty() {
+                    device.stop();
                 } else {
-                    dev.play(&buf[start..end], &config);
+                    let mut i = 0;
+                    let mut j = buffer.len();
+                    if buffer.get(0..4) == Some(b"RIFF") {
+                        *config = SoundConfig::try_from(buffer)?;
+                        i = config.data_pos as usize; // Skip the header
+                    }
+                    if config.data_len > 0 {
+                        // The buffer can contain less than the whole data and
+                        // subsequent writes will play the rest
+                        j = cmp::min(j, i + (config.data_len as usize));
+                        config.data_len -= (j as u32) - config.data_pos;
+                        config.data_pos = 0;
+                    }
+                    device.play(&buffer[i..j], &config);
                 }
-                Ok(buf.len())
+                Ok(buffer.len())
             } else {
                 Err(())
             }
@@ -174,15 +175,16 @@ impl FileIO for SoundBuffer {
 }
 
 pub fn init() {
-    if let Some(dev) = sb16::find() {
-        *SND.lock() = Some(SoundDevice::SoundBlaster16(dev));
+    let config = SoundConfig::new();
+    if let Some(device) = sb16::find() {
+        *SND.lock() = Some((SoundDevice::SoundBlaster16(device), config));
         sys::idt::set_irq_handler(IRQ, interrupt_handler);
         log!("SND DRV SB16");
     }
 }
 
 fn interrupt_handler() {
-    if let Some(ref mut dev) = *SND.lock() {
+    if let Some((ref mut dev, _)) = *SND.lock() {
         dev.handle_interrupt();
     }
 }
