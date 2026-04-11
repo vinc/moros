@@ -1,6 +1,8 @@
+mod ac97;
 mod sb16;
 
 use crate::api::fs::{FileIO, IO};
+use crate::sys::pci::DeviceConfig;
 use crate::sys;
 
 use core::cmp;
@@ -11,7 +13,8 @@ use spin::Mutex;
 pub static SND: Mutex<Option<(SoundDevice, SoundConfig)>> = Mutex::new(None);
 
 pub enum SoundDevice {
-    SoundBlaster16(sb16::Device),
+    AC97(ac97::Device),
+    SB16(sb16::Device),
 }
 
 pub trait SoundDeviceIO {
@@ -23,19 +26,22 @@ pub trait SoundDeviceIO {
 impl SoundDeviceIO for SoundDevice {
     fn play(&mut self, buffer: &[u8], config: &SoundConfig) {
         match self {
-            SoundDevice::SoundBlaster16(dev) => dev.play(&buffer, &config),
+            SoundDevice::AC97(dev) => dev.play(&buffer, &config),
+            SoundDevice::SB16(dev) => dev.play(&buffer, &config),
         }
     }
 
     fn stop(&mut self) {
         match self {
-            SoundDevice::SoundBlaster16(dev) => dev.stop(),
+            SoundDevice::AC97(dev) => dev.stop(),
+            SoundDevice::SB16(dev) => dev.stop(),
         }
     }
 
     fn handle_interrupt(&mut self) {
         match self {
-            SoundDevice::SoundBlaster16(dev) => dev.handle_interrupt(),
+            SoundDevice::AC97(dev) => dev.handle_interrupt(),
+            SoundDevice::SB16(dev) => dev.handle_interrupt(),
         }
     }
 }
@@ -176,13 +182,37 @@ impl FileIO for SoundBuffer {
     }
 }
 
+fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
+    if let Some(mut dev) = sys::pci::find_device(vendor_id, device_id) {
+        dev.enable_bus_mastering();
+        Some(dev)
+    } else {
+        None
+    }
+}
+
 pub fn init() {
     let config = SoundConfig::new();
 
     if let Some(device) = sb16::find() {
-        *SND.lock() = Some((SoundDevice::SoundBlaster16(device), config));
-        sys::idt::set_irq_handler(sb16::IRQ, interrupt_handler);
-        log!("SND DRV SB16");
+        *SND.lock() = Some((SoundDevice::SB16(device), config.clone()));
+
+        let irq = sb16::IRQ;
+        sys::idt::set_irq_handler(irq, interrupt_handler);
+
+        log!("SND DRV SB16 (IRQ {})", irq);
+        return;
+    }
+
+    if let Some(pci) = find_device(0x8086, 0x2415) {
+        let device = ac97::Device::new(pci.bar_io(0), pci.bar_io(1));
+        *SND.lock() = Some((SoundDevice::AC97(device), config.clone()));
+
+        let irq = pci.interrupt_line;
+        sys::idt::set_irq_handler(irq, interrupt_handler);
+
+        log!("SND DRV AC97 (IRQ {})", irq);
+        return;
     }
 }
 
