@@ -14,10 +14,10 @@ use spin::Mutex;
 
 #[derive(Clone, Copy, Debug, Default)]
 #[repr(C, align(16))]
-struct  BufDesc {
-    phys_addr: u32,
-    samples: u16,
-    status: u16
+struct BufDesc {
+    addr: u32,
+    size: u16,
+    ctrl: u16
 }
 
 pub struct Device {
@@ -27,7 +27,7 @@ pub struct Device {
     block: PhysBuf,
     bar0: u16,
     bar1: u16,
-    buf_descs: Arc<Mutex<[BufDesc; 32]>>,
+    bdl: Arc<Mutex<[BufDesc; 32]>>, // Buffer Descriptor List
 }
 
 impl Device {
@@ -46,7 +46,7 @@ impl Device {
             buffer: Vec::new(),
             config: SoundConfig::new(),
             block: PhysBuf::new(SoundBuffer::size()),
-            buf_descs: Arc::new(Mutex::new([(); 32].map(|_| BufDesc::default()))),
+            bdl: Arc::new(Mutex::new([(); 32].map(|_| BufDesc::default()))),
             bar0, bar1
         }
     }
@@ -66,18 +66,18 @@ impl Device {
 
         // Write physical position of BDL to Buffer Descriptor Base Address
         // register
-        let mut buf_descs = self.buf_descs.lock();
+        let mut bdl = self.bdl.lock();
 
-        let len = core::cmp::min(self.block.len(), buffer.len());
-        self.block[0..len].copy_from_slice(&buffer[0..len]);
+        let n = core::cmp::min(self.block.len(), buffer.len());
+        self.block[0..n].copy_from_slice(&buffer[0..n]);
 
-        buf_descs[0].phys_addr = self.block.addr() as u32;
-        buf_descs[0].samples = (len / 4) as u16;
-        buf_descs[0].status = 1 << 15; // IOC: Interrupt on Completion
+        bdl[0].addr = self.block.addr() as u32;
+        bdl[0].size = (n / 4) as u16;
+        bdl[0].ctrl = 1 << 15; // IOC: Interrupt on Completion
 
-        let ptr = ptr::addr_of!(buf_descs[0]) as *const u8;
-        let phys_addr = sys::mem::phys_addr(ptr);
-        outl(self.bar1 + 0x10, phys_addr as u32);
+        let ptr = ptr::addr_of!(bdl[0]) as *const u8;
+        let addr = sys::mem::phys_addr(ptr);
+        outl(self.bar1 + 0x10, addr as u32);
 
         // Write number of last valid buffer entry to Last Valid Entry register
         outb(self.bar1 + 0x15, 0);
