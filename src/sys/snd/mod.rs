@@ -145,6 +145,7 @@ impl FileIO for SoundBuffer {
                     let mut i = 0;
                     let mut j = buffer.len();
                     if buffer.get(0..4) == Some(b"RIFF") {
+                        device.stop();
                         *config = SoundConfig::try_from(buffer)?;
                         i = config.data_pos as usize; // Skip the header
                     }
@@ -154,6 +155,9 @@ impl FileIO for SoundBuffer {
                         j = cmp::min(j, i + (config.data_len as usize));
                         config.data_len -= (j as u32) - config.data_pos;
                         config.data_pos = 0;
+                    } else {
+                        device.stop();
+                        *config = SoundConfig::new();
                     }
                     device.play(&buffer[i..j], &config);
                 }
