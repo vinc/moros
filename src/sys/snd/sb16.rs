@@ -1,10 +1,10 @@
 use super::{SoundBuffer, SoundConfig};
 
 use crate::sys;
+use crate::sys::port::*;
 use crate::sys::mem::PhysBuf;
 
 use alloc::vec::Vec;
-use x86_64::instructions::port::Port;
 
 // Sources:
 // https://wiki.osdev.org/Sound_Blaster_16
@@ -101,20 +101,6 @@ impl Device {
         self.block[0..len].copy_from_slice(&self.buffer[0..len]);
         self.block[len..].fill(0x80);
         self.buffer.drain(0..len);
-    }
-}
-
-fn outb(addr: u16, value: u8) {
-    let mut port: Port<u8> = Port::new(addr);
-    unsafe {
-        port.write(value);
-    }
-}
-
-fn inb(addr: u16) -> u8 {
-    let mut port: Port<u8> = Port::new(addr);
-    unsafe {
-        port.read()
     }
 }
 
