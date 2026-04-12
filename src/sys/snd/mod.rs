@@ -184,6 +184,7 @@ impl FileIO for SoundBuffer {
 
 fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     if let Some(mut dev) = sys::pci::find_device(vendor_id, device_id) {
+        dev.enable_io_space();
         dev.enable_bus_mastering();
         Some(dev)
     } else {

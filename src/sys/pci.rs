@@ -75,6 +75,15 @@ impl DeviceConfig {
         }
     }
 
+    pub fn enable_io_space(&mut self) {
+        let mut register = ConfigRegister::new(
+            self.bus, self.device, self.function, 0x04
+        );
+        let mut data = register.read();
+        data.set_bit(0, true);
+        register.write(data);
+    }
+
     pub fn enable_bus_mastering(&mut self) {
         let mut register = ConfigRegister::new(
             self.bus, self.device, self.function, 0x04
