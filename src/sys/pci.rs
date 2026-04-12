@@ -82,6 +82,7 @@ impl DeviceConfig {
         let mut data = register.read();
         data.set_bit(0, true);
         register.write(data);
+        self.command = register.read() as u16;
     }
 
     pub fn enable_bus_mastering(&mut self) {
@@ -91,6 +92,7 @@ impl DeviceConfig {
         let mut data = register.read();
         data.set_bit(2, true);
         register.write(data);
+        self.command = register.read() as u16;
     }
 
     pub fn bar_type(&self) -> u16 {
