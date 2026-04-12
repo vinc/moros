@@ -205,7 +205,8 @@ pub fn init() {
     }
 
     if let Some(pci) = find_device(0x8086, 0x2415) {
-        let device = ac97::Device::new(pci.bar_io(0), pci.bar_io(1));
+        let mut device = ac97::Device::new(pci.bar_io(0), pci.bar_io(1));
+        device.init();
         *SND.lock() = Some((SoundDevice::AC97(device), config.clone()));
 
         let irq = pci.interrupt_line;
