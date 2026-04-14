@@ -110,51 +110,59 @@ pub fn set_id(id: usize) {
     PID.store(id, Ordering::SeqCst)
 }
 
+fn current_process(table: &ProcessTable) -> &Process {
+    table[id()].as_ref().unwrap()
+}
+
+fn current_process_mut(table: &mut ProcessTable) -> &mut Process {
+    table[id()].as_mut().unwrap()
+}
+
 pub fn env(key: &str) -> Option<String> {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.data.env.get(key).cloned()
 }
 
 pub fn envs() -> BTreeMap<String, String> {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.data.env.clone()
 }
 
 pub fn dir() -> String {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.data.dir.clone()
 }
 
 pub fn user() -> Option<String> {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.data.user.clone()
 }
 
 pub fn set_env(key: &str, val: &str) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.data.env.insert(key.into(), val.into());
 }
 
 pub fn set_dir(dir: &str) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.data.dir = dir.into();
 }
 
 pub fn set_user(user: &str) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.data.user = Some(user.into())
 }
 
 pub fn create_handle(file: Resource) -> Result<usize, ()> {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     let min = 4; // The first 4 handles are reserved
     let max = MAX_HANDLES;
     for handle in min..max {
@@ -169,37 +177,37 @@ pub fn create_handle(file: Resource) -> Result<usize, ()> {
 
 pub fn update_handle(handle: usize, file: Resource) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.data.handles[handle] = Some(Box::new(file));
 }
 
 pub fn delete_handle(handle: usize) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.data.handles[handle] = None;
 }
 
 pub fn handle(handle: usize) -> Option<Box<Resource>> {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.data.handles[handle].clone()
 }
 
 pub fn handles() -> Vec<Option<Box<Resource>>> {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.data.handles.to_vec()
 }
 
 pub fn code_addr() -> u64 {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.ctx.code_addr
 }
 
 pub fn set_code_addr(addr: u64) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.ctx.code_addr = addr;
 }
 
@@ -214,25 +222,25 @@ pub fn ptr_from_addr(addr: u64) -> *mut u8 {
 
 pub fn registers() -> Registers {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.registers
 }
 
 pub fn set_registers(regs: Registers) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.registers = regs
 }
 
 pub fn stack_frame() -> InterruptStackFrameValue {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.stack_frame.unwrap()
 }
 
 pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
     let mut table = PROCESS_TABLE.write();
-    let proc = table[id()].as_mut().unwrap();
+    let proc = current_process_mut(&mut table);
     proc.stack_frame = Some(stack_frame);
 }
 
@@ -262,7 +270,7 @@ pub fn exit() {
 
 unsafe fn page_table_frame() -> PhysFrame {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.ctx.page_table_frame
 }
 
@@ -272,13 +280,13 @@ pub unsafe fn page_table() -> &'static mut PageTable {
 
 pub unsafe fn alloc(layout: Layout) -> *mut u8 {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     proc.ctx.allocator.alloc(layout)
 }
 
 pub unsafe fn free(ptr: *mut u8, layout: Layout) {
     let table = PROCESS_TABLE.read();
-    let proc = table[id()].as_ref().unwrap();
+    let proc = current_process(&table);
     let bottom = proc.ctx.allocator.lock().bottom();
     let top = proc.ctx.allocator.lock().top();
     if bottom <= ptr && ptr < top {
