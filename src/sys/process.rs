@@ -48,7 +48,7 @@ lazy_static! {
 }
 
 // Called during kernel heap initialization
-pub fn init_process_addr(addr: u64) {
+pub fn set_process_addr(addr: u64) {
     CODE_ADDR.store(addr, Ordering::SeqCst);
 }
 
