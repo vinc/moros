@@ -1,11 +1,13 @@
 # Changelog
 
 ## Unreleased
+- Refactor process table (#827)
 - Add Sound Blaster 16 driver (#781)
 - Improve disk caching (#826)
 - Fix memory leak during process creation (#825)
 - Add pipe device file (#822)
 - Fix potential deadlocks (#824)
+- Bump object from 0.38.1 to 0.39.0 (#819)
 - Reuse deleted dir entries (#820)
 - Improve editor search (#817)
 - Add draw command (#790)
