@@ -41,8 +41,10 @@ static USER_ADDR: u64 = 0x800000;
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
 pub static PID: AtomicUsize = AtomicUsize::new(0);
 
+type ProcessTable = [Option<Box<Process>>; MAX_PROCS];
+
 lazy_static! {
-    pub static ref PROCESS_TABLE: RwLock<[Option<Box<Process>>; MAX_PROCS]> = {
+    pub static ref PROCESS_TABLE: RwLock<ProcessTable> = {
         RwLock::new([(); MAX_PROCS].map(|_| None))
     };
 }
