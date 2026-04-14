@@ -4,7 +4,7 @@ use crate::sys;
 use crate::sys::fs::Device;
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::Resource;
-use crate::sys::process::Process;
+use crate::sys::process::{Process, Spawn};
 
 use alloc::vec;
 use core::alloc::Layout;
