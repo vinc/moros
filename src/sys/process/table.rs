@@ -7,7 +7,6 @@ use crate::sys::fs::Resource;
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::alloc::{GlobalAlloc, Layout};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
@@ -121,22 +120,10 @@ pub fn handle(handle: usize) -> Option<Box<Resource>> {
     proc.data.handles[handle].clone()
 }
 
-pub fn handles() -> Vec<Option<Box<Resource>>> {
-    let table = PROCESS_TABLE.read();
-    let proc = current_process(&table);
-    proc.data.handles.to_vec()
-}
-
 pub fn code_addr() -> u64 {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
     proc.ctx.code_addr
-}
-
-pub fn set_code_addr(addr: u64) {
-    let mut table = PROCESS_TABLE.write();
-    let proc = current_process_mut(&mut table);
-    proc.ctx.code_addr = addr;
 }
 
 pub fn registers() -> Registers {
