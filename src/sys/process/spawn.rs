@@ -35,7 +35,6 @@ pub trait Spawn {
         args_ptr: usize,
         args_len: usize
     ) -> Result<(), ExitCode>;
-    fn create(bin: &[u8]) -> Result<usize, ()>;
 }
 
 impl Spawn for Process {
@@ -54,7 +53,7 @@ impl Spawn for Process {
         args_ptr: usize,
         args_len: usize
     ) -> Result<(), ExitCode> {
-        if let Ok(id) = Self::create(&bin) {
+        if let Ok(id) = create(&bin) {
             drop(bin);
             let ctx = {
                 let table = PROCESS_TABLE.read();
@@ -67,104 +66,104 @@ impl Spawn for Process {
             Err(ExitCode::ExecError)
         }
     }
+}
 
-    fn create(bin: &[u8]) -> Result<usize, ()> {
-        let parent = {
-            let process_table = PROCESS_TABLE.read();
-            process_table[id()].clone().unwrap()
-        };
+fn create(bin: &[u8]) -> Result<usize, ()> {
+    let parent = {
+        let process_table = PROCESS_TABLE.read();
+        process_table[id()].clone().unwrap()
+    };
 
-        let mut process_table = PROCESS_TABLE.write();
-        let id = (1..MAX_PROCS)
-            .find(|&i| process_table[i].is_none())
-            .ok_or(())?;
+    let mut process_table = PROCESS_TABLE.write();
+    let id = (1..MAX_PROCS)
+        .find(|&i| process_table[i].is_none())
+        .ok_or(())?;
 
-        let page_table_frame = mem::with_frame_allocator(|frame_allocator| {
-            frame_allocator.allocate_frame().expect("frame allocation failed")
-        });
+    let page_table_frame = mem::with_frame_allocator(|frame_allocator| {
+        frame_allocator.allocate_frame().expect("frame allocation failed")
+    });
 
-        let page_table = unsafe {
-            mem::create_page_table(page_table_frame)
-        };
+    let page_table = unsafe {
+        mem::create_page_table(page_table_frame)
+    };
 
-        let kernel_page_table = unsafe {
-            mem::active_page_table()
-        };
+    let kernel_page_table = unsafe {
+        mem::active_page_table()
+    };
 
-        // FIXME: for now we just copy everything
-        let pages = page_table.iter_mut().zip(kernel_page_table.iter());
-        for (user_page, kernel_page) in pages {
-            *user_page = kernel_page.clone();
-        }
+    // FIXME: for now we just copy everything
+    let pages = page_table.iter_mut().zip(kernel_page_table.iter());
+    for (user_page, kernel_page) in pages {
+        *user_page = kernel_page.clone();
+    }
 
-        let mut mapper = unsafe {
-            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-        };
+    let mut mapper = unsafe {
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+    };
 
-        let proc_size = MAX_PROC_SIZE as u64;
-        let code_base = CODE_ADDR.load(Ordering::SeqCst);
-        let code_addr = code_base + proc_size * id as u64;
-        let stack_addr = code_addr + proc_size - 4096;
+    let proc_size = MAX_PROC_SIZE as u64;
+    let code_base = CODE_ADDR.load(Ordering::SeqCst);
+    let code_addr = code_base + proc_size * id as u64;
+    let stack_addr = code_addr + proc_size - 4096;
 
-        let mut entry_point_addr = 0;
+    let mut entry_point_addr = 0;
 
-        //debug!("Process memory:");
-        if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
-            if let Ok(obj) = object::File::parse(bin) {
-                entry_point_addr = obj.entry();
+    //debug!("Process memory:");
+    if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
+        if let Ok(obj) = object::File::parse(bin) {
+            entry_point_addr = obj.entry();
 
-                for segment in obj.segments() {
-                    if let Ok(data) = segment.data() {
-                        // NOTE: The size of the segment in memory can be
-                        // larger than on the disk because the object can
-                        // contain uninitialized sections like ".bss" that has
-                        // a length but no data.
-                        let addr = code_addr + segment.address();
-                        let size = segment.size() as usize;
-                        /*
-                        debug!(
-                            "{:#X}..{:#X}: {} bytes for a code segment ({:#X}..{:#X}: {} bytes)",
-                            addr, addr + data.len() as u64, data.len(),
-                            segment.address(), segment.address() + segment.size(), segment.size(),
-                        );
-                        */
-                        load_binary(&mut mapper, addr, size, data)?;
-                    }
+            for segment in obj.segments() {
+                if let Ok(data) = segment.data() {
+                    // NOTE: The size of the segment in memory can be
+                    // larger than on the disk because the object can
+                    // contain uninitialized sections like ".bss" that has
+                    // a length but no data.
+                    let addr = code_addr + segment.address();
+                    let size = segment.size() as usize;
+                    /*
+                    debug!(
+                        "{:#X}..{:#X}: {} bytes for a code segment ({:#X}..{:#X}: {} bytes)",
+                        addr, addr + data.len() as u64, data.len(),
+                        segment.address(), segment.address() + segment.size(), segment.size(),
+                    );
+                    */
+                    load_binary(&mut mapper, addr, size, data)?;
                 }
             }
-        } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
-            load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..])?;
-        } else {
-            // TODO: Free page_table_frame and any pages allocated
-            return Err(());
         }
-
-        let parent_id = parent.ctx.id;
-        let data = parent.data.clone();
-        let registers = parent.registers;
-        let stack_frame = parent.stack_frame;
-
-        let allocator = Arc::new(LockedHeap::empty());
-
-        let proc = Process {
-            parent_id,
-            data,
-            stack_frame,
-            registers,
-            ctx: ProcessContext {
-                id,
-                code_addr,
-                stack_addr,
-                entry_point_addr,
-                page_table_frame,
-                allocator,
-            }
-        };
-
-        process_table[id] = Some(Box::new(proc));
-
-        Ok(id)
+    } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
+        load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..])?;
+    } else {
+        // TODO: Free page_table_frame and any pages allocated
+        return Err(());
     }
+
+    let parent_id = parent.ctx.id;
+    let data = parent.data.clone();
+    let registers = parent.registers;
+    let stack_frame = parent.stack_frame;
+
+    let allocator = Arc::new(LockedHeap::empty());
+
+    let proc = Process {
+        parent_id,
+        data,
+        stack_frame,
+        registers,
+        ctx: ProcessContext {
+            id,
+            code_addr,
+            stack_addr,
+            entry_point_addr,
+            page_table_frame,
+            allocator,
+        }
+    };
+
+    process_table[id] = Some(Box::new(proc));
+
+    Ok(id)
 }
 
 // Switch to user mode and execute the program
