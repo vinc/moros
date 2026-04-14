@@ -3,31 +3,18 @@ mod table;
 
 pub use spawn::Spawn;
 pub use table::{
-    PROCESS_TABLE,
-    MAX_PROCS,
+    PROCESS_TABLE, MAX_PROCS,
     init,
-    id,
-    set_id,
-    dir,
-    env,
-    envs,
-    user,
-    free,
-    alloc,
-    handle,
-    create_handle,
-    update_handle,
-    delete_handle,
-    set_env,
-    set_dir,
-    set_user,
     code_addr,
-    current_process,
-    current_process_mut,
-    registers,
-    set_registers,
-    stack_frame,
-    set_stack_frame,
+    id, set_id,
+    dir, set_dir,
+    envs, env, set_env,
+    user, set_user,
+    alloc, free,
+    handle, create_handle, update_handle, delete_handle,
+    registers, set_registers,
+    stack_frame, set_stack_frame,
+    current_process, current_process_mut,
 };
 
 use crate::sys::console::Console;
@@ -58,6 +45,11 @@ pub const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 // need to allocate memory to avoid using kernel memory.
 static USER_ADDR: u64 = 0x800000;
 
+// TODO: Remove this when the kernel is no longer at 0x200000 in userspace
+pub fn is_userspace(addr: u64) -> bool {
+    USER_ADDR <= addr && addr <= USER_ADDR + MAX_PROC_SIZE as u64
+}
+
 static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
 
 // Called during kernel heap initialization
@@ -65,7 +57,16 @@ pub fn set_process_addr(addr: u64) {
     CODE_ADDR.store(addr, Ordering::SeqCst);
 }
 
-#[repr(align(8), C)]
+pub fn ptr_from_addr(addr: u64) -> *mut u8 {
+    let base = code_addr();
+    if addr < base {
+        (base + addr) as *mut u8
+    } else {
+        addr as *mut u8
+    }
+}
+
+#[repr(C, align(8))]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Registers {
     // Saved scratch registers
@@ -106,20 +107,6 @@ impl ProcessData {
 
         Self { env, dir, user, handles }
     }
-}
-
-pub fn ptr_from_addr(addr: u64) -> *mut u8 {
-    let base = code_addr();
-    if addr < base {
-        (base + addr) as *mut u8
-    } else {
-        addr as *mut u8
-    }
-}
-
-// TODO: Remove this when the kernel is no longer at 0x200000 in userspace
-pub fn is_userspace(addr: u64) -> bool {
-    USER_ADDR <= addr && addr <= USER_ADDR + MAX_PROC_SIZE as u64
 }
 
 pub fn exit() {

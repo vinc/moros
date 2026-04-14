@@ -87,6 +87,12 @@ pub fn set_user(user: &str) {
     proc.data.user = Some(user.into())
 }
 
+pub fn handle(handle: usize) -> Option<Box<Resource>> {
+    let table = PROCESS_TABLE.read();
+    let proc = current_process(&table);
+    proc.data.handles[handle].clone()
+}
+
 pub fn create_handle(file: Resource) -> Result<usize, ()> {
     let mut table = PROCESS_TABLE.write();
     let proc = current_process_mut(&mut table);
@@ -112,12 +118,6 @@ pub fn delete_handle(handle: usize) {
     let mut table = PROCESS_TABLE.write();
     let proc = current_process_mut(&mut table);
     proc.data.handles[handle] = None;
-}
-
-pub fn handle(handle: usize) -> Option<Box<Resource>> {
-    let table = PROCESS_TABLE.read();
-    let proc = current_process(&table);
-    proc.data.handles[handle].clone()
 }
 
 pub fn code_addr() -> u64 {
