@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Refactor Lisp comment parsing (#833)
 - Refactor process table (#827)
 - Add Sound Blaster 16 driver (#781)
 - Improve disk caching (#826)

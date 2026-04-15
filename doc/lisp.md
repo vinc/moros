@@ -178,6 +178,7 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Refactor comment parsing
 - Add `shell->binary` function (aliased to `sh->bin`)
 - Add `shell->string` function (aliased to `sh->str`)
 - Add dict support to `head`, `tail`, `length`, `empty?`, and `map`
