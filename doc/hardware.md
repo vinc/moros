@@ -8,6 +8,8 @@
   - [x] NET: Intel PRO/1000 MT Desktop
   - [x] NET: Realtek RTL8139C
   - [x] NET: AMD PCnet-FAST III
+  - [x] SND: Creative SoundBlaster 16
+  - [x] SND: Intel 82801AA (AC'97)
 
 - [x] VirtualBox
   - [x] DSK: ATA
@@ -27,7 +29,7 @@
   - [x] DSK: ATA
   - [x] CPU: AMD Athlon 64 3200+ (2.0 GHz)
   - [x] NET: Realtek RTL8100C
-  - [ ] SND: AC97
+  - [ ] SND: Realtek ALC655 (AC'97)
 
 - [x] Custom (2007)
   - [x] MB: Asus P5K
@@ -38,7 +40,7 @@
   - [x] NET: Realtek RTL8139B (PCI)
   - [x] NET: Realtek RTL8139C (PCI)
   - [x] NET: Realtek RTL8139D (PCI)
-  - [ ] SND: Realtek ALC883
+  - [ ] SND: Realtek ALC883 (HDA)
 
 - [x] HP ProLiant MicroServer N40L (2012)
   - [x] CPU: AMD Athlon II Dual Core
