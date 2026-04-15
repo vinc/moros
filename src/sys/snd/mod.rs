@@ -192,6 +192,11 @@ fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     }
 }
 
+const AC97_DEVICES: [(u16, u16); 2] = [
+    (0x8086, 0x2415), // Intel ICH
+    (0x1002, 0x4370), // ATI SB400
+];
+
 pub fn init() {
     let config = SoundConfig::new();
 
@@ -205,19 +210,21 @@ pub fn init() {
         return;
     }
 
-    if let Some(pci) = find_device(0x8086, 0x2415) {
-        let mut device = ac97::Device::new(pci.bar_io(0), pci.bar_io(1));
-        debug!("PCI BAR0: {:#010X}", pci.base_addresses[0]);
-        debug!("PCI BAR1: {:#010X}", pci.base_addresses[1]);
-        debug!("PCI CMD_REG: {:#016b} ({:#08X})", pci.command, pci.command);
-        device.init();
-        *SND.lock() = Some((SoundDevice::AC97(device), config.clone()));
+    for (vendor_id, device_id) in AC97_DEVICES {
+        if let Some(pci) = find_device(vendor_id, device_id) {
+            let mut device = ac97::Device::new(pci.bar_io(0), pci.bar_io(1));
+            debug!("PCI BAR0: {:#010X}", pci.base_addresses[0]);
+            debug!("PCI BAR1: {:#010X}", pci.base_addresses[1]);
+            debug!("PCI CMD_REG: {:#016b} ({:#08X})", pci.command, pci.command);
+            device.init();
+            *SND.lock() = Some((SoundDevice::AC97(device), config.clone()));
 
-        let irq = pci.interrupt_line;
-        sys::idt::set_irq_handler(irq, interrupt_handler);
+            let irq = pci.interrupt_line;
+            sys::idt::set_irq_handler(irq, interrupt_handler);
 
-        log!("SND DRV AC97 (IRQ {})", irq);
-        return;
+            log!("SND DRV AC97 (IRQ {})", irq);
+            return;
+        }
     }
 }
 
