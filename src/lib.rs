@@ -41,6 +41,7 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::net::init(); // Require PCI
     sys::ata::init();
     sys::fs::init(); // Require ATA
+    sys::process::init();
 
     log!("RTC {}", sys::clk::date());
 }
