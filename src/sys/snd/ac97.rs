@@ -86,6 +86,8 @@ impl Device {
             debug!("SND AC97 BDL[{}].ctrl = {:#016b}", j, bdl[j].ctrl);
         }
         debug!("SND AC97 bdl[{:02}]", i);
+        debug!("  PO_CIV: {:02}", inb(self.bar1 + PO_CIV));
+        debug!("  PO_LVI: {:02}", inb(self.bar1 + PO_LVI));
         */
 
         let n = core::cmp::min(self.blocks[i].len(), self.buffer.len());
@@ -114,7 +116,9 @@ impl Device {
         outb(self.bar1 + PO_CR, RR);
         while inb(self.bar1 + PO_CR) & RR != 0 {
             // Wait for reset to be completed
+            core::hint::spin_loop();
         }
+        self.index.store(0, Ordering::SeqCst);
 
         // Set sample rate
         //debug!("SND AC97 Ext Cap: {:#016b}", inw(self.bar0 + 0x28));
@@ -131,10 +135,11 @@ impl Device {
         drop(bdl);
 
         // Load sound data to memory
-        let i = self.fill_next_block();
+        let index = self.fill_next_block();
+        debug_assert_eq!(index, 0);
 
         // Write BDL index to Last Valid Entry register
-        outb(self.bar1 + PO_LVI, i as u8);
+        outb(self.bar1 + PO_LVI, index as u8);
 
         // Clear any pending status bits before starting
         outw(self.bar1 + PO_SR, 0x1C);
@@ -162,8 +167,8 @@ impl Device {
         if self.buffer.is_empty() {
             self.stop();
         } else {
-            let i = self.fill_next_block();
-            outb(self.bar1 + PO_LVI, i as u8);
+            let index = self.fill_next_block();
+            outb(self.bar1 + PO_LVI, index as u8);
         }
     }
 }
