@@ -12,6 +12,14 @@ use spin::Mutex;
 // Sources:
 // https://wiki.osdev.org/AC97
 
+// Native Audio Mixer Registers
+const NAM_RR:   u16 = 0x00; // Reset
+const NAM_MV:   u16 = 0x02; // Master Volume
+const NAM_POV:  u16 = 0x18; // PCM Out Volume
+const NAM_EAR:  u16 = 0x28; // Extended Audio
+const NAM_EAC:  u16 = 0x2A; // Extended Audio Ctrl/Stat
+const NAM_PFDR: u16 = 0x2C; // PCM Front DAC Rate
+
 // Native Audio Bus Master Control Registers
 const PO_BDBAR: u16 = 0x10; // PCM Out Buffer Descriptor list Base Address
 const PO_CIV:   u16 = 0x14; // PCM Out Current Index Value
@@ -20,11 +28,20 @@ const PO_SR:    u16 = 0x16; // PCM Out Status
 const PO_CR:    u16 = 0x1B; // PCM Out Control
 const GLOB_CNT: u16 = 0x2C; // Global Control
 
+// Status Register
+const LVBCI: u16 = 1 << 2; // Last Valid Buffer Completion Interrupt
+const BCIS:  u16 = 1 << 3; // Buffer Completion Interrupt Status
+const FIFOE: u16 = 1 << 4; // FIFO Error
+
 // Control Register
 const RPBM:  u8 = 1 << 0; // Run/Pause Bus Master
 const RR:    u8 = 1 << 1; // Reset Registers
 const LVBIE: u8 = 1 << 2; // Last Valid Buffer Interrupt Enable
 const IOCE:  u8 = 1 << 4; // Interrupt on Completion Enable
+
+// Global Control Register
+const GIE: u32 = 1 << 0; // GPI Interrupt Enable
+const CR:  u32 = 1 << 1; // Cold Reset
 
 const BDL: usize = 32;
 
@@ -38,7 +55,6 @@ struct BufDesc {
 
 pub struct Device {
     is_playing: bool,
-    //config: SoundConfig,
     buffer: Vec<u8>,
     blocks: [PhysBuf; BDL],
     index: Arc<AtomicUsize>,
@@ -51,7 +67,6 @@ impl Device {
     pub fn new(bar0: u16, bar1: u16) -> Self {
         Self {
             is_playing: false,
-            //config: SoundConfig::new(),
             buffer: Vec::new(),
             blocks: [(); BDL].map(|_| PhysBuf::new(SoundBuffer::size())),
             index: Arc::new(AtomicUsize::new(0)),
@@ -61,18 +76,10 @@ impl Device {
     }
 
     pub fn init(&mut self) {
-        outl(self.bar1 + GLOB_CNT, 0x02); // Cold reset
+        outl(self.bar1 + GLOB_CNT, CR | GIE); // Cold reset
         sys::clk::wait(100_000);
-        outw(self.bar0 + 0x00, 1); // Reset Register
-        sys::clk::wait(100_000);
-        //debug!("SND AC97 RC: {:#016b}", inw(self.bar0 + 0x00)); // Capabilities
-        //debug!("SND AC97 EC: {:#016b}", inw(self.bar0 + 0x28)); // Ext Cap
-        //debug!("SND AC97 GS: {:#032b}", inl(self.bar1 + 0x30)); // Global Status
-
-        let mut global_control = inl(self.bar1 + GLOB_CNT);
-        global_control |= 0x01; // Set Global Interrupt Enable
-        global_control |= 0x10; // PCM Out Interrupt Enable (PINTEN)
-        outl(self.bar1 + GLOB_CNT, global_control);
+        outw(self.bar0 + NAM_RR, 1); // Reset all registers
+        outw(self.bar0 + NAM_POV, 0); // Set PCM Out Volume to max
     }
 
     fn fill_next_block(&mut self) -> usize {
@@ -112,21 +119,26 @@ impl Device {
             return;
         }
 
+        // Set Master Volume to max
+        outw(self.bar0 + NAM_MV, 0);
+
         // Set reset bit of output channel
         outb(self.bar1 + PO_CR, RR);
         while inb(self.bar1 + PO_CR) & RR != 0 {
             // Wait for reset to be completed
             core::hint::spin_loop();
         }
+        debug_assert_eq!(inb(self.bar1 + PO_CIV), 0);
+        debug_assert_eq!(inb(self.bar1 + PO_LVI), 0);
         self.index.store(0, Ordering::SeqCst);
 
         // Set sample rate
-        //debug!("SND AC97 Ext Cap: {:#016b}", inw(self.bar0 + 0x28));
-        //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + 0x2C));
-        debug_assert_ne!(inw(self.bar0 + 0x28) & 0x01, 0);
-        outw(self.bar0 + 0x2A, 1);
-        outw(self.bar0 + 0x2C, config.sample_rate as u16);
-        //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + 0x2C));
+        //debug!("SND AC97 Ext Cap: {:#016b}", inw(self.bar0 + NAM_EAR));
+        //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + NAM_PFDR));
+        debug_assert_ne!(inw(self.bar0 + NAM_EAR) & 0x01, 0);
+        outw(self.bar0 + NAM_EAC, 1);
+        outw(self.bar0 + NAM_PFDR, config.sample_rate as u16);
+        //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + NAM_PFDR));
 
         // Write BDL address to Buffer Descriptor Base Address register
         let bdl = self.bdl.lock();
@@ -142,7 +154,7 @@ impl Device {
         outb(self.bar1 + PO_LVI, index as u8);
 
         // Clear any pending status bits before starting
-        outw(self.bar1 + PO_SR, 0x1C);
+        outw(self.bar1 + PO_SR, LVBCI | BCIS | FIFOE);
 
         // Start DMA with interrupts
         outb(self.bar1 + PO_CR, RPBM | LVBIE | IOCE);
@@ -162,7 +174,7 @@ impl Device {
 
     pub fn handle_interrupt(&mut self) {
         // Clear channel status registers
-        outw(self.bar1 + PO_SR, 0x1C);
+        outw(self.bar1 + PO_SR, LVBCI | BCIS | FIFOE);
 
         if self.buffer.is_empty() {
             self.stop();
