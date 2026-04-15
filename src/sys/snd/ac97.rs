@@ -6,12 +6,25 @@ use crate::sys::mem::PhysBuf;
 
 use alloc::vec::Vec;
 use alloc::sync::Arc;
-use bit_field::BitField;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Mutex;
 
 // Sources:
 // https://wiki.osdev.org/AC97
+
+// Native Audio Bus Master Control Registers
+const PO_BDBAR: u16 = 0x10; // PCM Out Buffer Descriptor list Base Address
+const PO_CIV:   u16 = 0x14; // PCM Out Current Index Value
+const PO_LVI:   u16 = 0x15; // PCM Out Last Valid Index
+const PO_SR:    u16 = 0x16; // PCM Out Status
+const PO_CR:    u16 = 0x1B; // PCM Out Control
+const GLOB_CNT: u16 = 0x2C; // Global Control
+
+// Control Register
+const RPBM:  u8 = 1 << 0; // Run/Pause Bus Master
+const RR:    u8 = 1 << 1; // Reset Registers
+const LVBIE: u8 = 1 << 2; // Last Valid Buffer Interrupt Enable
+const IOCE:  u8 = 1 << 4; // Interrupt on Completion Enable
 
 const BDL: usize = 32;
 
@@ -25,7 +38,7 @@ struct BufDesc {
 
 pub struct Device {
     is_playing: bool,
-    config: SoundConfig,
+    //config: SoundConfig,
     buffer: Vec<u8>,
     blocks: [PhysBuf; BDL],
     index: Arc<AtomicUsize>,
@@ -38,7 +51,7 @@ impl Device {
     pub fn new(bar0: u16, bar1: u16) -> Self {
         Self {
             is_playing: false,
-            config: SoundConfig::new(),
+            //config: SoundConfig::new(),
             buffer: Vec::new(),
             blocks: [(); BDL].map(|_| PhysBuf::new(SoundBuffer::size())),
             index: Arc::new(AtomicUsize::new(0)),
@@ -48,18 +61,18 @@ impl Device {
     }
 
     pub fn init(&mut self) {
-        outl(self.bar1 + 0x2C, 0x02); // Cold reset
+        outl(self.bar1 + GLOB_CNT, 0x02); // Cold reset
         sys::clk::wait(100_000);
         outw(self.bar0 + 0x00, 1); // Reset Register
         sys::clk::wait(100_000);
-        debug!("SND AC97 RC: {:#016b}", inw(self.bar0 + 0x00)); // Capabilities
-        debug!("SND AC97 EC: {:#016b}", inw(self.bar0 + 0x28)); // Ext Cap
-        debug!("SND AC97 GS: {:#032b}", inl(self.bar1 + 0x30)); // Global Status
+        //debug!("SND AC97 RC: {:#016b}", inw(self.bar0 + 0x00)); // Capabilities
+        //debug!("SND AC97 EC: {:#016b}", inw(self.bar0 + 0x28)); // Ext Cap
+        //debug!("SND AC97 GS: {:#032b}", inl(self.bar1 + 0x30)); // Global Status
 
-        let mut global_control = inl(self.bar1 + 0x2C);
+        let mut global_control = inl(self.bar1 + GLOB_CNT);
         global_control |= 0x01; // Set Global Interrupt Enable
         global_control |= 0x10; // PCM Out Interrupt Enable (PINTEN)
-        outl(self.bar1 + 0x2C, global_control);
+        outl(self.bar1 + GLOB_CNT, global_control);
     }
 
     fn fill_next_block(&mut self) -> usize {
@@ -89,10 +102,6 @@ impl Device {
 
     pub fn play(&mut self, buffer: &[u8], config: &SoundConfig) {
         self.buffer.extend_from_slice(buffer);
-        //debug!("SND AC97 play({}, {:?})", buffer.len(), config);
-        //debug!("SND AC97 GS: {:#032b}", inl(self.bar1 + 0x30));
-        //debug!("SND AC97 TS: {:#016b}", inw(self.bar1 + 0x16));
-
         if self.is_playing {
             return;
         }
@@ -101,58 +110,44 @@ impl Device {
             return;
         }
 
-        // Clear status
-        //outw(self.bar1 + 0x16, 0x1C);
-        //outl(self.bar1 + 0x30, inl(self.bar1 + 0x30));
-
         // Set reset bit of output channel
-        //debug!("SND AC97 Output Channel: {:#08b}", inb(self.bar1 + 0x1B));
-        outb(self.bar1 + 0x1B, 0x02);
-        while inb(self.bar1 + 0x1B) & 0x02 != 0 {
+        outb(self.bar1 + PO_CR, RR);
+        while inb(self.bar1 + PO_CR) & RR != 0 {
             // Wait for reset to be completed
         }
-        //debug!("SND AC97 Output Channel: {:#08b}", inb(self.bar1 + 0x1B));
 
         // Set sample rate
         //debug!("SND AC97 Ext Cap: {:#016b}", inw(self.bar0 + 0x28));
         //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + 0x2C));
-        //debug_assert!(inw(self.bar0 + 0x28).get_bit(0));
+        debug_assert_ne!(inw(self.bar0 + 0x28) & 0x01, 0);
         outw(self.bar0 + 0x2A, 1);
         outw(self.bar0 + 0x2C, config.sample_rate as u16);
         //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + 0x2C));
 
-        // Write BDL addr to Buffer Descriptor Base Address register
-        let mut bdl = self.bdl.lock();
+        // Write BDL address to Buffer Descriptor Base Address register
+        let bdl = self.bdl.lock();
         let addr = sys::mem::phys_addr(bdl.as_ptr() as *const u8);
-        outl(self.bar1 + 0x10, addr as u32);
+        outl(self.bar1 + PO_BDBAR, addr as u32);
         drop(bdl);
 
         // Load sound data to memory
-        /*
-        let n = buffer.len() / self.blocks[0].len();
-        for i in 0..n {
-            self.fill_next_block();
-        }
-        */
         let i = self.fill_next_block();
 
         // Write BDL index to Last Valid Entry register
-        outb(self.bar1 + 0x15, i as u8);
+        outb(self.bar1 + PO_LVI, i as u8);
 
         // Clear any pending status bits before starting
-        outw(self.bar1 + 0x16, 0x1C);
+        outw(self.bar1 + PO_SR, 0x1C);
 
         // Start DMA with interrupts
-        // 0x01 (Run) | 0x04 (LVBIE) | 0x10 (IOCE) = 0x15
-        outb(self.bar1 + 0x1B, 0x15);
+        outb(self.bar1 + PO_CR, RPBM | LVBIE | IOCE);
 
         self.is_playing = true;
     }
 
     pub fn stop(&mut self) {
-        //debug!("stop()");
         if self.is_playing {
-            outb(self.bar1 + 0x1B, 0); // Stop DMA
+            outb(self.bar1 + PO_CR, 0); // Stop DMA
             self.is_playing = false;
             for i in 0..BDL {
                 self.blocks[i].fill(0x00);
@@ -161,16 +156,14 @@ impl Device {
     }
 
     pub fn handle_interrupt(&mut self) {
-        //debug!("handle_interrupt()");
-
         // Clear channel status registers
-        outw(self.bar1 + 0x16, 0x1C);
+        outw(self.bar1 + PO_SR, 0x1C);
 
         if self.buffer.is_empty() {
             self.stop();
         } else {
             let i = self.fill_next_block();
-            outb(self.bar1 + 0x15, i as u8);
+            outb(self.bar1 + PO_LVI, i as u8);
         }
     }
 }

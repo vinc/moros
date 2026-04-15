@@ -213,9 +213,9 @@ pub fn init() {
     for (vendor_id, device_id) in AC97_DEVICES {
         if let Some(pci) = find_device(vendor_id, device_id) {
             let mut device = ac97::Device::new(pci.bar_io(0), pci.bar_io(1));
-            debug!("PCI BAR0: {:#010X}", pci.base_addresses[0]);
-            debug!("PCI BAR1: {:#010X}", pci.base_addresses[1]);
-            debug!("PCI CMD_REG: {:#016b} ({:#08X})", pci.command, pci.command);
+            //debug!("PCI BAR0: {:#010X}", pci.base_addresses[0]);
+            //debug!("PCI BAR1: {:#010X}", pci.base_addresses[1]);
+            //debug!("PCI CMD_REG: {:#016b} ({:#08X})", pci.command, pci.command);
             device.init();
             *SND.lock() = Some((SoundDevice::AC97(device), config.clone()));
 
