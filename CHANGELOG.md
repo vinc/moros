@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Split process module (#831)
 - Refactor Lisp comment parsing (#833)
 - Refactor process table (#827)
 - Add Sound Blaster 16 driver (#781)
