@@ -26,8 +26,8 @@ pub trait SoundDeviceIO {
 impl SoundDeviceIO for SoundDevice {
     fn play(&mut self, buffer: &[u8], config: &SoundConfig) {
         match self {
-            SoundDevice::AC97(dev) => dev.play(&buffer, &config),
-            SoundDevice::SB16(dev) => dev.play(&buffer, &config),
+            SoundDevice::AC97(dev) => dev.play(buffer, config),
+            SoundDevice::SB16(dev) => dev.play(buffer, config),
         }
     }
 
@@ -163,7 +163,7 @@ impl FileIO for SoundBuffer {
                         device.stop();
                         *config = SoundConfig::new();
                     }
-                    device.play(&buffer[i..j], &config);
+                    device.play(&buffer[i..j], config);
                 }
                 Ok(buffer.len())
             } else {
