@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add AC'97 driver (#829)
 - Split process module (#831)
 - Refactor Lisp comment parsing (#833)
 - Refactor process table (#827)
