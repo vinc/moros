@@ -37,6 +37,7 @@ be accomplished after completing an OSDev tutorial, while reading the
 - Random number generator (using [rand_hc][12])
 - Intel PRO/1000, RTL8139, and AMD PCNET network cards
 - DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][13])
+- AC97 and SB16 sound cards
 - Basic [shell](doc/shell.md)
 - Basic [text editor](doc/editor.md)
 - Basic [lisp](doc/lisp.md) interpreter
