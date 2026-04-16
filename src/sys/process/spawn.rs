@@ -121,13 +121,6 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
                     // a length but no data.
                     let addr = code_addr + segment.address();
                     let size = segment.size() as usize;
-                    /*
-                    debug!(
-                        "{:#X}..{:#X}: {} bytes for a code segment ({:#X}..{:#X}: {} bytes)",
-                        addr, addr + data.len() as u64, data.len(),
-                        segment.address(), segment.address() + segment.size(), segment.size(),
-                    );
-                    */
                     load_binary(&mut mapper, addr, size, data)?;
                 }
             }
@@ -168,49 +161,17 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
 
 // Switch to user mode and execute the program
 fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
-    let page_table = unsafe { page_table() };
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-    };
-
-    // Copy args to user memory
+    // The args are stored halfway between the code and the stack
     let args_addr = ctx.code_addr + (ctx.stack_addr - ctx.code_addr) / 2;
-    mem::alloc_pages(&mut mapper, args_addr, 1).
-        expect("proc args alloc");
-    let args: &[&str] = unsafe {
-        let ptr = ptr_from_addr(args_ptr as u64) as usize;
-        core::slice::from_raw_parts(ptr as *const &str, args_len)
-    };
-    let mut addr = args_addr;
-    let vec: Vec<&str> = args.iter().map(|arg| {
-        let ptr = addr as *mut u8;
-        addr += arg.len() as u64;
-        unsafe {
-            let s = core::slice::from_raw_parts_mut(ptr, arg.len());
-            s.copy_from_slice(arg.as_bytes());
-            core::str::from_utf8_unchecked(s)
-        }
-    }).collect();
-    let align = core::mem::align_of::<&str>() as u64;
-    addr += align - (addr % align);
-    let args = vec.as_slice();
-    let ptr = addr as *mut &str;
-    let args: &[&str] = unsafe {
-        let s = core::slice::from_raw_parts_mut(ptr, args.len());
-        s.copy_from_slice(args);
-        s
-    };
-    let args_ptr = args.as_ptr() as u64;
+    let args_size = 4096; // 1 page
+    let args_ptr = copy_args(args_ptr, args_len, args_addr, args_size);
 
-    let heap_addr = addr + 4096;
+    // The heap is stored between the args and the stack
+    let heap_addr = args_addr + args_size as u64;
     let heap_size = ((ctx.stack_addr - heap_addr) / 2) as usize;
     unsafe {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
-
-    //debug!("{:#X}..{:#X}: {} bytes for the args", args_addr, args_addr + 4096, 4096); // FIXME: args size
-    //debug!("{:#X}..{:#X}: {} bytes for the heap", heap_addr, heap_addr + heap_size as u64, heap_size);
-    //debug!("{:#X}..{:#X}: {} bytes for the stack", self.stack_addr - heap_size as u64, self.stack_addr, heap_size);
 
     set_id(ctx.id); // Change PID
 
@@ -234,6 +195,44 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
             in("rsi") args_len,
         );
     }
+}
+
+fn copy_args(ptr: usize, len: usize, addr: u64, size: usize) -> usize {
+    let mut offset = addr;
+
+    // Alloc memory
+    let mut mapper = unsafe {
+        OffsetPageTable::new(page_table(), VirtAddr::new(phys_mem_offset()))
+    };
+    mem::alloc_pages(&mut mapper, addr, size).unwrap();
+
+    // Copy each &str
+    let args: &[&str] = unsafe {
+        let args_ptr = ptr_from_addr(ptr as u64) as usize;
+        core::slice::from_raw_parts(args_ptr as *const &str, len)
+    };
+    let tmp: Vec<&str> = args.iter().map(|arg| {
+        let arg_ptr = offset as *mut u8;
+        offset += arg.len() as u64;
+        unsafe {
+            let dst = core::slice::from_raw_parts_mut(arg_ptr, arg.len());
+            dst.copy_from_slice(arg.as_bytes());
+            core::str::from_utf8_unchecked(dst)
+        }
+    }).collect();
+
+    // Copy slice of &str
+    let align = core::mem::align_of::<&str>() as u64;
+    offset += align - (offset % align);
+    unsafe {
+        let args_ptr = offset as *mut &str;
+        let dst = core::slice::from_raw_parts_mut(args_ptr, len);
+        dst.copy_from_slice(tmp.as_slice());
+    }
+
+    let bytes = len * core::mem::size_of::<&str>() + (offset - addr) as usize;
+    debug_assert!(bytes < size);
+    offset as usize
 }
 
 fn load_binary(
