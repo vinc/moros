@@ -77,7 +77,7 @@ impl Device {
 
     pub fn init(&mut self) {
         outl(self.bar1 + GLOB_CNT, CR | GIE); // Cold reset
-        sys::clk::wait(100_000);
+        sys::clk::wait(100_000); // TODO: Find proper reset delay
         outw(self.bar0 + NAM_RR, 1); // Reset all registers
         outw(self.bar0 + NAM_POV, 0); // Set PCM Out Volume to max
     }
@@ -143,6 +143,7 @@ impl Device {
         // Write BDL address to Buffer Descriptor Base Address register
         let bdl = self.bdl.lock();
         let addr = sys::mem::phys_addr(bdl.as_ptr() as *const u8);
+        debug_assert!(addr % 8 == 0);
         outl(self.bar1 + PO_BDBAR, addr as u32);
         drop(bdl);
 
@@ -169,6 +170,7 @@ impl Device {
             for i in 0..BDL {
                 self.blocks[i].fill(0x00);
             }
+            self.buffer.shrink_to_fit();
         }
     }
 
