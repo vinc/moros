@@ -3,7 +3,6 @@ mod table;
 
 pub use spawn::spawn;
 pub use table::{
-    PROCESS_TABLE, MAX_PROCS,
     init,
     code_addr,
     id, set_id,
@@ -14,8 +13,10 @@ pub use table::{
     handle, create_handle, update_handle, delete_handle,
     registers, set_registers,
     stack_frame, set_stack_frame,
-    current_process, current_process_mut,
 };
+
+use table::PROCESS_TABLE;
+use table::current_process;
 
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
@@ -43,7 +44,7 @@ pub const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 // TODO: Remove this when the kernel is no longer at 0x200000 in userspace.
 // Currently this address must be used by the linker for user programs that
 // need to allocate memory to avoid using kernel memory.
-static USER_ADDR: u64 = 0x800000;
+const USER_ADDR: u64 = 0x800000;
 
 // TODO: Remove this when the kernel is no longer at 0x200000 in userspace
 pub fn is_userspace(addr: u64) -> bool {
@@ -82,7 +83,7 @@ pub struct Registers {
 }
 
 #[derive(Clone, Debug)]
-pub struct ProcessData {
+struct ProcessData {
     env: BTreeMap<String, String>,
     dir: String,
     user: Option<String>,
@@ -90,7 +91,7 @@ pub struct ProcessData {
 }
 
 impl ProcessData {
-    pub fn new(dir: &str, user: Option<&str>) -> Self {
+    fn new(dir: &str, user: Option<&str>) -> Self {
         let env = BTreeMap::new();
         let dir = dir.to_string();
         let user = user.map(String::from);
@@ -144,7 +145,7 @@ pub unsafe fn page_table() -> &'static mut PageTable {
 }
 
 #[derive(Clone)]
-pub struct ProcessContext {
+struct ProcessContext {
     id: usize,
     code_addr: u64,
     stack_addr: u64,
@@ -163,7 +164,7 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             parent_id: 0,
             stack_frame: None,

@@ -1,12 +1,11 @@
 use super::Process;
-use super::PROCESS_TABLE;
-use super::MAX_PROCS;
 use super::MAX_PROC_SIZE;
 use super::CODE_ADDR;
 use super::{id, set_id};
 use super::page_table;
 use super::ptr_from_addr;
 use super::ProcessContext;
+use super::table::{PROCESS_TABLE, MAX_PROCS};
 
 use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
