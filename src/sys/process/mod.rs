@@ -110,40 +110,6 @@ impl ProcessData {
     }
 }
 
-pub fn exit() {
-    let proc = {
-        let mut table = PROCESS_TABLE.write();
-        table[id()].take().unwrap()
-    };
-
-    proc.free_pages();
-    unsafe {
-        with_frame_allocator(|allocator| {
-            allocator.deallocate_frame(proc.ctx.page_table_frame);
-        });
-    }
-
-    load_process(proc.parent_id);
-}
-
-fn load_process(id: usize) {
-    set_id(id);
-    unsafe {
-        let (_, flags) = Cr3::read();
-        Cr3::write(page_table_frame(), flags);
-    }
-}
-
-unsafe fn page_table_frame() -> PhysFrame {
-    let table = PROCESS_TABLE.read();
-    let proc = current_process(&table);
-    proc.ctx.page_table_frame
-}
-
-pub unsafe fn page_table() -> &'static mut PageTable {
-    mem::create_page_table(page_table_frame())
-}
-
 #[derive(Clone)]
 struct ProcessContext {
     id: usize,
@@ -206,4 +172,38 @@ impl Process {
             _ => {}
         }
     }
+}
+
+pub fn exit() {
+    let proc = {
+        let mut table = PROCESS_TABLE.write();
+        table[id()].take().unwrap()
+    };
+
+    proc.free_pages();
+    unsafe {
+        with_frame_allocator(|allocator| {
+            allocator.deallocate_frame(proc.ctx.page_table_frame);
+        });
+    }
+
+    load_process(proc.parent_id);
+}
+
+fn load_process(id: usize) {
+    set_id(id);
+    unsafe {
+        let (_, flags) = Cr3::read();
+        Cr3::write(page_table_frame(), flags);
+    }
+}
+
+unsafe fn page_table_frame() -> PhysFrame {
+    let table = PROCESS_TABLE.read();
+    let proc = current_process(&table);
+    proc.ctx.page_table_frame
+}
+
+pub unsafe fn page_table() -> &'static mut PageTable {
+    mem::create_page_table(page_table_frame())
 }
