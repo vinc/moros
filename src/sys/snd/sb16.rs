@@ -82,8 +82,9 @@ impl Device {
         outb(DSP_WRITE, 0xD0); // Pause DMA playback
         let chan = 1;
         outb(0x0A, 0x04 + chan); // Disable channel
-        self.buffer.clear();
         self.block.fill(0x80);
+        self.buffer.clear();
+        self.buffer.shrink_to_fit();
     }
 
     pub fn handle_interrupt(&mut self) {

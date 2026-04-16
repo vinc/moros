@@ -170,6 +170,7 @@ impl Device {
             for i in 0..BDL {
                 self.blocks[i].fill(0x00);
             }
+            self.buffer.clear();
             self.buffer.shrink_to_fit();
         }
     }
