@@ -165,8 +165,8 @@ impl Device {
 
     pub fn stop(&mut self) {
         if self.is_playing {
-            outb(self.bar1 + PO_CR, 0); // Stop DMA
             self.is_playing = false;
+            outb(self.bar1 + PO_CR, 0); // Stop DMA
             for i in 0..BDL {
                 self.blocks[i].fill(0x00);
             }
