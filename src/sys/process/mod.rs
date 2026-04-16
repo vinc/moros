@@ -32,10 +32,10 @@ use linked_list_allocator::LockedHeap;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameDeallocator, OffsetPageTable, PageTable, PhysFrame,
-    Translate, PageTableFlags, // Page, Size4KiB,
-    mapper::TranslateResult
+    FrameDeallocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame,
+    Translate,
 };
+use x86_64::structures::paging::mapper::TranslateResult;
 use x86_64::VirtAddr;
 
 pub const MAX_HANDLES: usize = 64;
