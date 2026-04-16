@@ -60,8 +60,8 @@ const TCR_MXDMA1: u32 = 1 << 9;
 const TCR_MXDMA2: u32 = 1 << 10;
 
 // Interrupt Mask Register
-const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
-const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
+//const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
+//const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
 
 //const CRS: u32 = 1 << 31; // Carrier Sense Lost
 //const TAB: u32 = 1 << 30; // Transmit Abort
@@ -98,10 +98,10 @@ pub struct Ports {
     pub cmd: Port<u8>,
 
     // Interrupt Mask Register (IMR)
-    pub imr: Port<u16>,
+    //pub imr: Port<u16>,
 
     // Interrupt Status Register (ISR)
-    pub isr: Port<u16>,
+    //pub isr: Port<u16>,
 
     // Transmit (Tx) Configuration Register (TCR)
     pub tx_config: Port<u32>,
@@ -138,8 +138,8 @@ impl Ports {
             capr: Port::new(io_base + 0x38),
             cba: Port::new(io_base + 0x3A),
             cmd: Port::new(io_base + 0x37),
-            imr: Port::new(io_base + 0x3C),
-            isr: Port::new(io_base + 0x3E),
+            //imr: Port::new(io_base + 0x3C),
+            //isr: Port::new(io_base + 0x3E),
             tx_config: Port::new(io_base + 0x40),
             rx_config: Port::new(io_base + 0x44),
         }
@@ -194,12 +194,14 @@ impl Device {
         device
     }
 
+    /*
     fn clear_interrupts(&mut self) {
         let isr = unsafe { self.ports.isr.read() };
         if isr != 0 {
             unsafe { self.ports.isr.write(isr) }
         }
     }
+    */
 
     fn init(&mut self) {
         // Power on
@@ -214,10 +216,10 @@ impl Device {
             }
         }
 
-        self.clear_interrupts();
+        //self.clear_interrupts();
 
         // Enable interrupts
-        unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
+        //unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
 
         // Enable receiver and transmitter
         unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
@@ -264,7 +266,7 @@ impl EthernetDeviceIO for Device {
     // [packet   (length - 4 bytes)]
     // [crc               (4 bytes)]
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        self.clear_interrupts();
+        //self.clear_interrupts();
 
         let cmd = unsafe { self.ports.cmd.read() };
         if (cmd & CR_BUFE) == CR_BUFE {

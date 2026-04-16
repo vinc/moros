@@ -1,6 +1,8 @@
+mod ac97;
 mod sb16;
 
 use crate::api::fs::{FileIO, IO};
+use crate::sys::pci::DeviceConfig;
 use crate::sys;
 
 use core::cmp;
@@ -8,12 +10,11 @@ use core::convert::TryFrom;
 use core::convert::TryInto;
 use spin::Mutex;
 
-pub const IRQ: u8 = 5;
-
 pub static SND: Mutex<Option<(SoundDevice, SoundConfig)>> = Mutex::new(None);
 
 pub enum SoundDevice {
-    SoundBlaster16(sb16::Device),
+    AC97(ac97::Device),
+    SB16(sb16::Device),
 }
 
 pub trait SoundDeviceIO {
@@ -25,19 +26,22 @@ pub trait SoundDeviceIO {
 impl SoundDeviceIO for SoundDevice {
     fn play(&mut self, buffer: &[u8], config: &SoundConfig) {
         match self {
-            SoundDevice::SoundBlaster16(dev) => dev.play(&buffer, &config),
+            SoundDevice::AC97(dev) => dev.play(buffer, config),
+            SoundDevice::SB16(dev) => dev.play(buffer, config),
         }
     }
 
     fn stop(&mut self) {
         match self {
-            SoundDevice::SoundBlaster16(dev) => dev.stop(),
+            SoundDevice::AC97(dev) => dev.stop(),
+            SoundDevice::SB16(dev) => dev.stop(),
         }
     }
 
     fn handle_interrupt(&mut self) {
         match self {
-            SoundDevice::SoundBlaster16(dev) => dev.handle_interrupt(),
+            SoundDevice::AC97(dev) => dev.handle_interrupt(),
+            SoundDevice::SB16(dev) => dev.handle_interrupt(),
         }
     }
 }
@@ -159,7 +163,7 @@ impl FileIO for SoundBuffer {
                         device.stop();
                         *config = SoundConfig::new();
                     }
-                    device.play(&buffer[i..j], &config);
+                    device.play(&buffer[i..j], config);
                 }
                 Ok(buffer.len())
             } else {
@@ -178,12 +182,49 @@ impl FileIO for SoundBuffer {
     }
 }
 
+fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
+    if let Some(mut dev) = sys::pci::find_device(vendor_id, device_id) {
+        dev.enable_io_space();
+        dev.enable_bus_mastering();
+        Some(dev)
+    } else {
+        None
+    }
+}
+
+const AC97_DEVICES: [(u16, u16); 2] = [
+    (0x8086, 0x2415), // Intel ICH
+    (0x1002, 0x4370), // ATI SB400
+];
+
 pub fn init() {
     let config = SoundConfig::new();
+
     if let Some(device) = sb16::find() {
-        *SND.lock() = Some((SoundDevice::SoundBlaster16(device), config));
-        sys::idt::set_irq_handler(IRQ, interrupt_handler);
-        log!("SND DRV SB16");
+        *SND.lock() = Some((SoundDevice::SB16(device), config.clone()));
+
+        let irq = sb16::IRQ;
+        sys::idt::set_irq_handler(irq, interrupt_handler);
+
+        log!("SND DRV SB16 (IRQ {})", irq);
+        return;
+    }
+
+    for (vendor_id, device_id) in AC97_DEVICES {
+        if let Some(pci) = find_device(vendor_id, device_id) {
+            let mut device = ac97::Device::new(pci.bar_io(0), pci.bar_io(1));
+            //debug!("PCI BAR0: {:#010X}", pci.base_addresses[0]);
+            //debug!("PCI BAR1: {:#010X}", pci.base_addresses[1]);
+            //debug!("PCI CMD_REG: {:#016b} ({:#08X})", pci.command, pci.command);
+            device.init();
+            *SND.lock() = Some((SoundDevice::AC97(device), config.clone()));
+
+            let irq = pci.interrupt_line;
+            sys::idt::set_irq_handler(irq, interrupt_handler);
+
+            log!("SND DRV AC97 (IRQ {})", irq);
+            return;
+        }
     }
 }
 

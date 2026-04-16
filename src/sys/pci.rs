@@ -75,6 +75,16 @@ impl DeviceConfig {
         }
     }
 
+    pub fn enable_io_space(&mut self) {
+        let mut register = ConfigRegister::new(
+            self.bus, self.device, self.function, 0x04
+        );
+        let mut data = register.read();
+        data.set_bit(0, true);
+        register.write(data);
+        self.command = register.read() as u16;
+    }
+
     pub fn enable_bus_mastering(&mut self) {
         let mut register = ConfigRegister::new(
             self.bus, self.device, self.function, 0x04
@@ -82,6 +92,7 @@ impl DeviceConfig {
         let mut data = register.read();
         data.set_bit(2, true);
         register.write(data);
+        self.command = register.read() as u16;
     }
 
     pub fn bar_type(&self) -> u16 {
@@ -111,9 +122,9 @@ impl DeviceConfig {
         PhysAddr::new(addr)
     }
 
-    pub fn io_base(&self) -> u16 {
-        debug_assert!(self.base_addresses[0].get_bit(0) == true);
-        (self.base_addresses[0] as u16) & 0xFFF0
+    pub fn bar_io(&self, n: usize) -> u16 {
+        debug_assert!(self.base_addresses[n].get_bit(0) == true);
+        (self.base_addresses[n] as u16) & 0xFFF0
     }
 }
 

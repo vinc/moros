@@ -1,14 +1,16 @@
 use super::{SoundBuffer, SoundConfig};
 
 use crate::sys;
+use crate::sys::port::*;
 use crate::sys::mem::PhysBuf;
 
 use alloc::vec::Vec;
-use x86_64::instructions::port::Port;
 
 // Sources:
 // https://wiki.osdev.org/Sound_Blaster_16
 // https://pdos.csail.mit.edu/6.828/2006/readings/hardware/SoundBlaster.pdf
+
+pub const IRQ: u8 = 5;
 
 const MIXER_ADDR: u16 = 0x224;
 const MIXER_DATA: u16 = 0x225;
@@ -80,8 +82,9 @@ impl Device {
         outb(DSP_WRITE, 0xD0); // Pause DMA playback
         let chan = 1;
         outb(0x0A, 0x04 + chan); // Disable channel
-        self.buffer.clear();
         self.block.fill(0x80);
+        self.buffer.clear();
+        self.buffer.shrink_to_fit();
     }
 
     pub fn handle_interrupt(&mut self) {
@@ -101,20 +104,6 @@ impl Device {
         self.block[0..len].copy_from_slice(&self.buffer[0..len]);
         self.block[len..].fill(0x80);
         self.buffer.drain(0..len);
-    }
-}
-
-fn outb(addr: u16, value: u8) {
-    let mut port: Port<u8> = Port::new(addr);
-    unsafe {
-        port.write(value);
-    }
-}
-
-fn inb(addr: u16) -> u8 {
-    let mut port: Port<u8> = Port::new(addr);
-    unsafe {
-        port.read()
     }
 }
 
@@ -158,7 +147,7 @@ fn irq(num: u8) -> u8 {
 
 pub fn init() {
     outb(MIXER_ADDR, 0x80);
-    outb(MIXER_DATA, irq(super::IRQ));
+    outb(MIXER_DATA, irq(IRQ));
 }
 
 pub fn find() -> Option<Device> {

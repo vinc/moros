@@ -37,6 +37,52 @@ macro_rules! log {
     });
 }
 
+pub mod port {
+    use x86_64::instructions::port::Port;
+
+    pub fn outb(addr: u16, value: u8) {
+        let mut port: Port<u8> = Port::new(addr);
+        unsafe {
+            port.write(value);
+        }
+    }
+
+    pub fn outw(addr: u16, value: u16) {
+        let mut port: Port<u16> = Port::new(addr);
+        unsafe {
+            port.write(value);
+        }
+    }
+
+    pub fn outl(addr: u16, value: u32) {
+        let mut port: Port<u32> = Port::new(addr);
+        unsafe {
+            port.write(value);
+        }
+    }
+
+    pub fn inb(addr: u16) -> u8 {
+        let mut port: Port<u8> = Port::new(addr);
+        unsafe {
+            port.read()
+        }
+    }
+
+    pub fn inw(addr: u16) -> u16 {
+        let mut port: Port<u16> = Port::new(addr);
+        unsafe {
+            port.read()
+        }
+    }
+
+    pub fn inl(addr: u16) -> u32 {
+        let mut port: Port<u32> = Port::new(addr);
+        unsafe {
+            port.read()
+        }
+    }
+}
+
 pub mod acpi;
 pub mod ata;
 pub mod clk;
