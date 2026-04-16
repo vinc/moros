@@ -14,7 +14,7 @@ use spin::RwLock;
 use x86_64::structures::idt::InterruptStackFrameValue;
 
 pub const MAX_PROCS: usize = 32;
-pub static PID: AtomicUsize = AtomicUsize::new(0);
+static PID: AtomicUsize = AtomicUsize::new(0);
 
 type ProcessTable = [Option<Box<Process>>; MAX_PROCS];
 
@@ -41,7 +41,7 @@ pub fn current_process(table: &ProcessTable) -> &Process {
     table[id()].as_ref().unwrap()
 }
 
-pub fn current_process_mut(table: &mut ProcessTable) -> &mut Process {
+fn current_process_mut(table: &mut ProcessTable) -> &mut Process {
     table[id()].as_mut().unwrap()
 }
 
