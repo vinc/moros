@@ -29,42 +29,30 @@ use x86_64::VirtAddr;
 const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
 const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 
-pub trait Spawn {
-    fn spawn(
-        bin: Vec<u8>,
-        args_ptr: usize,
-        args_len: usize
-    ) -> Result<(), ExitCode>;
-}
-
-impl Spawn for Process {
-    /// Spawn a new process from a binary.
-    ///
-    /// Takes ownership of the binary buffer because `exec` switches to
-    /// user mode via `iretq` and never returns. Any heap allocation on
-    /// the stack at that point is leaked, so we need to explicitly drop
-    /// the buffer after `create` has copied it into process pages.
-    ///
-    /// The `ProcessContext` clone that crosses the `iretq` boundary only
-    /// contains Copy types and an Arc refcount bump, so its leak is
-    /// negligible.
-    fn spawn(
-        bin: Vec<u8>,
-        args_ptr: usize,
-        args_len: usize
-    ) -> Result<(), ExitCode> {
-        if let Ok(id) = create(&bin) {
-            drop(bin);
-            let ctx = {
-                let table = PROCESS_TABLE.read();
-                let proc = table[id].as_ref().unwrap();
-                proc.ctx.clone()
-            };
-            exec(ctx, args_ptr, args_len);
-            unreachable!(); // The kernel switched to the child process
-        } else {
-            Err(ExitCode::ExecError)
-        }
+/// Spawn a new process from a binary.
+///
+/// Takes ownership of the binary buffer because `exec` switches to
+/// user mode via `iretq` and never returns. Any heap allocation on
+/// the stack at that point is leaked, so we need to explicitly drop
+/// the buffer after `create` has copied it into process pages.
+///
+/// The `ProcessContext` clone that crosses the `iretq` boundary only
+/// contains Copy types and an Arc refcount bump, so its leak is
+/// negligible.
+pub fn spawn(
+    bin: Vec<u8>, args_ptr: usize, args_len: usize
+) -> Result<(), ExitCode> {
+    if let Ok(id) = create(&bin) {
+        drop(bin);
+        let ctx = {
+            let table = PROCESS_TABLE.read();
+            let proc = table[id].as_ref().unwrap();
+            proc.ctx.clone()
+        };
+        exec(ctx, args_ptr, args_len);
+        unreachable!(); // The kernel switched to the child process
+    } else {
+        Err(ExitCode::ExecError)
     }
 }
 

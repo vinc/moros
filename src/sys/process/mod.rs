@@ -1,7 +1,7 @@
 mod spawn;
 mod table;
 
-pub use spawn::Spawn;
+pub use spawn::spawn;
 pub use table::{
     PROCESS_TABLE, MAX_PROCS,
     init,

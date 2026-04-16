@@ -4,7 +4,6 @@ use crate::sys;
 use crate::sys::fs::Device;
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::Resource;
-use crate::sys::process::{Process, Spawn};
 
 use alloc::vec;
 use core::alloc::Layout;
@@ -105,7 +104,7 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if let Err(code) = Process::spawn(buf, args_ptr, args_len) {
+            if let Err(code) = sys::process::spawn(buf, args_ptr, args_len) {
                 code
             } else {
                 unreachable!(); // The kernel switched to the child process
