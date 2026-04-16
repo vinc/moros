@@ -115,16 +115,21 @@ pub fn exit() {
         table[id()].take().unwrap()
     };
 
-    set_id(proc.parent_id);
-
     proc.free_pages();
     unsafe {
-        let (_, flags) = Cr3::read();
-        Cr3::write(page_table_frame(), flags);
-
         with_frame_allocator(|allocator| {
             allocator.deallocate_frame(proc.ctx.page_table_frame);
         });
+    }
+
+    load_process(proc.parent_id);
+}
+
+fn load_process(id: usize) {
+    set_id(id);
+    unsafe {
+        let (_, flags) = Cr3::read();
+        Cr3::write(page_table_frame(), flags);
     }
 }
 
