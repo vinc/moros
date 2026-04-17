@@ -17,6 +17,10 @@ pub mod sys;
 pub mod usr;
 
 use sys::mem::MemoryMap;
+use sys::mem::MemoryRegion;
+use sys::mem::MemoryRegionType;
+
+use bootloader::BootInfo;
 
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
@@ -44,6 +48,21 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::process::init();
 
     log!("RTC {}", sys::clk::date());
+}
+
+pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
+    use bootloader::bootinfo::MemoryRegionType as Mem;
+    let mut memory_map = MemoryMap::new();
+    for region in boot_info.memory_map.iter() {
+        let addr = region.range.start_addr();
+        let size = region.range.end_addr() - addr;
+        let kind = match region.region_type {
+            Mem::Usable => MemoryRegionType::Usable,
+            _ => MemoryRegionType::Reserved,
+        };
+        memory_map.add(MemoryRegion::new(addr, size, kind));
+    }
+    memory_map
 }
 
 #[allow(dead_code)]
@@ -116,7 +135,9 @@ entry_point!(test_kernel_main);
 
 #[cfg(test)]
 fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    init(boot_info);
+    let memory_map = extract_memory_map(boot_info);
+    let offset = boot_info.physical_memory_offset;
+    init(&memory_map, offset);
     test_main();
     hlt_loop();
 }
