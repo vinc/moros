@@ -7,6 +7,9 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use alloc::string::ToString;
 use moros::api::console::Style;
+use moros::sys::mem::MemoryMap;
+use moros::sys::mem::MemoryRegion;
+use moros::sys::mem::MemoryRegionType;
 use moros::{
     error, warning, hlt_loop, eprint, eprintln, print, println, sys, usr
 };
@@ -14,7 +17,19 @@ use moros::{
 entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
-    moros::init(boot_info);
+    use bootloader::bootinfo::MemoryRegionType as Mem;
+    let mut memory_map = MemoryMap::new();
+    for region in boot_info.memory_map.iter() {
+        let addr = region.range.start_addr();
+        let size = region.range.end_addr() - addr;
+        let kind = match region.region_type {
+            Mem::Usable => MemoryRegionType::Usable,
+            _ => MemoryRegionType::Reserved,
+        };
+        memory_map.add(MemoryRegion::new(addr, size, kind));
+    }
+    let offset = boot_info.physical_memory_offset;
+    moros::init(&memory_map, offset);
     print!("\x1b[?25h"); // Enable cursor
     loop {
         if let Some(cmd) = option_env!("MOROS_CMD") {

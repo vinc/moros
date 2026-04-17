@@ -9,7 +9,6 @@ pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys;
 
-use bootloader::bootinfo::{BootInfo, MemoryMap};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
 use x86_64::structures::paging::{
@@ -21,10 +20,64 @@ use x86_64::{PhysAddr, VirtAddr};
 static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 
 static PHYS_MEM_OFFSET: Once<u64> = Once::new();
-static MEMORY_MAP: Once<&MemoryMap> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-pub fn init(boot_info: &'static BootInfo) {
+const MAX_REGIONS: usize = 32;
+
+#[repr(u32)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum MemoryRegionType {
+    Usable,
+    Reserved,
+    AcpiUsable,
+    AcpiReserved,
+    Defective,
+    Custom(u32),
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MemoryRegion {
+    addr: u64,
+    size: u64,
+    kind: MemoryRegionType,
+}
+
+impl MemoryRegion {
+    pub fn new(addr: u64, size: u64, kind: MemoryRegionType) -> Self {
+        Self { addr, size, kind }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MemoryMap {
+    regions: [MemoryRegion; MAX_REGIONS],
+    len: usize,
+}
+
+impl MemoryMap {
+    pub fn new() -> Self {
+        let empty = MemoryRegion::new(0, 0, MemoryRegionType::Reserved);
+        Self {
+            regions: [empty; MAX_REGIONS],
+            len: 0,
+        }
+    }
+
+    pub fn add(&mut self, region: MemoryRegion) {
+        self.regions[self.len] = region;
+        self.len += 1;
+    }
+
+    pub fn as_slice(&self) -> &[MemoryRegion] {
+        &self.regions[..self.len]
+    }
+
+    pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
+        self.as_slice().iter()
+    }
+}
+
+pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
     // during memory allocation otherwise.
@@ -32,10 +85,9 @@ pub fn init(boot_info: &'static BootInfo) {
 
     let mut memory_size = 0;
     let mut last_end_addr = 0;
-    for region in boot_info.memory_map.iter() {
-        let start_addr = region.range.start_addr();
-        let end_addr = region.range.end_addr();
-        let size = end_addr - start_addr;
+    for region in memory_map.iter() {
+        let start_addr = region.addr;
+        let end_addr = region.addr + region.size;
         let hole = start_addr - last_end_addr;
         if hole > 0 {
             log!(
@@ -48,9 +100,9 @@ pub fn init(boot_info: &'static BootInfo) {
         }
         log!(
             "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
-            start_addr, end_addr - 1, region.region_type //, size >> 10
+            start_addr, end_addr - 1, region.kind //, size >> 10
         );
-        memory_size += size as usize;
+        memory_size += region.size as usize;
         last_end_addr = end_addr;
     }
 
@@ -66,13 +118,12 @@ pub fn init(boot_info: &'static BootInfo) {
     unsafe {
         MAPPER.call_once(|| OffsetPageTable::new(
             paging::active_page_table(),
-            VirtAddr::new(boot_info.physical_memory_offset),
+            VirtAddr::new(offset),
         ))
     };
 
-    PHYS_MEM_OFFSET.call_once(|| boot_info.physical_memory_offset);
-    MEMORY_MAP.call_once(|| &boot_info.memory_map);
-    bitmap::init_frame_allocator(&boot_info.memory_map);
+    PHYS_MEM_OFFSET.call_once(|| offset);
+    bitmap::init_frame_allocator(memory_map);
     heap::init_heap().expect("heap initialization failed");
 
     sys::idt::clear_irq_mask(1);

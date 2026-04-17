@@ -1,4 +1,5 @@
-use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use super::{MemoryMap, MemoryRegionType, MAX_REGIONS};
+
 use core::{cmp, slice};
 use spin::{Once, Mutex};
 use bit_field::BitField;
@@ -57,13 +58,11 @@ fn frame_at(addr: u64) -> PhysFrame<Size4KiB> {
 
 static FRAME_ALLOCATOR: Once<Mutex<BitmapFrameAllocator>> = Once::new();
 
-pub fn init_frame_allocator(memory_map: &'static MemoryMap) {
+pub fn init_frame_allocator(memory_map: &MemoryMap) {
     FRAME_ALLOCATOR.call_once(|| {
         Mutex::new(BitmapFrameAllocator::init(memory_map))
     });
 }
-
-const MAX_REGIONS: usize = 32;
 
 pub struct BitmapFrameAllocator {
     bitmap: &'static mut [u64],
@@ -74,12 +73,12 @@ pub struct BitmapFrameAllocator {
 }
 
 impl BitmapFrameAllocator {
-    pub fn init(memory_map: &'static MemoryMap) -> Self {
+    pub fn init(memory_map: &MemoryMap) -> Self {
         let mut bitmap_addr = None;
 
         let frames_count: usize = memory_map.iter().map(|region| {
-            if region.region_type == MemoryRegionType::Usable {
-                let size = region.range.end_addr() - region.range.start_addr();
+            if region.kind == MemoryRegionType::Usable {
+                let size = region.size;
                 debug_assert_eq!(size % 4096, 0);
                 (size / 4096) as usize
             } else {
@@ -97,13 +96,13 @@ impl BitmapFrameAllocator {
         };
 
         for region in memory_map.iter() {
-            if region.region_type != MemoryRegionType::Usable {
+            if region.kind != MemoryRegionType::Usable {
                 continue;
             }
 
-            let region_start = region.range.start_addr();
-            let region_end = region.range.end_addr();
-            let region_size = (region_end - region_start) as usize;
+            let region_start = region.addr;
+            let region_end = region.addr + region.size;
+            let region_size = region.size as usize;
 
             // Try to place the bitmap in the region
             if bitmap_addr.is_none() && region_size >= bitmap_size {

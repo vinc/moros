@@ -16,11 +16,11 @@ pub mod sys;
 
 pub mod usr;
 
-use bootloader::BootInfo;
+use sys::mem::MemoryMap;
 
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
-pub fn init(boot_info: &'static BootInfo) {
+pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
@@ -32,7 +32,7 @@ pub fn init(boot_info: &'static BootInfo) {
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
     log!("SYS MOROS v{}", v);
 
-    sys::mem::init(boot_info);
+    sys::mem::init(memory_map, offset);
     sys::cpu::init();
     sys::acpi::init(); // Require MEM
     sys::rng::init();
