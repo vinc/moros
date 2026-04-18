@@ -15,6 +15,7 @@ video = []
 serial = []
 userspace = []
 limine = []
+multiboot = []
 
 [dependencies]
 acpi = "5.0.0"
@@ -30,6 +31,7 @@ limine = "0.6.3"
 linked_list_allocator = "0.10.6"
 littlewing = { version = "0.8.0", default-features = false }
 miniz_oxide = "0.9.1"
+multiboot2 = "0.24.1"
 nom = { version = "8.0.0", default-features = false, features = ["alloc"] }
 num-bigint = { version = "0.4.6", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }

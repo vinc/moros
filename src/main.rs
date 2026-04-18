@@ -10,8 +10,8 @@ use moros::{
     error, warning, hlt_loop, eprint, eprintln, print, println, sys, usr
 };
 
-#[cfg(not(feature = "limine"))]
-mod bootloader_boot {
+#[cfg(not(any(feature = "limine", feature = "multiboot")))]
+mod bootloader_main {
     use super::*;
     use bootloader::{entry_point, BootInfo};
 
@@ -26,7 +26,7 @@ mod bootloader_boot {
 }
 
 #[cfg(feature = "limine")]
-mod limine_boot {
+mod limine_main {
     use super::*;
 
     use moros::sys::mem::MemoryMap;
@@ -97,6 +97,73 @@ mod limine_boot {
         }
 
         hlt_loop();
+        exec();
+    }
+}
+
+#[cfg(feature = "multiboot")]
+mod multiboot_main {
+    use super::*;
+
+    use moros::sys::mem::MemoryMap;
+    use moros::sys::mem::MemoryRegion;
+    use moros::sys::mem::MemoryRegionType;
+    use multiboot2::{BootInformation, BootInformationHeader};
+    
+    #[used]
+    #[link_section = ".multiboot"]
+    static MULTIBOOT_HEADER: [u32; 6] = [
+        0xE85250D6,  // magic
+        0,           // architecture: i386
+        24,          // header length (6 * 4 bytes)
+        0u32.wrapping_sub(0xE85250D6u32.wrapping_add(24)), // checksum
+        0,           // end tag type
+        8,           // end tag size
+    ];
+
+    core::arch::global_asm!(
+        ".section .text",
+        ".global _start",
+        "_start:",
+        "mov edi, ebx",
+        "mov esi, eax",
+        "call main",
+        "hlt",
+    );
+
+    #[no_mangle]
+    pub extern "C" fn main(mb2_info: u32, mb2_magic: u32) -> ! {
+        let vga = 0xB8000 as *mut u8;
+        let msg = b"MOROS loading...";
+        for (i, &byte) in msg.iter().enumerate() {
+            unsafe {
+                *vga.add(i * 2) = byte;
+                *vga.add(i * 2 + 1) = 0x0F;
+            }
+        }
+
+        if mb2_magic == multiboot2::MAGIC {
+            let boot_info = unsafe {
+                BootInformation::load(mb2_info as *const BootInformationHeader).unwrap()
+            };
+            if let Some(memory_map_tag) = boot_info.memory_map_tag() {
+                // FIXME: This is never reached
+                use multiboot2::MemoryAreaType as Mem;
+                let mut memory_map = MemoryMap::new();
+                for region in memory_map_tag.memory_areas() {
+                    let addr = region.start_address();
+                    let size = region.size();
+                    let kind = match region.typ().into() {
+                        Mem::Available => MemoryRegionType::Usable,
+                        _              => MemoryRegionType::Reserved,
+                    };
+                    memory_map.add(MemoryRegion::new(addr, size, kind));
+                };
+                let offset = 0;
+                moros::init(&memory_map, offset);
+            }
+        }
+
         exec();
     }
 }

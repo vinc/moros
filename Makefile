@@ -127,9 +127,11 @@ limine-setup:
 	cp limine-11.3.1/bin/limine-bios-cd.bin boot/limine/
 	cp limine-11.3.1/bin/limine-bios.sys boot/limine/
 
-limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/linker.ld -C link-arg=-z -C link-arg=norelro
+limine-proto = limine# limine, multiboot
+
+limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(limine-proto).ld -C link-arg=-z -C link-arg=norelro
 limine-image:
-	cargo build $(cargo-opts),limine
+	cargo build $(cargo-opts),$(limine-proto)
 	cp target/x86_64-moros/release/moros tmp/boot/kernel.elf
 	find tmp/boot
 	cat tmp/boot/limine/limine.conf
