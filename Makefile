@@ -33,7 +33,7 @@ user-nasm:
 		sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
 	rm dsk/bin/*.tmp
 
-user-cargo-opts = --no-default-features --features userspace --release
+user-cargo-opts = --release --no-default-features --features userspace
 
 # FIXME: Userspace alloc panic when the default `lld` linker is used because it
 # sets the entry point 0x200000 which is used by the kernel, so we use `ld` to
@@ -59,10 +59,11 @@ img = disk.img
 $(img):
 	qemu-img create $(img) 32M
 
-cargo-opts = --no-default-features --features $(output) --bin moros
+cargo-opts = --bin moros
 ifeq ($(mode),release)
 	cargo-opts += --release
 endif
+cargo-opts += --no-default-features --features $(output)
 
 # Rebuild MOROS if the features list changed
 image: $(img)
@@ -128,7 +129,7 @@ limine-setup:
 
 limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/linker.ld -C link-arg=-z -C link-arg=norelro
 limine-image:
-	cargo build --release --features limine
+	cargo build $(cargo-opts),limine
 	cp target/x86_64-moros/release/moros tmp/boot/kernel.elf
 	find tmp/boot
 	cat tmp/boot/limine/limine.conf
