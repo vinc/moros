@@ -31,6 +31,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::pic::init(); // Enable interrupts
     sys::serial::init();
     sys::keyboard::init();
+    return; // FIXME
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));

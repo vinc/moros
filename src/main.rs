@@ -62,6 +62,16 @@ mod limine_boot {
 
     #[no_mangle]
     extern "C" fn _start() -> ! {
+        if let Some(res) = FRAMEBUFFER_REQUEST.response() {
+            if let Some(fb) = res.framebuffers().first() {
+                let ptr = fb.address() as *mut u32;
+                let n = 10 * fb.width as usize;
+                for i in 0..n {
+                    unsafe { *ptr.add(i) = 0x00FF00FF; } // Draw pink pixel
+                }
+            }
+        }
+
         let hhdm = HHDM_REQUEST.response().unwrap();
         let memmap = MEMMAP_REQUEST.response().unwrap();
 
@@ -75,6 +85,18 @@ mod limine_boot {
         }
 
         moros::init(&memory_map, hhdm.offset);
+
+        if let Some(res) = FRAMEBUFFER_REQUEST.response() {
+            if let Some(fb) = res.framebuffers().first() {
+                let ptr = fb.address() as *mut u32;
+                let n = 10 * fb.width as usize;
+                for i in n..(2 * n) {
+                    unsafe { *ptr.add(i) = 0x0000FFFF; } // Draw cyan pixel
+                }
+            }
+        }
+
+        hlt_loop();
         exec();
     }
 }
