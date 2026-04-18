@@ -78,7 +78,7 @@ fn set_mode(mode: ModeName) {
         ModeName::T80x25 => T_80_25,
         ModeName::G320x200x256 => G_320_200_256,
         ModeName::G640x480x16 => G_640_480_16,
-    }.to_vec();
+    };
 
     interrupts::without_interrupts(|| {
         let mut misc_write: Port<u8> = Port::new(MISC_WRITE_REG);
@@ -149,13 +149,16 @@ fn is_80x25_mode() -> bool {
     }
 }
 
-fn set_80x25_mode() {
+pub fn set_80x25_mode() {
+    let restorable = MODE.lock().is_some();
     clear_screen();
     set_mode(ModeName::T80x25);
     disable_blinking();
     disable_underline();
-    palette::restore_palette();
-    font::restore_font();
+    if restorable {
+        palette::restore_palette();
+        font::restore_font();
+    }
 }
 
 fn set_320x200_mode() {
