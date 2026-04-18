@@ -126,6 +126,18 @@ limine-setup:
 	cp limine-11.3.1/bin/limine-bios-cd.bin boot/limine/
 	cp limine-11.3.1/bin/limine-bios.sys boot/limine/
 
+limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/linker.ld -C link-arg=-z -C link-arg=norelro
+limine-image:
+	cargo build --release --features limine
+	cp target/x86_64-moros/release/moros tmp/boot/kernel.elf
+	find tmp/boot
+	cat tmp/boot/limine/limine.conf
+	xorriso -as mkisofs \
+		-b limine/limine-bios-cd.bin \
+		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		--protective-msdos-label \
+		tmp/boot -o boot.img
+
 website:
 	cd www && sh build.sh
 
