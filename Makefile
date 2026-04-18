@@ -115,6 +115,14 @@ test:
 		-m $(memory) -cpu core2duo -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04
 
+# Require llvm lld mtools
+limine-setup:
+	cd tmp
+	wget https://github.com/Limine-Bootloader/Limine/releases/download/v11.3.1/limine-11.3.1.tar.gz
+	cd limine-*
+	./configure --enable-bios --enable-bios-cd
+	make
+
 website:
 	cd www && sh build.sh
 
