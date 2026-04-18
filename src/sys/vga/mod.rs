@@ -126,10 +126,5 @@ pub fn init() {
     set_attr_ctrl_reg(0xE, 0x3E);
     set_attr_ctrl_reg(0xF, 0x3F);
 
-    //Palette::default().write();
-
-    disable_blinking();
-    disable_underline();
-
-    WRITER.lock().clear_screen();
+    screen::set_80x25_mode();
 }
