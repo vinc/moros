@@ -72,7 +72,7 @@ image: $(img)
 	dd conv=notrunc if=$(bin) of=$(img)
 
 qemu-opts = -name "MOROS $$MOROS_VERSION" \
-			 -m $(memory) -smp $(smp) -drive file=$(img),format=raw \
+			 -m $(memory) -smp $(smp) \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -audio driver=$(audio),model=$(snd) \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
@@ -108,7 +108,7 @@ endif
 # > gdb target/x86_64-moros/debug/moros -ex "target remote :1234"
 
 qemu:
-	qemu-system-x86_64 $(qemu-opts)
+	qemu-system-x86_64 $(qemu-opts) -hda $(img)
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
@@ -137,6 +137,9 @@ limine-image:
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		--protective-msdos-label \
 		tmp/boot -o boot.img
+
+limine-qemu:
+	qemu-system-x86_64 -cdrom boot.img $(qemu-opts)
 
 website:
 	cd www && sh build.sh
