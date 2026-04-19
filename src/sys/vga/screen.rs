@@ -148,12 +148,15 @@ fn is_80x25c_mode() -> bool {
 }
 
 fn set_80x25c_mode() {
+    let initialized = MODE.lock().is_some();
     clear_screen();
     set_mode(ModeName::C80x25);
     disable_blinking();
     disable_underline();
-    palette::restore_palette();
-    font::restore_font();
+    if initialized {
+        palette::restore_palette();
+        font::restore_font();
+    }
 }
 
 fn set_320x200p_mode() {
@@ -236,4 +239,8 @@ fn write_mode(buf: &mut [u8], mode: &[u8]) -> Result<usize, ()> {
         buf[0..n].clone_from_slice(mode);
         Ok(n)
     }
+}
+
+pub fn set_text_mode() {
+    set_80x25c_mode();
 }
