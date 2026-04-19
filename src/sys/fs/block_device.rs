@@ -105,14 +105,14 @@ const ATA_CACHE_SIZE: usize = 1024;
 
 #[derive(Clone)]
 pub struct AtaBlockDevice {
-    cache: [Option<(u32, Vec<u8>)>; ATA_CACHE_SIZE],
+    cache: Vec<Option<(u32, Vec<u8>)>>,
     dev: sys::ata::Drive,
 }
 
 impl AtaBlockDevice {
     pub fn new(bus: u8, dsk: u8) -> Option<Self> {
         sys::ata::Drive::open(bus, dsk).map(|dev| {
-            let cache = [(); ATA_CACHE_SIZE].map(|_| None);
+            let cache = vec![None; ATA_CACHE_SIZE];
             Self { dev, cache }
         })
     }
@@ -141,11 +141,6 @@ impl AtaBlockDevice {
         let h = self.hash(block_addr);
         self.cache[h] = Some((block_addr, buf.to_vec()));
     }
-
-    fn unset_cached_block(&mut self, block_addr: u32) {
-        let h = self.hash(block_addr);
-        self.cache[h] = None;
-    }
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
@@ -162,7 +157,7 @@ impl BlockDeviceIO for AtaBlockDevice {
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
         sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)?;
-        self.unset_cached_block(block_addr);
+        self.set_cached_block(block_addr, buf);
         Ok(())
     }
 

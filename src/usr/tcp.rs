@@ -5,7 +5,6 @@ use crate::sys::console;
 use crate::sys::fs::OpenFlag;
 use crate::usr;
 
-use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str;

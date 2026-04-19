@@ -52,7 +52,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
 - `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
 - `regex/find`
-- `shell` (aliased to `sh`)
+- `shell` (aliased to `sh`) and `shell->binary` (aliased to `sh->bin`)
 - `date`, `sleep`
 - Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `rem` (aliased to `%`), `trunc`
 - Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
@@ -74,6 +74,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `not`, `and`, `or`
 - `set`, `let`
 - `string/join` (aliased to `str/join`), `lines`, `words`, `chars`
+- `shell->string` (aliased to `sh->str`)
 - `regex/match?`
 
 ### File Library
@@ -177,6 +178,13 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Refactor comment parsing
+- Add `shell->binary` function (aliased to `sh->bin`)
+- Add `shell->string` function (aliased to `sh->str`)
+- Add dict support to `head`, `tail`, `length`, `empty?`, and `map`
+- Add `push!` as the mutating counterpart of `push` for lists
+- Add `put!` as the mutating counterpart of `put` for dicts
+- Add `dict/keys`, and `dict/values` to dicts
 - Rename old `set` to `mutate` (aliased to `mut`)
 - Add new `set` macro that does either `var` or `mut`
 - Add `var?` function
@@ -193,7 +201,7 @@ Would produce the following output:
 - Add binary and hexadecimal number literals
 - Test for truthiness (neither `false` nor `nil`) in conditions of `if` and `while`
 - Rename `nth` to `get`
-- Add `empty?`, `reject`, `put`, `push`, and `host` functions`
+- Add `empty?`, `reject`, `put`, `push`, and `host` functions
 - Add `dict` type
 - Use `/` instead of `.` as namespace separator
 - Add `number->string` (aliased to `num->str`) with an optional radix argument

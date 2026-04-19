@@ -56,7 +56,8 @@ pub fn write_fmt(args: fmt::Arguments) {
 }
 
 pub fn read() -> String {
-    let log = LOG.lock();
-    let buf = String::from_utf8_lossy(log.buf());
-    buf.into_owned()
+    interrupts::without_interrupts(|| {
+        let log = LOG.lock();
+        String::from_utf8_lossy(log.buf()).into_owned()
+    })
 }

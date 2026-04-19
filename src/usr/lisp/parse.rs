@@ -11,7 +11,8 @@ use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
 use nom::character::complete::char;
-use nom::character::complete::multispace0;
+use nom::character::complete::multispace1;
+use nom::character::complete::not_line_ending;
 use nom::character::complete::one_of;
 use nom::combinator::map;
 use nom::combinator::opt;
@@ -25,6 +26,13 @@ use nom::sequence::terminated;
 use nom::Err::Error;
 use nom::IResult;
 use nom::Parser;
+
+// Whitespaces and comments are ignored
+fn ignored(input: &str) -> IResult<&str, ()> {
+    recognize(
+        many0(alt((multispace1, parse_comment)))
+    ).map(|_| ()).parse(input)
+}
 
 // https://docs.rs/nom/latest/nom/recipes/index.html#hexadecimal
 fn hexadecimal(input: &str) -> IResult<&str, &str> {
@@ -162,13 +170,12 @@ fn parse_quasiquote(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_comment(input: &str) -> IResult<&str, &str> {
-    preceded(multispace0, preceded(char('#'), is_not("\n"))).parse(input)
+    preceded(char('#'), not_line_ending).parse(input)
 }
 
 fn parse_exp(input: &str) -> IResult<&str, Exp> {
-    let (input, _) = opt(many0(parse_comment)).parse(input)?;
-    delimited(
-        multispace0,
+    preceded(
+        ignored,
         alt((
             parse_num,
             parse_bool,
@@ -180,8 +187,7 @@ fn parse_exp(input: &str) -> IResult<&str, Exp> {
             parse_unquote,
             parse_splice,
             parse_sym
-        )),
-        alt((parse_comment, multispace0))
+        ))
     ).parse(input)
 }
 

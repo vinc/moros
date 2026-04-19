@@ -115,10 +115,10 @@ fn dns_config() -> Option<String> {
         if let Some(config) = ini::parse(&buf) {
             if let Some(servers) = config.get("dns") {
                 if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
-                    return Some(servers.to_string());
+                    Some(servers.to_string())
                 } else {
                     error!("Could not parse '{}'", servers);
-                    return None;
+                    None
                 }
             } else {
                 error!("Could not find 'dns' in '{}'", DNS_FILE);

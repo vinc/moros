@@ -3,10 +3,10 @@ use super::eval::BUILT_INS;
 use super::primitive;
 use super::FUNCTIONS;
 use super::{Err, Exp, Number};
+
 use crate::{could_not, expected};
 
 use alloc::collections::BTreeMap;
-use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::string::ToString;
@@ -110,6 +110,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert(
         "shell".to_string(),
         Exp::Primitive(primitive::lisp_shell),
+    );
+    data.insert(
+        "shell->binary".to_string(),
+        Exp::Primitive(primitive::lisp_shell_binary),
     );
     data.insert(
         "string".to_string(),

@@ -100,6 +100,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     return Ok(());
                 }
                 if let Ok(bytes) = fs::read_to_bytes(path) {
+                    if bytes.is_empty() {
+                        print!("");
+                        return Ok(());
+                    }
                     if is_char_device && bytes.len() == 1 {
                         match bytes[0] as char {
                             api::console::ETX_KEY => {
@@ -145,6 +149,7 @@ fn help() {
     );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
-    println!("  {0}<dir>/{1}     Read directory", csi_option, csi_reset);
+    println!("  {0}<dev>{1}      Read device", csi_option, csi_reset);
+    println!("  {0}<dir>[/]{1}   Read directory", csi_option, csi_reset);
     println!("  {0}<file>{1}     Read file", csi_option, csi_reset);
 }

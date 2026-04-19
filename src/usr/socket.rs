@@ -8,7 +8,6 @@ use crate::sys::fs::OpenFlag;
 use crate::sys::net::SocketStatus;
 use crate::usr;
 
-use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -20,6 +19,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut verbose = false;
     let mut read_only = false;
     let args: Vec<&str> = args.iter().filter_map(|arg| match *arg {
+        "-h" | "--help" => {
+            None
+        }
         "-l" | "--listen" => {
             listen = true;
             None

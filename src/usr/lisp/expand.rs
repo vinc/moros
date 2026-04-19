@@ -6,7 +6,6 @@ use crate::{
     ensure_length_eq, ensure_length_gt, ensure_list, ensure_string, expected
 };
 
-use alloc::format;
 use alloc::rc::Rc;
 use alloc::string::ToString;
 use alloc::vec;
@@ -50,7 +49,9 @@ pub fn expand_list(
 
 pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     if let Exp::List(list) = exp {
-        ensure_length_gt!(list, 0);
+        if list.is_empty() {
+            return Ok(exp.clone());
+        }
         match &list[0] {
             Exp::Sym(s) if s == "quote" => {
                 ensure_length_eq!(list, 2);

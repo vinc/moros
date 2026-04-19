@@ -258,7 +258,7 @@ fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     }
 }
 
-const E1000_DEVICES: [u16; 9] = [
+const E1000_DEVICES: [u16; 11] = [
     0x1004, // 82543GC (Intel PRO/1000 T)
     0x100C, // 82544GC (Intel PRO/1000 T)
     0x100E, // 82540EM (Intel PRO/1000 MT)
@@ -268,6 +268,8 @@ const E1000_DEVICES: [u16; 9] = [
     0x10D3, // 82574L
     0x10F5, // 82567LM
     0x153A, // I217-LM
+    0x1570, // I219-V
+    0x15D7, // I219-LM
 ];
 
 pub fn init() {
@@ -284,18 +286,18 @@ pub fn init() {
         }
     };
     if let Some(dev) = find_device(0x10EC, 0x8139) {
-        let io = dev.io_base();
+        let io = dev.bar_io(0);
         let nic = nic::rtl8139::Device::new(io);
         add(EthernetDevice::RTL8139(nic), "RTL8139");
     }
     if let Some(dev) = find_device(0x1022, 0x2000) {
-        let io = dev.io_base();
+        let io = dev.bar_io(0);
         let nic = nic::pcnet::Device::new(io);
         add(EthernetDevice::PCNET(nic), "PCNET");
     }
     for id in E1000_DEVICES {
         if let Some(dev) = find_device(0x8086, id) {
-            let io = dev.io_base();
+            let io = dev.bar_io(0);
             let mem = dev.mem_base();
             let bar = dev.bar_type();
             let nic = nic::e1000::Device::new(io, mem, bar);

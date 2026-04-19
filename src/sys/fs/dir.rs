@@ -109,15 +109,42 @@ impl Dir {
             return None;
         }
 
-        // Read the whole dir to add an entry at the end
-        let mut entries = self.entries();
-        while entries.next().is_some() {}
-
-        // Allocate a new block for the dir if no space left for adding
-        // the new entry.
-        let space_left = entries.block.data().len() - entries.block_offset();
+        let mut space_found = false;
         let entry_len = DirEntry::empty_len() + name.len();
-        if entry_len > space_left {
+
+        // Read the whole dir to find where to write the new entry
+        let mut entries = self.entries();
+        entries.skip_unused = false;
+        while let Some(other) = entries.next() {
+            // A unused dir entry is a virtual entry with a null addr
+            // and a size indicating the unused space
+            if other.addr() == 0 {
+                // Bytes read for the entry
+                let read = DirEntry::empty_len() + other.name().len();
+
+                // Bytes from the start of the entry to the end of the block
+                let rest = entries.block.len() - entries.block_offset + read;
+
+                if entry_len > rest {
+                    continue; // Not enough space
+                }
+
+                // Check if the unused space goes to the end of the block or
+                // of if it fit exactly the new entry in the case of a deleted
+                // entry from previous versions of MOROS
+                let other_len = other.size() as usize;
+                if other_len == rest || other_len == entry_len {
+                    space_found = true;
+                    entries.block_offset -= read; // Rewind to write over
+                    break;
+                }
+            }
+        }
+
+        // Allocate a new block for the dir if there's no space left for adding
+        // the new entry
+        let space_left = entries.block.data().len() - entries.block_offset();
+        if entry_len > space_left && !space_found {
             match entries.block.alloc_next() {
                 None => return None, // Disk is full
                 Some(block) => {
@@ -128,10 +155,7 @@ impl Dir {
         }
 
         // Create a new entry
-        let entry_block = match LinkedBlock::alloc() {
-            None => return None,
-            Some(block) => block,
-        };
+        let entry_block = LinkedBlock::alloc()?;
         let entry_kind = kind as u8;
         let entry_addr = entry_block.addr();
         let entry_size = 0u32;
@@ -161,23 +185,39 @@ impl Dir {
         ))
     }
 
-    // FIXME: Deleting an entry is done by setting the entry address to 0
-    // TODO: If the entry is a directory, remove its entries recursively
+    // NOTE: Directories must be empty before deletion
     pub fn delete_entry(&mut self, name: &str) -> Result<(), ()> {
         let mut entries = self.entries();
-        for entry in &mut entries {
+        let mut last_block_addr = 0;
+        let mut this_block_addr = 0;
+        while let Some(entry) = entries.next() {
+            if entries.block.addr() != this_block_addr {
+                last_block_addr = this_block_addr;
+                this_block_addr = entries.block.addr();
+            }
             if entry.name() == name {
-                // Zeroing entry addr
                 let i = entries.block_offset() - entry.len();
+                let j = entries.block.len() - entry.len();
+                let reminder = entries.block_offset()..entries.block.len();
                 let data = entries.block.data_mut();
-                data[i + 1] = 0;
-                data[i + 2] = 0;
-                data[i + 3] = 0;
-                data[i + 4] = 0;
-                entries.block.write();
-                self.update_size();
 
-                // Freeing entry blocks
+                // Shift the reminder of the block over this entry
+                data.copy_within(reminder, i);
+
+                // Clear the unused end of the block
+                data[j..].fill(0);
+
+                entries.block.write();
+
+                // Free empty dir block (except the first one)
+                if entries.block.is_empty() && last_block_addr != 0 {
+                    let mut prev_block = LinkedBlock::read(last_block_addr);
+                    prev_block.set_next_addr(entries.block.next_addr());
+                    prev_block.write();
+                    BitmapBlock::free(entries.block.addr());
+                }
+
+                // Free entry blocks
                 let mut free_block = LinkedBlock::read(entry.addr());
                 loop {
                     BitmapBlock::free(free_block.addr());
@@ -186,9 +226,13 @@ impl Dir {
                         None => break,
                     }
                 }
+
+                self.update_size();
+
                 return Ok(());
             }
         }
+
         Err(())
     }
 

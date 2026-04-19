@@ -87,7 +87,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 let (row, col) = pos(&buf, e.span().start);
                 error!("Unexpected token at {path}:{row}:{col}");
 
-                let line = buf.lines().skip(row - 1).next().unwrap();
+                let line = buf.lines().nth(row - 1).unwrap();
                 let space = " ".repeat(col - 1);
                 let arrow = "^".repeat(e.span().end - e.span().start);
                 let reason = "unexpected token";

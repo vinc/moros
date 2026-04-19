@@ -32,6 +32,10 @@ impl PhysBuf {
     pub fn addr(&self) -> u64 {
         phys_addr(&self.buf.lock()[0])
     }
+
+    pub fn size(&self) -> usize {
+        self.buf.lock().len()
+    }
 }
 
 impl<I: SliceIndex<[u8]>> Index<I> for PhysBuf {

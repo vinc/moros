@@ -113,12 +113,24 @@ impl LinkedBlock {
         &mut self.block.buf[DATA_OFFSET..super::BLOCK_SIZE]
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.data().iter().all(|&b| b == 0)
+    }
+
     pub fn len(&self) -> usize {
         super::BLOCK_SIZE - DATA_OFFSET
     }
 
+    pub fn next_addr(&self) -> u32 {
+        u32::from_be_bytes(self.block.buf[0..4].try_into().unwrap())
+    }
+
+    pub fn set_next_addr(&mut self, addr: u32) {
+        self.block.buf[0..4].clone_from_slice(&addr.to_be_bytes());
+    }
+
     pub fn next(&self) -> Option<Self> {
-        let addr = u32::from_be_bytes(self.block.buf[0..4].try_into().unwrap());
+        let addr = self.next_addr();
         if addr == 0 {
             None
         } else {
@@ -131,9 +143,5 @@ impl LinkedBlock {
         self.set_next_addr(new_block.addr());
         self.write();
         Some(new_block)
-    }
-
-    pub fn set_next_addr(&mut self, addr: u32) {
-        self.block.buf[0..4].clone_from_slice(&addr.to_be_bytes());
     }
 }

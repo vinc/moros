@@ -15,6 +15,7 @@ mode = release
 memory = 32
 smp = 2
 nic = rtl8139# rtl8139, pcnet, e1000
+snd = sb16# ac97, sb16
 audio = sdl# sdl, coreaudio
 signal = off# on
 kvm = false
@@ -24,8 +25,6 @@ monitor = false
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_KEYBOARD = $(keyboard)
-
-# Build userspace binaries
 
 user-nasm:
 	basename -s .s dsk/src/bin/*.s | xargs -I {} \
@@ -75,6 +74,7 @@ image: $(img)
 qemu-opts = -name "MOROS $$MOROS_VERSION" \
 			 -m $(memory) -smp $(smp) -drive file=$(img),format=raw \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
+			 -audio driver=$(audio),model=$(snd) \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
 ifeq ($(kvm),true)
 	qemu-opts += -cpu host -accel kvm
@@ -123,6 +123,10 @@ spell:
 
 pkg:
 	ls -1 dsk/var/pkg | grep -v index.html > dsk/var/pkg/index.html
+
+pkg-kernel:
+	cp $(bin) dsk/ini/kernel.img
+	sh run/deflate.sh dsk/ini/kernel.img
 
 clean:
 	cargo clean

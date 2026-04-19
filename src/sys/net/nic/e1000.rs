@@ -1,7 +1,6 @@
 use crate::sys;
 use crate::sys::mem::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
-use spin::Mutex;
 
 use alloc::slice;
 use alloc::sync::Arc;
@@ -10,6 +9,7 @@ use bit_field::BitField;
 use core::ptr;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
+use spin::Mutex;
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
@@ -329,9 +329,9 @@ impl Device {
 
     fn read_eeprom(&self, addr: u16) -> u32 {
         let e = if self.has_eeprom { 4 } else { 0 };
-        self.write(REG_EECD, 1 | ((addr as u32) << 2 * e));
+        self.write(REG_EECD, 1 | ((addr as u32) << (2 * e)));
         let mut res = 0;
-        while res & (1 << 1 * e) == 0 {
+        while res & (1 << e) == 0 {
             res = self.read(REG_EECD);
         }
         (res >> 16) & 0xFFFF

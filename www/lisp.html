@@ -71,7 +71,7 @@ of the Shell.</p>
     <li><code>string-&gt;binary</code> and <code>binary-&gt;string</code> (aliased to <code>str-&gt;bin</code> and <code>bin-&gt;str</code>)</li>
     <li><code>number-&gt;binary</code> and <code>binary-&gt;number</code> (aliased to <code>num-&gt;bin</code> and <code>bin-&gt;num</code>)</li>
     <li><code>regex/find</code></li>
-    <li><code>shell</code> (aliased to <code>sh</code>)</li>
+    <li><code>shell</code> (aliased to <code>sh</code>) and <code>shell-&gt;binary</code> (aliased to <code>sh-&gt;bin</code>)</li>
     <li><code>date</code>, <code>sleep</code></li>
     <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>rem</code> (aliased to <code>%</code>), <code>trunc</code></li>
     <li>Trigonometric functions: <code>acos</code>, <code>asin</code>, <code>atan</code>, <code>cos</code>, <code>sin</code>, <code>tan</code></li>
@@ -96,6 +96,7 @@ of the Shell.</p>
     <li><code>not</code>, <code>and</code>, <code>or</code></li>
     <li><code>set</code>, <code>let</code></li>
     <li><code>string/join</code> (aliased to <code>str/join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
+    <li><code>shell-&gt;string</code> (aliased to <code>sh-&gt;str</code>)</li>
     <li><code>regex/match?</code></li>
     </ul>
 
@@ -206,6 +207,13 @@ with the following content:</p>
     <h3>Unreleased</h3>
 
     <ul>
+    <li>Refactor comment parsing</li>
+    <li>Add <code>shell-&gt;binary</code> function (aliased to <code>sh-&gt;bin</code>)</li>
+    <li>Add <code>shell-&gt;string</code> function (aliased to <code>sh-&gt;str</code>)</li>
+    <li>Add dict support to <code>head</code>, <code>tail</code>, <code>length</code>, <code>empty?</code>, and <code>map</code></li>
+    <li>Add <code>push!</code> as the mutating counterpart of <code>push</code> for lists</li>
+    <li>Add <code>put!</code> as the mutating counterpart of <code>put</code> for dicts</li>
+    <li>Add <code>dict/keys</code>, and <code>dict/values</code> to dicts</li>
     <li>Rename old <code>set</code> to <code>mutate</code> (aliased to <code>mut</code>)</li>
     <li>Add new <code>set</code> macro that does either <code>var</code> or <code>mut</code></li>
     <li>Add <code>var?</code> function</li>
@@ -231,7 +239,7 @@ with the following content:</p>
     <li>Add binary and hexadecimal number literals</li>
     <li>Test for truthiness (neither <code>false</code> nor <code>nil</code>) in conditions of <code>if</code> and <code>while</code></li>
     <li>Rename <code>nth</code> to <code>get</code></li>
-    <li>Add <code>empty?</code>, <code>reject</code>, <code>put</code>, <code>push</code>, and <code>host</code> functions`</li>
+    <li>Add <code>empty?</code>, <code>reject</code>, <code>put</code>, <code>push</code>, and <code>host</code> functions</li>
     <li>Add <code>dict</code> type</li>
     <li>Use <code>/</code> instead of <code>.</code> as namespace separator</li>
     <li>Add <code>number-&gt;string</code> (aliased to <code>num-&gt;str</code>) with an optional radix argument</li>

@@ -87,7 +87,7 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} image {}<file>{1}",
+        "{}Usage:{} render {}<file>{1}",
         csi_title, csi_reset, csi_option
     );
 }

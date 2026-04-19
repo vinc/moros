@@ -98,6 +98,7 @@ fn help() {
     );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
+    println!("  {0}<dev>{1}      Write device", csi_option, csi_reset);
     println!("  {0}<dir>/{1}     Write directory", csi_option, csi_reset);
     println!("  {0}<file>{1}     Write file", csi_option, csi_reset);
 }

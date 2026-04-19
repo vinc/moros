@@ -194,6 +194,15 @@ impl Device {
         device
     }
 
+    /*
+    fn clear_interrupts(&mut self) {
+        let isr = unsafe { self.ports.isr.read() };
+        if isr != 0 {
+            unsafe { self.ports.isr.write(isr) }
+        }
+    }
+    */
+
     fn init(&mut self) {
         // Power on
         unsafe { self.ports.config1.write(0) }
@@ -207,10 +216,12 @@ impl Device {
             }
         }
 
-        // Set interrupts
+        //self.clear_interrupts();
+
+        // Enable interrupts
         //unsafe { self.ports.imr.write(IMR_TOK | IMR_ROK) }
 
-        // Enable Receive and Transmitter
+        // Enable receiver and transmitter
         unsafe { self.ports.cmd.write(CR_RE | CR_TE) }
 
         // Read MAC addr
@@ -255,6 +266,8 @@ impl EthernetDeviceIO for Device {
     // [packet   (length - 4 bytes)]
     // [crc               (4 bytes)]
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
+        //self.clear_interrupts();
+
         let cmd = unsafe { self.ports.cmd.read() };
         if (cmd & CR_BUFE) == CR_BUFE {
             return None;

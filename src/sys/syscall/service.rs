@@ -4,11 +4,9 @@ use crate::sys;
 use crate::sys::fs::Device;
 use crate::sys::fs::FileInfo;
 use crate::sys::fs::Resource;
-use crate::sys::process::Process;
 
 use alloc::vec;
 use core::alloc::Layout;
-use core::arch::asm;
 use smoltcp::wire::IpAddress;
 
 pub fn exit(code: ExitCode) -> ExitCode {
@@ -106,7 +104,7 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
+            if let Err(code) = sys::process::spawn(buf, args_ptr, args_len) {
                 code
             } else {
                 unreachable!(); // The kernel switched to the child process
@@ -122,9 +120,8 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
 pub fn stop(code: usize) -> usize {
     match code {
         0xCAFE => { // Reboot
-            unsafe {
-                asm!("xor rax, rax", "mov cr3, rax");
-            }
+            // TODO: Implement ACPI reset but keep IDT reset as fallback
+            sys::idt::reset();
         }
         0xDEAD => { // Halt
             sys::process::exit();
@@ -200,8 +197,8 @@ pub fn alloc(size: usize, align: usize) -> *mut u8 {
     }
 }
 
-pub fn free(ptr: *mut u8, size: usize, align: usize) {
+pub unsafe fn free(ptr: *mut u8, size: usize, align: usize) {
     if let Ok(layout) = Layout::from_size_align(size, align) {
-        unsafe { sys::process::free(ptr, layout) };
+        sys::process::free(ptr, layout);
     }
 }

@@ -3,7 +3,6 @@
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(custom_test_frameworks)]
-#![feature(ip_from)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
@@ -38,9 +37,11 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::acpi::init(); // Require MEM
     sys::rng::init();
     sys::pci::init(); // Require MEM
+    sys::snd::init();
     sys::net::init(); // Require PCI
     sys::ata::init();
     sys::fs::init(); // Require ATA
+    sys::process::init();
 
     log!("RTC {}", sys::clk::date());
 }
