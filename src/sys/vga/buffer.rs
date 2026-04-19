@@ -13,7 +13,10 @@ impl Buffer {
     }
 
     pub const fn size() -> usize {
-        640 * 480 // Max buffer size
+        // TODO: The buffer size is dependent on the current VGA mode so this
+        // should be init to 1 and the size in the dir entry might be updated
+        // when a new mode is set.
+        320 * 200
     }
 }
 
