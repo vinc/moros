@@ -117,14 +117,14 @@ impl Config {
 
     pub fn set_char_mode(&mut self) {
         if self.mode == Mode::Pixel {
-            vga::set_resolution("80x25");
+            vga::set_resolution("80x25c");
             self.mode = Mode::Char;
         }
     }
 
     pub fn set_pixel_mode(&mut self) {
         if self.mode == Mode::Char {
-            vga::set_resolution(&format!("{}x{}", WIDTH, HEIGHT));
+            vga::set_resolution(&format!("{}x{}p", WIDTH, HEIGHT));
             self.mode = Mode::Pixel;
         }
     }

@@ -7,16 +7,16 @@ use crate::api::fs::{FileIO, IO};
 use spin::Mutex;
 
 #[derive(Copy, Clone)]
-enum ModeName {
-    T80x25,
-    G320x200x256,
-    G640x480x16,
+enum ModeName { // TODO: Rename to Resolution
+    C80x25,
+    P320x200x256,
+    P640x480x16,
 }
 
 static MODE: Mutex<Option<ModeName>> = Mutex::new(None);
 
 // Source: https://www.singlix.com/trdos/archive/vga/Graphics%20in%20pmode.pdf
-const T_80_25: [u8; 61] = [
+const C_80_25: [u8; 61] = [
     // MISC
     0x67,
     // SEQ
@@ -32,7 +32,7 @@ const T_80_25: [u8; 61] = [
     0x3C, 0x3D, 0x3E, 0x3F, 0x0C, 0x00, 0x0F, 0x08, 0x00
 ];
 
-const G_320_200_256: [u8; 61] = [
+const P_320_200_256: [u8; 61] = [
     // MISC
     0x63,
     // SEQ
@@ -48,7 +48,7 @@ const G_320_200_256: [u8; 61] = [
     0x0C, 0x0D, 0x0E, 0x0F, 0x41, 0x00, 0x0F, 0x00, 0x00
 ];
 
-const G_640_480_16: [u8; 61] = [
+const P_640_480_16: [u8; 61] = [
     // MISC
     0xE3,
     // SEQ
@@ -73,9 +73,9 @@ const AC_REGS_COUNT: usize = 21;
 fn set_mode(mode: ModeName) {
     *MODE.lock() = Some(mode);
     let mut regs = match mode {
-        ModeName::T80x25 => T_80_25,
-        ModeName::G320x200x256 => G_320_200_256,
-        ModeName::G640x480x16 => G_640_480_16,
+        ModeName::C80x25 => C_80_25,
+        ModeName::P320x200x256 => P_320_200_256,
+        ModeName::P640x480x16 => P_640_480_16,
     };
 
     interrupts::without_interrupts(|| {
@@ -140,43 +140,43 @@ fn set_mode(mode: ModeName) {
     });
 }
 
-fn is_80x25_mode() -> bool {
+fn is_80x25c_mode() -> bool {
     match *MODE.lock() {
-        Some(ModeName::T80x25) | None => true,
+        Some(ModeName::C80x25) | None => true,
         _ => false
     }
 }
 
-fn set_80x25_mode() {
+fn set_80x25c_mode() {
     clear_screen();
-    set_mode(ModeName::T80x25);
+    set_mode(ModeName::C80x25);
     disable_blinking();
     disable_underline();
     palette::restore_palette();
     font::restore_font();
 }
 
-fn set_320x200_mode() {
-    if is_80x25_mode() {
+fn set_320x200p_mode() {
+    if is_80x25c_mode() {
         palette::backup_palette();
     }
-    set_mode(ModeName::G320x200x256);
+    set_mode(ModeName::P320x200x256);
     clear_screen();
 }
 
-fn set_640x480_mode() {
-    if is_80x25_mode() {
+fn set_640x480p_mode() {
+    if is_80x25c_mode() {
         palette::backup_palette();
     }
-    set_mode(ModeName::G640x480x16);
+    set_mode(ModeName::P640x480x16);
     clear_screen();
 }
 
 fn clear_screen() {
     // Clear screen
     let size = match *MODE.lock() {
-        Some(ModeName::G320x200x256) => 320 * 200,
-        Some(ModeName::G640x480x16) => 640 * 480,
+        Some(ModeName::P320x200x256) => 320 * 200,
+        Some(ModeName::P640x480x16) => 640 * 480,
         _ => return,
     };
     let dst = Buffer::addr() as *mut u8;
@@ -186,7 +186,7 @@ fn clear_screen() {
 }
 
 #[derive(Debug, Clone)]
-pub struct VgaMode;
+pub struct VgaMode; // TODO: Rename to VgaResolution
 
 impl VgaMode {
     pub fn new() -> Self {
@@ -194,7 +194,7 @@ impl VgaMode {
     }
 
     pub fn size() -> usize {
-        // Must be at least 4 + 1 + 4 bytes: "<width>x<height>"
+        // Must be at least 4 + 1 + 4 + 1 bytes: "<width>x<height><mode>"
         16
     }
 }
@@ -202,17 +202,17 @@ impl VgaMode {
 impl FileIO for VgaMode {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match *MODE.lock() {
-            Some(ModeName::T80x25) | None => write_mode(buf, b"80x25"),
-            Some(ModeName::G320x200x256) => write_mode(buf, b"320x200"),
-            Some(ModeName::G640x480x16) => write_mode(buf, b"640x480"),
+            Some(ModeName::C80x25) | None => write_mode(buf, b"80x25c"),
+            Some(ModeName::P320x200x256) => write_mode(buf, b"320x200p"),
+            Some(ModeName::P640x480x16) => write_mode(buf, b"640x480p"),
         }
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match buf {
-            b"80x25" => set_80x25_mode(),
-            b"320x200" => set_320x200_mode(),
-            b"640x480" => set_640x480_mode(),
+            b"80x25c" => set_80x25c_mode(),
+            b"320x200p" => set_320x200p_mode(),
+            b"640x480p" => set_640x480p_mode(),
             _ => return Err(()),
         }
         Ok(buf.len())

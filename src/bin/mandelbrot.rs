@@ -150,7 +150,7 @@ fn main(args: &[&str]) {
         i += 1;
     }
 
-    vga::set_resolution(&format!("{}x{}", WIDTH, HEIGHT));
+    vga::set_resolution(&format!("{}x{}p", WIDTH, HEIGHT));
     fs::write("/dev/vga/palette", &palette(&config)).ok();
 
     let mut escape = false;
