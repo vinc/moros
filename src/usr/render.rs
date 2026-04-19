@@ -4,6 +4,7 @@ use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::api::vga;
 
+use alloc::format;
 use alloc::vec::Vec;
 use alloc::string::{String, ToString};
 use core::mem::size_of;
@@ -94,8 +95,8 @@ fn help() {
 
 #[derive(PartialEq)]
 enum Mode {
-    Text,
-    Graphic,
+    Char,
+    Pixel,
 }
 
 #[derive(PartialEq)]
@@ -111,20 +112,20 @@ struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        Self { mode: Mode::Text }
+        Self { mode: Mode::Char }
     }
 
-    pub fn text_mode(&mut self) {
-        if self.mode == Mode::Graphic {
-            vga::text_mode();
-            self.mode = Mode::Text;
+    pub fn set_char_mode(&mut self) {
+        if self.mode == Mode::Pixel {
+            vga::set_resolution("80x25");
+            self.mode = Mode::Char;
         }
     }
 
-    pub fn graphic_mode(&mut self) {
-        if self.mode == Mode::Text {
-            vga::graphic_mode("320x200");
-            self.mode = Mode::Graphic;
+    pub fn set_pixel_mode(&mut self) {
+        if self.mode == Mode::Char {
+            vga::set_resolution(&format!("{}x{}", WIDTH, HEIGHT));
+            self.mode = Mode::Pixel;
         }
     }
 }
@@ -136,7 +137,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                 let width = bmp.width as usize;
                 let height = bmp.height as usize;
                 if width != WIDTH || height != HEIGHT {
-                    config.text_mode();
+                    config.set_char_mode();
                     error!("Unsupported BMP size");
                     return Err(ExitCode::Failure);
                 }
@@ -156,7 +157,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                     }
                 }
 
-                config.graphic_mode();
+                config.set_pixel_mode();
 
                 // Load palette
                 let mut palette = [0; 256 * 3];
@@ -167,7 +168,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                 }
                 let dev = "/dev/vga/palette";
                 if !fs::is_device(dev) || fs::write(dev, &palette).is_err() {
-                    config.text_mode();
+                    config.set_char_mode();
                     error!("Could not write to '{}'", dev);
                     return Err(ExitCode::Failure);
                 }
@@ -175,7 +176,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                 // Display image
                 let dev = "/dev/vga/buffer";
                 if !fs::is_device(dev) || fs::write(dev, &img).is_err() {
-                    config.text_mode();
+                    config.set_char_mode();
                     error!("Could not write to '{}'", dev);
                     return Err(ExitCode::Failure);
                 }
@@ -183,13 +184,13 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                 Ok(read_command())
             }
             Err(msg) => {
-                config.text_mode();
+                config.set_char_mode();
                 error!("{}", msg);
                 Err(ExitCode::Failure)
             }
         }
     } else {
-        config.text_mode();
+        config.set_char_mode();
         error!("Could not read BMP");
         Err(ExitCode::Failure)
     }
@@ -262,6 +263,6 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     }
-    config.text_mode();
+    config.set_char_mode();
     Ok(())
 }

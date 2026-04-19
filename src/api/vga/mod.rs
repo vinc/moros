@@ -1,16 +1,11 @@
 use crate::api::fs;
 
-pub fn graphic_mode(resolution: &str) {
-    let dev = "/dev/vga/mode";
+pub fn set_resolution(res: &str) {
+    let dev = "/dev/vga/mode"; // TODO: Rename to `/dev/vga/res`
     if fs::is_device(dev) {
-        fs::write(dev, resolution.as_bytes()).ok();
-    }
-}
-
-pub fn text_mode() {
-    let dev = "/dev/vga/mode";
-    if fs::is_device(dev) {
-        fs::write(dev, b"80x25").ok();
-        print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
+        fs::write(dev, res.as_bytes()).ok();
+        if res.ends_with('c') {
+            print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
+        }
     }
 }
