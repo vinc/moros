@@ -148,15 +148,12 @@ fn is_80x25c_mode() -> bool {
 }
 
 fn set_80x25c_mode() {
-    let initialized = MODE.lock().is_some();
     clear_screen();
     set_mode(ModeName::C80x25);
     disable_blinking();
     disable_underline();
-    if initialized {
-        palette::restore_palette();
-        font::restore_font();
-    }
+    palette::restore_palette();
+    font::restore_font();
 }
 
 fn set_320x200p_mode() {
