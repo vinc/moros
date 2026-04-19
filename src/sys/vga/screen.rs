@@ -13,8 +13,6 @@ enum ModeName {
     G640x480x16,
 }
 
-static BUFFER: [u8; 640 * 480] = [0; 640 * 480];
-
 static MODE: Mutex<Option<ModeName>> = Mutex::new(None);
 
 // Source: https://www.singlix.com/trdos/archive/vga/Graphics%20in%20pmode.pdf
@@ -181,10 +179,9 @@ fn clear_screen() {
         Some(ModeName::G640x480x16) => 640 * 480,
         _ => return,
     };
-    let src = BUFFER.as_ptr();
     let dst = Buffer::addr() as *mut u8;
     unsafe {
-        core::ptr::copy_nonoverlapping(src, dst, size);
+        core::ptr::write_bytes(dst, 0, size);
     }
 }
 
