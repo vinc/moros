@@ -16,5 +16,5 @@ fn main(_args: &[&str]) {
     while io::stdin().read_char().is_none() {
         x86_64::instructions::hlt();
     }
-    vga::text_mode();
+    vga::set_resolution("80x25c");
 }
