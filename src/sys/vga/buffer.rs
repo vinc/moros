@@ -26,6 +26,7 @@ impl FileIO for Buffer {
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        // FIXME: This only work for 320x200 linear buffer
         let len = buf.len();
         let src = buf.as_ptr();
         let dst = Self::addr() as *mut u8;

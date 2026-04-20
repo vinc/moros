@@ -173,12 +173,12 @@ fn set_640x480p_mode() {
 }
 
 fn clear_screen() {
-    // Clear screen
     let size = match *MODE.lock() {
         Some(ModeName::P320x200x256) => 320 * 200,
-        Some(ModeName::P640x480x16) => 640 * 480,
+        Some(ModeName::P640x480x16) => (640 / 4 / 2) * 480,
         _ => return,
     };
+    // FIXME: This only work for 320x200 linear buffer
     let dst = Buffer::addr() as *mut u8;
     unsafe {
         core::ptr::write_bytes(dst, 0, size);
