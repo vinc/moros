@@ -72,6 +72,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/pipe", "pipe", verbose);
     create_dev("/dev/proc/id", "proc-id", verbose);
     create_dev("/dev/proc/dir", "proc-dir", verbose);
+    create_dev("/dev/proc/env", "proc-env", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/snd/buffer", "snd-buffer", verbose);
     create_dev("/dev/speaker", "speaker", verbose);

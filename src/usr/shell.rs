@@ -34,7 +34,7 @@ impl Config {
     fn new() -> Config {
         let aliases = BTreeMap::new();
         let mut env = BTreeMap::new();
-        for (key, val) in sys::process::envs() {
+        for (key, val) in process::envs() {
             // Copy the process environment to the shell environment
             env.insert(key, val);
         }
@@ -108,7 +108,7 @@ pub fn prompt_string(success: bool) -> String {
     let csi_reset = Style::reset();
 
     let mut current_dir = process::dir();
-    if let Some(home) = sys::process::env("HOME") {
+    if let Some(home) = process::env("HOME") {
         if current_dir.starts_with(&home) {
             let n = home.len();
             current_dir.replace_range(..n, "~");
@@ -251,7 +251,7 @@ pub fn split_args(cmd: &str) -> Vec<String> {
 
 // Replace `~` with the value of `$HOME` when it's at the begining of an arg
 fn tilde_expansion(arg: &str) -> String {
-    if let Some(home) = sys::process::env("HOME") {
+    if let Some(home) = process::env("HOME") {
         let tilde = "~";
         if arg == tilde || arg.starts_with("~/") {
             return arg.replacen(tilde, &home, 1);

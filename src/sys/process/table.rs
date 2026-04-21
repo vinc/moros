@@ -45,12 +45,14 @@ fn current_process_mut(table: &mut ProcessTable) -> &mut Process {
     table[id()].as_mut().unwrap()
 }
 
+// TODO: Rename to env_var()
 pub fn env(key: &str) -> Option<String> {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
     proc.data.env.get(key).cloned()
 }
 
+// TODO: Rename to env()
 pub fn envs() -> BTreeMap<String, String> {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
@@ -69,6 +71,7 @@ pub fn user() -> Option<String> {
     proc.data.user.clone()
 }
 
+// TODO: Rename to set_env_var()
 pub fn set_env(key: &str, val: &str) {
     let mut table = PROCESS_TABLE.write();
     let proc = current_process_mut(&mut table);

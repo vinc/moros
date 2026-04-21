@@ -1,6 +1,9 @@
 use crate::api::fs;
+use crate::api::ini;
 use crate::api::syscall;
 
+use alloc::collections::btree_map::BTreeMap;
+use alloc::format;
 use alloc::string::{String, ToString};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -60,4 +63,24 @@ pub fn dir() -> String {
 // TODO: Return Result<()>
 pub fn set_dir(path: &str) {
     let _ = fs::write("/dev/proc/dir", path.as_bytes());
+}
+
+// TODO: Return Result<BTreeMap<String, String>>
+pub fn envs() -> BTreeMap<String, String> {
+    if let Ok(s) = fs::read_to_string("/dev/proc/env") {
+        if let Some(h) = ini::parse(&s) {
+            return h;
+        }
+    }
+    BTreeMap::new()
+}
+
+pub fn env(key: &str) -> Option<String> {
+    envs().get(key).cloned()
+}
+
+// TODO: Return Result<()>
+pub fn set_env(key: &str, val: &str) {
+    let s = format!("{}=\"{}\"", key, val);
+    let _ = fs::write("/dev/proc/env", s.as_bytes());
 }
