@@ -1,7 +1,7 @@
 use crate::api::fs;
 use crate::api::syscall;
 
-use alloc::string::ToString;
+use alloc::string::{String, ToString};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
