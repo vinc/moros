@@ -16,9 +16,9 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 45] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 44] = [
     "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "deflate",
-    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode", "env",
+    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode",
     "goto", "hash", "help", "hex", "host", "http", "httpd", "inflate",
     "install", "keyboard", "life", "lisp", "list", "memory", "move", "net",
     "pci", "quit", "read", "render", "shell", "socket", "spell", "tcp", "time",
@@ -358,23 +358,76 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
-    if args.len() != 3 {
-        let csi_option = Style::color("aqua");
-        let csi_title = Style::color("yellow");
-        let csi_reset = Style::reset();
-        eprintln!(
-            "{}Usage:{} set {}<key> <val>{1}",
-            csi_title, csi_reset, csi_option
-        );
-        return Err(ExitCode::UsageError);
-    }
+#[derive(Debug, PartialEq)]
+enum VarScope {
+    Local,
+    Global,
+    Env,
+}
 
-    config.env.insert(args[1].to_string(), args[2].to_string());
-    Ok(())
+fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    let mut scope = VarScope::Local;
+    let mut key = None;
+    let mut val = None;
+    let mut i = 1;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                let csi_option = Style::color("aqua");
+                let csi_title = Style::color("yellow");
+                let csi_reset = Style::reset();
+                eprintln!(
+                    "{}Usage:{} set {}<options> <key> <val>{1}",
+                    csi_title, csi_reset, csi_option
+                );
+                println!();
+                println!("{}Options:{}", csi_title, csi_reset);
+                println!(
+                    "  {0}-e{1}, {0}--env{1}    Set env var",
+                    csi_option, csi_reset
+                );
+                return Ok(());
+            }
+            "-e" | "--env" => {
+                scope = VarScope::Env;
+            }
+            "-l" | "--local" => {
+                scope = VarScope::Local;
+            }
+            "-g" | "--global" => {
+                scope = VarScope::Global; // TODO
+            }
+            _ => {
+                if args[i].starts_with('-') {
+                    error!("Invalid option '{}'", args[i]);
+                    return Err(ExitCode::UsageError);
+                } else if key.is_none() {
+                    key = Some(args[i]);
+                } else if val.is_none() {
+                    val = Some(args[i]);
+                } else {
+                    error!("Too many arguments");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+        }
+        i += 1;
+    }
+    if let Some(key) = key {
+        if let Some(val) = val {
+            if scope == VarScope::Env {
+                process::set_env(key, val);
+            }
+            config.env.insert(key.to_string(), val.to_string());
+            return Ok(());
+        }
+    }
+    Err(ExitCode::UsageError)
 }
 
 fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    // TODO: Unset env var
     if args.len() != 2 {
         let csi_option = Style::color("aqua");
         let csi_title = Style::color("yellow");
@@ -556,7 +609,6 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "edit"      => usr::edit::main(args),
         "elf"       => usr::elf::main(args),
         "encode"    => usr::encode::main(args),
-        "env"       => usr::env::main(args),
         "find"      => usr::find::main(args),
         //"geodate"   => usr::geodate::main(args),
         "goto"      => cmd_change_dir(args, config), // TODO: Remove this

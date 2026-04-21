@@ -14,7 +14,6 @@ pub mod drop;
 pub mod edit;
 pub mod elf;
 pub mod encode;
-pub mod env;
 pub mod find;
 //pub mod geodate; // TODO: Remove file
 pub mod hash;

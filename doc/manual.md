@@ -275,19 +275,19 @@ You can also set the `TZ` environment variable to use your preferred timezone:
     > calc "2 * 60 * 60"
     7200
 
-    > env TZ 7200
+    > set --env TZ 7200
 
     > date
     2023-03-21 12:00:00 +0200
 
-Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
+Add `set --env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
     > read /ini/boot.sh
     shell /ini/palettes/gruvbox-dark.sh
     read /ini/fonts/zap-light-8x16.psf => /dev/vga/font
     read /ini/banner.txt
     user login
-    env TZ 7200
+    set --env TZ 7200
     shell
 
 There's a device file to get the number of seconds elapsed since Unix Epoch:
