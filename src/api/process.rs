@@ -1,4 +1,7 @@
+use crate::api::fs;
 use crate::api::syscall;
+
+use alloc::string::ToString;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
@@ -41,4 +44,10 @@ pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     } else {
         Err(ExitCode::OpenError)
     }
+}
+
+// TODO: Return Result<usize>
+pub fn id() -> usize {
+    let s = fs::read_to_string("/dev/proc/id").unwrap_or("0".to_string());
+    s.parse().unwrap_or(0)
 }

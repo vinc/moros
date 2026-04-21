@@ -178,6 +178,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "speaker"     => Ok(DeviceType::Speaker),
         "ata"         => Ok(DeviceType::Drive),
         "pipe"        => Ok(DeviceType::Pipe),
+        "proc-id"     => Ok(DeviceType::ProcId),
         _             => Err(()),
     }
 }

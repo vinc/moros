@@ -1,6 +1,7 @@
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::{api, sys, usr};
@@ -51,6 +52,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/net", verbose); // Network
     create_dir("/dev/snd", verbose); // Sound
     create_dir("/dev/vga", verbose);
+    create_dir("/dev/proc", verbose); // Process
 
     create_dev("/dev/ata/0/0", "ata-0-0", verbose);
     create_dev("/dev/ata/0/1", "ata-0-1", verbose);
@@ -68,6 +70,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/net/usage", "net-usage", verbose);
     create_dev("/dev/null", "null", verbose);
     create_dev("/dev/pipe", "pipe", verbose);
+    create_dev("/dev/proc/id", "proc-id", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/snd/buffer", "snd-buffer", verbose);
     create_dev("/dev/speaker", "speaker", verbose);

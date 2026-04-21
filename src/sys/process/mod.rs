@@ -1,6 +1,8 @@
+mod id;
 mod spawn;
 mod table;
 
+pub use id::ProcId;
 pub use spawn::spawn;
 pub use table::{
     init,
