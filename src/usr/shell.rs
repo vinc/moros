@@ -290,6 +290,15 @@ fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     cmd
 }
 
+fn cmd_echo(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    println!("{}", args[1..].join(" "));
+
+    // Handle dir changed with `echo /tmp => /dev/proc/dir`
+    config.env.insert("dir".to_string(), process::dir());
+
+    Ok(())
+}
+
 fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
@@ -543,6 +552,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "disk"      => usr::disk::main(args),
         "draw"      => usr::draw::main(args),
         "drop"      => usr::drop::main(args),
+        "echo"      => cmd_echo(args, config),
         "edit"      => usr::edit::main(args),
         "elf"       => usr::elf::main(args),
         "encode"    => usr::encode::main(args),
