@@ -171,7 +171,7 @@ The line above the command prompt tells you where you are in the disk. The
 tilde `~` means that you are in your home directory:
 
     ~
-    > print $DIR
+    > print $dir
     /usr/vinc
 
 You can change directory by typing it as if it was a command:
@@ -180,7 +180,7 @@ You can change directory by typing it as if it was a command:
     > /tmp
 
     /tmp
-    > print $DIR
+    > print $dir
     /tmp
 
 From now on we'll omit the directory line in most examples.

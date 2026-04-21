@@ -1,8 +1,10 @@
+mod dir;
 mod id;
 mod spawn;
 mod table;
 
 pub use id::ProcId;
+pub use dir::ProcDir;
 pub use spawn::spawn;
 pub use table::{
     init,

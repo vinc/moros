@@ -2,6 +2,7 @@ use crate::api::base64::Base64;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
@@ -81,7 +82,7 @@ fn login(username: &str) -> Result<(), ExitCode> {
 
     let home = format!("/usr/{}", username);
     sys::process::set_user(username);
-    sys::process::set_dir(&home);
+    process::set_dir(&home);
     sys::process::set_env("USER", username);
     sys::process::set_env("HOME", &home);
 

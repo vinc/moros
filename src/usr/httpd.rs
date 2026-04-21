@@ -2,6 +2,7 @@ use crate::api::clock;
 use crate::api::clock::DATE_TIME_ZONE;
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::api::time;
@@ -293,7 +294,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     let mut read_only = false;
     let mut port = 80;
-    let mut dir = sys::process::dir();
+    let mut dir = process::dir();
     let mut i = 1;
     let n = args.len();
     while i < n {

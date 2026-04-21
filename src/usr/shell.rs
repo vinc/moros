@@ -1,5 +1,6 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::regex::Regex;
@@ -37,7 +38,7 @@ impl Config {
             // Copy the process environment to the shell environment
             env.insert(key, val);
         }
-        env.insert("DIR".to_string(), sys::process::dir());
+        env.insert("dir".to_string(), process::dir());
         env.insert("status".to_string(), "0".to_string());
         Config { env, aliases }
     }
@@ -106,7 +107,7 @@ pub fn prompt_string(success: bool) -> String {
     let csi_error = Style::color("maroon");
     let csi_reset = Style::reset();
 
-    let mut current_dir = sys::process::dir();
+    let mut current_dir = process::dir();
     if let Some(home) = sys::process::env("HOME") {
         if current_dir.starts_with(&home) {
             let n = home.len();
@@ -150,7 +151,7 @@ fn glob(arg: &str) -> Vec<String> {
             let n = fs::filename(arg).to_string();
             (d, n, true)
         } else {
-            (sys::process::dir(), arg.to_string(), false)
+            (process::dir(), arg.to_string(), false)
         };
         let re = Regex::from_glob(&pattern);
         let sep = if dir == "/" { "" } else { "/" };
@@ -292,7 +293,7 @@ fn variables_expansion(cmd: &str, config: &mut Config) -> String {
 fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
-            println!("{}", sys::process::dir());
+            println!("{}", process::dir());
             Ok(())
         }
         2 => {
@@ -300,9 +301,9 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             if path.len() > 1 {
                 path = path.trim_end_matches('/').into();
             }
-            if api::fs::is_dir(&path) {
-                sys::process::set_dir(&path);
-                config.env.insert("DIR".to_string(), sys::process::dir());
+            if fs::is_dir(&path) {
+                process::set_dir(&path);
+                config.env.insert("dir".to_string(), process::dir());
                 Ok(())
             } else {
                 error!("Could not find file '{}'", path);
@@ -590,8 +591,8 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             }
             match syscall::info(&path).map(|info| info.kind()) {
                 Some(FileType::Dir) => {
-                    sys::process::set_dir(&path);
-                    config.env.insert("DIR".to_string(), sys::process::dir());
+                    process::set_dir(&path);
+                    config.env.insert("dir".to_string(), process::dir());
                     Ok(())
                 }
                 Some(FileType::File) => {

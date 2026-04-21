@@ -51,3 +51,13 @@ pub fn id() -> usize {
     let s = fs::read_to_string("/dev/proc/id").unwrap_or("0".to_string());
     s.parse().unwrap_or(0)
 }
+
+// TODO: Return Result<String>
+pub fn dir() -> String {
+    fs::read_to_string("/dev/proc/dir").unwrap_or("/".to_string())
+}
+
+// TODO: Return Result<()>
+pub fn set_dir(path: &str) {
+    let _ = fs::write("/dev/proc/dir", path.as_bytes());
+}

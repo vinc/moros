@@ -17,7 +17,7 @@ use crate::sys::rng::Random;
 use crate::sys::speaker::Speaker;
 use crate::sys::vga::{VgaFont, VgaMode, VgaPalette, VgaBuffer};
 use crate::sys::snd::SoundBuffer;
-use crate::sys::process::ProcId;
+use crate::sys::process::{ProcId, ProcDir};
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -49,6 +49,7 @@ pub enum DeviceType {
     Pipe        = 19,
     SoundBuffer = 20,
     ProcId      = 21,
+    ProcDir     = 22,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -78,6 +79,7 @@ impl TryFrom<&[u8]> for DeviceType {
             19 => Ok(DeviceType::Pipe),
             20 => Ok(DeviceType::SoundBuffer),
             21 => Ok(DeviceType::ProcId),
+            22 => Ok(DeviceType::ProcDir),
              _ => Err(()),
         }
     }
@@ -106,6 +108,7 @@ impl DeviceType {
             DeviceType::Pipe        => Pipe::size(),
             DeviceType::SoundBuffer => SoundBuffer::size(),
             DeviceType::ProcId      => ProcId::size(),
+            DeviceType::ProcDir     => ProcDir::size(),
             _                       => 1,
         };
         let mut res = vec![0; len];
@@ -138,6 +141,7 @@ pub enum Device {
     Pipe(Pipe),
     SoundBuffer(SoundBuffer),
     ProcId(ProcId),
+    ProcDir(ProcDir),
 }
 
 impl TryFrom<&[u8]> for Device {
@@ -166,6 +170,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::Pipe        => Ok(Device::Pipe(Pipe::new())),
             DeviceType::SoundBuffer => Ok(Device::SoundBuffer(SoundBuffer::new())),
             DeviceType::ProcId      => Ok(Device::ProcId(ProcId::new())),
+            DeviceType::ProcDir     => Ok(Device::ProcDir(ProcDir::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -237,6 +242,7 @@ impl FileIO for Device {
             Device::Pipe(io)        => io.read(buf),
             Device::SoundBuffer(io) => io.read(buf),
             Device::ProcId(io)      => io.read(buf),
+            Device::ProcDir(io)     => io.read(buf),
         }
     }
 
@@ -264,6 +270,7 @@ impl FileIO for Device {
             Device::Pipe(io)        => io.write(buf),
             Device::SoundBuffer(io) => io.write(buf),
             Device::ProcId(io)      => io.write(buf),
+            Device::ProcDir(io)     => io.write(buf),
         }
     }
 
@@ -291,6 +298,7 @@ impl FileIO for Device {
             Device::Pipe(io)        => io.close(),
             Device::SoundBuffer(io) => io.close(),
             Device::ProcId(io)      => io.close(),
+            Device::ProcDir(io)     => io.close(),
         }
     }
 
@@ -318,6 +326,7 @@ impl FileIO for Device {
             Device::Pipe(io)        => io.poll(event),
             Device::SoundBuffer(io) => io.poll(event),
             Device::ProcId(io)      => io.poll(event),
+            Device::ProcDir(io)     => io.poll(event),
         }
     }
 }
