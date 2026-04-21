@@ -3,10 +3,12 @@ mod env;
 mod id;
 mod spawn;
 mod table;
+mod user;
 
 pub use id::ProcId;
 pub use dir::ProcDir;
 pub use env::ProcEnv;
+pub use user::ProcUser;
 pub use spawn::spawn;
 pub use table::{
     init,

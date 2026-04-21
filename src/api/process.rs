@@ -65,6 +65,11 @@ pub fn set_dir(path: &str) {
     let _ = fs::write("/dev/proc/dir", path.as_bytes());
 }
 
+// TODO: Return Result<String>
+pub fn user() -> Option<String> {
+    fs::read_to_string("/dev/proc/user").ok()
+}
+
 // TODO: Return Result<BTreeMap<String, String>>
 pub fn envs() -> BTreeMap<String, String> {
     if let Ok(s) = fs::read_to_string("/dev/proc/env") {

@@ -73,6 +73,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/proc/id", "proc-id", verbose);
     create_dev("/dev/proc/dir", "proc-dir", verbose);
     create_dev("/dev/proc/env", "proc-env", verbose);
+    create_dev("/dev/proc/user", "proc-user", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/snd/buffer", "snd-buffer", verbose);
     create_dev("/dev/speaker", "speaker", verbose);
@@ -198,7 +199,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let verbose = true;
         copy_files(verbose);
 
-        if sys::process::user().is_none() {
+        if process::user().is_none() {
             println!();
             println!("{}Creating user...{}", csi_color, csi_reset);
             let res = usr::user::main(&["user", "create"]);

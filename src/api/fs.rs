@@ -181,6 +181,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "proc-id"     => Ok(DeviceType::ProcId),
         "proc-dir"    => Ok(DeviceType::ProcDir),
         "proc-env"    => Ok(DeviceType::ProcEnv),
+        "proc-user"   => Ok(DeviceType::ProcUser),
         _             => Err(()),
     }
 }
