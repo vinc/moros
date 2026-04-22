@@ -1,0 +1,39 @@
+#! lisp
+
+(load "/lib/lisp/core.lsp")
+
+(def (asm-int params)
+  (list 0xCD (str->num (get params 0))))
+
+(def (asm-mov params) (do
+  (set reg (get params 0))
+  (set op (+ 0xB8 (cond
+    ((eq? reg "eax") 0)
+    ((eq? reg "ecx") 1)
+    ((eq? reg "edx") 2)
+    ((eq? reg "ebx") 3)
+    ((eq? reg "esp") 4)
+    ((eq? reg "ebp") 5)
+    ((eq? reg "esi") 6)
+    ((eq? reg "edi") 7))))
+  (concat
+    (list op)
+    (slice (reverse (num->bin (str->num (get params 1)))) 0 4))))
+
+(def (parse-line line) (do
+  (set params (words line))
+  (set op (head params))
+  (set params (tail params))
+  (cond
+    ((eq? op "int") (asm-int params))
+    ((eq? op "mov") (asm-mov params)))))
+
+(def (parse-file file)
+  (reduce concat (map parse-line (lines file))))
+
+(if (< (len args) 2) "Usage: asm <file.asm> <file.bin>" (do
+  (set file-asm (get args 0))
+  (set file-bin (get args 1))
+  (write-binary file-bin (concat
+    (cons 0x7F (str->bin "BIN"))
+    (parse-file (read file-asm))))))
