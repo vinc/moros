@@ -485,6 +485,12 @@ fn test_lisp() {
         "(1 2 3)"
     );
 
+    // case
+    assert_eq!(
+        eval!("(case 2 (1 \"one\") (2 \"two\") (3 \"three\"))"),
+        "\"two\""
+    );
+
     // cond
     assert_eq!(eval!("(cond ((< 2 4) 1))"), "1");
     assert_eq!(eval!("(cond ((> 2 4) 1))"), "()");

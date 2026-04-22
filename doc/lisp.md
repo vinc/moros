@@ -29,6 +29,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `cons`
 - `if`
 - `cond`
+- `case`
 - `while`
 - `macro` (aliased to `mac`)
 - `function` (aliased to `fun`)
@@ -178,6 +179,7 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Add `case` function
 - Refactor comment parsing
 - Add `shell->binary` function (aliased to `sh->bin`)
 - Add `shell->string` function (aliased to `sh->str`)

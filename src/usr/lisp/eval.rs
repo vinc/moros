@@ -239,7 +239,7 @@ pub fn eval_args(
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 27] = [
+pub const BUILT_INS: [&str; 28] = [
     "quote",
     "quasiquote",
     "unquote",
@@ -251,6 +251,7 @@ pub const BUILT_INS: [&str; 27] = [
     "cons",
     "if",
     "cond",
+    "case",
     "while",
     "function",
     "variable",

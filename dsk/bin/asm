@@ -7,15 +7,15 @@
 
 (def (asm-mov params) (do
   (set reg (get params 0))
-  (set op (+ 0xB8 (cond
-    ((eq? reg "eax") 0)
-    ((eq? reg "ecx") 1)
-    ((eq? reg "edx") 2)
-    ((eq? reg "ebx") 3)
-    ((eq? reg "esp") 4)
-    ((eq? reg "ebp") 5)
-    ((eq? reg "esi") 6)
-    ((eq? reg "edi") 7))))
+  (set op (+ 0xB8 (case reg
+    ("eax" 0)
+    ("ecx" 1)
+    ("edx" 2)
+    ("ebx" 3)
+    ("esp" 4)
+    ("ebp" 5)
+    ("esi" 6)
+    ("edi" 7))))
   (concat
     (list op)
     (slice (reverse (num->bin (str->num (get params 1)))) 0 4))))
@@ -24,9 +24,9 @@
   (set params (words line))
   (set op (head params))
   (set params (tail params))
-  (cond
-    ((eq? op "int") (asm-int params))
-    ((eq? op "mov") (asm-mov params)))))
+  (case op
+    ("int" (asm-int params))
+    ("mov" (asm-mov params)))))
 
 (def (parse-file file)
   (reduce concat (map parse-line (lines file))))
