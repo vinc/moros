@@ -19,6 +19,9 @@ impl FileIO for ProcUser {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let s = super::user().unwrap_or(String::new());
         let n = s.len();
+        if n > buf.len() {
+            return Err(());
+        }
         buf[0..n].copy_from_slice(s.as_bytes());
         Ok(n)
     }
