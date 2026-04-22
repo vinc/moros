@@ -21,6 +21,7 @@
     (slice (reverse (num->bin (str->num (get params 1)))) 0 4))))
 
 (def (parse-line line) (do
+  (set line (str/trim (head (str/split line "#"))))
   (set params (words line))
   (set op (head params))
   (set params (tail params))
