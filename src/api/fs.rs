@@ -1,5 +1,5 @@
 use crate::api::syscall;
-use crate::sys;
+use crate::api::process;
 use crate::sys::fs::OpenFlag;
 
 use alloc::format;
@@ -55,7 +55,7 @@ pub fn realpath(pathname: &str) -> String {
     if pathname.starts_with('/') {
         pathname.into()
     } else {
-        let dirname = sys::process::dir();
+        let dirname = process::dir();
         let sep = if dirname.ends_with('/') { "" } else { "/" };
         format!("{}{}{}", dirname, sep, pathname)
     }

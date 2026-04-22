@@ -13,18 +13,22 @@ pub use spawn::spawn;
 pub use table::{
     init,
     code_addr,
-    id, set_id,
-    dir, set_dir,
-    envs, env, set_env,
-    user, set_user,
+    env,
+    set_user,
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
     registers, set_registers,
     stack_frame, set_stack_frame,
 };
 
-use table::PROCESS_TABLE;
-use table::current_process;
+use table::{
+    PROCESS_TABLE,
+    current_process,
+    id, set_id,
+    dir, set_dir,
+    envs, set_env,
+    user,
+};
 
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
