@@ -71,7 +71,7 @@ pub fn user() -> Option<String> {
 }
 
 // TODO: Return Result<BTreeMap<String, String>>
-pub fn envs() -> BTreeMap<String, String> {
+pub fn env() -> BTreeMap<String, String> {
     if let Ok(s) = fs::read_to_string("/dev/proc/env") {
         if let Some(h) = ini::parse(&s) {
             return h;
@@ -80,12 +80,12 @@ pub fn envs() -> BTreeMap<String, String> {
     BTreeMap::new()
 }
 
-pub fn env(key: &str) -> Option<String> {
-    envs().get(key).cloned()
+pub fn env_var(key: &str) -> Option<String> {
+    env().get(key).cloned()
 }
 
 // TODO: Return Result<()>
-pub fn set_env(key: &str, val: &str) {
+pub fn set_env_var(key: &str, val: &str) {
     let s = format!("{}=\"{}\"", key, val);
     let _ = fs::write("/dev/proc/env", s.as_bytes());
 }

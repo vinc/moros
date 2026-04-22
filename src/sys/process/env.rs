@@ -20,7 +20,7 @@ impl ProcEnv {
 
 impl FileIO for ProcEnv {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let env = super::envs();
+        let env = super::env();
         let max = env.keys().map(|k| k.len()).max().unwrap_or(0);
         let res = env.iter().map(|(k, v)|
             format!("{:max$} = \"{}\"", k, v)
@@ -37,7 +37,7 @@ impl FileIO for ProcEnv {
         if let Ok(s) = String::from_utf8(buf.to_vec()) {
             if let Some(h) = ini::parse(&s) {
                 for (k, v) in h.iter() {
-                    super::set_env(k, v);
+                    super::set_env_var(k, v);
                 }
                 return Ok(buf.len());
             }

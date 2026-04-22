@@ -178,7 +178,7 @@ impl FileIO for Resource {
 }
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
-    match sys::process::env("HOME") {
+    match sys::process::env_var("HOME") {
         Some(home) => {
             if path.starts_with('~') {
                 Ok(path.replace('~', &home))

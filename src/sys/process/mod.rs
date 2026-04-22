@@ -13,7 +13,7 @@ pub use spawn::spawn;
 pub use table::{
     init,
     code_addr,
-    env,
+    env_var,
     set_user,
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
@@ -26,7 +26,7 @@ use table::{
     current_process,
     id, set_id,
     dir, set_dir,
-    envs, set_env,
+    env, set_env_var,
     user,
 };
 

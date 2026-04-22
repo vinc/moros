@@ -1,3 +1,4 @@
+use crate::api::process;
 use crate::sys;
 
 use alloc::string::ToString;
@@ -113,10 +114,10 @@ pub fn is_printable(c: char) -> bool {
 
 pub fn cols() -> usize {
     let n = 80; // chars
-    sys::process::env("COLS").unwrap_or(n.to_string()).parse().unwrap_or(n)
+    process::env_var("COLS").unwrap_or(n.to_string()).parse().unwrap_or(n)
 }
 
 pub fn rows() -> usize {
     let n = 25; // lines
-    sys::process::env("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)
+    process::env_var("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)
 }
