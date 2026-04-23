@@ -364,7 +364,7 @@ fn inner_env(
     }
     Ok(Rc::new(RefCell::new(Env {
         data,
-        outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))),
+        outer: Some(outer.clone()),
     })))
 }
 

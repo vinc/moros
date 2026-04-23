@@ -525,6 +525,10 @@ fn test_lisp() {
     // mutate
     assert_eq!(eval!("(mutate a 3)"), "3");
     assert_eq!(eval!("a"), "3");
+    eval!("(variable incr-a (function () (mutate a (+ a 1))))");
+    assert_eq!(eval!("a"), "3");
+    assert_eq!(eval!("(incr-a)"), "4"); // Mutate var in outer scope
+    assert_eq!(eval!("a"), "4");
 
     // while
     assert_eq!(
