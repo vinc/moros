@@ -74,7 +74,6 @@
   (if (not (empty? buf)) (do
     (var cur (head buf))
     (var res (tail buf))
-    (print (list i cur))
     (if (str? cur) (do
       (var ptr (encode-u32 (- (get labels cur) (+ i 4))))
       (set cur (head ptr))
@@ -85,10 +84,7 @@
   (set file-asm (get args 0))
   (set file-bin (get args 1))
   (set buf (parse-file (read file-asm)))
-  (print buf)
-  (print labels)
   (set buf (replace-labels buf 0))
-  (print buf)
   (write-binary file-bin (concat
     (cons 0x7F (str->bin "BIN"))
     buf))))
