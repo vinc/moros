@@ -5,14 +5,18 @@
 (set addr 0)
 (set labels (dict))
 
-(def (asm-int params) (do
-  (set addr (+ addr 2))
-  (list 0xCD (str->num (get params 0)))))
+(def (encode-u32 n)
+  (slice (reverse (num->bin n)) 0 4))
 
-(def (asm-mov params) (do
-  (set addr (+ addr 5))
-  (set reg (get params 0))
-  (set op (+ 0xB8 (case reg
+(def (encode-str s) (do
+  (if (eq? (first s) "\"")
+    (if (eq? (last s) "\"") (do
+      (set n (len s))
+      (set addr (+ addr (- n 2)))
+      (str->bin (slice s 1 (- n 2))))))))
+
+(def (reg-id name)
+  (case name
     ("eax" 0)
     ("ecx" 1)
     ("edx" 2)
@@ -20,10 +24,19 @@
     ("esp" 4)
     ("ebp" 5)
     ("esi" 6)
-    ("edi" 7))))
+    ("edi" 7)))
+
+(def (asm-int params) (do
+  (set addr (+ addr 2))
+  (list 0xCD (str->num (get params 0)))))
+
+(def (asm-mov params) (do
+  (set addr (+ addr 5))
+  (set reg (get params 0))
+  (set op (+ 0xB8 (reg-id reg)))
   (concat
     (list op)
-    (slice (reverse (num->bin (str->num (get params 1)))) 0 4))))
+    (encode-u32 (str->num (get params 1))))))
 
 (def (parse-line line) (do
   (set line (str/trim (head (str/split line "#"))))
@@ -42,15 +55,32 @@
     (set params (tail params))
     (if (not (empty? op))
       (case op
+        ("str" (encode-str (head params)))
         ("int" (asm-int params))
         ("mov" (asm-mov params))))))))
 
 (def (parse-file file)
   (reduce concat (reverse (map parse-line (reverse (lines file))))))
 
+(def (replace-labels buf i)
+  (if (not (empty? buf)) (do
+    (var cur (head buf))
+    (var res (tail buf))
+    (print (list i cur))
+    (if (str? cur) (do
+      (var ptr (encode-u32 (- (get labels cur) (+ i 4))))
+      (set cur (head ptr))
+      (set res (concat (tail ptr) res))))
+    (cons cur (replace-labels res (+ i 1))))))
+
 (if (< (len args) 2) "Usage: asm <file.asm> <file.bin>" (do
   (set file-asm (get args 0))
   (set file-bin (get args 1))
+  (set buf (parse-file (read file-asm)))
+  (print buf)
+  (print labels)
+  (set buf (replace-labels buf 0))
+  (print buf)
   (write-binary file-bin (concat
     (cons 0x7F (str->bin "BIN"))
-    (parse-file (read file-asm))))))
+    buf))))
