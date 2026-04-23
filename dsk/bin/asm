@@ -9,11 +9,8 @@
   (slice (reverse (num->bin n)) 0 4))
 
 (def (encode-str s) (do
-  (if (eq? (first s) "\"")
-    (if (eq? (last s) "\"") (do
-      (set n (len s))
-      (set addr (+ addr (- n 2)))
-      (str->bin (slice s 1 (- n 2))))))))
+    (set addr (+ addr (len s)))
+    (str->bin s)))
 
 (def (reg-id name)
   (case name
@@ -62,7 +59,7 @@
     (set params (tail params))
     (if (not (empty? op))
       (case op
-        ("str" (encode-str (head params)))
+        ("str" (encode-str (parse (str/join params " "))))
         ("int" (asm-int params))
         ("lea" (asm-lea params))
         ("mov" (asm-mov params))))))))
