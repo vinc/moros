@@ -2,10 +2,15 @@
 
 (load "/lib/lisp/core.lsp")
 
-(def (asm-int params)
-  (list 0xCD (str->num (get params 0))))
+(set addr 0)
+(set labels (dict))
+
+(def (asm-int params) (do
+  (set addr (+ addr 2))
+  (list 0xCD (str->num (get params 0)))))
 
 (def (asm-mov params) (do
+  (set addr (+ addr 5))
   (set reg (get params 0))
   (set op (+ 0xB8 (case reg
     ("eax" 0)
@@ -24,13 +29,24 @@
   (set line (str/trim (head (str/split line "#"))))
   (set params (words line))
   (set op (head params))
-  (set params (tail params))
-  (case op
-    ("int" (asm-int params))
-    ("mov" (asm-mov params)))))
+
+  # label
+  (if (eq? (last op) ":") (do
+    (put! labels (slice op 0 (- (len op) 1)) addr)
+    (if (> (len params) 1) (do
+      (set params (tail params))
+      (set op (head params))))))
+
+  # instr
+  (if (> (len params) 1) (do
+    (set params (tail params))
+    (if (not (empty? op))
+      (case op
+        ("int" (asm-int params))
+        ("mov" (asm-mov params))))))))
 
 (def (parse-file file)
-  (reduce concat (map parse-line (lines file))))
+  (reduce concat (reverse (map parse-line (reverse (lines file))))))
 
 (if (< (len args) 2) "Usage: asm <file.asm> <file.bin>" (do
   (set file-asm (get args 0))
