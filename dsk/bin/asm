@@ -30,6 +30,13 @@
   (set addr (+ addr 2))
   (list 0xCD (str->num (get params 0)))))
 
+(def (asm-lea params) (do
+  (set addr (+ addr 7))
+  (set reg (get params 0))
+  (set key (get params 1))
+  (set src (+ 0x05 (* (reg-id reg) 8)))
+  (list 0x48 0x8D src key)))
+
 (def (asm-mov params) (do
   (set addr (+ addr 5))
   (set reg (get params 0))
@@ -57,6 +64,7 @@
       (case op
         ("str" (encode-str (head params)))
         ("int" (asm-int params))
+        ("lea" (asm-lea params))
         ("mov" (asm-mov params))))))))
 
 (def (parse-file file)
