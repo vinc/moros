@@ -26,7 +26,9 @@ use smoltcp::wire::IpAddress;
 
 pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Bool(
-        numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])
+        numbers(args)?.windows(2).all(|nums|
+            nums[0].partial_cmp(&nums[1]) == Some(Equal)
+        )
     ))
 }
 
