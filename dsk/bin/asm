@@ -38,6 +38,8 @@
 (def (asm-lea params) (do
   (set reg (get params 0))
   (set key (get params 1))
+  (if (and (eq? (first key) "[") (eq? (last key) "]"))
+    (set key (slice key 1 (- (len key) 2))))
   (set src (+ 0x05 (* (reg-id reg) 8)))
   (case (get reg 0)
     ("e" (do
