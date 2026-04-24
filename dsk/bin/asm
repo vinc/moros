@@ -21,25 +21,42 @@
     ("esp" 4)
     ("ebp" 5)
     ("esi" 6)
-    ("edi" 7)))
+    ("edi" 7)
+    ("rax" 0)
+    ("rcx" 1)
+    ("rdx" 2)
+    ("rbx" 3)
+    ("rsp" 4)
+    ("rbp" 5)
+    ("rsi" 6)
+    ("rdi" 7)))
 
 (def (asm-int params) (do
   (set addr (+ addr 2))
   (list 0xCD (str->num (get params 0)))))
 
 (def (asm-lea params) (do
-  (set addr (+ addr 7))
   (set reg (get params 0))
   (set key (get params 1))
   (set src (+ 0x05 (* (reg-id reg) 8)))
-  (list 0x48 0x8D src key)))
+  (case (get reg 0)
+    ("e" (do
+      (set addr (+ addr 6))
+      (list 0x8D src key)))
+    ("r" (do
+      (set addr (+ addr 7))
+      (list 0x48 0x8D src key))))))
 
 (def (asm-mov params) (do
-  (set addr (+ addr 5))
   (set reg (get params 0))
-  (set op (+ 0xB8 (reg-id reg)))
   (concat
-    (list op)
+    (case (get reg 0)
+      ("e" (do
+        (set addr (+ addr 5))
+        (list (+ 0xB8 (reg-id reg)))))
+      ("r" (do
+        (set addr (+ addr 7))
+        (list 0x48 0xC7 (+ 0xC0 (reg-id reg))))))
     (encode-u32 (str->num (get params 1))))))
 
 (def (parse-line line) (do
