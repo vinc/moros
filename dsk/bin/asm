@@ -12,8 +12,8 @@
     (set addr (+ addr (len s)))
     (str->bin s)))
 
-(def (encode-mode mode dest src)
-  (| (<< mode 6) (<< dest 3) src))
+(def (encode-mod mod dst src)
+  (| (<< mod 6) (<< dst 3) src))
 
 (def (reg-id name)
   (case name
@@ -41,28 +41,39 @@
 (def (asm-lea params) (do
   (set reg (get params 0))
   (set key (get params 1))
+
+  # rip-relative addressing
   (if (and (eq? (first key) "[") (eq? (last key) "]"))
     (set key (slice key 1 (- (len key) 2))))
-  (set src (encode-mode 0 (reg-id reg) 5))
-  (case (get reg 0)
-    ("e" (do
+  (set src (encode-mod 0 (reg-id reg) 5))
+  (case (first reg)
+    ("e" (do # 32-bit
       (set addr (+ addr 6))
       (list 0x8D src key)))
-    ("r" (do
+    ("r" (do # 64-bit
       (set addr (+ addr 7))
       (list 0x48 0x8D src key))))))
 
 (def (asm-mov params) (do
-  (set reg (get params 0))
-  (concat
-    (case (get reg 0)
-      ("e" (do
-        (set addr (+ addr 5))
-        (list (+ 0xB8 (reg-id reg)))))
-      ("r" (do
-        (set addr (+ addr 7))
-        (list 0x48 0xC7 (+ 0xC0 (reg-id reg))))))
-    (encode-u32 (str->num (get params 1))))))
+  (set dst (get params 0))
+  (set src (get params 1))
+  (cond
+    # copy from register
+    ((or (eq? (first src) "e") (eq? (last src) "r")) (do
+      (set addr (+ addr 2))
+      (list 0x48 (encode-mod 3 (reg-id dst) (reg-id src)))))
+
+    # copy from value
+    (true
+      (concat
+        (case (first dst)
+          ("e" (do
+            (set addr (+ addr 5))
+            (list (+ 0xB8 (reg-id dst)))))
+          ("r" (do
+            (set addr (+ addr 7))
+            (list 0x48 0xC7 (+ 0xC0 (reg-id dst))))))
+        (encode-u32 (str->num src)))))))
 
 (def (parse-line line) (do
   (set line (str/trim (head (str/split line "#"))))
