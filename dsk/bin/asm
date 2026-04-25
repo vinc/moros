@@ -54,6 +54,43 @@
       (set addr (+ addr 7))
       (list 0x48 0x8D src key))))))
 
+(def (asm-jne params) (do
+  (set addr (+ addr 6))
+  (set key (get params 0))
+  (list 0x0F 0x85 key)))
+
+(def (asm-add params)
+  (asm-alu 0 params))
+
+(def (asm-or params)
+  (asm-alu 1 params))
+
+(def (asm-and params)
+  (asm-alu 4 params))
+
+(def (asm-sub params)
+  (asm-alu 5 params))
+
+(def (asm-xor params)
+  (asm-alu 6 params))
+
+(def (asm-cmp params)
+  (asm-alu 7 params))
+
+(def (asm-alu ext params) (do
+  (set dst (get params 0))
+  (set src (get params 1))
+  (set mod (encode-mod 3 ext (reg-id dst)))
+  (concat
+    (case (first dst)
+      ("e" (do
+        (set addr (+ addr 6))
+        (list 0x81 mod)))
+      ("r" (do
+        (set addr (+ addr 7))
+        (list 0x48 0x81 mod))))
+    (encode-u32 (str->num src)))))
+
 (def (asm-mov params) (do
   (set dst (get params 0))
   (set src (get params 1))
@@ -110,8 +147,16 @@
     (if (not (empty? op))
       (case op
         ("str" (encode-str (parse (str/join params " "))))
+        ("add" (asm-add params))
+        ("or" (asm-or params))
+        ("and" (asm-and params))
+        ("sub" (asm-sub params))
+        ("xor" (asm-xor params))
+        ("cmp" (asm-cmp params))
         ("int" (asm-int params))
         ("lea" (asm-lea params))
+        ("jne" (asm-jne params))
+        ("jnz" (asm-jne params))
         ("mov" (asm-mov params))))))))
 
 (def (parse-file file)
