@@ -12,6 +12,9 @@
     (set addr (+ addr (len s)))
     (str->bin s)))
 
+(def (encode-mode mode dest src)
+  (| (<< mode 6) (<< dest 3) src))
+
 (def (reg-id name)
   (case name
     ("eax" 0)
@@ -40,7 +43,7 @@
   (set key (get params 1))
   (if (and (eq? (first key) "[") (eq? (last key) "]"))
     (set key (slice key 1 (- (len key) 2))))
-  (set src (+ 0x05 (* (reg-id reg) 8)))
+  (set src (encode-mode 0 (reg-id reg) 5))
   (case (get reg 0)
     ("e" (do
       (set addr (+ addr 6))
