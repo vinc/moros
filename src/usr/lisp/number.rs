@@ -71,6 +71,15 @@ macro_rules! bitwise_method {
     ($op:ident) => {
         pub fn $op(self, other: Number) -> Number {
             match (self, other) {
+                (Number::BigInt(a), Number::BigInt(b)) => {
+                    Number::BigInt(a.$op(b))
+                }
+                (Number::BigInt(a), Number::Int(b)) => {
+                    Number::BigInt(a.$op(BigInt::from(b)))
+                }
+                (Number::Int(a), Number::BigInt(b)) => {
+                    Number::BigInt(BigInt::from(a).$op(b))
+                }
                 (Number::Int(a), Number::Int(b)) => {
                     Number::Int(a.$op(b))
                 }
