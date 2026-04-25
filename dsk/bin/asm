@@ -54,6 +54,11 @@
       (set addr (+ addr 7))
       (list 0x48 0x8D src key))))))
 
+(def (asm-jmp params) (do
+  (set addr (+ addr 5))
+  (set key (get params 0))
+  (list 0xE9 key)))
+
 (def (asm-jne params) (do
   (set addr (+ addr 6))
   (set key (get params 0))
@@ -155,6 +160,7 @@
         ("cmp" (asm-cmp params))
         ("int" (asm-int params))
         ("lea" (asm-lea params))
+        ("jmp" (asm-jmp params))
         ("jne" (asm-jne params))
         ("jnz" (asm-jne params))
         ("mov" (asm-mov params))))))))
