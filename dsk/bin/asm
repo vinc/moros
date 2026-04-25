@@ -9,8 +9,8 @@
   (slice (reverse (num->bin n)) 0 4))
 
 (def (encode-str s) (do
-    (set addr (+ addr (len s)))
-    (str->bin s)))
+  (set addr (+ addr (len s)))
+  (str->bin s)))
 
 (def (encode-mod mod dst src)
   (| (<< mod 6) (<< dst 3) src))
@@ -127,11 +127,13 @@
       (set res (concat (tail ptr) res))))
     (cons cur (replace-labels res (+ i 1))))))
 
-(if (< (len args) 2) "Usage: asm <file.asm> <file.bin>" (do
-  (set file-asm (get args 0))
-  (set file-bin (get args 1))
-  (set buf (parse-file (read file-asm)))
-  (set buf (replace-labels buf 0))
-  (write-binary file-bin (concat
-    (cons 0x7F (str->bin "BIN"))
-    buf))))
+(if (< (len args) 2)
+  (print "Usage: asm <file.asm> <file.bin>")
+  (do
+    (set file-asm (get args 0))
+    (set file-bin (get args 1))
+    (set buf (parse-file (read file-asm)))
+    (set buf (replace-labels buf 0))
+    (write-binary file-bin (concat
+      (cons 0x7F (str->bin "BIN"))
+      buf))))
