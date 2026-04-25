@@ -55,8 +55,9 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `regex/find`
 - `shell` (aliased to `sh`) and `shell->binary` (aliased to `sh->bin`)
 - `date`, `sleep`
-- Arithmetic operations: `+`, `-`, `*`, `/`, `^`, `rem` (aliased to `%`), `trunc`
-- Trigonometric functions: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
+- Arithmetic: `+`, `-`, `*`, `/`, `**`, `%`, and `trunc`
+- Bitwise: `&`, `|`, `^`, `<<`, `>>`
+- Trigonometric: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `>`, `<`, `>=`, `<=`, `=`
 - Enumerable: `length` (aliased to `len`), `put`, `get`, `slice`, `contains?`
 - String: `string/trim` and `string/split` (aliased to `str/trim` and `str/split`)
@@ -179,6 +180,8 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Add `&`, `|`, and `^` bitwise operators
+- Rename `^` exp operator to `**`
 - Add `case` function
 - Refactor comment parsing
 - Add `shell->binary` function (aliased to `sh->bin`)

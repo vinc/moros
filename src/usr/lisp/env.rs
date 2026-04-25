@@ -64,8 +64,20 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_div),
     );
     data.insert(
-        "^".to_string(),
+        "**".to_string(),
         Exp::Primitive(primitive::lisp_exp),
+    );
+    data.insert(
+        "&".to_string(),
+        Exp::Primitive(primitive::lisp_bitand),
+    );
+    data.insert(
+        "^".to_string(),
+        Exp::Primitive(primitive::lisp_bitxor),
+    );
+    data.insert(
+        "|".to_string(),
+        Exp::Primitive(primitive::lisp_bitor),
     );
     data.insert(
         "<<".to_string(),
@@ -76,7 +88,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_shr),
     );
     data.insert(
-        "rem".to_string(),
+        "%".to_string(),
         Exp::Primitive(primitive::lisp_rem),
     );
     data.insert(

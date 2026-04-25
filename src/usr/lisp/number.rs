@@ -6,7 +6,8 @@ use alloc::vec::Vec;
 use core::convert::TryFrom;
 use core::fmt;
 use core::num::ParseIntError;
-use core::ops::{Add, Div, Mul, Neg, Rem, Shl, Shr, Sub};
+use core::ops::{Add,Div, Mul, Neg, Rem, Sub};
+use core::ops::{BitAnd, BitOr, BitXor, Shl, Shr};
 use core::str::FromStr;
 use num_bigint::BigInt;
 use num_bigint::ParseBigIntError;
@@ -66,6 +67,21 @@ macro_rules! arithmetic_method {
     };
 }
 
+macro_rules! bitwise_method {
+    ($op:ident) => {
+        pub fn $op(self, other: Number) -> Number {
+            match (self, other) {
+                (Number::Int(a), Number::Int(b)) => {
+                    Number::Int(a.$op(b))
+                }
+                _ => {
+                    Number::Float(f64::NAN)
+                }
+            }
+        }
+    };
+}
+
 impl Number {
     trigonometric_method!(cos);
     trigonometric_method!(sin);
@@ -78,6 +94,10 @@ impl Number {
     arithmetic_method!(sub, checked_sub);
     arithmetic_method!(mul, checked_mul);
     arithmetic_method!(div, checked_div);
+
+    bitwise_method!(bitand);
+    bitwise_method!(bitxor);
+    bitwise_method!(bitor);
 
     // NOTE: Rem use `libm::fmod` for `f64` instead of `rem`
     pub fn rem(self, other: Number) -> Number {
@@ -252,6 +272,9 @@ operator!(Div, div);
 operator!(Rem, rem);
 operator!(Shl, shl);
 operator!(Shr, shr);
+operator!(BitAnd, bitand);
+operator!(BitXor, bitxor);
+operator!(BitOr, bitor);
 
 use core::cmp::Ordering;
 

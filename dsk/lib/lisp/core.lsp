@@ -106,7 +106,7 @@
 
 (def (mod a b)
   "Returns the remainder of the division"
-  (rem (+ (rem a b) b) b))
+  (% (+ (% a b) b) b))
 
 (def (string/join ls s)
   "Joins the elements of the list with the string"
@@ -159,7 +159,6 @@
 (var sh->bin shell->binary)
 (var sh shell)
 (var $ shell)
-(var % rem)
 (var str string)
 (var str/split string/split)
 (var str/join string/join)

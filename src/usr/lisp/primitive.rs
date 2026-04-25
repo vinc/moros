@@ -135,6 +135,33 @@ pub fn lisp_shr(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(res))
 }
 
+pub fn lisp_bitand(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let args = numbers(args)?;
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a|
+        acc & a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bitxor(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let args = numbers(args)?;
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a|
+        acc ^ a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bitor(args: &[Exp]) -> Result<Exp, Err> {
+    let res = numbers(args)?.iter().fold(Number::Int(0), |acc, a|
+        acc | a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
 pub fn lisp_cos(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     Ok(Exp::Num(number(&args[0])?.cos()))
