@@ -58,10 +58,27 @@
   (set dst (get params 0))
   (set src (get params 1))
   (cond
+    # copy from memory
+    ((and (eq? (first src) "[") (eq? (last src) "]")) (do
+      (set exps (str/split (slice src 1 (- (len src) 2)) "+"))
+      (set src (first exps))
+      (if (eq? (len exps) 1)
+        (do
+          # without displacement
+          (set addr (+ addr 3))
+          (list 0x48 0x8B (encode-mod 0 (reg-id dst) (reg-id src))))
+        (do
+          # with displacement
+          (set addr (+ addr 7))
+          (set disp (str->num (last exps)))
+          (concat
+            (list 0x48 0x8B (encode-mod 2 (reg-id dst) (reg-id src)))
+            (encode-u32 disp))))))
+
     # copy from register
-    ((or (eq? (first src) "e") (eq? (last src) "r")) (do
-      (set addr (+ addr 2))
-      (list 0x48 (encode-mod 3 (reg-id dst) (reg-id src)))))
+    ((or (eq? (first src) "e") (eq? (first src) "r")) (do
+      (set addr (+ addr 3))
+      (list 0x48 0x8B (encode-mod 3 (reg-id dst) (reg-id src)))))
 
     # copy from value
     (true
