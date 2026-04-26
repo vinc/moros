@@ -42,15 +42,15 @@
   (set reg (get params 0))
   (set key (get params 1))
 
-  # rip-relative addressing
+  # lea <reg> [label]
   (if (and (eq? (first key) "[") (eq? (last key) "]"))
     (set key (slice key 1 (- (len key) 2))))
   (set src (encode-mod 0 (reg-id reg) 5))
   (case (first reg)
-    ("e" (do # 32-bit
+    ("e" (do # lea reg32 [label]
       (set addr (+ addr 6))
       (list 0x8D src key)))
-    ("r" (do # 64-bit
+    ("r" (do # lea reg64 [label]
       (set addr (+ addr 7))
       (list 0x48 0x8D src key))))))
 
@@ -85,51 +85,67 @@
 (def (asm-alu ext params) (do
   (set dst (get params 0))
   (set src (get params 1))
-  (set mod (encode-mod 3 ext (reg-id dst)))
-  (concat
-    (case (first dst)
-      ("e" (do
-        (set addr (+ addr 6))
-        (list 0x81 mod)))
-      ("r" (do
-        (set addr (+ addr 7))
-        (list 0x48 0x81 mod))))
-    (encode-u32 (str->num src)))))
+  (cond
+    # <instr> reg32 reg32
+    ((eq? (first src) "e") (do
+      (set addr (+ addr 2))
+      (list (+ (* ext 8) 3) (encode-mod 3 (reg-id dst) (reg-id src)))))
+
+    # <instr> reg64 reg64
+    ((eq? (first src) "r") (do
+      (set addr (+ addr 3))
+      (list 0x48 (+ (* ext 8) 3) (encode-mod 3 (reg-id dst) (reg-id src)))))
+
+    # <instr> <reg> imm32
+    (true
+      (concat
+        (case (first dst)
+          ("e" (do # <instr> reg32 imm32
+            (set addr (+ addr 6))
+            (list 0x81 (encode-mod 3 ext (reg-id dst)))))
+          ("r" (do # <instr> reg64 imm32
+            (set addr (+ addr 7))
+            (list 0x48 0x81 (encode-mod 3 ext (reg-id dst))))))
+        (encode-u32 (str->num src)))))))
 
 (def (asm-mov params) (do
   (set dst (get params 0))
   (set src (get params 1))
   (cond
-    # copy from memory
+    # mov reg64 <mem>
     ((and (eq? (first src) "[") (eq? (last src) "]")) (do
       (set exps (str/split (slice src 1 (- (len src) 2)) "+"))
       (set src (first exps))
       (if (eq? (len exps) 1)
         (do
-          # without displacement
+          # mov reg64 [reg64]
           (set addr (+ addr 3))
           (list 0x48 0x8B (encode-mod 0 (reg-id dst) (reg-id src))))
         (do
-          # with displacement
+          # mov reg64 [reg64+imm32]
           (set addr (+ addr 7))
-          (set disp (str->num (last exps)))
           (concat
             (list 0x48 0x8B (encode-mod 2 (reg-id dst) (reg-id src)))
-            (encode-u32 disp))))))
+            (encode-u32 (str->num (last exps))))))))
 
-    # copy from register
-    ((or (eq? (first src) "e") (eq? (first src) "r")) (do
+    # mov reg32 reg32
+    ((eq? (first src) "e") (do
+      (set addr (+ addr 2))
+      (list 0x8B (encode-mod 3 (reg-id dst) (reg-id src)))))
+
+    # mov reg64 reg64
+    ((eq? (first src) "r") (do
       (set addr (+ addr 3))
       (list 0x48 0x8B (encode-mod 3 (reg-id dst) (reg-id src)))))
 
-    # copy from value
+    # mov <reg> imm32
     (true
       (concat
         (case (first dst)
-          ("e" (do
+          ("e" (do # mov reg32 imm32
             (set addr (+ addr 5))
             (list (+ 0xB8 (reg-id dst)))))
-          ("r" (do
+          ("r" (do # mov reg64 imm32
             (set addr (+ addr 7))
             (list 0x48 0xC7 (+ 0xC0 (reg-id dst))))))
         (encode-u32 (str->num src)))))))
@@ -183,8 +199,7 @@
   (do
     (set file-asm (get args 0))
     (set file-bin (get args 1))
-    (set buf (parse-file (read file-asm)))
-    (set buf (replace-labels buf 0))
-    (write-binary file-bin (concat
-      (cons 0x7F (str->bin "BIN"))
-      buf))))
+    (set buffer (parse-file (read file-asm)))
+    (set buffer (replace-labels buffer 0))
+    (set header (cons 0x7F (str->bin "BIN")))
+    (write-binary file-bin (concat header buffer))))
