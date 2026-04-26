@@ -120,6 +120,28 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     _ => expected!("first argument to be a symbol or a list"),
                 }
             }
+            Exp::Sym(s) if s == "case" => {
+                ensure_length_gt!(list, 2);
+                let mut res = vec![Exp::Sym("cond".to_string())];
+                let keyform = &list[1];
+                for clause in list[2..].iter() {
+                    if let Exp::List(pair) = clause {
+                        ensure_length_eq!(pair, 2);
+                        let key = expand(&pair[0], env)?;
+                        let form = expand(&pair[1], env)?;
+                        res.push(Exp::List(vec![
+                            Exp::List(vec![
+                                Exp::Sym("equal?".to_string()),
+                                keyform.clone(), key
+                            ]),
+                            form
+                        ]));
+                    } else {
+                        expected!("list of key and form")?;
+                    }
+                }
+                expand(&Exp::List(res), env)
+            }
             Exp::Sym(s) if s == "cond" => {
                 ensure_length_gt!(list, 1);
                 if let Exp::List(args) = &list[1] {
@@ -138,7 +160,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Ok(Exp::List(res))
                 } else {
-                    expected!("lists of predicate and expression")
+                    expected!("list of predicate and expression")
                 }
             }
             Exp::Sym(s) => {

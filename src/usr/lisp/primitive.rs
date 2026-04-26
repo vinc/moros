@@ -26,7 +26,9 @@ use smoltcp::wire::IpAddress;
 
 pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Bool(
-        numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])
+        numbers(args)?.windows(2).all(|nums|
+            nums[0].partial_cmp(&nums[1]) == Some(Equal)
+        )
     ))
 }
 
@@ -130,6 +132,33 @@ pub fn lisp_shr(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let args = numbers(args)?;
     let res = args[0].clone() >> args[1].clone();
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bitand(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let args = numbers(args)?;
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a|
+        acc & a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bitxor(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let args = numbers(args)?;
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a|
+        acc ^ a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bitor(args: &[Exp]) -> Result<Exp, Err> {
+    let res = numbers(args)?.iter().fold(Number::Int(0), |acc, a|
+        acc | a.clone()
+    );
     Ok(Exp::Num(res))
 }
 

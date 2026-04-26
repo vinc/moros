@@ -1,8 +1,17 @@
-(def (car x)
-  (head x))
+(var eq equal?)
+(var atom atom?)
+(var add +)
+(var sub -)
+(var mul *)
+(var div /)
+(var rem %)
+(var exp **)
+(var bitand &)
+(var bitxor ^)
+(var bitor |)
 
-(def (cdr x)
-  (tail x))
+(var car head)
+(var cdr tail)
 
 (def (caar x)
   (car (car x)))
@@ -15,12 +24,6 @@
 
 (def (cddr x)
   (cdr (cdr x)))
-
-(def (atom x)
-  (atom? x))
-
-(def (eq x y)
-  (equal? x y))
 
 (var label
   (macro args `(variable ,@args)))
