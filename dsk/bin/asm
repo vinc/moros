@@ -5,15 +5,20 @@
 (set addr 0)
 (set labels (dict))
 
+(def (emit-bytes bytes) (do
+  (set addr (+ addr (reduce + (map (fun (b) (if (str? b) 4 1)) bytes))))
+  bytes))
+
 (def (encode-u32 n)
   (slice (reverse (num->bin n)) 0 4))
 
-(def (encode-str s) (do
-  (set addr (+ addr (len s)))
-  (str->bin s)))
-
 (def (encode-mod mod dst src)
   (| (<< mod 6) (<< dst 3) src))
+
+(def (reg-x reg)
+  (case (first reg)
+    ("e" (list))
+    ("r" (list 0x48))))
 
 (def (reg-id name)
   (case name
@@ -35,34 +40,7 @@
     ("rdi" 7)))
 
 (def (asm-int params) (do
-  (set addr (+ addr 2))
   (list 0xCD (str->num (get params 0)))))
-
-(def (asm-lea params) (do
-  (set reg (get params 0))
-  (set key (get params 1))
-
-  # lea <reg> [label]
-  (if (and (eq? (first key) "[") (eq? (last key) "]"))
-    (set key (slice key 1 (- (len key) 2))))
-  (set src (encode-mod 0 (reg-id reg) 5))
-  (case (first reg)
-    ("e" (do # lea reg32 [label]
-      (set addr (+ addr 6))
-      (list 0x8D src key)))
-    ("r" (do # lea reg64 [label]
-      (set addr (+ addr 7))
-      (list 0x48 0x8D src key))))))
-
-(def (asm-jmp params) (do
-  (set addr (+ addr 5))
-  (set key (get params 0))
-  (list 0xE9 key)))
-
-(def (asm-jne params) (do
-  (set addr (+ addr 6))
-  (set key (get params 0))
-  (list 0x0F 0x85 key)))
 
 (def (asm-add params)
   (asm-alu 0 params))
@@ -86,26 +64,17 @@
   (set dst (get params 0))
   (set src (get params 1))
   (cond
-    # <instr> reg32 reg32
-    ((eq? (first src) "e") (do
-      (set addr (+ addr 2))
-      (list (+ (* ext 8) 3) (encode-mod 3 (reg-id dst) (reg-id src)))))
-
-    # <instr> reg64 reg64
-    ((eq? (first src) "r") (do
-      (set addr (+ addr 3))
-      (list 0x48 (+ (* ext 8) 3) (encode-mod 3 (reg-id dst) (reg-id src)))))
+    # <instr> <reg> <reg>
+    ((or (eq? (first src) "e") (eq? (first src) "r"))
+      (concat
+        (reg-x dst)
+        (list (+ (* ext 8) 3) (encode-mod 3 (reg-id dst) (reg-id src)))))
 
     # <instr> <reg> imm32
     (true
       (concat
-        (case (first dst)
-          ("e" (do # <instr> reg32 imm32
-            (set addr (+ addr 6))
-            (list 0x81 (encode-mod 3 ext (reg-id dst)))))
-          ("r" (do # <instr> reg64 imm32
-            (set addr (+ addr 7))
-            (list 0x48 0x81 (encode-mod 3 ext (reg-id dst))))))
+        (reg-x dst)
+        (list 0x81 (encode-mod 3 ext (reg-id dst)))
         (encode-u32 (str->num src)))))))
 
 (def (asm-mov params) (do
@@ -116,39 +85,49 @@
     ((and (eq? (first src) "[") (eq? (last src) "]")) (do
       (set exps (str/split (slice src 1 (- (len src) 2)) "+"))
       (set src (first exps))
-      (if (eq? (len exps) 1)
-        (do
-          # mov reg64 [reg64]
-          (set addr (+ addr 3))
-          (list 0x48 0x8B (encode-mod 0 (reg-id dst) (reg-id src))))
-        (do
-          # mov reg64 [reg64+imm32]
-          (set addr (+ addr 7))
+        (if (eq? (len exps) 1)
+          # mov <reg> [<reg>]
           (concat
-            (list 0x48 0x8B (encode-mod 2 (reg-id dst) (reg-id src)))
-            (encode-u32 (str->num (last exps))))))))
+            (reg-x dst)
+            (list 0x8B (encode-mod 0 (reg-id dst) (reg-id src))))
 
-    # mov reg32 reg32
-    ((eq? (first src) "e") (do
-      (set addr (+ addr 2))
-      (list 0x8B (encode-mod 3 (reg-id dst) (reg-id src)))))
+          # mov <reg> [<reg>+imm32]
+          (concat
+            (reg-x dst)
+            (list 0x8B (encode-mod 2 (reg-id dst) (reg-id src)))
+            (encode-u32 (str->num (last exps)))))))
 
-    # mov reg64 reg64
-    ((eq? (first src) "r") (do
-      (set addr (+ addr 3))
-      (list 0x48 0x8B (encode-mod 3 (reg-id dst) (reg-id src)))))
+    # mov <reg> <reg>
+    ((or (eq? (first src) "e") (eq? (first src) "r"))
+       (concat
+         (reg-x dst)
+         (list 0x8B (encode-mod 3 (reg-id dst) (reg-id src)))))
 
     # mov <reg> imm32
     (true
       (concat
         (case (first dst)
-          ("e" (do # mov reg32 imm32
-            (set addr (+ addr 5))
-            (list (+ 0xB8 (reg-id dst)))))
-          ("r" (do # mov reg64 imm32
-            (set addr (+ addr 7))
-            (list 0x48 0xC7 (+ 0xC0 (reg-id dst))))))
+          ("e" (list (+ 0xB8 (reg-id dst))))
+          ("r" (list 0x48 0xC7 (encode-mod 3 0 (reg-id dst)))))
         (encode-u32 (str->num src)))))))
+
+(def (asm-jmp params) (do
+  (set key (get params 0))
+  (list 0xE9 key)))
+
+(def (asm-jne params) (do
+  (set key (get params 0))
+  (list 0x0F 0x85 key)))
+
+(def (asm-lea params) (do
+  (set reg (get params 0))
+  (set key (get params 1))
+
+  # lea <reg> [label]
+  (if (and (eq? (first key) "[") (eq? (last key) "]"))
+    (set key (slice key 1 (- (len key) 2))))
+  (set src (encode-mod 0 (reg-id reg) 5))
+  (concat (reg-x reg) (list 0x8D src key))))
 
 (def (parse-line line) (do
   (set line (str/trim (head (str/split line "#"))))
@@ -166,8 +145,8 @@
   (if (> (len params) 1) (do
     (set params (tail params))
     (if (not (empty? op))
-      (case op
-        ("str" (encode-str (parse (str/join params " "))))
+      (emit-bytes (case op
+        ("str" (str->bin (parse (str/join params " "))))
         ("add" (asm-add params))
         ("or" (asm-or params))
         ("and" (asm-and params))
@@ -179,7 +158,7 @@
         ("jmp" (asm-jmp params))
         ("jne" (asm-jne params))
         ("jnz" (asm-jne params))
-        ("mov" (asm-mov params))))))))
+        ("mov" (asm-mov params)))))))))
 
 (def (parse-file file)
   (reduce concat (reverse (map parse-line (reverse (lines file))))))
