@@ -174,7 +174,7 @@ Would produce the following output:
 
 (str "Hello, " name)               # => "Hello, Alice"
 
-(^ 2 64)                           # => 18446744073709551616
+(** 2 64)                          # => 18446744073709551616
 ```
 
 ## Changelog
