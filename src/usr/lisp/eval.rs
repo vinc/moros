@@ -14,6 +14,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+use core::cmp::Ordering::Equal;
 
 fn eval_quote_args(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
@@ -35,10 +36,18 @@ fn eval_equal_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
 ) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let a = eval(&args[0], env)?;
-    let b = eval(&args[1], env)?;
-    Ok(Exp::Bool(a == b))
+    ensure_length_gt!(args, 1);
+
+    let exps: Vec<Exp> = args.iter().map(|arg|
+        eval(&arg, env)
+    ).collect::<Result<_,_>>()?;
+
+    Ok(Exp::Bool(exps.windows(2).all(|pair|
+        match (&pair[0], &pair[1]) {
+            (Exp::Num(a), Exp::Num(b)) => a.partial_cmp(b) == Some(Equal),
+            (a, b) => a == b,
+        }
+    )))
 }
 
 fn eval_head_args(

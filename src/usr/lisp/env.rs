@@ -28,10 +28,6 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Num(Number::from(PI)),
     );
     data.insert(
-        "=".to_string(),
-        Exp::Primitive(primitive::lisp_eq),
-    );
-    data.insert(
         "gt?".to_string(),
         Exp::Primitive(primitive::lisp_gt),
     );
@@ -198,6 +194,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert(
         "number/int".to_string(),
         Exp::Primitive(primitive::lisp_number_int),
+    );
+    data.insert(
+        "number/equal?".to_string(),
+        Exp::Primitive(primitive::lisp_number_equal),
     );
     data.insert(
         "regex/find".to_string(),

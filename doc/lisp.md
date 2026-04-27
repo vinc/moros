@@ -23,7 +23,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `unquote-splice` (abbreviated with `,@`)
 - `splice` (abbreviated with `@`)
 - `atom?`
-- `equal?` (aliased to `eq?`)
+- `equal?` (aliased to `eq?` and `=`)
 - `head`
 - `tail`
 - `cons`
@@ -55,7 +55,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `regex/find`
 - `shell`, `shell->binary` (aliased to `sh`, `sh->bin`)
 - `date`, `sleep`
-- Number: `number/type`, `number/int` (aliased to `num/type`, `num/int`)
+- Number: `number/type`, `number/int`, `number/equal?` (aliased to `num/type`, `num/int`, `num/eq?`)
 - Bit: `bit/not`, `bit/and`, `bit/or`, `bit/xor`, `bit/shl`, `bit/shr` (aliased to `~`, `&`, `|`, `^`, `<<`, `>>`)
 - Arithmetic: `add`, `sub`, `mul`, `div`, `exp`, `rem` (aliased to `+`, `-`, `*`, `/`, `**`, `%`)
 - Trigonometric: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`

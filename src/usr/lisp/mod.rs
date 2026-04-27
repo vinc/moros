@@ -460,9 +460,10 @@ fn test_lisp() {
     assert_eq!(eval!("(equal? \"a\" \"b\")"), "false");
     assert_eq!(eval!("(equal? \"a\" 'b)"), "false");
     assert_eq!(eval!("(equal? 1 1)"), "true");
-    assert_eq!(eval!("(equal? 1 2)"), "false");
-    assert_eq!(eval!("(equal? 1 1.0)"), "false");
+    assert_eq!(eval!("(equal? 1 1.0)"), "true");
     assert_eq!(eval!("(equal? 1.0 1.0)"), "true");
+    assert_eq!(eval!("(equal? 1 2)"), "false");
+    assert_eq!(eval!("(equal? (add 0.15 0.15) (add 0.1 0.2))"), "false");
 
     // head
     assert_eq!(eval!("(head (quote (1)))"), "1");
@@ -600,10 +601,10 @@ fn test_lisp() {
     assert_eq!(eval!("(gte? 4 4 4)"), "true");
     assert_eq!(eval!("(gte? 4 4 4.0)"), "true");
     assert_eq!(eval!("(gte? 2 4 4.0)"), "false");
-    assert_eq!(eval!("(= 6 4)"), "false");
-    assert_eq!(eval!("(= 6 6)"), "true");
-    assert_eq!(eval!("(= 6 6.0)"), "true");
-    assert_eq!(eval!("(= (add 0.15 0.15) (add 0.1 0.2))"), "false"); // FIXME?
+    assert_eq!(eval!("(number/equal? 6 4)"), "false");
+    assert_eq!(eval!("(number/equal? 6 6)"), "true");
+    assert_eq!(eval!("(number/equal? 6 6.0)"), "false");
+    assert_eq!(eval!("(number/equal? (add 0.15 0.15) (add 0.1 0.2))"), "false");
 
     // bit/and
     assert_eq!(eval!("(bit/and 1 2)"), "0");

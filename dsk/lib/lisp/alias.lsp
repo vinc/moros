@@ -22,8 +22,14 @@
 (var def-fun
   (macro args `(define-function ,@args)))
 
+(var =
+  (macro args `(equal? ,@args)))
+
 (var eq?
   (macro args `(equal? ,@args)))
+
+(var num/eq?
+  (macro args `(number/equal? ,@args)))
 
 (var rest
   (macro args `(tail ,@args)))
@@ -48,9 +54,9 @@
 (var | bit/or)
 (var << bit/shl)
 (var >> bit/shr)
-(var sh->bin shell->binary)
-(var sh shell)
 (var $ shell)
+(var sh shell)
+(var sh->bin shell->binary)
 (var str string)
 (var str/split string/split)
 (var str/trim string/trim)

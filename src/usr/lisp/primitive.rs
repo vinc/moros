@@ -24,15 +24,6 @@ use core::str::FromStr;
 use num_bigint::BigInt;
 use smoltcp::wire::IpAddress;
 
-/// TODO: Add comments to all primitives
-pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
-    Ok(Exp::Bool(
-        numbers(args)?.windows(2).all(|nums|
-            nums[0].partial_cmp(&nums[1]) == Some(Equal)
-        )
-    ))
-}
-
 pub fn lisp_gt(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Bool(
         numbers(args)?.windows(2).all(|nums| nums[0] > nums[1])
@@ -451,6 +442,14 @@ pub fn lisp_number_type(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_number_int(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     Ok(Exp::Num(number(&args[0])?.trunc()))
+}
+
+pub fn lisp_number_equal(args: &[Exp]) -> Result<Exp, Err> {
+    Ok(Exp::Bool(
+        numbers(args)?.windows(2).all(|nums|
+            nums[0] == nums[1]
+        )
+    ))
 }
 
 // Regex module
