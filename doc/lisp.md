@@ -47,20 +47,21 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `load`
 
 ### Primitive Operators
-- `type`, `number/type` (aliased to `num/type`), `parse`
+- `type`, `parse`
 - `string` (aliased to `str`)
-- `string->number` and `number->string` (aliased to `str->num` and `num->str`)
-- `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
-- `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
+- `string->number`, `number->string` (aliased to `str->num`, `num->str`)
+- `string->binary`, `binary->string` (aliased to `str->bin`, `bin->str`)
+- `number->binary`, `binary->number` (aliased to `num->bin`, `bin->num`)
 - `regex/find`
-- `shell` (aliased to `sh`) and `shell->binary` (aliased to `sh->bin`)
+- `shell`, `shell->binary` (aliased to `sh`, `sh->bin`)
 - `date`, `sleep`
-- Arithmetic: `+`, `-`, `*`, `/`, `**`, `%`, and `trunc`
-- Bitwise: `&`, `|`, `^`, `<<`, `>>`
+- Number: `number/type`, `number/int` (aliased to `num/type`, `num/int`)
+- Bit: `bit/not`, `bit/and`, `bit/or`, `bit/xor`, `bit/shl`, `bit/shr` (aliased to `~`, `&`, `|`, `^`, `<<`, `>>`)
+- Arithmetic: `add`, `sub`, `mul`, `div`, `exp`, `rem` (aliased to `+`, `-`, `*`, `/`, `**`, `%`)
 - Trigonometric: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
-- Comparisons: `>`, `<`, `>=`, `<=`, `=`
+- Comparisons: `gt?`, `lt?`, `gte?`, `lte?` (aliased to `>`, `<`, `>=`, `<=`)
 - Enumerable: `length` (aliased to `len`), `put`, `get`, `slice`, `contains?`
-- String: `string/trim` and `string/split` (aliased to `str/trim` and `str/split`)
+- String: `string/trim`, `string/split` (aliased to `str/trim`, `str/split`)
 - List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
 - Dict: `dict`
 - File: `file/exists?`, `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
@@ -68,8 +69,8 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
 ### Core Library
 - `nil`, `nil?`, `list?`, `empty?`
-- `boolean?` (aliased to `bool?`), `string?` (aliased to `str?`), `symbol?` (aliased to `sym?`), `number?` (aliased to `num?`)
-- `function?` (aliased to `fun?`), `macro?` (aliased to `mac?`)
+- `boolean?`, `string?`, `symbol?`, `number?` (aliased to `bool?`, `str?`, `sym?`, `num?`)
+- `function?`, `macro?` (aliased to `fun?`, `mac?`)
 - `abs`, `mod`, `min`, `max`
 - `first`, `second`, `third`, `last`, `rest`, `push`
 - `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
