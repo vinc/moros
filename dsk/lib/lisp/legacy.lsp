@@ -9,6 +9,7 @@
 (var bitand &)
 (var bitxor ^)
 (var bitor |)
+(var trunc num/int)
 
 (var car head)
 (var cdr tail)

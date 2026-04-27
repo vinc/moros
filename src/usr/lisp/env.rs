@@ -116,10 +116,6 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_tan),
     );
     data.insert(
-        "trunc".to_string(),
-        Exp::Primitive(primitive::lisp_trunc),
-    );
-    data.insert(
         "shell".to_string(),
         Exp::Primitive(primitive::lisp_shell),
     );
@@ -198,6 +194,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert(
         "number/type".to_string(),
         Exp::Primitive(primitive::lisp_number_type),
+    );
+    data.insert(
+        "number/int".to_string(),
+        Exp::Primitive(primitive::lisp_number_int),
     );
     data.insert(
         "regex/find".to_string(),

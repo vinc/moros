@@ -164,6 +164,7 @@
 (var str/join string/join)
 (var str/trim string/trim)
 (var num/type number/type)
+(var num/int number/int)
 (var str->num string->number)
 (var str->bin string->binary)
 (var num->bin number->binary)
