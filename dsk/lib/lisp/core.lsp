@@ -184,6 +184,11 @@
 (var len length)
 (var rev reverse)
 (var uniq unique)
+(var & bit/and)
+(var ^ bit/xor)
+(var | bit/or)
+(var << bit/shl)
+(var >> bit/shr)
 
 (load "/lib/lisp/dict.lsp")
 (load "/lib/lisp/file.lsp")

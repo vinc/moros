@@ -121,21 +121,7 @@ pub fn lisp_exp(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(res))
 }
 
-pub fn lisp_shl(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let args = numbers(args)?;
-    let res = args[0].clone() << args[1].clone();
-    Ok(Exp::Num(res))
-}
-
-pub fn lisp_shr(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let args = numbers(args)?;
-    let res = args[0].clone() >> args[1].clone();
-    Ok(Exp::Num(res))
-}
-
-pub fn lisp_bitand(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_bit_and(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let args = numbers(args)?;
     let head = args[0].clone();
@@ -145,7 +131,7 @@ pub fn lisp_bitand(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(res))
 }
 
-pub fn lisp_bitxor(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_bit_xor(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let args = numbers(args)?;
     let head = args[0].clone();
@@ -155,10 +141,24 @@ pub fn lisp_bitxor(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(res))
 }
 
-pub fn lisp_bitor(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_bit_or(args: &[Exp]) -> Result<Exp, Err> {
     let res = numbers(args)?.iter().fold(Number::Int(0), |acc, a|
         acc | a.clone()
     );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bit_shl(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let args = numbers(args)?;
+    let res = args[0].clone() << args[1].clone();
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bit_shr(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 2);
+    let args = numbers(args)?;
+    let res = args[0].clone() >> args[1].clone();
     Ok(Exp::Num(res))
 }
 

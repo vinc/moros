@@ -599,20 +599,31 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 6.0)"), "true");
     assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
 
-    // bitand
-    assert_eq!(eval!("(& 1 2)"), "0");
-    assert_eq!(eval!("(& 1 3)"), "1");
-    assert_eq!(eval!("(& 1 2 3)"), "0");
+    // bit/and
+    assert_eq!(eval!("(bit/and 1 2)"), "0");
+    assert_eq!(eval!("(bit/and 1 3)"), "1");
+    assert_eq!(eval!("(bit/and 1 2 3)"), "0");
 
-    // bitxor
-    assert_eq!(eval!("(^ 1 2)"), "3");
-    assert_eq!(eval!("(^ 1 3)"), "2");
-    assert_eq!(eval!("(^ 1 2 3)"), "0");
+    // bit/xor
+    assert_eq!(eval!("(bit/xor 1 2)"), "3");
+    assert_eq!(eval!("(bit/xor 1 3)"), "2");
+    assert_eq!(eval!("(bit/xor 1 2 3)"), "0");
 
-    // bitor
-    assert_eq!(eval!("(| 1 2)"), "3");
-    assert_eq!(eval!("(| 1 3)"), "3");
-    assert_eq!(eval!("(| 1 2 3)"), "3");
+    // bit/or
+    assert_eq!(eval!("(bit/or 1 2)"), "3");
+    assert_eq!(eval!("(bit/or 1 3)"), "3");
+    assert_eq!(eval!("(bit/or 1 2 3)"), "3");
+
+    // bit/shl
+    assert_eq!(eval!("(bit/shl 2 10)"), "2048");
+    assert_eq!(eval!("(bit/shl 2.0 10)"), "NaN");
+
+    // number/int
+    assert_eq!(eval!("(number/int 2)"), "2");
+    assert_eq!(eval!("(number/int 2.0)"), "2");
+    assert_eq!(eval!("(number/int 2.4)"), "2");
+    assert_eq!(eval!("(number/int 2.6)"), "2");
+    assert_eq!(eval!("(number/int -2.6)"), "-2");
 
     // number
     assert_eq!(eval!("(binary->number (number->binary 42) \"int\")"), "42");

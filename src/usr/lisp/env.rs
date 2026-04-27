@@ -68,24 +68,24 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_exp),
     );
     data.insert(
-        "&".to_string(),
-        Exp::Primitive(primitive::lisp_bitand),
+        "bit/and".to_string(),
+        Exp::Primitive(primitive::lisp_bit_and),
     );
     data.insert(
-        "^".to_string(),
-        Exp::Primitive(primitive::lisp_bitxor),
+        "bit/xor".to_string(),
+        Exp::Primitive(primitive::lisp_bit_xor),
     );
     data.insert(
-        "|".to_string(),
-        Exp::Primitive(primitive::lisp_bitor),
+        "bit/or".to_string(),
+        Exp::Primitive(primitive::lisp_bit_or),
     );
     data.insert(
-        "<<".to_string(),
-        Exp::Primitive(primitive::lisp_shl),
+        "bit/shl".to_string(),
+        Exp::Primitive(primitive::lisp_bit_shl),
     );
     data.insert(
-        ">>".to_string(),
-        Exp::Primitive(primitive::lisp_shr),
+        "bit/shr".to_string(),
+        Exp::Primitive(primitive::lisp_bit_shr),
     );
     data.insert(
         "%".to_string(),
