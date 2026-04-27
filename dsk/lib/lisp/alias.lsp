@@ -30,3 +30,33 @@
 
 (var help
   (macro args `(doc ,@args)))
+
+# Primitive aliases
+
+(var + add)
+(var - sub)
+(var * mul)
+(var / div)
+(var ** exp)
+(var % rem)
+(var & bit/and)
+(var ^ bit/xor)
+(var | bit/or)
+(var << bit/shl)
+(var >> bit/shr)
+(var sh->bin shell->binary)
+(var sh shell)
+(var $ shell)
+(var str string)
+(var str/split string/split)
+(var str/trim string/trim)
+(var num/type number/type)
+(var num/int number/int)
+(var str->num string->number)
+(var str->bin string->binary)
+(var num->bin number->binary)
+(var num->str number->string)
+(var bin->str binary->string)
+(var bin->num binary->number)
+(var len length)
+(var uniq unique)

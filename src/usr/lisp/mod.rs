@@ -511,11 +511,11 @@ fn test_lisp() {
 
     // variable
     eval!("(variable a 2)");
-    assert_eq!(eval!("(+ a 1)"), "3");
-    eval!("(variable add-one (function (b) (+ b 1)))");
+    assert_eq!(eval!("(add a 1)"), "3");
+    eval!("(variable add-one (function (b) (add b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
     eval!("(variable fibonacci (function (n) \
-             (if (< n 2) n (+ (fibonacci (- n 1)) (fibonacci (- n 2))))))");
+        (if (< n 2) n (add (fibonacci (sub n 1)) (fibonacci (sub n 2))))))");
     assert_eq!(eval!("(fibonacci 6)"), "8");
 
     // variable?
@@ -525,67 +525,67 @@ fn test_lisp() {
     // mutate
     assert_eq!(eval!("(mutate a 3)"), "3");
     assert_eq!(eval!("a"), "3");
-    eval!("(variable incr-a (function () (mutate a (+ a 1))))");
+    eval!("(variable incr-a (function () (mutate a (add a 1))))");
     assert_eq!(eval!("a"), "3");
     assert_eq!(eval!("(incr-a)"), "4"); // Mutate var in outer scope
     assert_eq!(eval!("a"), "4");
 
     // while
     assert_eq!(
-        eval!("(do (variable i 0) (while (< i 5) (mutate i (+ i 1))) i)"),
+        eval!("(do (variable i 0) (while (< i 5) (mutate i (add i 1))) i)"),
         "5"
     );
 
     // function
-    assert_eq!(eval!("((function (a) (+ 1 a)) 2)"), "3");
-    assert_eq!(eval!("((function (a) (* a a)) 2)"), "4");
+    assert_eq!(eval!("((function (a) (add 1 a)) 2)"), "3");
+    assert_eq!(eval!("((function (a) (mul a a)) 2)"), "4");
     assert_eq!(eval!("((function (x) (cons x '(b c))) 'a)"), "(a b c)");
 
     // function definition shortcut
-    eval!("(define (double x) (* x 2))");
+    eval!("(define (double x) (mul x 2))");
     assert_eq!(eval!("(double 2)"), "4");
-    eval!("(define-function (triple x) (* x 3))");
+    eval!("(define-function (triple x) (mul x 3))");
     assert_eq!(eval!("(triple 2)"), "6");
 
     // add
-    assert_eq!(eval!("(+)"), "0");
-    assert_eq!(eval!("(+ 2)"), "2");
-    assert_eq!(eval!("(+ 2 2)"), "4");
-    assert_eq!(eval!("(+ 2 3 4)"), "9");
-    assert_eq!(eval!("(+ 2 (+ 3 4))"), "9");
+    assert_eq!(eval!("(add)"), "0");
+    assert_eq!(eval!("(add 2)"), "2");
+    assert_eq!(eval!("(add 2 2)"), "4");
+    assert_eq!(eval!("(add 2 3 4)"), "9");
+    assert_eq!(eval!("(add 2 (add 3 4))"), "9");
 
     // sub
-    assert_eq!(eval!("(- 2)"), "-2");
-    assert_eq!(eval!("(- 2 1)"), "1");
-    assert_eq!(eval!("(- 1 2)"), "-1");
-    assert_eq!(eval!("(- 2 -1)"), "3");
-    assert_eq!(eval!("(- 8 4 2)"), "2");
+    assert_eq!(eval!("(sub 2)"), "-2");
+    assert_eq!(eval!("(sub 2 1)"), "1");
+    assert_eq!(eval!("(sub 1 2)"), "-1");
+    assert_eq!(eval!("(sub 2 -1)"), "3");
+    assert_eq!(eval!("(sub 8 4 2)"), "2");
 
     // mul
-    assert_eq!(eval!("(*)"), "1");
-    assert_eq!(eval!("(* 2)"), "2");
-    assert_eq!(eval!("(* 2 2)"), "4");
-    assert_eq!(eval!("(* 2 3 4)"), "24");
-    assert_eq!(eval!("(* 2 (* 3 4))"), "24");
+    assert_eq!(eval!("(mul)"), "1");
+    assert_eq!(eval!("(mul 2)"), "2");
+    assert_eq!(eval!("(mul 2 2)"), "4");
+    assert_eq!(eval!("(mul 2 3 4)"), "24");
+    assert_eq!(eval!("(mul 2 (mul 3 4))"), "24");
 
     // div
-    assert_eq!(eval!("(/ 4)"), "0");
-    assert_eq!(eval!("(/ 4.0)"), "0.25");
-    assert_eq!(eval!("(/ 4 2)"), "2");
-    assert_eq!(eval!("(/ 1 2)"), "0");
-    assert_eq!(eval!("(/ 1 2.0)"), "0.5");
-    assert_eq!(eval!("(/ 8 4 2)"), "1");
+    assert_eq!(eval!("(div 4)"), "0");
+    assert_eq!(eval!("(div 4.0)"), "0.25");
+    assert_eq!(eval!("(div 4 2)"), "2");
+    assert_eq!(eval!("(div 1 2)"), "0");
+    assert_eq!(eval!("(div 1 2.0)"), "0.5");
+    assert_eq!(eval!("(div 8 4 2)"), "1");
 
     // exp
-    assert_eq!(eval!("(** 2 4)"), "16");
-    assert_eq!(eval!("(** 2 4 2)"), "256"); // Left to right
+    assert_eq!(eval!("(exp 2 4)"), "16");
+    assert_eq!(eval!("(exp 2 4 2)"), "256"); // Left to right
 
     // rem
-    assert_eq!(eval!("(% 0 2)"), "0");
-    assert_eq!(eval!("(% 1 2)"), "1");
-    assert_eq!(eval!("(% 2 2)"), "0");
-    assert_eq!(eval!("(% 3 2)"), "1");
-    assert_eq!(eval!("(% -1 2)"), "-1");
+    assert_eq!(eval!("(rem 0 2)"), "0");
+    assert_eq!(eval!("(rem 1 2)"), "1");
+    assert_eq!(eval!("(rem 2 2)"), "0");
+    assert_eq!(eval!("(rem 3 2)"), "1");
+    assert_eq!(eval!("(rem -1 2)"), "-1");
 
     // cmp
     assert_eq!(eval!("(< 6 4)"), "false");
@@ -597,7 +597,7 @@ fn test_lisp() {
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= 6 6.0)"), "true");
-    assert_eq!(eval!("(= (+ 0.15 0.15) (+ 0.1 0.2))"), "false"); // FIXME?
+    assert_eq!(eval!("(= (add 0.15 0.15) (add 0.1 0.2))"), "false"); // FIXME?
 
     // bit/and
     assert_eq!(eval!("(bit/and 1 2)"), "0");
@@ -646,10 +646,10 @@ fn test_lisp() {
     );
 
     // apply
-    assert_eq!(eval!("(apply + '(1 2 3))"), "6");
-    assert_eq!(eval!("(apply + 1 '(2 3))"), "6");
-    assert_eq!(eval!("(apply + 1 2 '(3))"), "6");
-    assert_eq!(eval!("(apply + 1 2 3 '())"), "6");
+    assert_eq!(eval!("(apply add '(1 2 3))"), "6");
+    assert_eq!(eval!("(apply add 1 '(2 3))"), "6");
+    assert_eq!(eval!("(apply add 1 2 '(3))"), "6");
+    assert_eq!(eval!("(apply add 1 2 3 '())"), "6");
 
     // trigo
     assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
@@ -657,14 +657,14 @@ fn test_lisp() {
     assert_eq!(eval!("(asin 1)"), (PI / 2.0).to_string());
     assert_eq!(eval!("(atan 0)"), "0.0");
     assert_eq!(eval!("(cos pi)"), "-1.0");
-    assert_eq!(eval!("(sin (/ pi 2))"), "1.0");
+    assert_eq!(eval!("(sin (div pi 2))"), "1.0");
     assert_eq!(eval!("(tan 0)"), "0.0");
 
     // list
     assert_eq!(eval!("(list)"), "()");
     assert_eq!(eval!("(list 1)"), "(1)");
     assert_eq!(eval!("(list 1 2)"), "(1 2)");
-    assert_eq!(eval!("(list 1 2 (+ 1 2))"), "(1 2 3)");
+    assert_eq!(eval!("(list 1 2 (add 1 2))"), "(1 2 3)");
 
     // bigint
     assert_eq!(
@@ -688,40 +688,40 @@ fn test_lisp() {
         "9223372036854775823" // -> bigint
     );
     assert_eq!(
-        eval!("(+ 9223372036854775807 0)"),
+        eval!("(add 9223372036854775807 0)"),
         "9223372036854775807" // -> int
     );
     assert_eq!(
-        eval!("(- 9223372036854775808 1)"),
+        eval!("(sub 9223372036854775808 1)"),
         "9223372036854775807" // -> bigint
     );
     assert_eq!(
-        eval!("(+ 9223372036854775807 1)"),
+        eval!("(add 9223372036854775807 1)"),
         "9223372036854775808" // -> bigint
     );
     assert_eq!(
-        eval!("(+ 9223372036854775807 1.0)"),
+        eval!("(add 9223372036854775807 1.0)"),
         "9223372036854776000.0" // -> float
     );
     assert_eq!(
-        eval!("(+ 9223372036854775807 10)"),
+        eval!("(add 9223372036854775807 10)"),
         "9223372036854775817" // -> bigint
     );
     assert_eq!(
-        eval!("(* 9223372036854775807 10)"),
+        eval!("(mul 9223372036854775807 10)"),
         "92233720368547758070" // -> bigint
     );
 
     assert_eq!(
-        eval!("(** 2 16)"),
+        eval!("(exp 2 16)"),
         "65536" // -> int
     );
     assert_eq!(
-        eval!("(** 2 128)"),
+        eval!("(exp 2 128)"),
         "340282366920938463463374607431768211456" // -> bigint
     );
     assert_eq!(
-        eval!("(** 2.0 128)"),
+        eval!("(exp 2.0 128)"),
         "340282366920938500000000000000000000000.0" // -> float
     );
 
@@ -732,13 +732,13 @@ fn test_lisp() {
     // quasiquote
     eval!("(variable x 'a)");
     assert_eq!(eval!("`(x ,x y)"), "(x a y)");
-    assert_eq!(eval!("`(x ,x y ,(+ 1 2))"), "(x a y 3)");
-    assert_eq!(eval!("`(list ,(+ 1 2) 4)"), "(list 3 4)");
+    assert_eq!(eval!("`(x ,x y ,(add 1 2))"), "(x a y 3)");
+    assert_eq!(eval!("`(list ,(add 1 2) 4)"), "(list 3 4)");
 
     // unquote-splice
     eval!("(variable x '(1 2 3))");
-    assert_eq!(eval!("`(+ ,x)"), "(+ (1 2 3))");
-    assert_eq!(eval!("`(+ ,@x)"), "(+ 1 2 3)");
+    assert_eq!(eval!("`(add ,x)"), "(add (1 2 3))");
+    assert_eq!(eval!("`(add ,@x)"), "(add 1 2 3)");
 
     // splice
     assert_eq!(eval!("((function (a @b) a) 1 2 3)"), "1");
@@ -757,8 +757,8 @@ fn test_lisp() {
     // comments
     assert_eq!(eval!("# comment"), "()");
     assert_eq!(eval!("# comment\n# comment"), "()");
-    assert_eq!(eval!("(+ 1 2 3) # comment"), "6");
-    assert_eq!(eval!("(+ 1 2 3) # comment\n# comment"), "6");
+    assert_eq!(eval!("(add 1 2 3) # comment"), "6");
+    assert_eq!(eval!("(add 1 2 3) # comment\n# comment"), "6");
 
     // list
     assert_eq!(eval!("(list 1 2 3)"), "(1 2 3)");
@@ -795,8 +795,8 @@ fn test_lisp() {
     assert_eq!(eval!("(expand ())"), "()");
     assert_eq!(eval!("(expand '())"), "(quote ())");
     assert_eq!(
-        eval!("(expand (define (double x) (* x x)))"),
-        "(variable double (function (x) (* x x)))"
+        eval!("(expand (define (double x) (mul x x)))"),
+        "(variable double (function (x) (mul x x)))"
     );
 
     // function

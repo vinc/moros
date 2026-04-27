@@ -48,24 +48,28 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_lte),
     );
     data.insert(
-        "*".to_string(),
-        Exp::Primitive(primitive::lisp_mul),
-    );
-    data.insert(
-        "+".to_string(),
+        "add".to_string(),
         Exp::Primitive(primitive::lisp_add),
     );
     data.insert(
-        "-".to_string(),
+        "sub".to_string(),
         Exp::Primitive(primitive::lisp_sub),
     );
     data.insert(
-        "/".to_string(),
+        "mul".to_string(),
+        Exp::Primitive(primitive::lisp_mul),
+    );
+    data.insert(
+        "div".to_string(),
         Exp::Primitive(primitive::lisp_div),
     );
     data.insert(
-        "**".to_string(),
+        "exp".to_string(),
         Exp::Primitive(primitive::lisp_exp),
+    );
+    data.insert(
+        "rem".to_string(),
+        Exp::Primitive(primitive::lisp_rem),
     );
     data.insert(
         "bit/and".to_string(),
@@ -86,10 +90,6 @@ pub fn default_env() -> Rc<RefCell<Env>> {
     data.insert(
         "bit/shr".to_string(),
         Exp::Primitive(primitive::lisp_bit_shr),
-    );
-    data.insert(
-        "%".to_string(),
-        Exp::Primitive(primitive::lisp_rem),
     );
     data.insert(
         "cos".to_string(),
