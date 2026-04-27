@@ -181,8 +181,13 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
-- Add `&`, `|`, and `^` bitwise operators
-- Rename `^` exp operator to `**`
+- Change `and` and `or` to accept more than 2 args
+- Merge `=` into `equal?` (aliased to `eq?` and `=`) and add a stricter `number/equal?`
+- Rename `+`, `-`, `*`, `/`, and `%` to `add`, `sub`, `mul`, `div`, and `rem` (aliased to their previous names)
+- Rename `>`, `<`, `>=`, and `<=` to `gt?`, `lt?`, `gte?` and `lte?` (aliased to their previous names)
+- Rename `trunc` to `number/int` (aliased to `num/int` and its previous name)
+- Add `bit/and`, `bit/or`, and `bit/xor` bit operators (aliased to `&`, `|`, and `^`)
+- Rename `^` exp operator to `exp` (aliased to `**`)
 - Add `case` function
 - Refactor comment parsing
 - Add `shell->binary` function (aliased to `sh->bin`)
