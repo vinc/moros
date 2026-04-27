@@ -33,6 +33,10 @@
 
 # Primitive aliases
 
+(var >= gte?)
+(var <= lte?)
+(var > gt?)
+(var < lt?)
 (var + add)
 (var - sub)
 (var * mul)

@@ -492,16 +492,16 @@ fn test_lisp() {
     );
 
     // cond
-    assert_eq!(eval!("(cond ((< 2 4) 1))"), "1");
-    assert_eq!(eval!("(cond ((> 2 4) 1))"), "()");
-    assert_eq!(eval!("(cond ((< 2 4) 1) (true 2))"), "1");
-    assert_eq!(eval!("(cond ((> 2 4) 1) (true 2))"), "2");
+    assert_eq!(eval!("(cond ((lt? 2 4) 1))"), "1");
+    assert_eq!(eval!("(cond ((gt? 2 4) 1))"), "()");
+    assert_eq!(eval!("(cond ((lt? 2 4) 1) (true 2))"), "1");
+    assert_eq!(eval!("(cond ((gt? 2 4) 1) (true 2))"), "2");
 
     // if
-    assert_eq!(eval!("(if (< 2 4) 1)"), "1");
-    assert_eq!(eval!("(if (> 2 4) 1)"), "()");
-    assert_eq!(eval!("(if (< 2 4) 1 2)"), "1");
-    assert_eq!(eval!("(if (> 2 4) 1 2)"), "2");
+    assert_eq!(eval!("(if (lt? 2 4) 1)"), "1");
+    assert_eq!(eval!("(if (gt? 2 4) 1)"), "()");
+    assert_eq!(eval!("(if (lt? 2 4) 1 2)"), "1");
+    assert_eq!(eval!("(if (gt? 2 4) 1 2)"), "2");
     assert_eq!(eval!("(if true 1 2)"), "1");
     assert_eq!(eval!("(if false 1 2)"), "2");
     assert_eq!(eval!("(if '() 1 2)"), "2");
@@ -515,7 +515,7 @@ fn test_lisp() {
     eval!("(variable add-one (function (b) (add b 1)))");
     assert_eq!(eval!("(add-one 2)"), "3");
     eval!("(variable fibonacci (function (n) \
-        (if (< n 2) n (add (fibonacci (sub n 1)) (fibonacci (sub n 2))))))");
+        (if (lt? n 2) n (add (fibonacci (sub n 1)) (fibonacci (sub n 2))))))");
     assert_eq!(eval!("(fibonacci 6)"), "8");
 
     // variable?
@@ -532,7 +532,7 @@ fn test_lisp() {
 
     // while
     assert_eq!(
-        eval!("(do (variable i 0) (while (< i 5) (mutate i (add i 1))) i)"),
+        eval!("(do (variable i 0) (while (lt? i 5) (mutate i (add i 1))) i)"),
         "5"
     );
 
@@ -588,12 +588,18 @@ fn test_lisp() {
     assert_eq!(eval!("(rem -1 2)"), "-1");
 
     // cmp
-    assert_eq!(eval!("(< 6 4)"), "false");
-    assert_eq!(eval!("(> 6 4)"), "true");
-    assert_eq!(eval!("(> 6 4 2)"), "true");
-    assert_eq!(eval!("(> 6)"), "true");
-    assert_eq!(eval!("(>)"), "true");
-    assert_eq!(eval!("(> 6.0 4)"), "true");
+    assert_eq!(eval!("(lt? 6 4)"), "false");
+    assert_eq!(eval!("(gt? 6 4)"), "true");
+    assert_eq!(eval!("(gt? 6 4 2)"), "true");
+    assert_eq!(eval!("(gt? 6)"), "true");
+    assert_eq!(eval!("(gt?)"), "true");
+    assert_eq!(eval!("(gt? 6.0 4)"), "true");
+    assert_eq!(eval!("(gte? 6 4 2)"), "true");
+    assert_eq!(eval!("(gte? 6 4 4)"), "true");
+    assert_eq!(eval!("(gte? 4 4 2)"), "true");
+    assert_eq!(eval!("(gte? 4 4 4)"), "true");
+    assert_eq!(eval!("(gte? 4 4 4.0)"), "true");
+    assert_eq!(eval!("(gte? 2 4 4.0)"), "false");
     assert_eq!(eval!("(= 6 4)"), "false");
     assert_eq!(eval!("(= 6 6)"), "true");
     assert_eq!(eval!("(= 6 6.0)"), "true");

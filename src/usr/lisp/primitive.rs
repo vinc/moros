@@ -24,6 +24,7 @@ use core::str::FromStr;
 use num_bigint::BigInt;
 use smoltcp::wire::IpAddress;
 
+/// TODO: Add comments to all primitives
 pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Bool(
         numbers(args)?.windows(2).all(|nums|

@@ -32,19 +32,19 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_eq),
     );
     data.insert(
-        ">".to_string(),
+        "gt?".to_string(),
         Exp::Primitive(primitive::lisp_gt),
     );
     data.insert(
-        ">=".to_string(),
+        "gte?".to_string(),
         Exp::Primitive(primitive::lisp_gte),
     );
     data.insert(
-        "<".to_string(),
+        "lt?".to_string(),
         Exp::Primitive(primitive::lisp_lt),
     );
     data.insert(
-        "<=".to_string(),
+        "lte?".to_string(),
         Exp::Primitive(primitive::lisp_lte),
     );
     data.insert(
