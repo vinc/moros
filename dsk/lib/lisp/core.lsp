@@ -29,11 +29,15 @@
 (def (not x)
   (if x false true))
 
-(def-mac (or x y)
-  `(if ,x ,x (if ,y ,y false)))
+(def-mac (or @xs)
+  (if (nil? xs) false
+    (if (nil? (tail xs)) (head xs)
+      `(if ,(head xs) ,(head xs) (or ,@(tail xs))))))
 
-(def-mac (and x y)
-  `(if ,x (if ,y true false) false))
+(def-mac (and @xs)
+  (if (nil? xs) true
+    (if (nil? (tail xs)) (head xs)
+      `(if ,(head xs) (and ,@(tail xs)) false))))
 
 (def (empty? x)
   (= (len x) 0))
