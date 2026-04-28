@@ -1,15 +1,5 @@
-(var eq equal?)
+(var eq eq?)
 (var atom atom?)
-(var add +)
-(var sub -)
-(var mul *)
-(var div /)
-(var rem %)
-(var exp **)
-(var bitand &)
-(var bitxor ^)
-(var bitor |)
-(var trunc num/int)
 
 (var car head)
 (var cdr tail)
@@ -27,13 +17,13 @@
   (cdr (cdr x)))
 
 (var label
-  (macro args `(variable ,@args)))
+  (mac args `(var ,@args)))
 
 (var lambda
-  (macro args `(function ,@args)))
+  (mac args `(fun ,@args)))
 
 (var progn
-  (macro args `(do ,@args)))
+  (mac args `(do ,@args)))
 
 (var begin
-  (macro args `(do ,@args)))
+  (mac args `(do ,@args)))

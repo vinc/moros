@@ -10,7 +10,7 @@
   bytes))
 
 (def (encode-u32 n)
-  (slice (reverse (num->bin n)) 0 4))
+  (slice (rev (num->bin n)) 0 4))
 
 (def (encode-mod mod dst src)
   (| (<< mod 6) (<< dst 3) src))
@@ -161,7 +161,7 @@
         ("mov" (asm-mov params)))))))))
 
 (def (parse-file file)
-  (reduce concat (reverse (map parse-line (reverse (lines file))))))
+  (reduce concat (rev (map parse-line (rev (lines file))))))
 
 (def (replace-labels buf i)
   (if (not (empty? buf)) (do
@@ -181,4 +181,4 @@
     (set buffer (parse-file (read file-asm)))
     (set buffer (replace-labels buffer 0))
     (set header (cons 0x7F (str->bin "BIN")))
-    (write-binary file-bin (concat header buffer))))
+    (write-bin file-bin (concat header buffer))))

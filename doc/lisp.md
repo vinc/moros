@@ -8,7 +8,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 ## Overview
 
 ### Types
-- Basics: `bool`, `list`, `symbol`, `string`
+- Basics: `bool`, `list`, `sym`, `str`
 - Number: `float`, `int`, `bigint`
 
 ### Literals
@@ -23,7 +23,7 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `unquote-splice` (abbreviated with `,@`)
 - `splice` (abbreviated with `@`)
 - `atom?`
-- `equal?` (aliased to `eq?` and `=`)
+- `eq?` (aliased to `=`)
 - `head`
 - `tail`
 - `cons`
@@ -31,14 +31,14 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - `cond`
 - `case`
 - `while`
-- `macro` (aliased to `mac`)
-- `function` (aliased to `fun`)
-- `variable` (aliased to `var`)
-- `variable?` (aliased to `var?`)
-- `mutate` (aliased to `mut`)
-- `define` (aliased to `def` and equivalent to `define-function`)
-- `define-function` (aliased to `def-fun`)
-- `define-macro` (aliased to `def-mac`)
+- `mac`
+- `fun`
+- `var`
+- `var?`
+- `mut`
+- `def` (equivalent to `def-fun`)
+- `def-fun`
+- `def-mac`
 - `apply`
 - `do`
 - `doc`
@@ -48,42 +48,42 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
 ### Primitive Operators
 - `type`, `parse`
-- `string` (aliased to `str`)
-- `string->number`, `number->string` (aliased to `str->num`, `num->str`)
-- `string->binary`, `binary->string` (aliased to `str->bin`, `bin->str`)
-- `number->binary`, `binary->number` (aliased to `num->bin`, `bin->num`)
+- `str`
+- `str->num`, `num->str`
+- `str->bin`, `bin->str`
+- `num->bin`, `bin->num`
 - `regex/find`
-- `shell`, `shell->binary` (aliased to `sh`, `sh->bin`)
+- `sh`, `sh->bin`
 - `date`, `sleep`
-- Number: `number/type`, `number/int`, `number/equal?` (aliased to `num/type`, `num/int`, `num/eq?`)
+- Number: `num/type`, `num/int`, `num/eq?`
 - Bit: `bit/not`, `bit/and`, `bit/or`, `bit/xor`, `bit/shl`, `bit/shr` (aliased to `~`, `&`, `|`, `^`, `<<`, `>>`)
 - Arithmetic: `add`, `sub`, `mul`, `div`, `exp`, `rem` (aliased to `+`, `-`, `*`, `/`, `**`, `%`)
 - Trigonometric: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
 - Comparisons: `gt?`, `lt?`, `gte?`, `lte?` (aliased to `>`, `<`, `>=`, `<=`)
-- Enumerable: `length` (aliased to `len`), `put`, `get`, `slice`, `contains?`
-- String: `string/trim`, `string/split` (aliased to `str/trim`, `str/split`)
-- List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
+- Enumerable: `len`, `put`, `get`, `slice`, `contains?`
+- String: `str/trim`, `str/split`
+- List: `list`, `concat`, `chunks`, `sort`, `uniq`
 - Dict: `dict`
 - File: `file/exists?`, `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
 - Net: `host`, `socket/connect`, `socket/listen`, `socket/accept`
 
 ### Core Library
 - `nil`, `nil?`, `list?`, `empty?`
-- `boolean?`, `string?`, `symbol?`, `number?` (aliased to `bool?`, `str?`, `sym?`, `num?`)
-- `function?`, `macro?` (aliased to `fun?`, `mac?`)
+- `bool?`, `str?`, `sym?`, `num?`
+- `fun?`, `mac?`
 - `abs`, `mod`, `min`, `max`
 - `first`, `second`, `third`, `last`, `rest`, `push`
-- `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
+- `map`, `reduce`, `rev`, `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `set`, `let`
-- `string/join` (aliased to `str/join`), `lines`, `words`, `chars`
-- `shell->string` (aliased to `sh->str`)
+- `str/join`, `lines`, `words`, `chars`
+- `sh->str`
 - `regex/match?`
 
 ### File Library
 - `dirname`, `filename`
 - `read`, `write`, `append`
-- `read-binary`, `write-binary`, `append-binary`
+- `read-bin`, `write-bin`, `append-bin`
 - `read-line`, `read-char`
 - `clock/boot`, `clock/epoch`
 - `p`, `print`, `eprint`, `error`

@@ -112,39 +112,39 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_tan),
     );
     data.insert(
-        "shell".to_string(),
+        "sh".to_string(),
         Exp::Primitive(primitive::lisp_shell),
     );
     data.insert(
-        "shell->binary".to_string(),
+        "sh->bin".to_string(),
         Exp::Primitive(primitive::lisp_shell_binary),
     );
     data.insert(
-        "string".to_string(),
+        "str".to_string(),
         Exp::Primitive(primitive::lisp_string),
     );
     data.insert(
-        "string->binary".to_string(),
+        "str->bin".to_string(),
         Exp::Primitive(primitive::lisp_string_binary),
     );
     data.insert(
-        "binary->string".to_string(),
+        "bin->str".to_string(),
         Exp::Primitive(primitive::lisp_binary_string),
     );
     data.insert(
-        "binary->number".to_string(),
+        "bin->num".to_string(),
         Exp::Primitive(primitive::lisp_binary_number),
     );
     data.insert(
-        "number->binary".to_string(),
+        "num->bin".to_string(),
         Exp::Primitive(primitive::lisp_number_binary),
     );
     data.insert(
-        "number->string".to_string(),
+        "num->str".to_string(),
         Exp::Primitive(primitive::lisp_number_string),
     );
     data.insert(
-        "string->number".to_string(),
+        "str->num".to_string(),
         Exp::Primitive(primitive::lisp_string_number),
     );
     data.insert(
@@ -164,7 +164,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_sort),
     );
     data.insert(
-        "unique".to_string(),
+        "uniq".to_string(),
         Exp::Primitive(primitive::lisp_unique),
     );
     data.insert(
@@ -180,7 +180,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_chunks),
     );
     data.insert(
-        "length".to_string(),
+        "len".to_string(),
         Exp::Primitive(primitive::lisp_length),
     );
     data.insert(
@@ -188,15 +188,15 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_concat),
     );
     data.insert(
-        "number/type".to_string(),
+        "num/type".to_string(),
         Exp::Primitive(primitive::lisp_number_type),
     );
     data.insert(
-        "number/int".to_string(),
+        "num/int".to_string(),
         Exp::Primitive(primitive::lisp_number_int),
     );
     data.insert(
-        "number/equal?".to_string(),
+        "num/eq?".to_string(),
         Exp::Primitive(primitive::lisp_number_equal),
     );
     data.insert(
@@ -204,11 +204,11 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_regex_find),
     );
     data.insert(
-        "string/split".to_string(),
+        "str/split".to_string(),
         Exp::Primitive(primitive::lisp_string_split),
     );
     data.insert(
-        "string/trim".to_string(),
+        "str/trim".to_string(),
         Exp::Primitive(primitive::lisp_string_trim),
     );
     data.insert(

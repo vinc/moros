@@ -254,7 +254,7 @@ pub const BUILT_INS: [&str; 28] = [
     "unquote",
     "unquote-splicing",
     "atom?",
-    "equal?",
+    "eq?",
     "head",
     "tail",
     "cons",
@@ -262,14 +262,14 @@ pub const BUILT_INS: [&str; 28] = [
     "cond",
     "case",
     "while",
-    "function",
-    "variable",
-    "variable?",
-    "mutate",
-    "macro",
-    "define-function",
-    "define",
-    "define-macro",
+    "fun",
+    "var",
+    "var?",
+    "mut",
+    "mac",
+    "def",
+    "def-fun",
+    "def-mac",
     "apply",
     "eval",
     "expand",
@@ -300,7 +300,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "atom?" => {
                         return eval_atom_args(args, env);
                     }
-                    Exp::Sym(s) if s == "equal?" => {
+                    Exp::Sym(s) if s == "eq?" => {
                         return eval_equal_args(args, env);
                     }
                     Exp::Sym(s) if s == "head" => {
@@ -330,13 +330,13 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "doc" => {
                         return eval_doc_args(args, env);
                     }
-                    Exp::Sym(s) if s == "variable?" => {
+                    Exp::Sym(s) if s == "var?" => {
                         return eval_is_variable_args(args, env);
                     }
-                    Exp::Sym(s) if s == "variable" => {
+                    Exp::Sym(s) if s == "var" => {
                         return eval_variable_args(args, env);
                     }
-                    Exp::Sym(s) if s == "mutate" => {
+                    Exp::Sym(s) if s == "mut" => {
                         return eval_mutate_args(args, env);
                     }
                     Exp::Sym(s) if s == "env" => {
@@ -360,7 +360,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         }
                         exp = &exp_tmp;
                     }
-                    Exp::Sym(s) if s == "function" || s == "macro" => {
+                    Exp::Sym(s) if s == "fun" || s == "mac" => {
                         let (params, body, doc) = match args.len() {
                             2 => {
                                 (args[0].clone(), args[1].clone(), None)
@@ -372,7 +372,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             _ => return expected!("3 or 4 arguments"),
                         };
                         let f = Box::new(Function { params, body, doc });
-                        let exp = if s == "function" {
+                        let exp = if s == "fun" {
                             Exp::Function(f)
                         } else {
                             Exp::Macro(f)

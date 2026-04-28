@@ -1,30 +1,30 @@
 (load "/lib/lisp/alias.lsp")
 
-(def (string? x)
-  (equal? (type x) "string"))
+(def (str? x)
+  (eq? (type x) "str"))
 
-(def (boolean? x)
-  (equal? (type x) "boolean"))
+(def (bool? x)
+  (eq? (type x) "bool"))
 
-(def (symbol? x)
-  (equal? (type x) "symbol"))
+(def (sym? x)
+  (eq? (type x) "sym"))
 
-(def (number? x)
-  (equal? (type x) "number"))
+(def (num? x)
+  (eq? (type x) "num"))
 
 (def (list? x)
-  (equal? (type x) "list"))
+  (eq? (type x) "list"))
 
-(def (function? x)
-  (equal? (type x) "function"))
+(def (fun? x)
+  (eq? (type x) "fun"))
 
-(def (macro? x)
-  (equal? (type x) "macro"))
+(def (mac? x)
+  (eq? (type x) "mac"))
 
 (var nil '())
 
 (def (nil? x)
-  (equal? x nil))
+  (eq? x nil))
 
 (def (not x)
   (if x false true))
@@ -86,10 +86,10 @@
   "Returns the elements found in both lists"
   (filter (fun (x) (contains? b x)) a))
 
-(def (reverse ls)
+(def (rev ls)
   "Reverses the list"
   (if (nil? ls) ls
-    (concat (reverse (tail ls)) (cons (head ls) '()))))
+    (concat (rev (tail ls)) (cons (head ls) '()))))
 
 (def (range start stop)
   "Returns a list of numbers from start to stop excluded"
@@ -102,7 +102,7 @@
 
 (def (max ls)
   "Returns the maximum element of the list"
-  (head (reverse (sort ls))))
+  (head (rev (sort ls))))
 
 (def (abs x)
   "Returns the absolute value of the number"
@@ -112,9 +112,9 @@
   "Returns the remainder of the division"
   (% (+ (% a b) b) b))
 
-(def (string/join ls s)
+(def (str/join ls s)
   "Joins the elements of the list with the string"
-  (if (empty? ls) "" (reduce (fun (x y) (string x s y)) ls)))
+  (if (empty? ls) "" (reduce (fun (x y) (str x s y)) ls)))
 
 (def (regex/match? r s)
   "Returns true if the string match the pattern"
@@ -122,15 +122,15 @@
 
 (def (lines text)
   "Splits the text into a list of lines"
-  (string/split (string/trim text) "\n"))
+  (str/split (str/trim text) "\n"))
 
 (def (words text)
   "Splits the text into a list of words"
-  (string/split text " "))
+  (str/split text " "))
 
 (def (chars text)
   "Splits the text into a list of chars"
-  (string/split text ""))
+  (str/split text ""))
 
 (def (push ls x)
   "Pushes the element to the end of the list"
@@ -151,23 +151,13 @@
 (def (last ls)
   "Returns the last element of the list"
   (get ls
-    (if (= (length ls) 0) 0 (- (length ls) 1))))
+    (if (= (len ls) 0) 0 (- (len ls) 1))))
 
-(def (shell->string cmd)
+(def (sh->str cmd)
   "Returns the output of the command"
-  (string/trim (binary->string (shell->binary cmd))))
+  (str/trim (bin->str (sh->bin cmd))))
 
 # Short aliases
-
-(var str/join string/join)
-(var bool? boolean?)
-(var str? string?)
-(var sym? symbol?)
-(var num? number?)
-(var fun? function?)
-(var mac? macro?)
-(var rev reverse)
-(var sh->str shell->string)
 
 (load "/lib/lisp/dict.lsp")
 (load "/lib/lisp/file.lsp")
