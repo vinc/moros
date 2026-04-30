@@ -139,8 +139,8 @@ Would produce the following output:
 
 (print "Hello, World!")
 
-(set bar 10)                       # Variable binding
-(set bar (+ bar 10))               # Variable rebinding
+(set foo 10)                       # Variable binding
+(set foo (+ foo 10))               # Variable rebinding
 
 (set double (fun (x) (* x 2)))     # Function definition
 (def (double x) (* x 2))           # Shortcut
@@ -181,6 +181,7 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Replace long names (`string`, `variable`, `define`, ...) by short names (`str`, `var`, `def`, ...)
 - Change `and` and `or` to accept more than 2 args
 - Merge `=` into `equal?` (aliased to `eq?` and `=`) and add a stricter `number/equal?`
 - Rename `+`, `-`, `*`, `/`, and `%` to `add`, `sub`, `mul`, `div`, and `rem` (aliased to their previous names)
