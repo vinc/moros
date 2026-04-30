@@ -260,6 +260,28 @@ fn parse_eval(
     Ok((rest, exp))
 }
 
+fn exec(path: &str, env: &mut Rc<RefCell<Env>>) -> Result<(), Err> {
+    let buf = fs::read_to_string(&path).or(could_not!("read file '{}'", path))?;
+    let mut input = buf.clone();
+    loop {
+        match parse_eval(&input, env) {
+            Ok((rest, _)) => {
+                if rest.is_empty() {
+                    break;
+                }
+                input = rest;
+            }
+            Err(Err::Reason(msg)) => {
+                let i = buf.len() - input.trim_start().len();
+                let row = buf[0..i].chars().filter(|c| *c == '\n').count();
+                error!("{} at {}:{}", msg, path, row + 1);
+                return could_not!("load file");
+            }
+        }
+    }
+    Ok(())
+}
+
 fn lisp_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
     if let Some(last_word) = line.split_whitespace().next_back() {
@@ -308,29 +330,6 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn exec(env: &mut Rc<RefCell<Env>>, path: &str) -> Result<(), ExitCode> {
-    if let Ok(mut input) = fs::read_to_string(path) {
-        loop {
-            match parse_eval(&input, env) {
-                Ok((rest, _)) => {
-                    if rest.is_empty() {
-                        break;
-                    }
-                    input = rest;
-                }
-                Err(Err::Reason(msg)) => {
-                    error!("{}", msg);
-                    return Err(ExitCode::Failure);
-                }
-            }
-        }
-        Ok(())
-    } else {
-        error!("Could not find file '{}'", path);
-        Err(ExitCode::Failure)
-    }
-}
-
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let env = &mut default_env();
 
@@ -350,34 +349,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     if args.len() < 2 {
         let init = "/ini/lisp.lsp";
         if fs::exists(init) {
-            exec(env, init)?;
+            exec(init, env).map_err(|_| ExitCode::Failure)?;
         }
         repl(env)
     } else {
         if args[1] == "-h" || args[1] == "--help" {
             return help();
         }
-        let path = args[1];
-        if let Ok(mut input) = fs::read_to_string(path) {
-            loop {
-                match parse_eval(&input, env) {
-                    Ok((rest, _)) => {
-                        if rest.is_empty() {
-                            break;
-                        }
-                        input = rest;
-                    }
-                    Err(Err::Reason(msg)) => {
-                        error!("{}", msg);
-                        return Err(ExitCode::Failure);
-                    }
-                }
-            }
-            Ok(())
-        } else {
-            error!("Could not read file '{}'", path);
-            Err(ExitCode::Failure)
-        }
+        exec(args[1], env).map_err(|_| ExitCode::Failure)
     }
 }
 

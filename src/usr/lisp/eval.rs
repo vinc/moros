@@ -2,10 +2,8 @@ use super::env::{env_get, env_keys, env_set, function_env};
 use super::expand::expand;
 use super::parse::parse;
 use super::string;
-use super::{parse_eval, Env, Err, Exp, Function};
+use super::{exec, Env, Err, Exp, Function};
 
-use crate::api::fs;
-use crate::could_not;
 use crate::{ensure_length_eq, ensure_length_gt, expected};
 
 use alloc::boxed::Box;
@@ -216,15 +214,7 @@ fn eval_load_args(
 ) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&eval(&args[0], env)?)?;
-    let mut input = fs::read_to_string(&path).
-        or(could_not!("read file '{}'", path))?;
-    loop {
-        let (rest, _) = parse_eval(&input, env)?;
-        if rest.is_empty() {
-            break;
-        }
-        input = rest;
-    }
+    exec(&path, env)?;
     Ok(Exp::Bool(true))
 }
 
