@@ -3,7 +3,6 @@ mod table;
 
 pub use spawn::spawn;
 pub use table::{
-    init,
     code_addr,
     id, set_id,
     dir, set_dir,
@@ -27,7 +26,6 @@ use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
-use core::sync::atomic::{AtomicU64, Ordering};
 use linked_list_allocator::LockedHeap;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
@@ -49,13 +47,6 @@ const USER_ADDR: u64 = 0x800000;
 // TODO: Remove this when the kernel is no longer at 0x200000 in userspace
 pub fn is_userspace(addr: u64) -> bool {
     USER_ADDR <= addr && addr <= USER_ADDR + MAX_PROC_SIZE as u64
-}
-
-static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
-
-// Called during kernel heap initialization
-pub fn set_process_addr(addr: u64) {
-    CODE_ADDR.store(addr, Ordering::SeqCst);
 }
 
 pub fn ptr_from_addr(addr: u64) -> *mut u8 {
@@ -149,7 +140,7 @@ impl Process {
 
     fn mapper(&self) -> OffsetPageTable<'_> {
         let page_table = unsafe {
-            mem::create_page_table(self.ctx.page_table_frame)
+            mem::page_table_at(self.ctx.page_table_frame)
         };
         unsafe {
             OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
@@ -205,5 +196,17 @@ unsafe fn page_table_frame() -> PhysFrame {
 }
 
 pub unsafe fn page_table() -> &'static mut PageTable {
-    mem::create_page_table(page_table_frame())
+    mem::page_table_at(page_table_frame())
+}
+
+pub fn init() {
+    // Initialize the process table
+    table::init();
+
+    // Initialize the page table entries needed for spawning processes
+    let mut mapper = unsafe {
+        let page_table = mem::active_page_table();
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+    };
+    mem::alloc_pages(&mut mapper, crate::PROC_ADDR, 4096).unwrap();
 }

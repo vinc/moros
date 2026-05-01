@@ -4,7 +4,7 @@ mod paging;
 mod phys;
 
 pub use bitmap::{frame_allocator, with_frame_allocator};
-pub use paging::{alloc_pages, free_pages, active_page_table, create_page_table};
+pub use paging::{alloc_pages, free_pages, active_page_table, page_table_at};
 pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys;

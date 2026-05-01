@@ -19,6 +19,8 @@ pub mod usr;
 use bootloader::BootInfo;
 
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
+const HEAP_ADDR: u64 = 0x4000_0000_0000;
+const PROC_ADDR: u64 = 0x5000_0000_0000;
 
 pub fn init(boot_info: &'static BootInfo) {
     sys::vga::init();

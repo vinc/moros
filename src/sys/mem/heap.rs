@@ -1,7 +1,5 @@
 use super::with_frame_allocator;
 
-use crate::sys;
-
 use linked_list_allocator::LockedHeap;
 use x86_64::structures::paging::{
     mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB
@@ -11,17 +9,12 @@ use x86_64::VirtAddr;
 #[cfg_attr(not(feature = "userspace"), global_allocator)]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
-pub const HEAP_START: u64 = 0x4444_4444_0000;
-
 pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
     let mapper = super::mapper();
 
     // Use half of the memory for the heap
     let heap_size = (super::memory_size() / 2) as u64;
-    let heap_start = VirtAddr::new(HEAP_START);
-
-    // And some memory after that for the processes
-    sys::process::set_process_addr(HEAP_START + heap_size);
+    let heap_start = VirtAddr::new(crate::HEAP_ADDR);
 
     let pages = {
         let heap_end = heap_start + heap_size - 1u64;

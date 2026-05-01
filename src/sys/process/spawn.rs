@@ -1,6 +1,5 @@
 use super::Process;
 use super::MAX_PROC_SIZE;
-use super::CODE_ADDR;
 use super::{id, set_id};
 use super::page_table;
 use super::ptr_from_addr;
@@ -16,7 +15,6 @@ use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
-use core::sync::atomic::Ordering;
 use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
@@ -71,7 +69,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     });
 
     let page_table = unsafe {
-        mem::create_page_table(page_table_frame)
+        mem::page_table_at(page_table_frame)
     };
 
     let kernel_page_table = unsafe {
@@ -89,13 +87,48 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     };
 
     let proc_size = MAX_PROC_SIZE as u64;
-    let code_base = CODE_ADDR.load(Ordering::SeqCst);
+    let code_base = crate::PROC_ADDR;
     let code_addr = code_base + proc_size * id as u64;
     let stack_addr = code_addr + proc_size - 4096;
 
+    // Debug
+    let kernel_code_addr = 0x0000_0020_0000;
+    let kernel_code_size = crate::KERNEL_SIZE as u64;
+    let kernel_heap_addr = crate::HEAP_ADDR;
+    let kernel_heap_size = (mem::memory_size() / 2) as u64;
+    debug_addr("sys code start", kernel_code_addr);
+    debug_addr("sys code end  ", kernel_code_addr + kernel_code_size);
+    debug_addr("sys heap start", kernel_heap_addr);
+    debug_addr("sys heap end  ", kernel_heap_addr + kernel_heap_size);
+    debug_addr("usr code      ", code_addr);
+    debug_addr("usr stack     ", stack_addr);
+
+    debug!("Kernel Page Table (without L4=256)");
+    unsafe {
+        for (l4, entry) in kernel_page_table.iter().enumerate() {
+            if entry.is_unused() || l4 == 256 {
+                continue;
+            }
+            debug!("--------> L4={:03} {:?}", l4, entry);
+            let frame = entry.frame().unwrap();
+            for (l3, entry) in mem::page_table_at(frame).iter().enumerate() {
+                if entry.is_unused() {
+                    continue;
+                }
+                debug!("   -----> L3={:03} {:?}", l3, entry);
+                let frame = entry.frame().unwrap();
+                for (l2, entry) in mem::page_table_at(frame).iter().enumerate() {
+                    if entry.is_unused() {
+                        continue;
+                    }
+                    debug!("      --> L2={:03} {:?}", l2, entry);
+                }
+            }
+        }
+    }
+
     let mut entry_point_addr = 0;
 
-    //debug!("Process memory:");
     if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
         if let Ok(obj) = object::File::parse(bin) {
             entry_point_addr = obj.entry();
@@ -236,4 +269,14 @@ fn load_binary(
         }
     }
     Ok(())
+}
+
+fn debug_addr(name: &str, addr: u64) {
+    use x86_64::structures::paging::{Page, Size4KiB};
+    let page = Page::<Size4KiB>::containing_address(VirtAddr::new(addr));
+    let l4 = usize::from(page.p4_index());
+    let l3 = usize::from(page.p3_index());
+    let l2 = usize::from(page.p2_index());
+    let l1 = usize::from(page.p1_index());
+    debug!("{} {:#016X}: L4={:03}, L3={:03}, L2={:03}, L1={:03}", name, addr, l4, l3, l2, l1);
 }
