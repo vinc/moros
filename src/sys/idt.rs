@@ -161,11 +161,7 @@ extern "x86-interrupt" fn page_fault_handler(
             "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr
         );
-        if error_code.contains(PageFaultErrorCode::USER_MODE) {
-            api::syscall::exit(ExitCode::PageFaultError);
-        } else {
-            hlt_loop();
-        }
+        hlt_loop();
     }
 }
 
