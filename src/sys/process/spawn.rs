@@ -19,7 +19,7 @@ use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable,
+    FrameAllocator, OffsetPageTable, Page, Size4KiB,
 };
 use x86_64::VirtAddr;
 
@@ -79,12 +79,8 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     // FIXME: for now we just copy everything
     let pages = page_table.iter_mut().zip(kernel_page_table.iter());
     for (user_page, kernel_page) in pages {
-        *user_page = kernel_page.clone();
+        //*user_page = kernel_page.clone();
     }
-
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-    };
 
     let proc_size = MAX_PROC_SIZE as u64;
     let code_base = crate::PROC_ADDR;
@@ -126,6 +122,17 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
             }
         }
     }
+
+    page_table[0] = kernel_page_table[0].clone();
+    //page_table[31] = kernel_page_table[31].clone();
+    page_table[128] = kernel_page_table[128].clone();
+    page_table[160] = kernel_page_table[160].clone();
+    page_table[256] = kernel_page_table[256].clone();
+    page_table[511] = kernel_page_table[511].clone();
+
+    let mut mapper = unsafe {
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+    };
 
     let mut entry_point_addr = 0;
 
@@ -272,11 +279,10 @@ fn load_binary(
 }
 
 fn debug_addr(name: &str, addr: u64) {
-    use x86_64::structures::paging::{Page, Size4KiB};
     let page = Page::<Size4KiB>::containing_address(VirtAddr::new(addr));
-    let l4 = usize::from(page.p4_index());
-    let l3 = usize::from(page.p3_index());
-    let l2 = usize::from(page.p2_index());
-    let l1 = usize::from(page.p1_index());
+    let l4 = u16::from(page.p4_index());
+    let l3 = u16::from(page.p3_index());
+    let l2 = u16::from(page.p2_index());
+    let l1 = u16::from(page.p1_index());
     debug!("{} {:#016X}: L4={:03}, L3={:03}, L2={:03}, L1={:03}", name, addr, l4, l3, l2, l1);
 }
