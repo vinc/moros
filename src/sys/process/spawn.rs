@@ -19,7 +19,7 @@ use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, Page, Size4KiB,
+    FrameAllocator, OffsetPageTable, Page, PageTableFlags, Size4KiB
 };
 use x86_64::VirtAddr;
 
@@ -76,12 +76,6 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         mem::active_page_table()
     };
 
-    // FIXME: for now we just copy everything
-    let pages = page_table.iter_mut().zip(kernel_page_table.iter());
-    for (user_page, kernel_page) in pages {
-        //*user_page = kernel_page.clone();
-    }
-
     let proc_size = MAX_PROC_SIZE as u64;
     let code_base = crate::PROC_ADDR;
     let code_addr = code_base + proc_size * id as u64;
@@ -123,12 +117,59 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         }
     }
 
+    /*
     page_table[0] = kernel_page_table[0].clone();
+    */
+    let frame = mem::with_frame_allocator(|fa| fa.allocate_frame().unwrap());
+    let flags = PageTableFlags::PRESENT
+              | PageTableFlags::WRITABLE;
+    page_table[0].set_frame(frame, flags);
+    unsafe {
+        // Level 3
+        let usr_pt = mem::page_table_at(frame);
+        let sys_pt = mem::page_table_at(kernel_page_table[0].frame().unwrap());
+        usr_pt.zero();
+
+        let frame = mem::with_frame_allocator(|fa| fa.allocate_frame().unwrap());
+        usr_pt[0].set_frame(frame, flags);
+
+        // Level 2
+        let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
+        let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
+        usr_pt.zero();
+        usr_pt[0] = sys_pt[0].clone();
+        usr_pt[1] = sys_pt[1].clone();
+        usr_pt[2] = sys_pt[2].clone();
+    }
     //page_table[31] = kernel_page_table[31].clone();
     page_table[128] = kernel_page_table[128].clone();
     page_table[160] = kernel_page_table[160].clone();
     page_table[256] = kernel_page_table[256].clone();
     page_table[511] = kernel_page_table[511].clone();
+
+    debug!("Process Page Table (without L4=256)");
+    unsafe {
+        for (l4, entry) in page_table.iter().enumerate() {
+            if entry.is_unused() || l4 == 256 {
+                continue;
+            }
+            debug!("--------> L4={:03} {:?}", l4, entry);
+            let frame = entry.frame().unwrap();
+            for (l3, entry) in mem::page_table_at(frame).iter().enumerate() {
+                if entry.is_unused() {
+                    continue;
+                }
+                debug!("   -----> L3={:03} {:?}", l3, entry);
+                let frame = entry.frame().unwrap();
+                for (l2, entry) in mem::page_table_at(frame).iter().enumerate() {
+                    if entry.is_unused() {
+                        continue;
+                    }
+                    debug!("      --> L2={:03} {:?}", l2, entry);
+                }
+            }
+        }
+    }
 
     let mut mapper = unsafe {
         OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
