@@ -65,10 +65,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         .find(|&i| process_table[i].is_none())
         .ok_or(())?;
 
-    let page_table_frame = mem::with_frame_allocator(|frame_allocator| {
-        frame_allocator.allocate_frame().expect("frame allocation failed")
-    });
-
+    let page_table_frame = mem::alloc_frame();
     let page_table = unsafe {
         mem::page_table_at(page_table_frame)
     };
