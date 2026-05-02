@@ -116,7 +116,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     }
     //page_table[31] = kernel_page_table[31].clone();
     page_table[128] = kernel_page_table[128].clone();
-    page_table[160] = kernel_page_table[160].clone();
+    page_table[160] = kernel_page_table[160].clone(); // TODO: Only share one process
     page_table[256] = kernel_page_table[256].clone();
     page_table[511] = kernel_page_table[511].clone();
 
@@ -149,6 +149,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         return Err(());
     }
 
+    // Remap process area to linker area at 0x800000
     unsafe {
         // Level 3
         let usr_pt = mem::page_table_at(page_table[0].frame().unwrap());
@@ -157,8 +158,8 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         // Level 2
         let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
         let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
-        usr_pt[3] = sys_pt[5].clone();
-        usr_pt[4] = sys_pt[9].clone();
+        usr_pt[3] = sys_pt[5].clone(); // Code
+        usr_pt[4] = sys_pt[9].clone(); // Stack
     }
 
     mem::debug_page_table("usr page table", page_table);
