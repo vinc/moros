@@ -203,10 +203,11 @@ pub fn init() {
     // Initialize the process table
     table::init();
 
-    // Initialize the page table entries needed for spawning processes
-    let mut mapper = unsafe {
-        let page_table = mem::active_page_table();
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-    };
-    mem::alloc_pages(&mut mapper, crate::PROC_ADDR, 4096).unwrap();
+    // Initialize the process memory area
+    let frame = mem::alloc_frame();
+    let table = unsafe { mem::active_page_table() };
+    let flags = PageTableFlags::PRESENT
+              | PageTableFlags::WRITABLE
+              | PageTableFlags::USER_ACCESSIBLE;
+    table[160].set_frame(frame, flags);
 }

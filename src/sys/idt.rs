@@ -1,4 +1,4 @@
-use crate::sys::mem::phys_mem_offset;
+use crate::sys::mem;
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
 use crate::{api, hlt_loop, sys};
@@ -126,11 +126,11 @@ extern "x86-interrupt" fn page_fault_handler(
 
     let page_table = unsafe { sys::process::page_table() };
     let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+        OffsetPageTable::new(page_table, VirtAddr::new(mem::phys_mem_offset()))
     };
 
     if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
-        if sys::mem::alloc_pages(&mut mapper, addr, 1).is_err() {
+        if mem::alloc_pages(&mut mapper, addr, 1).is_err() {
             printk!(
                 "{}Error:{} Could not allocate page at {:#X}\n",
                 csi_color, csi_reset, addr
@@ -142,15 +142,19 @@ extern "x86-interrupt" fn page_fault_handler(
             }
         }
     } else if error_code.contains(PageFaultErrorCode::USER_MODE) {
+        debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
+        mem::debug_addr("page fault addr", addr);
         // TODO: This should be removed when the process page table is no
         // longer a simple clone of the kernel page table. Currently a process
         // is executed from its kernel address that is shared with the process.
         let start = (addr / 4096) * 4096;
-        if sys::mem::alloc_pages(&mut mapper, start, 4096).is_ok() {
+        if mem::alloc_pages(&mut mapper, start, 4096).is_ok() {
             if sys::process::is_userspace(start) {
                 let code_addr = sys::process::code_addr();
                 let src = (code_addr + start) as *mut u8;
                 let dst = start as *mut u8;
+                mem::debug_addr("page fault dst", start);
+                mem::debug_addr("page fault src", start + code_addr);
                 unsafe {
                     core::ptr::copy_nonoverlapping(src, dst, 4096);
                 }

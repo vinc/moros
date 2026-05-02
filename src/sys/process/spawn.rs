@@ -19,7 +19,7 @@ use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, Page, PageTableFlags, Size4KiB
+    FrameAllocator, OffsetPageTable, PageTableFlags
 };
 use x86_64::VirtAddr;
 
@@ -86,51 +86,24 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let kernel_code_size = crate::KERNEL_SIZE as u64;
     let kernel_heap_addr = crate::HEAP_ADDR;
     let kernel_heap_size = (mem::memory_size() / 2) as u64;
-    debug_addr("sys code start", kernel_code_addr);
-    debug_addr("sys code end  ", kernel_code_addr + kernel_code_size);
-    debug_addr("sys heap start", kernel_heap_addr);
-    debug_addr("sys heap end  ", kernel_heap_addr + kernel_heap_size);
-    debug_addr("usr code      ", code_addr);
-    debug_addr("usr stack     ", stack_addr);
+    mem::debug_addr("sys code start", kernel_code_addr);
+    mem::debug_addr("sys code end  ", kernel_code_addr + kernel_code_size);
+    mem::debug_addr("sys heap start", kernel_heap_addr);
+    mem::debug_addr("sys heap end  ", kernel_heap_addr + kernel_heap_size);
+    mem::debug_addr("usr code      ", code_addr);
+    mem::debug_addr("usr stack     ", stack_addr);
+    mem::debug_page_table("sys page table", kernel_page_table);
 
-    debug!("Kernel Page Table (without L4=256)");
-    unsafe {
-        for (l4, entry) in kernel_page_table.iter().enumerate() {
-            if entry.is_unused() || l4 == 256 {
-                continue;
-            }
-            debug!("--------> L4={:03} {:?}", l4, entry);
-            let frame = entry.frame().unwrap();
-            for (l3, entry) in mem::page_table_at(frame).iter().enumerate() {
-                if entry.is_unused() {
-                    continue;
-                }
-                debug!("   -----> L3={:03} {:?}", l3, entry);
-                let frame = entry.frame().unwrap();
-                for (l2, entry) in mem::page_table_at(frame).iter().enumerate() {
-                    if entry.is_unused() {
-                        continue;
-                    }
-                    debug!("      --> L2={:03} {:?}", l2, entry);
-                }
-            }
-        }
-    }
+    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
+    let frame = mem::alloc_frame();
 
-    /*
-    page_table[0] = kernel_page_table[0].clone();
-    */
-    let frame = mem::with_frame_allocator(|fa| fa.allocate_frame().unwrap());
-    let flags = PageTableFlags::PRESENT
-              | PageTableFlags::WRITABLE;
     page_table[0].set_frame(frame, flags);
     unsafe {
         // Level 3
-        let usr_pt = mem::page_table_at(frame);
+        let usr_pt = mem::page_table_at(page_table[0].frame().unwrap());
         let sys_pt = mem::page_table_at(kernel_page_table[0].frame().unwrap());
         usr_pt.zero();
-
-        let frame = mem::with_frame_allocator(|fa| fa.allocate_frame().unwrap());
+        let frame = mem::alloc_frame();
         usr_pt[0].set_frame(frame, flags);
 
         // Level 2
@@ -146,30 +119,6 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     page_table[160] = kernel_page_table[160].clone();
     page_table[256] = kernel_page_table[256].clone();
     page_table[511] = kernel_page_table[511].clone();
-
-    debug!("Process Page Table (without L4=256)");
-    unsafe {
-        for (l4, entry) in page_table.iter().enumerate() {
-            if entry.is_unused() || l4 == 256 {
-                continue;
-            }
-            debug!("--------> L4={:03} {:?}", l4, entry);
-            let frame = entry.frame().unwrap();
-            for (l3, entry) in mem::page_table_at(frame).iter().enumerate() {
-                if entry.is_unused() {
-                    continue;
-                }
-                debug!("   -----> L3={:03} {:?}", l3, entry);
-                let frame = entry.frame().unwrap();
-                for (l2, entry) in mem::page_table_at(frame).iter().enumerate() {
-                    if entry.is_unused() {
-                        continue;
-                    }
-                    debug!("      --> L2={:03} {:?}", l2, entry);
-                }
-            }
-        }
-    }
 
     let mut mapper = unsafe {
         OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
@@ -199,6 +148,20 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         // TODO: Free page_table_frame and any pages allocated
         return Err(());
     }
+
+    unsafe {
+        // Level 3
+        let usr_pt = mem::page_table_at(page_table[0].frame().unwrap());
+        let sys_pt = mem::page_table_at(kernel_page_table[160].frame().unwrap());
+
+        // Level 2
+        let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
+        let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
+        usr_pt[3] = sys_pt[5].clone();
+        usr_pt[4] = sys_pt[9].clone();
+    }
+
+    mem::debug_page_table("usr page table", page_table);
 
     let parent_id = parent.ctx.id;
     let data = parent.data.clone();
@@ -317,13 +280,4 @@ fn load_binary(
         }
     }
     Ok(())
-}
-
-fn debug_addr(name: &str, addr: u64) {
-    let page = Page::<Size4KiB>::containing_address(VirtAddr::new(addr));
-    let l4 = u16::from(page.p4_index());
-    let l3 = u16::from(page.p3_index());
-    let l2 = u16::from(page.p2_index());
-    let l1 = u16::from(page.p1_index());
-    debug!("{} {:#016X}: L4={:03}, L3={:03}, L2={:03}, L1={:03}", name, addr, l4, l3, l2, l1);
 }

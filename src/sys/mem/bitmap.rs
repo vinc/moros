@@ -236,6 +236,10 @@ where
     f(&mut allocator)
 }
 
+pub fn alloc_frame() -> PhysFrame<Size4KiB> {
+    with_frame_allocator(|fa| fa.allocate_frame().unwrap())
+}
+
 #[test_case]
 fn test_usable_region() {
     let region = UsableRegion {

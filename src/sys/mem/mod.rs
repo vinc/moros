@@ -3,7 +3,7 @@ mod heap;
 mod paging;
 mod phys;
 
-pub use bitmap::{frame_allocator, with_frame_allocator};
+pub use bitmap::{frame_allocator, with_frame_allocator, alloc_frame};
 pub use paging::{alloc_pages, free_pages};
 pub use paging::{active_page_table, page_table_at};
 pub use phys::{phys_addr, PhysBuf};
@@ -14,7 +14,7 @@ use bootloader::bootinfo::{BootInfo, MemoryMap};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
 use x86_64::structures::paging::{
-    OffsetPageTable, Translate,
+    OffsetPageTable, Page, PageTable, Translate, Size4KiB
 };
 use x86_64::{PhysAddr, VirtAddr};
 
@@ -108,3 +108,37 @@ pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr)
 }
 
+pub fn debug_addr(name: &str, addr: u64) {
+    let page = Page::<Size4KiB>::containing_address(VirtAddr::new(addr));
+    let l4 = u16::from(page.p4_index());
+    let l3 = u16::from(page.p3_index());
+    let l2 = u16::from(page.p2_index());
+    let l1 = u16::from(page.p1_index());
+    debug!("{} {:#016X}: L4={:03}, L3={:03}, L2={:03}, L1={:03}", name, addr, l4, l3, l2, l1);
+}
+
+pub fn debug_page_table(name: &str, page_table: &PageTable) {
+    debug!("{} (without L4=256)", name);
+    unsafe {
+        for (l4, entry) in page_table.iter().enumerate() {
+            if entry.is_unused() || l4 == 256 {
+                continue;
+            }
+            debug!("--------> L4={:03} {:?}", l4, entry);
+            let frame = entry.frame().unwrap();
+            for (l3, entry) in page_table_at(frame).iter().enumerate() {
+                if entry.is_unused() {
+                    continue;
+                }
+                debug!("   -----> L3={:03} {:?}", l3, entry);
+                let frame = entry.frame().unwrap();
+                for (l2, entry) in page_table_at(frame).iter().enumerate() {
+                    if entry.is_unused() {
+                        continue;
+                    }
+                    debug!("      --> L2={:03} {:?}", l2, entry);
+                }
+            }
+        }
+    }
+}
