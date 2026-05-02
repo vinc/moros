@@ -102,14 +102,12 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         // Level 3
         let usr_pt = mem::page_table_at(page_table[0].frame().unwrap());
         let sys_pt = mem::page_table_at(kernel_page_table[0].frame().unwrap());
-        usr_pt.zero();
         let frame = mem::alloc_frame();
         usr_pt[0].set_frame(frame, flags);
 
         // Level 2
         let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
         let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
-        usr_pt.zero();
         usr_pt[0] = sys_pt[0].clone();
         usr_pt[1] = sys_pt[1].clone();
         usr_pt[2] = sys_pt[2].clone();

@@ -237,7 +237,12 @@ where
 }
 
 pub fn alloc_frame() -> PhysFrame<Size4KiB> {
-    with_frame_allocator(|fa| fa.allocate_frame().unwrap())
+    let frame = with_frame_allocator(|fa| fa.allocate_frame().unwrap());
+    let ptr = super::phys_to_virt(frame.start_address()).as_mut_ptr::<u8>();
+    unsafe {
+        core::ptr::write_bytes(ptr, 0, 4096)
+    }
+    frame
 }
 
 #[test_case]
