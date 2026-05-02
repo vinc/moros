@@ -6,10 +6,11 @@ use super::ptr_from_addr;
 use super::ProcessContext;
 use super::table::{PROCESS_TABLE, MAX_PROCS};
 
-use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
 use crate::sys::mem;
 use crate::sys::mem::phys_mem_offset;
+use crate::sys::mem::PageTableLevel;
+use crate::api::process::ExitCode;
 
 use alloc::boxed::Box;
 use alloc::sync::Arc;
@@ -86,12 +87,14 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let kernel_code_size = crate::KERNEL_SIZE as u64;
     let kernel_heap_addr = crate::HEAP_ADDR;
     let kernel_heap_size = (mem::memory_size() / 2) as u64;
-    mem::debug_addr("sys code start", kernel_code_addr);
-    mem::debug_addr("sys code end  ", kernel_code_addr + kernel_code_size);
-    mem::debug_addr("sys heap start", kernel_heap_addr);
-    mem::debug_addr("sys heap end  ", kernel_heap_addr + kernel_heap_size);
-    mem::debug_addr("usr code      ", code_addr);
-    mem::debug_addr("usr stack     ", stack_addr);
+    mem::debug_addr("sys code start ", kernel_code_addr);
+    mem::debug_addr("sys code end   ", kernel_code_addr + kernel_code_size);
+    mem::debug_addr("sys heap start ", kernel_heap_addr);
+    mem::debug_addr("sys heap end   ", kernel_heap_addr + kernel_heap_size);
+    mem::debug_addr("sys proc code  ", code_addr);
+    mem::debug_addr("sys proc stack ", stack_addr);
+    mem::debug_addr("usr proc code  ", 0x800000);
+    mem::debug_addr("usr proc stack ", 0x800000 + MAX_PROC_SIZE as u64);
     mem::debug_page_table("sys page table", kernel_page_table);
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
@@ -156,8 +159,11 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         // Level 2
         let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
         let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
-        usr_pt[3] = sys_pt[5].clone(); // Code
-        usr_pt[4] = sys_pt[9].clone(); // Stack
+        let i = 3;
+        let j = mem::page_table_index(code_addr, PageTableLevel::L2);
+        for d in 0..5 {
+            usr_pt[i + d] = sys_pt[j + d].clone();
+        }
     }
 
     mem::debug_page_table("usr page table", page_table);
