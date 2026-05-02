@@ -142,19 +142,15 @@ extern "x86-interrupt" fn page_fault_handler(
             }
         }
     } else if error_code.contains(PageFaultErrorCode::USER_MODE) {
-        debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
-        mem::debug_addr("page fault addr", addr);
-        // TODO: This should be removed when the process page table is no
-        // longer a simple clone of the kernel page table. Currently a process
-        // is executed from its kernel address that is shared with the process.
+        //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
         let start = (addr / 4096) * 4096;
         if mem::alloc_pages(&mut mapper, start, 4096).is_ok() {
-            if sys::process::is_userspace(start) {
+            if sys::process::is_valid_addr(start) {
+                // Copy process code loaded high in memory to where the linker
+                // is expecting it.
                 let code_addr = sys::process::code_addr();
                 let src = (code_addr + start) as *mut u8;
                 let dst = start as *mut u8;
-                mem::debug_addr("page fault dst", start);
-                mem::debug_addr("page fault src", start + code_addr);
                 unsafe {
                     core::ptr::copy_nonoverlapping(src, dst, 4096);
                 }

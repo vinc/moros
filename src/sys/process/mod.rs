@@ -39,13 +39,11 @@ use x86_64::VirtAddr;
 pub const MAX_HANDLES: usize = 64;
 pub const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
 
-// TODO: Remove this when the kernel is no longer at 0x200000 in userspace.
-// Currently this address must be used by the linker for user programs that
-// need to allocate memory to avoid using kernel memory.
+// The kernel currently resides at 0x200000 and programs should be linked above
+// it to avoid causing a page protection violation.
 const USER_ADDR: u64 = 0x800000;
 
-// TODO: Remove this when the kernel is no longer at 0x200000 in userspace
-pub fn is_userspace(addr: u64) -> bool {
+pub fn is_valid_addr(addr: u64) -> bool {
     USER_ADDR <= addr && addr <= USER_ADDR + MAX_PROC_SIZE as u64
 }
 
@@ -205,8 +203,8 @@ pub fn init() {
 
     // Initialize the process memory area
     let l4 = mem::page_table_index(crate::PROC_ADDR, PageTableLevel::L4);
-    let frame = mem::alloc_frame();
     let table = unsafe { mem::active_page_table() };
+    let frame = mem::alloc_frame();
     let flags = PageTableFlags::PRESENT
               | PageTableFlags::WRITABLE
               | PageTableFlags::USER_ACCESSIBLE;
