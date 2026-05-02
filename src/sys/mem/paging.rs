@@ -2,7 +2,6 @@ use super::with_frame_allocator;
 
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    mapper::CleanUp,
     page::PageRangeInclusive,
     OffsetPageTable, PageTable, PhysFrame, Size4KiB,
     Page, PageTableFlags, Mapper, FrameAllocator, FrameDeallocator
@@ -85,9 +84,4 @@ pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
             //debug!("Could not unmap {:?}", page);
         }
     };
-    unsafe {
-        with_frame_allocator(|allocator| {
-            mapper.clean_up(allocator);
-        });
-    }
 }
