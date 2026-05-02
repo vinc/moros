@@ -20,7 +20,7 @@ use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTableFlags
+    OffsetPageTable, PageTableFlags
 };
 use x86_64::VirtAddr;
 
@@ -92,11 +92,9 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     mem::debug_addr("sys proc stack ", stack_addr);
     mem::debug_addr("usr proc code  ", 0x800000);
     mem::debug_addr("usr proc stack ", 0x800000 + MAX_PROC_SIZE as u64);
-    mem::debug_page_table("sys page table", kernel_page_table);
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
     let frame = mem::alloc_frame();
-
     page_table[0].set_frame(frame, flags);
     unsafe {
         // Level 3
@@ -112,11 +110,53 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         usr_pt[1] = sys_pt[1].clone();
         usr_pt[2] = sys_pt[2].clone();
     }
+
+    if kernel_page_table[160].is_unused() {
+        debug!("L4=160 is unused");
+        // Initialize the process memory area
+        debug!("alloc L4=160 frame");
+        let l4 = mem::page_table_index(crate::PROC_ADDR, PageTableLevel::L4);
+        let table = unsafe { mem::active_page_table() };
+        let frame = mem::alloc_frame();
+        let flags = PageTableFlags::PRESENT
+                  | PageTableFlags::WRITABLE
+                  | PageTableFlags::USER_ACCESSIBLE;
+        table[l4].set_frame(frame, flags);
+    }
+
+    //page_table[0] = kernel_page_table[0].clone();
     //page_table[31] = kernel_page_table[31].clone();
     page_table[128] = kernel_page_table[128].clone();
     page_table[160] = kernel_page_table[160].clone(); // TODO: Only share one process
     page_table[256] = kernel_page_table[256].clone();
     page_table[511] = kernel_page_table[511].clone();
+
+    /*
+    // Map process area (high)
+    let frame = mem::alloc_frame();
+    let flags = PageTableFlags::PRESENT
+              | PageTableFlags::WRITABLE
+              | PageTableFlags::USER_ACCESSIBLE;
+    page_table[160].set_frame(frame, flags);
+    unsafe {
+        // Level 3
+        let usr_pt = mem::page_table_at(page_table[160].frame().unwrap());
+        let sys_pt = mem::page_table_at(kernel_page_table[160].frame().unwrap());
+        let frame = mem::alloc_frame();
+        usr_pt[0].set_frame(frame, flags);
+
+        // Level 2
+        let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
+        let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
+        let i = 3;
+        let j = mem::page_table_index(code_addr, PageTableLevel::L2);
+        for d in 0..5 {
+            usr_pt[i + d] = sys_pt[j + d].clone();
+        }
+    }
+
+    mem::debug_page_table("usr page table", page_table);
+    */
 
     let mut mapper = unsafe {
         OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
@@ -147,7 +187,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         return Err(());
     }
 
-    // Remap process area to linker area at 0x800000
+    // Map process area (low)
     unsafe {
         // Level 3
         let usr_pt = mem::page_table_at(page_table[0].frame().unwrap());
@@ -156,13 +196,29 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         // Level 2
         let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
         let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
-        let i = 3;
-        let j = mem::page_table_index(code_addr, PageTableLevel::L2);
+        let usr_addr = super::USER_ADDR;
+        let sys_addr = code_addr;
+        let i = mem::page_table_index(usr_addr, PageTableLevel::L2);
+        let j = mem::page_table_index(sys_addr, PageTableLevel::L2);
         for d in 0..5 {
-            usr_pt[i + d] = sys_pt[j + d].clone();
+            if sys_pt[j + d].is_unused() {
+                debug!("PT[160][0][{}] is unused", j + d);
+                /*
+                let frame = mem::alloc_frame();
+                let flags = PageTableFlags::PRESENT
+                          | PageTableFlags::WRITABLE
+                          | PageTableFlags::USER_ACCESSIBLE;
+                usr_pt[i + d].set_frame(frame, flags);
+                */
+            } else {
+                debug!("PT[160][0][{}] is used", j + d);
+                usr_pt[i + d] = sys_pt[j + d].clone();
+            }
         }
     }
 
+    mem::debug_page_table("sys page table", kernel_page_table);
+    debug!("usr page table frame: {:?}", page_table_frame);
     mem::debug_page_table("usr page table", page_table);
 
     let parent_id = parent.ctx.id;
