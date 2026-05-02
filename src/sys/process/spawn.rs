@@ -81,8 +81,10 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     page_table[511] = kernel_page_table[511].clone();
 
     // The kernel resides in low memory and must be shared but not the rest
-    let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
     let frame = mem::alloc_frame();
+    let flags = PageTableFlags::PRESENT
+              | PageTableFlags::WRITABLE
+              | PageTableFlags::USER_ACCESSIBLE;
     page_table[0].set_frame(frame, flags);
     unsafe {
         // Level 3
@@ -94,9 +96,11 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         // Level 2
         let usr_pt = mem::page_table_at(usr_pt[0].frame().unwrap());
         let sys_pt = mem::page_table_at(sys_pt[0].frame().unwrap());
-        usr_pt[0] = sys_pt[0].clone();
-        usr_pt[1] = sys_pt[1].clone();
-        usr_pt[2] = sys_pt[2].clone();
+        let user_flag = PageTableFlags::USER_ACCESSIBLE;
+        for i in 0..3 {
+            usr_pt[i] = sys_pt[i].clone();
+            debug_assert!(!usr_pt[i].flags().contains(user_flag));
+        }
     }
 
     let mut mapper = unsafe {
