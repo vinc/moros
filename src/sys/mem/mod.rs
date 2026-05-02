@@ -25,6 +25,10 @@ static PHYS_MEM_OFFSET: Once<u64> = Once::new();
 static MEMORY_MAP: Once<&MemoryMap> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
+pub enum PageTableLevel {
+    L1, L2, L3, L4
+}
+
 pub fn init(boot_info: &'static BootInfo) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
@@ -108,12 +112,22 @@ pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr)
 }
 
-pub fn debug_addr(name: &str, addr: u64) {
+pub fn page_table_index(addr: u64, level: PageTableLevel) -> usize {
     let page = Page::<Size4KiB>::containing_address(VirtAddr::new(addr));
-    let l4 = u16::from(page.p4_index());
-    let l3 = u16::from(page.p3_index());
-    let l2 = u16::from(page.p2_index());
-    let l1 = u16::from(page.p1_index());
+    let index = match level {
+        PageTableLevel::L1 => page.p1_index(),
+        PageTableLevel::L2 => page.p2_index(),
+        PageTableLevel::L3 => page.p3_index(),
+        PageTableLevel::L4 => page.p4_index(),
+    };
+    usize::from(index)
+}
+
+pub fn debug_addr(name: &str, addr: u64) {
+    let l1 = page_table_index(addr, PageTableLevel::L1);
+    let l2 = page_table_index(addr, PageTableLevel::L2);
+    let l3 = page_table_index(addr, PageTableLevel::L3);
+    let l4 = page_table_index(addr, PageTableLevel::L4);
     debug!("{} {:#016X}: L4={:03}, L3={:03}, L2={:03}, L1={:03}", name, addr, l4, l3, l2, l1);
 }
 

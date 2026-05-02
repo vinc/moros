@@ -20,7 +20,7 @@ use table::current_process;
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
-use crate::sys::mem::{phys_mem_offset, with_frame_allocator};
+use crate::sys::mem::{phys_mem_offset, with_frame_allocator, PageTableLevel};
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -204,10 +204,11 @@ pub fn init() {
     table::init();
 
     // Initialize the process memory area
+    let l4 = mem::page_table_index(crate::PROC_ADDR, PageTableLevel::L4);
     let frame = mem::alloc_frame();
     let table = unsafe { mem::active_page_table() };
     let flags = PageTableFlags::PRESENT
               | PageTableFlags::WRITABLE
               | PageTableFlags::USER_ACCESSIBLE;
-    table[160].set_frame(frame, flags);
+    table[l4].set_frame(frame, flags);
 }
