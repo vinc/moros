@@ -310,15 +310,15 @@ pub fn lisp_string_number(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_type(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let exp = match args[0] {
-        Exp::Primitive(_) => "function",
-        Exp::Function(_) => "function",
-        Exp::Macro(_) => "macro",
+        Exp::Primitive(_) => "fun",
+        Exp::Function(_) => "fun",
+        Exp::Macro(_) => "mac",
         Exp::List(_) => "list",
         Exp::Dict(_) => "dict",
-        Exp::Bool(_) => "boolean",
-        Exp::Str(_) => "string",
-        Exp::Sym(_) => "symbol",
-        Exp::Num(_) => "number",
+        Exp::Bool(_) => "bool",
+        Exp::Str(_) => "str",
+        Exp::Sym(_) => "sym",
+        Exp::Num(_) => "num",
     };
     Ok(Exp::Str(exp.to_string()))
 }
