@@ -58,8 +58,10 @@
 
 ### def-fun def
 
-    (def (double x) (* x 2)) # => double
-    (double 2)               # => 4
+    (def (rev ls)
+      "Reverses the list"
+      (if (nil? ls) ls
+        (concat (rev (tail ls)) (cons (head ls) '()))))
 
 ### def-mac
 
