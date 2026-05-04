@@ -367,17 +367,9 @@ pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
 }
 
 pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
-    let (a, b) = match args.len() {
-        2 => (
-            usize::try_from(number(&args[1])?)?,
-            1,
-        ),
-        3 => (
-            usize::try_from(number(&args[1])?)?,
-            usize::try_from(number(&args[2])?)?,
-        ),
-        _ => return expected!("2 or 3 arguments"),
-    };
+    ensure_length_eq!(args, 3);
+    let a = usize::try_from(number(&args[1])?)?;
+    let b = usize::try_from(number(&args[2])?)?;
     match &args[0] {
         Exp::List(l) => {
             let l: Vec<Exp> = l.iter().skip(a).take(b).cloned().collect();
