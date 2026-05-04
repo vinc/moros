@@ -39,6 +39,8 @@
     (if (nil? (tail xs)) (head xs)
       `(if ,(head xs) (and ,@(tail xs)) false))))
 
+# TODO: xor
+
 (def (empty? x)
   (= (len x) 0))
 
@@ -109,7 +111,7 @@
   (if (> x 0) x (- x)))
 
 (def (mod a b)
-  "Returns the remainder of the division"
+  "Returns the modulo of the division"
   (% (+ (% a b) b) b))
 
 (def (str/join ls s)
