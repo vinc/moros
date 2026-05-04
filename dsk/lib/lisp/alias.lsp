@@ -24,4 +24,3 @@
 (var | bit/or)
 (var << bit/shl)
 (var >> bit/shr)
-(var $ sh)
