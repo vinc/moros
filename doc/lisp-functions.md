@@ -125,10 +125,18 @@
 
 ### if
 
+Boolean:
+
     (if true 1 2)  # => 1
     (if false 1 2) # => 2
     (if true 1)    # => 1
     (if false 1)   # => ()
+
+Truthiness (neither `false` nor `nil`):
+
+    (if nil 1 2)   # => 2
+    (if "" 1 2)    # => 1
+    (if 0 1 2)     # => 1
 
 ### cond
 
@@ -549,9 +557,17 @@
 
 ### or
 
+Boolean:
+
     (or true true true) # => true
     (or true false)     # => true
     (or false false)    # => false
+
+Truthiness (neither `false` nor `nil`):
+
+    (or nil 1)          # => 1
+    (or "" 1)           # => ""
+    (or 0 1)            # => 0
 
 ## Comparison
 
