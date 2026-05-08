@@ -666,8 +666,37 @@
 
     (host "moros.cc") # => "172.67.165.252"
 
-### socket/accept
 ### socket/connect
+
+Daytime Protocol:
+
+    (set socket (socket/connect "tcp" (host "time.nist.gov") 13))
+    (set res (str/trim (bin->str (file/read socket 64))))
+    (file/close socket)
+    (slice (words res) 1 2) # => ("26-05-08" "15:28:50")
+
+Hypertext Transfer Protocol:
+
+    # Connection
+    (set addr (host "moros.cc"))
+    (set port 80)
+    (set socket (socket/connect "tcp" addr port))
+
+    # Request
+    (set req (str/join (list
+      "GET / HTTP/1.1"
+      "Host: moros.cc"
+      "Connection: close"
+      "" "") "\r\n"))
+    (file/write socket (str->bin req))
+
+    # Response
+    (set mtu (file/size "/dev/net/tcp"))
+    (set res (bin->str (file/read socket mtu)))
+    (file/close socket)
+    (str/trim (first (lines res))) # => "HTTP/1.1 200 OK"
+
+### socket/accept
 ### socket/listen
 
 ## System
