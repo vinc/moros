@@ -593,24 +593,72 @@
 
 ## File
 
-### file/close
-### file/exists?
-### file/open
-### file/read
-### file/size
-### file/write
-### dirname
-### filename
 ### read
+
+    (read "/dev/clk/rtc") # => "2026-05-04 13:22:31"
+
 ### write
+
+    (write "/tmp/hello.txt" "Hello, World!\n") # => ()
+
 ### append
+
+    (append "/tmp/hello.txt" "Lorem ipsum\n") # => ()
+
+### dirname
+
+    (dirname "/dev/clk/rtc") # => "/dev/clk"
+
+### filename
+
+    (filename "/dev/clk/rtc") # => "rtc"
+
+### file/exists?
+
+    (file/exists? "/dev/clk/rtc") # => true
+
+### file/size
+
+    (file/size "/dev/clk/rtc") # => 19
+
+### file/open
+
+    (file/open "/dev/clk/rtc" "r") # => 4
+
+### file/close
+
+    (file/close 4) # => ()
+
+### file/read
+
+    (set path "/dev/clk/rtc")
+    (set handle (file/open path "r"))
+    (set length (file/size path))
+    (set buffer (file/read handle length))
+    (bin->str buffer) # => "2026-05-04 13:22:31"
+    (file/close handle)
+
+### file/write
+
+    (set path "/tmp/hello.txt")
+    (set handle (file/open path "w"))
+    (set buffer (str->bin "Hello, World!\n"))
+    (file/write handle buffer) # => 14
+    (file/close handle)
+
+### clock/boot
+
+    (clock/boot) # => 1152.069566
+
+### clock/epoch
+
+    (clock/epoch) # => 1778244455.765883
+
 ### read-bin
 ### write-bin
 ### append-bin
 ### read-line
 ### read-char
-### clock/boot
-### clock/epoch
 
 ## Network
 
