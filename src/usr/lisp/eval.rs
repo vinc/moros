@@ -195,7 +195,7 @@ pub const BUILT_INS: [&str; 26] = [
     "quote",
     "quasiquote",
     "unquote",
-    "unquote-splicing",
+    "unquote-splice",
     "atom?",
     "eq?",
     "cons",

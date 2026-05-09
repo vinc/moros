@@ -107,7 +107,7 @@
     '(1 2 3) # => (1 2 3)
 ### quasiquote `
 ### unquote ,
-### unquote-splicing ,@
+### unquote-splice ,@
 ### splice @
 
 ## Meta
