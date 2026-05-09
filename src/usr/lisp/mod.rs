@@ -616,12 +616,6 @@ fn test_lisp() {
         "(\"a\" \"b\" \"c\")"
     );
 
-    // apply
-    assert_eq!(eval!("(apply add '(1 2 3))"), "6");
-    assert_eq!(eval!("(apply add 1 '(2 3))"), "6");
-    assert_eq!(eval!("(apply add 1 2 '(3))"), "6");
-    assert_eq!(eval!("(apply add 1 2 3 '())"), "6");
-
     // trigo
     assert_eq!(eval!("(acos (cos pi))"), PI.to_string());
     assert_eq!(eval!("(acos 0)"), (PI / 2.0).to_string());

@@ -128,19 +128,6 @@ fn eval_while_args(
     Ok(res)
 }
 
-fn eval_apply_args(
-    args: &[Exp],
-    env: &mut Rc<RefCell<Env>>
-) -> Result<Exp, Err> {
-    ensure_length_gt!(args, 1);
-    let mut args = args.to_vec();
-    match eval(&args.pop().unwrap(), env) {
-        Ok(Exp::List(rest)) => args.extend(rest),
-        _ => return expected!("last argument to be a list"),
-    }
-    eval(&Exp::List(args.to_vec()), env)
-}
-
 fn eval_eval_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
@@ -191,7 +178,7 @@ pub fn eval_args(
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 26] = [
+pub const BUILT_INS: [&str; 25] = [
     "quote",
     "quasiquote",
     "unquote",
@@ -211,7 +198,6 @@ pub const BUILT_INS: [&str; 26] = [
     "def",
     "def-fun",
     "def-mac",
-    "apply",
     "eval",
     "expand",
     "do",
@@ -250,9 +236,6 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "while" => {
                         return eval_while_args(args, env);
-                    }
-                    Exp::Sym(s) if s == "apply" => {
-                        return eval_apply_args(args, env);
                     }
                     Exp::Sym(s) if s == "eval" => {
                         return eval_eval_args(args, env);

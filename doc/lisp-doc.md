@@ -121,11 +121,6 @@
 
     (doc rev) # => "Reverses the list"
 
-### apply
-
-    (apply + '(1 2 3))     # => 6
-    (apply + 1 2 '(1 2 3)) # => 9
-
 ### parse
 
     (parse "(1 2 3)") # => (1 2 3)

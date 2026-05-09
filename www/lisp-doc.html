@@ -134,7 +134,7 @@ foo          # =&gt; 10
 
     <h3>unquote ,</h3>
 
-    <h3>unquote-splicing ,@</h3>
+    <h3>unquote-splice ,@</h3>
 
     <h3>splice @</h3>
 
@@ -149,12 +149,6 @@ foo          # =&gt; 10
     <h3>doc</h3>
 
     <pre><code>(doc rev) # =&gt; &quot;Reverses the list&quot;
-</code></pre>
-
-    <h3>apply</h3>
-
-    <pre><code>(apply + &#39;(1 2 3))     # =&gt; 6
-(apply + 1 2 &#39;(1 2 3)) # =&gt; 9
 </code></pre>
 
     <h3>parse</h3>
@@ -295,6 +289,12 @@ foo          # =&gt; 10
 (len &quot;foo&quot;)    # =&gt; 3
 </code></pre>
 
+    <h3>rest tail</h3>
+
+    <pre><code>(rest &#39;(1 2 3)) # =&gt; (2 3)
+(rest &quot;hello&quot;) # =&gt; &quot;ello&quot;
+</code></pre>
+
     <h3>first head</h3>
 
     <pre><code>(first &#39;(1 2 3)) # =&gt; 1
@@ -317,12 +317,6 @@ foo          # =&gt; 10
 
     <pre><code>(last &#39;(1 2 3)) # =&gt; 3
 (last &quot;hello&quot;) # =&gt; &quot;o&quot;
-</code></pre>
-
-    <h3>rest tail</h3>
-
-    <pre><code>(rest &#39;(1 2 3)) # =&gt; (2 3)
-(rest &quot;hello&quot;) # =&gt; &quot;ello&quot;
 </code></pre>
 
     <h3>slice</h3>
