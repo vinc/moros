@@ -90,7 +90,7 @@ Check the [documentation](/lisp-doc.md) for more information.
 ### Math Library
 - `floor`, `ceil`, `round`
 
-### Compatibility Library
+### Compat Library
 
 - `atom`, `eq`, `label`, `lambda`, `progn`, `begin`
 - `car`, `cdr`, `caar`, `cadr`, `cdar`, `cddr`
