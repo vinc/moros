@@ -161,7 +161,7 @@
         ("mov" (asm-mov params)))))))))
 
 (def (parse-file file)
-  (reduce concat (rev (map parse-line (rev (lines file))))))
+  (reduce concat (map parse-line (lines file))))
 
 (def (replace-labels buf i)
   (if (not (empty? buf)) (do

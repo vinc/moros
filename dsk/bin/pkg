@@ -32,7 +32,7 @@
   (if (not (eq? pkg "index.html"))
     (if (= (pkg/fetch path) 0)
       (do
-        (set files (rev (lines (read path))))
+        (set files (lines (read path)))
         (map pkg/fetch files))
       (do
         (sh (str "drop " path))
@@ -45,11 +45,11 @@
   (if (not (eq? pkg "index.html"))
     (if (file/exists? path)
       (do # The local package could list files not in the latest version
-        (set files (rev (lines (read path))))
+        (set files (lines (read path)))
         (map pkg/delete files))
       (if (= (pkg/fetch path) 0)
         (do # Fallback to fetching the latest version of the package
-          (set files (rev (lines (read path))))
+          (set files (lines (read path)))
           (map pkg/delete files))
         (do
           (sh (str "drop " path))
