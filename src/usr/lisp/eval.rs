@@ -52,9 +52,10 @@ fn eval_cons_args(
     env: &mut Rc<RefCell<Env>>
 ) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
+    let exp = eval(&args[0], env)?;
     match eval(&args[1], env)? {
         Exp::List(mut list) => {
-            list.insert(0, eval(&args[0], env)?);
+            list.insert(0, exp);
             Ok(Exp::List(list))
         }
         _ => expected!("first argument to be a list"),
