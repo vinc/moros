@@ -62,7 +62,7 @@ Check the [documentation](/lisp-doc.md) for more information.
 - Enumerable: `len`, `put`, `get`, `slice`, `contains?`
 - String: `str/trim`, `str/split`
 - List: `list`, `concat`, `chunks`, `sort`, `uniq`
-- Dict: `dict`
+- Dict: `dict`, `dict/pairs`
 - File: `file/exists?`, `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
 - Net: `host`, `socket/connect`, `socket/listen`, `socket/accept`
 
@@ -89,6 +89,9 @@ Check the [documentation](/lisp-doc.md) for more information.
 
 ### Math Library
 - `floor`, `ceil`, `round`
+
+### Dict Library
+- `dict/keys`, `dict/values`
 
 ### Compat Library
 
@@ -180,6 +183,7 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Add `dict/pairs` function
 - Remove `apply` and keep only `reduce`
 - Change `socket/accept` to return `()` instead of an error
 - Replace long names (`string`, `variable`, `define`, ...) by short names (`str`, `var`, `def`, ...)

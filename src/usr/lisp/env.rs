@@ -283,6 +283,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_dict),
     );
     data.insert(
+        "dict/pairs".to_string(),
+        Exp::Primitive(primitive::lisp_dict_pairs),
+    );
+    data.insert(
         "get".to_string(),
         Exp::Primitive(primitive::lisp_get),
     );

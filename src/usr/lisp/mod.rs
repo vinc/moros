@@ -734,6 +734,12 @@ fn test_lisp() {
         "(dict \"a\" 1 \"b\" 2 \"c\" 3)"
     );
 
+    // dict/pairs
+    assert_eq!(
+        eval!("(dict/pairs (dict \"a\" 1 \"b\" 2 \"c\" 3))"),
+        "((\"a\" 1) (\"b\" 2) (\"c\" 3))"
+    );
+
     // len
     assert_eq!(eval!("(len (list))"), "0");
     assert_eq!(eval!("(len (dict))"), "0");

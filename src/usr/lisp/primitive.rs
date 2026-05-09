@@ -625,6 +625,19 @@ pub fn lisp_dict(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Dict(dict))
 }
 
+pub fn lisp_dict_pairs(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    match &args[0] {
+        Exp::Dict(d) => {
+            let l: Vec<Exp> = d.iter().map(|(k, v)|
+                Exp::List(vec![parse(&k).unwrap().1, v.clone()])
+            ).collect();
+            Ok(Exp::List(l))
+        }
+        _ => expected!("first argument to be a dict"),
+    }
+}
+
 pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {

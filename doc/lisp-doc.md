@@ -360,6 +360,18 @@ Truthiness (neither `false` nor `nil`):
 
     (dict "a" 1 "b" 2) # => (dict "a" 1 "b" 2)
 
+### dict/pairs
+
+    (dict/pairs (dict "a" 1 "b" 2)) # => (("a" 1) ("b" 2))
+
+### dict/keys
+
+    (dict/keys (dict "a" 1 "b" 2)) # => ("a" "b")
+
+### dict/values
+
+    (dict/values (dict "a" 1 "b" 2)) # => (1 2)
+
 ## String
 
 ### str
