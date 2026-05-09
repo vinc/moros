@@ -1,5 +1,4 @@
 use super::eval::eval_args;
-use super::eval::BUILT_INS;
 use super::primitive;
 use super::FUNCTIONS;
 use super::{Err, Exp, Number};
@@ -13,6 +12,34 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::f64::consts::PI;
+
+const BUILTINS: [&str; 25] = [
+    "quote",
+    "quasiquote",
+    "unquote",
+    "unquote-splice",
+    "atom?",
+    "eq?",
+    "cons",
+    "if",
+    "cond",
+    "case",
+    "while",
+    "fun",
+    "var",
+    "var?",
+    "mut",
+    "mac",
+    "def",
+    "def-fun",
+    "def-mac",
+    "eval",
+    "expand",
+    "do",
+    "load",
+    "doc",
+    "env",
+];
 
 #[derive(Clone)]
 pub struct Env {
@@ -274,7 +301,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().
-        chain(BUILT_INS.map(String::from)).collect();
+        chain(BUILTINS.map(String::from)).collect();
 
     Rc::new(RefCell::new(Env { data, outer: None }))
 }

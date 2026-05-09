@@ -127,6 +127,9 @@
 
 ### expand
 
+    (expand (def (double x) (* x 2)))
+    # => (var double (fun (x) (* x 2)))
+
     (expand (set foo 42))
     # => (if (var? foo) (mut foo 42) (var foo 42))
 

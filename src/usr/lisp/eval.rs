@@ -178,34 +178,6 @@ pub fn eval_args(
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 25] = [
-    "quote",
-    "quasiquote",
-    "unquote",
-    "unquote-splice",
-    "atom?",
-    "eq?",
-    "cons",
-    "if",
-    "cond",
-    "case",
-    "while",
-    "fun",
-    "var",
-    "var?",
-    "mut",
-    "mac",
-    "def",
-    "def-fun",
-    "def-mac",
-    "eval",
-    "expand",
-    "do",
-    "load",
-    "doc",
-    "env",
-];
-
 pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut exp = exp;
     let mut env = env;

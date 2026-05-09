@@ -18,7 +18,7 @@ Check the [documentation](/lisp-doc.md) for more information.
 - String: `"Hello, World!"`
 - Escape: `\b`, `\e`, `\n`, `\r`, `\t`, `\"`, `\\`
 
-### Built-in Operators
+### Builtins
 - `quote` (abbreviated with `'`)
 - `quasiquote` (abbreviated with `` ` ``)
 - `unquote` (abbreviated with `,`)
@@ -45,7 +45,7 @@ Check the [documentation](/lisp-doc.md) for more information.
 - `expand`
 - `load`
 
-### Primitive Operators
+### Primitives
 - `type`, `parse`
 - `str`
 - `str->num`, `num->str`

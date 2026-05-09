@@ -158,7 +158,10 @@ foo          # =&gt; 10
 
     <h3>expand</h3>
 
-    <pre><code>(expand (set foo 42))
+    <pre><code>(expand (def (double x) (* x 2)))
+# =&gt; (var double (fun (x) (* x 2)))
+
+(expand (set foo 42))
 # =&gt; (if (var? foo) (mut foo 42) (var foo 42))
 </code></pre>
 
