@@ -694,9 +694,7 @@ Daytime Protocol:
 Hypertext Transfer Protocol:
 
     # Connection
-    (set addr (host "moros.cc"))
-    (set port 80)
-    (set socket (socket/connect "tcp" addr port))
+    (set socket (socket/connect "tcp" (host "moros.cc") 80))
 
     # Request
     (set req (str/join (list
@@ -713,7 +711,27 @@ Hypertext Transfer Protocol:
     (str/trim (first (lines res))) # => "HTTP/1.1 200 OK"
 
 ### socket/accept
+
+    (socket/accept socket) # => "10.0.2.2"
+
+Echo Server:
+
+    (set mtu (file/size "/dev/net/tcp"))
+    (set socket (socket/listen "tcp" 80))
+    (while true (do
+      (if (socket/accept socket) (do
+        (set buf (file/read socket mtu))
+        (file/write socket buf)
+        (file/close socket)
+        (set socket (socket/listen "tcp" port))))))
+
+TODO: In the future `socket/accept` will return `(handle, address, port)` or
+`()` without blocking when the syscall is updated to keep the listening socket
+open when a connection is closed.
+
 ### socket/listen
+
+    (socket/listen "tcp" 80) # => 4
 
 ## System
 

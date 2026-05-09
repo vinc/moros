@@ -7,6 +7,7 @@
 /lib/lisp/math.lsp
 /tmp/lisp/colors.lsp
 /tmp/lisp/doc.lsp
+/tmp/lisp/echo.lsp
 /tmp/lisp/factorial.lsp
 /tmp/lisp/fibonacci.lsp
 /tmp/lisp/geotime.lsp

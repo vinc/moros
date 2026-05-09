@@ -609,7 +609,7 @@ pub fn lisp_socket_accept(args: &[Exp]) -> Result<Exp, Err> {
     if let Ok(addr) = syscall::accept(handle) {
         Ok(Exp::Str(format!("{}", addr)))
     } else {
-        could_not!("accept connections")
+        Ok(Exp::List(Vec::new()))
     }
 }
 
