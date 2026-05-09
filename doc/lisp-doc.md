@@ -1,4 +1,6 @@
-# Lisp Functions
+# MOROS Lisp Documentation
+
+## Types
 
 ### type
 
@@ -15,16 +17,50 @@
     (atom? "test")   # => true
     (atom? '(1 2 3)) # => false
 
-### var
+### sym?
 
-    (var foo 40) # => foo
-    (+ foo 2)    # => 42
+    (sym 'a) # => true
+    (sym 1)  # => false
+    (sym +)  # => false
 
 ### var?
 
     (var foo 42) # => foo
     (var? foo)   # => true
     (var? bar)   # => false
+
+### fun?
+
+    (fun? rev) # => true
+    (fun? and) # => false
+
+### mac?
+
+    (mac? rev) # => false
+    (mac? and) # => true
+
+### nil?
+
+    (nil? nil)      # => true
+    (nil? '())      # => true
+    (nil? '(1 2 3)) # => false
+    (nil? "")       # => false
+    (nil? 0)        # => false
+
+### bool?
+
+    (bool? true)  # => true
+    (bool? false) # => true
+    (bool? '())   # => false
+    (bool? "")    # => false
+    (bool? 0)     # => false
+
+## Binding
+
+### var
+
+    (var foo 40) # => foo
+    (+ foo 2)    # => 42
 
 ### mut
 
@@ -40,21 +76,15 @@
     (set foo 10) # => 10
     foo          # => 10
 
+### let
+
+    (let (x y) (1 2) (+ x y)) # => 3
+
 ### fun
 
     ((fun (x) (* x 2)) 4) # => 8
 
-### fun?
-
-    (fun? rev) # => true
-    (fun? and) # => false
-
 ### mac
-
-### mac?
-
-    (mac? rev) # => false
-    (mac? and) # => true
 
 ### def-fun def
 
@@ -70,30 +100,17 @@
         (if (nil? (tail xs)) (head xs)
           `(if ,(head xs) (and ,@(tail xs)) false))))
 
-### parse
-
-    (parse "(1 2 3)") # => (1 2 3)
-
-### eval
-
-    (eval '(+ 1 2 3)) # => 6
-
-### expand
-
-    (expand (set foo 42))
-    # => (if (var? foo) (mut foo 42) (var foo 42))
-
-### eq? =
-
-    (= 2 1)         # => false
-    (= 2 2)         # => true
-    (= 2 2.0)       # => true
-    (= "foo" "bar") # => false
-    (= "foo" "foo") # => true
+## Quoting
 
 ### quote '
 
     '(1 2 3) # => (1 2 3)
+### quasiquote `
+### unquote ,
+### unquote-splicing ,@
+### splice @
+
+## Meta
 
 ### load
 
@@ -104,24 +121,33 @@
 
     (doc rev) # => "Reverses the list"
 
+### apply
+
+    (apply + '(1 2 3))     # => 6
+    (apply + 1 2 '(1 2 3)) # => 9
+
+### parse
+
+    (parse "(1 2 3)") # => (1 2 3)
+
+### expand
+
+    (expand (set foo 42))
+    # => (if (var? foo) (mut foo 42) (var foo 42))
+
+### eval
+
+    (eval '(+ 1 2 3)) # => 6
+
+### env
+
+## Control Flow
+
 ### do
 
     (do
       (print "Compute foo")
       (compute-foo))
-
-### nil
-### nil?
-### sym?
-### bool?
-### let
-### env
-### quasiquote `
-### unquote ,
-### unquote-splicing ,@
-### splice @
-
-## Control Flow
 
 ### if
 
@@ -159,6 +185,36 @@ Truthiness (neither `false` nor `nil`):
       (if (= (% i 15) 0) "fizzbuzz"
         (if (= (% i 3) 0) "fizz"
           (if (= (% i 5) 0) "buzz" i)))))
+
+## Comparison
+
+### eq? =
+
+    (= 2 1)         # => false
+    (= 2 2)         # => true
+    (= 2 2.0)       # => true
+    (= "foo" "bar") # => false
+    (= "foo" "foo") # => true
+
+### gt? >
+
+    (> 1 2 3) # => false
+    (> 3 2 1) # => true
+
+### gte? >=
+
+    (>= 3 2 2 1) # => true
+
+### lt? <
+
+    (< 2 1)   # => false
+    (< 1 2)   # => true
+    (< 1 2 3) # => true
+
+### lte? <=
+
+    (<= 1 2 2 3) # => true
+    (<= 3 2 2 1) # => false
 
 ## Enumerable
 
@@ -252,11 +308,6 @@ Truthiness (neither `false` nor `nil`):
 ### cons
 
     (cons 1 '(2 3)) # => (1 2 3)
-
-### apply
-
-    (apply + '(1 2 3))     # => 6
-    (apply + 1 2 '(1 2 3)) # => 9
 
 ### map
 
@@ -569,28 +620,6 @@ Truthiness (neither `false` nor `nil`):
     (or "" 1)           # => ""
     (or 0 1)            # => 0
 
-## Comparison
-
-### gt? >
-
-    (> 1 2 3) # => false
-    (> 3 2 1) # => true
-
-### gte? >=
-
-    (>= 3 2 2 1) # => true
-
-### lt? <
-
-    (< 2 1)   # => false
-    (< 1 2)   # => true
-    (< 1 2 3) # => true
-
-### lte? <=
-
-    (<= 1 2 2 3) # => true
-    (<= 3 2 2 1) # => false
-
 ## Regex
 
 ### regex/find
@@ -661,14 +690,6 @@ Truthiness (neither `false` nor `nil`):
     (set buffer (str->bin "Hello, World!\n"))
     (file/write handle buffer) # => 14
     (file/close handle)
-
-### clock/boot
-
-    (clock/boot) # => 1152.069566
-
-### clock/epoch
-
-    (clock/epoch) # => 1778244455.765883
 
 ### read-bin
 ### write-bin
@@ -759,3 +780,11 @@ open when a connection is closed.
 ### sh->str
 
     (sh->str "print hello") # => "hello"
+
+### clock/boot
+
+    (clock/boot) # => 1152.069566
+
+### clock/epoch
+
+    (clock/epoch) # => 1778244455.765883

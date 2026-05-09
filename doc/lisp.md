@@ -1,11 +1,13 @@
 # MOROS Lisp
 
-A minimalist Lisp interpreter is available in MOROS to extend the capabilities
-of the Shell.
+A Lisp interpreter is available in MOROS to extend the capabilities of the
+shell.
 
 MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
 ## Overview
+
+Check the [documentation](/lisp-doc.md) for more information.
 
 ### Types
 - Basics: `bool`, `list`, `sym`, `str`

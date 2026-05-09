@@ -12,8 +12,8 @@ BIOS, typically from 2005 to 2020. It also runs well on most
 ## Usage
 
 MOROS is open source. You can [build](https://github.com/vinc/moros) or
-[download](https://github.com/vinc/moros/releases) an image. Check out
-the [manual](manual.md) for details on how to use it.
+[download](https://github.com/vinc/moros/releases) an image. Check the
+[manual](manual.md) for details on how to use it.
 
 ## Features
 
