@@ -380,6 +380,10 @@ Returns a list of numbers from start to stop excluded.
 
     (range 2 5) # => (2 3 4)
 
+### nil
+
+    nil # => ()
+
 ## Dict
 
 ### dict
