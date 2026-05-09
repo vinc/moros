@@ -1,9 +1,6 @@
 (var =
   (mac args `(eq? ,@args)))
 
-(var rest
-  (mac args `(tail ,@args)))
-
 (var help
   (mac args `(doc ,@args)))
 

@@ -21,6 +21,34 @@
 (def (mac? x)
   (eq? (type x) "mac"))
 
+(def (push ls x)
+  "Pushes the element to the end of the list"
+  (put ls (len ls) x))
+
+(def (first ls)
+  "Returns the first element of the list"
+  (get ls 0))
+
+(def (second ls)
+  "Returns the second element of the list"
+  (get ls 1))
+
+(def (third ls)
+  "Returns the third element of the list"
+  (get ls 2))
+
+(def (last ls)
+  "Returns the last element of the list"
+  (get ls
+    (if (= (len ls) 0) 0 (- (len ls) 1))))
+
+(def (rest ls)
+  "Returns the rest of the list"
+  (slice ls 1 (len ls)))
+
+(var head first)
+(var tail rest)
+
 (var nil '())
 
 (def (nil? x)
@@ -134,32 +162,9 @@
   "Splits the text into a list of chars"
   (str/split text ""))
 
-(def (push ls x)
-  "Pushes the element to the end of the list"
-  (put ls (len ls) x))
-
-(def (first ls)
-  "Returns the first element of the list"
-  (get ls 0))
-
-(def (second ls)
-  "Returns the second element of the list"
-  (get ls 1))
-
-(def (third ls)
-  "Returns the third element of the list"
-  (get ls 2))
-
-(def (last ls)
-  "Returns the last element of the list"
-  (get ls
-    (if (= (len ls) 0) 0 (- (len ls) 1))))
-
 (def (sh->str cmd)
   "Returns the output of the command"
   (str/trim (bin->str (sh->bin cmd))))
-
-# Short aliases
 
 (load "/lib/lisp/dict.lsp")
 (load "/lib/lisp/file.lsp")

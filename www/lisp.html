@@ -42,8 +42,6 @@ shell.</p>
     <li><code>splice</code> (abbreviated with <code>@</code>)</li>
     <li><code>atom?</code></li>
     <li><code>eq?</code> (aliased to <code>=</code>)</li>
-    <li><code>head</code></li>
-    <li><code>tail</code></li>
     <li><code>cons</code></li>
     <li><code>if</code></li>
     <li><code>cond</code></li>
@@ -96,7 +94,7 @@ shell.</p>
     <li><code>bool?</code>, <code>str?</code>, <code>sym?</code>, <code>num?</code></li>
     <li><code>fun?</code>, <code>mac?</code></li>
     <li><code>abs</code>, <code>mod</code>, <code>min</code>, <code>max</code></li>
-    <li><code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>push</code></li>
+    <li><code>first</code> (aliased to <code>head</code>), <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code> (aliased to <code>tail</code>), <code>push</code></li>
     <li><code>map</code>, <code>reduce</code>, <code>rev</code>, <code>range</code>, <code>filter</code>, <code>reject</code>, <code>intersection</code></li>
     <li><code>not</code>, <code>and</code>, <code>or</code></li>
     <li><code>set</code>, <code>let</code></li>
@@ -212,6 +210,7 @@ with the following content:</p>
     <h3>Unreleased</h3>
 
     <ul>
+    <li>Change <code>socket/accept</code> to return <code>()</code> instead of an error</li>
     <li>Replace long names (<code>string</code>, <code>variable</code>, <code>define</code>, ...) by short names (<code>str</code>, <code>var</code>, <code>def</code>, ...)</li>
     <li>Change <code>and</code> and <code>or</code> to accept more than 2 args</li>
     <li>Merge <code>=</code> into <code>equal?</code> (aliased to <code>eq?</code> and <code>=</code>) and add a stricter <code>number/equal?</code></li>

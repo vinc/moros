@@ -246,15 +246,10 @@ Truthiness (neither `false` nor `nil`):
     (len '(1 2 3)) # => 3
     (len "foo")    # => 3
 
-### head first
+### first head
 
-    (head '(1 2 3)) # => 1
-    (head "hello") # => "h"
-
-### tail rest
-
-    (tail '(1 2 3)) # => (2 3)
-    (tail "hello") # => "ello"
+    (first '(1 2 3)) # => 1
+    (first "hello") # => "h"
 
 ### second
 
@@ -270,6 +265,11 @@ Truthiness (neither `false` nor `nil`):
 
     (last '(1 2 3)) # => 3
     (last "hello") # => "o"
+
+### rest tail
+
+    (rest '(1 2 3)) # => (2 3)
+    (rest "hello") # => "ello"
 
 ### slice
 

@@ -444,20 +444,6 @@ fn test_lisp() {
     assert_eq!(eval!("(eq? 1 2)"), "false");
     assert_eq!(eval!("(eq? (add 0.15 0.15) (add 0.1 0.2))"), "false");
 
-    // head
-    assert_eq!(eval!("(head (quote (1)))"), "1");
-    assert_eq!(eval!("(head (quote (1 2 3)))"), "1");
-    assert_eq!(eval!("(head \"abcd\")"), "\"a\"");
-    assert_eq!(eval!("(head (list 1 2 3))"), "1");
-    assert_eq!(eval!("(head (dict \"a\" 1 \"b\" 2))"), "(\"a\" 1)");
-
-    // tail
-    assert_eq!(eval!("(tail (quote (1)))"), "()");
-    assert_eq!(eval!("(tail (quote (1 2 3)))"), "(2 3)");
-    assert_eq!(eval!("(tail \"abcd\")"), "\"bcd\"");
-    assert_eq!(eval!("(tail (list 1 2 3))"), "(2 3)");
-    assert_eq!(eval!("(tail (dict \"a\" 1 \"b\" 2))"), "(dict \"b\" 2)");
-
     // cons
     assert_eq!(eval!("(cons (quote 1) (quote (2 3)))"), "(1 2 3)");
     assert_eq!(

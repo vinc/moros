@@ -26,8 +26,6 @@ Check the [documentation](/lisp-doc.md) for more information.
 - `splice` (abbreviated with `@`)
 - `atom?`
 - `eq?` (aliased to `=`)
-- `head`
-- `tail`
 - `cons`
 - `if`
 - `cond`
@@ -74,7 +72,7 @@ Check the [documentation](/lisp-doc.md) for more information.
 - `bool?`, `str?`, `sym?`, `num?`
 - `fun?`, `mac?`
 - `abs`, `mod`, `min`, `max`
-- `first`, `second`, `third`, `last`, `rest`, `push`
+- `first` (aliased to `head`), `second`, `third`, `last`, `rest` (aliased to `tail`), `push`
 - `map`, `reduce`, `rev`, `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `set`, `let`
@@ -183,6 +181,7 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Change `socket/accept` to return `()` instead of an error
 - Replace long names (`string`, `variable`, `define`, ...) by short names (`str`, `var`, `def`, ...)
 - Change `and` and `or` to accept more than 2 args
 - Merge `=` into `equal?` (aliased to `eq?` and `=`) and add a stricter `number/equal?`

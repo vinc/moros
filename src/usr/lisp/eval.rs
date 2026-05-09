@@ -1,6 +1,5 @@
 use super::env::{env_get, env_keys, env_set, function_env};
 use super::expand::expand;
-use super::parse::parse;
 use super::string;
 use super::{exec, Env, Err, Exp, Function};
 
@@ -46,53 +45,6 @@ fn eval_equal_args(
             (a, b) => a == b,
         }
     )))
-}
-
-fn eval_head_args(
-    args: &[Exp],
-    env: &mut Rc<RefCell<Env>>
-) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    match eval(&args[0], env)? {
-        Exp::Dict(d) => {
-            ensure_length_gt!(d, 0);
-            let (k, v) = d.first_key_value().unwrap();
-            let (_, k) = parse(&k)?;
-            Ok(Exp::List([k, v.clone()].to_vec()))
-        }
-        Exp::List(l) => {
-            ensure_length_gt!(l, 0);
-            Ok(l[0].clone())
-        }
-        Exp::Str(s) => {
-            ensure_length_gt!(s, 0);
-            Ok(Exp::Str(s.chars().next().unwrap().to_string()))
-        }
-        _ => expected!("first argument to be an enumerable"),
-    }
-}
-
-fn eval_tail_args(
-    args: &[Exp],
-    env: &mut Rc<RefCell<Env>>
-) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    match eval(&args[0], env)? {
-        Exp::Dict(mut d) => {
-            ensure_length_gt!(d, 0);
-            d.pop_first();
-            Ok(Exp::Dict(d))
-        }
-        Exp::List(l) => {
-            ensure_length_gt!(l, 0);
-            Ok(Exp::List(l[1..].to_vec()))
-        }
-        Exp::Str(s) => {
-            ensure_length_gt!(s, 0);
-            Ok(Exp::Str(s.chars().skip(1).collect()))
-        }
-        _ => expected!("first argument to be an enumerable"),
-    }
 }
 
 fn eval_cons_args(
@@ -238,15 +190,13 @@ pub fn eval_args(
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 28] = [
+pub const BUILT_INS: [&str; 26] = [
     "quote",
     "quasiquote",
     "unquote",
     "unquote-splicing",
     "atom?",
     "eq?",
-    "head",
-    "tail",
     "cons",
     "if",
     "cond",
@@ -292,12 +242,6 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "eq?" => {
                         return eval_equal_args(args, env);
-                    }
-                    Exp::Sym(s) if s == "head" => {
-                        return eval_head_args(args, env);
-                    }
-                    Exp::Sym(s) if s == "tail" => {
-                        return eval_tail_args(args, env);
                     }
                     Exp::Sym(s) if s == "cons" => {
                         return eval_cons_args(args, env);

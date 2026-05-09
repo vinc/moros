@@ -295,16 +295,10 @@ foo          # =&gt; 10
 (len &quot;foo&quot;)    # =&gt; 3
 </code></pre>
 
-    <h3>head first</h3>
+    <h3>first head</h3>
 
-    <pre><code>(head &#39;(1 2 3)) # =&gt; 1
-(head &quot;hello&quot;) # =&gt; &quot;h&quot;
-</code></pre>
-
-    <h3>tail rest</h3>
-
-    <pre><code>(tail &#39;(1 2 3)) # =&gt; (2 3)
-(tail &quot;hello&quot;) # =&gt; &quot;ello&quot;
+    <pre><code>(first &#39;(1 2 3)) # =&gt; 1
+(first &quot;hello&quot;) # =&gt; &quot;h&quot;
 </code></pre>
 
     <h3>second</h3>
@@ -323,6 +317,12 @@ foo          # =&gt; 10
 
     <pre><code>(last &#39;(1 2 3)) # =&gt; 3
 (last &quot;hello&quot;) # =&gt; &quot;o&quot;
+</code></pre>
+
+    <h3>rest tail</h3>
+
+    <pre><code>(rest &#39;(1 2 3)) # =&gt; (2 3)
+(rest &quot;hello&quot;) # =&gt; &quot;ello&quot;
 </code></pre>
 
     <h3>slice</h3>
