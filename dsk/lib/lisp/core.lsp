@@ -59,13 +59,13 @@
 
 (def-mac (or @xs)
   (if (nil? xs) false
-    (if (nil? (tail xs)) (head xs)
-      `(if ,(head xs) ,(head xs) (or ,@(tail xs))))))
+    (if (nil? (rest xs)) (first xs)
+      `(if ,(first xs) ,(first xs) (or ,@(rest xs))))))
 
 (def-mac (and @xs)
   (if (nil? xs) true
-    (if (nil? (tail xs)) (head xs)
-      `(if ,(head xs) (and ,@(tail xs)) false))))
+    (if (nil? (rest xs)) (first xs)
+      `(if ,(first xs) (and ,@(rest xs)) first))))
 
 # TODO: xor
 
