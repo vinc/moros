@@ -82,9 +82,12 @@
 
 ### fun
 
-    ((fun (x) (* x 2)) 4) # => 8
+    ((fun (x) (* x 2)) (+ 1 3)) # => 8
 
 ### mac
+
+    (var double (mac (x) `(* ,x 2)))
+    (double (+ 1 3)) # => 8
 
 ### def-fun def
 
