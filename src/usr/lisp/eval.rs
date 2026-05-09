@@ -231,6 +231,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
             Exp::Bool(_) => return Ok(exp.clone()),
             Exp::Num(_) => return Ok(exp.clone()),
             Exp::Str(_) => return Ok(exp.clone()),
+            Exp::Dict(_) => return Ok(exp.clone()),
             Exp::List(list) => {
                 ensure_length_gt!(list, 0);
                 let args = &list[1..];

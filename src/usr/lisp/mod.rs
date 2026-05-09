@@ -769,4 +769,9 @@ fn test_lisp() {
         eval!("(expand (def (double x) (mul x x)))"),
         "(var double (fun (x) (mul x x)))"
     );
+
+    // eval
+    assert_eq!(eval!("(eval 42)"), "42");
+    assert_eq!(eval!("(eval \"hello\")"), "\"hello\"");
+    assert_eq!(eval!("(eval (dict \"a\" 1))"), "(dict \"a\" 1)");
 }
