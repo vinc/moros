@@ -29,9 +29,9 @@
 
     <h3>sym?</h3>
 
-    <pre><code>(sym &#39;a) # =&gt; true
-(sym 1)  # =&gt; false
-(sym +)  # =&gt; false
+    <pre><code>(sym? &#39;a) # =&gt; true
+(sym? 1)  # =&gt; false
+(sym? +)  # =&gt; false
 </code></pre>
 
     <h3>var?</h3>
@@ -112,15 +112,15 @@ foo          # =&gt; 10
     <pre><code>(def (rev ls)
   &quot;Reverses the list&quot;
   (if (nil? ls) ls
-    (concat (rev (tail ls)) (cons (head ls) &#39;()))))
+    (concat (rev (rest ls)) (cons (first ls) &#39;()))))
 </code></pre>
 
     <h3>def-mac</h3>
 
     <pre><code>(def-mac (and @xs)
   (if (nil? xs) true
-    (if (nil? (tail xs)) (head xs)
-      `(if ,(head xs) (and ,@(tail xs)) false))))
+    (if (nil? (rest xs)) (first xs)
+      `(if ,(first xs) (and ,@(rest xs)) false))))
 </code></pre>
 
     <h2>Quoting</h2>
@@ -200,11 +200,13 @@ foo          # =&gt; 10
 
     <h3>cond</h3>
 
-    <pre><code>(map (fun (i) (print (cond
-  ((= (% i 15) 0) &quot;fizzbuzz&quot;)
-  ((= (% i 3) 0) &quot;fizz&quot;)
-  ((= (% i 5) 0) &quot;buzz&quot;)
-  (true i)))) (range 1 100))
+    <pre><code>(set x 42)
+(cond
+  ((&gt; x 0) &quot;positive&quot;)
+  ((&lt; x 0) &quot;negative&quot;)
+  ((= x 0) &quot;zero&quot;)
+  (true &quot;nan&quot;))
+# =&gt; &quot;positive&quot;
 </code></pre>
 
     <h3>case</h3>
@@ -516,7 +518,7 @@ foo          # =&gt; 10
 
     <h3>num/eq?</h3>
 
-    <pre><code>(num/eq? 1 1.0) # =&gt; false
+    <pre><code>(num/eq? 2 2.0) # =&gt; false
 </code></pre>
 
     <h3>num/int</h3>
@@ -665,15 +667,15 @@ foo          # =&gt; 10
 
     <pre><code>(sin (- pi))       # =&gt; -0.00000000000000012246467991473532
 (sin (- (/ pi 2))) # =&gt; -1.0
-(sin 0)            # =&gt; 0.0
+(sin 0.0)          # =&gt; 0.0
 (sin (/ pi 2))     # =&gt; 1.0
 (sin pi)           # =&gt; 0.00000000000000012246467991473532
 </code></pre>
 
     <h3>tan</h3>
 
-    <pre><code>(tan pi) # =&gt; -0.00000000000000012246467991473532
-(tan 0)  # =&gt; 0.0
+    <pre><code>(tan pi)  # =&gt; -0.00000000000000012246467991473532
+(tan 0.0) # =&gt; 0.0
 </code></pre>
 
     <h2>Bit</h2>
@@ -881,7 +883,7 @@ foo          # =&gt; 10
     (set buf (file/read socket mtu))
     (file/write socket buf)
     (file/close socket)
-    (set socket (socket/listen &quot;tcp&quot; port))))))
+    (set socket (socket/listen &quot;tcp&quot; 80))))))
 </code></pre>
 
     <p>TODO: In the future <code>socket/accept</code> will return <code>(handle address port)</code> or

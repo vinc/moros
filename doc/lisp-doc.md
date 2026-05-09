@@ -19,9 +19,9 @@
 
 ### sym?
 
-    (sym 'a) # => true
-    (sym 1)  # => false
-    (sym +)  # => false
+    (sym? 'a) # => true
+    (sym? 1)  # => false
+    (sym? +)  # => false
 
 ### var?
 
@@ -91,14 +91,14 @@
     (def (rev ls)
       "Reverses the list"
       (if (nil? ls) ls
-        (concat (rev (tail ls)) (cons (head ls) '()))))
+        (concat (rev (rest ls)) (cons (first ls) '()))))
 
 ### def-mac
 
     (def-mac (and @xs)
       (if (nil? xs) true
-        (if (nil? (tail xs)) (head xs)
-          `(if ,(head xs) (and ,@(tail xs)) false))))
+        (if (nil? (rest xs)) (first xs)
+          `(if ,(first xs) (and ,@(rest xs)) false))))
 
 ## Quoting
 
@@ -164,11 +164,13 @@ Truthiness (neither `false` nor `nil`):
 
 ### cond
 
-    (map (fun (i) (print (cond
-      ((= (% i 15) 0) "fizzbuzz")
-      ((= (% i 3) 0) "fizz")
-      ((= (% i 5) 0) "buzz")
-      (true i)))) (range 1 100))
+    (set x 42)
+    (cond
+      ((> x 0) "positive")
+      ((< x 0) "negative")
+      ((= x 0) "zero")
+      (true "nan"))
+    # => "positive"
 
 ### case
 
@@ -430,7 +432,7 @@ Truthiness (neither `false` nor `nil`):
 
 ### num/eq?
 
-    (num/eq? 1 1.0) # => false
+    (num/eq? 2 2.0) # => false
 
 ### num/int
 
@@ -558,14 +560,14 @@ Truthiness (neither `false` nor `nil`):
 
     (sin (- pi))       # => -0.00000000000000012246467991473532
     (sin (- (/ pi 2))) # => -1.0
-    (sin 0)            # => 0.0
+    (sin 0.0)          # => 0.0
     (sin (/ pi 2))     # => 1.0
     (sin pi)           # => 0.00000000000000012246467991473532
 
 ### tan
 
-    (tan pi) # => -0.00000000000000012246467991473532
-    (tan 0)  # => 0.0
+    (tan pi)  # => -0.00000000000000012246467991473532
+    (tan 0.0) # => 0.0
 
 ## Bit
 
@@ -742,7 +744,7 @@ Echo Server:
         (set buf (file/read socket mtu))
         (file/write socket buf)
         (file/close socket)
-        (set socket (socket/listen "tcp" port))))))
+        (set socket (socket/listen "tcp" 80))))))
 
 TODO: In the future `socket/accept` will return `(handle address port)` or
 `()` without blocking when the syscall is updated to keep the listening socket
