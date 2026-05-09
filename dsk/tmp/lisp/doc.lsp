@@ -14,6 +14,6 @@
 (set fs
   (filter
     (fun (f) (or (fun? (eval f)) (mac? (eval f))))
-    (rev (env))))
+    (env)))
 
 (map print-doc fs)
