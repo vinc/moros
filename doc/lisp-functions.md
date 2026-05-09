@@ -725,7 +725,7 @@ Echo Server:
         (file/close socket)
         (set socket (socket/listen "tcp" port))))))
 
-TODO: In the future `socket/accept` will return `(handle, address, port)` or
+TODO: In the future `socket/accept` will return `(handle address port)` or
 `()` without blocking when the syscall is updated to keep the listening socket
 open when a connection is closed.
 
