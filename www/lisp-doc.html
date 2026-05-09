@@ -300,32 +300,42 @@ foo          # =&gt; 10
 
     <h3>rest tail</h3>
 
+    <p>Returns the rest of the list.</p>
+
     <pre><code>(rest &#39;(1 2 3)) # =&gt; (2 3)
-(rest &quot;hello&quot;) # =&gt; &quot;ello&quot;
+(rest &quot;hello&quot;)  # =&gt; &quot;ello&quot;
 </code></pre>
 
     <h3>first head</h3>
 
+    <p>Returns the first element of the list.</p>
+
     <pre><code>(first &#39;(1 2 3)) # =&gt; 1
-(first &quot;hello&quot;) # =&gt; &quot;h&quot;
+(first &quot;hello&quot;)  # =&gt; &quot;h&quot;
 </code></pre>
 
     <h3>second</h3>
 
+    <p>Returns the second element of the list.</p>
+
     <pre><code>(second &#39;(1 2 3)) # =&gt; 2
-(second &quot;hello&quot;) # =&gt; &quot;e&quot;
+(second &quot;hello&quot;)  # =&gt; &quot;e&quot;
 </code></pre>
 
     <h3>third</h3>
 
+    <p>Returns the third element of the list.</p>
+
     <pre><code>(third &#39;(1 2 3)) # =&gt; 3
-(third &quot;hello&quot;) # =&gt; &quot;l&quot;
+(third &quot;hello&quot;)  # =&gt; &quot;l&quot;
 </code></pre>
 
     <h3>last</h3>
 
+    <p>Returns the last element of the list.</p>
+
     <pre><code>(last &#39;(1 2 3)) # =&gt; 3
-(last &quot;hello&quot;) # =&gt; &quot;o&quot;
+(last &quot;hello&quot;)  # =&gt; &quot;o&quot;
 </code></pre>
 
     <h3>slice</h3>
@@ -338,7 +348,9 @@ foo          # =&gt; 10
 
     <h3>push</h3>
 
-    <pre><code>(push &#39;(1 2) 3) # =&gt; (1 2 3)
+    <p>Pushes the element to the end of the list.</p>
+
+    <pre><code>(push &#39;(1 2) 3)   # =&gt; (1 2 3)
 (push &quot;hell&quot; &quot;o&quot;) # =&gt; &quot;hello&quot;
 </code></pre>
 
@@ -351,6 +363,8 @@ foo          # =&gt; 10
 </code></pre>
 
     <h3>intersection</h3>
+
+    <p>Returns the elements found in both lists.</p>
 
     <pre><code>(intersection &#39;(1 2 3) &#39;(2 3 4)) # =&gt; (2 3)
 </code></pre>
@@ -375,26 +389,36 @@ foo          # =&gt; 10
 
     <h3>map</h3>
 
+    <p>Applies the function to the elements of the list.</p>
+
     <pre><code>(map first &#39;((1 2) (3 4) (5 6))) # =&gt; (1 3 5)
 (map (fun (x) (* x 2)) &#39;(1 2 3)) # =&gt; (2 4 6)
 </code></pre>
 
     <h3>reduce</h3>
 
+    <p>Reduces the elements of the list with the function.</p>
+
     <pre><code>(reduce + &#39;(1 2 3)) # =&gt; 6
 </code></pre>
 
     <h3>filter</h3>
+
+    <p>Filters the elements of the list with the function.</p>
 
     <pre><code>(filter (fun (x) (= (% x 2) 0)) &#39;(1 2 3 4)) # =&gt; (2 4)
 </code></pre>
 
     <h3>reject</h3>
 
+    <p>Rejects the elements of the list with the function.</p>
+
     <pre><code>(reject (fun (x) (= (% x 2) 0)) &#39;(1 2 3 4)) # =&gt; (1 3)
 </code></pre>
 
     <h3>rev</h3>
+
+    <p>Reverses the list.</p>
 
     <pre><code>(rev &#39;(1 2 3)) # =&gt; (3 2 1)
 </code></pre>
@@ -422,6 +446,8 @@ foo          # =&gt; 10
 
     <h3>range</h3>
 
+    <p>Returns a list of numbers from start to stop excluded.</p>
+
     <pre><code>(range 2 5) # =&gt; (2 3 4)
 </code></pre>
 
@@ -430,6 +456,25 @@ foo          # =&gt; 10
     <h3>dict</h3>
 
     <pre><code>(dict &quot;a&quot; 1 &quot;b&quot; 2) # =&gt; (dict &quot;a&quot; 1 &quot;b&quot; 2)
+</code></pre>
+
+    <h3>dict/pairs</h3>
+
+    <pre><code>(dict/pairs (dict &quot;a&quot; 1 &quot;b&quot; 2)) # =&gt; ((&quot;a&quot; 1) (&quot;b&quot; 2))
+</code></pre>
+
+    <h3>dict/keys</h3>
+
+    <p>Returns the keys of a dict.</p>
+
+    <pre><code>(dict/keys (dict &quot;a&quot; 1 &quot;b&quot; 2)) # =&gt; (&quot;a&quot; &quot;b&quot;)
+</code></pre>
+
+    <h3>dict/values</h3>
+
+    <p>Returns the values of a dict.</p>
+
+    <pre><code>(dict/values (dict &quot;a&quot; 1 &quot;b&quot; 2)) # =&gt; (1 2)
 </code></pre>
 
     <h2>String</h2>
@@ -473,20 +518,28 @@ foo          # =&gt; 10
 
     <h3>str/join</h3>
 
+    <p>Joins the elements of the list with the string.</p>
+
     <pre><code>(str/join &#39;(&quot;foo&quot; &quot;bar&quot;) &quot; &quot;) # =&gt; &quot;foo bar&quot;
 </code></pre>
 
     <h3>lines</h3>
+
+    <p>Splits the text into a list of lines.</p>
 
     <pre><code>(lines &quot;Hello,\nWorld!&quot;) # =&gt; (&quot;Hello,&quot; &quot;World!&quot;)
 </code></pre>
 
     <h3>words</h3>
 
+    <p>Splits the text into a list of words.</p>
+
     <pre><code>(words &quot;Hello, World!&quot;) # =&gt; (&quot;Hello,&quot; &quot;World!&quot;)
 </code></pre>
 
     <h3>chars</h3>
+
+    <p>Splits the text into a list of chars.</p>
 
     <pre><code>(chars &quot;hello&quot;) # =&gt; (&quot;h&quot; &quot;e&quot; &quot;l&quot; &quot;l&quot; &quot;o&quot;)
 </code></pre>
@@ -546,21 +599,29 @@ foo          # =&gt; 10
 
     <h3>abs</h3>
 
+    <p>Returns the absolute value of the number.</p>
+
     <pre><code>(abs 2)  # =&gt; 2
 (abs -2) # =&gt; 2
 </code></pre>
 
     <h3>min</h3>
 
+    <p>Returns the minimum element of the list.</p>
+
     <pre><code>(min &#39;(1 2 3 4 5)) # =&gt; 1
 </code></pre>
 
     <h3>max</h3>
 
+    <p>Returns the maximum element of the list.</p>
+
     <pre><code>(max &#39;(1 2 3 4 5)) # =&gt; 5
 </code></pre>
 
     <h3>ceil</h3>
+
+    <p>Returns the smallest integer greater than or equal to the number.</p>
 
     <pre><code>(ceil -2.8) # =&gt; -2
 (ceil -2.2) # =&gt; -2
@@ -570,6 +631,8 @@ foo          # =&gt; 10
 
     <h3>floor</h3>
 
+    <p>Returns the largest integer less than or equal to the number.</p>
+
     <pre><code>(floor -2.8) # =&gt; -3
 (floor -2.2) # =&gt; -3
 (floor 2.2)  # =&gt; 2
@@ -577,6 +640,8 @@ foo          # =&gt; 10
 </code></pre>
 
     <h3>round</h3>
+
+    <p>Returns the nearest integer to the number.</p>
 
     <pre><code>(round -2.8) # =&gt; -3
 (round -2.2) # =&gt; -2
@@ -630,6 +695,8 @@ foo          # =&gt; 10
 </code></pre>
 
     <h3>mod</h3>
+
+    <p>Returns the modulo of the division.</p>
 
     <pre><code>(mod 7 3)   # =&gt; 1
 (mod -7 3)  # =&gt; 2
@@ -753,6 +820,8 @@ foo          # =&gt; 10
 
     <h3>regex/match?</h3>
 
+    <p>Returns true if the string match the pattern.</p>
+
     <pre><code>(regex/match? &quot;\\d+&quot; &quot;42&quot;)     # =&gt; true
 (regex/match? &quot;\\d+&quot; &quot;foo&quot;)    # =&gt; false
 (regex/match? &quot;\\w+&quot; &quot;foo&quot;)    # =&gt; true
@@ -764,25 +833,35 @@ foo          # =&gt; 10
 
     <h3>read</h3>
 
+    <p>Reads text file.</p>
+
     <pre><code>(read &quot;/dev/clk/rtc&quot;) # =&gt; &quot;2026-05-04 13:22:31&quot;
 </code></pre>
 
     <h3>write</h3>
+
+    <p>Writes text to file.</p>
 
     <pre><code>(write &quot;/tmp/hello.txt&quot; &quot;Hello, World!\n&quot;) # =&gt; ()
 </code></pre>
 
     <h3>append</h3>
 
+    <p>Appends text to file.</p>
+
     <pre><code>(append &quot;/tmp/hello.txt&quot; &quot;Lorem ipsum\n&quot;) # =&gt; ()
 </code></pre>
 
     <h3>dirname</h3>
 
+    <p>Returns the given path without the filename.</p>
+
     <pre><code>(dirname &quot;/dev/clk/rtc&quot;) # =&gt; &quot;/dev/clk&quot;
 </code></pre>
 
     <h3>filename</h3>
+
+    <p>Returns the filename from the given path.</p>
 
     <pre><code>(filename &quot;/dev/clk/rtc&quot;) # =&gt; &quot;rtc&quot;
 </code></pre>
@@ -903,6 +982,8 @@ open when a connection is closed.</p>
 
     <h3>print</h3>
 
+    <p>Prints expression to stdout with a newline.</p>
+
     <pre><code>(print &quot;Hello, World!&quot;) # =&gt; ()
 </code></pre>
 
@@ -929,15 +1010,21 @@ open when a connection is closed.</p>
 
     <h3>sh-&gt;str</h3>
 
+    <p>Returns the output of the command.</p>
+
     <pre><code>(sh-&gt;str &quot;print hello&quot;) # =&gt; &quot;hello&quot;
 </code></pre>
 
     <h3>clock/boot</h3>
 
+    <p>Returns the number of seconds since boot.</p>
+
     <pre><code>(clock/boot) # =&gt; 1152.069566
 </code></pre>
 
     <h3>clock/epoch</h3>
+
+    <p>Returns the number of seconds since epoch.</p>
 
     <pre><code>(clock/epoch) # =&gt; 1778244455.765883
 </code></pre>

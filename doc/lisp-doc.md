@@ -251,28 +251,38 @@ Truthiness (neither `false` nor `nil`):
 
 ### rest tail
 
+Returns the rest of the list.
+
     (rest '(1 2 3)) # => (2 3)
-    (rest "hello") # => "ello"
+    (rest "hello")  # => "ello"
 
 ### first head
 
+Returns the first element of the list.
+
     (first '(1 2 3)) # => 1
-    (first "hello") # => "h"
+    (first "hello")  # => "h"
 
 ### second
 
+Returns the second element of the list.
+
     (second '(1 2 3)) # => 2
-    (second "hello") # => "e"
+    (second "hello")  # => "e"
 
 ### third
 
+Returns the third element of the list.
+
     (third '(1 2 3)) # => 3
-    (third "hello") # => "l"
+    (third "hello")  # => "l"
 
 ### last
 
+Returns the last element of the list.
+
     (last '(1 2 3)) # => 3
-    (last "hello") # => "o"
+    (last "hello")  # => "o"
 
 ### slice
 
@@ -283,7 +293,9 @@ Truthiness (neither `false` nor `nil`):
 
 ### push
 
-    (push '(1 2) 3) # => (1 2 3)
+Pushes the element to the end of the list.
+
+    (push '(1 2) 3)   # => (1 2 3)
     (push "hell" "o") # => "hello"
 
 ### contains?
@@ -294,6 +306,8 @@ Truthiness (neither `false` nor `nil`):
     (contains? "hello" "a") # => false
 
 ### intersection
+
+Returns the elements found in both lists.
 
     (intersection '(1 2 3) '(2 3 4)) # => (2 3)
 
@@ -314,22 +328,32 @@ Truthiness (neither `false` nor `nil`):
 
 ### map
 
+Applies the function to the elements of the list.
+
     (map first '((1 2) (3 4) (5 6))) # => (1 3 5)
     (map (fun (x) (* x 2)) '(1 2 3)) # => (2 4 6)
 
 ### reduce
 
+Reduces the elements of the list with the function.
+
     (reduce + '(1 2 3)) # => 6
 
 ### filter
+
+Filters the elements of the list with the function.
 
     (filter (fun (x) (= (% x 2) 0)) '(1 2 3 4)) # => (2 4)
 
 ### reject
 
+Rejects the elements of the list with the function.
+
     (reject (fun (x) (= (% x 2) 0)) '(1 2 3 4)) # => (1 3)
 
 ### rev
+
+Reverses the list.
 
     (rev '(1 2 3)) # => (3 2 1)
 
@@ -352,6 +376,8 @@ Truthiness (neither `false` nor `nil`):
 
 ### range
 
+Returns a list of numbers from start to stop excluded.
+
     (range 2 5) # => (2 3 4)
 
 ## Dict
@@ -366,9 +392,13 @@ Truthiness (neither `false` nor `nil`):
 
 ### dict/keys
 
+Returns the keys of a dict.
+
     (dict/keys (dict "a" 1 "b" 2)) # => ("a" "b")
 
 ### dict/values
+
+Returns the values of a dict.
 
     (dict/values (dict "a" 1 "b" 2)) # => (1 2)
 
@@ -406,17 +436,25 @@ Truthiness (neither `false` nor `nil`):
 
 ### str/join
 
+Joins the elements of the list with the string.
+
     (str/join '("foo" "bar") " ") # => "foo bar"
 
 ### lines
+
+Splits the text into a list of lines.
 
     (lines "Hello,\nWorld!") # => ("Hello," "World!")
 
 ### words
 
+Splits the text into a list of words.
+
     (words "Hello, World!") # => ("Hello," "World!")
 
 ### chars
+
+Splits the text into a list of chars.
 
     (chars "hello") # => ("h" "e" "l" "l" "o")
 
@@ -467,18 +505,26 @@ Truthiness (neither `false` nor `nil`):
 
 ### abs
 
+Returns the absolute value of the number.
+
     (abs 2)  # => 2
     (abs -2) # => 2
 
 ### min
 
+Returns the minimum element of the list.
+
     (min '(1 2 3 4 5)) # => 1
 
 ### max
 
+Returns the maximum element of the list.
+
     (max '(1 2 3 4 5)) # => 5
 
 ### ceil
+
+Returns the smallest integer greater than or equal to the number.
 
     (ceil -2.8) # => -2
     (ceil -2.2) # => -2
@@ -487,12 +533,16 @@ Truthiness (neither `false` nor `nil`):
 
 ### floor
 
+Returns the largest integer less than or equal to the number.
+
     (floor -2.8) # => -3
     (floor -2.2) # => -3
     (floor 2.2)  # => 2
     (floor 2.8)  # => 2
 
 ### round
+
+Returns the nearest integer to the number.
 
     (round -2.8) # => -3
     (round -2.2) # => -2
@@ -539,6 +589,8 @@ Truthiness (neither `false` nor `nil`):
     (% -7 -3) # => -1
 
 ### mod
+
+Returns the modulo of the division.
 
     (mod 7 3)   # => 1
     (mod -7 3)  # => 2
@@ -645,6 +697,8 @@ Truthiness (neither `false` nor `nil`):
 
 ### regex/match?
 
+Returns true if the string match the pattern.
+
     (regex/match? "\\d+" "42")     # => true
     (regex/match? "\\d+" "foo")    # => false
     (regex/match? "\\w+" "foo")    # => true
@@ -655,21 +709,31 @@ Truthiness (neither `false` nor `nil`):
 
 ### read
 
+Reads text file.
+
     (read "/dev/clk/rtc") # => "2026-05-04 13:22:31"
 
 ### write
+
+Writes text to file.
 
     (write "/tmp/hello.txt" "Hello, World!\n") # => ()
 
 ### append
 
+Appends text to file.
+
     (append "/tmp/hello.txt" "Lorem ipsum\n") # => ()
 
 ### dirname
 
+Returns the given path without the filename.
+
     (dirname "/dev/clk/rtc") # => "/dev/clk"
 
 ### filename
+
+Returns the filename from the given path.
 
     (filename "/dev/clk/rtc") # => "rtc"
 
@@ -773,6 +837,8 @@ open when a connection is closed.
 
 ### print
 
+Prints expression to stdout with a newline.
+
     (print "Hello, World!") # => ()
 
 ### date
@@ -794,12 +860,18 @@ open when a connection is closed.
 
 ### sh->str
 
+Returns the output of the command.
+
     (sh->str "print hello") # => "hello"
 
 ### clock/boot
 
+Returns the number of seconds since boot.
+
     (clock/boot) # => 1152.069566
 
 ### clock/epoch
+
+Returns the number of seconds since epoch.
 
     (clock/epoch) # => 1778244455.765883

@@ -81,7 +81,7 @@ shell.</p>
     <li>Enumerable: <code>len</code>, <code>put</code>, <code>get</code>, <code>slice</code>, <code>contains?</code></li>
     <li>String: <code>str/trim</code>, <code>str/split</code></li>
     <li>List: <code>list</code>, <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>uniq</code></li>
-    <li>Dict: <code>dict</code></li>
+    <li>Dict: <code>dict</code>, <code>dict/pairs</code></li>
     <li>File: <code>file/exists?</code>, <code>file/size</code>, <code>file/open</code>, <code>file/close</code>, <code>file/read</code>, <code>file/write</code></li>
     <li>Net: <code>host</code>, <code>socket/connect</code>, <code>socket/listen</code>, <code>socket/accept</code></li>
     </ul>
@@ -117,6 +117,12 @@ shell.</p>
 
     <ul>
     <li><code>floor</code>, <code>ceil</code>, <code>round</code></li>
+    </ul>
+
+    <h3>Dict Library</h3>
+
+    <ul>
+    <li><code>dict/keys</code>, <code>dict/values</code></li>
     </ul>
 
     <h3>Compat Library</h3>
@@ -209,6 +215,7 @@ with the following content:</p>
     <h3>Unreleased</h3>
 
     <ul>
+    <li>Add <code>dict/pairs</code> function</li>
     <li>Remove <code>apply</code> and keep only <code>reduce</code></li>
     <li>Change <code>socket/accept</code> to return <code>()</code> instead of an error</li>
     <li>Replace long names (<code>string</code>, <code>variable</code>, <code>define</code>, ...) by short names (<code>str</code>, <code>var</code>, <code>def</code>, ...)</li>
