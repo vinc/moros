@@ -1,5 +1,4 @@
 use super::eval::eval_args;
-use super::eval::BUILT_INS;
 use super::primitive;
 use super::FUNCTIONS;
 use super::{Err, Exp, Number};
@@ -13,6 +12,34 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::f64::consts::PI;
+
+const BUILTINS: [&str; 25] = [
+    "quote",
+    "quasiquote",
+    "unquote",
+    "unquote-splice",
+    "atom?",
+    "eq?",
+    "cons",
+    "if",
+    "cond",
+    "case",
+    "while",
+    "fun",
+    "var",
+    "var?",
+    "mut",
+    "mac",
+    "def",
+    "def-fun",
+    "def-mac",
+    "eval",
+    "expand",
+    "do",
+    "load",
+    "doc",
+    "env",
+];
 
 #[derive(Clone)]
 pub struct Env {
@@ -28,56 +55,64 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Num(Number::from(PI)),
     );
     data.insert(
-        "=".to_string(),
-        Exp::Primitive(primitive::lisp_eq),
-    );
-    data.insert(
-        ">".to_string(),
+        "gt?".to_string(),
         Exp::Primitive(primitive::lisp_gt),
     );
     data.insert(
-        ">=".to_string(),
+        "gte?".to_string(),
         Exp::Primitive(primitive::lisp_gte),
     );
     data.insert(
-        "<".to_string(),
+        "lt?".to_string(),
         Exp::Primitive(primitive::lisp_lt),
     );
     data.insert(
-        "<=".to_string(),
+        "lte?".to_string(),
         Exp::Primitive(primitive::lisp_lte),
     );
     data.insert(
-        "*".to_string(),
-        Exp::Primitive(primitive::lisp_mul),
-    );
-    data.insert(
-        "+".to_string(),
+        "add".to_string(),
         Exp::Primitive(primitive::lisp_add),
     );
     data.insert(
-        "-".to_string(),
+        "sub".to_string(),
         Exp::Primitive(primitive::lisp_sub),
     );
     data.insert(
-        "/".to_string(),
+        "mul".to_string(),
+        Exp::Primitive(primitive::lisp_mul),
+    );
+    data.insert(
+        "div".to_string(),
         Exp::Primitive(primitive::lisp_div),
     );
     data.insert(
-        "^".to_string(),
+        "exp".to_string(),
         Exp::Primitive(primitive::lisp_exp),
-    );
-    data.insert(
-        "<<".to_string(),
-        Exp::Primitive(primitive::lisp_shl),
-    );
-    data.insert(
-        ">>".to_string(),
-        Exp::Primitive(primitive::lisp_shr),
     );
     data.insert(
         "rem".to_string(),
         Exp::Primitive(primitive::lisp_rem),
+    );
+    data.insert(
+        "bit/and".to_string(),
+        Exp::Primitive(primitive::lisp_bit_and),
+    );
+    data.insert(
+        "bit/xor".to_string(),
+        Exp::Primitive(primitive::lisp_bit_xor),
+    );
+    data.insert(
+        "bit/or".to_string(),
+        Exp::Primitive(primitive::lisp_bit_or),
+    );
+    data.insert(
+        "bit/shl".to_string(),
+        Exp::Primitive(primitive::lisp_bit_shl),
+    );
+    data.insert(
+        "bit/shr".to_string(),
+        Exp::Primitive(primitive::lisp_bit_shr),
     );
     data.insert(
         "cos".to_string(),
@@ -104,43 +139,39 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_tan),
     );
     data.insert(
-        "trunc".to_string(),
-        Exp::Primitive(primitive::lisp_trunc),
-    );
-    data.insert(
-        "shell".to_string(),
+        "sh".to_string(),
         Exp::Primitive(primitive::lisp_shell),
     );
     data.insert(
-        "shell->binary".to_string(),
+        "sh->bin".to_string(),
         Exp::Primitive(primitive::lisp_shell_binary),
     );
     data.insert(
-        "string".to_string(),
+        "str".to_string(),
         Exp::Primitive(primitive::lisp_string),
     );
     data.insert(
-        "string->binary".to_string(),
+        "str->bin".to_string(),
         Exp::Primitive(primitive::lisp_string_binary),
     );
     data.insert(
-        "binary->string".to_string(),
+        "bin->str".to_string(),
         Exp::Primitive(primitive::lisp_binary_string),
     );
     data.insert(
-        "binary->number".to_string(),
+        "bin->num".to_string(),
         Exp::Primitive(primitive::lisp_binary_number),
     );
     data.insert(
-        "number->binary".to_string(),
+        "num->bin".to_string(),
         Exp::Primitive(primitive::lisp_number_binary),
     );
     data.insert(
-        "number->string".to_string(),
+        "num->str".to_string(),
         Exp::Primitive(primitive::lisp_number_string),
     );
     data.insert(
-        "string->number".to_string(),
+        "str->num".to_string(),
         Exp::Primitive(primitive::lisp_string_number),
     );
     data.insert(
@@ -160,7 +191,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_sort),
     );
     data.insert(
-        "unique".to_string(),
+        "uniq".to_string(),
         Exp::Primitive(primitive::lisp_unique),
     );
     data.insert(
@@ -176,7 +207,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_chunks),
     );
     data.insert(
-        "length".to_string(),
+        "len".to_string(),
         Exp::Primitive(primitive::lisp_length),
     );
     data.insert(
@@ -184,19 +215,27 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_concat),
     );
     data.insert(
-        "number/type".to_string(),
+        "num/type".to_string(),
         Exp::Primitive(primitive::lisp_number_type),
+    );
+    data.insert(
+        "num/int".to_string(),
+        Exp::Primitive(primitive::lisp_number_int),
+    );
+    data.insert(
+        "num/eq?".to_string(),
+        Exp::Primitive(primitive::lisp_number_equal),
     );
     data.insert(
         "regex/find".to_string(),
         Exp::Primitive(primitive::lisp_regex_find),
     );
     data.insert(
-        "string/split".to_string(),
+        "str/split".to_string(),
         Exp::Primitive(primitive::lisp_string_split),
     );
     data.insert(
-        "string/trim".to_string(),
+        "str/trim".to_string(),
         Exp::Primitive(primitive::lisp_string_trim),
     );
     data.insert(
@@ -244,6 +283,10 @@ pub fn default_env() -> Rc<RefCell<Env>> {
         Exp::Primitive(primitive::lisp_dict),
     );
     data.insert(
+        "dict/pairs".to_string(),
+        Exp::Primitive(primitive::lisp_dict_pairs),
+    );
+    data.insert(
         "get".to_string(),
         Exp::Primitive(primitive::lisp_get),
     );
@@ -262,7 +305,7 @@ pub fn default_env() -> Rc<RefCell<Env>> {
 
     // Setup autocompletion
     *FUNCTIONS.lock() = data.keys().cloned().
-        chain(BUILT_INS.map(String::from)).collect();
+        chain(BUILTINS.map(String::from)).collect();
 
     Rc::new(RefCell::new(Env { data, outer: None }))
 }
@@ -364,7 +407,7 @@ fn inner_env(
     }
     Ok(Rc::new(RefCell::new(Env {
         data,
-        outer: Some(Rc::new(RefCell::new(outer.borrow_mut().clone()))),
+        outer: Some(outer.clone()),
     })))
 }
 

@@ -37,7 +37,7 @@
 
 (def (format-time secs) (do
   (set m (trunc (/ secs 60)))
-  (set s (trunc (rem secs 60)))
+  (set s (trunc (% secs 60)))
   (set mm (if (< m 10) (str "0" (num->str m)) (num->str m)))
   (set ss (if (< s 10) (str "0" (num->str s)) (num->str s)))
   (str mm ":" ss)))

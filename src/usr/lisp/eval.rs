@@ -1,11 +1,8 @@
 use super::env::{env_get, env_keys, env_set, function_env};
 use super::expand::expand;
-use super::parse::parse;
 use super::string;
-use super::{parse_eval, Env, Err, Exp, Function};
+use super::{exec, Env, Err, Exp, Function};
 
-use crate::api::fs;
-use crate::could_not;
 use crate::{ensure_length_eq, ensure_length_gt, expected};
 
 use alloc::boxed::Box;
@@ -14,6 +11,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+use core::cmp::Ordering::Equal;
 
 fn eval_quote_args(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
@@ -35,57 +33,18 @@ fn eval_equal_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
 ) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 2);
-    let a = eval(&args[0], env)?;
-    let b = eval(&args[1], env)?;
-    Ok(Exp::Bool(a == b))
-}
+    ensure_length_gt!(args, 1);
 
-fn eval_head_args(
-    args: &[Exp],
-    env: &mut Rc<RefCell<Env>>
-) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    match eval(&args[0], env)? {
-        Exp::Dict(d) => {
-            ensure_length_gt!(d, 0);
-            let (k, v) = d.first_key_value().unwrap();
-            let (_, k) = parse(&k)?;
-            Ok(Exp::List([k, v.clone()].to_vec()))
-        }
-        Exp::List(l) => {
-            ensure_length_gt!(l, 0);
-            Ok(l[0].clone())
-        }
-        Exp::Str(s) => {
-            ensure_length_gt!(s, 0);
-            Ok(Exp::Str(s.chars().next().unwrap().to_string()))
-        }
-        _ => expected!("first argument to be an enumerable"),
-    }
-}
+    let exps: Vec<Exp> = args.iter().map(|arg|
+        eval(&arg, env)
+    ).collect::<Result<_,_>>()?;
 
-fn eval_tail_args(
-    args: &[Exp],
-    env: &mut Rc<RefCell<Env>>
-) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    match eval(&args[0], env)? {
-        Exp::Dict(mut d) => {
-            ensure_length_gt!(d, 0);
-            d.pop_first();
-            Ok(Exp::Dict(d))
+    Ok(Exp::Bool(exps.windows(2).all(|pair|
+        match (&pair[0], &pair[1]) {
+            (Exp::Num(a), Exp::Num(b)) => a.partial_cmp(b) == Some(Equal),
+            (a, b) => a == b,
         }
-        Exp::List(l) => {
-            ensure_length_gt!(l, 0);
-            Ok(Exp::List(l[1..].to_vec()))
-        }
-        Exp::Str(s) => {
-            ensure_length_gt!(s, 0);
-            Ok(Exp::Str(s.chars().skip(1).collect()))
-        }
-        _ => expected!("first argument to be an enumerable"),
-    }
+    )))
 }
 
 fn eval_cons_args(
@@ -93,9 +52,10 @@ fn eval_cons_args(
     env: &mut Rc<RefCell<Env>>
 ) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
+    let exp = eval(&args[0], env)?;
     match eval(&args[1], env)? {
         Exp::List(mut list) => {
-            list.insert(0, eval(&args[0], env)?);
+            list.insert(0, exp);
             Ok(Exp::List(list))
         }
         _ => expected!("first argument to be a list"),
@@ -168,19 +128,6 @@ fn eval_while_args(
     Ok(res)
 }
 
-fn eval_apply_args(
-    args: &[Exp],
-    env: &mut Rc<RefCell<Env>>
-) -> Result<Exp, Err> {
-    ensure_length_gt!(args, 1);
-    let mut args = args.to_vec();
-    match eval(&args.pop().unwrap(), env) {
-        Ok(Exp::List(rest)) => args.extend(rest),
-        _ => return expected!("last argument to be a list"),
-    }
-    eval(&Exp::List(args.to_vec()), env)
-}
-
 fn eval_eval_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
@@ -207,15 +154,7 @@ fn eval_load_args(
 ) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let path = string(&eval(&args[0], env)?)?;
-    let mut input = fs::read_to_string(&path).
-        or(could_not!("read file '{}'", path))?;
-    loop {
-        let (rest, _) = parse_eval(&input, env)?;
-        if rest.is_empty() {
-            break;
-        }
-        input = rest;
-    }
+    exec(&path, env)?;
     Ok(Exp::Bool(true))
 }
 
@@ -239,36 +178,6 @@ pub fn eval_args(
     args.iter().map(|x| eval(x, env)).collect()
 }
 
-pub const BUILT_INS: [&str; 27] = [
-    "quote",
-    "quasiquote",
-    "unquote",
-    "unquote-splicing",
-    "atom?",
-    "equal?",
-    "head",
-    "tail",
-    "cons",
-    "if",
-    "cond",
-    "while",
-    "function",
-    "variable",
-    "variable?",
-    "mutate",
-    "macro",
-    "define-function",
-    "define",
-    "define-macro",
-    "apply",
-    "eval",
-    "expand",
-    "do",
-    "load",
-    "doc",
-    "env",
-];
-
 pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
     let mut exp = exp;
     let mut env = env;
@@ -280,6 +189,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
             Exp::Bool(_) => return Ok(exp.clone()),
             Exp::Num(_) => return Ok(exp.clone()),
             Exp::Str(_) => return Ok(exp.clone()),
+            Exp::Dict(_) => return Ok(exp.clone()),
             Exp::List(list) => {
                 ensure_length_gt!(list, 0);
                 let args = &list[1..];
@@ -290,23 +200,14 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "atom?" => {
                         return eval_atom_args(args, env);
                     }
-                    Exp::Sym(s) if s == "equal?" => {
+                    Exp::Sym(s) if s == "eq?" => {
                         return eval_equal_args(args, env);
-                    }
-                    Exp::Sym(s) if s == "head" => {
-                        return eval_head_args(args, env);
-                    }
-                    Exp::Sym(s) if s == "tail" => {
-                        return eval_tail_args(args, env);
                     }
                     Exp::Sym(s) if s == "cons" => {
                         return eval_cons_args(args, env);
                     }
                     Exp::Sym(s) if s == "while" => {
                         return eval_while_args(args, env);
-                    }
-                    Exp::Sym(s) if s == "apply" => {
-                        return eval_apply_args(args, env);
                     }
                     Exp::Sym(s) if s == "eval" => {
                         return eval_eval_args(args, env);
@@ -320,13 +221,13 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "doc" => {
                         return eval_doc_args(args, env);
                     }
-                    Exp::Sym(s) if s == "variable?" => {
+                    Exp::Sym(s) if s == "var?" => {
                         return eval_is_variable_args(args, env);
                     }
-                    Exp::Sym(s) if s == "variable" => {
+                    Exp::Sym(s) if s == "var" => {
                         return eval_variable_args(args, env);
                     }
-                    Exp::Sym(s) if s == "mutate" => {
+                    Exp::Sym(s) if s == "mut" => {
                         return eval_mutate_args(args, env);
                     }
                     Exp::Sym(s) if s == "env" => {
@@ -350,7 +251,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         }
                         exp = &exp_tmp;
                     }
-                    Exp::Sym(s) if s == "function" || s == "macro" => {
+                    Exp::Sym(s) if s == "fun" || s == "mac" => {
                         let (params, body, doc) = match args.len() {
                             2 => {
                                 (args[0].clone(), args[1].clone(), None)
@@ -362,7 +263,7 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             _ => return expected!("3 or 4 arguments"),
                         };
                         let f = Box::new(Function { params, body, doc });
-                        let exp = if s == "function" {
+                        let exp = if s == "fun" {
                             Exp::Function(f)
                         } else {
                             Exp::Macro(f)

@@ -178,6 +178,11 @@ pub fn listen(handle: usize, port: u16) -> isize {
     -1
 }
 
+// TODO: This should return a new file handle for the connection in addition
+// to an address and a port to keep the listening socket open when the
+// connection is closed: `Result<(usize, IpAddress, u16), ()>`.
+// TODO: Remove the blocking+timeout as waiting should be done by polling the
+// listening socket instead.
 pub fn accept(handle: usize) -> Result<IpAddress, ()> {
     if let Some(file) = sys::process::handle(handle) {
         return match *file {

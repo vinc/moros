@@ -1,39 +1,73 @@
 (load "/lib/lisp/alias.lsp")
 
-(def (string? x)
-  (equal? (type x) "string"))
+(def (str? x)
+  (eq? (type x) "str"))
 
-(def (boolean? x)
-  (equal? (type x) "boolean"))
+(def (bool? x)
+  (eq? (type x) "bool"))
 
-(def (symbol? x)
-  (equal? (type x) "symbol"))
+(def (sym? x)
+  (eq? (type x) "sym"))
 
-(def (number? x)
-  (equal? (type x) "number"))
+(def (num? x)
+  (eq? (type x) "num"))
 
 (def (list? x)
-  (equal? (type x) "list"))
+  (eq? (type x) "list"))
 
-(def (function? x)
-  (equal? (type x) "function"))
+(def (fun? x)
+  (eq? (type x) "fun"))
 
-(def (macro? x)
-  (equal? (type x) "macro"))
+(def (mac? x)
+  (eq? (type x) "mac"))
+
+(def (push ls x)
+  "Pushes the element to the end of the list"
+  (put ls (len ls) x))
+
+(def (first ls)
+  "Returns the first element of the list"
+  (get ls 0))
+
+(def (second ls)
+  "Returns the second element of the list"
+  (get ls 1))
+
+(def (third ls)
+  "Returns the third element of the list"
+  (get ls 2))
+
+(def (last ls)
+  "Returns the last element of the list"
+  (get ls
+    (if (= (len ls) 0) 0 (- (len ls) 1))))
+
+(def (rest ls)
+  "Returns the rest of the list"
+  (slice ls 1 (len ls)))
+
+(var head first)
+(var tail rest)
 
 (var nil '())
 
 (def (nil? x)
-  (equal? x nil))
+  (eq? x nil))
 
 (def (not x)
   (if x false true))
 
-(def-mac (or x y)
-  `(if ,x ,x (if ,y ,y false)))
+(def-mac (or @xs)
+  (if (nil? xs) false
+    (if (nil? (rest xs)) (first xs)
+      `(if ,(first xs) ,(first xs) (or ,@(rest xs))))))
 
-(def-mac (and x y)
-  `(if ,x (if ,y true false) false))
+(def-mac (and @xs)
+  (if (nil? xs) true
+    (if (nil? (rest xs)) (first xs)
+      `(if ,(first xs) (and ,@(rest xs)) false))))
+
+# TODO: xor
 
 (def (empty? x)
   (= (len x) 0))
@@ -82,10 +116,10 @@
   "Returns the elements found in both lists"
   (filter (fun (x) (contains? b x)) a))
 
-(def (reverse ls)
+(def (rev ls)
   "Reverses the list"
   (if (nil? ls) ls
-    (concat (reverse (tail ls)) (cons (head ls) '()))))
+    (concat (rev (tail ls)) (cons (head ls) '()))))
 
 (def (range start stop)
   "Returns a list of numbers from start to stop excluded"
@@ -98,19 +132,19 @@
 
 (def (max ls)
   "Returns the maximum element of the list"
-  (head (reverse (sort ls))))
+  (head (rev (sort ls))))
 
 (def (abs x)
   "Returns the absolute value of the number"
   (if (> x 0) x (- x)))
 
 (def (mod a b)
-  "Returns the remainder of the division"
-  (rem (+ (rem a b) b) b))
+  "Returns the modulo of the division"
+  (% (+ (% a b) b) b))
 
-(def (string/join ls s)
+(def (str/join ls s)
   "Joins the elements of the list with the string"
-  (if (empty? ls) "" (reduce (fun (x y) (string x s y)) ls)))
+  (if (empty? ls) "" (reduce (fun (x y) (str x s y)) ls)))
 
 (def (regex/match? r s)
   "Returns true if the string match the pattern"
@@ -118,68 +152,19 @@
 
 (def (lines text)
   "Splits the text into a list of lines"
-  (string/split (string/trim text) "\n"))
+  (str/split (str/trim text) "\n"))
 
 (def (words text)
   "Splits the text into a list of words"
-  (string/split text " "))
+  (str/split text " "))
 
 (def (chars text)
   "Splits the text into a list of chars"
-  (string/split text ""))
+  (str/split text ""))
 
-(def (push ls x)
-  "Pushes the element to the end of the list"
-  (put ls (len ls) x))
-
-(def (first ls)
-  "Returns the first element of the list"
-  (get ls 0))
-
-(def (second ls)
-  "Returns the second element of the list"
-  (get ls 1))
-
-(def (third ls)
-  "Returns the third element of the list"
-  (get ls 2))
-
-(def (last ls)
-  "Returns the last element of the list"
-  (get ls
-    (if (= (length ls) 0) 0 (- (length ls) 1))))
-
-(def (shell->string cmd)
+(def (sh->str cmd)
   "Returns the output of the command"
-  (string/trim (binary->string (shell->binary cmd))))
-
-# Short aliases
-
-(var sh->str shell->string)
-(var sh->bin shell->binary)
-(var sh shell)
-(var $ shell)
-(var % rem)
-(var str string)
-(var str/split string/split)
-(var str/join string/join)
-(var str/trim string/trim)
-(var num/type number/type)
-(var str->num string->number)
-(var str->bin string->binary)
-(var num->bin number->binary)
-(var num->str number->string)
-(var bin->str binary->string)
-(var bin->num binary->number)
-(var bool? boolean?)
-(var str? string?)
-(var sym? symbol?)
-(var num? number?)
-(var fun? function?)
-(var mac? macro?)
-(var len length)
-(var rev reverse)
-(var uniq unique)
+  (str/trim (bin->str (sh->bin cmd))))
 
 (load "/lib/lisp/dict.lsp")
 (load "/lib/lisp/file.lsp")
