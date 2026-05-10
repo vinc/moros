@@ -67,7 +67,7 @@ pub fn set_dir(path: &str) {
 
 // TODO: Return Result<String>
 pub fn user() -> Option<String> {
-    fs::read_to_string("/dev/proc/user").ok()
+    fs::read_to_string("/dev/proc/user").ok().filter(|user| !user.is_empty())
 }
 
 // TODO: Return Result<BTreeMap<String, String>>
