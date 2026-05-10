@@ -2,17 +2,17 @@ use crate::api::clock::DATE_TIME;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::fs::FileInfo;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::api::time;
 use crate::api::unit::SizeUnit;
-use crate::sys;
 
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut path: &str = &sys::process::dir(); // TODO: use '.'
+    let mut path: &str = &process::dir(); // TODO: use '.'
     let mut sort = "name";
     let mut hide_dot_files = true;
     let mut unit = SizeUnit::None;

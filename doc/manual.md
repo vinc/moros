@@ -171,7 +171,7 @@ The line above the command prompt tells you where you are in the disk. The
 tilde `~` means that you are in your home directory:
 
     ~
-    > print $DIR
+    > print $dir
     /usr/vinc
 
 You can change directory by typing it as if it was a command:
@@ -180,7 +180,7 @@ You can change directory by typing it as if it was a command:
     > /tmp
 
     /tmp
-    > print $DIR
+    > print $dir
     /tmp
 
 From now on we'll omit the directory line in most examples.
@@ -275,19 +275,19 @@ You can also set the `TZ` environment variable to use your preferred timezone:
     > calc "2 * 60 * 60"
     7200
 
-    > env TZ 7200
+    > set --env TZ 7200
 
     > date
     2023-03-21 12:00:00 +0200
 
-Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
+Add `set --env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
     > read /ini/boot.sh
     shell /ini/palettes/gruvbox-dark.sh
     read /ini/fonts/zap-light-8x16.psf => /dev/vga/font
     read /ini/banner.txt
     user login
-    env TZ 7200
+    set --env TZ 7200
     shell
 
 There's a device file to get the number of seconds elapsed since Unix Epoch:

@@ -17,6 +17,7 @@ use crate::sys::rng::Random;
 use crate::sys::speaker::Speaker;
 use crate::sys::vga::{VgaFont, VgaMode, VgaPalette, VgaBuffer};
 use crate::sys::snd::SoundBuffer;
+use crate::sys::process::{ProcId, ProcDir, ProcEnv, ProcUser};
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -26,27 +27,31 @@ use core::convert::TryInto;
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum DeviceType {
-    Null       = 0,
-    File       = 1,
-    Console    = 2,
-    Random     = 3,
-    BootTime   = 4,
-    EpochTime  = 5,
-    RTC        = 6,
-    TcpSocket  = 7,
-    UdpSocket  = 8,
-    Drive      = 9,
-    VgaBuffer  = 10,
-    VgaFont    = 11,
-    VgaMode    = 12,
-    VgaPalette = 13,
-    Speaker    = 14,
-    NetGw      = 15,
-    NetIp      = 16,
-    NetMac     = 17,
-    NetUsage   = 18,
-    Pipe       = 19,
-    SoundBuffer  = 20,
+    Null        = 0,
+    File        = 1,
+    Console     = 2,
+    Random      = 3,
+    BootTime    = 4,
+    EpochTime   = 5,
+    RTC         = 6,
+    TcpSocket   = 7,
+    UdpSocket   = 8,
+    Drive       = 9,
+    VgaBuffer   = 10,
+    VgaFont     = 11,
+    VgaMode     = 12,
+    VgaPalette  = 13,
+    Speaker     = 14,
+    NetGw       = 15,
+    NetIp       = 16,
+    NetMac      = 17,
+    NetUsage    = 18,
+    Pipe        = 19,
+    SoundBuffer = 20,
+    ProcId      = 21,
+    ProcDir     = 22,
+    ProcEnv     = 23,
+    ProcUser    = 24,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -75,6 +80,10 @@ impl TryFrom<&[u8]> for DeviceType {
             18 => Ok(DeviceType::NetUsage),
             19 => Ok(DeviceType::Pipe),
             20 => Ok(DeviceType::SoundBuffer),
+            21 => Ok(DeviceType::ProcId),
+            22 => Ok(DeviceType::ProcDir),
+            23 => Ok(DeviceType::ProcEnv),
+            24 => Ok(DeviceType::ProcUser),
              _ => Err(()),
         }
     }
@@ -102,6 +111,10 @@ impl DeviceType {
             DeviceType::NetUsage    => NetUsage::size(),
             DeviceType::Pipe        => Pipe::size(),
             DeviceType::SoundBuffer => SoundBuffer::size(),
+            DeviceType::ProcId      => ProcId::size(),
+            DeviceType::ProcDir     => ProcDir::size(),
+            DeviceType::ProcEnv     => ProcEnv::size(),
+            DeviceType::ProcUser    => ProcUser::size(),
             _                       => 1,
         };
         let mut res = vec![0; len];
@@ -133,6 +146,10 @@ pub enum Device {
     NetUsage(NetUsage),
     Pipe(Pipe),
     SoundBuffer(SoundBuffer),
+    ProcId(ProcId),
+    ProcDir(ProcDir),
+    ProcEnv(ProcEnv),
+    ProcUser(ProcUser),
 }
 
 impl TryFrom<&[u8]> for Device {
@@ -160,6 +177,10 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::NetUsage    => Ok(Device::NetUsage(NetUsage::new())),
             DeviceType::Pipe        => Ok(Device::Pipe(Pipe::new())),
             DeviceType::SoundBuffer => Ok(Device::SoundBuffer(SoundBuffer::new())),
+            DeviceType::ProcId      => Ok(Device::ProcId(ProcId::new())),
+            DeviceType::ProcDir     => Ok(Device::ProcDir(ProcDir::new())),
+            DeviceType::ProcEnv     => Ok(Device::ProcEnv(ProcEnv::new())),
+            DeviceType::ProcUser    => Ok(Device::ProcUser(ProcUser::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -230,6 +251,10 @@ impl FileIO for Device {
             Device::NetUsage(io)    => io.read(buf),
             Device::Pipe(io)        => io.read(buf),
             Device::SoundBuffer(io) => io.read(buf),
+            Device::ProcId(io)      => io.read(buf),
+            Device::ProcDir(io)     => io.read(buf),
+            Device::ProcEnv(io)     => io.read(buf),
+            Device::ProcUser(io)    => io.read(buf),
         }
     }
 
@@ -256,6 +281,10 @@ impl FileIO for Device {
             Device::NetUsage(io)    => io.write(buf),
             Device::Pipe(io)        => io.write(buf),
             Device::SoundBuffer(io) => io.write(buf),
+            Device::ProcId(io)      => io.write(buf),
+            Device::ProcDir(io)     => io.write(buf),
+            Device::ProcEnv(io)     => io.write(buf),
+            Device::ProcUser(io)    => io.write(buf),
         }
     }
 
@@ -282,6 +311,10 @@ impl FileIO for Device {
             Device::NetUsage(io)    => io.close(),
             Device::Pipe(io)        => io.close(),
             Device::SoundBuffer(io) => io.close(),
+            Device::ProcId(io)      => io.close(),
+            Device::ProcDir(io)     => io.close(),
+            Device::ProcEnv(io)     => io.close(),
+            Device::ProcUser(io)    => io.close(),
         }
     }
 
@@ -308,6 +341,10 @@ impl FileIO for Device {
             Device::NetUsage(io)    => io.poll(event),
             Device::Pipe(io)        => io.poll(event),
             Device::SoundBuffer(io) => io.poll(event),
+            Device::ProcId(io)      => io.poll(event),
+            Device::ProcDir(io)     => io.poll(event),
+            Device::ProcEnv(io)     => io.poll(event),
+            Device::ProcUser(io)    => io.poll(event),
         }
     }
 }

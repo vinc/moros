@@ -1,22 +1,34 @@
+mod dir;
+mod env;
+mod id;
 mod spawn;
 mod table;
+mod user;
 
+pub use id::ProcId;
+pub use dir::ProcDir;
+pub use env::ProcEnv;
+pub use user::ProcUser;
 pub use spawn::spawn;
 pub use table::{
     init,
     code_addr,
-    id, set_id,
-    dir, set_dir,
-    envs, env, set_env,
-    user, set_user,
+    env_var,
+    set_user,
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
     registers, set_registers,
     stack_frame, set_stack_frame,
 };
 
-use table::PROCESS_TABLE;
-use table::current_process;
+use table::{
+    PROCESS_TABLE,
+    current_process,
+    id, set_id,
+    dir, set_dir,
+    env, set_env_var,
+    user,
+};
 
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};

@@ -1,8 +1,8 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::regex::Regex;
-use crate::sys;
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -74,7 +74,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     }
 
     if path.is_empty() {
-        path = sys::process::dir();
+        path = process::dir();
         options.trim = format!("{}/", path);
     }
 

@@ -1,5 +1,6 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 use crate::api::regex::Regex;
@@ -15,9 +16,9 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 45] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 44] = [
     "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "deflate",
-    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode", "env",
+    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode",
     "goto", "hash", "help", "hex", "host", "http", "httpd", "inflate",
     "install", "keyboard", "life", "lisp", "list", "memory", "move", "net",
     "pci", "quit", "read", "render", "shell", "socket", "spell", "tcp", "time",
@@ -33,11 +34,11 @@ impl Config {
     fn new() -> Config {
         let aliases = BTreeMap::new();
         let mut env = BTreeMap::new();
-        for (key, val) in sys::process::envs() {
+        for (key, val) in process::env() {
             // Copy the process environment to the shell environment
             env.insert(key, val);
         }
-        env.insert("DIR".to_string(), sys::process::dir());
+        env.insert("dir".to_string(), process::dir());
         env.insert("status".to_string(), "0".to_string());
         Config { env, aliases }
     }
@@ -106,8 +107,8 @@ pub fn prompt_string(success: bool) -> String {
     let csi_error = Style::color("maroon");
     let csi_reset = Style::reset();
 
-    let mut current_dir = sys::process::dir();
-    if let Some(home) = sys::process::env("HOME") {
+    let mut current_dir = process::dir();
+    if let Some(home) = process::env_var("HOME") {
         if current_dir.starts_with(&home) {
             let n = home.len();
             current_dir.replace_range(..n, "~");
@@ -150,7 +151,7 @@ fn glob(arg: &str) -> Vec<String> {
             let n = fs::filename(arg).to_string();
             (d, n, true)
         } else {
-            (sys::process::dir(), arg.to_string(), false)
+            (process::dir(), arg.to_string(), false)
         };
         let re = Regex::from_glob(&pattern);
         let sep = if dir == "/" { "" } else { "/" };
@@ -250,7 +251,7 @@ pub fn split_args(cmd: &str) -> Vec<String> {
 
 // Replace `~` with the value of `$HOME` when it's at the begining of an arg
 fn tilde_expansion(arg: &str) -> String {
-    if let Some(home) = sys::process::env("HOME") {
+    if let Some(home) = process::env_var("HOME") {
         let tilde = "~";
         if arg == tilde || arg.starts_with("~/") {
             return arg.replacen(tilde, &home, 1);
@@ -289,10 +290,19 @@ fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     cmd
 }
 
+fn cmd_echo(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    println!("{}", args[1..].join(" "));
+
+    // Handle dir changed with `echo /tmp => /dev/proc/dir`
+    config.env.insert("dir".to_string(), process::dir());
+
+    Ok(())
+}
+
 fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
-            println!("{}", sys::process::dir());
+            println!("{}", process::dir());
             Ok(())
         }
         2 => {
@@ -300,9 +310,9 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             if path.len() > 1 {
                 path = path.trim_end_matches('/').into();
             }
-            if api::fs::is_dir(&path) {
-                sys::process::set_dir(&path);
-                config.env.insert("DIR".to_string(), sys::process::dir());
+            if fs::is_dir(&path) {
+                process::set_dir(&path);
+                config.env.insert("dir".to_string(), process::dir());
                 Ok(())
             } else {
                 error!("Could not find file '{}'", path);
@@ -348,23 +358,76 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
-    if args.len() != 3 {
-        let csi_option = Style::color("aqua");
-        let csi_title = Style::color("yellow");
-        let csi_reset = Style::reset();
-        eprintln!(
-            "{}Usage:{} set {}<key> <val>{1}",
-            csi_title, csi_reset, csi_option
-        );
-        return Err(ExitCode::UsageError);
-    }
+#[derive(Debug, PartialEq)]
+enum VarScope {
+    Local,
+    Global,
+    Env,
+}
 
-    config.env.insert(args[1].to_string(), args[2].to_string());
-    Ok(())
+fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    let mut scope = VarScope::Local;
+    let mut key = None;
+    let mut val = None;
+    let mut i = 1;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                let csi_option = Style::color("aqua");
+                let csi_title = Style::color("yellow");
+                let csi_reset = Style::reset();
+                eprintln!(
+                    "{}Usage:{} set {}<options> <key> <val>{1}",
+                    csi_title, csi_reset, csi_option
+                );
+                println!();
+                println!("{}Options:{}", csi_title, csi_reset);
+                println!(
+                    "  {0}-e{1}, {0}--env{1}    Set env var",
+                    csi_option, csi_reset
+                );
+                return Ok(());
+            }
+            "-e" | "--env" => {
+                scope = VarScope::Env;
+            }
+            "-l" | "--local" => {
+                scope = VarScope::Local;
+            }
+            "-g" | "--global" => {
+                scope = VarScope::Global; // TODO
+            }
+            _ => {
+                if args[i].starts_with('-') {
+                    error!("Invalid option '{}'", args[i]);
+                    return Err(ExitCode::UsageError);
+                } else if key.is_none() {
+                    key = Some(args[i]);
+                } else if val.is_none() {
+                    val = Some(args[i]);
+                } else {
+                    error!("Too many arguments");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+        }
+        i += 1;
+    }
+    if let Some(key) = key {
+        if let Some(val) = val {
+            if scope == VarScope::Env {
+                process::set_env_var(key, val);
+            }
+            config.env.insert(key.to_string(), val.to_string());
+            return Ok(());
+        }
+    }
+    Err(ExitCode::UsageError)
 }
 
 fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    // TODO: Unset env var
     if args.len() != 2 {
         let csi_option = Style::color("aqua");
         let csi_title = Style::color("yellow");
@@ -542,10 +605,10 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "disk"      => usr::disk::main(args),
         "draw"      => usr::draw::main(args),
         "drop"      => usr::drop::main(args),
+        "echo"      => cmd_echo(args, config),
         "edit"      => usr::edit::main(args),
         "elf"       => usr::elf::main(args),
         "encode"    => usr::encode::main(args),
-        "env"       => usr::env::main(args),
         "find"      => usr::find::main(args),
         //"geodate"   => usr::geodate::main(args),
         "goto"      => cmd_change_dir(args, config), // TODO: Remove this
@@ -590,8 +653,8 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             }
             match syscall::info(&path).map(|info| info.kind()) {
                 Some(FileType::Dir) => {
-                    sys::process::set_dir(&path);
-                    config.env.insert("DIR".to_string(), sys::process::dir());
+                    process::set_dir(&path);
+                    config.env.insert("dir".to_string(), process::dir());
                     Ok(())
                 }
                 Some(FileType::File) => {
