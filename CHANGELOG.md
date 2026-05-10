@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improve Lisp user experience (#841)
 - Add assembler written in Lisp (#839)
 - Add AC'97 driver (#829)
 - Split process module (#831)

@@ -98,7 +98,7 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/lib/lisp/dict.lsp", verbose);
     copy_file!("/lib/lisp/file.lsp", verbose);
     copy_file!("/lib/lisp/ini.lsp", verbose);
-    //copy_file!("/lib/lisp/legacy.lsp", verbose);
+    //copy_file!("/lib/lisp/compat.lsp", verbose);
     copy_file!("/lib/lisp/math.lsp", verbose);
 
     copy_file!("/tmp/alice.txt", verbose);

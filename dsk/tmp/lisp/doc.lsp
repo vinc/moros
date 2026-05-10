@@ -5,7 +5,7 @@
   (set d (doc (eval f)))
   (print (str
     "("
-    (if (function? (eval f)) "\e[96m" "\e[92m") f "\e[0m" # name
+    (if (fun? (eval f)) "\e[96m" "\e[92m") f "\e[0m" # name
     (if (nil? s) ""
       (str " " (if (list? s) (str/join s " ") s))) # args
     ")"
@@ -14,6 +14,6 @@
 (set fs
   (filter
     (fun (f) (or (fun? (eval f)) (mac? (eval f))))
-    (rev (env))))
+    (env)))
 
 (map print-doc fs)
