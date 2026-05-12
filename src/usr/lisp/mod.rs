@@ -784,4 +784,7 @@ fn test_lisp() {
 
     // fold
     assert_eq!(eval!("(fold sub 0 '(1 2 3))"), "-6");
+    assert_eq!(eval!("(fold sub 0 '(1 2))"), "-3");
+    assert_eq!(eval!("(fold sub 0 '(1))"), "-1");
+    assert_eq!(eval!("(fold sub 0 '())"), "0");
 }
