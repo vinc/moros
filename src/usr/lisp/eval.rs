@@ -270,19 +270,24 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         };
                         return Ok(exp);
                     }
-                    _ => match eval(&list[0], env)? {
-                        Exp::Function(f) => {
-                            let args = eval_args(args, env)?;
-                            env_tmp = bind(&f.params, &args, env)?;
-                            exp_tmp = f.body;
-                            env = &mut env_tmp;
-                            exp = &exp_tmp;
-                        }
-                        Exp::Primitive(f) => {
-                            return f(&eval_args(args, env)?);
-                        }
-                        _ => {
-                            return expected!("first argument to be a function");
+                    _ => {
+                        let head = eval(&list[0], env)?;
+                        let args = eval_args(args, env)?;
+                        match head {
+                            Exp::Function(f) => {
+                                env_tmp = bind(&f.params, &args, env)?;
+                                exp_tmp = f.body;
+                                env = &mut env_tmp;
+                                exp = &exp_tmp;
+                            }
+                            Exp::Primitive(f) => {
+                                return f(&args);
+                            }
+                            _ => {
+                                return expected!(
+                                    "first argument to be a function"
+                                );
+                            }
                         }
                     },
                 }
