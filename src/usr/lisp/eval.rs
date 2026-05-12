@@ -113,6 +113,21 @@ fn eval_env_args(
     Ok(Exp::List(keys))
 }
 
+fn eval_apply_args(
+    args: &[Exp],
+    env: &mut Rc<RefCell<Env>>
+) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 1);
+    let i = args.len() - 1;
+    let last = args[i].clone();
+    let mut args = eval_args(&args[0..i], env)?;
+    match eval(&last, env)? {
+        Exp::List(rest) => args.extend(rest),
+        _ => return expected!("last argument to be a list"),
+    }
+    apply(&args[0], &args[1..], env)
+}
+
 fn eval_while_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
@@ -233,6 +248,9 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     Exp::Sym(s) if s == "env" => {
                         return eval_env_args(args, env);
                     }
+                    Exp::Sym(s) if s == "apply" => {
+                        return eval_apply_args(args, env);
+                    }
                     Exp::Sym(s) if s == "expand" => {
                         ensure_length_eq!(args, 1);
                         return expand(&args[0], env);
@@ -271,9 +289,9 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         return Ok(exp);
                     }
                     _ => {
-                        let head = eval(&list[0], env)?;
+                        let f = eval(&list[0], env)?;
                         let args = eval_args(args, env)?;
-                        match head {
+                        match f {
                             Exp::Function(f) => {
                                 env_tmp = bind(&f.params, &args, env)?;
                                 exp_tmp = f.body;
@@ -293,6 +311,25 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 }
             }
             _ => return Err(Err::Reason("Unexpected argument".to_string())),
+        }
+    }
+}
+
+fn apply(
+    f: &Exp,
+    args: &[Exp],
+    env: &mut Rc<RefCell<Env>>
+) -> Result<Exp, Err> {
+    match f {
+        Exp::Function(f) => {
+            let mut inner_env = bind(&f.params, &args, env)?;
+            eval(&f.body, &mut inner_env)
+        }
+        Exp::Primitive(f) => {
+            f(&args)
+        }
+        _ => {
+            expected!("first argument to be a function")
         }
     }
 }

@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::f64::consts::PI;
 
-const BUILTINS: [&str; 25] = [
+const BUILTINS: [&str; 26] = [
     "quote",
     "quasiquote",
     "unquote",
@@ -23,7 +23,6 @@ const BUILTINS: [&str; 25] = [
     "if",
     "cond",
     "case",
-    "while",
     "fun",
     "var",
     "var?",
@@ -34,6 +33,8 @@ const BUILTINS: [&str; 25] = [
     "def-mac",
     "eval",
     "expand",
+    "apply",
+    "while",
     "do",
     "load",
     "doc",
