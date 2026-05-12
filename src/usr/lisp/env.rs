@@ -371,7 +371,7 @@ pub fn bind(
                         if let Exp::Sym(_) = &l[1] {
                             is_variadic = true;
                             list[n - 1] = l[1].clone();
-                            if n <= m {
+                            if n - 1 <= m {
                                 let rest = args.drain((n - 1)..).collect();
                                 args.push(Exp::List(rest));
                             }
@@ -381,9 +381,10 @@ pub fn bind(
             }
             let m = args.len();
 
-            if n != m {
-                let s = if n != 1 { "s" } else { "" };
-                let a = if is_variadic { "at least " } else { "" };
+            if m != n {
+                let n = if is_variadic { n - 1 } else { n };        // Expect
+                let s = if n != 1 { "s" } else { "" };              // Plural
+                let a = if is_variadic { "at least " } else { "" }; // Prefix
                 return expected!("{}{} argument{}, got {}", a, n, s, m);
             }
             for (exp, arg) in list.iter().zip(args.iter()) {
