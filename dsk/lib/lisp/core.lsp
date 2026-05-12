@@ -88,8 +88,7 @@
 
 (def (reduce f ls)
   "Reduces the elements of the list with the function"
-  (if (empty? (tail ls)) (head ls)
-    (f (head ls) (reduce f (tail ls)))))
+  (fold f (first ls) (rest ls)))
 
 (def (map f ls)
   "Applies the function to the elements of the list"
