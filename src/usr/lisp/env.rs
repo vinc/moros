@@ -1,4 +1,3 @@
-use super::eval::eval_args;
 use super::primitive;
 use super::FUNCTIONS;
 use super::{Err, Exp, Number};
@@ -348,21 +347,13 @@ pub fn env_set(
     }
 }
 
-enum InnerEnv {
-    Function,
-    Macro,
-}
-
-fn inner_env(
-    kind: InnerEnv,
+/// Bind arg values to param names in the new env returned.
+pub fn bind(
     params: &Exp,
     args: &[Exp],
     outer: &mut Rc<RefCell<Env>>,
 ) -> Result<Rc<RefCell<Env>>, Err> {
-    let mut args = match kind {
-        InnerEnv::Function => eval_args(args, outer)?,
-        InnerEnv::Macro => args.to_vec(),
-    };
+    let mut args = args.to_vec();
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     match params {
         Exp::Sym(s) => {
@@ -409,20 +400,4 @@ fn inner_env(
         data,
         outer: Some(outer.clone()),
     })))
-}
-
-pub fn function_env(
-    params: &Exp,
-    args: &[Exp],
-    outer: &mut Rc<RefCell<Env>>,
-) -> Result<Rc<RefCell<Env>>, Err> {
-    inner_env(InnerEnv::Function, params, args, outer)
-}
-
-pub fn macro_env(
-    params: &Exp,
-    args: &[Exp],
-    outer: &mut Rc<RefCell<Env>>,
-) -> Result<Rc<RefCell<Env>>, Err> {
-    inner_env(InnerEnv::Macro, params, args, outer)
 }

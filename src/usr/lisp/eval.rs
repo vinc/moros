@@ -1,4 +1,4 @@
-use super::env::{env_get, env_keys, env_set, function_env};
+use super::env::{env_get, env_keys, env_set, bind};
 use super::expand::expand;
 use super::string;
 use super::{exec, Env, Err, Exp, Function};
@@ -272,7 +272,8 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     _ => match eval(&list[0], env)? {
                         Exp::Function(f) => {
-                            env_tmp = function_env(&f.params, args, env)?;
+                            let args = eval_args(args, env)?;
+                            env_tmp = bind(&f.params, &args, env)?;
                             exp_tmp = f.body;
                             env = &mut env_tmp;
                             exp = &exp_tmp;
