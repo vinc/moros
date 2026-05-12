@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::f64::consts::PI;
 
-const BUILTINS: [&str; 26] = [
+const BUILTINS: [&str; 27] = [
     "quote",
     "quasiquote",
     "unquote",
@@ -34,6 +34,7 @@ const BUILTINS: [&str; 26] = [
     "eval",
     "expand",
     "apply",
+    "fold",
     "while",
     "do",
     "load",

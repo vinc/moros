@@ -143,6 +143,24 @@ fn eval_while_args(
     Ok(res)
 }
 
+fn eval_fold_args(
+    args: &[Exp],
+    env: &mut Rc<RefCell<Env>>
+) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 3);
+    let fun = eval(&args[0], env)?;
+    let mut acc = eval(&args[1], env)?;
+    match eval(&args[2], env)? {
+        Exp::List(list) => {
+            for arg in list {
+                acc = apply(&fun, &[acc, arg], env)?;
+            }
+        }
+        _ => return expected!("last argument to be a list"),
+    }
+    Ok(acc)
+}
+
 fn eval_eval_args(
     args: &[Exp],
     env: &mut Rc<RefCell<Env>>
@@ -247,6 +265,9 @@ pub fn eval(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Exp::Sym(s) if s == "env" => {
                         return eval_env_args(args, env);
+                    }
+                    Exp::Sym(s) if s == "fold" => {
+                        return eval_fold_args(args, env);
                     }
                     Exp::Sym(s) if s == "apply" => {
                         return eval_apply_args(args, env);

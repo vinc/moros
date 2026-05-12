@@ -781,4 +781,7 @@ fn test_lisp() {
     assert_eq!(eval!("(apply add 1 2 '())"), "3");
     assert_eq!(eval!("(apply add '())"), "0");
     assert_eq!(eval!("(apply (fun (x) x) (list '(1 2))))"), "(1 2)");
+
+    // fold
+    assert_eq!(eval!("(fold sub 0 '(1 2 3))"), "-6");
 }
