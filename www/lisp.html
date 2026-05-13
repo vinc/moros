@@ -46,7 +46,6 @@ shell.</p>
     <li><code>if</code></li>
     <li><code>cond</code></li>
     <li><code>case</code></li>
-    <li><code>while</code></li>
     <li><code>mac</code></li>
     <li><code>fun</code></li>
     <li><code>var</code></li>
@@ -55,6 +54,9 @@ shell.</p>
     <li><code>def</code> (equivalent to <code>def-fun</code>)</li>
     <li><code>def-fun</code></li>
     <li><code>def-mac</code></li>
+    <li><code>apply</code></li>
+    <li><code>fold</code></li>
+    <li><code>while</code></li>
     <li><code>do</code></li>
     <li><code>doc</code></li>
     <li><code>eval</code></li>
@@ -215,8 +217,10 @@ with the following content:</p>
     <h3>Unreleased</h3>
 
     <ul>
+    <li>Allow optional arguments</li>
+    <li>Add <code>fold</code> special form</li>
+    <li>Fix double eval issue with <code>apply</code></li>
     <li>Add <code>dict/pairs</code> function</li>
-    <li>Remove <code>apply</code> and keep only <code>reduce</code></li>
     <li>Change <code>socket/accept</code> to return <code>()</code> instead of an error</li>
     <li>Replace long names (<code>string</code>, <code>variable</code>, <code>define</code>, ...) by short names (<code>str</code>, <code>var</code>, <code>def</code>, ...)</li>
     <li>Change <code>and</code> and <code>or</code> to accept more than 2 args</li>
