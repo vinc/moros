@@ -1,5 +1,3 @@
-use crate::debug;
-
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use nom::IResult;
@@ -19,7 +17,6 @@ use nom::bytes::complete::is_not;
 use nom::combinator::opt;
 use nom::bytes::complete::escaped;
 use nom::character::complete::one_of;
-
 
 type ConfigMap = BTreeMap<String, String>;
 
@@ -75,24 +72,11 @@ pub fn parse_input(input: &str) -> Result<(&str, (&str, &str)), ()> {
     }
 }
 
-pub fn parse(mut input: &str) -> Option<ConfigMap> {
-    //debug!("parsing");
+pub fn parse(input: &str) -> Option<ConfigMap> {
+    let (_, pairs) = many0(parse_pair).parse(input).ok()?;
     let mut config = ConfigMap::new();
-    loop {
-        let res = parse_pair(input);
-        //debug!("{:?}", res);
-        match res {
-            Ok((rest, (key, val))) => {
-                config.insert(key.to_string(), val.to_string());
-                if rest.is_empty() {
-                    break;
-                }
-                input = rest;
-            }
-            Err(_) => {
-                return None;
-            }
-        }
+    for (key, val) in pairs {
+        config.insert(key.to_string(), val.to_string());
     }
     Some(config)
 }
