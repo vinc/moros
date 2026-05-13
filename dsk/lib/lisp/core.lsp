@@ -88,29 +88,28 @@
 
 (def (reduce f ls)
   "Reduces the elements of the list with the function"
-  (if (empty? (tail ls)) (head ls)
-    (f (head ls) (reduce f (tail ls)))))
+  (fold f (first ls) (rest ls)))
 
 (def (map f ls)
   "Applies the function to the elements of the list"
   (if (empty? ls) nil
     (cons
-      (f (head ls))
-      (map f (tail ls)))))
+      (f (first ls))
+      (map f (rest ls)))))
 
 (def (filter f ls)
   "Filters the elements of the list with the function"
   (if (empty? ls) nil
-    (if (f (head ls))
-      (cons (head ls) (filter f (tail ls)))
-      (filter f (tail ls)))))
+    (if (f (first ls))
+      (cons (first ls) (filter f (rest ls)))
+      (filter f (rest ls)))))
 
 (def (reject f ls)
   "Rejects the elements of the list with the function"
   (if (empty? ls) nil
-    (if (not (f (head ls)))
-      (cons (head ls) (reject f (tail ls)))
-      (reject f (tail ls)))))
+    (if (not (f (first ls)))
+      (cons (first ls) (reject f (rest ls)))
+      (reject f (rest ls)))))
 
 (def (intersection a b)
   "Returns the elements found in both lists"
@@ -119,7 +118,7 @@
 (def (rev ls)
   "Reverses the list"
   (if (nil? ls) ls
-    (concat (rev (tail ls)) (cons (head ls) '()))))
+    (concat (rev (rest ls)) (cons (first ls) '()))))
 
 (def (range start stop)
   "Returns a list of numbers from start to stop excluded"
@@ -128,11 +127,11 @@
 
 (def (min ls)
   "Returns the minimum element of the list"
-  (head (sort ls)))
+  (first (sort ls)))
 
 (def (max ls)
   "Returns the maximum element of the list"
-  (head (rev (sort ls))))
+  (first (rev (sort ls))))
 
 (def (abs x)
   "Returns the absolute value of the number"

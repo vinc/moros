@@ -1,4 +1,4 @@
-use super::env::{env_get, macro_env};
+use super::env::{env_get, bind};
 use super::eval::eval;
 use super::{Env, Err, Exp};
 
@@ -165,7 +165,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
             }
             Exp::Sym(s) => {
                 if let Ok(Exp::Macro(m)) = env_get(s, env) {
-                    let mut m_env = macro_env(&m.params, &list[1..], env)?;
+                    let mut m_env = bind(&m.params, &list[1..], env)?;
                     let m_exp = m.body;
                     expand(&eval(&m_exp, &mut m_env)?, env)
                 } else {

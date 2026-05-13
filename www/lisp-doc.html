@@ -142,7 +142,18 @@ foo          # =&gt; 10
 
     <h3>splice @</h3>
 
+    <pre><code>((fun (a b @c) c) &#39;(1 2 (3))) # =&gt; (3)
+((fun (a b @c) c) &#39;(1 2 ()))  # =&gt; ()
+((fun (a b @c) c) &#39;(1 2))     # =&gt; ()
+</code></pre>
+
     <h2>Meta</h2>
+
+    <h3>apply</h3>
+
+    <pre><code>(apply + &#39;(1 2 3)) # =&gt; 6
+(apply + 1 2 &#39;())  # =&gt; 3
+</code></pre>
 
     <h3>load</h3>
 
@@ -395,11 +406,19 @@ foo          # =&gt; 10
 (map (fun (x) (* x 2)) &#39;(1 2 3)) # =&gt; (2 4 6)
 </code></pre>
 
+    <h3>fold</h3>
+
+    <pre><code>(fold + 0 &#39;(1 2 3)) # =&gt; 6
+(fold + 0 &#39;(1 2 3)) # =&gt; -6
+</code></pre>
+
     <h3>reduce</h3>
 
     <p>Reduces the elements of the list with the function.</p>
 
     <pre><code>(reduce + &#39;(1 2 3)) # =&gt; 6
+(reduce - &#39;(1 2 3)) # =&gt; -4
+(reduce + &#39;())      # =&gt; 0
 </code></pre>
 
     <h3>filter</h3>

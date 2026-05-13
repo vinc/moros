@@ -1,4 +1,3 @@
-use super::eval::eval_args;
 use super::primitive;
 use super::FUNCTIONS;
 use super::{Err, Exp, Number};
@@ -13,7 +12,7 @@ use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::f64::consts::PI;
 
-const BUILTINS: [&str; 25] = [
+const BUILTINS: [&str; 27] = [
     "quote",
     "quasiquote",
     "unquote",
@@ -24,7 +23,6 @@ const BUILTINS: [&str; 25] = [
     "if",
     "cond",
     "case",
-    "while",
     "fun",
     "var",
     "var?",
@@ -35,6 +33,9 @@ const BUILTINS: [&str; 25] = [
     "def-mac",
     "eval",
     "expand",
+    "apply",
+    "fold",
+    "while",
     "do",
     "load",
     "doc",
@@ -348,21 +349,13 @@ pub fn env_set(
     }
 }
 
-enum InnerEnv {
-    Function,
-    Macro,
-}
-
-fn inner_env(
-    kind: InnerEnv,
+/// Bind arg values to param names in the new env returned.
+pub fn bind(
     params: &Exp,
     args: &[Exp],
     outer: &mut Rc<RefCell<Env>>,
 ) -> Result<Rc<RefCell<Env>>, Err> {
-    let mut args = match kind {
-        InnerEnv::Function => eval_args(args, outer)?,
-        InnerEnv::Macro => args.to_vec(),
-    };
+    let mut args = args.to_vec();
     let mut data: BTreeMap<String, Exp> = BTreeMap::new();
     match params {
         Exp::Sym(s) => {
@@ -380,7 +373,7 @@ fn inner_env(
                         if let Exp::Sym(_) = &l[1] {
                             is_variadic = true;
                             list[n - 1] = l[1].clone();
-                            if n <= m {
+                            if n - 1 <= m {
                                 let rest = args.drain((n - 1)..).collect();
                                 args.push(Exp::List(rest));
                             }
@@ -390,9 +383,10 @@ fn inner_env(
             }
             let m = args.len();
 
-            if n != m {
-                let s = if n != 1 { "s" } else { "" };
-                let a = if is_variadic { "at least " } else { "" };
+            if m != n {
+                let n = if is_variadic { n - 1 } else { n };        // Expect
+                let s = if n != 1 { "s" } else { "" };              // Plural
+                let a = if is_variadic { "at least " } else { "" }; // Prefix
                 return expected!("{}{} argument{}, got {}", a, n, s, m);
             }
             for (exp, arg) in list.iter().zip(args.iter()) {
@@ -409,20 +403,4 @@ fn inner_env(
         data,
         outer: Some(outer.clone()),
     })))
-}
-
-pub fn function_env(
-    params: &Exp,
-    args: &[Exp],
-    outer: &mut Rc<RefCell<Env>>,
-) -> Result<Rc<RefCell<Env>>, Err> {
-    inner_env(InnerEnv::Function, params, args, outer)
-}
-
-pub fn macro_env(
-    params: &Exp,
-    args: &[Exp],
-    outer: &mut Rc<RefCell<Env>>,
-) -> Result<Rc<RefCell<Env>>, Err> {
-    inner_env(InnerEnv::Macro, params, args, outer)
 }
