@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improve Lisp binding (#848)
 - Add process devices (#836)
 - Improve Lisp user experience (#841)
 - Add assembler written in Lisp (#839)
