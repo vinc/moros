@@ -385,7 +385,7 @@ dependencies = [
  "raw-cpuid 11.6.0",
  "sha2",
  "smoltcp",
- "spin 0.10.0",
+ "spin 0.11.0",
  "time",
  "uart_16550",
  "vte",
@@ -633,9 +633,9 @@ checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 
 [[package]]
 name = "spin"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
+checksum = "783f3f6f6b01e295a669edfc402133a5f2553d1f0e81284b3ba4594e80bdd4a2"
 dependencies = [
  "lock_api",
 ]
