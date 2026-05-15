@@ -108,12 +108,23 @@
 ### quote '
 
     '(1 2 3) # => (1 2 3)
+
 ### quasiquote `
 ### unquote ,
 ### unquote-splice ,@
+
 ### splice @
 
+    ((fun (a b @c) c) '(1 2 (3))) # => (3)
+    ((fun (a b @c) c) '(1 2 ()))  # => ()
+    ((fun (a b @c) c) '(1 2))     # => ()
+
 ## Meta
+
+### apply
+
+    (apply + '(1 2 3)) # => 6
+    (apply + 1 2 '())  # => 3
 
 ### load
 
@@ -333,11 +344,18 @@ Applies the function to the elements of the list.
     (map first '((1 2) (3 4) (5 6))) # => (1 3 5)
     (map (fun (x) (* x 2)) '(1 2 3)) # => (2 4 6)
 
+### fold
+
+    (fold + 0 '(1 2 3)) # => 6
+    (fold + 0 '(1 2 3)) # => -6
+
 ### reduce
 
 Reduces the elements of the list with the function.
 
     (reduce + '(1 2 3)) # => 6
+    (reduce - '(1 2 3)) # => -4
+    (reduce + '())      # => 0
 
 ### filter
 

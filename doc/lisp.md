@@ -30,7 +30,6 @@ Check the [documentation](/lisp-doc.md) for more information.
 - `if`
 - `cond`
 - `case`
-- `while`
 - `mac`
 - `fun`
 - `var`
@@ -39,6 +38,9 @@ Check the [documentation](/lisp-doc.md) for more information.
 - `def` (equivalent to `def-fun`)
 - `def-fun`
 - `def-mac`
+- `apply`
+- `fold`
+- `while`
 - `do`
 - `doc`
 - `eval`
@@ -183,8 +185,10 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+- Allow optional arguments
+- Add `fold` special form
+- Fix double eval issue with `apply`
 - Add `dict/pairs` function
-- Remove `apply` and keep only `reduce`
 - Change `socket/accept` to return `()` instead of an error
 - Replace long names (`string`, `variable`, `define`, ...) by short names (`str`, `var`, `def`, ...)
 - Change `and` and `or` to accept more than 2 args
