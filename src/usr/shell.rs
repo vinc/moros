@@ -838,7 +838,7 @@ fn test_shell() {
     // Redirect standard error explicitely
     exec("hex /nope 2=> /tmp/test3").ok();
     assert!(api::fs::read_to_string("/tmp/test3").unwrap().
-        contains("Could not read file '/nope'"));
+        contains("Could not read file \"/nope\""));
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();
