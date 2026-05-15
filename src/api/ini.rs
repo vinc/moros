@@ -1,5 +1,6 @@
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
@@ -11,12 +12,14 @@ use nom::character::complete::multispace1;
 use nom::character::complete::not_line_ending;
 use nom::character::complete::one_of;
 use nom::character::complete::space0;
+use nom::combinator::all_consuming;
 use nom::combinator::map;
 use nom::combinator::opt;
 use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::separated_pair;
+use nom::sequence::terminated;
 
 type ConfigMap = BTreeMap<String, String>;
 
@@ -59,8 +62,12 @@ fn parse_pair(input: &str) -> IResult<&str, (&str, &str)> {
     ).parse(input)
 }
 
+fn parse_pairs(input: &str) -> IResult<&str, Vec<(&str, &str)>> {
+    terminated(many0(parse_pair), ignored).parse(input)
+}
+
 pub fn parse(input: &str) -> Option<ConfigMap> {
-    let (_, pairs) = many0(parse_pair).parse(input).ok()?;
+    let (_, pairs) = all_consuming(parse_pairs).parse(input).ok()?;
     let mut config = ConfigMap::new();
     for (key, val) in pairs {
         config.insert(key.to_string(), val.to_string());
@@ -101,19 +108,6 @@ fn test_parse_with_empty_lines() {
     assert_eq!(parse(input), Some(expected));
 }
 
-/*
-#[test_case]
-fn test_parse_with_spaces_in_values() {
-    let input = "key1=  value with spaces  \nkey2=another value";
-    let expected = BTreeMap::from([
-        ("key1".to_string(), "value with spaces".to_string()),
-        ("key2".to_string(), "another value".to_string()),
-    ]);
-
-    assert_eq!(parse(input), Some(expected));
-}
-*/
-
 #[test_case]
 fn test_parse_with_crlf() {
     let input = "key1=value1\r\nkey2=value2\r\n";
@@ -124,19 +118,6 @@ fn test_parse_with_crlf() {
 
     assert_eq!(parse(input), Some(expected));
 }
-
-/*
-#[test_case]
-fn test_parse_with_empty_value() {
-    let input = "key1=\nkey2=value2";
-    let expected = BTreeMap::from([
-        ("key1".to_string(), "".to_string()),
-        ("key2".to_string(), "value2".to_string()),
-    ]);
-
-    assert_eq!(parse(input), Some(expected));
-}
-*/
 
 #[test_case]
 fn test_parse_with_special_chars() {
