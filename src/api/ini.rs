@@ -3,20 +3,20 @@ use alloc::string::{String, ToString};
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
+use nom::bytes::complete::escaped;
+use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
 use nom::character::complete::char;
 use nom::character::complete::multispace1;
 use nom::character::complete::not_line_ending;
+use nom::character::complete::one_of;
 use nom::character::complete::space0;
-use nom::combinator::recognize;
+use nom::combinator::map;
+use nom::combinator::opt;
 use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::separated_pair;
-use nom::bytes::complete::is_not;
-use nom::combinator::opt;
-use nom::bytes::complete::escaped;
-use nom::character::complete::one_of;
 
 type ConfigMap = BTreeMap<String, String>;
 
@@ -25,9 +25,7 @@ fn parse_comment(input: &str) -> IResult<&str, &str> {
 }
 
 fn ignored(input: &str) -> IResult<&str, ()> {
-    recognize(
-        many0(alt((multispace1, parse_comment)))
-    ).map(|_| ()).parse(input)
+    map(many0(alt((multispace1, parse_comment))), |_| ()).parse(input)
 }
 
 fn parse_str(input: &str) -> IResult<&str, &str> {
@@ -43,10 +41,7 @@ fn parse_str(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_val(input: &str) -> IResult<&str, &str> {
-    alt((
-        parse_str,
-        is_not(" \t\r\n#=")
-    )).parse(input)
+    alt((parse_str, is_not(" \t\r\n#="))).parse(input)
 }
 
 fn parse_eq(input: &str) -> IResult<&str, &str> {
@@ -58,18 +53,14 @@ fn parse_key(input: &str) -> IResult<&str, &str> {
 }
 
 fn parse_pair(input: &str) -> IResult<&str, (&str, &str)> {
-    delimited(
+    preceded(
         ignored,
-        separated_pair(parse_key, parse_eq, parse_val),
-        ignored
+        separated_pair(parse_key, parse_eq, parse_val)
     ).parse(input)
 }
 
 pub fn parse_input(input: &str) -> Result<(&str, (&str, &str)), ()> {
-    match parse_pair(input) {
-        Ok((input, pair)) => Ok((input, pair)),
-        _ => Err(()),
-    }
+    parse_pair(input).map_err(|_| ())
 }
 
 pub fn parse(input: &str) -> Option<ConfigMap> {
