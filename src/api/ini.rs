@@ -59,10 +59,6 @@ fn parse_pair(input: &str) -> IResult<&str, (&str, &str)> {
     ).parse(input)
 }
 
-pub fn parse_input(input: &str) -> Result<(&str, (&str, &str)), ()> {
-    parse_pair(input).map_err(|_| ())
-}
-
 pub fn parse(input: &str) -> Option<ConfigMap> {
     let (_, pairs) = many0(parse_pair).parse(input).ok()?;
     let mut config = ConfigMap::new();
