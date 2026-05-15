@@ -261,7 +261,7 @@ fn parse_eval(
 }
 
 fn exec(path: &str, env: &mut Rc<RefCell<Env>>) -> Result<(), Err> {
-    let buf = fs::read_to_string(&path).or(could_not!("read file '{}'", path))?;
+    let buf = fs::read_to_string(&path).or(could_not!("read file {:?}", path))?;
     let mut input = buf.clone();
     loop {
         match parse_eval(&input, env) {
