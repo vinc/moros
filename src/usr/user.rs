@@ -50,7 +50,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 // TODO: Add max number of attempts
 fn login(username: &str) -> Result<(), ExitCode> {
     if !fs::exists(USERS) {
-        error!("Could not read '{}'", USERS);
+        error!("Could not read {:?}", USERS);
         return Err(ExitCode::Failure);
     }
 

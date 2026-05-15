@@ -222,7 +222,7 @@ fn create_dir(path: &str, verbose: bool) {
         return;
     }
     if verbose {
-        println!("Creating '{}'", path);
+        println!("Creating {:?}", path);
     }
     if let Some(handle) = api::fs::create_dir(path) {
         syscall::close(handle);
@@ -234,7 +234,7 @@ fn create_dev(path: &str, name: &str, verbose: bool) {
         return;
     }
     if verbose {
-        println!("Creating '{}'", path);
+        println!("Creating {:?}", path);
     }
     if let Some(handle) = fs::create_device(path, name) {
         syscall::close(handle);
@@ -246,7 +246,7 @@ fn copy_file(path: &str, buf: &[u8], verbose: bool) {
         return;
     }
     if verbose {
-        println!("Fetching '{}'", path);
+        println!("Fetching {:?}", path);
     }
     if path.ends_with(".txt") {
         if let Ok(text) = String::from_utf8(buf.to_vec()) {
