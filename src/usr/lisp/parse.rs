@@ -5,6 +5,9 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 
+use nom::Err::Error;
+use nom::IResult;
+use nom::Parser;
 use nom::branch::alt;
 use nom::bytes::complete::escaped_transform;
 use nom::bytes::complete::is_not;
@@ -23,15 +26,10 @@ use nom::multi::many1;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
-use nom::Err::Error;
-use nom::IResult;
-use nom::Parser;
 
 // Whitespaces and comments are ignored
 fn ignored(input: &str) -> IResult<&str, ()> {
-    recognize(
-        many0(alt((multispace1, parse_comment)))
-    ).map(|_| ()).parse(input)
+    map(many0(alt((multispace1, parse_comment))), |_| ()).parse(input)
 }
 
 // https://docs.rs/nom/latest/nom/recipes/index.html#hexadecimal
