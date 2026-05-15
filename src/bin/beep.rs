@@ -20,7 +20,7 @@ const SPEAKER: &str = "/dev/speaker";
 fn start_sound(freq: f64) -> Result<(), ()> {
     let buf = freq.to_string();
     if !fs::is_device(SPEAKER) || fs::write(SPEAKER, buf.as_bytes()).is_err() {
-        error!("Could not write to '{}'", SPEAKER);
+        error!("Could not write to {:?}", SPEAKER);
         Err(())
     } else {
         Ok(())
