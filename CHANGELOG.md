@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Use double quotes in user messages (#851)
 - Improve Lisp binding (#848)
 - Add process devices (#836)
 - Improve Lisp user experience (#841)
