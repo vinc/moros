@@ -326,7 +326,7 @@ pub fn env_get(key: &str, env: &Rc<RefCell<Env>>) -> Result<Exp, Err> {
         Some(exp) => Ok(exp.clone()),
         None => match &env.outer {
             Some(outer_env) => env_get(key, outer_env),
-            None => could_not!("find symbol '{}'", key),
+            None => could_not!("find symbol {:?}", key),
         },
     }
 }
@@ -344,7 +344,7 @@ pub fn env_set(
         }
         None => match &env.outer {
             Some(outer_env) => env_set(key, val, outer_env),
-            None => could_not!("find symbol '{}'", key),
+            None => could_not!("find symbol {:?}", key),
         },
     }
 }

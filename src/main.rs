@@ -34,7 +34,7 @@ fn user_boot() {
         usr::shell::main(&["shell", script]).ok();
     } else {
         if sys::fs::is_mounted() {
-            error!("Could not find '{}'", script);
+            error!("Could not find {:?}", script);
         } else {
             warning!("MFS not found, run 'install' to setup the system");
         }

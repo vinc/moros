@@ -315,7 +315,7 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
                 config.env.insert("dir".to_string(), process::dir());
                 Ok(())
             } else {
-                error!("Could not find file '{}'", path);
+                error!("Could not find file {:?}", path);
                 Err(ExitCode::Failure)
             }
         }
@@ -351,7 +351,7 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 
     if config.aliases.remove(args[1]).is_none() {
-        error!("Could not unalias '{}'", args[1]);
+        error!("Could not unalias {:?}", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -400,7 +400,7 @@ fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             }
             _ => {
                 if args[i].starts_with('-') {
-                    error!("Invalid option '{}'", args[i]);
+                    error!("Invalid option {:?}", args[i]);
                     return Err(ExitCode::UsageError);
                 } else if key.is_none() {
                     key = Some(args[i]);
@@ -440,7 +440,7 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 
     if config.env.remove(args[1]).is_none() {
-        error!("Could not unset '{}'", args[1]);
+        error!("Could not unset {:?}", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -690,15 +690,15 @@ fn spawn(
     // Binary
     match api::process::spawn(path, args) {
         Err(ExitCode::OpenError) => {
-            error!("Could not open '{}'", args[0]);
+            error!("Could not open {:?}", args[0]);
             Err(ExitCode::OpenError)
         }
         Err(ExitCode::ReadError) => {
-            error!("Could not read '{}'", args[0]);
+            error!("Could not read {:?}", args[0]);
             Err(ExitCode::ReadError)
         }
         Err(ExitCode::ExecError) => {
-            error!("Could not execute '{}'", args[0]);
+            error!("Could not execute {:?}", args[0]);
             Err(ExitCode::ExecError)
         }
         res => res,
@@ -796,7 +796,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             Ok(())
         } else {
-            error!("Could not read file '{}'", path);
+            error!("Could not read file {:?}", path);
             Err(ExitCode::Failure)
         }
     }
@@ -838,7 +838,7 @@ fn test_shell() {
     // Redirect standard error explicitely
     exec("hex /nope 2=> /tmp/test3").ok();
     assert!(api::fs::read_to_string("/tmp/test3").unwrap().
-        contains("Could not read file '/nope'"));
+        contains("Could not read file \"/nope\""));
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();
