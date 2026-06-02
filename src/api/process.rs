@@ -70,6 +70,10 @@ pub fn user() -> Option<String> {
     fs::read_to_string("/dev/proc/user").ok().filter(|user| !user.is_empty())
 }
 
+pub fn set_user(user: &str) -> Result<(), ()> {
+    fs::write("/dev/proc/user", user.as_bytes()).map(|_| ())
+}
+
 // TODO: Return Result<BTreeMap<String, String>>
 pub fn env() -> BTreeMap<String, String> {
     if let Ok(s) = fs::read_to_string("/dev/proc/env") {
