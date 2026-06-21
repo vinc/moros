@@ -106,7 +106,7 @@ The interpreter can be invoked from the shell:
 
 ```
 > lisp
-MOROS Lisp v0.7.0
+MOROS Lisp v0.9.0
 
 > (+ 1 2 3)
 6
@@ -185,6 +185,8 @@ Would produce the following output:
 ## Changelog
 
 ### Unreleased
+
+### 0.9.0 (2026-06-21)
 - Allow optional arguments
 - Add `fold` special form
 - Fix double eval issue with `apply`
