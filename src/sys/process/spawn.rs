@@ -16,6 +16,7 @@ use alloc::boxed::Box;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
+use core::convert::Infallible;
 use core::sync::atomic::Ordering;
 use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
@@ -40,7 +41,7 @@ const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
 /// negligible.
 pub fn spawn(
     bin: Vec<u8>, args_ptr: usize, args_len: usize
-) -> Result<(), ExitCode> {
+) -> Result<Infallible, ExitCode> {
     if let Ok(id) = create(&bin) {
         drop(bin);
         let ctx = {
@@ -48,8 +49,7 @@ pub fn spawn(
             let proc = table[id].as_ref().unwrap();
             proc.ctx.clone()
         };
-        exec(ctx, args_ptr, args_len);
-        unreachable!(); // The kernel switched to the child process
+        exec(ctx, args_ptr, args_len); // The kernel switched to the child process, never-to-any coercion
     } else {
         Err(ExitCode::ExecError)
     }
@@ -147,7 +147,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
 }
 
 // Switch to user mode and execute the program
-fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
+fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) -> ! {
     // The args are stored halfway between the code and the stack
     let args_addr = ctx.code_addr + (ctx.stack_addr - ctx.code_addr) / 2;
     let args_size = 4096; // 1 page
@@ -180,6 +180,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
             in(reg) ctx.code_addr + ctx.entry_point_addr,
             in("rdi") args_ptr,
             in("rsi") args_len,
+            options(noreturn),
         );
     }
 }

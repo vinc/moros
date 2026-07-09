@@ -104,10 +104,9 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if let Err(code) = sys::process::spawn(buf, args_ptr, args_len) {
-                code
-            } else {
-                unreachable!(); // The kernel switched to the child process
+            match sys::process::spawn(buf, args_ptr, args_len) {
+                 Err(code) => code,
+                 // Ok is Infallible, so rust lets it pass even without an Ok branch
             }
         } else {
             ExitCode::ReadError
