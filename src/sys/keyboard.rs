@@ -105,7 +105,6 @@ fn send_csi(code: &str) {
 #[derive(Debug, Clone)]
 pub struct KeyboardBuffer;
 
-// Read scancodes from /dev/kbd/buffer
 impl KeyboardBuffer {
     pub fn new() -> Self {
         interrupts::without_interrupts(|| BUF.lock().clear());
@@ -149,11 +148,11 @@ fn interrupt_handler() {
     if let Some(ref mut keyboard) = *KEYBOARD.lock() {
         let scancode = read_scancode();
 
-        let mut kb = BUF.lock();
-        if kb.len() > 256 {
-            kb.pop_front();
+        let mut buf = BUF.lock();
+        if buf.len() > 256 {
+            buf.pop_front();
         }
-        kb.push_back(scancode);
+        buf.push_back(scancode);
 
         if let Ok(Some(event)) = keyboard.add_byte(scancode) {
             let ord = Ordering::Relaxed;
