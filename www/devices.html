@@ -23,6 +23,9 @@ write /dev/clk/boot -d clk-boot
 write /dev/clk/epoch -d clk-epoch
 write /dev/clk/rtc -d clk-rtc
 write /dev/console -d console
+write /dev/kbd/
+write /dev/kbd/buffer -d kbd-buffer
+write /dev/kbd/layout -d kbd-layout
 write /dev/net/
 write /dev/net/tcp -d net-tcp
 write /dev/net/udp -d net-udp
@@ -71,6 +74,22 @@ write /dev/vga/palette -d vga-palette
     <p>Reading <code>/dev/console</code> with a 4 bytes buffer will return a character from the
 keyboard or the serial interface. Reading with a larger buffer will return a
 complete line.</p>
+
+    <h2>Keyboard devices</h2>
+
+    <p>Reading <code>/dev/kbd/buffer</code> will pop and return the earliest keyboard scancode
+in the buffer if present.</p>
+
+    <p>Reading the current keyboard layout:</p>
+
+    <pre><code>&gt; read /dev/kbd/layout
+qwerty
+</code></pre>
+
+    <p>Changing the keyboard layout:</p>
+
+    <pre><code>&gt; print dvorak =&gt; /dev/kbd/layout
+</code></pre>
 
     <h2>Network Devices</h2>
 
