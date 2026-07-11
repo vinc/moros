@@ -183,6 +183,7 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "proc-env"    => Ok(DeviceType::ProcEnv),
         "proc-user"   => Ok(DeviceType::ProcUser),
         "kbd-buffer"  => Ok(DeviceType::KbdBuffer),
+        "kbd-layout"  => Ok(DeviceType::KbdLayout),
         _             => Err(()),
     }
 }
