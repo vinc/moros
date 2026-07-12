@@ -49,6 +49,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/ata/0", verbose);
     create_dir("/dev/ata/1", verbose);
     create_dir("/dev/clk", verbose); // Clock
+    create_dir("/dev/kbd", verbose); // Keyboard
     create_dir("/dev/net", verbose); // Network
     create_dir("/dev/snd", verbose); // Sound
     create_dir("/dev/vga", verbose);
@@ -62,6 +63,8 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/clk/epoch", "clk-epoch", verbose);
     create_dev("/dev/clk/rtc", "clk-rtc", verbose);
     create_dev("/dev/console", "console", verbose);
+    create_dev("/dev/kbd/buffer", "kbd-buffer", verbose);
+    create_dev("/dev/kbd/layout", "kbd-layout", verbose);
     create_dev("/dev/net/tcp", "net-tcp", verbose);
     create_dev("/dev/net/udp", "net-udp", verbose);
     create_dev("/dev/net/gw", "net-gw", verbose);

@@ -24,7 +24,6 @@ pub mod http;
 pub mod httpd;
 pub mod inflate;
 pub mod install;
-pub mod keyboard;
 pub mod life;
 pub mod lisp;
 pub mod list;

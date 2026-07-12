@@ -15,6 +15,7 @@ use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
 use crate::sys::speaker::Speaker;
+use crate::sys::keyboard::{KeyboardBuffer, KeyboardLayout};
 use crate::sys::vga::{VgaFont, VgaMode, VgaPalette, VgaBuffer};
 use crate::sys::snd::SoundBuffer;
 use crate::sys::process::{ProcId, ProcDir, ProcEnv, ProcUser};
@@ -52,6 +53,8 @@ pub enum DeviceType {
     ProcDir     = 22,
     ProcEnv     = 23,
     ProcUser    = 24,
+    KbdBuffer   = 25,
+    KbdLayout   = 26,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -84,6 +87,8 @@ impl TryFrom<&[u8]> for DeviceType {
             22 => Ok(DeviceType::ProcDir),
             23 => Ok(DeviceType::ProcEnv),
             24 => Ok(DeviceType::ProcUser),
+            25 => Ok(DeviceType::KbdBuffer),
+            26 => Ok(DeviceType::KbdLayout),
              _ => Err(()),
         }
     }
@@ -115,6 +120,8 @@ impl DeviceType {
             DeviceType::ProcDir     => ProcDir::size(),
             DeviceType::ProcEnv     => ProcEnv::size(),
             DeviceType::ProcUser    => ProcUser::size(),
+            DeviceType::KbdBuffer   => KeyboardBuffer::size(),
+            DeviceType::KbdLayout   => KeyboardLayout::size(),
             _                       => 1,
         };
         let mut res = vec![0; len];
@@ -150,6 +157,8 @@ pub enum Device {
     ProcDir(ProcDir),
     ProcEnv(ProcEnv),
     ProcUser(ProcUser),
+    KbdBuffer(KeyboardBuffer),
+    KbdLayout(KeyboardLayout),
 }
 
 impl TryFrom<&[u8]> for Device {
@@ -181,6 +190,8 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::ProcDir     => Ok(Device::ProcDir(ProcDir::new())),
             DeviceType::ProcEnv     => Ok(Device::ProcEnv(ProcEnv::new())),
             DeviceType::ProcUser    => Ok(Device::ProcUser(ProcUser::new())),
+            DeviceType::KbdBuffer   => Ok(Device::KbdBuffer(KeyboardBuffer::new())),
+            DeviceType::KbdLayout   => Ok(Device::KbdLayout(KeyboardLayout::new())),
             DeviceType::Drive if buf.len() > 2 => {
                 let bus = buf[1];
                 let dsk = buf[2];
@@ -255,6 +266,8 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.read(buf),
             Device::ProcEnv(io)     => io.read(buf),
             Device::ProcUser(io)    => io.read(buf),
+            Device::KbdBuffer(io)   => io.read(buf),
+            Device::KbdLayout(io)   => io.read(buf),
         }
     }
 
@@ -285,6 +298,8 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.write(buf),
             Device::ProcEnv(io)     => io.write(buf),
             Device::ProcUser(io)    => io.write(buf),
+            Device::KbdBuffer(io)   => io.write(buf),
+            Device::KbdLayout(io)   => io.write(buf),
         }
     }
 
@@ -315,6 +330,8 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.close(),
             Device::ProcEnv(io)     => io.close(),
             Device::ProcUser(io)    => io.close(),
+            Device::KbdBuffer(io)   => io.close(),
+            Device::KbdLayout(io)   => io.close(),
         }
     }
 
@@ -345,6 +362,8 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.poll(event),
             Device::ProcEnv(io)     => io.poll(event),
             Device::ProcUser(io)    => io.poll(event),
+            Device::KbdBuffer(io)   => io.poll(event),
+            Device::KbdLayout(io)   => io.poll(event),
         }
     }
 }

@@ -15,6 +15,9 @@ Creating the devices in the file system:
     write /dev/clk/epoch -d clk-epoch
     write /dev/clk/rtc -d clk-rtc
     write /dev/console -d console
+    write /dev/kbd/
+    write /dev/kbd/buffer -d kbd-buffer
+    write /dev/kbd/layout -d kbd-layout
     write /dev/net/
     write /dev/net/tcp -d net-tcp
     write /dev/net/udp -d net-udp
@@ -58,6 +61,20 @@ Changing the system time:
 Reading `/dev/console` with a 4 bytes buffer will return a character from the
 keyboard or the serial interface. Reading with a larger buffer will return a
 complete line.
+
+## Keyboard devices
+
+Reading `/dev/kbd/buffer` will pop and return the earliest keyboard scancode
+in the buffer if present.
+
+Reading the current keyboard layout:
+
+    > read /dev/kbd/layout
+    qwerty
+
+Changing the keyboard layout:
+
+    > print dvorak => /dev/kbd/layout
 
 ## Network Devices
 
