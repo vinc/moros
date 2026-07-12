@@ -9,9 +9,9 @@ mod pipe;
 mod read_dir;
 mod super_block;
 
-use crate::sys;
+use crate::sys::process;
 
-pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
+pub use crate::api::fs::{dirname, filename, FileIO, IO};
 pub use crate::sys::ata::BLOCK_SIZE;
 pub use bitmap_block::BITMAP_SIZE;
 pub use block_device::{
@@ -25,11 +25,24 @@ pub use file::{File, SeekFrom};
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
 
+use alloc::format;
 use alloc::string::{String, ToString};
 use core::convert::TryFrom;
 use core::ops::BitOr;
 
 pub const VERSION: u8 = 2;
+
+// Duplicate of `api::fs::realpath`, using `process::dir()` from `sys` instead
+// of `api` to bypass syscall overhead.
+pub fn realpath(pathname: &str) -> String {
+    if pathname.starts_with('/') {
+        pathname.into()
+    } else {
+        let dirname = process::dir();
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
+        format!("{}{}{}", dirname, sep, pathname)
+    }
+}
 
 // TODO: Move that to API
 #[derive(Clone, Copy)]
@@ -178,7 +191,7 @@ impl FileIO for Resource {
 }
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
-    match sys::process::env_var("HOME") {
+    match process::env_var("HOME") {
         Some(home) => {
             if path.starts_with('~') {
                 Ok(path.replace('~', &home))

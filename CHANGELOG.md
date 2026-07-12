@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add realpath to kernel FS module (#866)
 - Add file seek syscall (#863)
 - Add keyboard layout device (#865)
 - Add keyboard buffer device (#864)
