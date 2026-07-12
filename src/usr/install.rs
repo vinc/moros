@@ -64,6 +64,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/clk/rtc", "clk-rtc", verbose);
     create_dev("/dev/console", "console", verbose);
     create_dev("/dev/kbd/buffer", "kbd-buffer", verbose);
+    create_dev("/dev/kbd/layout", "kbd-layout", verbose);
     create_dev("/dev/net/tcp", "net-tcp", verbose);
     create_dev("/dev/net/udp", "net-udp", verbose);
     create_dev("/dev/net/gw", "net-gw", verbose);

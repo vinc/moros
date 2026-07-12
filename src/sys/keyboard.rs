@@ -4,6 +4,7 @@ use crate::sys;
 
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
+use alloc::string::String;
 use core::sync::atomic::{AtomicBool, Ordering};
 use lazy_static::lazy_static;
 use pc_keyboard::{
@@ -18,48 +19,48 @@ lazy_static! {
     pub static ref BUF: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
 }
 
-pub static KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
+pub static KEYBOARD: Mutex<Option<KeyboardDecoder>> = Mutex::new(None);
 
 pub static ALT: AtomicBool = AtomicBool::new(false);
 pub static CTRL: AtomicBool = AtomicBool::new(false);
 pub static SHIFT: AtomicBool = AtomicBool::new(false);
 
-pub enum KeyboardLayout {
+pub enum KeyboardDecoder {
     Azerty(Keyboard<layouts::Azerty, ScancodeSet1>),
     Dvorak(Keyboard<layouts::Dvorak104Key, ScancodeSet1>),
     Qwerty(Keyboard<layouts::Us104Key, ScancodeSet1>),
 }
 
-impl KeyboardLayout {
+impl KeyboardDecoder {
     fn add_byte(&mut self, scancode: u8) -> Result<Option<KeyEvent>, Error> {
         match self {
-            KeyboardLayout::Azerty(kb) => kb.add_byte(scancode),
-            KeyboardLayout::Dvorak(kb) => kb.add_byte(scancode),
-            KeyboardLayout::Qwerty(kb) => kb.add_byte(scancode),
+            KeyboardDecoder::Azerty(kb) => kb.add_byte(scancode),
+            KeyboardDecoder::Dvorak(kb) => kb.add_byte(scancode),
+            KeyboardDecoder::Qwerty(kb) => kb.add_byte(scancode),
         }
     }
 
     fn process_keyevent(&mut self, event: KeyEvent) -> Option<DecodedKey> {
         match self {
-            KeyboardLayout::Azerty(kb) => kb.process_keyevent(event),
-            KeyboardLayout::Dvorak(kb) => kb.process_keyevent(event),
-            KeyboardLayout::Qwerty(kb) => kb.process_keyevent(event),
+            KeyboardDecoder::Azerty(kb) => kb.process_keyevent(event),
+            KeyboardDecoder::Dvorak(kb) => kb.process_keyevent(event),
+            KeyboardDecoder::Qwerty(kb) => kb.process_keyevent(event),
         }
     }
 
     fn from(name: &str) -> Option<Self> {
         match name {
-            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(
+            "azerty" => Some(KeyboardDecoder::Azerty(Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Azerty,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(
+            "dvorak" => Some(KeyboardDecoder::Dvorak(Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Dvorak104Key,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(
+            "qwerty" => Some(KeyboardDecoder::Qwerty(Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Us104Key,
                 HandleControl::MapLettersToUnicode,
@@ -69,14 +70,66 @@ impl KeyboardLayout {
     }
 }
 
-pub fn set_keyboard(layout: &str) -> bool {
-    if let Some(keyboard) = KeyboardLayout::from(layout) {
+fn set_keyboard(layout: &str) -> bool {
+    if let Some(keyboard) = KeyboardDecoder::from(layout) {
         interrupts::without_interrupts(||
             *KEYBOARD.lock() = Some(keyboard)
         );
         true
     } else {
         false
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct KeyboardLayout;
+
+impl KeyboardLayout {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn size() -> usize {
+        16
+    }
+}
+
+impl FileIO for KeyboardLayout {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        interrupts::without_interrupts(|| {
+            let layout = match *KEYBOARD.lock() {
+                Some(KeyboardDecoder::Azerty(_)) => "azerty",
+                Some(KeyboardDecoder::Dvorak(_)) => "dvorak",
+                Some(KeyboardDecoder::Qwerty(_)) => "qwerty",
+                _ => return Err(()),
+            };
+            let n = layout.len();
+            if n > buf.len() {
+                return Err(());
+            }
+            buf[0..n].copy_from_slice(layout.as_bytes());
+            Ok(n)
+        })
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        if let Ok(layout) = String::from_utf8(buf.to_vec()) {
+            if set_keyboard(layout.trim()) {
+                return Ok(buf.len());
+            }
+        }
+        Err(())
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        interrupts::without_interrupts(||
+            match event {
+                IO::Read => true,
+                IO::Write => true,
+            }
+        )
     }
 }
 
@@ -204,6 +257,7 @@ fn interrupt_handler() {
                             send_csi("A")
                         }
                     }
+
                     DecodedKey::RawKey(KeyCode::ArrowDown) => {
                         if is_ctrl {
                             send_csi("1;5B")
@@ -213,6 +267,7 @@ fn interrupt_handler() {
                             send_csi("B")
                         }
                     }
+
                     DecodedKey::RawKey(KeyCode::ArrowRight) => {
                         if is_ctrl {
                             send_csi("1;5C")
@@ -222,6 +277,7 @@ fn interrupt_handler() {
                             send_csi("C")
                         }
                     }
+
                     DecodedKey::RawKey(KeyCode::ArrowLeft) => {
                         if is_ctrl {
                             send_csi("1;5D")
@@ -233,6 +289,7 @@ fn interrupt_handler() {
                     }
 
                     DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
+
                     DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),
 
                     DecodedKey::Unicode(c) => {
