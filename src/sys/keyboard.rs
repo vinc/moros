@@ -1,8 +1,11 @@
 use crate::api;
+use crate::api::fs::{FileIO, IO};
 use crate::sys;
 
+use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
 use core::sync::atomic::{AtomicBool, Ordering};
+use lazy_static::lazy_static;
 use pc_keyboard::{
     layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, KeyState,
     Keyboard, ScancodeSet1,
@@ -10,6 +13,10 @@ use pc_keyboard::{
 use spin::Mutex;
 use x86_64::instructions::interrupts;
 use x86_64::instructions::port::Port;
+
+lazy_static! {
+    pub static ref BUF: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
+}
 
 pub static KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
 
@@ -95,9 +102,58 @@ fn send_csi(code: &str) {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct KeyboardBuffer;
+
+impl KeyboardBuffer {
+    pub fn new() -> Self {
+        interrupts::without_interrupts(|| BUF.lock().clear());
+        Self {}
+    }
+
+    pub fn size() -> usize {
+        4
+    }
+}
+
+impl FileIO for KeyboardBuffer {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        interrupts::without_interrupts(||
+            if let Some(scancode) = BUF.lock().pop_front() {
+                buf[0] = scancode;
+                Ok(1)
+            } else {
+                Ok(0)
+            }
+        )
+    }
+
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        Err(())
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        interrupts::without_interrupts(||
+            match event {
+                IO::Read => !BUF.lock().is_empty(),
+                IO::Write => false,
+            }
+        )
+    }
+}
+
 fn interrupt_handler() {
     if let Some(ref mut keyboard) = *KEYBOARD.lock() {
         let scancode = read_scancode();
+
+        let mut buf = BUF.lock();
+        if buf.len() > 256 {
+            buf.pop_front();
+        }
+        buf.push_back(scancode);
+
         if let Ok(Some(event)) = keyboard.add_byte(scancode) {
             let ord = Ordering::Relaxed;
             match event.code {
