@@ -1,9 +1,7 @@
 use crate::api::fs::{FileIO, IO};
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::Device;
-use crate::sys::fs::FileInfo;
-use crate::sys::fs::Resource;
+use crate::sys::fs::{Device, FileInfo, Resource, SeekFrom};
 
 use alloc::vec;
 use core::alloc::Layout;
@@ -60,14 +58,6 @@ pub fn open(path: &str, flags: u8) -> isize {
     -1
 }
 
-pub fn dup(old_handle: usize, new_handle: usize) -> isize {
-    if let Some(file) = sys::process::handle(old_handle) {
-        sys::process::update_handle(new_handle, *file);
-        return 0;
-    }
-    -1
-}
-
 pub fn read(handle: usize, buf: &mut [u8]) -> isize {
     if let Some(mut file) = sys::process::handle(handle) {
         if let Ok(bytes) = file.read(buf) {
@@ -92,6 +82,33 @@ pub fn close(handle: usize) {
     if let Some(mut file) = sys::process::handle(handle) {
         file.close();
         sys::process::delete_handle(handle);
+    }
+}
+
+pub fn dup(old_handle: usize, new_handle: usize) -> isize {
+    if let Some(file) = sys::process::handle(old_handle) {
+        sys::process::update_handle(new_handle, *file);
+        return 0;
+    }
+    -1
+}
+
+pub fn seek(handle: usize, offset: SeekFrom) -> isize {
+    if let Some(file) = sys::process::handle(handle) {
+        let mut r = *file;
+        match &mut r {
+            Resource::File(f) => {
+                if let Ok(o) = f.seek(offset) {
+                    sys::process::update_handle(handle, r);
+                    o as isize
+                } else {
+                    -3
+                }
+            }
+            _ => -2
+        }
+    } else {
+        -1
     }
 }
 
