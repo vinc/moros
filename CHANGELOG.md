@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add keyboard layout device (#865)
 - Add keyboard buffer device (#864)
 
 ## 0.13.0 (2026-06-21)
