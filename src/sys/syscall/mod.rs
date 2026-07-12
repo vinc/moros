@@ -3,7 +3,7 @@ pub mod service;
 
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::FileInfo;
+use crate::sys::fs::{FileInfo, SeekFrom};
 
 use core::arch::asm;
 use core::convert::TryInto;
@@ -81,6 +81,16 @@ pub fn dispatcher(
             let old_handle = arg1;
             let new_handle = arg2;
             service::dup(old_handle, new_handle) as usize
+        }
+        number::SEEK => {
+            let handle = arg1;
+            let offset = match arg3 {
+                0 => SeekFrom::Start(arg2 as u32),
+                1 => SeekFrom::Current(arg2 as i32),
+                2 => SeekFrom::End(arg2 as i32),
+                _ => return -4 as isize as usize,
+            };
+            service::seek(handle, offset) as usize
         }
         number::SPAWN => {
             let path_ptr = sys::process::ptr_from_addr(arg1 as u64);

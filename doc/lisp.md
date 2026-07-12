@@ -1,14 +1,16 @@
 # MOROS Lisp
 
-A minimalist Lisp interpreter is available in MOROS to extend the capabilities
-of the Shell.
+A Lisp interpreter is available in MOROS to extend the capabilities of the
+shell.
 
 MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 
 ## Overview
 
+Check the [documentation](/lisp-doc.md) for more information.
+
 ### Types
-- Basics: `bool`, `list`, `symbol`, `string`
+- Basics: `bool`, `list`, `sym`, `str`
 - Number: `float`, `int`, `bigint`
 
 ### Literals
@@ -16,73 +18,73 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 - String: `"Hello, World!"`
 - Escape: `\b`, `\e`, `\n`, `\r`, `\t`, `\"`, `\\`
 
-### Built-in Operators
+### Builtins
 - `quote` (abbreviated with `'`)
 - `quasiquote` (abbreviated with `` ` ``)
 - `unquote` (abbreviated with `,`)
 - `unquote-splice` (abbreviated with `,@`)
 - `splice` (abbreviated with `@`)
 - `atom?`
-- `equal?` (aliased to `eq?`)
-- `head`
-- `tail`
+- `eq?` (aliased to `=`)
 - `cons`
 - `if`
 - `cond`
 - `case`
-- `while`
-- `macro` (aliased to `mac`)
-- `function` (aliased to `fun`)
-- `variable` (aliased to `var`)
-- `variable?` (aliased to `var?`)
-- `mutate` (aliased to `mut`)
-- `define` (aliased to `def` and equivalent to `define-function`)
-- `define-function` (aliased to `def-fun`)
-- `define-macro` (aliased to `def-mac`)
+- `mac`
+- `fun`
+- `var`
+- `var?`
+- `mut`
+- `def` (equivalent to `def-fun`)
+- `def-fun`
+- `def-mac`
 - `apply`
+- `fold`
+- `while`
 - `do`
 - `doc`
 - `eval`
 - `expand`
 - `load`
 
-### Primitive Operators
-- `type`, `number/type` (aliased to `num/type`), `parse`
-- `string` (aliased to `str`)
-- `string->number` and `number->string` (aliased to `str->num` and `num->str`)
-- `string->binary` and `binary->string` (aliased to `str->bin` and `bin->str`)
-- `number->binary` and `binary->number` (aliased to `num->bin` and `bin->num`)
+### Primitives
+- `type`, `parse`
+- `str`
+- `str->num`, `num->str`
+- `str->bin`, `bin->str`
+- `num->bin`, `bin->num`
 - `regex/find`
-- `shell` (aliased to `sh`) and `shell->binary` (aliased to `sh->bin`)
+- `sh`, `sh->bin`
 - `date`, `sleep`
-- Arithmetic: `+`, `-`, `*`, `/`, `**`, `%`, and `trunc`
-- Bitwise: `&`, `|`, `^`, `<<`, `>>`
+- Number: `num/type`, `num/int`, `num/eq?`
+- Bit: `bit/not`, `bit/and`, `bit/or`, `bit/xor`, `bit/shl`, `bit/shr` (aliased to `~`, `&`, `|`, `^`, `<<`, `>>`)
+- Arithmetic: `add`, `sub`, `mul`, `div`, `exp`, `rem` (aliased to `+`, `-`, `*`, `/`, `**`, `%`)
 - Trigonometric: `acos`, `asin`, `atan`, `cos`, `sin`, `tan`
-- Comparisons: `>`, `<`, `>=`, `<=`, `=`
-- Enumerable: `length` (aliased to `len`), `put`, `get`, `slice`, `contains?`
-- String: `string/trim` and `string/split` (aliased to `str/trim` and `str/split`)
-- List: `list`, `concat`, `chunks`, `sort`, `unique` (aliased to `uniq`)
-- Dict: `dict`
+- Comparisons: `gt?`, `lt?`, `gte?`, `lte?` (aliased to `>`, `<`, `>=`, `<=`)
+- Enumerable: `len`, `put`, `get`, `slice`, `contains?`
+- String: `str/trim`, `str/split`
+- List: `list`, `concat`, `chunks`, `sort`, `uniq`
+- Dict: `dict`, `dict/pairs`
 - File: `file/exists?`, `file/size`, `file/open`, `file/close`, `file/read`, `file/write`
 - Net: `host`, `socket/connect`, `socket/listen`, `socket/accept`
 
 ### Core Library
 - `nil`, `nil?`, `list?`, `empty?`
-- `boolean?` (aliased to `bool?`), `string?` (aliased to `str?`), `symbol?` (aliased to `sym?`), `number?` (aliased to `num?`)
-- `function?` (aliased to `fun?`), `macro?` (aliased to `mac?`)
+- `bool?`, `str?`, `sym?`, `num?`
+- `fun?`, `mac?`
 - `abs`, `mod`, `min`, `max`
-- `first`, `second`, `third`, `last`, `rest`, `push`
-- `map`, `reduce`, `reverse` (aliased to `rev`), `range`, `filter`, `reject`, `intersection`
+- `first` (aliased to `head`), `second`, `third`, `last`, `rest` (aliased to `tail`), `push`
+- `map`, `reduce`, `rev`, `range`, `filter`, `reject`, `intersection`
 - `not`, `and`, `or`
 - `set`, `let`
-- `string/join` (aliased to `str/join`), `lines`, `words`, `chars`
-- `shell->string` (aliased to `sh->str`)
+- `str/join`, `lines`, `words`, `chars`
+- `sh->str`
 - `regex/match?`
 
 ### File Library
 - `dirname`, `filename`
 - `read`, `write`, `append`
-- `read-binary`, `write-binary`, `append-binary`
+- `read-bin`, `write-bin`, `append-bin`
 - `read-line`, `read-char`
 - `clock/boot`, `clock/epoch`
 - `p`, `print`, `eprint`, `error`
@@ -90,7 +92,10 @@ MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
 ### Math Library
 - `floor`, `ceil`, `round`
 
-### Compatibility Library
+### Dict Library
+- `dict/keys`, `dict/values`
+
+### Compat Library
 
 - `atom`, `eq`, `label`, `lambda`, `progn`, `begin`
 - `car`, `cdr`, `caar`, `cadr`, `cdar`, `cddr`
@@ -101,7 +106,7 @@ The interpreter can be invoked from the shell:
 
 ```
 > lisp
-MOROS Lisp v0.7.0
+MOROS Lisp v0.9.0
 
 > (+ 1 2 3)
 6
@@ -138,8 +143,8 @@ Would produce the following output:
 
 (print "Hello, World!")
 
-(set bar 10)                       # Variable binding
-(set bar (+ bar 10))               # Variable rebinding
+(set foo 10)                       # Variable binding
+(set foo (+ foo 10))               # Variable rebinding
 
 (set double (fun (x) (* x 2)))     # Function definition
 (def (double x) (* x 2))           # Shortcut
@@ -174,14 +179,27 @@ Would produce the following output:
 
 (str "Hello, " name)               # => "Hello, Alice"
 
-(^ 2 64)                           # => 18446744073709551616
+(** 2 64)                          # => 18446744073709551616
 ```
 
 ## Changelog
 
 ### Unreleased
-- Add `&`, `|`, and `^` bitwise operators
-- Rename `^` exp operator to `**`
+
+### 0.9.0 (2026-06-21)
+- Allow optional arguments
+- Add `fold` special form
+- Fix double eval issue with `apply`
+- Add `dict/pairs` function
+- Change `socket/accept` to return `()` instead of an error
+- Replace long names (`string`, `variable`, `define`, ...) by short names (`str`, `var`, `def`, ...)
+- Change `and` and `or` to accept more than 2 args
+- Merge `=` into `equal?` (aliased to `eq?` and `=`) and add a stricter `number/equal?`
+- Rename `+`, `-`, `*`, `/`, and `%` to `add`, `sub`, `mul`, `div`, and `rem` (aliased to their previous names)
+- Rename `>`, `<`, `>=`, and `<=` to `gt?`, `lt?`, `gte?` and `lte?` (aliased to their previous names)
+- Rename `trunc` to `number/int` (aliased to `num/int` and its previous name)
+- Add `bit/and`, `bit/or`, and `bit/xor` bit operators (aliased to `&`, `|`, and `^`)
+- Rename `^` exp operator to `exp` (aliased to `**`)
 - Add `case` function
 - Refactor comment parsing
 - Add `shell->binary` function (aliased to `sh->bin`)

@@ -29,19 +29,19 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
 
         if !fs::exists(pathname) {
-            error!("Could not find file '{}'", pathname);
+            error!("Could not find file {:?}", pathname);
             return Err(ExitCode::Failure);
         }
 
         if let Some(info) = syscall::info(pathname) {
             if info.is_dir() && info.size() > 0 {
-                error!("Directory '{}' not empty", pathname);
+                error!("Directory {:?} not empty", pathname);
                 return Err(ExitCode::Failure);
             }
         }
 
         if fs::delete(pathname).is_err() {
-            error!("Could not drop file '{}'", pathname);
+            error!("Could not drop file {:?}", pathname);
             return Err(ExitCode::Failure);
         }
     }

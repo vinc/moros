@@ -16,3 +16,4 @@ pub const ACCEPT:  usize = 0xF;
 pub const ALLOC:   usize = 0x10;
 pub const FREE:    usize = 0x11;
 pub const KIND:    usize = 0x12;
+pub const SEEK:    usize = 0x13;

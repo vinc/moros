@@ -179,7 +179,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     let dev = "/dev/vga/buffer";
                     if !fs::is_device(dev) || fs::write(dev, &img).is_err() {
                         config.text_mode();
-                        error!("Could not write to '{}'", dev);
+                        error!("Could not write to {:?}", dev);
                         return Err(ExitCode::Failure);
                     }
                     refresh = false;

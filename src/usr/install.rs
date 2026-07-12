@@ -1,6 +1,7 @@
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::{api, sys, usr};
@@ -48,9 +49,11 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/ata/0", verbose);
     create_dir("/dev/ata/1", verbose);
     create_dir("/dev/clk", verbose); // Clock
+    create_dir("/dev/kbd", verbose); // Keyboard
     create_dir("/dev/net", verbose); // Network
     create_dir("/dev/snd", verbose); // Sound
     create_dir("/dev/vga", verbose);
+    create_dir("/dev/proc", verbose); // Process
 
     create_dev("/dev/ata/0/0", "ata-0-0", verbose);
     create_dev("/dev/ata/0/1", "ata-0-1", verbose);
@@ -60,6 +63,8 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/clk/epoch", "clk-epoch", verbose);
     create_dev("/dev/clk/rtc", "clk-rtc", verbose);
     create_dev("/dev/console", "console", verbose);
+    create_dev("/dev/kbd/buffer", "kbd-buffer", verbose);
+    create_dev("/dev/kbd/layout", "kbd-layout", verbose);
     create_dev("/dev/net/tcp", "net-tcp", verbose);
     create_dev("/dev/net/udp", "net-udp", verbose);
     create_dev("/dev/net/gw", "net-gw", verbose);
@@ -68,6 +73,10 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/net/usage", "net-usage", verbose);
     create_dev("/dev/null", "null", verbose);
     create_dev("/dev/pipe", "pipe", verbose);
+    create_dev("/dev/proc/id", "proc-id", verbose);
+    create_dev("/dev/proc/dir", "proc-dir", verbose);
+    create_dev("/dev/proc/env", "proc-env", verbose);
+    create_dev("/dev/proc/user", "proc-user", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/snd/buffer", "snd-buffer", verbose);
     create_dev("/dev/speaker", "speaker", verbose);
@@ -98,7 +107,7 @@ pub fn copy_files(verbose: bool) {
     copy_file!("/lib/lisp/dict.lsp", verbose);
     copy_file!("/lib/lisp/file.lsp", verbose);
     copy_file!("/lib/lisp/ini.lsp", verbose);
-    //copy_file!("/lib/lisp/legacy.lsp", verbose);
+    //copy_file!("/lib/lisp/compat.lsp", verbose);
     copy_file!("/lib/lisp/math.lsp", verbose);
 
     copy_file!("/tmp/alice.txt", verbose);
@@ -193,7 +202,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let verbose = true;
         copy_files(verbose);
 
-        if sys::process::user().is_none() {
+        if process::user().is_none() {
             println!();
             println!("{}Creating user...{}", csi_color, csi_reset);
             let res = usr::user::main(&["user", "create"]);
@@ -216,7 +225,7 @@ fn create_dir(path: &str, verbose: bool) {
         return;
     }
     if verbose {
-        println!("Creating '{}'", path);
+        println!("Creating {:?}", path);
     }
     if let Some(handle) = api::fs::create_dir(path) {
         syscall::close(handle);
@@ -228,7 +237,7 @@ fn create_dev(path: &str, name: &str, verbose: bool) {
         return;
     }
     if verbose {
-        println!("Creating '{}'", path);
+        println!("Creating {:?}", path);
     }
     if let Some(handle) = fs::create_device(path, name) {
         syscall::close(handle);
@@ -240,7 +249,7 @@ fn copy_file(path: &str, buf: &[u8], verbose: bool) {
         return;
     }
     if verbose {
-        println!("Fetching '{}'", path);
+        println!("Fetching {:?}", path);
     }
     if path.ends_with(".txt") {
         if let Ok(text) = String::from_utf8(buf.to_vec()) {

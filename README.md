@@ -38,11 +38,10 @@ be accomplished after completing an OSDev tutorial, while reading the
 - Intel PRO/1000, RTL8139, and AMD PCNET network cards
 - DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][13])
 - AC97 and SB16 sound cards
-- Basic [shell](doc/shell.md)
-- Basic [text editor](doc/editor.md)
-- Basic [lisp](doc/lisp.md) interpreter
-- Basic userspace for NASM and Rust programs communicating with the
-  kernel through [syscalls](doc/syscalls.md) and device file I/O
+- [shell](doc/shell.md) and [lisp](doc/lisp.md) interpreter
+- [text editor](doc/editor.md) and assembler
+- userspace for NASM and Rust programs communicating with the kernel through
+  [syscalls](doc/syscalls.md) and device file I/O
 - Some [file](doc/shell.md) and [network](doc/network.md) commands
 - Some [games](doc/games.md)
 
