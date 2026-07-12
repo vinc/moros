@@ -15,6 +15,7 @@ pub use table::{
     code_addr,
     env_var,
     set_user,
+    dir,
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
     registers, set_registers,
@@ -25,7 +26,7 @@ use table::{
     PROCESS_TABLE,
     current_process,
     id, set_id,
-    dir, set_dir,
+    set_dir,
     env, set_env_var,
     user,
 };
