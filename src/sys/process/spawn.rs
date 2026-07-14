@@ -1,6 +1,7 @@
 use super::Process;
 use super::MAX_PROC_SIZE;
-use super::CODE_ADDR;
+use super::USER_ADDR;
+use super::is_userspace;
 use super::{id, set_id};
 use super::page_table;
 use super::ptr_from_addr;
@@ -13,15 +14,15 @@ use crate::sys::mem;
 use crate::sys::mem::phys_mem_offset;
 
 use alloc::boxed::Box;
+use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
-use core::sync::atomic::Ordering;
 use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable,
+    FrameAllocator, OffsetPageTable, Translate,
 };
 use x86_64::VirtAddr;
 
@@ -78,10 +79,16 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         mem::active_page_table()
     };
 
-    // FIXME: for now we just copy everything
+    // Clone the page table entries of the active page table, except the
+    // entry of the user memory region.
+    let l4_user = VirtAddr::new(USER_ADDR).p4_index().into();
     let pages = page_table.iter_mut().zip(kernel_page_table.iter());
-    for (user_page, kernel_page) in pages {
-        *user_page = kernel_page.clone();
+    for (l4_index, (user_page, kernel_page)) in pages.enumerate() {
+        if l4_index == l4_user {
+            user_page.set_unused();
+        } else {
+            *user_page = kernel_page.clone();
+        }
     }
 
     let mut mapper = unsafe {
@@ -89,9 +96,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     };
 
     let proc_size = MAX_PROC_SIZE as u64;
-    let code_base = CODE_ADDR.load(Ordering::SeqCst);
-    let code_addr = code_base + proc_size * id as u64;
-    let stack_addr = code_addr + proc_size - 4096;
+    let stack_addr = USER_ADDR + proc_size - 4096;
 
     let mut entry_point_addr = 0;
 
@@ -99,6 +104,9 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
         if let Ok(obj) = object::File::parse(bin) {
             entry_point_addr = obj.entry();
+            if !is_userspace(entry_point_addr) {
+                return Err(());
+            }
 
             for segment in obj.segments() {
                 if let Ok(data) = segment.data() {
@@ -106,14 +114,23 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
                     // larger than on the disk because the object can
                     // contain uninitialized sections like ".bss" that has
                     // a length but no data.
-                    let addr = code_addr + segment.address();
+                    let addr = segment.address(); // Loaded at link address
                     let size = segment.size() as usize;
-                    load_binary(&mut mapper, addr, size, data)?;
+                    if size > 0 {
+                        if !is_userspace(addr) {
+                            return Err(());
+                        }
+                        if !is_userspace(addr + size as u64 - 1) {
+                            return Err(());
+                        }
+                        load_binary(&mut mapper, addr, size, data)?;
+                    }
                 }
             }
         }
     } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
-        load_binary(&mut mapper, code_addr, bin.len() - 4, &bin[4..])?;
+        entry_point_addr = USER_ADDR;
+        load_binary(&mut mapper, USER_ADDR, bin.len() - 4, &bin[4..])?;
     } else {
         // TODO: Free page_table_frame and any pages allocated
         return Err(());
@@ -133,7 +150,6 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         registers,
         ctx: ProcessContext {
             id,
-            code_addr,
             stack_addr,
             entry_point_addr,
             page_table_frame,
@@ -148,24 +164,35 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
 
 // Switch to user mode and execute the program
 fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
-    // The args are stored halfway between the code and the stack
-    let args_addr = ctx.code_addr + (ctx.stack_addr - ctx.code_addr) / 2;
-    let args_size = 4096; // 1 page
-    let args_ptr = copy_args(args_ptr, args_len, args_addr, args_size);
+    // Copy the args to the kernel heap
+    let args: Vec<String> = unsafe {
+        let ptr = ptr_from_addr(args_ptr as u64) as *const &str;
+        core::slice::from_raw_parts(ptr, args_len)
+    }.iter().map(|arg| arg.to_string()).collect();
 
-    // The heap is stored between the args and the stack
+    set_id(ctx.id); // Change PID
+
+    // Enter process address space and let the page fault handler allocate
+    // user memory.
+    unsafe {
+        let (_, flags) = Cr3::read();
+        Cr3::write(ctx.page_table_frame, flags);
+    }
+
+    // TODO: Store the args in the user stack
+    let args_addr = USER_ADDR + (ctx.stack_addr - USER_ADDR) / 2;
+    let args_size = 4096; // 1 page
+    let args_len = args.len();
+    let args_ptr = copy_args(&args, args_addr, args_size);
+    drop(args);
+
     let heap_addr = args_addr + args_size as u64;
     let heap_size = ((ctx.stack_addr - heap_addr) / 2) as usize;
     unsafe {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
 
-    set_id(ctx.id); // Change PID
-
     unsafe {
-        let (_, flags) = Cr3::read();
-        Cr3::write(ctx.page_table_frame, flags);
-
         asm!(
             "cli",        // Disable interrupts
             "push {:r}",  // Stack segment (SS)
@@ -177,27 +204,24 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
             in(reg) GDT.1.user_data.0,
             in(reg) ctx.stack_addr,
             in(reg) GDT.1.user_code.0,
-            in(reg) ctx.code_addr + ctx.entry_point_addr,
+            in(reg) ctx.entry_point_addr,
             in("rdi") args_ptr,
             in("rsi") args_len,
         );
     }
 }
 
-fn copy_args(ptr: usize, len: usize, addr: u64, size: usize) -> usize {
+fn copy_args(args: &[String], addr: u64, size: usize) -> usize {
+    let len = args.len();
     let mut offset = addr;
 
-    // Alloc memory
+    // Alloc memory in the process page table, which is currently active
     let mut mapper = unsafe {
         OffsetPageTable::new(page_table(), VirtAddr::new(phys_mem_offset()))
     };
     mem::alloc_pages(&mut mapper, addr, size).unwrap();
 
-    // Copy each &str
-    let args: &[&str] = unsafe {
-        let args_ptr = ptr_from_addr(ptr as u64) as usize;
-        core::slice::from_raw_parts(args_ptr as *const &str, len)
-    };
+    // Copy each arg and record it as a &str in the user memory region
     let tmp: Vec<&str> = args.iter().map(|arg| {
         let arg_ptr = offset as *mut u8;
         offset += arg.len() as u64;
@@ -226,14 +250,21 @@ fn load_binary(
     mapper: &mut OffsetPageTable, addr: u64, size: usize, buf: &[u8]
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
+    debug_assert!(addr % 4096 == 0);
+
+    // Pages are mapped only in the process page table, so they are not
+    // accessible from the currently active kernel page table.
     mem::alloc_pages(mapper, addr, size)?;
-    let src = buf.as_ptr();
-    let dst = addr as *mut u8;
-    unsafe {
-        core::ptr::copy_nonoverlapping(src, dst, buf.len());
-        if size > buf.len() {
-            core::ptr::write_bytes(dst.add(buf.len()), 0, size - buf.len());
+    let mut offset = 0;
+    while offset < buf.len() {
+        let page_addr = VirtAddr::new(addr + offset as u64);
+        let phys_addr = mapper.translate_addr(page_addr).ok_or(())?;
+        let dst = mem::phys_to_virt(phys_addr).as_mut_ptr::<u8>();
+        let n = core::cmp::min(4096, buf.len() - offset);
+        unsafe {
+            core::ptr::copy_nonoverlapping(buf.as_ptr().add(offset), dst, n);
         }
+        offset += n;
     }
     Ok(())
 }
