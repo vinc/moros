@@ -146,8 +146,8 @@ pub fn exit() {
         table[id()].take().unwrap()
     };
 
-    free_process(proc.ctx.page_table_frame);
     load_process(proc.parent_id);
+    free_process(proc.ctx.page_table_frame);
 }
 
 fn load_process(id: usize) {
