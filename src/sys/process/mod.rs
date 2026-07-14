@@ -158,7 +158,7 @@ fn load_process(id: usize) {
     }
 }
 
-pub fn free_process(page_table_frame: PhysFrame) {
+fn free_process(page_table_frame: PhysFrame) {
     let page_table = unsafe {
         mem::create_page_table(page_table_frame)
     };
