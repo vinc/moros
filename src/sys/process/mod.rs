@@ -48,7 +48,7 @@ use x86_64::structures::paging::{
 use x86_64::VirtAddr;
 
 pub const MAX_HANDLES: usize = 64;
-pub const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
+pub const MAX_PROC_SIZE: usize = 32 << 20;
 
 // The user memory region lives in its own L4 entry of each process page table.
 pub const USER_ADDR: u64 = 0x0000_0080_0000_0000;

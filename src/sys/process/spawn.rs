@@ -110,10 +110,10 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
 
             for segment in obj.segments() {
                 if let Ok(data) = segment.data() {
-                    // NOTE: The size of the segment in memory can be
-                    // larger than on the disk because the object can
-                    // contain uninitialized sections like ".bss" that has
-                    // a length but no data.
+                    // NOTE: The size of the segment in memory can be larger
+                    // than on the disk because the object can contain
+                    // uninitialized sections like bss that has a length but
+                    // no data.
                     let addr = segment.address(); // Loaded at link address
                     let size = segment.size() as usize;
                     if size > 0 {
@@ -179,7 +179,8 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
         Cr3::write(ctx.page_table_frame, flags);
     }
 
-    // TODO: Store the args in the user stack
+    // TODO: Move args to the user stack. Current location requires process
+    // memory to be >= 32 MB so it stays above text/rodata/bss.
     let args_addr = USER_ADDR + (ctx.stack_addr - USER_ADDR) / 2;
     let args_size = 4096; // 1 page
     let args_len = args.len();
