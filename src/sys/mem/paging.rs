@@ -47,6 +47,12 @@ pub fn alloc_pages(
                 };
                 if let Ok(mapping) = res {
                     mapping.flush();
+
+                    // Clear the frame
+                    let virt = super::phys_to_virt(frame.start_address());
+                    unsafe {
+                        core::ptr::write_bytes(virt.as_mut_ptr::<u8>(), 0, 4096);
+                    }
                 } else {
                     debug!("Could not map {:?} to {:?}", page, frame);
                     if let Ok(old_frame) = mapper.translate_page(page) {
