@@ -21,6 +21,8 @@ pub struct File {
     addr: u32,
     size: u32,
     offset: u32,
+    cursor_addr: u32,
+    cursor_pos: u32,
 }
 
 impl From<DirEntry> for File {
@@ -31,6 +33,8 @@ impl From<DirEntry> for File {
             addr: entry.addr(),
             size: entry.size(),
             offset: 0,
+            cursor_addr: entry.addr(),
+            cursor_pos: 0,
         }
     }
 }
@@ -43,6 +47,8 @@ impl File {
             addr: 0,
             size: 0,
             offset: 0,
+            cursor_addr: 0,
+            cursor_pos: 0,
         }
     }
 
@@ -122,10 +128,13 @@ impl File {
 
 impl FileIO for File {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let (mut addr, mut pos) = if self.offset >= self.cursor_pos {
+            (self.cursor_addr, self.cursor_pos)
+        } else {
+            (self.addr, 0) // seek went backward: restart from head
+        };
         let buf_len = buf.len();
-        let mut addr = self.addr;
         let mut bytes = 0; // Number of bytes read
-        let mut pos = 0; // Position in the file
         loop {
             let block = LinkedBlock::read(addr);
             let data = block.data();
@@ -142,7 +151,11 @@ impl FileIO for File {
                 pos += 1;
             }
             match block.next() {
-                Some(next_block) => addr = next_block.addr(),
+                Some(next_block) => {
+                    addr = next_block.addr();
+                    self.cursor_addr = addr;
+                    self.cursor_pos = pos;
+                }
                 None => return Ok(bytes),
             }
         }
@@ -231,6 +244,8 @@ impl FileIO for File {
         if let Some(dir) = self.parent.clone() {
             dir.update_entry(&self.name, self.size);
         }
+        self.cursor_addr = self.addr;
+        self.cursor_pos = 0;
         Ok(bytes)
     }
 
