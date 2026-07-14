@@ -251,7 +251,6 @@ fn load_binary(
     mapper: &mut OffsetPageTable, addr: u64, size: usize, buf: &[u8]
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
-    debug_assert!(addr % 4096 == 0);
 
     // Pages are mapped only in the process page table, so they are not
     // accessible from the currently active kernel page table.
@@ -261,7 +260,10 @@ fn load_binary(
         let page_addr = VirtAddr::new(addr + offset as u64);
         let phys_addr = mapper.translate_addr(page_addr).ok_or(())?;
         let dst = mem::phys_to_virt(phys_addr).as_mut_ptr::<u8>();
-        let n = core::cmp::min(4096, buf.len() - offset);
+
+        let page_offset = usize::from(page_addr.page_offset());
+        let n = core::cmp::min(4096 - page_offset, buf.len() - offset);
+
         unsafe {
             core::ptr::copy_nonoverlapping(buf.as_ptr().add(offset), dst, n);
         }
