@@ -93,7 +93,7 @@ pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
     };
     unsafe {
         with_frame_allocator(|allocator| {
-            mapper.clean_up(allocator);
+            mapper.clean_up_addr_range(pages, allocator);
         });
     }
 }
