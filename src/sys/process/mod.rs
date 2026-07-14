@@ -138,20 +138,6 @@ impl Process {
             }
         }
     }
-
-    fn mapper(&self) -> OffsetPageTable<'_> {
-        let page_table = unsafe {
-            mem::create_page_table(self.ctx.page_table_frame)
-        };
-        unsafe {
-            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-        }
-    }
-
-    fn free_pages(&self) {
-        let mut mapper = self.mapper();
-        mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
-    }
 }
 
 pub fn exit() {
@@ -160,13 +146,7 @@ pub fn exit() {
         table[id()].take().unwrap()
     };
 
-    proc.free_pages();
-    unsafe {
-        with_frame_allocator(|allocator| {
-            allocator.deallocate_frame(proc.ctx.page_table_frame);
-        });
-    }
-
+    free_process(proc.ctx.page_table_frame);
     load_process(proc.parent_id);
 }
 
@@ -175,6 +155,21 @@ fn load_process(id: usize) {
     unsafe {
         let (_, flags) = Cr3::read();
         Cr3::write(page_table_frame(), flags);
+    }
+}
+
+pub fn free_process(page_table_frame: PhysFrame) {
+    let page_table = unsafe {
+        mem::create_page_table(page_table_frame)
+    };
+    let mut mapper = unsafe {
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+    };
+    mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
+    unsafe {
+        with_frame_allocator(|allocator| {
+            allocator.deallocate_frame(page_table_frame);
+        });
     }
 }
 

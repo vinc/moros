@@ -6,6 +6,7 @@ use super::{id, set_id};
 use super::page_table;
 use super::ptr_from_addr;
 use super::ProcessContext;
+use super::free_process;
 use super::table::{PROCESS_TABLE, MAX_PROCS};
 
 use crate::api::process::ExitCode;
@@ -118,9 +119,11 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
                     let size = segment.size() as usize;
                     if size > 0 {
                         if !is_userspace(addr) {
+                            free_process(page_table_frame);
                             return Err(());
                         }
                         if !is_userspace(addr + size as u64 - 1) {
+                            free_process(page_table_frame);
                             return Err(());
                         }
                         load_binary(&mut mapper, addr, size, data)?;
@@ -132,7 +135,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         entry_point_addr = USER_ADDR;
         load_binary(&mut mapper, USER_ADDR, bin.len() - 4, &bin[4..])?;
     } else {
-        // TODO: Free page_table_frame and any pages allocated
+        free_process(page_table_frame);
         return Err(());
     }
 
