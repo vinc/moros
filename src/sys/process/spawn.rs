@@ -12,7 +12,6 @@ use super::table::{PROCESS_TABLE, MAX_PROCS};
 use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
 use crate::sys::mem;
-use crate::sys::mem::phys_mem_offset;
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -23,7 +22,7 @@ use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, PageTable, Translate,
+    FrameAllocator, PageTable, Translate,
 };
 use x86_64::VirtAddr;
 
@@ -181,9 +180,7 @@ fn copy_args(args: &[String], addr: u64, size: usize) -> usize {
     let mut offset = addr;
 
     // Alloc memory in the process page table, which is currently active
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table(), VirtAddr::new(phys_mem_offset()))
-    };
+    let mut mapper = unsafe { mem::create_mapper(page_table()) };
     mem::alloc_pages(&mut mapper, addr, size).unwrap();
 
     // Copy each arg and record it as a &str in the user memory region
@@ -250,10 +247,7 @@ fn load_segment(
     addr: u64, size: usize, buf: &[u8], page_table: &mut PageTable
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
-
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-    };
+    let mut mapper = unsafe { mem::create_mapper(page_table) };
 
     // Pages are mapped only in the process page table, so they are not
     // accessible from the currently active kernel page table.

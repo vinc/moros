@@ -1,4 +1,3 @@
-use crate::sys::mem::phys_mem_offset;
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
 use crate::{api, hlt_loop, sys};
@@ -12,7 +11,6 @@ use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
-use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
 
 // Translate IRQ into system interrupt
@@ -124,9 +122,8 @@ extern "x86-interrupt" fn page_fault_handler(
     let addr = Cr2::read().unwrap().as_u64();
     //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
-    let page_table = unsafe { sys::process::page_table() };
     let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+        sys::mem::create_mapper(sys::process::page_table())
     };
 
     // The heap and the stack of a process are allocated lazily

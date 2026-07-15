@@ -33,7 +33,7 @@ use table::{
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
-use crate::sys::mem::{phys_mem_offset, with_frame_allocator};
+use crate::sys::mem::with_frame_allocator;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -43,9 +43,8 @@ use linked_list_allocator::LockedHeap;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameDeallocator, OffsetPageTable, PageTable, PhysFrame,
+    FrameDeallocator, PageTable, PhysFrame,
 };
-use x86_64::VirtAddr;
 
 pub const MAX_HANDLES: usize = 64;
 pub const MAX_PROC_SIZE: usize = 32 << 20;
@@ -159,12 +158,8 @@ fn load_process(id: usize) {
 }
 
 fn free_process(page_table_frame: PhysFrame) {
-    let page_table = unsafe {
-        mem::create_page_table(page_table_frame)
-    };
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-    };
+    let page_table = unsafe { mem::create_page_table(page_table_frame) };
+    let mut mapper = unsafe { mem::create_mapper(page_table) };
     mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
     unsafe {
         with_frame_allocator(|allocator| {
