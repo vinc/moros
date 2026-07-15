@@ -99,13 +99,12 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let proc_size = MAX_PROC_SIZE as u64;
     let stack_addr = USER_ADDR + proc_size - 4096;
 
-    let mut entry_point_addr = 0;
-
-    //debug!("Process memory:");
+    let entry_point_addr;
     if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
         if let Ok(obj) = object::File::parse(bin) {
             entry_point_addr = obj.entry();
             if !is_userspace(entry_point_addr) {
+                free_process(page_table_frame);
                 return Err(());
             }
 
@@ -130,6 +129,9 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
                     }
                 }
             }
+        } else {
+            free_process(page_table_frame);
+            return Err(());
         }
     } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
         entry_point_addr = USER_ADDR;
