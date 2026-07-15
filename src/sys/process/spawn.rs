@@ -94,10 +94,9 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let proc_size = MAX_PROC_SIZE as u64;
     let stack_addr = USER_ADDR + proc_size - 4096;
 
-    let Ok(entry_point_addr) = load(bin, page_table) else {
-        free_process(page_table_frame);
-        return Err(());
-    };
+    let entry_point_addr = load(bin, page_table).map_err(|_|
+        free_process(page_table_frame)
+    )?;
 
     let parent_id = parent.ctx.id;
     let data = parent.data.clone();
