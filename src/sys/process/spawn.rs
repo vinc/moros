@@ -23,7 +23,7 @@ use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
-    FrameAllocator, OffsetPageTable, Translate,
+    FrameAllocator, OffsetPageTable, PageTable, Translate,
 };
 use x86_64::VirtAddr;
 
@@ -92,54 +92,13 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         }
     }
 
-    let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-    };
-
     let proc_size = MAX_PROC_SIZE as u64;
     let stack_addr = USER_ADDR + proc_size - 4096;
 
-    let entry_point_addr;
-    if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
-        if let Ok(obj) = object::File::parse(bin) {
-            entry_point_addr = obj.entry();
-            if !is_userspace(entry_point_addr) {
-                free_process(page_table_frame);
-                return Err(());
-            }
-
-            for segment in obj.segments() {
-                if let Ok(data) = segment.data() {
-                    // NOTE: The size of the segment in memory can be larger
-                    // than on the disk because the object can contain
-                    // uninitialized sections like bss that has a length but
-                    // no data.
-                    let addr = segment.address(); // Loaded at link address
-                    let size = segment.size() as usize;
-                    if size > 0 {
-                        if !is_userspace(addr) {
-                            free_process(page_table_frame);
-                            return Err(());
-                        }
-                        if !is_userspace(addr + size as u64 - 1) {
-                            free_process(page_table_frame);
-                            return Err(());
-                        }
-                        load_binary(&mut mapper, addr, size, data)?;
-                    }
-                }
-            }
-        } else {
-            free_process(page_table_frame);
-            return Err(());
-        }
-    } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
-        entry_point_addr = USER_ADDR;
-        load_binary(&mut mapper, USER_ADDR, bin.len() - 4, &bin[4..])?;
-    } else {
+    let Ok(entry_point_addr) = load(bin, page_table) else {
         free_process(page_table_frame);
         return Err(());
-    }
+    };
 
     let parent_id = parent.ctx.id;
     let data = parent.data.clone();
@@ -252,14 +211,53 @@ fn copy_args(args: &[String], addr: u64, size: usize) -> usize {
     offset as usize
 }
 
-fn load_binary(
-    mapper: &mut OffsetPageTable, addr: u64, size: usize, buf: &[u8]
+fn load(bin: &[u8], page_table: &mut PageTable) -> Result<u64, ()> {
+    if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
+        let obj = object::File::parse(bin).map_err(|_| ())?;
+        let entry_point_addr = obj.entry();
+        if !is_userspace(entry_point_addr) {
+            return Err(());
+        }
+
+        for segment in obj.segments() {
+            let data = segment.data().map_err(|_| ())?;
+
+            // NOTE: The size of the segment in memory can be larger than on
+            // the disk because the object can contain uninitialized sections
+            // like bss that has a length but no data.
+            let addr = segment.address(); // Loaded at link address
+            let size = segment.size() as usize;
+            if size > 0 {
+                if !is_userspace(addr) {
+                    return Err(());
+                }
+                if !is_userspace(addr + size as u64 - 1) {
+                    return Err(());
+                }
+                load_segment(addr, size, data, page_table)?;
+            }
+        }
+        Ok(entry_point_addr)
+    } else if bin.get(0..4) == Some(&BIN_MAGIC) { // Flat binary
+        load_segment(USER_ADDR, bin.len() - 4, &bin[4..], page_table)?;
+        Ok(USER_ADDR)
+    } else {
+        Err(())
+    }
+}
+
+fn load_segment(
+    addr: u64, size: usize, buf: &[u8], page_table: &mut PageTable
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
 
+    let mut mapper = unsafe {
+        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+    };
+
     // Pages are mapped only in the process page table, so they are not
     // accessible from the currently active kernel page table.
-    mem::alloc_pages(mapper, addr, size)?;
+    mem::alloc_pages(&mut mapper, addr, size)?;
     let mut offset = 0;
     while offset < buf.len() {
         let page_addr = VirtAddr::new(addr + offset as u64);
