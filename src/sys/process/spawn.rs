@@ -267,3 +267,33 @@ fn load_segment(
     }
     Ok(())
 }
+
+#[test_case]
+fn test_load() {
+    use alloc::vec;
+
+    let print_bin = include_bytes!("../../../dsk/bin/print").to_vec();
+    let print_obj = object::File::parse(&print_bin[..]).unwrap();
+    let print_pos = print_obj.entry();
+
+    let bins = vec![
+        (vec![], Err(())),
+        (vec![b'F'], Err(())),
+        (vec![b'F', b'A', b'I', b'L'], Err(())),
+        (vec![0x7F, b'E', b'L', b'F'], Err(())),
+        (vec![0x7F, b'E', b'L', b'F', b'F', b'A', b'I', b'L'], Err(())),
+        (vec![0x7F, b'B', b'I', b'N', b'P', b'A', b'S', b'S'], Ok(USER_ADDR)),
+        (print_bin, Ok(print_pos)),
+    ];
+
+    for (bin, res) in bins.iter() {
+        let used = mem::with_frame_allocator(|a| a.used_frames());
+        let frame = mem::with_frame_allocator(|a| a.allocate_frame().unwrap());
+        assert_eq!(mem::with_frame_allocator(|a| a.used_frames()), used + 1);
+        let page_table = unsafe { mem::create_page_table(frame) };
+        page_table.zero();
+        assert_eq!(load(&bin, page_table), *res);
+        free_process(frame);
+        assert_eq!(mem::with_frame_allocator(|a| a.used_frames()), used);
+    }
+}
