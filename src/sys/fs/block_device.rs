@@ -101,7 +101,7 @@ pub fn format_mem() {
     }
 }
 
-const ATA_CACHE_SIZE: usize = 1024;
+const ATA_CACHE_SIZE: usize = 4 * 1024;
 
 #[derive(Clone)]
 pub struct AtaBlockDevice {
