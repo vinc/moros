@@ -43,7 +43,7 @@ be accomplished after completing an OSDev tutorial, while reading the
 - [Shell](doc/shell.md) and [Lisp](doc/lisp.md) interpreter
 - [Text editor](doc/editor.md) and assembler
 - Some [file](doc/shell.md) and [network](doc/network.md) commands
-- Some [games](doc/games.md)
+- Some [games](doc/games.md) including DOOM
 
 ## Documentation
 
