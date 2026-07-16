@@ -26,7 +26,6 @@ be accomplished after completing an OSDev tutorial, while reading the
 - VGA text mode and 320x200 graphics buffer (for games and images) with
   customizable font and color palette
 - Serial output (using [uart_16550][8])
-- Paging with bitmap frame allocator
 - Heap allocation (using [linked_list_allocator][9])
 - ACPI shutdown (using [acpi][10] and [aml][11])
 - RTC clock with userspace NTP synchronization
@@ -38,10 +37,11 @@ be accomplished after completing an OSDev tutorial, while reading the
 - Intel PRO/1000, RTL8139, and AMD PCNET network cards
 - DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][13])
 - AC97 and SB16 sound cards
-- [shell](doc/shell.md) and [lisp](doc/lisp.md) interpreter
-- [text editor](doc/editor.md) and assembler
-- userspace for NASM and Rust programs communicating with the kernel through
-  [syscalls](doc/syscalls.md) and device file I/O
+- Paging with bitmap frame allocator
+- Processes with isolated address spaces and demand paging
+- Userspace with [syscalls](doc/syscalls.md) and [device files](doc/devices.md)
+- [Shell](doc/shell.md) and [Lisp](doc/lisp.md) interpreter
+- [Text editor](doc/editor.md) and assembler
 - Some [file](doc/shell.md) and [network](doc/network.md) commands
 - Some [games](doc/games.md)
 
