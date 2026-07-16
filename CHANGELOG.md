@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Improve process memory isolation (#869)
 - Add realpath to kernel FS module (#866)
 - Add file seek syscall (#863)
 - Add keyboard layout device (#865)

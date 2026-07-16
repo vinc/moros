@@ -150,6 +150,10 @@ impl BitmapFrameAllocator {
         allocator
     }
 
+    pub fn used_frames(&self) -> usize {
+        self.bitmap.iter().map(|w| w.count_ones() as usize).sum()
+    }
+
     fn index_to_frame(&self, index: usize) -> Option<PhysFrame> {
         if index >= self.frames_count {
             return None;

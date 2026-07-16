@@ -35,11 +35,9 @@ user-nasm:
 
 user-cargo-opts = --no-default-features --features userspace --release
 
-# FIXME: Userspace alloc panic when the default `lld` linker is used because it
-# sets the entry point 0x200000 which is used by the kernel, so we use `ld` to
-# set it at 0x800000 that is free. With `ld` the resulting binaries are much
-# larger though. This is useful only for programs that allocate memory.
-ld-opts = -Ttext=800000 -Trodata=900000 -Tbss=950000
+# Userspace programs are linked inside the user memory region, which lives
+# in its own L4 page table entry.
+ld-opts = -Ttext=8000800000 -Trodata=8000900000 -Tbss=8000950000
 linker-opts = -C linker-flavor=ld -C link-args="$(ld-opts)"
 
 user-rust:

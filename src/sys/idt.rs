@@ -1,4 +1,3 @@
-use crate::sys::mem::phys_mem_offset;
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
 use crate::{api, hlt_loop, sys};
@@ -12,7 +11,6 @@ use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
-use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
 
 // Translate IRQ into system interrupt
@@ -124,48 +122,30 @@ extern "x86-interrupt" fn page_fault_handler(
     let addr = Cr2::read().unwrap().as_u64();
     //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
-    let page_table = unsafe { sys::process::page_table() };
     let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+        sys::mem::create_mapper(sys::process::page_table())
     };
 
-    if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
-        if sys::mem::alloc_pages(&mut mapper, addr, 1).is_err() {
-            printk!(
-                "{}Error:{} Could not allocate page at {:#X}\n",
-                csi_color, csi_reset, addr
-            );
-            if error_code.contains(PageFaultErrorCode::USER_MODE) {
-                api::syscall::exit(ExitCode::PageFaultError);
-            } else {
-                hlt_loop();
-            }
-        }
-    } else if error_code.contains(PageFaultErrorCode::USER_MODE) {
-        // TODO: This should be removed when the process page table is no
-        // longer a simple clone of the kernel page table. Currently a process
-        // is executed from its kernel address that is shared with the process.
+    // The heap and the stack of a process are allocated lazily
+    if sys::process::is_userspace(addr) {
         let start = (addr / 4096) * 4096;
         if sys::mem::alloc_pages(&mut mapper, start, 4096).is_ok() {
-            if sys::process::is_userspace(start) {
-                let code_addr = sys::process::code_addr();
-                let src = (code_addr + start) as *mut u8;
-                let dst = start as *mut u8;
-                unsafe {
-                    core::ptr::copy_nonoverlapping(src, dst, 4096);
-                }
-            }
+            return;
         }
+        printk!(
+            "{}Error:{} Could not allocate page at {:#X}\n",
+            csi_color, csi_reset, addr
+        );
     } else {
         printk!(
             "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr
         );
-        if error_code.contains(PageFaultErrorCode::USER_MODE) {
-            api::syscall::exit(ExitCode::PageFaultError);
-        } else {
-            hlt_loop();
-        }
+    }
+    if error_code.contains(PageFaultErrorCode::USER_MODE) {
+        api::syscall::exit(ExitCode::PageFaultError);
+    } else {
+        hlt_loop();
     }
 }
 
