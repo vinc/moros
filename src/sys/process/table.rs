@@ -120,12 +120,6 @@ pub fn delete_handle(handle: usize) {
     proc.data.handles[handle] = None;
 }
 
-pub fn code_addr() -> u64 {
-    let table = PROCESS_TABLE.read();
-    let proc = current_process(&table);
-    proc.ctx.code_addr
-}
-
 pub fn registers() -> Registers {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);

@@ -1,4 +1,5 @@
 [bits 64]
+[org 0x8000000000] ; USER_ADDR
 
 section .data
 msg: db "Not implemented", 10
