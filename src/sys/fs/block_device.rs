@@ -143,6 +143,8 @@ impl AtaBlockDevice {
     }
 }
 
+const READ_AHEAD: usize = 32;
+
 impl BlockDeviceIO for AtaBlockDevice {
     fn read(&mut self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
         if let Some(cached) = self.cached_block(block_addr) {
@@ -150,8 +152,13 @@ impl BlockDeviceIO for AtaBlockDevice {
             return Ok(());
         }
 
-        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf)?;
-        self.set_cached_block(block_addr, buf);
+        let n = READ_AHEAD.clamp(1, self.block_count() - block_addr as usize);
+        let mut blocks = vec![0; n * super::BLOCK_SIZE];
+        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut blocks)?;
+        for (i, chunk) in blocks.chunks(super::BLOCK_SIZE).enumerate() {
+            self.set_cached_block(block_addr + i as u32, chunk);
+        }
+        buf.copy_from_slice(&blocks[..super::BLOCK_SIZE]);
         Ok(())
     }
 
