@@ -163,9 +163,12 @@ impl FileIO for File {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let buf_len = buf.len();
-        let mut addr = self.addr;
+        let (mut addr, mut pos) = if self.offset >= self.cursor_pos {
+            (self.cursor_addr, self.cursor_pos)
+        } else {
+            (self.addr, 0)
+        };
         let mut bytes = 0; // Number of bytes written
-        let mut pos = 0; // Position in the file
 
         // Optimization: when appending, skip to the last block
         if self.offset == self.size && self.size > 0 {
@@ -193,6 +196,8 @@ impl FileIO for File {
         }
 
         while bytes < buf_len {
+            self.cursor_addr = addr;
+            self.cursor_pos = pos;
             let mut block = LinkedBlock::read(addr);
             let data = block.data_mut();
             let data_len = data.len();
@@ -244,8 +249,6 @@ impl FileIO for File {
         if let Some(dir) = self.parent.clone() {
             dir.update_entry(&self.name, self.size);
         }
-        self.cursor_addr = self.addr;
-        self.cursor_pos = 0;
         Ok(bytes)
     }
 
