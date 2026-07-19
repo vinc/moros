@@ -44,7 +44,7 @@ pub mod port {
     pub unsafe fn outb(port: u16, value: u8) {
         asm!(
             "out dx, al", in("dx") port, in("al") value,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
     }
 
@@ -53,7 +53,7 @@ pub mod port {
         let value: u8;
         asm!(
             "in al, dx", in("dx") port, out("al") value,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
         value
     }
@@ -62,7 +62,7 @@ pub mod port {
     pub unsafe fn outw(port: u16, value: u16) {
         asm!(
             "out dx, ax", in("dx") port, in("ax") value,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
     }
 
@@ -71,7 +71,7 @@ pub mod port {
         let value: u16;
         asm!(
             "in ax, dx", in("dx") port, out("ax") value,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
         value
     }
@@ -80,7 +80,7 @@ pub mod port {
     pub unsafe fn outl(port: u16, value: u32) {
         asm!(
             "out dx, eax", in("dx") port, in("eax") value,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
     }
 
@@ -89,7 +89,7 @@ pub mod port {
         let value: u32;
         asm!(
             "in eax, dx", in("dx") port, out("eax") value,
-            options(nomem, nostack, preserves_flags)
+            options(nostack, preserves_flags)
         );
         value
     }
