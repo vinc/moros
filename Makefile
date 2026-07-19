@@ -126,11 +126,12 @@ limine-setup:
 	cp limine-11.3.1/bin/limine-bios.sys boot/limine/
 
 limine-proto = limine# limine, multiboot
+limine-arch = x86_64# x86_64, i686
 
 limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(limine-proto).ld -C link-arg=-z -C link-arg=norelro
 limine-image:
-	cargo build $(cargo-opts),$(limine-proto)
-	cp target/x86_64-moros/release/moros tmp/boot/kernel.elf
+	cargo build $(cargo-opts),$(limine-proto) --target $(limine-arch)-moros.json
+	cp target/$(limine-arch)-moros/release/moros tmp/boot/kernel.elf
 	find tmp/boot
 	cat tmp/boot/limine/limine.conf
 	xorriso -as mkisofs \
@@ -141,6 +142,7 @@ limine-image:
 
 limine-qemu:
 	qemu-system-x86_64 -cdrom boot.img $(qemu-opts)
+	#qemu-system-i386 -cdrom boot.img $(qemu-opts) -cpu pentium3
 
 website:
 	cd www && sh build.sh
