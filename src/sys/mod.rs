@@ -40,7 +40,7 @@ macro_rules! log {
 pub mod port {
     use core::arch::asm;
 
-    /// Write an 8-bit byte to a port
+    #[inline]
     pub unsafe fn outb(port: u16, value: u8) {
         asm!(
             "out dx, al", in("dx") port, in("al") value,
@@ -48,7 +48,7 @@ pub mod port {
         );
     }
 
-    /// Read an 8-bit byte from a port
+    #[inline]
     pub unsafe fn inb(port: u16) -> u8 {
         let value: u8;
         asm!(
@@ -58,7 +58,7 @@ pub mod port {
         value
     }
 
-    /// Write a 16-bit word to a port
+    #[inline]
     pub unsafe fn outw(port: u16, value: u16) {
         asm!(
             "out dx, ax", in("dx") port, in("ax") value,
@@ -66,7 +66,7 @@ pub mod port {
         );
     }
 
-    /// Read a 16-bit word from a port
+    #[inline]
     pub unsafe fn inw(port: u16) -> u16 {
         let value: u16;
         asm!(
@@ -76,7 +76,7 @@ pub mod port {
         value
     }
 
-    /// Write a 32-bit double-word to a port
+    #[inline]
     pub unsafe fn outl(port: u16, value: u32) {
         asm!(
             "out dx, eax", in("dx") port, in("eax") value,
@@ -84,7 +84,7 @@ pub mod port {
         );
     }
 
-    /// Read a 32-bit double-word from a port
+    #[inline]
     pub unsafe fn inl(port: u16) -> u32 {
         let value: u32;
         asm!(
