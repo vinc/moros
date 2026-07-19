@@ -38,48 +38,60 @@ macro_rules! log {
 }
 
 pub mod port {
-    use x86_64::instructions::port::Port;
+    use core::arch::asm;
 
-    pub fn outb(addr: u16, value: u8) {
-        let mut port: Port<u8> = Port::new(addr);
-        unsafe {
-            port.write(value);
-        }
+    /// Write an 8-bit byte to a port
+    pub unsafe fn outb(port: u16, value: u8) {
+        asm!(
+            "out dx, al", in("dx") port, in("al") value,
+            options(nomem, nostack, preserves_flags)
+        );
     }
 
-    pub fn outw(addr: u16, value: u16) {
-        let mut port: Port<u16> = Port::new(addr);
-        unsafe {
-            port.write(value);
-        }
+    /// Read an 8-bit byte from a port
+    pub unsafe fn inb(port: u16) -> u8 {
+        let value: u8;
+        asm!(
+            "in al, dx", in("dx") port, out("al") value,
+            options(nomem, nostack, preserves_flags)
+        );
+        value
     }
 
-    pub fn outl(addr: u16, value: u32) {
-        let mut port: Port<u32> = Port::new(addr);
-        unsafe {
-            port.write(value);
-        }
+    /// Write a 16-bit word to a port
+    pub unsafe fn outw(port: u16, value: u16) {
+        asm!(
+            "out dx, ax", in("dx") port, in("ax") value,
+            options(nomem, nostack, preserves_flags)
+        );
     }
 
-    pub fn inb(addr: u16) -> u8 {
-        let mut port: Port<u8> = Port::new(addr);
-        unsafe {
-            port.read()
-        }
+    /// Read a 16-bit word from a port
+    pub unsafe fn inw(port: u16) -> u16 {
+        let value: u16;
+        asm!(
+            "in ax, dx", in("dx") port, out("ax") value,
+            options(nomem, nostack, preserves_flags)
+        );
+        value
     }
 
-    pub fn inw(addr: u16) -> u16 {
-        let mut port: Port<u16> = Port::new(addr);
-        unsafe {
-            port.read()
-        }
+    /// Write a 32-bit double-word to a port
+    pub unsafe fn outl(port: u16, value: u32) {
+        asm!(
+            "out dx, eax", in("dx") port, in("eax") value,
+            options(nomem, nostack, preserves_flags)
+        );
     }
 
-    pub fn inl(addr: u16) -> u32 {
-        let mut port: Port<u32> = Port::new(addr);
-        unsafe {
-            port.read()
-        }
+    /// Read a 32-bit double-word from a port
+    pub unsafe fn inl(port: u16) -> u32 {
+        let value: u32;
+        asm!(
+            "in eax, dx", in("dx") port, out("eax") value,
+            options(nomem, nostack, preserves_flags)
+        );
+        value
     }
 }
 
