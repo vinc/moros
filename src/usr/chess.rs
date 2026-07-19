@@ -111,7 +111,7 @@ impl Chess {
                     if cmd.is_empty() {
                         println!();
                     } else {
-                        error!("Unknown command '{}'\n", cmd);
+                        error!("Unknown command {:?}\n", cmd);
                     }
                 }
             }
@@ -174,7 +174,7 @@ impl Chess {
                 let fen = lines[i];
                 self.load(fen);
             } else {
-                error!("Could not read '{}'\n", path);
+                error!("Could not read {:?}\n", path);
             }
         } else {
             error!("No <path> given\n");
@@ -190,7 +190,7 @@ impl Chess {
         if let Ok(fen) = fs::read_to_string(path) {
             self.load(&fen);
         } else {
-            error!("Could not read '{}'\n", path);
+            error!("Could not read {:?}\n", path);
         }
     }
 
@@ -204,7 +204,7 @@ impl Chess {
         if fs::write(path, text.as_bytes()).is_ok() {
             println!();
         } else {
-            error!("Could not write to '{}'\n", path);
+            error!("Could not write to {:?}\n", path);
         }
     }
 
@@ -255,12 +255,12 @@ impl Chess {
             return;
         }
         if !is_move(args[1]) {
-            error!("Invalid move '{}'\n", args[1]);
+            error!("Invalid move {:?}\n", args[1]);
             return;
         }
         let m = self.game.move_from_lan(args[1]);
         if !self.game.is_parsed_move_legal(m) {
-            error!("Illegal move '{}'\n", args[1]);
+            error!("Illegal move {:?}\n", args[1]);
             return;
         }
 
@@ -306,7 +306,7 @@ impl Chess {
             if let Ok(d) = args[1].parse() {
                 d
             } else {
-                error!("Invalid depth '{}'\n", args[1]);
+                error!("Invalid depth {:?}\n", args[1]);
                 return;
             }
         } else {

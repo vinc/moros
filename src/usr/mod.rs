@@ -14,7 +14,6 @@ pub mod drop;
 pub mod edit;
 pub mod elf;
 pub mod encode;
-pub mod env;
 pub mod find;
 //pub mod geodate; // TODO: Remove file
 pub mod hash;
@@ -25,7 +24,6 @@ pub mod http;
 pub mod httpd;
 pub mod inflate;
 pub mod install;
-pub mod keyboard;
 pub mod life;
 pub mod lisp;
 pub mod list;

@@ -1,0 +1,1057 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MOROS Lisp Documentation</title>
+    <link rel="stylesheet" type="text/css" href="moros.css">
+  </head>
+  <body>
+    <h1>MOROS Lisp Documentation</h1>
+
+    <h2>Types</h2>
+
+    <h3>type</h3>
+
+    <pre><code>(type 42)       # =&gt; &quot;num&quot;
+(type &quot;foo&quot;)    # =&gt; &quot;str&quot;
+(type +)        # =&gt; &quot;fun&quot;
+(type &#39;(1 2 3)) # =&gt; &quot;list&quot;
+</code></pre>
+
+    <h3>atom?</h3>
+
+    <pre><code>(atom? 1)        # =&gt; true
+(atom? &#39;a)       # =&gt; true
+(atom? +)        # =&gt; true
+(atom? &quot;test&quot;)   # =&gt; true
+(atom? &#39;(1 2 3)) # =&gt; false
+</code></pre>
+
+    <h3>sym?</h3>
+
+    <pre><code>(sym? &#39;a) # =&gt; true
+(sym? 1)  # =&gt; false
+(sym? +)  # =&gt; false
+</code></pre>
+
+    <h3>var?</h3>
+
+    <pre><code>(var foo 42) # =&gt; foo
+(var? foo)   # =&gt; true
+(var? bar)   # =&gt; false
+</code></pre>
+
+    <h3>fun?</h3>
+
+    <pre><code>(fun? rev) # =&gt; true
+(fun? and) # =&gt; false
+</code></pre>
+
+    <h3>mac?</h3>
+
+    <pre><code>(mac? rev) # =&gt; false
+(mac? and) # =&gt; true
+</code></pre>
+
+    <h3>nil?</h3>
+
+    <pre><code>(nil? nil)      # =&gt; true
+(nil? &#39;())      # =&gt; true
+(nil? &#39;(1 2 3)) # =&gt; false
+(nil? &quot;&quot;)       # =&gt; false
+(nil? 0)        # =&gt; false
+</code></pre>
+
+    <h3>bool?</h3>
+
+    <pre><code>(bool? true)  # =&gt; true
+(bool? false) # =&gt; true
+(bool? &#39;())   # =&gt; false
+(bool? &quot;&quot;)    # =&gt; false
+(bool? 0)     # =&gt; false
+</code></pre>
+
+    <h2>Binding</h2>
+
+    <h3>var</h3>
+
+    <pre><code>(var foo 40) # =&gt; foo
+(+ foo 2)    # =&gt; 42
+</code></pre>
+
+    <h3>mut</h3>
+
+    <pre><code>(var foo 42) # =&gt; foo
+foo          # =&gt; 42
+(mut foo 10) # =&gt; 10
+foo          # =&gt; 10
+</code></pre>
+
+    <h3>set</h3>
+
+    <pre><code>(set foo 42) # =&gt; foo
+foo          # =&gt; 42
+(set foo 10) # =&gt; 10
+foo          # =&gt; 10
+</code></pre>
+
+    <h3>let</h3>
+
+    <pre><code>(let (x y) (1 2) (+ x y)) # =&gt; 3
+</code></pre>
+
+    <h3>fun</h3>
+
+    <pre><code>((fun (x) (* x 2)) (+ 1 3)) # =&gt; 8
+</code></pre>
+
+    <h3>mac</h3>
+
+    <pre><code>(var double (mac (x) `(* ,x 2)))
+(double (+ 1 3)) # =&gt; 8
+</code></pre>
+
+    <h3>def-fun def</h3>
+
+    <pre><code>(def (rev ls)
+  &quot;Reverses the list&quot;
+  (if (nil? ls) ls
+    (concat (rev (rest ls)) (cons (first ls) &#39;()))))
+</code></pre>
+
+    <h3>def-mac</h3>
+
+    <pre><code>(def-mac (and @xs)
+  (if (nil? xs) true
+    (if (nil? (rest xs)) (first xs)
+      `(if ,(first xs) (and ,@(rest xs)) false))))
+</code></pre>
+
+    <h2>Quoting</h2>
+
+    <h3>quote &#39;</h3>
+
+    <pre><code>&#39;(1 2 3) # =&gt; (1 2 3)
+</code></pre>
+
+    <h3>quasiquote `</h3>
+
+    <h3>unquote ,</h3>
+
+    <h3>unquote-splice ,@</h3>
+
+    <h3>splice @</h3>
+
+    <pre><code>((fun (a b @c) c) &#39;(1 2 (3))) # =&gt; (3)
+((fun (a b @c) c) &#39;(1 2 ()))  # =&gt; ()
+((fun (a b @c) c) &#39;(1 2))     # =&gt; ()
+</code></pre>
+
+    <h2>Meta</h2>
+
+    <h3>apply</h3>
+
+    <pre><code>(apply + &#39;(1 2 3)) # =&gt; 6
+(apply + 1 2 &#39;())  # =&gt; 3
+</code></pre>
+
+    <h3>load</h3>
+
+    <pre><code>(load &quot;/lib/lisp/compat.lsp&quot;)
+(car &#39;(1 2 3)) # =&gt; 1
+</code></pre>
+
+    <h3>doc</h3>
+
+    <pre><code>(doc rev) # =&gt; &quot;Reverses the list&quot;
+</code></pre>
+
+    <h3>parse</h3>
+
+    <pre><code>(parse &quot;(1 2 3)&quot;) # =&gt; (1 2 3)
+</code></pre>
+
+    <h3>expand</h3>
+
+    <pre><code>(expand (def (double x) (* x 2)))
+# =&gt; (var double (fun (x) (* x 2)))
+
+(expand (set foo 42))
+# =&gt; (if (var? foo) (mut foo 42) (var foo 42))
+</code></pre>
+
+    <h3>eval</h3>
+
+    <pre><code>(eval &#39;(+ 1 2 3)) # =&gt; 6
+</code></pre>
+
+    <h3>env</h3>
+
+    <h2>Control Flow</h2>
+
+    <h3>do</h3>
+
+    <pre><code>(do
+  (print &quot;Compute foo&quot;)
+  (compute-foo))
+</code></pre>
+
+    <h3>if</h3>
+
+    <p>Boolean:</p>
+
+    <pre><code>(if true 1 2)  # =&gt; 1
+(if false 1 2) # =&gt; 2
+(if true 1)    # =&gt; 1
+(if false 1)   # =&gt; ()
+</code></pre>
+
+    <p>Truthiness (neither <code>false</code> nor <code>nil</code>):</p>
+
+    <pre><code>(if nil 1 2)   # =&gt; 2
+(if &quot;&quot; 1 2)    # =&gt; 1
+(if 0 1 2)     # =&gt; 1
+</code></pre>
+
+    <h3>cond</h3>
+
+    <pre><code>(set x 42)
+(cond
+  ((&gt; x 0) &quot;positive&quot;)
+  ((&lt; x 0) &quot;negative&quot;)
+  ((= x 0) &quot;zero&quot;)
+  (true &quot;nan&quot;))
+# =&gt; &quot;positive&quot;
+</code></pre>
+
+    <h3>case</h3>
+
+    <pre><code>(case 42 (42 &quot;yeah&quot;) (12 &quot;nope&quot;)) # =&gt; &quot;yeah&quot;
+(case 12 (42 &quot;yeah&quot;) (12 &quot;nope&quot;)) # =&gt; &quot;nope&quot;
+(case 21 (42 &quot;yeah&quot;) (12 &quot;nope&quot;)) # =&gt; ()
+</code></pre>
+
+    <h3>while</h3>
+
+    <pre><code>(set i 0)
+(while (&lt; (set i (+ i 1)) 100) (print
+  (if (= (% i 15) 0) &quot;fizzbuzz&quot;
+    (if (= (% i 3) 0) &quot;fizz&quot;
+      (if (= (% i 5) 0) &quot;buzz&quot; i)))))
+</code></pre>
+
+    <h2>Comparison</h2>
+
+    <h3>eq? =</h3>
+
+    <pre><code>(= 2 1)         # =&gt; false
+(= 2 2)         # =&gt; true
+(= 2 2.0)       # =&gt; true
+(= &quot;foo&quot; &quot;bar&quot;) # =&gt; false
+(= &quot;foo&quot; &quot;foo&quot;) # =&gt; true
+</code></pre>
+
+    <h3>gt? &gt;</h3>
+
+    <pre><code>(&gt; 1 2 3) # =&gt; false
+(&gt; 3 2 1) # =&gt; true
+</code></pre>
+
+    <h3>gte? &gt;=</h3>
+
+    <pre><code>(&gt;= 3 2 2 1) # =&gt; true
+</code></pre>
+
+    <h3>lt? &lt;</h3>
+
+    <pre><code>(&lt; 2 1)   # =&gt; false
+(&lt; 1 2)   # =&gt; true
+(&lt; 1 2 3) # =&gt; true
+</code></pre>
+
+    <h3>lte? &lt;=</h3>
+
+    <pre><code>(&lt;= 1 2 2 3) # =&gt; true
+(&lt;= 3 2 2 1) # =&gt; false
+</code></pre>
+
+    <h2>Enumerable</h2>
+
+    <h3>empty?</h3>
+
+    <pre><code>(empty? &#39;(1 2 3))     # =&gt; false
+(empty? &#39;())          # =&gt; true
+(empty? &quot;foo&quot;)        # =&gt; false
+(empty? &quot;&quot;)           # =&gt; true
+(empty? (dict &quot;a&quot; 1)) # =&gt; false
+(empty? (dict))       # =&gt; true
+</code></pre>
+
+    <h3>get</h3>
+
+    <pre><code>(get &#39;(1 2 3) 0)             # =&gt; 1
+(get &#39;(1 2 3) 1)             # =&gt; 2
+(get &quot;hello&quot; 0)              # =&gt; &quot;h&quot;
+(get &quot;hello&quot; 1)              # =&gt; &quot;e&quot;
+(get (dict &quot;a&quot; 1 &quot;b&quot; 2) &quot;b&quot;) # =&gt; 2
+</code></pre>
+
+    <h3>put</h3>
+
+    <pre><code>(put &quot;hllo&quot; 1 &quot;e&quot;)             # =&gt; &quot;hello&quot;
+(put &#39;(1 3) 1 2)               # =&gt; (1 2 3)
+(put (dict &quot;a&quot; 1 &quot;c&quot; 3) &quot;b&quot; 2) # =&gt; (dict &quot;a&quot; 1 &quot;b&quot; 2 &quot;c&quot; 3)
+</code></pre>
+
+    <h3>len</h3>
+
+    <pre><code>(len &#39;(1 2 3)) # =&gt; 3
+(len &quot;foo&quot;)    # =&gt; 3
+</code></pre>
+
+    <h3>rest tail</h3>
+
+    <p>Returns the rest of the list.</p>
+
+    <pre><code>(rest &#39;(1 2 3)) # =&gt; (2 3)
+(rest &quot;hello&quot;)  # =&gt; &quot;ello&quot;
+</code></pre>
+
+    <h3>first head</h3>
+
+    <p>Returns the first element of the list.</p>
+
+    <pre><code>(first &#39;(1 2 3)) # =&gt; 1
+(first &quot;hello&quot;)  # =&gt; &quot;h&quot;
+</code></pre>
+
+    <h3>second</h3>
+
+    <p>Returns the second element of the list.</p>
+
+    <pre><code>(second &#39;(1 2 3)) # =&gt; 2
+(second &quot;hello&quot;)  # =&gt; &quot;e&quot;
+</code></pre>
+
+    <h3>third</h3>
+
+    <p>Returns the third element of the list.</p>
+
+    <pre><code>(third &#39;(1 2 3)) # =&gt; 3
+(third &quot;hello&quot;)  # =&gt; &quot;l&quot;
+</code></pre>
+
+    <h3>last</h3>
+
+    <p>Returns the last element of the list.</p>
+
+    <pre><code>(last &#39;(1 2 3)) # =&gt; 3
+(last &quot;hello&quot;)  # =&gt; &quot;o&quot;
+</code></pre>
+
+    <h3>slice</h3>
+
+    <pre><code>(slice &#39;(1 2 3 4 5) 0 2) # =&gt; (1 2)
+(slice &#39;(1 2 3 4 5) 2 2) # =&gt; (3 4)
+(slice &quot;hello&quot; 0 2)      # =&gt; &quot;he&quot;
+(slice &quot;hello&quot; 2 2)      # =&gt; &quot;ll&quot;
+</code></pre>
+
+    <h3>push</h3>
+
+    <p>Pushes the element to the end of the list.</p>
+
+    <pre><code>(push &#39;(1 2) 3)   # =&gt; (1 2 3)
+(push &quot;hell&quot; &quot;o&quot;) # =&gt; &quot;hello&quot;
+</code></pre>
+
+    <h3>contains?</h3>
+
+    <pre><code>(contains? &#39;(1 2 3) 2)  # =&gt; true
+(contains? &#39;(1 2 3) 4)  # =&gt; false
+(contains? &quot;hello&quot; &quot;e&quot;) # =&gt; true
+(contains? &quot;hello&quot; &quot;a&quot;) # =&gt; false
+</code></pre>
+
+    <h3>intersection</h3>
+
+    <p>Returns the elements found in both lists.</p>
+
+    <pre><code>(intersection &#39;(1 2 3) &#39;(2 3 4)) # =&gt; (2 3)
+</code></pre>
+
+    <h2>List</h2>
+
+    <h3>list</h3>
+
+    <pre><code>(list 1 2 3) # =&gt; (1 2 3)
+</code></pre>
+
+    <h3>list?</h3>
+
+    <pre><code>(list? &#39;(1 2 3)) # =&gt; true
+(list? &#39;())      # =&gt; true
+</code></pre>
+
+    <h3>cons</h3>
+
+    <pre><code>(cons 1 &#39;(2 3)) # =&gt; (1 2 3)
+</code></pre>
+
+    <h3>map</h3>
+
+    <p>Applies the function to the elements of the list.</p>
+
+    <pre><code>(map first &#39;((1 2) (3 4) (5 6))) # =&gt; (1 3 5)
+(map (fun (x) (* x 2)) &#39;(1 2 3)) # =&gt; (2 4 6)
+</code></pre>
+
+    <h3>fold</h3>
+
+    <pre><code>(fold + 0 &#39;(1 2 3)) # =&gt; 6
+(fold + 0 &#39;(1 2 3)) # =&gt; -6
+</code></pre>
+
+    <h3>reduce</h3>
+
+    <p>Reduces the elements of the list with the function.</p>
+
+    <pre><code>(reduce + &#39;(1 2 3)) # =&gt; 6
+(reduce - &#39;(1 2 3)) # =&gt; -4
+(reduce + &#39;())      # =&gt; 0
+</code></pre>
+
+    <h3>filter</h3>
+
+    <p>Filters the elements of the list with the function.</p>
+
+    <pre><code>(filter (fun (x) (= (% x 2) 0)) &#39;(1 2 3 4)) # =&gt; (2 4)
+</code></pre>
+
+    <h3>reject</h3>
+
+    <p>Rejects the elements of the list with the function.</p>
+
+    <pre><code>(reject (fun (x) (= (% x 2) 0)) &#39;(1 2 3 4)) # =&gt; (1 3)
+</code></pre>
+
+    <h3>rev</h3>
+
+    <p>Reverses the list.</p>
+
+    <pre><code>(rev &#39;(1 2 3)) # =&gt; (3 2 1)
+</code></pre>
+
+    <h3>sort</h3>
+
+    <pre><code>(sort &#39;(1 3 2 4 5)) # =&gt; (1 2 3 4 5)
+</code></pre>
+
+    <h3>uniq</h3>
+
+    <pre><code>(uniq &#39;(1 2 2 3 3 4 5)) # =&gt; (1 2 3 4 5)
+(uniq &#39;(1 2 3 3 2 4 5)) # =&gt; (1 2 3 2 4 5)
+</code></pre>
+
+    <h3>chunks</h3>
+
+    <pre><code>(chunks &#39;(1 2 3 4) 2) # =&gt; ((1 2) (3 4))
+</code></pre>
+
+    <h3>concat</h3>
+
+    <pre><code>(concat &#39;(1 2) &#39;(3 4)) # =&gt; (1 2 3 4)
+</code></pre>
+
+    <h3>range</h3>
+
+    <p>Returns a list of numbers from start to stop excluded.</p>
+
+    <pre><code>(range 2 5) # =&gt; (2 3 4)
+</code></pre>
+
+    <h3>nil</h3>
+
+    <pre><code>nil # =&gt; ()
+</code></pre>
+
+    <h2>Dict</h2>
+
+    <h3>dict</h3>
+
+    <pre><code>(dict &quot;a&quot; 1 &quot;b&quot; 2) # =&gt; (dict &quot;a&quot; 1 &quot;b&quot; 2)
+</code></pre>
+
+    <h3>dict/pairs</h3>
+
+    <pre><code>(dict/pairs (dict &quot;a&quot; 1 &quot;b&quot; 2)) # =&gt; ((&quot;a&quot; 1) (&quot;b&quot; 2))
+</code></pre>
+
+    <h3>dict/keys</h3>
+
+    <p>Returns the keys of a dict.</p>
+
+    <pre><code>(dict/keys (dict &quot;a&quot; 1 &quot;b&quot; 2)) # =&gt; (&quot;a&quot; &quot;b&quot;)
+</code></pre>
+
+    <h3>dict/values</h3>
+
+    <p>Returns the values of a dict.</p>
+
+    <pre><code>(dict/values (dict &quot;a&quot; 1 &quot;b&quot; 2)) # =&gt; (1 2)
+</code></pre>
+
+    <h2>String</h2>
+
+    <h3>str</h3>
+
+    <pre><code>(str &quot;foo&quot; &quot;bar&quot;) # =&gt; &quot;foobar&quot;
+(str 2)           # =&gt; &quot;2&quot;
+</code></pre>
+
+    <h3>str?</h3>
+
+    <pre><code>(str? &quot;foo&quot;) # =&gt; true
+(str? &quot;&quot;)    # =&gt; true
+</code></pre>
+
+    <h3>bin-&gt;str</h3>
+
+    <pre><code>(bin-&gt;str &#39;(104 101 108 108 111)) # =&gt; &quot;hello&quot;
+</code></pre>
+
+    <h3>str-&gt;bin</h3>
+
+    <pre><code>(str-&gt;bin &quot;hello&quot;) # =&gt; (104 101 108 108 111)
+</code></pre>
+
+    <h3>str-&gt;num</h3>
+
+    <pre><code>(str-&gt;num &quot;123&quot;) # =&gt; 123
+</code></pre>
+
+    <h3>str/split</h3>
+
+    <pre><code>(str/split &quot;hello world&quot; &quot; &quot;) # =&gt; (&quot;hello&quot; &quot;world&quot;)
+</code></pre>
+
+    <h3>str/trim</h3>
+
+    <pre><code>(str/trim &quot;  hello world  &quot;) # =&gt; &quot;hello world&quot;
+</code></pre>
+
+    <h3>str/join</h3>
+
+    <p>Joins the elements of the list with the string.</p>
+
+    <pre><code>(str/join &#39;(&quot;foo&quot; &quot;bar&quot;) &quot; &quot;) # =&gt; &quot;foo bar&quot;
+</code></pre>
+
+    <h3>lines</h3>
+
+    <p>Splits the text into a list of lines.</p>
+
+    <pre><code>(lines &quot;Hello,\nWorld!&quot;) # =&gt; (&quot;Hello,&quot; &quot;World!&quot;)
+</code></pre>
+
+    <h3>words</h3>
+
+    <p>Splits the text into a list of words.</p>
+
+    <pre><code>(words &quot;Hello, World!&quot;) # =&gt; (&quot;Hello,&quot; &quot;World!&quot;)
+</code></pre>
+
+    <h3>chars</h3>
+
+    <p>Splits the text into a list of chars.</p>
+
+    <pre><code>(chars &quot;hello&quot;) # =&gt; (&quot;h&quot; &quot;e&quot; &quot;l&quot; &quot;l&quot; &quot;o&quot;)
+</code></pre>
+
+    <h2>Number</h2>
+
+    <h3>num?</h3>
+
+    <pre><code>(num? 2)   # =&gt; true
+(num? 2.0) # =&gt; true
+</code></pre>
+
+    <h3>bin-&gt;num</h3>
+
+    <pre><code>(bin-&gt;num &#39;(1 2 3 4 5 6 7 8) &quot;int&quot;)      # =&gt; 72623859790382856
+(bin-&gt;num &#39;(0 0 0 0 0 0 0 42) &quot;int&quot;)     # =&gt; 42
+(bin-&gt;num &#39;(63 240 0 0 0 0 0 0) &quot;float&quot;) # =&gt; 1.0
+</code></pre>
+
+    <h3>num-&gt;bin</h3>
+
+    <pre><code>(num-&gt;bin 42)  # =&gt; (0 0 0 0 0 0 0 42)
+(num-&gt;bin 1.0) # =&gt; (63 240 0 0 0 0 0 0)
+</code></pre>
+
+    <h3>num-&gt;str</h3>
+
+    <pre><code>(num-&gt;str 1.0)   # =&gt; &quot;1.0&quot;
+(num-&gt;str 42)    # =&gt; &quot;42&quot;
+(num-&gt;str 42 2)  # =&gt; &quot;101010&quot;
+(num-&gt;str 42 16) # =&gt; &quot;2A&quot;
+</code></pre>
+
+    <h3>num/eq?</h3>
+
+    <pre><code>(num/eq? 2 2.0) # =&gt; false
+</code></pre>
+
+    <h3>num/int</h3>
+
+    <pre><code>(num/int 2.4) # =&gt; 2
+(num/int 2.6) # =&gt; 2
+</code></pre>
+
+    <h3>num/type</h3>
+
+    <pre><code>(num/type 2)         # =&gt; &quot;int&quot;
+(num/type 2.0)       # =&gt; &quot;float&quot;
+(num/type (** 2 32)) # =&gt; &quot;int&quot;
+(num/type (** 2 64)) # =&gt; &quot;bigint&quot;
+</code></pre>
+
+    <h3>pi</h3>
+
+    <pre><code>pi # =&gt; 3.141592653589793
+</code></pre>
+
+    <h3>abs</h3>
+
+    <p>Returns the absolute value of the number.</p>
+
+    <pre><code>(abs 2)  # =&gt; 2
+(abs -2) # =&gt; 2
+</code></pre>
+
+    <h3>min</h3>
+
+    <p>Returns the minimum element of the list.</p>
+
+    <pre><code>(min &#39;(1 2 3 4 5)) # =&gt; 1
+</code></pre>
+
+    <h3>max</h3>
+
+    <p>Returns the maximum element of the list.</p>
+
+    <pre><code>(max &#39;(1 2 3 4 5)) # =&gt; 5
+</code></pre>
+
+    <h3>ceil</h3>
+
+    <p>Returns the smallest integer greater than or equal to the number.</p>
+
+    <pre><code>(ceil -2.8) # =&gt; -2
+(ceil -2.2) # =&gt; -2
+(ceil 2.2)  # =&gt; 3
+(ceil 2.8)  # =&gt; 3
+</code></pre>
+
+    <h3>floor</h3>
+
+    <p>Returns the largest integer less than or equal to the number.</p>
+
+    <pre><code>(floor -2.8) # =&gt; -3
+(floor -2.2) # =&gt; -3
+(floor 2.2)  # =&gt; 2
+(floor 2.8)  # =&gt; 2
+</code></pre>
+
+    <h3>round</h3>
+
+    <p>Returns the nearest integer to the number.</p>
+
+    <pre><code>(round -2.8) # =&gt; -3
+(round -2.2) # =&gt; -2
+(round 2.2)  # =&gt; 2
+(round 2.8)  # =&gt; 3
+</code></pre>
+
+    <h2>Arithmetic</h2>
+
+    <h3>add +</h3>
+
+    <pre><code>(+ 1 2 3) # =&gt; 6
+</code></pre>
+
+    <h3>sub -</h3>
+
+    <pre><code>(- 4 2)   # =&gt; 2
+(- 2 4)   # =&gt; -2
+(- 3 1.5) # =&gt; 1.5
+</code></pre>
+
+    <h3>mul *</h3>
+
+    <pre><code>(* 2 4)   # =&gt; 8
+(* 2 1.5) # =&gt; 3.0
+</code></pre>
+
+    <h3>div /</h3>
+
+    <pre><code>(/ 4 2)   # =&gt; 2
+(/ 3 2)   # =&gt; 1
+(/ 3 2.0) # =&gt; 1.5
+</code></pre>
+
+    <h3>exp **</h3>
+
+    <pre><code>(** 1.5 2) # =&gt; 2.25
+(** 2 2)   # =&gt; 4
+(** 2 1)   # =&gt; 2
+(** 2 0)   # =&gt; 1
+(** 2 32)  # =&gt; 4294967296
+(** 2 64)  # =&gt; 18446744073709551616
+</code></pre>
+
+    <h3>rem %</h3>
+
+    <pre><code>(% 7 3)   # =&gt; 1
+(% -7 3)  # =&gt; -1
+(% 7 -3)  # =&gt; 1
+(% -7 -3) # =&gt; -1
+</code></pre>
+
+    <h3>mod</h3>
+
+    <p>Returns the modulo of the division.</p>
+
+    <pre><code>(mod 7 3)   # =&gt; 1
+(mod -7 3)  # =&gt; 2
+(mod 7 -3)  # =&gt; -2
+(mod -7 -3) # =&gt; -1
+</code></pre>
+
+    <h2>Trigonometric</h2>
+
+    <h3>acos</h3>
+
+    <pre><code>(acos -1.0) # =&gt; 3.141592653589793
+(acos 0.0)  # =&gt; 1.5707963267948966
+(acos 1.0)  # =&gt; 0.0
+</code></pre>
+
+    <h3>asin</h3>
+
+    <pre><code>(asin -1.0) # =&gt; -1.5707963267948966
+(asin 0.0)  # =&gt; 0.0
+(asin 1.0)  # =&gt; 1.5707963267948966
+</code></pre>
+
+    <h3>atan</h3>
+
+    <pre><code>(atan (- pi)) # =&gt; -1.2626272556789115
+(atan 0.0)    # =&gt; 0.0
+(atan pi)     # =&gt; 1.2626272556789115
+</code></pre>
+
+    <h3>cos</h3>
+
+    <pre><code>(cos (- pi)) # =&gt; -1.0
+(cos 0.0)    # =&gt; 1.0
+(cos pi)     # =&gt; -1.0
+</code></pre>
+
+    <h3>sin</h3>
+
+    <pre><code>(sin (- pi))       # =&gt; -0.00000000000000012246467991473532
+(sin (- (/ pi 2))) # =&gt; -1.0
+(sin 0.0)          # =&gt; 0.0
+(sin (/ pi 2))     # =&gt; 1.0
+(sin pi)           # =&gt; 0.00000000000000012246467991473532
+</code></pre>
+
+    <h3>tan</h3>
+
+    <pre><code>(tan pi)  # =&gt; -0.00000000000000012246467991473532
+(tan 0.0) # =&gt; 0.0
+</code></pre>
+
+    <h2>Bit</h2>
+
+    <h3>bit/and &amp;</h3>
+
+    <pre><code>(&amp; 2 3 7) # =&gt; 2
+(&amp; 1 2 3) # =&gt; 0
+</code></pre>
+
+    <h3>bit/or |</h3>
+
+    <pre><code>(| 1 2) # =&gt; 3
+</code></pre>
+
+    <h3>bit/shl &lt;&lt;</h3>
+
+    <pre><code>(&lt;&lt; 2 1)  # =&gt; 4
+(&lt;&lt; 2 10) # =&gt; 2048
+</code></pre>
+
+    <h3>bit/shr &gt;&gt;</h3>
+
+    <pre><code>(&gt;&gt; 4 1) # =&gt; 2
+</code></pre>
+
+    <h3>bit/xor ^</h3>
+
+    <pre><code>(^ 2 3) # =&gt; 1
+</code></pre>
+
+    <h2>Logic</h2>
+
+    <h3>not</h3>
+
+    <pre><code>(not true)  # =&gt; false
+(not false) # =&gt; true
+</code></pre>
+
+    <h3>and</h3>
+
+    <pre><code>(and true true true) # =&gt; true
+(and true false)     # =&gt; false
+(and false false)    # =&gt; false
+</code></pre>
+
+    <h3>or</h3>
+
+    <p>Boolean:</p>
+
+    <pre><code>(or true true true) # =&gt; true
+(or true false)     # =&gt; true
+(or false false)    # =&gt; false
+</code></pre>
+
+    <p>Truthiness (neither <code>false</code> nor <code>nil</code>):</p>
+
+    <pre><code>(or nil 1)          # =&gt; 1
+(or &quot;&quot; 1)           # =&gt; &quot;&quot;
+(or 0 1)            # =&gt; 0
+</code></pre>
+
+    <h2>Regex</h2>
+
+    <h3>regex/find</h3>
+
+    <pre><code>(regex/find &quot;\\w+&quot; &quot;hello world&quot;) # =&gt; (0 5)
+(regex/find &quot;\\s&quot; &quot;hello world&quot;)  # =&gt; (5 6)
+(regex/find &quot; &quot; &quot;hello world&quot;)    # =&gt; (5 6)
+</code></pre>
+
+    <h3>regex/match?</h3>
+
+    <p>Returns true if the string match the pattern.</p>
+
+    <pre><code>(regex/match? &quot;\\d+&quot; &quot;42&quot;)     # =&gt; true
+(regex/match? &quot;\\d+&quot; &quot;foo&quot;)    # =&gt; false
+(regex/match? &quot;\\w+&quot; &quot;foo&quot;)    # =&gt; true
+(regex/match? &quot;\\w+&quot; &quot;foo!&quot;)   # =&gt; true
+(regex/match? &quot;^\\w+$&quot; &quot;foo!&quot;) # =&gt; false
+</code></pre>
+
+    <h2>File</h2>
+
+    <h3>read</h3>
+
+    <p>Reads text file.</p>
+
+    <pre><code>(read &quot;/dev/clk/rtc&quot;) # =&gt; &quot;2026-05-04 13:22:31&quot;
+</code></pre>
+
+    <h3>write</h3>
+
+    <p>Writes text to file.</p>
+
+    <pre><code>(write &quot;/tmp/hello.txt&quot; &quot;Hello, World!\n&quot;) # =&gt; ()
+</code></pre>
+
+    <h3>append</h3>
+
+    <p>Appends text to file.</p>
+
+    <pre><code>(append &quot;/tmp/hello.txt&quot; &quot;Lorem ipsum\n&quot;) # =&gt; ()
+</code></pre>
+
+    <h3>dirname</h3>
+
+    <p>Returns the given path without the filename.</p>
+
+    <pre><code>(dirname &quot;/dev/clk/rtc&quot;) # =&gt; &quot;/dev/clk&quot;
+</code></pre>
+
+    <h3>filename</h3>
+
+    <p>Returns the filename from the given path.</p>
+
+    <pre><code>(filename &quot;/dev/clk/rtc&quot;) # =&gt; &quot;rtc&quot;
+</code></pre>
+
+    <h3>file/exists?</h3>
+
+    <pre><code>(file/exists? &quot;/dev/clk/rtc&quot;) # =&gt; true
+</code></pre>
+
+    <h3>file/size</h3>
+
+    <pre><code>(file/size &quot;/dev/clk/rtc&quot;) # =&gt; 19
+</code></pre>
+
+    <h3>file/open</h3>
+
+    <pre><code>(file/open &quot;/dev/clk/rtc&quot; &quot;r&quot;) # =&gt; 4
+</code></pre>
+
+    <h3>file/close</h3>
+
+    <pre><code>(file/close 4) # =&gt; ()
+</code></pre>
+
+    <h3>file/read</h3>
+
+    <pre><code>(set path &quot;/dev/clk/rtc&quot;)
+(set handle (file/open path &quot;r&quot;))
+(set length (file/size path))
+(set buffer (file/read handle length))
+(bin-&gt;str buffer) # =&gt; &quot;2026-05-04 13:22:31&quot;
+(file/close handle)
+</code></pre>
+
+    <h3>file/write</h3>
+
+    <pre><code>(set path &quot;/tmp/hello.txt&quot;)
+(set handle (file/open path &quot;w&quot;))
+(set buffer (str-&gt;bin &quot;Hello, World!\n&quot;))
+(file/write handle buffer) # =&gt; 14
+(file/close handle)
+</code></pre>
+
+    <h3>read-bin</h3>
+
+    <h3>write-bin</h3>
+
+    <h3>append-bin</h3>
+
+    <h3>read-line</h3>
+
+    <h3>read-char</h3>
+
+    <h2>Network</h2>
+
+    <h3>host</h3>
+
+    <pre><code>(host &quot;moros.cc&quot;) # =&gt; &quot;172.67.165.252&quot;
+</code></pre>
+
+    <h3>socket/connect</h3>
+
+    <p>Daytime Protocol:</p>
+
+    <pre><code>(set socket (socket/connect &quot;tcp&quot; (host &quot;time.nist.gov&quot;) 13))
+(set res (str/trim (bin-&gt;str (file/read socket 64))))
+(file/close socket)
+(slice (words res) 1 2) # =&gt; (&quot;26-05-08&quot; &quot;15:28:50&quot;)
+</code></pre>
+
+    <p>Hypertext Transfer Protocol:</p>
+
+    <pre><code># Connection
+(set socket (socket/connect &quot;tcp&quot; (host &quot;moros.cc&quot;) 80))
+
+# Request
+(set req (str/join (list
+  &quot;GET / HTTP/1.1&quot;
+  &quot;Host: moros.cc&quot;
+  &quot;Connection: close&quot;
+  &quot;&quot; &quot;&quot;) &quot;\r\n&quot;))
+(file/write socket (str-&gt;bin req))
+
+# Response
+(set mtu (file/size &quot;/dev/net/tcp&quot;))
+(set res (bin-&gt;str (file/read socket mtu)))
+(file/close socket)
+(str/trim (first (lines res))) # =&gt; &quot;HTTP/1.1 200 OK&quot;
+</code></pre>
+
+    <h3>socket/accept</h3>
+
+    <pre><code>(socket/accept socket) # =&gt; &quot;10.0.2.2&quot;
+</code></pre>
+
+    <p>Echo Server:</p>
+
+    <pre><code>(set mtu (file/size &quot;/dev/net/tcp&quot;))
+(set socket (socket/listen &quot;tcp&quot; 80))
+(while true (do
+  (if (socket/accept socket) (do
+    (set buf (file/read socket mtu))
+    (file/write socket buf)
+    (file/close socket)
+    (set socket (socket/listen &quot;tcp&quot; 80))))))
+</code></pre>
+
+    <p>TODO: In the future <code>socket/accept</code> will return <code>(handle address port)</code> or
+    <code>()</code> without blocking when the syscall is updated to keep the listening socket
+open when a connection is closed.</p>
+
+    <h3>socket/listen</h3>
+
+    <pre><code>(socket/listen &quot;tcp&quot; 80) # =&gt; 4
+</code></pre>
+
+    <h2>System</h2>
+
+    <h3>print</h3>
+
+    <p>Prints expression to stdout with a newline.</p>
+
+    <pre><code>(print &quot;Hello, World!&quot;) # =&gt; ()
+</code></pre>
+
+    <h3>date</h3>
+
+    <pre><code>(date 0)          # =&gt; &quot;1970-01-01 00:00:00&quot;
+(date 1234567890) # =&gt; &quot;2009-02-13 23:31:30&quot;
+</code></pre>
+
+    <h3>sleep</h3>
+
+    <pre><code>(sleep 0.864) # =&gt; ()
+</code></pre>
+
+    <h3>sh</h3>
+
+    <pre><code>(sh &quot;print hello&quot;) # =&gt; 0
+</code></pre>
+
+    <h3>sh-&gt;bin</h3>
+
+    <pre><code>(sh-&gt;bin &quot;print hello&quot;) # =&gt; (104 101 108 108 111 10)
+</code></pre>
+
+    <h3>sh-&gt;str</h3>
+
+    <p>Returns the output of the command.</p>
+
+    <pre><code>(sh-&gt;str &quot;print hello&quot;) # =&gt; &quot;hello&quot;
+</code></pre>
+
+    <h3>clock/boot</h3>
+
+    <p>Returns the number of seconds since boot.</p>
+
+    <pre><code>(clock/boot) # =&gt; 1152.069566
+</code></pre>
+
+    <h3>clock/epoch</h3>
+
+    <p>Returns the number of seconds since epoch.</p>
+
+    <pre><code>(clock/epoch) # =&gt; 1778244455.765883
+</code></pre>
+  <footer><p><a href="/">MOROS</a></footer>
+  </body>
+</html>

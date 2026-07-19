@@ -1,8 +1,9 @@
-use crate::{api, sys};
+use crate::api;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::rng;
+use crate::api::syscall;
 use crate::sys::console;
 
 use alloc::collections::BTreeSet;
@@ -61,7 +62,7 @@ impl Game {
                 return;
             }
             print!("{}", self);
-            sys::clk::sleep(1.0 / self.speed);
+            syscall::sleep(1.0 / self.speed);
             if self.is_game_over() {
                 continue; // Display the screen until ^C is received
             }
@@ -215,13 +216,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             arg => {
                 if arg.starts_with('-') {
-                    error!("Invalid option '{}'", arg);
+                    error!("Invalid option {:?}", arg);
                     return Err(ExitCode::UsageError);
                 }
                 if i > 0 {
                     let path = arg;
                     if !fs::exists(path) {
-                        error!("Could not find file '{}'", path);
+                        error!("Could not find file {:?}", path);
                         return Err(ExitCode::UsageError);
                     }
                     game.load_file(path);

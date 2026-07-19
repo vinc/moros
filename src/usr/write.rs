@@ -40,7 +40,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let path = opt[0];
 
     if fs::exists(path) {
-        error!("Could not write to '{}'", path);
+        error!("Could not write to {:?}", path);
         return Err(ExitCode::Failure);
     }
 
@@ -65,7 +65,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         syscall::close(handle);
         Ok(())
     } else {
-        error!("Could not write to '{}'", path);
+        error!("Could not write to {:?}", path);
         Err(ExitCode::Failure)
     }
 }

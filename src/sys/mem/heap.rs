@@ -1,6 +1,5 @@
 use super::with_frame_allocator;
 
-use crate::sys;
 
 use linked_list_allocator::LockedHeap;
 use x86_64::structures::paging::{
@@ -19,9 +18,6 @@ pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
     // Use half of the memory for the heap
     let heap_size = (super::memory_size() / 2) as u64;
     let heap_start = VirtAddr::new(HEAP_START);
-
-    // And some memory after that for the processes
-    sys::process::set_process_addr(HEAP_START + heap_size);
 
     let pages = {
         let heap_end = heap_start + heap_size - 1u64;

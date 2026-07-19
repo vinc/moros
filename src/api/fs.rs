@@ -1,5 +1,5 @@
 use crate::api::syscall;
-use crate::sys;
+use crate::api::process;
 use crate::sys::fs::OpenFlag;
 
 use alloc::format;
@@ -55,7 +55,7 @@ pub fn realpath(pathname: &str) -> String {
     if pathname.starts_with('/') {
         pathname.into()
     } else {
-        let dirname = sys::process::dir();
+        let dirname = process::dir();
         let sep = if dirname.ends_with('/') { "" } else { "/" };
         format!("{}{}{}", dirname, sep, pathname)
     }
@@ -178,6 +178,12 @@ fn device_type(name: &str) -> Result<DeviceType, ()> {
         "speaker"     => Ok(DeviceType::Speaker),
         "ata"         => Ok(DeviceType::Drive),
         "pipe"        => Ok(DeviceType::Pipe),
+        "proc-id"     => Ok(DeviceType::ProcId),
+        "proc-dir"    => Ok(DeviceType::ProcDir),
+        "proc-env"    => Ok(DeviceType::ProcEnv),
+        "proc-user"   => Ok(DeviceType::ProcUser),
+        "kbd-buffer"  => Ok(DeviceType::KbdBuffer),
+        "kbd-layout"  => Ok(DeviceType::KbdLayout),
         _             => Err(()),
     }
 }

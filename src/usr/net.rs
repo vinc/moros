@@ -110,26 +110,26 @@ fn print_config(attribute: &str) {
 const DNS_FILE: &str = "/ini/dns.ini";
 
 fn dns_config() -> Option<String> {
-    warning!("This command is deprecated, use '{}' instead", DNS_FILE);
+    warning!("This command is deprecated, use {:?} instead", DNS_FILE);
     if let Ok(buf) = fs::read_to_string(DNS_FILE) {
         if let Some(config) = ini::parse(&buf) {
             if let Some(servers) = config.get("dns") {
                 if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
                     Some(servers.to_string())
                 } else {
-                    error!("Could not parse '{}'", servers);
+                    error!("Could not parse {:?}", servers);
                     None
                 }
             } else {
-                error!("Could not find 'dns' in '{}'", DNS_FILE);
+                error!("Could not find 'dns' in {:?}", DNS_FILE);
                 None
             }
         } else {
-            error!("Could not parse '{}'", DNS_FILE);
+            error!("Could not parse {:?}", DNS_FILE);
             None
         }
     } else {
-        error!("Could not read '{}'", DNS_FILE);
+        error!("Could not read {:?}", DNS_FILE);
         None
     }
 }
@@ -231,17 +231,17 @@ pub fn set_config(attribute: &str, value: &str) {
             }
         }
         "dns" => {
-            warning!("This command is deprecated, use '{}' instead", DNS_FILE);
+            warning!("This command is deprecated, use {:?} instead", DNS_FILE);
             let servers = value.trim();
             if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
                 let config = format!("dns = {}\n", servers);
                 if fs::write(DNS_FILE, config.as_bytes()).is_ok() {
                     log!("NET DNS {}", servers);
                 } else {
-                    error!("Could not write to '{}'", DNS_FILE);
+                    error!("Could not write to {:?}", DNS_FILE);
                 }
             } else {
-                error!("Could not parse '{}'", servers);
+                error!("Could not parse {:?}", servers);
             }
         }
         _ => {

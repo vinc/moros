@@ -1,4 +1,4 @@
-use super::env::{env_get, macro_env};
+use super::env::{env_get, bind};
 use super::eval::eval;
 use super::{Env, Err, Exp};
 
@@ -61,7 +61,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                 ensure_length_eq!(list, 2);
                 expand_quasiquote(&list[1])
             }
-            Exp::Sym(s) if s == "define-function" || s == "define" => {
+            Exp::Sym(s) if s == "def-fun" || s == "def" => {
                 let (params, body) = match list.len() {
                     3 => {
                         ensure_list!(&list[2]);
@@ -81,7 +81,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(body, env)?;
                         let mut function = vec![
-                            Exp::Sym("function".to_string()),
+                            Exp::Sym("fun".to_string()),
                             args,
                             body,
                         ];
@@ -89,7 +89,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                             function.insert(2, list[2].clone());
                         }
                         Ok(Exp::List(vec![
-                            Exp::Sym("variable".to_string()),
+                            Exp::Sym("var".to_string()),
                             name,
                             Exp::List(function),
                         ]))
@@ -98,7 +98,7 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     _ => expected!("first argument to be a symbol or a list"),
                 }
             }
-            Exp::Sym(s) if s == "define-macro" => {
+            Exp::Sym(s) if s == "def-mac" => {
                 ensure_length_eq!(list, 3);
                 match (&list[1], &list[2]) {
                     (Exp::List(args), Exp::List(_)) => {
@@ -107,10 +107,10 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                         let args = Exp::List(args[1..].to_vec());
                         let body = expand(&list[2], env)?;
                         Ok(Exp::List(vec![
-                            Exp::Sym("variable".to_string()),
+                            Exp::Sym("var".to_string()),
                             name,
                             Exp::List(vec![
-                                Exp::Sym("macro".to_string()),
+                                Exp::Sym("mac".to_string()),
                                 args,
                                 body
                             ]),
@@ -119,6 +119,28 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     (Exp::Sym(_), _) => expand_list(list, env),
                     _ => expected!("first argument to be a symbol or a list"),
                 }
+            }
+            Exp::Sym(s) if s == "case" => {
+                ensure_length_gt!(list, 2);
+                let mut res = vec![Exp::Sym("cond".to_string())];
+                let keyform = &list[1];
+                for clause in list[2..].iter() {
+                    if let Exp::List(pair) = clause {
+                        ensure_length_eq!(pair, 2);
+                        let key = expand(&pair[0], env)?;
+                        let form = expand(&pair[1], env)?;
+                        res.push(Exp::List(vec![
+                            Exp::List(vec![
+                                Exp::Sym("eq?".to_string()),
+                                keyform.clone(), key
+                            ]),
+                            form
+                        ]));
+                    } else {
+                        expected!("list of key and form")?;
+                    }
+                }
+                expand(&Exp::List(res), env)
             }
             Exp::Sym(s) if s == "cond" => {
                 ensure_length_gt!(list, 1);
@@ -138,12 +160,12 @@ pub fn expand(exp: &Exp, env: &mut Rc<RefCell<Env>>) -> Result<Exp, Err> {
                     }
                     Ok(Exp::List(res))
                 } else {
-                    expected!("lists of predicate and expression")
+                    expected!("list of predicate and expression")
                 }
             }
             Exp::Sym(s) => {
                 if let Ok(Exp::Macro(m)) = env_get(s, env) {
-                    let mut m_env = macro_env(&m.params, &list[1..], env)?;
+                    let mut m_env = bind(&m.params, &list[1..], env)?;
                     let m_exp = m.body;
                     expand(&eval(&m_exp, &mut m_env)?, env)
                 } else {
