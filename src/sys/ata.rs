@@ -198,9 +198,7 @@ impl Bus {
         Ok(())
     }
 
-    fn setup_pio(
-        &self, drive: u8, block: u32, count: u8
-    ) -> Res {
+    fn setup_pio(&self, drive: u8, block: u32, count: u8) -> Res {
         self.select_drive(drive)?;
         self.write_command_params(drive, block, count)?;
         Ok(())
