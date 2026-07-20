@@ -81,63 +81,52 @@ fn set_mode(mode: ModeName) {
     }.to_vec();
 
     interrupts::without_interrupts(|| {
-        let mut misc_write: Port<u8> = Port::new(MISC_WRITE_REG);
-        let mut crtc_addr: Port<u8> = Port::new(CRTC_ADDR_REG);
-        let mut crtc_data: Port<u8> = Port::new(CRTC_DATA_REG);
-        let mut seq_addr: Port<u8> = Port::new(SEQUENCER_ADDR_REG);
-        let mut seq_data: Port<u8> = Port::new(SEQUENCER_DATA_REG);
-        let mut gc_addr: Port<u8> = Port::new(GRAPHICS_ADDR_REG);
-        let mut gc_data: Port<u8> = Port::new(GRAPHICS_DATA_REG);
-        let mut ac_addr: Port<u8> = Port::new(ATTR_ADDR_REG);
-        let mut ac_write: Port<u8> = Port::new(ATTR_WRITE_REG);
-        let mut instat_read: Port<u8> = Port::new(INSTAT_READ_REG);
-
         let mut i = 0;
 
         unsafe {
-            misc_write.write(regs[i]);
+            outb(MISC_WRITE_REG, regs[i]);
             i += 1;
 
             for j in 0..SEQ_REGS_COUNT {
-                seq_addr.write(j as u8);
-                seq_data.write(regs[i]);
+                outb(SEQUENCER_ADDR_REG, j as u8);
+                outb(SEQUENCER_DATA_REG, regs[i]);
                 i += 1;
             }
 
             // Unlock CRTC regs
-            crtc_addr.write(0x03);
-            let data = crtc_data.read();
-            crtc_data.write(data | 0x80);
-            crtc_addr.write(0x11);
-            let data = crtc_data.read();
-            crtc_data.write(data & !0x80);
+            outb(CRTC_ADDR_REG, 0x03);
+            let data = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, data | 0x80);
+            outb(CRTC_ADDR_REG, 0x11);
+            let data = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, data & !0x80);
 
             // Keep them unlocked
             regs[0x03] |= 0x80;
             regs[0x11] &= !0x80;
 
             for j in 0..CRTC_REGS_COUNT {
-                crtc_addr.write(j as u8);
-                crtc_data.write(regs[i]);
+                outb(CRTC_ADDR_REG, j as u8);
+                outb(CRTC_DATA_REG, regs[i]);
                 i += 1;
             }
 
             for j in 0..GC_REGS_COUNT {
-                gc_addr.write(j as u8);
-                gc_data.write(regs[i]);
+                outb(GRAPHICS_ADDR_REG, j as u8);
+                outb(GRAPHICS_DATA_REG, regs[i]);
                 i += 1;
             }
 
             for j in 0..AC_REGS_COUNT {
-                instat_read.read();
-                ac_addr.write(j as u8);
-                ac_write.write(regs[i]);
+                inb(INSTAT_READ_REG);
+                outb(ATTR_ADDR_REG, j as u8);
+                outb(ATTR_WRITE_REG, regs[i]);
                 i += 1;
             }
 
             // Lock 16-color palette and unblank display
-            instat_read.read();
-            ac_addr.write(0x20);
+            inb(INSTAT_READ_REG);
+            outb(ATTR_ADDR_REG, 0x20);
         }
     });
 }

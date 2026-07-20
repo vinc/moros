@@ -1,5 +1,6 @@
-use crate::sys;
 use crate::api::fs::{FileIO, IO};
+use crate::sys;
+use crate::sys::port::*;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -9,7 +10,6 @@ use core::fmt;
 use core::hint::spin_loop;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::port::{Port, PortReadOnly, PortWriteOnly};
 
 // Information Technology
 // AT Attachment with Packet Interface Extension (ATA/ATAPI-4)
@@ -19,6 +19,19 @@ pub const BLOCK_SIZE: usize = 512;
 
 // Keep track of the last selected bus and drive pair to speed up operations
 pub static LAST_SELECTED: Mutex<Option<(u8, u8)>> = Mutex::new(None);
+
+const DATA_REGISTER:             u16 = 0;
+const ERROR_REGISTER:            u16 = 1;
+const SECTOR_COUNT_REGISTER:     u16 = 2;
+const LBA0_REGISTER:             u16 = 3;
+const LBA1_REGISTER:             u16 = 4;
+const LBA2_REGISTER:             u16 = 5;
+const DRIVE_REGISTER:            u16 = 6;
+const STATUS_REGISTER:           u16 = 7;
+const COMMAND_REGISTER:          u16 = 7;
+
+const ALTERNATE_STATUS_REGISTER: u16 = 0;
+const CONTROL_REGISTER:          u16 = 0;
 
 #[repr(u16)]
 #[derive(Debug, Clone, Copy)]
@@ -54,84 +67,55 @@ enum Status {
 pub struct Bus {
     id: u8,
     irq: u8,
-
-    data_register: Port<u16>,
-    error_register: PortReadOnly<u8>,
-    features_register: PortWriteOnly<u8>,
-    sector_count_register: Port<u8>,
-    lba0_register: Port<u8>,
-    lba1_register: Port<u8>,
-    lba2_register: Port<u8>,
-    drive_register: Port<u8>,
-    status_register: PortReadOnly<u8>,
-    command_register: PortWriteOnly<u8>,
-
-    alternate_status_register: PortReadOnly<u8>,
-    control_register: PortWriteOnly<u8>,
-    drive_blockess_register: PortReadOnly<u8>,
+    io_base: u16,
+    ctrl_base: u16,
 }
 
 impl Bus {
     pub fn new(id: u8, io_base: u16, ctrl_base: u16, irq: u8) -> Self {
-        Self {
-            id,
-            irq,
-            data_register: Port::new(io_base + 0),
-            error_register: PortReadOnly::new(io_base + 1),
-            features_register: PortWriteOnly::new(io_base + 1),
-            sector_count_register: Port::new(io_base + 2),
-            lba0_register: Port::new(io_base + 3),
-            lba1_register: Port::new(io_base + 4),
-            lba2_register: Port::new(io_base + 5),
-            drive_register: Port::new(io_base + 6),
-            status_register: PortReadOnly::new(io_base + 7),
-            command_register: PortWriteOnly::new(io_base + 7),
-            alternate_status_register: PortReadOnly::new(ctrl_base + 0),
-            control_register: PortWriteOnly::new(ctrl_base + 0),
-            drive_blockess_register: PortReadOnly::new(ctrl_base + 1),
-        }
+        Self { id, io_base, ctrl_base, irq }
     }
 
-    fn check_floating_bus(&mut self) -> Result<(), ()> {
+    fn check_floating_bus(&self) -> Result<(), ()> {
         match self.status() {
             0xFF | 0x7F => Err(()),
             _ => Ok(()),
         }
     }
 
-    fn wait(&mut self, ns: u64) {
+    fn wait(&self, ns: u64) {
         sys::clk::wait(ns);
     }
 
-    fn clear_interrupt(&mut self) -> u8 {
-        unsafe { self.status_register.read() }
+    fn clear_interrupt(&self) -> u8 {
+        unsafe { inb(self.io_base + STATUS_REGISTER) }
     }
 
-    fn status(&mut self) -> u8 {
-        unsafe { self.alternate_status_register.read() }
+    fn status(&self) -> u8 {
+        unsafe { inb(self.ctrl_base + ALTERNATE_STATUS_REGISTER) }
     }
 
-    fn lba1(&mut self) -> u8 {
-        unsafe { self.lba1_register.read() }
+    fn lba1(&self) -> u8 {
+        unsafe { inb(self.io_base + LBA1_REGISTER) }
     }
 
-    fn lba2(&mut self) -> u8 {
-        unsafe { self.lba2_register.read() }
+    fn lba2(&self) -> u8 {
+        unsafe { inb(self.io_base + LBA2_REGISTER) }
     }
 
-    fn read_data(&mut self) -> u16 {
-        unsafe { self.data_register.read() }
+    fn read_data(&self) -> u16 {
+        unsafe { inw(self.io_base + DATA_REGISTER) }
     }
 
-    fn write_data(&mut self, data: u16) {
-        unsafe { self.data_register.write(data) }
+    fn write_data(&self, data: u16) {
+        unsafe { outw(self.io_base + DATA_REGISTER, data) }
     }
 
-    fn is_error(&mut self) -> bool {
+    fn is_error(&self) -> bool {
         self.status().get_bit(Status::ERR as usize)
     }
 
-    fn poll(&mut self, bit: Status, val: bool) -> Result<(), ()> {
+    fn poll(&self, bit: Status, val: bool) -> Result<(), ()> {
         let start = sys::clk::boot_time();
         while self.status().get_bit(bit as usize) != val {
             if sys::clk::boot_time() - start > 1.0 {
@@ -147,7 +131,7 @@ impl Bus {
         Ok(())
     }
 
-    fn select_drive(&mut self, drive: u8) -> Result<(), ()> {
+    fn select_drive(&self, drive: u8) -> Result<(), ()> {
         self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, false)?;
 
@@ -162,7 +146,7 @@ impl Bus {
             // Bit 4 => DEV
             // Bit 5 => 1
             // Bit 7 => 1
-            self.drive_register.write(0xA0 | (drive << 4))
+            outb(self.io_base + DRIVE_REGISTER, 0xA0 | (drive << 4));
         }
         sys::clk::wait(400); // Wait at least 400 ns
         self.poll(Status::BSY, false)?;
@@ -170,11 +154,7 @@ impl Bus {
         Ok(())
     }
 
-    fn write_command_params(
-        &mut self,
-        drive: u8,
-        block: u32
-    ) -> Result<(), ()> {
+    fn write_command_params(&self, drive: u8, block: u32) -> Result<(), ()> {
         let lba = true;
         let mut bytes = block.to_le_bytes();
         bytes[3].set_bit(4, drive > 0);
@@ -182,17 +162,19 @@ impl Bus {
         bytes[3].set_bit(6, lba);
         bytes[3].set_bit(7, true);
         unsafe {
-            self.sector_count_register.write(1);
-            self.lba0_register.write(bytes[0]);
-            self.lba1_register.write(bytes[1]);
-            self.lba2_register.write(bytes[2]);
-            self.drive_register.write(bytes[3]);
+            outb(self.io_base + SECTOR_COUNT_REGISTER, 1);
+            outb(self.io_base + LBA0_REGISTER, bytes[0]);
+            outb(self.io_base + LBA1_REGISTER, bytes[1]);
+            outb(self.io_base + LBA2_REGISTER, bytes[2]);
+            outb(self.io_base + DRIVE_REGISTER, bytes[3]);
         }
         Ok(())
     }
 
-    fn write_command(&mut self, cmd: Command) -> Result<(), ()> {
-        unsafe { self.command_register.write(cmd as u8) }
+    fn write_command(&self, cmd: Command) -> Result<(), ()> {
+        unsafe {
+            outb(self.io_base + COMMAND_REGISTER, cmd as u8);
+        }
         self.wait(400); // Wait at least 400 ns
         self.status(); // Ignore results of first read
         self.clear_interrupt();
@@ -209,18 +191,13 @@ impl Bus {
         Ok(())
     }
 
-    fn setup_pio(&mut self, drive: u8, block: u32) -> Result<(), ()> {
+    fn setup_pio(&self, drive: u8, block: u32) -> Result<(), ()> {
         self.select_drive(drive)?;
         self.write_command_params(drive, block)?;
         Ok(())
     }
 
-    fn read(
-        &mut self,
-        drive: u8,
-        block: u32,
-        buf: &mut [u8]
-    ) -> Result<(), ()> {
+    fn read(&self, drive: u8, block: u32, buf: &mut [u8]) -> Result<(), ()> {
         debug_assert!(buf.len() == BLOCK_SIZE);
         self.setup_pio(drive, block)?;
         self.write_command(Command::Read)?;
@@ -237,7 +214,7 @@ impl Bus {
         }
     }
 
-    fn write(&mut self, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {
+    fn write(&self, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {
         debug_assert!(buf.len() == BLOCK_SIZE);
         self.setup_pio(drive, block)?;
         self.write_command(Command::Write)?;
@@ -254,7 +231,7 @@ impl Bus {
         }
     }
 
-    fn identify_drive(&mut self, drive: u8) -> Result<IdentifyResponse, ()> {
+    fn identify_drive(&self, drive: u8) -> Result<IdentifyResponse, ()> {
         if self.check_floating_bus().is_err() {
             return Ok(IdentifyResponse::None);
         }
@@ -278,25 +255,25 @@ impl Bus {
     }
 
     #[allow(dead_code)]
-    fn reset(&mut self) {
+    fn reset(&self) {
         unsafe {
-            self.control_register.write(4); // Set SRST bit
+            outb(self.ctrl_base + CONTROL_REGISTER, 4); // Set SRST bit
             self.wait(5); // Wait at least 5 ns
-            self.control_register.write(0); // Then clear it
+            outb(self.ctrl_base + CONTROL_REGISTER, 0); // Then clear it
             self.wait(2000); // Wait at least 2 ms
         }
     }
 
     #[allow(dead_code)]
-    fn debug(&mut self) {
+    fn debug(&self) {
         unsafe {
             debug!(
                 "ATA status register: 0b{:08b} <BSY|DRDY|#|#|DRQ|#|#|ERR>",
-                self.alternate_status_register.read()
+                inb(self.ctrl_base + ALTERNATE_STATUS_REGISTER)
             );
             debug!(
                 "ATA error register:  0b{:08b} <#|#|#|#|#|ABRT|#|#>",
-                self.error_register.read()
+                inb(self.io_base + ERROR_REGISTER)
             );
         }
     }
@@ -334,7 +311,7 @@ impl Drive {
     }
 
     pub fn open(bus: u8, dsk: u8) -> Option<Self> {
-        let mut buses = BUSES.lock();
+        let buses = BUSES.lock();
         let res = buses[bus as usize].identify_drive(dsk);
         if let Ok(IdentifyResponse::Ata(res)) = res {
             let buf = res.map(u16::to_be_bytes).concat();
@@ -445,11 +422,11 @@ pub fn list() -> Vec<Drive> {
 }
 
 pub fn read(bus: u8, drive: u8, block: u32, buf: &mut [u8]) -> Result<(), ()> {
-    let mut buses = BUSES.lock();
+    let buses = BUSES.lock();
     buses[bus as usize].read(drive, block, buf)
 }
 
 pub fn write(bus: u8, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {
-    let mut buses = BUSES.lock();
+    let buses = BUSES.lock();
     buses[bus as usize].write(drive, block, buf)
 }
