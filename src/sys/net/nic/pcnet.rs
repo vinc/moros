@@ -1,13 +1,13 @@
 use crate::sys;
 use crate::sys::mem::PhysBuf;
 use crate::sys::net::{Config, EthernetDeviceIO, Stats};
+use crate::sys::port::*;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bit_field::BitField;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
-use x86_64::instructions::port::Port;
 
 const CSR0_INIT: usize = 0;
 const CSR0_STRT: usize = 1;
@@ -35,79 +35,66 @@ const DE_STP: usize = 1;
 //const DE_ERR:  usize = 6;
 const DE_OWN: usize = 7;
 
+//const RDP_16: u16 = 0x10;
+//const RAP_16: u16 = 0x12;
+const RST_16: u16 = 0x14;
+//const BDP_16: u16 = 0x16;
+
+const RDP_32: u16 = 0x10;
+const RAP_32: u16 = 0x14;
+const RST_32: u16 = 0x18;
+const BDP_32: u16 = 0x1C;
+
 #[derive(Clone)]
 pub struct Ports {
-    pub mac: [Port<u8>; 6],
-    //pub rdp_16: Port<u16>,
-    //pub rap_16: Port<u16>,
-    pub rst_16: Port<u16>,
-    //pub bdp_16: Port<u16>,
-
-    pub rdp_32: Port<u32>,
-    pub rap_32: Port<u32>,
-    pub rst_32: Port<u32>,
-    pub bdp_32: Port<u32>,
+    io_base: u16,
 }
 
 impl Ports {
     pub fn new(io_base: u16) -> Self {
-        Self {
-            mac: [
-                Port::new(io_base + 0x00),
-                Port::new(io_base + 0x01),
-                Port::new(io_base + 0x02),
-                Port::new(io_base + 0x03),
-                Port::new(io_base + 0x04),
-                Port::new(io_base + 0x05),
-            ],
-
-            //rdp_16: Port::new(io_base + 0x10),
-            //rap_16: Port::new(io_base + 0x12),
-            rst_16: Port::new(io_base + 0x14),
-            //bdp_16: Port::new(io_base + 0x16),
-
-            rdp_32: Port::new(io_base + 0x10),
-            rap_32: Port::new(io_base + 0x14),
-            rst_32: Port::new(io_base + 0x18),
-            bdp_32: Port::new(io_base + 0x1C),
-        }
+        Self { io_base }
     }
 
-    fn write_rap_32(&mut self, val: u32) {
-        unsafe { self.rap_32.write(val) }
+    fn write_rap_32(&self, val: u32) {
+        unsafe { outl(self.io_base + RAP_32, val) }
     }
 
-    fn read_csr_32(&mut self, csr: u32) -> u32 {
+    fn write_rdp_32(&self, val: u32) {
+        unsafe { outl(self.io_base + RDP_32, val) }
+    }
+
+    fn read_csr_32(&self, csr: u32) -> u32 {
         self.write_rap_32(csr);
-        unsafe { self.rdp_32.read() }
+        unsafe { inl(self.io_base + RDP_32) }
     }
 
-    fn write_csr_32(&mut self, csr: u32, val: u32) {
+    fn write_csr_32(&self, csr: u32, val: u32) {
         self.write_rap_32(csr);
-        unsafe { self.rdp_32.write(val) }
+        unsafe { outl(self.io_base + RDP_32, val) }
     }
 
-    fn read_bcr_32(&mut self, bcr: u32) -> u32 {
+    fn read_bcr_32(&self, bcr: u32) -> u32 {
         self.write_rap_32(bcr);
-        unsafe { self.bdp_32.read() }
+        unsafe { inl(self.io_base + BDP_32) }
     }
 
-    fn write_bcr_32(&mut self, bcr: u32, val: u32) {
+    fn write_bcr_32(&self, bcr: u32, val: u32) {
         self.write_rap_32(bcr);
-        unsafe { self.bdp_32.write(val) }
+        unsafe { outl(self.io_base + BDP_32, val) }
     }
 
-    fn mac(&mut self) -> [u8; 6] {
+    fn reset(&self) {
         unsafe {
-            [
-                self.mac[0].read(),
-                self.mac[1].read(),
-                self.mac[2].read(),
-                self.mac[3].read(),
-                self.mac[4].read(),
-                self.mac[5].read(),
-            ]
+            inl(self.io_base + RST_32);
+            inw(self.io_base + RST_16);
         }
+    }
+
+    fn mac(&self) -> [u8; 6] {
+        core::array::from_fn(|i| unsafe {
+            // Read the first 6 bytes of the APROM
+            inb(self.io_base + i as u16)
+        })
     }
 }
 
@@ -163,15 +150,10 @@ impl Device {
         self.config.update_mac(EthernetAddress::from_bytes(&mac));
 
         // Reset to 16-bit access
-        unsafe {
-            self.ports.rst_32.read();
-            self.ports.rst_16.read();
-        }
+        self.ports.reset();
 
         // Switch to 32-bit access
-        unsafe {
-            self.ports.rdp_32.write(0);
-        }
+        self.ports.write_rdp_32(0);
 
         // SWSTYLE
         let mut csr_58 = self.ports.read_csr_32(58);
