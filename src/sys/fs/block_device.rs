@@ -6,6 +6,7 @@ use crate::sys;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use core::cmp;
 use spin::Mutex;
 
 pub static BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
@@ -152,7 +153,7 @@ impl BlockDeviceIO for AtaBlockDevice {
             return Ok(());
         }
 
-        let n = READ_AHEAD.clamp(1, self.block_count() - block_addr as usize);
+        let n = cmp::min(READ_AHEAD, self.block_count() - block_addr as usize);
         let mut blocks = vec![0; n * super::BLOCK_SIZE];
         sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut blocks)?;
         for (i, chunk) in blocks.chunks(super::BLOCK_SIZE).enumerate() {
