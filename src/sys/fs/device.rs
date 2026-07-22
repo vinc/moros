@@ -362,7 +362,6 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.poll(event),
             Device::ProcEnv(io)     => io.poll(event),
             Device::ProcUser(io)    => io.poll(event),
-            Device::ProcStat(io)    => io.poll(event),
             Device::KbdBuffer(io)   => io.poll(event),
             Device::KbdLayout(io)   => io.poll(event),
         }
