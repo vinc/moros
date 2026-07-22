@@ -6,6 +6,7 @@ use super::{id, set_id};
 use super::page_table;
 use super::ptr_from_addr;
 use super::ProcessContext;
+use super::ProcessStats;
 use super::free_process;
 use super::table::{PROCESS_TABLE, MAX_PROCS};
 
@@ -98,18 +99,14 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         free_process(page_table_frame)
     )?;
 
-    let parent_id = parent.ctx.id;
-    let data = parent.data.clone();
-    let registers = parent.registers;
-    let stack_frame = parent.stack_frame;
-
     let allocator = Arc::new(LockedHeap::empty());
 
     let proc = Process {
-        parent_id,
-        data,
-        stack_frame,
-        registers,
+        parent_id: parent.ctx.id,
+        data: parent.data.clone(),
+        stack_frame: parent.stack_frame,
+        registers: parent.registers,
+        stats: Arc::new(ProcessStats::new()),
         ctx: ProcessContext {
             id,
             stack_addr,
