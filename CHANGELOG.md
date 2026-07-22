@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Move /dev/net/usage to /dev/net/stat (#873)
 - Remove dependency on x86_64::instructions::port (#872)
 - Improve process memory isolation (#869)
 - Add realpath to kernel FS module (#866)

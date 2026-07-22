@@ -10,7 +10,7 @@ use crate::sys::console::Console;
 use crate::sys::net::gw::NetGw;
 use crate::sys::net::ip::NetIp;
 use crate::sys::net::mac::NetMac;
-use crate::sys::net::usage::NetUsage;
+use crate::sys::net::stat::NetStat;
 use crate::sys::net::socket::tcp::TcpSocket;
 use crate::sys::net::socket::udp::UdpSocket;
 use crate::sys::rng::Random;
@@ -46,7 +46,7 @@ pub enum DeviceType {
     NetGw       = 15,
     NetIp       = 16,
     NetMac      = 17,
-    NetUsage    = 18,
+    NetStat     = 18,
     Pipe        = 19,
     SoundBuffer = 20,
     ProcId      = 21,
@@ -80,7 +80,7 @@ impl TryFrom<&[u8]> for DeviceType {
             15 => Ok(DeviceType::NetGw),
             16 => Ok(DeviceType::NetIp),
             17 => Ok(DeviceType::NetMac),
-            18 => Ok(DeviceType::NetUsage),
+            18 => Ok(DeviceType::NetStat),
             19 => Ok(DeviceType::Pipe),
             20 => Ok(DeviceType::SoundBuffer),
             21 => Ok(DeviceType::ProcId),
@@ -113,7 +113,7 @@ impl DeviceType {
             DeviceType::NetGw       => NetGw::size(),
             DeviceType::NetIp       => NetIp::size(),
             DeviceType::NetMac      => NetMac::size(),
-            DeviceType::NetUsage    => NetUsage::size(),
+            DeviceType::NetStat     => NetStat::size(),
             DeviceType::Pipe        => Pipe::size(),
             DeviceType::SoundBuffer => SoundBuffer::size(),
             DeviceType::ProcId      => ProcId::size(),
@@ -150,7 +150,7 @@ pub enum Device {
     NetGw(NetGw),
     NetIp(NetIp),
     NetMac(NetMac),
-    NetUsage(NetUsage),
+    NetStat(NetStat),
     Pipe(Pipe),
     SoundBuffer(SoundBuffer),
     ProcId(ProcId),
@@ -183,7 +183,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::NetGw       => Ok(Device::NetGw(NetGw::new())),
             DeviceType::NetIp       => Ok(Device::NetIp(NetIp::new())),
             DeviceType::NetMac      => Ok(Device::NetMac(NetMac::new())),
-            DeviceType::NetUsage    => Ok(Device::NetUsage(NetUsage::new())),
+            DeviceType::NetStat     => Ok(Device::NetStat(NetStat::new())),
             DeviceType::Pipe        => Ok(Device::Pipe(Pipe::new())),
             DeviceType::SoundBuffer => Ok(Device::SoundBuffer(SoundBuffer::new())),
             DeviceType::ProcId      => Ok(Device::ProcId(ProcId::new())),
@@ -259,7 +259,7 @@ impl FileIO for Device {
             Device::NetGw(io)       => io.read(buf),
             Device::NetIp(io)       => io.read(buf),
             Device::NetMac(io)      => io.read(buf),
-            Device::NetUsage(io)    => io.read(buf),
+            Device::NetStat(io)     => io.read(buf),
             Device::Pipe(io)        => io.read(buf),
             Device::SoundBuffer(io) => io.read(buf),
             Device::ProcId(io)      => io.read(buf),
@@ -291,7 +291,7 @@ impl FileIO for Device {
             Device::NetGw(io)       => io.write(buf),
             Device::NetIp(io)       => io.write(buf),
             Device::NetMac(io)      => io.write(buf),
-            Device::NetUsage(io)    => io.write(buf),
+            Device::NetStat(io)     => io.write(buf),
             Device::Pipe(io)        => io.write(buf),
             Device::SoundBuffer(io) => io.write(buf),
             Device::ProcId(io)      => io.write(buf),
@@ -323,7 +323,7 @@ impl FileIO for Device {
             Device::NetGw(io)       => io.close(),
             Device::NetIp(io)       => io.close(),
             Device::NetMac(io)      => io.close(),
-            Device::NetUsage(io)    => io.close(),
+            Device::NetStat(io)     => io.close(),
             Device::Pipe(io)        => io.close(),
             Device::SoundBuffer(io) => io.close(),
             Device::ProcId(io)      => io.close(),
@@ -355,7 +355,7 @@ impl FileIO for Device {
             Device::NetGw(io)       => io.poll(event),
             Device::NetIp(io)       => io.poll(event),
             Device::NetMac(io)      => io.poll(event),
-            Device::NetUsage(io)    => io.poll(event),
+            Device::NetStat(io)     => io.poll(event),
             Device::Pipe(io)        => io.poll(event),
             Device::SoundBuffer(io) => io.poll(event),
             Device::ProcId(io)      => io.poll(event),
@@ -365,5 +365,38 @@ impl FileIO for Device {
             Device::KbdBuffer(io)   => io.poll(event),
             Device::KbdLayout(io)   => io.poll(event),
         }
+    }
+}
+
+pub fn device_type(name: &str) -> Result<DeviceType, ()> {
+    match name {
+        "null"        => Ok(DeviceType::Null),
+        "file"        => Ok(DeviceType::File),
+        "console"     => Ok(DeviceType::Console),
+        "random"      => Ok(DeviceType::Random),
+        "clk-boot"    => Ok(DeviceType::BootTime),
+        "clk-epoch"   => Ok(DeviceType::EpochTime),
+        "clk-rtc"     => Ok(DeviceType::RTC),
+        "net-tcp"     => Ok(DeviceType::TcpSocket),
+        "net-udp"     => Ok(DeviceType::UdpSocket),
+        "net-gw"      => Ok(DeviceType::NetGw),
+        "net-ip"      => Ok(DeviceType::NetIp),
+        "net-mac"     => Ok(DeviceType::NetMac),
+        "net-stat"    => Ok(DeviceType::NetStat),
+        "snd-buffer"  => Ok(DeviceType::SoundBuffer),
+        "vga-buffer"  => Ok(DeviceType::VgaBuffer),
+        "vga-font"    => Ok(DeviceType::VgaFont),
+        "vga-mode"    => Ok(DeviceType::VgaMode),
+        "vga-palette" => Ok(DeviceType::VgaPalette),
+        "speaker"     => Ok(DeviceType::Speaker),
+        "ata"         => Ok(DeviceType::Drive),
+        "pipe"        => Ok(DeviceType::Pipe),
+        "proc-id"     => Ok(DeviceType::ProcId),
+        "proc-dir"    => Ok(DeviceType::ProcDir),
+        "proc-env"    => Ok(DeviceType::ProcEnv),
+        "proc-user"   => Ok(DeviceType::ProcUser),
+        "kbd-buffer"  => Ok(DeviceType::KbdBuffer),
+        "kbd-layout"  => Ok(DeviceType::KbdLayout),
+        _             => Err(()),
     }
 }

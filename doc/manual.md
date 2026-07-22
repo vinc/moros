@@ -101,7 +101,7 @@ commands to test the system or `install` to setup the
     Creating '/dev/net/gw'
     Creating '/dev/net/ip'
     Creating '/dev/net/mac'
-    Creating '/dev/net/usage'
+    Creating '/dev/net/stat'
     Creating '/dev/null'
     Creating '/dev/random'
     Creating '/dev/speaker'

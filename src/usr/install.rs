@@ -70,7 +70,7 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/net/gw", "net-gw", verbose);
     create_dev("/dev/net/ip", "net-ip", verbose);
     create_dev("/dev/net/mac", "net-mac", verbose);
-    create_dev("/dev/net/usage", "net-usage", verbose);
+    create_dev("/dev/net/stat", "net-stat", verbose);
     create_dev("/dev/null", "null", verbose);
     create_dev("/dev/pipe", "pipe", verbose);
     create_dev("/dev/proc/id", "proc-id", verbose);
