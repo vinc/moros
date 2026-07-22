@@ -64,10 +64,9 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         (proc.ctx.id, proc.data.clone(), proc.stack_frame, proc.registers)
     };
 
+    // Lock the process table and get the pid
     let mut process_table = PROCESS_TABLE.write();
-    let id = (1..MAX_PROCS)
-        .find(|&i| process_table[i].is_none())
-        .ok_or(())?;
+    let id = (1..MAX_PROCS).find(|&i| process_table[i].is_none()).ok_or(())?;
 
     let page_table_frame = mem::with_frame_allocator(|frame_allocator| {
         frame_allocator.allocate_frame().expect("frame allocation failed")
