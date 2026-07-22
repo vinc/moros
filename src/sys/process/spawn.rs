@@ -58,9 +58,10 @@ pub fn spawn(
 }
 
 fn create(bin: &[u8]) -> Result<usize, ()> {
-    let parent = {
+    let (parent_id, data, stack_frame, registers) = {
         let process_table = PROCESS_TABLE.read();
-        process_table[id()].clone().unwrap()
+        let proc = process_table[id()].as_ref().unwrap();
+        (proc.ctx.id, proc.data.clone(), proc.stack_frame, proc.registers)
     };
 
     let mut process_table = PROCESS_TABLE.write();
@@ -102,11 +103,11 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let allocator = Arc::new(LockedHeap::empty());
 
     let proc = Process {
-        parent_id: parent.ctx.id,
-        data: parent.data.clone(),
-        stack_frame: parent.stack_frame,
-        registers: parent.registers,
-        stats: Arc::new(ProcessStats::new()),
+        parent_id,
+        data,
+        stack_frame,
+        registers,
+        stats: ProcessStats::new(),
         ctx: ProcessContext {
             id,
             stack_addr,

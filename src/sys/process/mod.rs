@@ -138,12 +138,11 @@ impl ProcessStats {
     }
 }
 
-#[derive(Clone)]
 pub struct Process {
     parent_id: usize,
     stack_frame: Option<InterruptStackFrameValue>,
     registers: Registers,
-    stats: Arc<ProcessStats>,
+    stats: ProcessStats,
     data: ProcessData,
     ctx: ProcessContext,
 }
@@ -154,7 +153,7 @@ impl Process {
             parent_id: 0,
             stack_frame: None,
             registers: Registers::default(),
-            stats: Arc::new(ProcessStats::new()),
+            stats: ProcessStats::new(),
             data: ProcessData::new("/", None),
             ctx: ProcessContext {
                 id: 0,
