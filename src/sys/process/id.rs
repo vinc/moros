@@ -19,10 +19,10 @@ impl FileIO for ProcId {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let s = format!("{}", super::id());
         let n = s.len();
-        buf[0..n].copy_from_slice(s.as_bytes());
         if n > buf.len() {
             return Err(());
         }
+        buf[0..n].copy_from_slice(s.as_bytes());
         Ok(n)
     }
 

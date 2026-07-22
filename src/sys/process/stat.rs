@@ -27,10 +27,10 @@ impl FileIO for ProcStat {
         }).collect::<Vec<_>>().join("\n");
         let s = format!("label calls\n{}", rows);
         let n = s.len();
-        buf[0..n].copy_from_slice(s.as_bytes());
         if n > buf.len() {
             return Err(());
         }
+        buf[0..n].copy_from_slice(s.as_bytes());
         Ok(n)
     }
 
