@@ -1,7 +1,7 @@
 use crate::api::fs::{FileIO, IO};
+use crate::sys::syscall;
 
 use alloc::format;
-use alloc::string::String;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone)]
@@ -17,34 +17,15 @@ impl ProcStat {
     }
 }
 
-const SYSCALLS: [&str; 19] = [
-    "exit",
-    "spawn",
-    "read",
-    "write",
-    "open",
-    "close",
-    "info",
-    "dup",
-    "delete",
-    "stop",
-    "sleep",
-    "poll",
-    "connect",
-    "listen",
-    "accept",
-    "alloc",
-    "free",
-    "kind",
-    "seek",
-];
-
 impl FileIO for ProcStat {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let table = SYSCALLS.iter().enumerate().map(|(index, name)| {
-            format!("{} {}", name, super::syscall_count(index + 1))
-        }).collect::<Vec<String>>().join("\n");
-        let s = format!("label calls\n{}", table);
+        let n = syscall::number::count();
+        let rows = (0..n).map(|i| {
+            let name = syscall::number::name(i + 1).unwrap();
+            let count = super::syscall_count(i + 1);
+            format!("{name} {count}")
+        }).collect::<Vec<_>>().join("\n");
+        let s = format!("label calls\n{}", rows);
         let n = s.len();
         buf[0..n].copy_from_slice(s.as_bytes());
         if n > buf.len() {

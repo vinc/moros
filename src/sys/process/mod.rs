@@ -36,6 +36,7 @@ use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
+use crate::sys::syscall;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -115,16 +116,16 @@ struct ProcessContext {
     allocator: Arc<LockedHeap>,
 }
 
-const MAX_SYSCALLS: usize = 32;
+const SYSCALLS: usize = syscall::number::count().next_power_of_two();
 
 pub struct ProcessStats {
-    syscalls_count: [AtomicU64; MAX_SYSCALLS],
+    syscalls_count: [AtomicU64; SYSCALLS],
 }
 
 impl ProcessStats {
     fn new() -> Self {
         Self {
-            syscalls_count: [(); MAX_SYSCALLS].map(|_| AtomicU64::new(0)),
+            syscalls_count: [(); SYSCALLS].map(|_| AtomicU64::new(0)),
         }
     }
 

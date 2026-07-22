@@ -17,3 +17,37 @@ pub const ALLOC:   usize = 0x10;
 pub const FREE:    usize = 0x11;
 pub const KIND:    usize = 0x12;
 pub const SEEK:    usize = 0x13;
+
+const SYSCALLS: [&str; 0x13] = [
+    "exit",
+    "spawn",
+    "read",
+    "write",
+    "open",
+    "close",
+    "info",
+    "dup",
+    "delete",
+    "stop",
+    "sleep",
+    "poll",
+    "connect",
+    "listen",
+    "accept",
+    "alloc",
+    "free",
+    "kind",
+    "seek",
+];
+
+pub const fn count() -> usize {
+    0x13
+}
+
+pub const fn name(number: usize) -> Option<&'static str> {
+    if number < 1 || number > 0x13 {
+        None
+    } else {
+        Some(SYSCALLS[number - 1])
+    }
+}
