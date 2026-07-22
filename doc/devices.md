@@ -24,7 +24,7 @@ Creating the devices in the file system:
     write /dev/net/gw -d net-gw
     write /dev/net/ip -d net-ip
     write /dev/net/mac -d net-mac
-    write /dev/net/usage -d net-usage
+    write /dev/net/stat -d net-stat
     write /dev/null -d null
     write /dev/random -d random
     write /dev/speaker -d speaker
@@ -103,29 +103,31 @@ Reading `/dev/net/mac` will return the MAC address:
     > read /dev/net/mac
     52-54-00-12-34-56
 
-### Network Usage Device
+### Network Statistics Device
 
-Reading `/dev/net/usage` will return the network usage:
+Reading `/dev/net/stat` will return the network statistics:
 
-    > read /dev/net/usage
-    0 0 0 0
+    > read /dev/net/stat
+    label packets bytes
+    rx 0 0
+    tx 0 0
 
     > dhcp
     [7.910795] NET IP 10.0.2.15/24
     [7.911795] NET GW 10.0.2.2
     [7.915795] NET DNS 10.0.2.3
 
-    > read /dev/net/usage
-    2 1180 2 620
+    > read /dev/net/stat
+    label packets bytes
+    rx 2 1180
+    tx 2 620
 
     > http example.com => /dev/null
 
-    > read /dev/net/usage
-    10 3306 10 1151
-
-The output format is:
-
-    <recv packets> <recv bytes> <sent packets> <sent bytes>
+    > read /dev/net/stat
+    label packets bytes
+    rx 10 3306
+    tx 10 1151
 
 ### Network Socket Devices
 

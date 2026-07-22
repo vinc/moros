@@ -32,7 +32,7 @@ write /dev/net/udp -d net-udp
 write /dev/net/gw -d net-gw
 write /dev/net/ip -d net-ip
 write /dev/net/mac -d net-mac
-write /dev/net/usage -d net-usage
+write /dev/net/stat -d net-stat
 write /dev/null -d null
 write /dev/random -d random
 write /dev/speaker -d speaker
@@ -121,30 +121,31 @@ device files, and the <code>/ini/dns.ini</code> configuration file:</p>
 52-54-00-12-34-56
 </code></pre>
 
-    <h3>Network Usage Device</h3>
+    <h3>Network Statistics Device</h3>
 
-    <p>Reading <code>/dev/net/usage</code> will return the network usage:</p>
+    <p>Reading <code>/dev/net/stat</code> will return the network statistics:</p>
 
-    <pre><code>&gt; read /dev/net/usage
-0 0 0 0
+    <pre><code>&gt; read /dev/net/stat
+label packets bytes
+rx 0 0
+tx 0 0
 
 &gt; dhcp
 [7.910795] NET IP 10.0.2.15/24
 [7.911795] NET GW 10.0.2.2
 [7.915795] NET DNS 10.0.2.3
 
-&gt; read /dev/net/usage
-2 1180 2 620
+&gt; read /dev/net/stat
+label packets bytes
+rx 2 1180
+tx 2 620
 
 &gt; http example.com =&gt; /dev/null
 
-&gt; read /dev/net/usage
-10 3306 10 1151
-</code></pre>
-
-    <p>The output format is:</p>
-
-    <pre><code>&lt;recv packets&gt; &lt;recv bytes&gt; &lt;sent packets&gt; &lt;sent bytes&gt;
+&gt; read /dev/net/stat
+label packets bytes
+rx 10 3306
+tx 10 1151
 </code></pre>
 
     <h3>Network Socket Devices</h3>
