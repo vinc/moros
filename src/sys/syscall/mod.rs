@@ -24,7 +24,12 @@ pub fn dispatcher(
     arg3: usize,
     arg4: usize
 ) -> usize {
+    if n < 1 || n > number::count() {
+        return -1 as isize as usize;
+    }
+
     sys::process::increment_syscall_count(n);
+
     match n {
         number::EXIT => service::exit(ExitCode::from(arg1)) as usize,
         number::SLEEP => {
@@ -156,7 +161,7 @@ pub fn dispatcher(
             0
         }
         _ => {
-            unimplemented!();
+            unreachable!();
         }
     }
 }
