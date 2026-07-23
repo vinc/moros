@@ -116,7 +116,7 @@ struct ProcessContext {
     allocator: Arc<LockedHeap>,
 }
 
-const SYSCALLS: usize = syscall::number::count().next_power_of_two();
+const SYSCALLS: usize = syscall::number::count();
 
 pub struct ProcessStats {
     syscalls_count: [AtomicU64; SYSCALLS],
