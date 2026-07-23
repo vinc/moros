@@ -19,13 +19,19 @@ Creating the devices in the file system:
     write /dev/kbd/buffer -d kbd-buffer
     write /dev/kbd/layout -d kbd-layout
     write /dev/net/
-    write /dev/net/tcp -d net-tcp
-    write /dev/net/udp -d net-udp
     write /dev/net/gw -d net-gw
     write /dev/net/ip -d net-ip
     write /dev/net/mac -d net-mac
     write /dev/net/stat -d net-stat
+    write /dev/net/tcp -d net-tcp
+    write /dev/net/udp -d net-udp
     write /dev/null -d null
+    write /dev/proc/
+    write /dev/proc/dir -d proc-dir
+    write /dev/proc/env -d proc-env
+    write /dev/proc/id -d proc-id
+    write /dev/proc/stat -d proc-stat
+    write /dev/proc/user -d proc-user
     write /dev/random -d random
     write /dev/speaker -d speaker
     write /dev/vga/
@@ -34,7 +40,7 @@ Creating the devices in the file system:
     write /dev/vga/mode -d vga-mode
     write /dev/vga/palette -d vga-palette
 
-## Clock Devices
+## Clock
 
 Reading the number of seconds since boot:
 
@@ -56,13 +62,13 @@ Changing the system time:
     > print 2025-01-01 00:00:00 => /dev/clk/rtc
     [580.327629] RTC 2025-01-01 00:00:00 +0000
 
-## Console Device
+## Console
 
 Reading `/dev/console` with a 4 bytes buffer will return a character from the
 keyboard or the serial interface. Reading with a larger buffer will return a
 complete line.
 
-## Keyboard devices
+## Keyboard
 
 Reading `/dev/kbd/buffer` will pop and return the earliest keyboard scancode
 in the buffer if present.
@@ -76,11 +82,11 @@ Changing the keyboard layout:
 
     > print dvorak => /dev/kbd/layout
 
-## Network Devices
+## Network
 
-### Network Config Devices
+### Network config
 
-The prefered way to setup the network is to use the `dhcp` command:
+The preferred way to setup the network is to use the `dhcp` command:
 
     > dhcp
     [958.810995] NET IP 10.0.2.15/24
@@ -103,7 +109,7 @@ Reading `/dev/net/mac` will return the MAC address:
     > read /dev/net/mac
     52-54-00-12-34-56
 
-### Network Statistics Device
+### Network statistics
 
 Reading `/dev/net/stat` will return the network statistics:
 
@@ -129,7 +135,7 @@ Reading `/dev/net/stat` will return the network statistics:
     rx 10 3306
     tx 10 1151
 
-### Network Socket Devices
+### Network socket
 
 Opening `/dev/net/tcp` or `/dev/net/udp` with the `OPEN` syscall and the device
 flag will return a file handle for a TCP or UDP socket supporting the standard
@@ -158,7 +164,7 @@ Reading a socket with a 1 byte buffer will return the status of the socket:
     |  7  | Reserved     |
     +-----+--------------+
 
-## Speaker Device
+## Speaker
 
 Playing a 440 Hz sound on the PC speaker:
 
@@ -168,7 +174,7 @@ Stopping the sound:
 
     > print 0 => /dev/speaker
 
-## Null Device
+## Null
 
 Writing to `/dev/null` will discard any data sent to it:
 
@@ -184,7 +190,89 @@ It can be used to suppress errors:
 
     > copy none.txt some.txt [2]=> /dev/null
 
-## Random Device
+## Process
+
+The current process is described by a number of devices in `/dev/proc`.
+
+### Process id
+
+Reading `/dev/proc/id` will return the current process id:
+
+    > read /dev/proc/id
+    0
+
+### Process user
+
+Reading `/dev/proc/user` will return the current user:
+
+    > read /dev/proc/user
+    vinc
+
+### Process directory
+
+Reading `/dev/proc/dir` will return the current directory:
+
+    > read /dev/proc/dir
+    /usr/vinc
+
+Changing the current directory can be done by writing the destination to the
+device with `echo /tmp => /dev/proc/dir` using a shell builtin command or just
+typing the path to the dir in the shell prompt.
+
+### Process environment variables
+
+Reading `/dev/proc/env` will return an INI file containing all the environment
+variables of the process:
+
+    > read /dev/proc/env
+    HOME = "/usr/vinc"
+    USER = "vinc"
+
+Setting an env var can be done by writing its key/value pair to the device or
+using the shell builtin command:
+
+    > echo TZ=3600 => /dev/proc/env
+
+    > read /dev/proc/env
+    HOME = "/usr/vinc"
+    TZ   = "3600"
+    USER = "vinc"
+
+    > set --env TZ 7200
+
+    > read /dev/proc/env
+    HOME = "/usr/vinc"
+    TZ   = "7200"
+    USER = "vinc"
+
+### Process statistics
+
+Reading `/dev/proc/stat` will return the number of syscalls made by the current
+process:
+
+    > read /dev/proc/stat
+    label calls
+    exit 0
+    spawn 17
+    read 383
+    write 390
+    open 360
+    close 359
+    info 400
+    dup 4
+    delete 0
+    stop 0
+    sleep 2
+    poll 0
+    connect 0
+    listen 0
+    accept 0
+    alloc 0
+    free 0
+    kind 0
+    seek 0
+
+## Random
 
 Reading from `/dev/random` will return bytes from a cryptographically secure
 random number generator that uses the [HC-128][1] algorithm seeded from the
@@ -193,15 +281,15 @@ random number generator that uses the [HC-128][1] algorithm seeded from the
 [1]: https://en.wikipedia.org/wiki/HC-256
 [2]: https://en.wikipedia.org/wiki/RDRAND
 
-## VGA Devices
+## VGA
 
-### VGA Font Device
+### VGA font
 
 Changing the VGA font:
 
     > copy /ini/fonts/zap-light-8x16.psf /dev/vga/font
 
-### VGA Mode Device
+### VGA mode
 
 Changing the VGA mode:
 
@@ -215,15 +303,15 @@ The accepted modes are:
 
 It is possible to read the current mode from this device file.
 
-### VGA Palette Device
+### VGA palette
 
-Changing the VGA palette is done by writting a 768 bytes buffer to
+Changing the VGA palette is done by writing a 768 bytes buffer to
 `/dev/vga/palette` containing the RGB values of 256 colors.
 
 It is possible to read the current palette from this device file.
 
-### VGA Buffer Device
+### VGA buffer
 
-Changing the VGA framebuffer is done by writting a 64 KB buffer to
+Changing the VGA framebuffer is done by writing a 64 KB buffer to
 `/dev/vga/buffer` containing the color index of each pixel on the screen while
 in `320x200` mode.
