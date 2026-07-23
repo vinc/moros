@@ -18,7 +18,7 @@ pub const FREE:    usize = 0x11;
 pub const KIND:    usize = 0x12;
 pub const SEEK:    usize = 0x13;
 
-const SYSCALLS: &[&str] = &[
+const NAMES: &[&str] = &[
     "exit",
     "spawn",
     "read",
@@ -41,13 +41,13 @@ const SYSCALLS: &[&str] = &[
 ];
 
 pub const fn count() -> usize {
-    SYSCALLS.len()
+    NAMES.len()
 }
 
 pub const fn name(number: usize) -> Option<&'static str> {
     if number < 1 || number > count() {
         None
     } else {
-        Some(SYSCALLS[number - 1])
+        Some(NAMES[number - 1])
     }
 }
