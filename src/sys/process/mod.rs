@@ -130,11 +130,11 @@ impl ProcessStats {
     }
 
     pub fn syscall_count(&self, number: usize) -> u64 {
-        self.syscalls_count[number].load(Ordering::Relaxed)
+        self.syscalls_count[number - 1].load(Ordering::Relaxed)
     }
 
     pub fn increment_syscall_count(&self, number: usize) {
-        self.syscalls_count[number].fetch_add(1, Ordering::SeqCst);
+        self.syscalls_count[number - 1].fetch_add(1, Ordering::SeqCst);
     }
 }
 

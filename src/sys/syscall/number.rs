@@ -18,11 +18,7 @@ pub const FREE:    usize = 0x11;
 pub const KIND:    usize = 0x12;
 pub const SEEK:    usize = 0x13;
 
-pub const fn count() -> usize {
-    0x13 // Highest syscall number
-}
-
-const SYSCALLS: [&str; count()] = [
+const SYSCALLS: &[&str] = &[
     "exit",
     "spawn",
     "read",
@@ -43,6 +39,10 @@ const SYSCALLS: [&str; count()] = [
     "kind",
     "seek",
 ];
+
+pub const fn count() -> usize {
+    SYSCALLS.len()
+}
 
 pub const fn name(number: usize) -> Option<&'static str> {
     if number < 1 || number > count() {
