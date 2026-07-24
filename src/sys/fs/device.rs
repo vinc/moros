@@ -18,7 +18,7 @@ use crate::sys::speaker::Speaker;
 use crate::sys::keyboard::{KeyboardBuffer, KeyboardLayout};
 use crate::sys::vga::{VgaFont, VgaMode, VgaPalette, VgaBuffer};
 use crate::sys::snd::SoundBuffer;
-use crate::sys::process::{ProcId, ProcDir, ProcEnv, ProcUser};
+use crate::sys::process::{ProcId, ProcDir, ProcEnv, ProcUser, ProcStat};
 
 use alloc::vec;
 use alloc::vec::Vec;
@@ -53,8 +53,9 @@ pub enum DeviceType {
     ProcDir     = 22,
     ProcEnv     = 23,
     ProcUser    = 24,
-    KbdBuffer   = 25,
-    KbdLayout   = 26,
+    ProcStat    = 25,
+    KbdBuffer   = 26,
+    KbdLayout   = 27,
 }
 
 impl TryFrom<&[u8]> for DeviceType {
@@ -87,8 +88,9 @@ impl TryFrom<&[u8]> for DeviceType {
             22 => Ok(DeviceType::ProcDir),
             23 => Ok(DeviceType::ProcEnv),
             24 => Ok(DeviceType::ProcUser),
-            25 => Ok(DeviceType::KbdBuffer),
-            26 => Ok(DeviceType::KbdLayout),
+            25 => Ok(DeviceType::ProcStat),
+            26 => Ok(DeviceType::KbdBuffer),
+            27 => Ok(DeviceType::KbdLayout),
              _ => Err(()),
         }
     }
@@ -120,6 +122,7 @@ impl DeviceType {
             DeviceType::ProcDir     => ProcDir::size(),
             DeviceType::ProcEnv     => ProcEnv::size(),
             DeviceType::ProcUser    => ProcUser::size(),
+            DeviceType::ProcStat    => ProcStat::size(),
             DeviceType::KbdBuffer   => KeyboardBuffer::size(),
             DeviceType::KbdLayout   => KeyboardLayout::size(),
             _                       => 1,
@@ -157,6 +160,7 @@ pub enum Device {
     ProcDir(ProcDir),
     ProcEnv(ProcEnv),
     ProcUser(ProcUser),
+    ProcStat(ProcStat),
     KbdBuffer(KeyboardBuffer),
     KbdLayout(KeyboardLayout),
 }
@@ -190,6 +194,7 @@ impl TryFrom<&[u8]> for Device {
             DeviceType::ProcDir     => Ok(Device::ProcDir(ProcDir::new())),
             DeviceType::ProcEnv     => Ok(Device::ProcEnv(ProcEnv::new())),
             DeviceType::ProcUser    => Ok(Device::ProcUser(ProcUser::new())),
+            DeviceType::ProcStat    => Ok(Device::ProcStat(ProcStat::new())),
             DeviceType::KbdBuffer   => Ok(Device::KbdBuffer(KeyboardBuffer::new())),
             DeviceType::KbdLayout   => Ok(Device::KbdLayout(KeyboardLayout::new())),
             DeviceType::Drive if buf.len() > 2 => {
@@ -266,6 +271,7 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.read(buf),
             Device::ProcEnv(io)     => io.read(buf),
             Device::ProcUser(io)    => io.read(buf),
+            Device::ProcStat(io)    => io.read(buf),
             Device::KbdBuffer(io)   => io.read(buf),
             Device::KbdLayout(io)   => io.read(buf),
         }
@@ -298,6 +304,7 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.write(buf),
             Device::ProcEnv(io)     => io.write(buf),
             Device::ProcUser(io)    => io.write(buf),
+            Device::ProcStat(io)    => io.write(buf),
             Device::KbdBuffer(io)   => io.write(buf),
             Device::KbdLayout(io)   => io.write(buf),
         }
@@ -330,6 +337,7 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.close(),
             Device::ProcEnv(io)     => io.close(),
             Device::ProcUser(io)    => io.close(),
+            Device::ProcStat(io)    => io.close(),
             Device::KbdBuffer(io)   => io.close(),
             Device::KbdLayout(io)   => io.close(),
         }
@@ -362,6 +370,7 @@ impl FileIO for Device {
             Device::ProcDir(io)     => io.poll(event),
             Device::ProcEnv(io)     => io.poll(event),
             Device::ProcUser(io)    => io.poll(event),
+            Device::ProcStat(io)    => io.poll(event),
             Device::KbdBuffer(io)   => io.poll(event),
             Device::KbdLayout(io)   => io.poll(event),
         }
@@ -395,6 +404,7 @@ pub fn device_type(name: &str) -> Result<DeviceType, ()> {
         "proc-dir"    => Ok(DeviceType::ProcDir),
         "proc-env"    => Ok(DeviceType::ProcEnv),
         "proc-user"   => Ok(DeviceType::ProcUser),
+        "proc-stat"   => Ok(DeviceType::ProcStat),
         "kbd-buffer"  => Ok(DeviceType::KbdBuffer),
         "kbd-layout"  => Ok(DeviceType::KbdLayout),
         _             => Err(()),

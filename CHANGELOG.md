@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add /dev/proc/stat (#874)
 - Move /dev/net/usage to /dev/net/stat (#873)
 - Remove dependency on x86_64::instructions::port (#872)
 - Improve process memory isolation (#869)

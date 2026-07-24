@@ -1,23 +1,31 @@
 use crate::api::fs::{FileIO, IO};
+use crate::sys::syscall;
 
 use alloc::format;
+use alloc::vec::Vec;
 
 #[derive(Debug, Clone)]
-pub struct ProcId;
+pub struct ProcStat;
 
-impl ProcId {
+impl ProcStat {
     pub fn new() -> Self {
         Self
     }
 
     pub fn size() -> usize {
-        10 // Must be greater than 8 to be considered as a block device
+        1024
     }
 }
 
-impl FileIO for ProcId {
+impl FileIO for ProcStat {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let s = format!("{}", super::id());
+        let n = syscall::number::count();
+        let rows = (0..n).map(|i| {
+            let name = syscall::number::name(i + 1).unwrap();
+            let count = super::syscall_count(i + 1);
+            format!("{name} {count}")
+        }).collect::<Vec<_>>().join("\n");
+        let s = format!("label calls\n{}", rows);
         let n = s.len();
         if n > buf.len() {
             return Err(());
