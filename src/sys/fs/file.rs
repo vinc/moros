@@ -23,8 +23,8 @@ pub struct File {
     cursor: u32,
 
     // Skip rewalking the linked list of blocks on each read or write
-    resume_addr: u32, // Block address to resume from
     resume_index: usize, // Block index in the list
+    resume_addr: u32, // Block address to resume from
 }
 
 impl From<DirEntry> for File {
@@ -35,8 +35,8 @@ impl From<DirEntry> for File {
             addr: entry.addr(),
             size: entry.size(),
             cursor: 0,
-            resume_addr: entry.addr(),
             resume_index: 0,
+            resume_addr: entry.addr(),
         }
     }
 }
@@ -49,8 +49,8 @@ impl File {
             addr: 0,
             size: 0,
             cursor: 0,
-            resume_addr: 0,
             resume_index: 0,
+            resume_addr: 0,
         }
     }
 
@@ -137,8 +137,9 @@ impl File {
     }
 
     fn set_resume(&mut self, addr: u32, offset: u32) {
-        self.resume_addr = addr;
+        debug_assert_eq!(offset as usize % LinkedBlock::DATA_LEN, 0);
         self.resume_index = (offset as usize) / LinkedBlock::DATA_LEN;
+        self.resume_addr = addr;
     }
 }
 
