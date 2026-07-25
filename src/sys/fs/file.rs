@@ -21,8 +21,10 @@ pub struct File {
     addr: u32,
     size: u32,
     cursor: u32,
-    resume_addr: u32,
-    resume_index: usize,
+
+    // Skip rewalking the linked list of blocks on each read or write
+    resume_addr: u32, // Block address to resume from
+    resume_index: usize, // Block index in the list
 }
 
 impl From<DirEntry> for File {
