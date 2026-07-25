@@ -9,7 +9,7 @@ use alloc::vec::Vec;
 use core::cmp;
 use spin::Mutex;
 
-const ATA_CACHE_SIZE: usize = 4 * 1024;
+const ATA_CACHE_SIZE: usize = 4 << 20; // 4 MB
 const ATA_READ_AHEAD: usize = 32;
 
 pub static BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
@@ -114,7 +114,8 @@ pub struct AtaBlockDevice {
 impl AtaBlockDevice {
     pub fn new(bus: u8, dsk: u8) -> Option<Self> {
         sys::ata::Drive::open(bus, dsk).map(|dev| {
-            let cache = vec![None; ATA_CACHE_SIZE];
+            let count = ATA_CACHE_SIZE / super::BLOCK_SIZE;
+            let cache = vec![None; count];
             Self { dev, cache }
         })
     }
