@@ -20,9 +20,9 @@ pub struct File {
     name: String,
     addr: u32,
     size: u32,
-    offset: u32,
-    cursor_addr: u32,
-    cursor_pos: u32,
+    cursor: u32,
+    resume_addr: u32,
+    resume_offset: u32,
 }
 
 impl From<DirEntry> for File {
@@ -32,9 +32,9 @@ impl From<DirEntry> for File {
             name: entry.name(),
             addr: entry.addr(),
             size: entry.size(),
-            offset: 0,
-            cursor_addr: entry.addr(),
-            cursor_pos: 0,
+            cursor: 0,
+            resume_addr: entry.addr(),
+            resume_offset: 0,
         }
     }
 }
@@ -46,9 +46,9 @@ impl File {
             name: String::new(),
             addr: 0,
             size: 0,
-            offset: 0,
-            cursor_addr: 0,
-            cursor_pos: 0,
+            cursor: 0,
+            resume_addr: 0,
+            resume_offset: 0,
         }
     }
 
@@ -87,17 +87,17 @@ impl File {
     }
 
     pub fn seek(&mut self, from: SeekFrom) -> Result<u32, ()> {
-        let offset = match from {
+        let cursor = match from {
             SeekFrom::Start(i)   => i as i32,
-            SeekFrom::Current(i) => i + self.offset as i32,
+            SeekFrom::Current(i) => i + self.cursor as i32,
             SeekFrom::End(i)     => i + self.size as i32,
         };
-        if offset < 0 || offset > self.size as i32 { // TODO: offset > size?
+        if cursor < 0 || cursor > self.size as i32 { // TODO: cursor > size?
             return Err(());
         }
-        self.offset = offset as u32;
+        self.cursor = cursor as u32;
 
-        Ok(self.offset)
+        Ok(self.cursor)
     }
     // TODO: Add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
 
@@ -126,8 +126,8 @@ impl File {
     }
 
     pub fn resume(&self) -> (u32, u32) {
-        if self.offset >= self.cursor_pos {
-            (self.cursor_addr, self.cursor_pos)
+        if self.cursor >= self.resume_offset {
+            (self.resume_addr, self.resume_offset)
         } else {
             (self.addr, 0) // Backward seek
         }
@@ -136,7 +136,7 @@ impl File {
 
 impl FileIO for File {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let (mut addr, mut pos) = self.resume();
+        let (mut addr, mut offset) = self.resume();
         let buf_len = buf.len();
         let mut bytes = 0; // Number of bytes read
         loop {
@@ -144,21 +144,21 @@ impl FileIO for File {
             let data = block.data();
             let data_len = data.len();
             for i in 0..data_len {
-                if pos == self.offset {
-                    if bytes == buf_len || pos as usize == self.size() {
+                if offset == self.cursor {
+                    if bytes == buf_len || offset as usize == self.size() {
                         return Ok(bytes);
                     }
                     buf[bytes] = data[i];
                     bytes += 1;
-                    self.offset += 1;
+                    self.cursor += 1;
                 }
-                pos += 1;
+                offset += 1;
             }
             match block.next() {
                 Some(next_block) => {
                     addr = next_block.addr();
-                    self.cursor_addr = addr;
-                    self.cursor_pos = pos;
+                    self.resume_addr = addr;
+                    self.resume_offset = offset;
                 }
                 None => return Ok(bytes),
             }
@@ -167,11 +167,11 @@ impl FileIO for File {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let buf_len = buf.len();
-        let (mut addr, mut pos) = self.resume();
+        let (mut addr, mut offset) = self.resume();
         let mut bytes = 0; // Number of bytes written
 
         // Optimization: when appending, skip to the last block
-        if self.offset == self.size && self.size > 0 {
+        if self.cursor == self.size && self.size > 0 {
             let mut block = LinkedBlock::read(addr);
             while let Some(next_block) = block.next() {
                 addr = next_block.addr();
@@ -186,31 +186,31 @@ impl FileIO for File {
                         last_block.set_next_addr(new_block.addr());
                         last_block.write();
                         addr = new_block.addr();
-                        pos = self.size;
+                        offset = self.size;
                     }
                     None => return Err(()),
                 }
             } else {
-                pos = self.size - (self.size % block_data_len);
+                offset = self.size - (self.size % block_data_len);
             }
         }
 
         while bytes < buf_len {
-            self.cursor_addr = addr;
-            self.cursor_pos = pos;
+            self.resume_addr = addr;
+            self.resume_offset = offset;
             let mut block = LinkedBlock::read(addr);
             let data = block.data_mut();
             let data_len = data.len();
             for i in 0..data_len {
-                if pos == self.offset {
+                if offset == self.cursor {
                     if bytes == buf_len {
                         break;
                     }
                     data[i] = buf[bytes];
                     bytes += 1;
-                    self.offset += 1;
+                    self.cursor += 1;
                 }
-                pos += 1;
+                offset += 1;
             }
 
             addr = match block.next() {
@@ -245,7 +245,7 @@ impl FileIO for File {
             block.set_next_addr(addr);
             block.write();
         }
-        self.size = self.offset;
+        self.size = self.cursor;
         if let Some(dir) = self.parent.clone() {
             dir.update_entry(&self.name, self.size);
         }
@@ -256,7 +256,7 @@ impl FileIO for File {
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
-            IO::Read => self.offset < self.size,
+            IO::Read => self.cursor < self.size,
             IO::Write => true,
         }
     }

@@ -98,9 +98,9 @@ pub fn seek(handle: usize, from: SeekFrom) -> isize {
         let mut res = *file;
         match &mut res {
             Resource::File(f) => {
-                if let Ok(offset) = f.seek(from) {
+                if let Ok(cursor) = f.seek(from) {
                     sys::process::update_handle(handle, res);
-                    offset as isize
+                    cursor as isize
                 } else {
                     -3
                 }
