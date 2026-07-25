@@ -62,6 +62,8 @@ enum Status {
     BSY  = 7, // Busy
 }
 
+type Res = Result<(), ()>;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Bus {
@@ -76,7 +78,7 @@ impl Bus {
         Self { id, io_base, ctrl_base, irq }
     }
 
-    fn check_floating_bus(&self) -> Result<(), ()> {
+    fn check_floating_bus(&self) -> Res {
         match self.status() {
             0xFF | 0x7F => Err(()),
             _ => Ok(()),
@@ -115,7 +117,7 @@ impl Bus {
         self.status().get_bit(Status::ERR as usize)
     }
 
-    fn poll(&self, bit: Status, val: bool) -> Result<(), ()> {
+    fn poll(&self, bit: Status, val: bool) -> Res {
         let start = sys::clk::boot_time();
         while self.status().get_bit(bit as usize) != val {
             if sys::clk::boot_time() - start > 1.0 {
@@ -131,7 +133,7 @@ impl Bus {
         Ok(())
     }
 
-    fn select_drive(&self, drive: u8) -> Result<(), ()> {
+    fn select_drive(&self, drive: u8) -> Res {
         self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, false)?;
 
@@ -154,7 +156,7 @@ impl Bus {
         Ok(())
     }
 
-    fn write_command_params(&self, drive: u8, block: u32) -> Result<(), ()> {
+    fn write_command_params(&self, drive: u8, block: u32, count: u8) -> Res {
         let lba = true;
         let mut bytes = block.to_le_bytes();
         bytes[3].set_bit(4, drive > 0);
@@ -162,7 +164,7 @@ impl Bus {
         bytes[3].set_bit(6, lba);
         bytes[3].set_bit(7, true);
         unsafe {
-            outb(self.io_base + SECTOR_COUNT_REGISTER, 1);
+            outb(self.io_base + SECTOR_COUNT_REGISTER, count);
             outb(self.io_base + LBA0_REGISTER, bytes[0]);
             outb(self.io_base + LBA1_REGISTER, bytes[1]);
             outb(self.io_base + LBA2_REGISTER, bytes[2]);
@@ -171,7 +173,7 @@ impl Bus {
         Ok(())
     }
 
-    fn write_command(&self, cmd: Command) -> Result<(), ()> {
+    fn write_command(&self, cmd: Command) -> Res {
         unsafe {
             outb(self.io_base + COMMAND_REGISTER, cmd as u8);
         }
@@ -181,6 +183,11 @@ impl Bus {
         if self.status() == 0 { // Drive does not exist
             return Err(());
         }
+        Ok(())
+    }
+
+    // Wait for the drive to be ready to transfer one sector of data
+    fn sync(&self) -> Res {
         if self.is_error() {
             //debug!("ATA {:?} command errored", cmd);
             //self.debug();
@@ -191,19 +198,26 @@ impl Bus {
         Ok(())
     }
 
-    fn setup_pio(&self, drive: u8, block: u32) -> Result<(), ()> {
+    fn setup_pio(&self, drive: u8, block: u32, count: u8) -> Res {
         self.select_drive(drive)?;
-        self.write_command_params(drive, block)?;
+        self.write_command_params(drive, block, count)?;
         Ok(())
     }
 
-    fn read(&self, drive: u8, block: u32, buf: &mut [u8]) -> Result<(), ()> {
-        debug_assert!(buf.len() == BLOCK_SIZE);
-        self.setup_pio(drive, block)?;
+    fn read(&self, drive: u8, block: u32, buf: &mut [u8]) -> Res {
+        debug_assert!(buf.len() % BLOCK_SIZE == 0);
+        let count = buf.len() / BLOCK_SIZE;
+        if count == 0 || count > 255 {
+            return Err(());
+        }
+        self.setup_pio(drive, block, count as u8)?;
         self.write_command(Command::Read)?;
-        for chunk in buf.chunks_mut(2) {
-            let data = self.read_data().to_le_bytes();
-            chunk.clone_from_slice(&data);
+        for sector in buf.chunks_mut(BLOCK_SIZE) {
+            self.sync()?;
+            for chunk in sector.chunks_mut(2) {
+                let data = self.read_data().to_le_bytes();
+                chunk.clone_from_slice(&data);
+            }
         }
         if self.is_error() {
             debug!("ATA read: data error");
@@ -214,13 +228,20 @@ impl Bus {
         }
     }
 
-    fn write(&self, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {
-        debug_assert!(buf.len() == BLOCK_SIZE);
-        self.setup_pio(drive, block)?;
+    fn write(&self, drive: u8, block: u32, buf: &[u8]) -> Res {
+        debug_assert!(buf.len() % BLOCK_SIZE == 0);
+        let count = buf.len() / BLOCK_SIZE;
+        if count == 0 || count > 255 {
+            return Err(());
+        }
+        self.setup_pio(drive, block, count as u8)?;
         self.write_command(Command::Write)?;
-        for chunk in buf.chunks(2) {
-            let data = u16::from_le_bytes(chunk.try_into().unwrap());
-            self.write_data(data);
+        for sector in buf.chunks(BLOCK_SIZE) {
+            self.sync()?;
+            for chunk in sector.chunks(2) {
+                let data = u16::from_le_bytes(chunk.try_into().unwrap());
+                self.write_data(data);
+            }
         }
         if self.is_error() {
             debug!("ATA write: data error");
@@ -236,7 +257,7 @@ impl Bus {
             return Ok(IdentifyResponse::None);
         }
         self.select_drive(drive)?;
-        self.write_command_params(drive, 0)?;
+        self.write_command_params(drive, 0, 1)?;
         if self.write_command(Command::Identify).is_err() {
             if self.status() == 0 {
                 return Ok(IdentifyResponse::None);
@@ -246,6 +267,7 @@ impl Bus {
         }
         match (self.lba1(), self.lba2()) {
             (0x00, 0x00) => {
+                self.sync()?;
                 Ok(IdentifyResponse::Ata([(); 256].map(|_| self.read_data())))
             }
             (0x14, 0xEB) => Ok(IdentifyResponse::Atapi),
@@ -421,12 +443,12 @@ pub fn list() -> Vec<Drive> {
     res
 }
 
-pub fn read(bus: u8, drive: u8, block: u32, buf: &mut [u8]) -> Result<(), ()> {
+pub fn read(bus: u8, drive: u8, block: u32, buf: &mut [u8]) -> Res {
     let buses = BUSES.lock();
     buses[bus as usize].read(drive, block, buf)
 }
 
-pub fn write(bus: u8, drive: u8, block: u32, buf: &[u8]) -> Result<(), ()> {
+pub fn write(bus: u8, drive: u8, block: u32, buf: &[u8]) -> Res {
     let buses = BUSES.lock();
     buses[bus as usize].write(drive, block, buf)
 }
