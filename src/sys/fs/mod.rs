@@ -17,7 +17,7 @@ pub use bitmap_block::BITMAP_SIZE;
 pub use block_device::{
     dismount, format_ata, format_mem, is_mounted, mount_ata, mount_mem
 };
-pub use device::{Device, DeviceType};
+pub use device::{Device, device_type};
 pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};

@@ -1,9 +1,9 @@
 use super::clk;
 
 use crate::api::fs::{FileIO, IO};
+use crate::sys::port::*;
 
 use alloc::string::String;
-use x86_64::instructions::port::Port;
 
 #[derive(Debug, Clone)]
 pub struct Speaker;
@@ -56,13 +56,11 @@ fn start_sound(frequency: f64) {
     let divider = (clk::pit_frequency() / frequency) as u16;
     clk::set_pit_frequency(divider, SPEAKER_CHANNEL);
 
-    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
-    let tmp = unsafe { speaker.read() };
-    unsafe { speaker.write(tmp | SPEAKER_ENABLED) };
+    let tmp = unsafe { inb(SPEAKER_PORT) };
+    unsafe { outb(SPEAKER_PORT, tmp | SPEAKER_ENABLED) };
 }
 
 fn stop_sound() {
-    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
-    let tmp = unsafe { speaker.read() };
-    unsafe { speaker.write(tmp & SPEAKER_DISABLED) };
+    let tmp = unsafe { inb(SPEAKER_PORT) };
+    unsafe { outb(SPEAKER_PORT, tmp & SPEAKER_DISABLED) };
 }

@@ -1,9 +1,10 @@
+use crate::sys::port::*;
+
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
@@ -192,17 +193,16 @@ fn get_header_type(bus: u8, device: u8, function: u8) -> u8 {
     register.read().get_bits(16..24) as u8
 }
 
+const DATA_PORT: u16 = 0xCFC;
+const ADDR_PORT: u16 = 0xCF8;
+
 struct ConfigRegister {
-    data_port: Port<u32>,
-    addr_port: Port<u32>,
     addr: u32,
 }
 
 impl ConfigRegister {
     pub fn new(bus: u8, device: u8, function: u8, offset: u8) -> Self {
         Self {
-            data_port: Port::new(0xCFC),
-            addr_port: Port::new(0xCF8),
             addr: 0x8000_0000
                 | ((bus as u32) << 16)
                 | ((device as u32) << 11)
@@ -213,15 +213,15 @@ impl ConfigRegister {
 
     pub fn read(&mut self) -> u32 {
         unsafe {
-            self.addr_port.write(self.addr);
-            self.data_port.read()
+            outl(ADDR_PORT, self.addr);
+            inl(DATA_PORT)
         }
     }
 
     pub fn write(&mut self, data: u32) {
         unsafe {
-            self.addr_port.write(self.addr);
-            self.data_port.write(data);
+            outl(ADDR_PORT, self.addr);
+            outl(DATA_PORT, data);
         }
     }
 }
