@@ -82,10 +82,10 @@ pub struct LinkedBlock {
 }
 
 impl LinkedBlock {
-    pub const SIZE: usize = super::BLOCK_SIZE - DATA;
+    pub const CAPACITY: usize = super::BLOCK_SIZE - DATA;
 
     pub const fn capacity(&self) -> usize {
-        Self::SIZE
+        Self::CAPACITY
     }
 
     pub fn new(addr: u32) -> Self {

@@ -128,7 +128,7 @@ impl File {
     }
 
     fn resume(&self) -> (u32, u32) {
-        let offset = (self.resume_index * LinkedBlock::SIZE) as u32;
+        let offset = (self.resume_index * LinkedBlock::CAPACITY) as u32;
         if self.cursor >= offset {
             (self.resume_addr, offset)
         } else {
@@ -137,8 +137,8 @@ impl File {
     }
 
     fn set_resume(&mut self, addr: u32, offset: u32) {
-        debug_assert_eq!(offset as usize % LinkedBlock::SIZE, 0);
-        self.resume_index = (offset as usize) / LinkedBlock::SIZE;
+        debug_assert_eq!(offset as usize % LinkedBlock::CAPACITY, 0);
+        self.resume_index = (offset as usize) / LinkedBlock::CAPACITY;
         self.resume_addr = addr;
     }
 }
