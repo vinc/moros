@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Skip rewalking the list of blocks in File (#868)
 - Add /dev/proc/stat (#874)
 - Move /dev/net/usage to /dev/net/stat (#873)
 - Remove dependency on x86_64::instructions::port (#872)

@@ -93,14 +93,14 @@ pub fn dup(old_handle: usize, new_handle: usize) -> isize {
     -1
 }
 
-pub fn seek(handle: usize, offset: SeekFrom) -> isize {
+pub fn seek(handle: usize, from: SeekFrom) -> isize {
     if let Some(file) = sys::process::handle(handle) {
-        let mut r = *file;
-        match &mut r {
+        let mut res = *file;
+        match &mut res {
             Resource::File(f) => {
-                if let Ok(o) = f.seek(offset) {
-                    sys::process::update_handle(handle, r);
-                    o as isize
+                if let Ok(cursor) = f.seek(from) {
+                    sys::process::update_handle(handle, res);
+                    cursor as isize
                 } else {
                     -3
                 }
