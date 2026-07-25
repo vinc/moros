@@ -22,7 +22,7 @@ pub struct File {
     size: u32,
     cursor: u32,
     resume_addr: u32,
-    resume_offset: u32,
+    resume_index: usize,
 }
 
 impl From<DirEntry> for File {
@@ -34,7 +34,7 @@ impl From<DirEntry> for File {
             size: entry.size(),
             cursor: 0,
             resume_addr: entry.addr(),
-            resume_offset: 0,
+            resume_index: 0,
         }
     }
 }
@@ -48,7 +48,7 @@ impl File {
             size: 0,
             cursor: 0,
             resume_addr: 0,
-            resume_offset: 0,
+            resume_index: 0,
         }
     }
 
@@ -125,12 +125,18 @@ impl File {
         }
     }
 
-    pub fn resume(&self) -> (u32, u32) {
-        if self.cursor >= self.resume_offset {
-            (self.resume_addr, self.resume_offset)
+    fn resume(&self) -> (u32, u32) {
+        let offset = (self.resume_index * LinkedBlock::DATA_LEN) as u32;
+        if self.cursor >= offset {
+            (self.resume_addr, offset)
         } else {
             (self.addr, 0) // Backward seek
         }
+    }
+
+    fn set_resume(&mut self, addr: u32, offset: u32) {
+        self.resume_addr = addr;
+        self.resume_index = (offset as usize) / LinkedBlock::DATA_LEN;
     }
 }
 
@@ -157,8 +163,7 @@ impl FileIO for File {
             match block.next() {
                 Some(next_block) => {
                     addr = next_block.addr();
-                    self.resume_addr = addr;
-                    self.resume_offset = offset;
+                    self.set_resume(addr, offset);
                 }
                 None => return Ok(bytes),
             }
@@ -178,7 +183,7 @@ impl FileIO for File {
                 block = LinkedBlock::read(addr);
             }
             // If last block is full, allocate a new one
-            let block_data_len = block.len() as u32;
+            let block_data_len = block.capacity() as u32;
             if self.size % block_data_len == 0 {
                 match LinkedBlock::alloc() {
                     Some(new_block) => {
@@ -196,8 +201,7 @@ impl FileIO for File {
         }
 
         while bytes < buf_len {
-            self.resume_addr = addr;
-            self.resume_offset = offset;
+            self.set_resume(addr, offset);
             let mut block = LinkedBlock::read(addr);
             let data = block.data_mut();
             let data_len = data.len();

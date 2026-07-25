@@ -81,10 +81,16 @@ pub struct LinkedBlock {
 }
 
 impl LinkedBlock {
+    pub const DATA_LEN: usize = super::BLOCK_SIZE - DATA_OFFSET;
+
     pub fn new(addr: u32) -> Self {
         Self {
             block: Block::new(addr),
         }
+    }
+
+    pub fn capacity(&self) -> usize {
+        Self::DATA_LEN
     }
 
     pub fn alloc() -> Option<Self> {
@@ -115,10 +121,6 @@ impl LinkedBlock {
 
     pub fn is_empty(&self) -> bool {
         self.data().iter().all(|&b| b == 0)
-    }
-
-    pub fn len(&self) -> usize {
-        super::BLOCK_SIZE - DATA_OFFSET
     }
 
     pub fn next_addr(&self) -> u32 {
