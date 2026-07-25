@@ -6,7 +6,11 @@ use crate::sys;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use core::cmp;
 use spin::Mutex;
+
+const ATA_CACHE_SIZE: usize = 4 * 1024;
+const ATA_READ_AHEAD: usize = 32;
 
 pub static BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
 
@@ -101,8 +105,6 @@ pub fn format_mem() {
     }
 }
 
-const ATA_CACHE_SIZE: usize = 4 * 1024;
-
 #[derive(Clone)]
 pub struct AtaBlockDevice {
     cache: Vec<Option<(u32, Vec<u8>)>>,
@@ -150,8 +152,14 @@ impl BlockDeviceIO for AtaBlockDevice {
             return Ok(());
         }
 
-        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf)?;
-        self.set_cached_block(block_addr, buf);
+        let max = self.block_count() - block_addr as usize;
+        let n = cmp::min(ATA_READ_AHEAD, max);
+        let mut blocks = vec![0; n * super::BLOCK_SIZE];
+        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut blocks)?;
+        for (i, chunk) in blocks.chunks(super::BLOCK_SIZE).enumerate() {
+            self.set_cached_block(block_addr + i as u32, chunk);
+        }
+        buf.copy_from_slice(&blocks[..super::BLOCK_SIZE]);
         Ok(())
     }
 
