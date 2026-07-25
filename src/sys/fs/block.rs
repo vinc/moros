@@ -10,12 +10,6 @@ pub struct Block {
     buf: [u8; super::BLOCK_SIZE],
 }
 
-// Block structure:
-// 0..4   => next block address
-// 4..512 => block data
-
-const DATA: usize = 4;
-
 impl Block {
     pub fn new(addr: u32) -> Self {
         let buf = [0; super::BLOCK_SIZE];
@@ -69,12 +63,6 @@ impl Block {
     pub fn data_mut(&mut self) -> &mut [u8] {
         &mut self.buf[..]
     }
-
-    /*
-    pub fn len(&self) -> usize {
-        self.buf.len()
-    }
-    */
 }
 
 pub struct LinkedBlock {
@@ -82,7 +70,9 @@ pub struct LinkedBlock {
 }
 
 impl LinkedBlock {
-    pub const CAPACITY: usize = super::BLOCK_SIZE - DATA;
+    // The first 4 bytes of the block buffer are used for the next block address
+    // and the remaining bytes for the data.
+    pub const CAPACITY: usize = super::BLOCK_SIZE - 4;
 
     pub const fn capacity(&self) -> usize {
         Self::CAPACITY
@@ -113,11 +103,11 @@ impl LinkedBlock {
     }
 
     pub fn data(&self) -> &[u8] {
-        &self.block.buf[DATA..super::BLOCK_SIZE]
+        &self.block.buf[4..super::BLOCK_SIZE]
     }
 
     pub fn data_mut(&mut self) -> &mut [u8] {
-        &mut self.block.buf[DATA..super::BLOCK_SIZE]
+        &mut self.block.buf[4..super::BLOCK_SIZE]
     }
 
     pub fn is_empty(&self) -> bool {
