@@ -4,11 +4,13 @@ mod id;
 mod spawn;
 mod table;
 mod user;
+mod stat;
 
 pub use id::ProcId;
 pub use dir::ProcDir;
 pub use env::ProcEnv;
 pub use user::ProcUser;
+pub use stat::ProcStat;
 pub use spawn::spawn;
 pub use table::{
     init,
@@ -34,11 +36,13 @@ use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
+use crate::sys::syscall;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
+use core::sync::atomic::{AtomicU64, Ordering};
 use linked_list_allocator::LockedHeap;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
@@ -112,11 +116,33 @@ struct ProcessContext {
     allocator: Arc<LockedHeap>,
 }
 
-#[derive(Clone)]
+const SYSCALLS: usize = syscall::number::count();
+
+pub struct ProcessStats {
+    syscalls_count: [AtomicU64; SYSCALLS],
+}
+
+impl ProcessStats {
+    fn new() -> Self {
+        Self {
+            syscalls_count: [(); SYSCALLS].map(|_| AtomicU64::new(0)),
+        }
+    }
+
+    pub fn syscall_count(&self, number: usize) -> u64 {
+        self.syscalls_count[number - 1].load(Ordering::Relaxed)
+    }
+
+    pub fn increment_syscall_count(&self, number: usize) {
+        self.syscalls_count[number - 1].fetch_add(1, Ordering::SeqCst);
+    }
+}
+
 pub struct Process {
     parent_id: usize,
     stack_frame: Option<InterruptStackFrameValue>,
     registers: Registers,
+    stats: ProcessStats,
     data: ProcessData,
     ctx: ProcessContext,
 }
@@ -127,6 +153,7 @@ impl Process {
             parent_id: 0,
             stack_frame: None,
             registers: Registers::default(),
+            stats: ProcessStats::new(),
             data: ProcessData::new("/", None),
             ctx: ProcessContext {
                 id: 0,
@@ -176,4 +203,16 @@ unsafe fn page_table_frame() -> PhysFrame {
 
 pub unsafe fn page_table() -> &'static mut PageTable {
     mem::create_page_table(page_table_frame())
+}
+
+pub fn syscall_count(number: usize) -> u64 {
+    let table = PROCESS_TABLE.read();
+    let proc = current_process(&table);
+    proc.stats.syscall_count(number)
+}
+
+pub fn increment_syscall_count(number: usize) {
+    let table = PROCESS_TABLE.read();
+    let proc = current_process(&table);
+    proc.stats.increment_syscall_count(number);
 }
