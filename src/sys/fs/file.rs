@@ -86,8 +86,8 @@ impl File {
         self.size as usize
     }
 
-    pub fn seek(&mut self, pos: SeekFrom) -> Result<u32, ()> {
-        let offset = match pos {
+    pub fn seek(&mut self, from: SeekFrom) -> Result<u32, ()> {
+        let offset = match from {
             SeekFrom::Start(i)   => i as i32,
             SeekFrom::Current(i) => i + self.offset as i32,
             SeekFrom::End(i)     => i + self.size as i32,
