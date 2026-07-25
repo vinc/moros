@@ -124,15 +124,19 @@ impl File {
             Err(())
         }
     }
+
+    pub fn resume(&self) -> (u32, u32) {
+        if self.offset >= self.cursor_pos {
+            (self.cursor_addr, self.cursor_pos)
+        } else {
+            (self.addr, 0) // Backward seek
+        }
+    }
 }
 
 impl FileIO for File {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        let (mut addr, mut pos) = if self.offset >= self.cursor_pos {
-            (self.cursor_addr, self.cursor_pos)
-        } else {
-            (self.addr, 0) // seek went backward: restart from head
-        };
+        let (mut addr, mut pos) = self.resume();
         let buf_len = buf.len();
         let mut bytes = 0; // Number of bytes read
         loop {
@@ -163,11 +167,7 @@ impl FileIO for File {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let buf_len = buf.len();
-        let (mut addr, mut pos) = if self.offset >= self.cursor_pos {
-            (self.cursor_addr, self.cursor_pos)
-        } else {
-            (self.addr, 0)
-        };
+        let (mut addr, mut pos) = self.resume();
         let mut bytes = 0; // Number of bytes written
 
         // Optimization: when appending, skip to the last block
