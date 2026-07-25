@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add ATA read-ahead cache (#871)
 - Skip rewalking the list of blocks in File (#868)
 - Add /dev/proc/stat (#874)
 - Move /dev/net/usage to /dev/net/stat (#873)
