@@ -40,11 +40,6 @@ macro_rules! read_uint_fn {
 }
 
 impl ReadDir {
-    /// Total number of bytes read
-    pub fn offset(&self) -> usize {
-        self.block_index * self.block.capacity() + self.block_offset
-    }
-
     /// Number of bytes read in current block
     pub fn block_offset(&self) -> usize {
         self.block_offset
