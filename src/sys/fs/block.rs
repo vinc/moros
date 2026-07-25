@@ -4,8 +4,6 @@ use super::block_device::BLOCK_DEVICE;
 
 use core::convert::TryInto;
 
-const DATA_OFFSET: usize = 4;
-
 #[derive(Clone)]
 pub struct Block {
     addr: u32,
@@ -13,8 +11,11 @@ pub struct Block {
 }
 
 // Block structure:
-// 0..4 => next block address
+// 0..4   => next block address
 // 4..512 => block data
+
+const DATA: usize = 4;
+
 impl Block {
     pub fn new(addr: u32) -> Self {
         let buf = [0; super::BLOCK_SIZE];
@@ -81,16 +82,16 @@ pub struct LinkedBlock {
 }
 
 impl LinkedBlock {
-    pub const DATA_LEN: usize = super::BLOCK_SIZE - DATA_OFFSET;
+    pub const SIZE: usize = super::BLOCK_SIZE - DATA;
+
+    pub const fn capacity(&self) -> usize {
+        Self::SIZE
+    }
 
     pub fn new(addr: u32) -> Self {
         Self {
             block: Block::new(addr),
         }
-    }
-
-    pub fn capacity(&self) -> usize {
-        Self::DATA_LEN
     }
 
     pub fn alloc() -> Option<Self> {
@@ -112,11 +113,11 @@ impl LinkedBlock {
     }
 
     pub fn data(&self) -> &[u8] {
-        &self.block.buf[DATA_OFFSET..super::BLOCK_SIZE]
+        &self.block.buf[DATA..super::BLOCK_SIZE]
     }
 
     pub fn data_mut(&mut self) -> &mut [u8] {
-        &mut self.block.buf[DATA_OFFSET..super::BLOCK_SIZE]
+        &mut self.block.buf[DATA..super::BLOCK_SIZE]
     }
 
     pub fn is_empty(&self) -> bool {
