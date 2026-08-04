@@ -1,5 +1,9 @@
 # MOROS Games
 
+## DOOM
+
+![doom](images/doom.png)
+
 ## Chess
 
 ![chess](images/chess.png)
