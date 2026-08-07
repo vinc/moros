@@ -57,7 +57,7 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
         csi_reset,
         layout.size()
     );
-    hlt_loop();
+    idle();
 }
 
 pub trait Testable {
@@ -99,7 +99,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
-pub fn hlt_loop() -> ! {
+pub fn idle() -> ! {
     loop {
         sys::x86::hlt();
     }
@@ -118,7 +118,7 @@ entry_point!(test_kernel_main);
 fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
     init(boot_info);
     test_main();
-    hlt_loop();
+    idle();
 }
 
 #[cfg(test)]
@@ -129,7 +129,7 @@ fn panic(info: &PanicInfo) -> ! {
     println!("{}failed{}\n", csi_color, csi_reset);
     println!("{}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    hlt_loop();
+    idle();
 }
 
 #[test_case]

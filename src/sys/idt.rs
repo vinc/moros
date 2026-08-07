@@ -1,7 +1,7 @@
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
 use crate::sys::x86::port::*;
-use crate::{api, hlt_loop, sys};
+use crate::{api, idle, sys};
 
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
@@ -145,7 +145,7 @@ extern "x86-interrupt" fn page_fault_handler(
     if error_code.contains(PageFaultErrorCode::USER_MODE) {
         api::syscall::exit(ExitCode::PageFaultError);
     } else {
-        hlt_loop();
+        idle();
     }
 }
 
