@@ -57,6 +57,7 @@ pub mod x86 {
 
         #[inline]
         pub fn enable() {
+            // NOTE: interrupts are not enabled until after the next instruction
             unsafe {
                 asm!("sti", options(nostack, preserves_flags));
             }
