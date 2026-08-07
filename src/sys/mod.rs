@@ -38,6 +38,15 @@ macro_rules! log {
 }
 
 pub mod x86 {
+    use core::arch::asm;
+
+    #[inline]
+    pub fn hlt() {
+        unsafe {
+            asm!("hlt", options(nomem, nostack, preserves_flags));
+        }
+    }
+
     pub mod port {
         use core::arch::asm;
 
