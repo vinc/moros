@@ -1,10 +1,10 @@
 use super::rtc::{Interrupt, RTC, Register, RTC_CENTURY};
 
+use crate::sys::x86::interrupts;
 use crate::sys::x86::port::*;
 
 use bit_field::BitField;
 use core::hint::spin_loop;
-use x86_64::instructions::interrupts;
 
 const ADDR_PORT: u16 = 0x70;
 const DATA_PORT: u16 = 0x71;

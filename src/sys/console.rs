@@ -1,11 +1,12 @@
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
+use crate::sys::x86::interrupts;
+
 use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
 use core::sync::atomic::{AtomicBool, Ordering};
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
 pub static STDIN: Mutex<String> = Mutex::new(String::new());
 pub static ECHO: AtomicBool = AtomicBool::new(true);

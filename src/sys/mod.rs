@@ -48,6 +48,10 @@ pub mod x86 {
         }
     }
 
+    pub mod rflags {
+        pub const IF: usize = 1 << 9; // Interrupts Flag
+    }
+
     pub mod interrupts {
         use core::arch::asm;
 
@@ -63,6 +67,29 @@ pub mod x86 {
             unsafe {
                 asm!("cli", options(nostack, preserves_flags));
             }
+        }
+
+        #[inline]
+        pub fn are_enabled() -> bool {
+            let rflags: usize;
+            unsafe {
+                asm!("pushfq; pop {}", out(reg) rflags,
+                    options(nomem, preserves_flags));
+            }
+            rflags & super::rflags::IF != 0
+        }
+
+        #[inline]
+        pub fn without_interrupts<F, R>(f: F) -> R where F: FnOnce() -> R {
+            let enabled = are_enabled();
+            if enabled {
+                disable();
+            }
+            let res = f();
+            if enabled {
+                enable();
+            }
+            res
         }
     }
 

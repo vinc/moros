@@ -2,10 +2,10 @@ use super::sync;
 use super::cmos::CMOS;
 
 use crate::sys;
+use crate::sys::x86::interrupts;
 use crate::sys::x86::port::*;
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use x86_64::instructions::interrupts;
 
 // At boot the PIT starts with a frequency divider of 0 (equivalent to 65536)
 // which will result in about 54.926 ms between ticks.
