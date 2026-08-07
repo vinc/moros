@@ -1,8 +1,8 @@
 use crate::api;
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
-use crate::sys::x86::port::*;
 use crate::sys::x86::interrupts;
+use crate::sys::x86::port::*;
 
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;

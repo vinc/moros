@@ -13,8 +13,8 @@ use super::table::{PROCESS_TABLE, MAX_PROCS};
 use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
 use crate::sys::mem;
-use crate::sys::x86::rflags;
 use crate::sys::x86::interrupts;
+use crate::sys::x86::rflags;
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
