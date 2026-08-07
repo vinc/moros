@@ -2,7 +2,7 @@ use super::sync;
 use super::cmos::CMOS;
 
 use crate::sys;
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use x86_64::instructions::interrupts;

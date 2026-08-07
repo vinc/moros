@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Remove dependency on x86_64::instructions::hlt (#877)
 - Add DOOM to MOROS (#870)
 - Add ATA read-ahead cache (#871)
 - Skip rewalking the list of blocks in File (#868)

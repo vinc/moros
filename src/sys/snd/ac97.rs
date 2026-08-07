@@ -1,7 +1,7 @@
 use super::{SoundBuffer, SoundConfig};
 
 use crate::sys;
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 use crate::sys::mem::PhysBuf;
 
 use alloc::vec::Vec;

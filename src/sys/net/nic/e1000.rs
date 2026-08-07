@@ -1,7 +1,7 @@
 use crate::sys;
 use crate::sys::mem::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 
 use alloc::slice;
 use alloc::sync::Arc;
