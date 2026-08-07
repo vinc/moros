@@ -8,7 +8,7 @@ use core::panic::PanicInfo;
 use alloc::string::ToString;
 use moros::api::console::Style;
 use moros::{
-    error, warning, idle, eprint, eprintln, print, println, sys, usr
+    error, warning, hang, eprint, eprintln, print, println, sys, usr
 };
 
 entry_point!(main);
@@ -62,5 +62,5 @@ fn panic(info: &PanicInfo) -> ! {
     } else {
         error!("{info}");
     }
-    idle();
+    hang();
 }
