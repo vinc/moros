@@ -1,18 +1,7 @@
 use super::boot;
 use super::timer;
 
-use x86_64::instructions::interrupts;
-
-/// Halts the CPU until the next interrupt.
-///
-/// This function preserves interrupt state.
-pub fn halt() {
-    let disabled = !interrupts::are_enabled();
-    interrupts::enable_and_hlt();
-    if disabled {
-        interrupts::disable();
-    }
-}
+use crate::sys;
 
 /// Sleeps for the specified number of seconds.
 ///
@@ -21,7 +10,7 @@ pub fn halt() {
 pub fn sleep(seconds: f64) {
     let start = boot::boot_time();
     while boot::boot_time() - start < seconds {
-        halt();
+        sys::x86::hlt();
     }
 }
 

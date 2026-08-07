@@ -41,6 +41,7 @@ pub mod x86 {
     use core::arch::asm;
 
     #[inline]
+    /// Halts the CPU until the next interrupt
     pub fn hlt() {
         unsafe {
             asm!("hlt", options(nomem, nostack, preserves_flags));
