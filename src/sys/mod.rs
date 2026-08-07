@@ -57,6 +57,13 @@ pub mod x86 {
                 asm!("sti", options(nostack, preserves_flags));
             }
         }
+
+        #[inline]
+        pub fn disable() {
+            unsafe {
+                asm!("cli", options(nostack, preserves_flags));
+            }
+        }
     }
 
     pub mod port {
