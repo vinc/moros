@@ -49,7 +49,7 @@ pub mod x86 {
     }
 
     pub mod rflags {
-        pub const IF: usize = 1 << 9; // Interrupts Flag
+        pub const IF: usize = 1 << 9; // Interrupt Flag
     }
 
     pub mod interrupts {

@@ -159,7 +159,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
         asm!(
             "push {:r}", // Stack segment (SS)
             "push {:r}", // Stack pointer (RSP)
-            "push {:r}", // RFLAGS
+            "push {:r}", // FLAGS register (RFLAGS)
             "push {:r}", // Code segment (CS)
             "push {:r}", // Instruction pointer (RIP)
             "iretq",
