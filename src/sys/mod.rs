@@ -48,6 +48,17 @@ pub mod x86 {
         }
     }
 
+    pub mod interrupts {
+        use core::arch::asm;
+
+        #[inline]
+        pub fn enable() {
+            unsafe {
+                asm!("sti", options(nostack, preserves_flags));
+            }
+        }
+    }
+
     pub mod port {
         use core::arch::asm;
 
