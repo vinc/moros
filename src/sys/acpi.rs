@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 
 use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
 use acpi::platform::{Processor, ProcessorState};

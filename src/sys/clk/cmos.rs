@@ -1,6 +1,6 @@
 use super::rtc::{Interrupt, RTC, Register, RTC_CENTURY};
 
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 
 use bit_field::BitField;
 use core::hint::spin_loop;

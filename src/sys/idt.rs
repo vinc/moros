@@ -1,6 +1,6 @@
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 use crate::{api, hlt_loop, sys};
 
 use core::arch::{asm, naked_asm};

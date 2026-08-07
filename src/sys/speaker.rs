@@ -1,7 +1,7 @@
 use super::clk;
 
 use crate::api::fs::{FileIO, IO};
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 
 use alloc::string::String;
 

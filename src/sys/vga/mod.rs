@@ -14,7 +14,7 @@ use color::Color;
 use palette::Palette;
 use writer::WRITER;
 
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 
 use alloc::string::String;
 use bit_field::BitField;
