@@ -1,4 +1,3 @@
-use crate::hang;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 
@@ -25,5 +24,5 @@ static ALLOCATOR: UserspaceAllocator = UserspaceAllocator;
 fn alloc_error_handler(_layout: alloc::alloc::Layout) -> ! {
     syscall::write(2, b"\x1b[91mError:\x1b[m Could not allocate\n");
     syscall::exit(ExitCode::PageFaultError);
-    hang();
+    loop {} // Unreachable after exit
 }
