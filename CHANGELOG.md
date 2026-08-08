@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Remove dependency on x86_64::instructions::random (#879)
 - Remove dependency on x86_64::instructions::interrupts (#878)
 - Remove dependency on x86_64::instructions::hlt (#877)
 - Add DOOM to MOROS (#870)
