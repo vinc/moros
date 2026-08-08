@@ -13,6 +13,8 @@ use super::table::{PROCESS_TABLE, MAX_PROCS};
 use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
 use crate::sys::mem;
+use crate::sys::x86::interrupts;
+use crate::sys::x86::rflags;
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -152,17 +154,18 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
 
+    interrupts::disable();
     unsafe {
         asm!(
-            "cli",        // Disable interrupts
-            "push {:r}",  // Stack segment (SS)
-            "push {:r}",  // Stack pointer (RSP)
-            "push 0x200", // RFLAGS with interrupts enabled
-            "push {:r}",  // Code segment (CS)
-            "push {:r}",  // Instruction pointer (RIP)
+            "push {:r}", // Stack segment (SS)
+            "push {:r}", // Stack pointer (RSP)
+            "push {:r}", // FLAGS register (RFLAGS)
+            "push {:r}", // Code segment (CS)
+            "push {:r}", // Instruction pointer (RIP)
             "iretq",
             in(reg) GDT.1.user_data.0,
             in(reg) ctx.stack_addr,
+            in(reg) rflags::IF,
             in(reg) GDT.1.user_code.0,
             in(reg) ctx.entry_point_addr,
             in("rdi") args_ptr,

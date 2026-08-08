@@ -1,11 +1,12 @@
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
+use crate::sys::x86::interrupts;
+
 use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
 use core::sync::atomic::{AtomicBool, Ordering};
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
 pub static STDIN: Mutex<String> = Mutex::new(String::new());
 pub static ECHO: AtomicBool = AtomicBool::new(true);
@@ -143,7 +144,7 @@ pub fn read_char() -> char {
     sys::console::disable_echo();
     sys::console::enable_raw();
     loop {
-        sys::clk::halt();
+        sys::x86::hlt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             if !stdin.is_empty() {
@@ -162,7 +163,7 @@ pub fn read_char() -> char {
 
 pub fn read_line() -> String {
     loop {
-        sys::clk::halt();
+        sys::x86::hlt();
         let res = interrupts::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {

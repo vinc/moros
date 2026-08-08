@@ -2,10 +2,10 @@ use super::writer::WRITER;
 
 use crate::api::font::Font;
 use crate::api::fs::{FileIO, IO};
+use crate::sys::x86::interrupts;
 
 use core::convert::TryFrom;
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
 static FONT: Mutex<Option<Font>> = Mutex::new(None);
 

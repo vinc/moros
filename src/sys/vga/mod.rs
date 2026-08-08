@@ -14,6 +14,7 @@ use color::Color;
 use palette::Palette;
 use writer::WRITER;
 
+use crate::sys::x86::interrupts;
 use crate::sys::x86::port::*;
 
 use alloc::string::String;
@@ -22,7 +23,6 @@ use core::cmp;
 use core::fmt;
 use core::fmt::Write;
 use core::num::ParseIntError;
-use x86_64::instructions::interrupts;
 
 const ATTR_ADDR_REG:           u16 = 0x3C0;
 const ATTR_WRITE_REG:          u16 = 0x3C0;

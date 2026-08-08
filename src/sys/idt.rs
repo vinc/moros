@@ -1,12 +1,12 @@
+use crate::{api, hang, sys};
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
+use crate::sys::x86::interrupts;
 use crate::sys::x86::port::*;
-use crate::{api, hang, sys};
 
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode

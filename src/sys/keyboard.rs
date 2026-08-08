@@ -1,6 +1,7 @@
 use crate::api;
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
+use crate::sys::x86::interrupts;
 use crate::sys::x86::port::*;
 
 use alloc::collections::vec_deque::VecDeque;
@@ -13,7 +14,6 @@ use pc_keyboard::{
     Keyboard, ScancodeSet1,
 };
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref BUF: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());

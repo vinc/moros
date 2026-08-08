@@ -211,7 +211,7 @@ impl Device {
 
         // Wait until init is done
         while !self.ports.read_csr_32(0).get_bit(CSR0_IDON) {
-            sys::clk::halt();
+            sys::x86::hlt();
         }
 
         // IDON + INTR + INIT

@@ -40,10 +40,57 @@ macro_rules! log {
 pub mod x86 {
     use core::arch::asm;
 
+    /// Halts the CPU until the next interrupt
     #[inline]
     pub fn hlt() {
         unsafe {
             asm!("hlt", options(nomem, nostack, preserves_flags));
+        }
+    }
+
+    pub mod rflags {
+        pub const IF: usize = 1 << 9; // Interrupt Flag
+    }
+
+    pub mod interrupts {
+        use core::arch::asm;
+
+        #[inline]
+        pub fn enable() {
+            // NOTE: interrupts are not enabled until after the next instruction
+            unsafe {
+                asm!("sti", options(nostack, preserves_flags));
+            }
+        }
+
+        #[inline]
+        pub fn disable() {
+            unsafe {
+                asm!("cli", options(nostack, preserves_flags));
+            }
+        }
+
+        #[inline]
+        pub fn are_enabled() -> bool {
+            let rflags: usize;
+            unsafe {
+                asm!("pushfq; pop {}", out(reg) rflags,
+                    options(nomem, preserves_flags));
+            }
+            rflags & super::rflags::IF != 0
+        }
+
+        #[inline]
+        pub fn without_interrupts<F, R>(f: F) -> R where F: FnOnce() -> R {
+            let enabled = are_enabled();
+            if enabled {
+                disable();
+            }
+            let res = f();
+            if enabled {
+                enable();
+            }
+            res
         }
     }
 
