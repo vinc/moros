@@ -48,6 +48,17 @@ pub mod x86 {
         }
     }
 
+    pub fn rdrand() -> Option<u64> {
+        let mut res = 0;
+        unsafe {
+            if core::arch::x86_64::_rdrand64_step(&mut res) == 1 {
+                Some(res)
+            } else {
+                None
+            }
+        }
+    }
+
     pub mod rflags {
         pub const IF: usize = 1 << 9; // Interrupt Flag
     }
