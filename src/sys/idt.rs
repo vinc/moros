@@ -66,7 +66,7 @@ macro_rules! irq_handler {
         pub extern "x86-interrupt" fn $handler(_: InterruptStackFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
-            sys::pic::eoi($irq);
+            pic::eoi($irq);
         }
     };
 }
