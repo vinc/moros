@@ -1,8 +1,8 @@
 use crate::{api, hang, sys};
 use crate::api::process::ExitCode;
+use crate::sys::pic;
 use crate::sys::process::Registers;
 use crate::sys::x86::interrupts;
-use crate::sys::x86::port::*;
 
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
@@ -12,11 +12,6 @@ use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
 use x86_64::VirtAddr;
-
-// Translate IRQ into system interrupt
-fn interrupt_index(irq: u8) -> u8 {
-    sys::pic::PIC_1_OFFSET + irq
-}
 
 fn default_handler() {}
 
@@ -46,22 +41,22 @@ lazy_static! {
                 set_handler_addr(addr).
                 set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
-        idt[interrupt_index(0)].set_handler_fn(irq0_handler);
-        idt[interrupt_index(1)].set_handler_fn(irq1_handler);
-        idt[interrupt_index(2)].set_handler_fn(irq2_handler);
-        idt[interrupt_index(3)].set_handler_fn(irq3_handler);
-        idt[interrupt_index(4)].set_handler_fn(irq4_handler);
-        idt[interrupt_index(5)].set_handler_fn(irq5_handler);
-        idt[interrupt_index(6)].set_handler_fn(irq6_handler);
-        idt[interrupt_index(7)].set_handler_fn(irq7_handler);
-        idt[interrupt_index(8)].set_handler_fn(irq8_handler);
-        idt[interrupt_index(9)].set_handler_fn(irq9_handler);
-        idt[interrupt_index(10)].set_handler_fn(irq10_handler);
-        idt[interrupt_index(11)].set_handler_fn(irq11_handler);
-        idt[interrupt_index(12)].set_handler_fn(irq12_handler);
-        idt[interrupt_index(13)].set_handler_fn(irq13_handler);
-        idt[interrupt_index(14)].set_handler_fn(irq14_handler);
-        idt[interrupt_index(15)].set_handler_fn(irq15_handler);
+        idt[pic::vector(0)].set_handler_fn(irq0_handler);
+        idt[pic::vector(1)].set_handler_fn(irq1_handler);
+        idt[pic::vector(2)].set_handler_fn(irq2_handler);
+        idt[pic::vector(3)].set_handler_fn(irq3_handler);
+        idt[pic::vector(4)].set_handler_fn(irq4_handler);
+        idt[pic::vector(5)].set_handler_fn(irq5_handler);
+        idt[pic::vector(6)].set_handler_fn(irq6_handler);
+        idt[pic::vector(7)].set_handler_fn(irq7_handler);
+        idt[pic::vector(8)].set_handler_fn(irq8_handler);
+        idt[pic::vector(9)].set_handler_fn(irq9_handler);
+        idt[pic::vector(10)].set_handler_fn(irq10_handler);
+        idt[pic::vector(11)].set_handler_fn(irq11_handler);
+        idt[pic::vector(12)].set_handler_fn(irq12_handler);
+        idt[pic::vector(13)].set_handler_fn(irq13_handler);
+        idt[pic::vector(14)].set_handler_fn(irq14_handler);
+        idt[pic::vector(15)].set_handler_fn(irq15_handler);
         idt
     };
 }
@@ -71,11 +66,7 @@ macro_rules! irq_handler {
         pub extern "x86-interrupt" fn $handler(_: InterruptStackFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
-            unsafe {
-                sys::pic::PICS.lock().notify_end_of_interrupt(
-                    interrupt_index($irq)
-                );
-            }
+            sys::pic::eoi($irq);
         }
     };
 }
@@ -249,39 +240,12 @@ extern "sysv64" fn syscall_handler(
     regs.rax = res;
 }
 
-const PIC1: u16 = 0x21;
-const PIC2: u16 = 0xA1;
-
-fn irq_port(irq: u8) -> u16 {
-    if irq < 8 { PIC1 } else { PIC2 }
-}
-
-fn irq_line(irq: u8) -> u8 {
-    if irq < 8 { irq } else { irq - 8 }
-}
-
-pub fn set_irq_mask(irq: u8) {
-    let port = irq_port(irq);
-    unsafe {
-        let value = inb(port) | (1 << irq_line(irq));
-        outb(port, value);
-    }
-}
-
-pub fn clear_irq_mask(irq: u8) {
-    let port = irq_port(irq);
-    unsafe {
-        let value = inb(port) & !(1 << irq_line(irq));
-        outb(port, value);
-    }
-}
-
 pub fn set_irq_handler(irq: u8, handler: fn()) {
     interrupts::without_interrupts(|| {
         let mut handlers = IRQ_HANDLERS.lock();
         handlers[irq as usize] = handler;
 
-        clear_irq_mask(irq);
+        pic::unmask(irq);
     });
 }
 

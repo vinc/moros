@@ -30,7 +30,7 @@ pub fn init(boot_info: &'static BootInfo) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
     // during memory allocation otherwise.
-    sys::idt::set_irq_mask(1);
+    sys::pic::mask(1);
 
     let mut memory_size = 0;
     let mut last_end_addr = 0;
@@ -77,7 +77,7 @@ pub fn init(boot_info: &'static BootInfo) {
     bitmap::init_frame_allocator(&boot_info.memory_map);
     heap::init_heap().expect("heap initialization failed");
 
-    sys::idt::clear_irq_mask(1);
+    sys::pic::unmask(1);
 }
 
 pub fn phys_mem_offset() -> u64 {
