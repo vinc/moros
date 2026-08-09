@@ -53,5 +53,4 @@ pub fn init() {
     unsafe {
         PICS.lock().initialize();
     }
-    interrupts::enable();
 }
