@@ -20,8 +20,7 @@ be accomplished after completing an OSDev tutorial, while reading the
 ## Features
 
 - External bootloader (using [bootloader][4])
-- x86 CPU support (using [x86_64][5])
-- Hardware interrupts (using [pic8259][6])
+- AMD64 CPU support (using [x86_64][5])
 - PS/2 keyboard with customizable layout (using [pc-keyboard][7])
 - VGA text mode and 320x200 graphics buffer (for games and images) with
   customizable font and color palette
@@ -29,6 +28,7 @@ be accomplished after completing an OSDev tutorial, while reading the
 - Heap allocation (using [linked_list_allocator][9])
 - ACPI shutdown (using [acpi][10] and [aml][11])
 - RTC clock with userspace NTP synchronization
+- Intel 8259 PIC
 - PCI devices
 - ATA PIO mode
 - Custom [filesystem](doc/filesystem.md) with bitmap allocation, linked blocks,
