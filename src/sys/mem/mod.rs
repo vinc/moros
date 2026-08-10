@@ -9,14 +9,12 @@ pub use paging::{
 };
 pub use phys::{phys_addr, PhysBuf};
 
-use crate::sys;
+use crate::sys::pic;
 
 use bootloader::bootinfo::{BootInfo, MemoryMap};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
-use x86_64::structures::paging::{
-    OffsetPageTable, Translate,
-};
+use x86_64::structures::paging::{OffsetPageTable, Translate};
 use x86_64::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]
@@ -30,7 +28,7 @@ pub fn init(boot_info: &'static BootInfo) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
     // during memory allocation otherwise.
-    sys::pic::mask(1);
+    pic::mask(pic::KBD_IRQ);
 
     let mut memory_size = 0;
     let mut last_end_addr = 0;
@@ -77,7 +75,7 @@ pub fn init(boot_info: &'static BootInfo) {
     bitmap::init_frame_allocator(&boot_info.memory_map);
     heap::init_heap().expect("heap initialization failed");
 
-    sys::pic::unmask(1);
+    pic::unmask(pic::KBD_IRQ);
 }
 
 pub fn phys_mem_offset() -> u64 {

@@ -13,6 +13,13 @@ const PIC2_OFFSET: u8 = PIC1_OFFSET + 8;
 static PICS: Mutex<ChainedPics> = Mutex::new(unsafe {
     ChainedPics::new(PIC1_OFFSET, PIC2_OFFSET)
 });
+// IRQ List
+pub const PIT_IRQ: u8 = 0;
+pub const KBD_IRQ: u8 = 1;
+pub const PIC_IRQ: u8 = 2;
+pub const COM_IRQ: u8 = 4;
+pub const SND_IRQ: u8 = 5;
+pub const RTC_IRQ: u8 = 8;
 
 fn irq_port(irq: u8) -> u16 {
     if irq < 8 { PIC1_DATA } else { PIC2_DATA }

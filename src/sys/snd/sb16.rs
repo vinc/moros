@@ -10,8 +10,6 @@ use alloc::vec::Vec;
 // https://wiki.osdev.org/Sound_Blaster_16
 // https://pdos.csail.mit.edu/6.828/2006/readings/hardware/SoundBlaster.pdf
 
-pub const IRQ: u8 = 5;
-
 const MIXER_ADDR: u16 = 0x224;
 const MIXER_DATA: u16 = 0x225;
 const DSP_RESET:  u16 = 0x226;
@@ -158,7 +156,7 @@ fn irq(num: u8) -> u8 {
 pub fn init() {
     unsafe {
         outb(MIXER_ADDR, 0x80);
-        outb(MIXER_DATA, irq(IRQ));
+        outb(MIXER_DATA, irq(sys::pic::SND_IRQ));
     }
 }
 
