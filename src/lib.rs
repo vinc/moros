@@ -55,6 +55,30 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     log!("RTC {}", sys::clk::date());
 }
 
+pub fn exec() -> ! {
+    print!("\x1b[?25h"); // Enable cursor
+    loop {
+        if let Some(cmd) = option_env!("MOROS_CMD") {
+            let prompt = usr::shell::prompt_string(true);
+            println!("{}{}", prompt, cmd);
+            usr::shell::exec(cmd).ok();
+            sys::acpi::shutdown();
+        } else {
+            let script = "/ini/boot.sh";
+            if sys::fs::File::open(script).is_some() {
+                usr::shell::main(&["shell", script]).ok();
+            } else {
+                if sys::fs::is_mounted() {
+                    error!("Could not find '{}'", script);
+                } else {
+                    warning!("MFS not found, run 'install' to setup the system");
+                }
+                usr::shell::main(&["shell"]).ok();
+            }
+        }
+    }
+}
+
 pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
     use bootloader::bootinfo::MemoryRegionType as Mem;
     let mut memory_map = MemoryMap::new();

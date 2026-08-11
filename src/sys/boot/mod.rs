@@ -1,3 +1,12 @@
+#[cfg(not(any(feature = "limine", feature = "multiboot")))]
+pub mod bootloader;
+
+#[cfg(feature = "limine")]
+pub mod limine;
+
+#[cfg(feature = "multiboot")]
+pub mod multiboot;
+
 pub const MAX_REGIONS: usize = 32;
 
 #[repr(u32)]
