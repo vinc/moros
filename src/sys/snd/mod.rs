@@ -204,9 +204,8 @@ pub fn init() {
     if let Some(device) = sb16::find() {
         *SND.lock() = Some((SoundDevice::SB16(device), config.clone()));
 
-        let irq = sb16::IRQ;
+        let irq = sys::pic::SND_IRQ;
         sys::idt::set_irq_handler(irq, interrupt_handler);
-
         log!("SND DRV SB16 (IRQ {})", irq);
         return;
     }
@@ -222,7 +221,6 @@ pub fn init() {
 
             let irq = pci.interrupt_line;
             sys::idt::set_irq_handler(irq, interrupt_handler);
-
             log!("SND DRV AC97 (IRQ {})", irq);
             return;
         }

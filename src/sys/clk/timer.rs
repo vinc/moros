@@ -75,10 +75,10 @@ pub fn init() {
     let divider = PIT_DIVIDER;
     let channel = 0; // PIC
     set_pit_frequency(divider, channel);
-    sys::idt::set_irq_handler(0, pit_interrupt_handler);
+    sys::idt::set_irq_handler(sys::pic::PIT_IRQ, pit_interrupt_handler);
 
     // RTC timmer
-    sys::idt::set_irq_handler(8, rtc_interrupt_handler);
+    sys::idt::set_irq_handler(sys::pic::RTC_IRQ, rtc_interrupt_handler);
     CMOS::new().enable_update_interrupt();
 
     // TSC timmer

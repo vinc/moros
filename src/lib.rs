@@ -24,7 +24,10 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
-    sys::pic::init(); // Enable interrupts
+    sys::pic::init();
+
+    sys::x86::interrupts::enable();
+
     sys::serial::init();
     sys::keyboard::init();
     sys::clk::init();
