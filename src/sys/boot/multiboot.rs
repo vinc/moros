@@ -1,6 +1,5 @@
-use super::MemoryMap;
-use super::MemoryRegion;
-use super::MemoryRegionType;
+use super::{MemoryMap, MemoryRegion, MemoryRegionType};
+
 use multiboot2::{BootInformation, BootInformationHeader};
 
 #[used]
@@ -14,6 +13,7 @@ static MULTIBOOT_HEADER: [u32; 6] = [
     8,           // end tag size
 ];
 
+// TODO: Improve protocol support
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     let vga = 0xB8000 as *mut u8;
     let msg = b"MOROS loading...";

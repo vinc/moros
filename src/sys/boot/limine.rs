@@ -1,9 +1,8 @@
-use super::MemoryMap;
-use super::MemoryRegion;
-use super::MemoryRegionType;
+use super::{MemoryMap, MemoryRegion, MemoryRegionType};
+
+use limine::memmap;
 use limine::request::{MemmapRequest, HhdmRequest, FramebufferRequest};
 use limine::{BaseRevision, RequestsStartMarker, RequestsEndMarker};
-use limine::memmap;
 
 #[used]
 #[link_section = ".limine_reqs"]
@@ -29,6 +28,7 @@ static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 #[link_section = ".limine_req_end"]
 static REQUESTS_END: RequestsEndMarker = RequestsEndMarker::new();
 
+// TODO: Improve protocol support
 pub extern "C" fn start() -> ! {
     if let Some(res) = FRAMEBUFFER_REQUEST.response() {
         if let Some(fb) = res.framebuffers().first() {
@@ -52,7 +52,6 @@ pub extern "C" fn start() -> ! {
         memory_map.add(MemoryRegion::new(entry.base, entry.length, kind));
     }
 
-    // TODO: Enable this when VGA Text Mode become optional
     //crate::init(&memory_map, hhdm.offset);
 
     if let Some(res) = FRAMEBUFFER_REQUEST.response() {

@@ -20,10 +20,7 @@ pub mod sys;
 pub mod usr;
 
 #[cfg(target_arch = "x86_64")]
-use sys::boot::{MemoryMap, MemoryRegion, MemoryRegionType};
-
-#[cfg(target_arch = "x86_64")]
-use bootloader::BootInfo;
+use sys::boot::MemoryMap;
 
 #[cfg(target_arch = "x86_64")]
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
@@ -82,22 +79,6 @@ pub fn exec() -> ! {
             }
         }
     }
-}
-
-#[cfg(target_arch = "x86_64")]
-pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
-    use bootloader::bootinfo::MemoryRegionType as Mem;
-    let mut memory_map = MemoryMap::new();
-    for region in boot_info.memory_map.iter() {
-        let addr = region.range.start_addr();
-        let size = region.range.end_addr() - addr;
-        let kind = match region.region_type {
-            Mem::Usable => MemoryRegionType::Usable,
-            _ => MemoryRegionType::Reserved,
-        };
-        memory_map.add(MemoryRegion::new(addr, size, kind));
-    }
-    memory_map
 }
 
 #[allow(dead_code)]
