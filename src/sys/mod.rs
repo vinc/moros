@@ -48,10 +48,9 @@ pub mod x86 {
         }
     }
 
+    #[cfg(target_arch = "x86_64")]
     pub fn rdrand() -> Option<u64> {
         let mut res = 0;
-
-        #[cfg(target_arch = "x86_64")]
         unsafe {
             if core::arch::x86_64::_rdrand64_step(&mut res) == 1 {
                 Some(res)
@@ -59,8 +58,10 @@ pub mod x86 {
                 None
             }
         }
+    }
 
-        #[cfg(target_arch = "x86")]
+    #[cfg(target_arch = "x86")]
+    pub fn rdrand() -> Option<u64> {
         None
     }
 

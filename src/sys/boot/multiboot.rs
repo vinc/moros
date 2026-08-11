@@ -14,7 +14,6 @@ static MULTIBOOT_HEADER: [u32; 6] = [
     8,           // end tag size
 ];
 
-#[no_mangle]
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     let vga = 0xB8000 as *mut u8;
     let msg = b"MOROS loading...";
@@ -41,7 +40,7 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
                 };
                 memory_map.add(MemoryRegion::new(addr, size, kind));
             };
-            let offset = 0;
+            //let offset = 0;
             //crate::init(&memory_map, offset);
         }
     }

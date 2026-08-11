@@ -19,11 +19,13 @@ pub mod sys;
 #[cfg(target_arch = "x86_64")]
 pub mod usr;
 
+#[cfg(target_arch = "x86_64")]
 use sys::boot::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 #[cfg(target_arch = "x86_64")]
 use bootloader::BootInfo;
 
+#[cfg(target_arch = "x86_64")]
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
 #[cfg(target_arch = "x86_64")]
