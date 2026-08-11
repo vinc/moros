@@ -13,6 +13,7 @@ mode = release
 
 # Emulation options
 memory = 32
+cpu = core2duo
 smp = 2
 nic = rtl8139# rtl8139, pcnet, e1000
 snd = sb16# ac97, sb16
@@ -59,7 +60,7 @@ $(img):
 
 cargo-opts = --bin moros
 ifeq ($(mode),release)
-	cargo-opts += --release
+cargo-opts += --release
 endif
 cargo-opts += --no-default-features --features $(output)
 
@@ -75,31 +76,32 @@ qemu-opts = -name "MOROS $$MOROS_VERSION" \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -audio driver=$(audio),model=$(snd) \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
+
 ifeq ($(kvm),true)
-	qemu-opts += -cpu host -accel kvm
+qemu-opts += -cpu host -accel kvm
 else
-	qemu-opts += -cpu core2duo
+qemu-opts += -cpu $(cpu)
 endif
 
 ifeq ($(pcap),true)
-	qemu-opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
+qemu-opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
 endif
 
 ifeq ($(monitor),true)
-	qemu-opts += -monitor telnet:127.0.0.1:7777,server,nowait
+qemu-opts += -monitor telnet:127.0.0.1:7777,server,nowait
 endif
 
 ifeq ($(output),serial)
-	qemu-opts += -display none
-	qemu-opts += -chardev stdio,id=s0,signal=$(signal) -serial chardev:s0
+qemu-opts += -display none
+qemu-opts += -chardev stdio,id=s0,signal=$(signal) -serial chardev:s0
 endif
 
 ifeq ($(mode),debug)
-	qemu-opts += -s -S
+qemu-opts += -s -S
 endif
 
 ifeq ($(trace),e1000)
-	qemu-opts += -trace 'e1000*'
+qemu-opts += -trace 'e1000*'
 endif
 
 # In debug mode, open another terminal with the following command
@@ -140,9 +142,15 @@ limine-image:
 		--protective-msdos-label \
 		tmp/boot -o boot.img
 
+ifeq ($(limine-arch),i686)
+qemu = qemu-system-i386
+cpu = pentium3
+else
+qemu = qemu-system-x86_64
+endif
+
 limine-qemu:
-	qemu-system-x86_64 -cdrom boot.img $(qemu-opts)
-	#qemu-system-i386 -cdrom boot.img $(qemu-opts) -cpu pentium3
+	$(qemu) -cdrom boot.img $(qemu-opts)
 
 website:
 	cd www && sh build.sh
