@@ -10,6 +10,8 @@ use moros::{
     error, hang, eprint, eprintln
 };
 
+// MOROS supports 3 boot protocols: rust-bootloader, limine, and multiboot2
+
 #[cfg(not(any(feature = "limine", feature = "multiboot")))]
 #[no_mangle]
 extern "C" fn _start(boot_info: &'static bootloader::BootInfo) -> ! {
