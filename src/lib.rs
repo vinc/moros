@@ -141,7 +141,7 @@ pub fn hang() -> ! {
 }
 
 #[cfg(test)]
-use bootloader::entry_point;
+use bootloader::{entry_point, BootInfo};
 
 #[cfg(test)]
 use core::panic::PanicInfo;
@@ -151,7 +151,7 @@ entry_point!(test_kernel_main);
 
 #[cfg(test)]
 fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    let memory_map = extract_memory_map(boot_info);
+    let memory_map = sys::boot::bootloader::extract_memory_map(boot_info);
     let offset = boot_info.physical_memory_offset;
     init(&memory_map, offset);
     test_main();

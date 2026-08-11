@@ -2,7 +2,7 @@ use super::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 use bootloader::BootInfo;
 
-fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
+pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
     use bootloader::bootinfo::MemoryRegionType as Mem;
     let mut memory_map = MemoryMap::new();
     for region in boot_info.memory_map.iter() {
