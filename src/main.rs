@@ -11,7 +11,10 @@ use moros::{
 };
 
 #[cfg(not(any(feature = "limine", feature = "multiboot")))]
-bootloader::entry_point!(moros::sys::boot::bootloader::start);
+#[no_mangle]
+extern "C" fn _start(boot_info: &'static bootloader::BootInfo) -> ! {
+    moros::sys::boot::bootloader::start(boot_info)
+}
 
 #[cfg(feature = "limine")]
 #[no_mangle]
@@ -21,18 +24,26 @@ extern "C" fn _start() -> ! {
 
 #[cfg(feature = "multiboot")]
 core::arch::global_asm!(
+    // Multiboot2 does not provide a stack
+    ".section .bss",
+    ".align 16",
+    "stack_bottom:",
+    ".skip 16384",
+    "stack_top:",
+
     ".section .text",
     ".global _start",
     "_start:",
-    "mov edi, ebx",
-    "mov esi, eax",
-    "call multiboot_start",
+    "mov esp, offset stack_top",
+    "push eax", // magic
+    "push ebx", // info
+    "call {start}",
     "hlt",
+    start = sym start,
 );
 
 #[cfg(feature = "multiboot")]
-#[no_mangle]
-pub extern "C" fn multiboot_start(info: u32, magic: u32) -> ! {
+extern "C" fn start(info: u32, magic: u32) -> ! {
     moros::sys::boot::multiboot::start(info, magic)
 }
 

@@ -15,7 +15,7 @@ static MULTIBOOT_HEADER: [u32; 6] = [
 ];
 
 #[no_mangle]
-pub extern "C" fn start(mb2_info: u32, mb2_magic: u32) -> ! {
+pub extern "C" fn start(info: u32, magic: u32) -> ! {
     let vga = 0xB8000 as *mut u8;
     let msg = b"MOROS loading...";
     for (i, &byte) in msg.iter().enumerate() {
@@ -25,9 +25,9 @@ pub extern "C" fn start(mb2_info: u32, mb2_magic: u32) -> ! {
         }
     }
 
-    if mb2_magic == multiboot2::MAGIC {
+    if magic == multiboot2::MAGIC {
         let boot_info = unsafe {
-            BootInformation::load(mb2_info as *const BootInformationHeader).unwrap()
+            BootInformation::load(info as *const BootInformationHeader).unwrap()
         };
         if let Some(memory_map_tag) = boot_info.memory_map_tag() {
             // FIXME: This is never reached
