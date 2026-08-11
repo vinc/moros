@@ -73,18 +73,6 @@ impl Perform for Serial {
     }
 }
 
-#[doc(hidden)]
-pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
-        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
-    )
-}
-
-pub fn init() {
-    SERIAL.lock().init();
-    sys::idt::set_irq_handler(4, interrupt_handler);
-}
-
 fn interrupt_handler() {
     let b = SERIAL.lock().read_byte();
     if b == 0xFF { // Ignore invalid bytes
@@ -96,4 +84,16 @@ fn interrupt_handler() {
         c => c,
     };
     sys::console::key_handle(c);
+}
+
+#[doc(hidden)]
+pub fn print_fmt(args: fmt::Arguments) {
+    interrupts::without_interrupts(||
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
+    )
+}
+
+pub fn init() {
+    SERIAL.lock().init();
+    sys::idt::set_irq_handler(sys::pic::COM_IRQ, interrupt_handler);
 }

@@ -20,22 +20,22 @@ be accomplished after completing an OSDev tutorial, while reading the
 ## Features
 
 - External bootloader (using [bootloader][4])
-- x86 CPU support (using [x86_64][5])
-- Hardware interrupts (using [pic8259][6])
-- PS/2 keyboard with customizable layout (using [pc-keyboard][7])
+- AMD64 CPU support (using [x86_64][5])
+- PS/2 keyboard with customizable layout (using [pc-keyboard][6])
 - VGA text mode and 320x200 graphics buffer (for games and images) with
   customizable font and color palette
-- Serial output (using [uart_16550][8])
-- Heap allocation (using [linked_list_allocator][9])
-- ACPI shutdown (using [acpi][10] and [aml][11])
+- Serial output (using [uart_16550][7])
+- Heap allocation (using [linked_list_allocator][8])
+- ACPI shutdown (using [acpi][9] and [aml][10])
 - RTC clock with userspace NTP synchronization
+- Intel 8259 PIC
 - PCI devices
 - ATA PIO mode
 - Custom [filesystem](doc/filesystem.md) with bitmap allocation, linked blocks,
   block caching, and support for files, directories, and device nodes
-- Random number generator (using [rand_hc][12])
+- Random number generator (using [rand_hc][11])
 - Intel PRO/1000, RTL8139, and AMD PCNET network cards
-- DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][13])
+- DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][12])
 - AC97 and SB16 sound cards
 - Paging with bitmap frame allocator
 - Processes with isolated address spaces and demand paging
@@ -111,14 +111,13 @@ MOROS is released under MIT.
 [3]: https://wiki.osdev.org
 [4]: https://github.com/rust-osdev/bootloader
 [5]: https://crates.io/crates/x86_64
-[6]: https://crates.io/crates/pic8259
-[7]: https://crates.io/crates/pc-keyboard
-[8]: https://crates.io/crates/uart_16550
-[9]: https://crates.io/crates/linked_list_allocator
-[10]: https://crates.io/crates/acpi
-[11]: https://crates.io/crates/aml
-[12]: https://crates.io/crates/rand_hc
-[13]: https://crates.io/crates/smoltcp
+[6]: https://crates.io/crates/pc-keyboard
+[7]: https://crates.io/crates/uart_16550
+[8]: https://crates.io/crates/linked_list_allocator
+[9]: https://crates.io/crates/acpi
+[10]: https://crates.io/crates/aml
+[11]: https://crates.io/crates/rand_hc
+[12]: https://crates.io/crates/smoltcp
 
 [s1]: https://img.shields.io/github/actions/workflow/status/vinc/moros/rust.yml
 [s2]: https://img.shields.io/crates/v/moros.svg
