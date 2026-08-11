@@ -33,9 +33,6 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::serial::init();
     sys::keyboard::init();
 
-    #[cfg(feature = "limine")]
-    return; // FIXME
-
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));

@@ -29,7 +29,6 @@ static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 #[link_section = ".limine_req_end"]
 static REQUESTS_END: RequestsEndMarker = RequestsEndMarker::new();
 
-#[no_mangle]
 pub extern "C" fn start() -> ! {
     if let Some(res) = FRAMEBUFFER_REQUEST.response() {
         if let Some(fb) = res.framebuffers().first() {
@@ -41,7 +40,7 @@ pub extern "C" fn start() -> ! {
         }
     }
 
-    let hhdm = HHDM_REQUEST.response().unwrap();
+    //let hhdm = HHDM_REQUEST.response().unwrap();
     let memmap = MEMMAP_REQUEST.response().unwrap();
 
     let mut memory_map = MemoryMap::new();
@@ -53,7 +52,8 @@ pub extern "C" fn start() -> ! {
         memory_map.add(MemoryRegion::new(entry.base, entry.length, kind));
     }
 
-    crate::init(&memory_map, hhdm.offset);
+    // TODO: Enable this when VGA Text Mode become optional
+    //crate::init(&memory_map, hhdm.offset);
 
     if let Some(res) = FRAMEBUFFER_REQUEST.response() {
         if let Some(fb) = res.framebuffers().first() {
@@ -65,5 +65,6 @@ pub extern "C" fn start() -> ! {
         }
     }
 
-    crate::exec();
+    //crate::exec();
+    crate::hang();
 }
