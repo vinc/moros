@@ -6,22 +6,27 @@
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+#[cfg(target_arch = "x86_64")]
 extern crate alloc;
 
 #[macro_use]
+#[cfg(target_arch = "x86_64")]
 pub mod api;
 
 #[macro_use]
 pub mod sys;
 
+#[cfg(target_arch = "x86_64")]
 pub mod usr;
 
 use sys::boot::{MemoryMap, MemoryRegion, MemoryRegionType};
 
+#[cfg(target_arch = "x86_64")]
 use bootloader::BootInfo;
 
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
+#[cfg(target_arch = "x86_64")]
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
@@ -52,6 +57,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     log!("RTC {}", sys::clk::date());
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn exec() -> ! {
     print!("\x1b[?25h"); // Enable cursor
     loop {
@@ -76,6 +82,7 @@ pub fn exec() -> ! {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
     use bootloader::bootinfo::MemoryRegionType as Mem;
     let mut memory_map = MemoryMap::new();
@@ -92,6 +99,7 @@ pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
 }
 
 #[allow(dead_code)]
+#[cfg(target_arch = "x86_64")]
 #[cfg_attr(not(feature = "userspace"), alloc_error_handler)]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     let csi_color = api::console::Style::color("red");
@@ -109,19 +117,21 @@ pub trait Testable {
     fn run(&self);
 }
 
+#[cfg(target_arch = "x86_64")]
 impl<T> Testable for T where T: Fn() {
     fn run(&self) {
-        print!("test {} ... ", core::any::type_name::<T>());
+        printk!("test {} ... ", core::any::type_name::<T>());
         self();
         let csi_color = api::console::Style::color("lime");
         let csi_reset = api::console::Style::reset();
-        println!("{}ok{}", csi_color, csi_reset);
+        printk!("{}ok{}\n", csi_color, csi_reset);
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn test_runner(tests: &[&dyn Testable]) {
     let n = tests.len();
-    println!("\nrunning {} test{}", n, if n == 1 { "" } else { "s" });
+    printk!("\nrunning {} test{}\n", n, if n == 1 { "" } else { "s" });
     for test in tests {
         test.run();
     }
@@ -170,8 +180,8 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
-    println!("{}failed{}\n", csi_color, csi_reset);
-    println!("{}\n", info);
+    printk!("{}failed{}\n\n", csi_color, csi_reset);
+    printk!("{}\n\n", info);
     exit_qemu(QemuExitCode::Failed);
     hang();
 }

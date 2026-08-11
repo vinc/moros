@@ -50,6 +50,8 @@ pub mod x86 {
 
     pub fn rdrand() -> Option<u64> {
         let mut res = 0;
+
+        #[cfg(target_arch = "x86_64")]
         unsafe {
             if core::arch::x86_64::_rdrand64_step(&mut res) == 1 {
                 Some(res)
@@ -57,6 +59,9 @@ pub mod x86 {
                 None
             }
         }
+
+        #[cfg(target_arch = "x86")]
+        None
     }
 
     pub mod rflags {
@@ -164,25 +169,25 @@ pub mod x86 {
     }
 }
 
-pub mod acpi;
-pub mod ata;
+#[cfg(target_arch = "x86_64")] pub mod acpi;
+#[cfg(target_arch = "x86_64")] pub mod ata;
 pub mod boot;
-pub mod clk;
-pub mod console;
-pub mod cpu;
-pub mod fs;
-pub mod gdt;
-pub mod idt;
-pub mod keyboard;
-pub mod log;
-pub mod mem;
-pub mod net;
-pub mod pci;
-pub mod pic;
-pub mod process;
-pub mod rng;
-pub mod serial;
-pub mod snd;
-pub mod speaker;
-pub mod syscall;
-pub mod vga;
+#[cfg(target_arch = "x86_64")] pub mod clk;
+#[cfg(target_arch = "x86_64")] pub mod console;
+#[cfg(target_arch = "x86_64")] pub mod cpu;
+#[cfg(target_arch = "x86_64")] pub mod fs;
+#[cfg(target_arch = "x86_64")] pub mod gdt;
+#[cfg(target_arch = "x86_64")] pub mod idt;
+#[cfg(target_arch = "x86_64")] pub mod keyboard;
+#[cfg(target_arch = "x86_64")] pub mod log;
+#[cfg(target_arch = "x86_64")] pub mod mem;
+#[cfg(target_arch = "x86_64")] pub mod net;
+#[cfg(target_arch = "x86_64")] pub mod pci;
+#[cfg(target_arch = "x86_64")] pub mod pic;
+#[cfg(target_arch = "x86_64")] pub mod process;
+#[cfg(target_arch = "x86_64")] pub mod rng;
+#[cfg(target_arch = "x86_64")] pub mod serial;
+#[cfg(target_arch = "x86_64")] pub mod snd;
+#[cfg(target_arch = "x86_64")] pub mod speaker;
+#[cfg(target_arch = "x86_64")] pub mod syscall;
+#[cfg(target_arch = "x86_64")] pub mod vga;

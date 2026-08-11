@@ -1,14 +1,10 @@
 #![no_std]
 #![no_main]
 
+#[cfg(target_arch = "x86_64")]
 extern crate alloc;
 
 use core::panic::PanicInfo;
-use alloc::string::ToString;
-use moros::api::console::Style;
-use moros::{
-    error, hang, eprint, eprintln
-};
 
 // MOROS supports 3 boot protocols: rust-bootloader, limine, and multiboot2
 
@@ -49,8 +45,12 @@ extern "C" fn start(info: u32, magic: u32) -> ! {
     moros::sys::boot::multiboot::start(info, magic)
 }
 
+#[cfg(target_arch = "x86_64")]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    use alloc::string::ToString;
+    use moros::api::console::Style;
+    use moros::{error, hang, eprint, eprintln};
     if let Some(location) = info.location() {
         let title = "Panicked";
         let path = location.file();
@@ -70,4 +70,10 @@ fn panic(info: &PanicInfo) -> ! {
         error!("{info}");
     }
     hang();
+}
+
+#[cfg(target_arch = "x86")]
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    moros::hang();
 }

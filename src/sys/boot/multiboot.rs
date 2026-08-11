@@ -42,9 +42,19 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
                 memory_map.add(MemoryRegion::new(addr, size, kind));
             };
             let offset = 0;
-            crate::init(&memory_map, offset);
+            //crate::init(&memory_map, offset);
         }
     }
 
-    crate::exec();
+    let vga = 0xB8000 as *mut u8;
+    let msg = b"MOROS loaded successfully!";
+    for (i, &byte) in msg.iter().enumerate() {
+        unsafe {
+            *vga.add(i * 2) = byte;
+            *vga.add(i * 2 + 1) = 0x0F;
+        }
+    }
+
+    //crate::exec();
+    crate::hang();
 }
