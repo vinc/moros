@@ -166,6 +166,7 @@ pub mod x86 {
 
 pub mod acpi;
 pub mod ata;
+pub mod boot;
 pub mod clk;
 pub mod console;
 pub mod cpu;

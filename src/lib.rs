@@ -16,9 +16,7 @@ pub mod sys;
 
 pub mod usr;
 
-use sys::mem::MemoryMap;
-use sys::mem::MemoryRegion;
-use sys::mem::MemoryRegionType;
+use sys::boot::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 use bootloader::BootInfo;
 

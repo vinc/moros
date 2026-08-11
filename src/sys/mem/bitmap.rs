@@ -1,4 +1,4 @@
-use super::{MemoryMap, MemoryRegionType, MAX_REGIONS};
+use crate::sys::boot::{MemoryMap, MemoryRegionType, MAX_REGIONS};
 
 use core::{cmp, slice};
 use spin::{Once, Mutex};
