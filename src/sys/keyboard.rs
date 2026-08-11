@@ -133,11 +133,6 @@ impl FileIO for KeyboardLayout {
     }
 }
 
-pub fn init() {
-    set_keyboard(option_env!("MOROS_KEYBOARD").unwrap_or("qwerty"));
-    sys::idt::set_irq_handler(1, interrupt_handler);
-}
-
 fn read_scancode() -> u8 {
     unsafe { inb(0x60) }
 }
@@ -306,4 +301,9 @@ fn interrupt_handler() {
             }
         }
     }
+}
+
+pub fn init() {
+    set_keyboard(option_env!("MOROS_KEYBOARD").unwrap_or("qwerty"));
+    sys::idt::set_irq_handler(sys::pic::KBD_IRQ, interrupt_handler);
 }
