@@ -286,3 +286,13 @@ enum FileType {
 
 The raw syscall returns a `isize` that will be converted a `FileType` if the
 number is positive.
+
+## SEEK (0x13)
+
+```rust
+fn seek(handle: usize, offset: SeekFrom) -> isize
+```
+
+Move the read/write offset of a file handle.
+
+Return the new offset on success.

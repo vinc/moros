@@ -37,48 +37,129 @@ macro_rules! log {
     });
 }
 
-pub mod port {
-    use x86_64::instructions::port::Port;
+pub mod x86 {
+    use core::arch::asm;
 
-    pub fn outb(addr: u16, value: u8) {
-        let mut port: Port<u8> = Port::new(addr);
+    /// Halts the CPU until the next interrupt
+    #[inline]
+    pub fn hlt() {
         unsafe {
-            port.write(value);
+            asm!("hlt", options(nomem, nostack, preserves_flags));
         }
     }
 
-    pub fn outw(addr: u16, value: u16) {
-        let mut port: Port<u16> = Port::new(addr);
+    pub fn rdrand() -> Option<u64> {
+        let mut res = 0;
         unsafe {
-            port.write(value);
+            if core::arch::x86_64::_rdrand64_step(&mut res) == 1 {
+                Some(res)
+            } else {
+                None
+            }
         }
     }
 
-    pub fn outl(addr: u16, value: u32) {
-        let mut port: Port<u32> = Port::new(addr);
-        unsafe {
-            port.write(value);
+    pub mod rflags {
+        pub const IF: usize = 1 << 9; // Interrupt Flag
+    }
+
+    pub mod interrupts {
+        use core::arch::asm;
+
+        #[inline]
+        pub fn enable() {
+            // NOTE: interrupts are not enabled until after the next instruction
+            unsafe {
+                asm!("sti", options(nostack, preserves_flags));
+            }
+        }
+
+        #[inline]
+        pub fn disable() {
+            unsafe {
+                asm!("cli", options(nostack, preserves_flags));
+            }
+        }
+
+        #[inline]
+        pub fn are_enabled() -> bool {
+            let rflags: usize;
+            unsafe {
+                asm!("pushfq; pop {}", out(reg) rflags,
+                    options(nomem, preserves_flags));
+            }
+            rflags & super::rflags::IF != 0
+        }
+
+        #[inline]
+        pub fn without_interrupts<F, R>(f: F) -> R where F: FnOnce() -> R {
+            let enabled = are_enabled();
+            if enabled {
+                disable();
+            }
+            let res = f();
+            if enabled {
+                enable();
+            }
+            res
         }
     }
 
-    pub fn inb(addr: u16) -> u8 {
-        let mut port: Port<u8> = Port::new(addr);
-        unsafe {
-            port.read()
-        }
-    }
+    pub mod port {
+        use core::arch::asm;
 
-    pub fn inw(addr: u16) -> u16 {
-        let mut port: Port<u16> = Port::new(addr);
-        unsafe {
-            port.read()
+        #[inline]
+        pub unsafe fn outb(port: u16, value: u8) {
+            asm!(
+                "out dx, al", in("dx") port, in("al") value,
+                options(nostack, preserves_flags)
+            );
         }
-    }
 
-    pub fn inl(addr: u16) -> u32 {
-        let mut port: Port<u32> = Port::new(addr);
-        unsafe {
-            port.read()
+        #[inline]
+        pub unsafe fn inb(port: u16) -> u8 {
+            let value: u8;
+            asm!(
+                "in al, dx", in("dx") port, out("al") value,
+                options(nostack, preserves_flags)
+            );
+            value
+        }
+
+        #[inline]
+        pub unsafe fn outw(port: u16, value: u16) {
+            asm!(
+                "out dx, ax", in("dx") port, in("ax") value,
+                options(nostack, preserves_flags)
+            );
+        }
+
+        #[inline]
+        pub unsafe fn inw(port: u16) -> u16 {
+            let value: u16;
+            asm!(
+                "in ax, dx", in("dx") port, out("ax") value,
+                options(nostack, preserves_flags)
+            );
+            value
+        }
+
+        #[inline]
+        pub unsafe fn outl(port: u16, value: u32) {
+            asm!(
+                "out dx, eax", in("dx") port, in("eax") value,
+                options(nostack, preserves_flags)
+            );
+        }
+
+        #[inline]
+        pub unsafe fn inl(port: u16) -> u32 {
+            let value: u32;
+            asm!(
+                "in eax, dx", in("dx") port, out("eax") value,
+                options(nostack, preserves_flags)
+            );
+            value
         }
     }
 }

@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::x86::port::*;
 
 use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
 use acpi::platform::{Processor, ProcessorState};
@@ -6,10 +7,9 @@ use alloc::boxed::Box;
 use aml::value::AmlValue;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use core::ptr::NonNull;
-use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
-static mut PM1A_CNT_BLK: u32 = 0;
+static mut PM1A_CNT_BLK: u16 = 0;
 static mut SLP_TYPA: u16 = 0;
 static SLP_LEN: u16 = 1 << 13;
 
@@ -27,8 +27,9 @@ pub fn init() {
             }
             if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
                 if let Ok(block) = fadt.pm1a_control_block() {
+                    debug_assert!(block.address <= u16::MAX as u64);
                     unsafe {
-                        PM1A_CNT_BLK = block.address as u32;
+                        PM1A_CNT_BLK = block.address as u16;
                     }
                 }
             }
@@ -73,8 +74,7 @@ pub fn init() {
 pub fn shutdown() {
     log!("ACPI Shutdown");
     unsafe {
-        let mut port: Port<u16> = Port::new(PM1A_CNT_BLK as u16);
-        port.write(SLP_TYPA | SLP_LEN);
+        outw(PM1A_CNT_BLK, SLP_TYPA | SLP_LEN);
     }
 }
 

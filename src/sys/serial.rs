@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::x86::interrupts;
 
 use core::fmt;
 use core::fmt::Write;
@@ -6,7 +7,6 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use uart_16550::SerialPort;
 use vte::{Params, Parser, Perform};
-use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));

@@ -23,14 +23,23 @@ write /dev/clk/boot -d clk-boot
 write /dev/clk/epoch -d clk-epoch
 write /dev/clk/rtc -d clk-rtc
 write /dev/console -d console
+write /dev/kbd/
+write /dev/kbd/buffer -d kbd-buffer
+write /dev/kbd/layout -d kbd-layout
 write /dev/net/
-write /dev/net/tcp -d net-tcp
-write /dev/net/udp -d net-udp
 write /dev/net/gw -d net-gw
 write /dev/net/ip -d net-ip
 write /dev/net/mac -d net-mac
-write /dev/net/usage -d net-usage
+write /dev/net/stat -d net-stat
+write /dev/net/tcp -d net-tcp
+write /dev/net/udp -d net-udp
 write /dev/null -d null
+write /dev/proc/
+write /dev/proc/dir -d proc-dir
+write /dev/proc/env -d proc-env
+write /dev/proc/id -d proc-id
+write /dev/proc/stat -d proc-stat
+write /dev/proc/user -d proc-user
 write /dev/random -d random
 write /dev/speaker -d speaker
 write /dev/vga/
@@ -40,7 +49,7 @@ write /dev/vga/mode -d vga-mode
 write /dev/vga/palette -d vga-palette
 </code></pre>
 
-    <h2>Clock Devices</h2>
+    <h2>Clock</h2>
 
     <p>Reading the number of seconds since boot:</p>
 
@@ -66,17 +75,33 @@ write /dev/vga/palette -d vga-palette
 [580.327629] RTC 2025-01-01 00:00:00 +0000
 </code></pre>
 
-    <h2>Console Device</h2>
+    <h2>Console</h2>
 
     <p>Reading <code>/dev/console</code> with a 4 bytes buffer will return a character from the
 keyboard or the serial interface. Reading with a larger buffer will return a
 complete line.</p>
 
-    <h2>Network Devices</h2>
+    <h2>Keyboard</h2>
 
-    <h3>Network Config Devices</h3>
+    <p>Reading <code>/dev/kbd/buffer</code> will pop and return the earliest keyboard scancode
+in the buffer if present.</p>
 
-    <p>The prefered way to setup the network is to use the <code>dhcp</code> command:</p>
+    <p>Reading the current keyboard layout:</p>
+
+    <pre><code>&gt; read /dev/kbd/layout
+qwerty
+</code></pre>
+
+    <p>Changing the keyboard layout:</p>
+
+    <pre><code>&gt; print dvorak =&gt; /dev/kbd/layout
+</code></pre>
+
+    <h2>Network</h2>
+
+    <h3>Network config</h3>
+
+    <p>The preferred way to setup the network is to use the <code>dhcp</code> command:</p>
 
     <pre><code>&gt; dhcp
 [958.810995] NET IP 10.0.2.15/24
@@ -102,33 +127,34 @@ device files, and the <code>/ini/dns.ini</code> configuration file:</p>
 52-54-00-12-34-56
 </code></pre>
 
-    <h3>Network Usage Device</h3>
+    <h3>Network statistics</h3>
 
-    <p>Reading <code>/dev/net/usage</code> will return the network usage:</p>
+    <p>Reading <code>/dev/net/stat</code> will return the network statistics:</p>
 
-    <pre><code>&gt; read /dev/net/usage
-0 0 0 0
+    <pre><code>&gt; read /dev/net/stat
+label packets bytes
+rx 0 0
+tx 0 0
 
 &gt; dhcp
 [7.910795] NET IP 10.0.2.15/24
 [7.911795] NET GW 10.0.2.2
 [7.915795] NET DNS 10.0.2.3
 
-&gt; read /dev/net/usage
-2 1180 2 620
+&gt; read /dev/net/stat
+label packets bytes
+rx 2 1180
+tx 2 620
 
 &gt; http example.com =&gt; /dev/null
 
-&gt; read /dev/net/usage
-10 3306 10 1151
+&gt; read /dev/net/stat
+label packets bytes
+rx 10 3306
+tx 10 1151
 </code></pre>
 
-    <p>The output format is:</p>
-
-    <pre><code>&lt;recv packets&gt; &lt;recv bytes&gt; &lt;sent packets&gt; &lt;sent bytes&gt;
-</code></pre>
-
-    <h3>Network Socket Devices</h3>
+    <h3>Network socket</h3>
 
     <p>Opening <code>/dev/net/tcp</code> or <code>/dev/net/udp</code> with the <code>OPEN</code> syscall and the device
 flag will return a file handle for a TCP or UDP socket supporting the standard
@@ -159,7 +185,7 @@ when reading or writing to a socket:</p>
 +-----+--------------+
 </code></pre>
 
-    <h2>Speaker Device</h2>
+    <h2>Speaker</h2>
 
     <p>Playing a 440 Hz sound on the PC speaker:</p>
 
@@ -171,7 +197,7 @@ when reading or writing to a socket:</p>
     <pre><code>&gt; print 0 =&gt; /dev/speaker
 </code></pre>
 
-    <h2>Null Device</h2>
+    <h2>Null</h2>
 
     <p>Writing to <code>/dev/null</code> will discard any data sent to it:</p>
 
@@ -189,22 +215,110 @@ Error: Could not read file &#39;none.txt&#39;
 &gt; copy none.txt some.txt [2]=&gt; /dev/null
 </code></pre>
 
-    <h2>Random Device</h2>
+    <h2>Process</h2>
+
+    <p>The current process is described by a number of devices in <code>/dev/proc</code>.</p>
+
+    <h3>Process id</h3>
+
+    <p>Reading <code>/dev/proc/id</code> will return the current process id:</p>
+
+    <pre><code>&gt; read /dev/proc/id
+0
+</code></pre>
+
+    <h3>Process user</h3>
+
+    <p>Reading <code>/dev/proc/user</code> will return the current user:</p>
+
+    <pre><code>&gt; read /dev/proc/user
+vinc
+</code></pre>
+
+    <h3>Process directory</h3>
+
+    <p>Reading <code>/dev/proc/dir</code> will return the current directory:</p>
+
+    <pre><code>&gt; read /dev/proc/dir
+/usr/vinc
+</code></pre>
+
+    <p>Changing the current directory can be done by writing the destination to the
+device with <code>echo /tmp =&gt; /dev/proc/dir</code> using a shell builtin command or just
+typing the path to the dir in the shell prompt.</p>
+
+    <h3>Process environment variables</h3>
+
+    <p>Reading <code>/dev/proc/env</code> will return an INI file containing all the environment
+variables of the process:</p>
+
+    <pre><code>&gt; read /dev/proc/env
+HOME = &quot;/usr/vinc&quot;
+USER = &quot;vinc&quot;
+</code></pre>
+
+    <p>Setting an env var can be done by writing its key/value pair to the device or
+using the shell builtin command:</p>
+
+    <pre><code>&gt; echo TZ=3600 =&gt; /dev/proc/env
+
+&gt; read /dev/proc/env
+HOME = &quot;/usr/vinc&quot;
+TZ   = &quot;3600&quot;
+USER = &quot;vinc&quot;
+
+&gt; set --env TZ 7200
+
+&gt; read /dev/proc/env
+HOME = &quot;/usr/vinc&quot;
+TZ   = &quot;7200&quot;
+USER = &quot;vinc&quot;
+</code></pre>
+
+    <h3>Process statistics</h3>
+
+    <p>Reading <code>/dev/proc/stat</code> will return the number of syscalls made by the current
+process:</p>
+
+    <pre><code>&gt; read /dev/proc/stat
+label calls
+exit 0
+spawn 17
+read 383
+write 390
+open 360
+close 359
+info 400
+dup 4
+delete 0
+stop 0
+sleep 2
+poll 0
+connect 0
+listen 0
+accept 0
+alloc 0
+free 0
+kind 0
+seek 0
+</code></pre>
+
+    <h2>Random</h2>
 
     <p>Reading from <code>/dev/random</code> will return bytes from a cryptographically secure
 random number generator that uses the <a href="https://en.wikipedia.org/wiki/HC-256">HC-128</a> algorithm seeded from the
     <a href="https://en.wikipedia.org/wiki/RDRAND">RDRAND</a> instruction when available.</p>
 
-    <h2>VGA Devices</h2>
+    <h2>VGA</h2>
 
-    <h3>VGA Font Device</h3>
+    <h3>VGA font</h3>
 
     <p>Changing the VGA font:</p>
 
     <pre><code>&gt; copy /ini/fonts/zap-light-8x16.psf /dev/vga/font
 </code></pre>
 
-    <h3>VGA Mode Device</h3>
+    <h3>VGA mode</h3>
 
     <p>Changing the VGA mode:</p>
 
@@ -221,16 +335,16 @@ random number generator that uses the <a href="https://en.wikipedia.org/wiki/HC-
 
     <p>It is possible to read the current mode from this device file.</p>
 
-    <h3>VGA Palette Device</h3>
+    <h3>VGA palette</h3>
 
-    <p>Changing the VGA palette is done by writting a 768 bytes buffer to
+    <p>Changing the VGA palette is done by writing a 768 bytes buffer to
     <code>/dev/vga/palette</code> containing the RGB values of 256 colors.</p>
 
     <p>It is possible to read the current palette from this device file.</p>
 
-    <h3>VGA Buffer Device</h3>
+    <h3>VGA buffer</h3>
 
-    <p>Changing the VGA framebuffer is done by writting a 64 KB buffer to
+    <p>Changing the VGA framebuffer is done by writing a 64 KB buffer to
     <code>/dev/vga/buffer</code> containing the color index of each pixel on the screen while
 in <code>320x200</code> mode.</p>
   <footer><p><a href="/">MOROS</a></footer>

@@ -76,7 +76,7 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
         csi_reset,
         layout.size()
     );
-    hlt_loop();
+    hang();
 }
 
 pub trait Testable {
@@ -110,17 +110,14 @@ pub enum QemuExitCode {
 }
 
 pub fn exit_qemu(exit_code: QemuExitCode) {
-    use x86_64::instructions::port::Port;
-
     unsafe {
-        let mut port = Port::new(0xF4);
-        port.write(exit_code as u32);
+        sys::x86::port::outl(0xF4, exit_code as u32);
     }
 }
 
-pub fn hlt_loop() -> ! {
+pub fn hang() -> ! {
     loop {
-        x86_64::instructions::hlt();
+        sys::x86::hlt();
     }
 }
 
@@ -139,7 +136,7 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
     let offset = boot_info.physical_memory_offset;
     init(&memory_map, offset);
     test_main();
-    hlt_loop();
+    hang();
 }
 
 #[cfg(test)]
@@ -150,7 +147,7 @@ fn panic(info: &PanicInfo) -> ! {
     println!("{}failed{}\n", csi_color, csi_reset);
     println!("{}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    hlt_loop();
+    hang();
 }
 
 #[test_case]

@@ -8,17 +8,19 @@
   <body>
     <h1>MOROS Lisp</h1>
 
-    <p>A minimalist Lisp interpreter is available in MOROS to extend the capabilities
-of the Shell.</p>
+    <p>A Lisp interpreter is available in MOROS to extend the capabilities of the
+shell.</p>
 
     <p>MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!</p>
 
     <h2>Overview</h2>
 
+    <p>Check the <a href="/lisp-doc.html">documentation</a> for more information.</p>
+
     <h3>Types</h3>
 
     <ul>
-    <li>Basics: <code>bool</code>, <code>list</code>, <code>symbol</code>, <code>string</code></li>
+    <li>Basics: <code>bool</code>, <code>list</code>, <code>sym</code>, <code>str</code></li>
     <li>Number: <code>float</code>, <code>int</code>, <code>bigint</code></li>
     </ul>
 
@@ -30,7 +32,7 @@ of the Shell.</p>
     <li>Escape: <code>\b</code>, <code>\e</code>, <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\&quot;</code>, <code>\\</code></li>
     </ul>
 
-    <h3>Built-in Operators</h3>
+    <h3>Builtins</h3>
 
     <ul>
     <li><code>quote</code> (abbreviated with <code>&#39;</code>)</li>
@@ -39,22 +41,22 @@ of the Shell.</p>
     <li><code>unquote-splice</code> (abbreviated with <code>,@</code>)</li>
     <li><code>splice</code> (abbreviated with <code>@</code>)</li>
     <li><code>atom?</code></li>
-    <li><code>equal?</code> (aliased to <code>eq?</code>)</li>
-    <li><code>head</code></li>
-    <li><code>tail</code></li>
+    <li><code>eq?</code> (aliased to <code>=</code>)</li>
     <li><code>cons</code></li>
     <li><code>if</code></li>
     <li><code>cond</code></li>
-    <li><code>while</code></li>
-    <li><code>macro</code> (aliased to <code>mac</code>)</li>
-    <li><code>function</code> (aliased to <code>fun</code>)</li>
-    <li><code>variable</code> (aliased to <code>var</code>)</li>
-    <li><code>variable?</code> (aliased to <code>var?</code>)</li>
-    <li><code>mutate</code> (aliased to <code>mut</code>)</li>
-    <li><code>define</code> (aliased to <code>def</code> and equivalent to <code>define-function</code>)</li>
-    <li><code>define-function</code> (aliased to <code>def-fun</code>)</li>
-    <li><code>define-macro</code> (aliased to <code>def-mac</code>)</li>
+    <li><code>case</code></li>
+    <li><code>mac</code></li>
+    <li><code>fun</code></li>
+    <li><code>var</code></li>
+    <li><code>var?</code></li>
+    <li><code>mut</code></li>
+    <li><code>def</code> (equivalent to <code>def-fun</code>)</li>
+    <li><code>def-fun</code></li>
+    <li><code>def-mac</code></li>
     <li><code>apply</code></li>
+    <li><code>fold</code></li>
+    <li><code>while</code></li>
     <li><code>do</code></li>
     <li><code>doc</code></li>
     <li><code>eval</code></li>
@@ -62,24 +64,26 @@ of the Shell.</p>
     <li><code>load</code></li>
     </ul>
 
-    <h3>Primitive Operators</h3>
+    <h3>Primitives</h3>
 
     <ul>
-    <li><code>type</code>, <code>number/type</code> (aliased to <code>num/type</code>), <code>parse</code></li>
-    <li><code>string</code> (aliased to <code>str</code>)</li>
-    <li><code>string-&gt;number</code> and <code>number-&gt;string</code> (aliased to <code>str-&gt;num</code> and <code>num-&gt;str</code>)</li>
-    <li><code>string-&gt;binary</code> and <code>binary-&gt;string</code> (aliased to <code>str-&gt;bin</code> and <code>bin-&gt;str</code>)</li>
-    <li><code>number-&gt;binary</code> and <code>binary-&gt;number</code> (aliased to <code>num-&gt;bin</code> and <code>bin-&gt;num</code>)</li>
+    <li><code>type</code>, <code>parse</code></li>
+    <li><code>str</code></li>
+    <li><code>str-&gt;num</code>, <code>num-&gt;str</code></li>
+    <li><code>str-&gt;bin</code>, <code>bin-&gt;str</code></li>
+    <li><code>num-&gt;bin</code>, <code>bin-&gt;num</code></li>
     <li><code>regex/find</code></li>
-    <li><code>shell</code> (aliased to <code>sh</code>) and <code>shell-&gt;binary</code> (aliased to <code>sh-&gt;bin</code>)</li>
+    <li><code>sh</code>, <code>sh-&gt;bin</code></li>
     <li><code>date</code>, <code>sleep</code></li>
-    <li>Arithmetic operations: <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>^</code>, <code>rem</code> (aliased to <code>%</code>), <code>trunc</code></li>
-    <li>Trigonometric functions: <code>acos</code>, <code>asin</code>, <code>atan</code>, <code>cos</code>, <code>sin</code>, <code>tan</code></li>
-    <li>Comparisons: <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, <code>=</code></li>
-    <li>Enumerable: <code>length</code> (aliased to <code>len</code>), <code>put</code>, <code>get</code>, <code>slice</code>, <code>contains?</code></li>
-    <li>String: <code>string/trim</code> and <code>string/split</code> (aliased to <code>str/trim</code> and <code>str/split</code>)</li>
-    <li>List: <code>list</code>, <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>unique</code> (aliased to <code>uniq</code>)</li>
-    <li>Dict: <code>dict</code></li>
+    <li>Number: <code>num/type</code>, <code>num/int</code>, <code>num/eq?</code></li>
+    <li>Bit: <code>bit/not</code>, <code>bit/and</code>, <code>bit/or</code>, <code>bit/xor</code>, <code>bit/shl</code>, <code>bit/shr</code> (aliased to <code>~</code>, <code>&amp;</code>, <code>|</code>, <code>^</code>, <code>&lt;&lt;</code>, <code>&gt;&gt;</code>)</li>
+    <li>Arithmetic: <code>add</code>, <code>sub</code>, <code>mul</code>, <code>div</code>, <code>exp</code>, <code>rem</code> (aliased to <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>**</code>, <code>%</code>)</li>
+    <li>Trigonometric: <code>acos</code>, <code>asin</code>, <code>atan</code>, <code>cos</code>, <code>sin</code>, <code>tan</code></li>
+    <li>Comparisons: <code>gt?</code>, <code>lt?</code>, <code>gte?</code>, <code>lte?</code> (aliased to <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>)</li>
+    <li>Enumerable: <code>len</code>, <code>put</code>, <code>get</code>, <code>slice</code>, <code>contains?</code></li>
+    <li>String: <code>str/trim</code>, <code>str/split</code></li>
+    <li>List: <code>list</code>, <code>concat</code>, <code>chunks</code>, <code>sort</code>, <code>uniq</code></li>
+    <li>Dict: <code>dict</code>, <code>dict/pairs</code></li>
     <li>File: <code>file/exists?</code>, <code>file/size</code>, <code>file/open</code>, <code>file/close</code>, <code>file/read</code>, <code>file/write</code></li>
     <li>Net: <code>host</code>, <code>socket/connect</code>, <code>socket/listen</code>, <code>socket/accept</code></li>
     </ul>
@@ -88,15 +92,15 @@ of the Shell.</p>
 
     <ul>
     <li><code>nil</code>, <code>nil?</code>, <code>list?</code>, <code>empty?</code></li>
-    <li><code>boolean?</code> (aliased to <code>bool?</code>), <code>string?</code> (aliased to <code>str?</code>), <code>symbol?</code> (aliased to <code>sym?</code>), <code>number?</code> (aliased to <code>num?</code>)</li>
-    <li><code>function?</code> (aliased to <code>fun?</code>), <code>macro?</code> (aliased to <code>mac?</code>)</li>
+    <li><code>bool?</code>, <code>str?</code>, <code>sym?</code>, <code>num?</code></li>
+    <li><code>fun?</code>, <code>mac?</code></li>
     <li><code>abs</code>, <code>mod</code>, <code>min</code>, <code>max</code></li>
-    <li><code>first</code>, <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code>, <code>push</code></li>
-    <li><code>map</code>, <code>reduce</code>, <code>reverse</code> (aliased to <code>rev</code>), <code>range</code>, <code>filter</code>, <code>reject</code>, <code>intersection</code></li>
+    <li><code>first</code> (aliased to <code>head</code>), <code>second</code>, <code>third</code>, <code>last</code>, <code>rest</code> (aliased to <code>tail</code>), <code>push</code></li>
+    <li><code>map</code>, <code>reduce</code>, <code>rev</code>, <code>range</code>, <code>filter</code>, <code>reject</code>, <code>intersection</code></li>
     <li><code>not</code>, <code>and</code>, <code>or</code></li>
     <li><code>set</code>, <code>let</code></li>
-    <li><code>string/join</code> (aliased to <code>str/join</code>), <code>lines</code>, <code>words</code>, <code>chars</code></li>
-    <li><code>shell-&gt;string</code> (aliased to <code>sh-&gt;str</code>)</li>
+    <li><code>str/join</code>, <code>lines</code>, <code>words</code>, <code>chars</code></li>
+    <li><code>sh-&gt;str</code></li>
     <li><code>regex/match?</code></li>
     </ul>
 
@@ -105,7 +109,7 @@ of the Shell.</p>
     <ul>
     <li><code>dirname</code>, <code>filename</code></li>
     <li><code>read</code>, <code>write</code>, <code>append</code></li>
-    <li><code>read-binary</code>, <code>write-binary</code>, <code>append-binary</code></li>
+    <li><code>read-bin</code>, <code>write-bin</code>, <code>append-bin</code></li>
     <li><code>read-line</code>, <code>read-char</code></li>
     <li><code>clock/boot</code>, <code>clock/epoch</code></li>
     <li><code>p</code>, <code>print</code>, <code>eprint</code>, <code>error</code></li>
@@ -117,7 +121,13 @@ of the Shell.</p>
     <li><code>floor</code>, <code>ceil</code>, <code>round</code></li>
     </ul>
 
-    <h3>Compatibility Library</h3>
+    <h3>Dict Library</h3>
+
+    <ul>
+    <li><code>dict/keys</code>, <code>dict/values</code></li>
+    </ul>
+
+    <h3>Compat Library</h3>
 
     <ul>
     <li><code>atom</code>, <code>eq</code>, <code>label</code>, <code>lambda</code>, <code>progn</code>, <code>begin</code></li>
@@ -129,7 +139,7 @@ of the Shell.</p>
     <p>The interpreter can be invoked from the shell:</p>
 
     <pre><code>&gt; lisp
-MOROS Lisp v0.7.0
+MOROS Lisp v0.9.0
 
 &gt; (+ 1 2 3)
 6
@@ -163,8 +173,8 @@ with the following content:</p>
 
 (print &quot;Hello, World!&quot;)
 
-(set bar 10)                       # Variable binding
-(set bar (+ bar 10))               # Variable rebinding
+(set foo 10)                       # Variable binding
+(set foo (+ foo 10))               # Variable rebinding
 
 (set double (fun (x) (* x 2)))     # Function definition
 (def (double x) (* x 2))           # Shortcut
@@ -199,14 +209,30 @@ with the following content:</p>
 
 (str &quot;Hello, &quot; name)               # =&gt; &quot;Hello, Alice&quot;
 
-(^ 2 64)                           # =&gt; 18446744073709551616
+(** 2 64)                          # =&gt; 18446744073709551616
 </code></pre>
 
     <h2>Changelog</h2>
 
     <h3>Unreleased</h3>
 
+    <h3>0.9.0 (2026-06-21)</h3>
+
     <ul>
+    <li>Allow optional arguments</li>
+    <li>Add <code>fold</code> special form</li>
+    <li>Fix double eval issue with <code>apply</code></li>
+    <li>Add <code>dict/pairs</code> function</li>
+    <li>Change <code>socket/accept</code> to return <code>()</code> instead of an error</li>
+    <li>Replace long names (<code>string</code>, <code>variable</code>, <code>define</code>, ...) by short names (<code>str</code>, <code>var</code>, <code>def</code>, ...)</li>
+    <li>Change <code>and</code> and <code>or</code> to accept more than 2 args</li>
+    <li>Merge <code>=</code> into <code>equal?</code> (aliased to <code>eq?</code> and <code>=</code>) and add a stricter <code>number/equal?</code></li>
+    <li>Rename <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, and <code>%</code> to <code>add</code>, <code>sub</code>, <code>mul</code>, <code>div</code>, and <code>rem</code> (aliased to their previous names)</li>
+    <li>Rename <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, and <code>&lt;=</code> to <code>gt?</code>, <code>lt?</code>, <code>gte?</code> and <code>lte?</code> (aliased to their previous names)</li>
+    <li>Rename <code>trunc</code> to <code>number/int</code> (aliased to <code>num/int</code> and its previous name)</li>
+    <li>Add <code>bit/and</code>, <code>bit/or</code>, and <code>bit/xor</code> bit operators (aliased to <code>&amp;</code>, <code>|</code>, and <code>^</code>)</li>
+    <li>Rename <code>^</code> exp operator to <code>exp</code> (aliased to <code>**</code>)</li>
+    <li>Add <code>case</code> function</li>
     <li>Refactor comment parsing</li>
     <li>Add <code>shell-&gt;binary</code> function (aliased to <code>sh-&gt;bin</code>)</li>
     <li>Add <code>shell-&gt;string</code> function (aliased to <code>sh-&gt;str</code>)</li>

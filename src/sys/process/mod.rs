@@ -1,27 +1,42 @@
+mod dir;
+mod env;
+mod id;
 mod spawn;
 mod table;
+mod user;
+mod stat;
 
+pub use id::ProcId;
+pub use dir::ProcDir;
+pub use env::ProcEnv;
+pub use user::ProcUser;
+pub use stat::ProcStat;
 pub use spawn::spawn;
 pub use table::{
     init,
-    code_addr,
-    id, set_id,
-    dir, set_dir,
-    envs, env, set_env,
-    user, set_user,
+    env_var,
+    set_user,
+    dir,
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
     registers, set_registers,
     stack_frame, set_stack_frame,
 };
 
-use table::PROCESS_TABLE;
-use table::current_process;
+use table::{
+    PROCESS_TABLE,
+    current_process,
+    id, set_id,
+    set_dir,
+    env, set_env_var,
+    user,
+};
 
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
-use crate::sys::mem::{phys_mem_offset, with_frame_allocator};
+use crate::sys::mem::with_frame_allocator;
+use crate::sys::syscall;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -32,39 +47,21 @@ use linked_list_allocator::LockedHeap;
 use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
-    FrameDeallocator, OffsetPageTable, PageTable, PageTableFlags, PhysFrame,
-    Translate,
+    FrameDeallocator, PageTable, PhysFrame,
 };
-use x86_64::structures::paging::mapper::TranslateResult;
-use x86_64::VirtAddr;
 
 pub const MAX_HANDLES: usize = 64;
-pub const MAX_PROC_SIZE: usize = 10 << 20; // 10 MB
+pub const MAX_PROC_SIZE: usize = 32 << 20;
 
-// TODO: Remove this when the kernel is no longer at 0x200000 in userspace.
-// Currently this address must be used by the linker for user programs that
-// need to allocate memory to avoid using kernel memory.
-const USER_ADDR: u64 = 0x800000;
+// The user memory region lives in its own L4 entry of each process page table.
+pub const USER_ADDR: u64 = 0x0000_0080_0000_0000;
 
-// TODO: Remove this when the kernel is no longer at 0x200000 in userspace
 pub fn is_userspace(addr: u64) -> bool {
-    USER_ADDR <= addr && addr <= USER_ADDR + MAX_PROC_SIZE as u64
-}
-
-static CODE_ADDR: AtomicU64 = AtomicU64::new(0);
-
-// Called during kernel heap initialization
-pub fn set_process_addr(addr: u64) {
-    CODE_ADDR.store(addr, Ordering::SeqCst);
+    USER_ADDR <= addr && addr < USER_ADDR + MAX_PROC_SIZE as u64
 }
 
 pub fn ptr_from_addr(addr: u64) -> *mut u8 {
-    let base = code_addr();
-    if addr < base {
-        (base + addr) as *mut u8
-    } else {
-        addr as *mut u8
-    }
+    addr as *mut u8
 }
 
 #[repr(C, align(8))]
@@ -113,18 +110,39 @@ impl ProcessData {
 #[derive(Clone)]
 struct ProcessContext {
     id: usize,
-    code_addr: u64,
     stack_addr: u64,
     entry_point_addr: u64,
     page_table_frame: PhysFrame,
     allocator: Arc<LockedHeap>,
 }
 
-#[derive(Clone)]
+const SYSCALLS: usize = syscall::number::count();
+
+pub struct ProcessStats {
+    syscalls_count: [AtomicU64; SYSCALLS],
+}
+
+impl ProcessStats {
+    fn new() -> Self {
+        Self {
+            syscalls_count: [(); SYSCALLS].map(|_| AtomicU64::new(0)),
+        }
+    }
+
+    pub fn syscall_count(&self, number: usize) -> u64 {
+        self.syscalls_count[number - 1].load(Ordering::Relaxed)
+    }
+
+    pub fn increment_syscall_count(&self, number: usize) {
+        self.syscalls_count[number - 1].fetch_add(1, Ordering::SeqCst);
+    }
+}
+
 pub struct Process {
     parent_id: usize,
     stack_frame: Option<InterruptStackFrameValue>,
     registers: Registers,
+    stats: ProcessStats,
     data: ProcessData,
     ctx: ProcessContext,
 }
@@ -135,41 +153,15 @@ impl Process {
             parent_id: 0,
             stack_frame: None,
             registers: Registers::default(),
+            stats: ProcessStats::new(),
             data: ProcessData::new("/", None),
             ctx: ProcessContext {
                 id: 0,
-                code_addr: 0,
                 stack_addr: 0,
                 entry_point_addr: 0,
                 page_table_frame: Cr3::read().0,
                 allocator: Arc::new(LockedHeap::empty()),
             }
-        }
-    }
-
-    fn mapper(&self) -> OffsetPageTable<'_> {
-        let page_table = unsafe {
-            mem::create_page_table(self.ctx.page_table_frame)
-        };
-        unsafe {
-            OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
-        }
-    }
-
-    fn free_pages(&self) {
-        let mut mapper = self.mapper();
-
-        let size = MAX_PROC_SIZE;
-        mem::free_pages(&mut mapper, self.ctx.code_addr, size);
-
-        let addr = USER_ADDR;
-        match mapper.translate(VirtAddr::new(addr)) {
-            TranslateResult::Mapped { frame: _, offset: _, flags } => {
-                if flags.contains(PageTableFlags::USER_ACCESSIBLE) {
-                    mem::free_pages(&mut mapper, addr, size);
-                }
-            }
-            _ => {}
         }
     }
 }
@@ -180,14 +172,8 @@ pub fn exit() {
         table[id()].take().unwrap()
     };
 
-    proc.free_pages();
-    unsafe {
-        with_frame_allocator(|allocator| {
-            allocator.deallocate_frame(proc.ctx.page_table_frame);
-        });
-    }
-
     load_process(proc.parent_id);
+    free_process(proc.ctx.page_table_frame);
 }
 
 fn load_process(id: usize) {
@@ -195,6 +181,17 @@ fn load_process(id: usize) {
     unsafe {
         let (_, flags) = Cr3::read();
         Cr3::write(page_table_frame(), flags);
+    }
+}
+
+fn free_process(page_table_frame: PhysFrame) {
+    let page_table = unsafe { mem::create_page_table(page_table_frame) };
+    let mut mapper = unsafe { mem::create_mapper(page_table) };
+    mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
+    unsafe {
+        with_frame_allocator(|allocator| {
+            allocator.deallocate_frame(page_table_frame);
+        });
     }
 }
 
@@ -206,4 +203,16 @@ unsafe fn page_table_frame() -> PhysFrame {
 
 pub unsafe fn page_table() -> &'static mut PageTable {
     mem::create_page_table(page_table_frame())
+}
+
+pub fn syscall_count(number: usize) -> u64 {
+    let table = PROCESS_TABLE.read();
+    let proc = current_process(&table);
+    proc.stats.syscall_count(number)
+}
+
+pub fn increment_syscall_count(number: usize) {
+    let table = PROCESS_TABLE.read();
+    let proc = current_process(&table);
+    proc.stats.increment_syscall_count(number);
 }

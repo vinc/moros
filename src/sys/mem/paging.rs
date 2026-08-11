@@ -1,4 +1,5 @@
 use super::with_frame_allocator;
+use super::phys_mem_offset;
 
 use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
@@ -24,6 +25,10 @@ pub unsafe fn create_page_table(frame: PhysFrame) -> &'static mut PageTable {
     &mut *page_table_ptr // unsafe
 }
 
+pub unsafe fn create_mapper(page_table: &mut PageTable) -> OffsetPageTable<'_> {
+    OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+}
+
 pub fn alloc_pages(
     mapper: &mut OffsetPageTable, addr: u64, size: usize
 ) -> Result<(), ()> {
@@ -47,6 +52,12 @@ pub fn alloc_pages(
                 };
                 if let Ok(mapping) = res {
                     mapping.flush();
+
+                    // Clear the frame
+                    let virt = super::phys_to_virt(frame.start_address());
+                    unsafe {
+                        core::ptr::write_bytes(virt.as_mut_ptr::<u8>(), 0, 4096);
+                    }
                 } else {
                     debug!("Could not map {:?} to {:?}", page, frame);
                     if let Ok(old_frame) = mapper.translate_page(page) {
@@ -87,7 +98,7 @@ pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
     };
     unsafe {
         with_frame_allocator(|allocator| {
-            mapper.clean_up(allocator);
+            mapper.clean_up_addr_range(pages, allocator);
         });
     }
 }

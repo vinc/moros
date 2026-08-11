@@ -1,5 +1,5 @@
 use crate::api::syscall;
-use crate::sys;
+use crate::api::process;
 use crate::sys::fs::OpenFlag;
 
 use alloc::format;
@@ -7,7 +7,7 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
-pub use crate::sys::fs::{DeviceType, FileInfo};
+pub use crate::sys::fs::{device_type, FileInfo};
 
 #[derive(Clone, Copy)]
 pub enum IO {
@@ -55,7 +55,7 @@ pub fn realpath(pathname: &str) -> String {
     if pathname.starts_with('/') {
         pathname.into()
     } else {
-        let dirname = sys::process::dir();
+        let dirname = process::dir();
         let sep = if dirname.ends_with('/') { "" } else { "/" };
         format!("{}{}{}", dirname, sep, pathname)
     }
@@ -152,34 +152,6 @@ fn device_buffer(name: &str) -> Result<Vec<u8>, ()> {
         }
     }
     Ok(buf)
-}
-
-// TODO: Move this to sys::fs::device
-fn device_type(name: &str) -> Result<DeviceType, ()> {
-    match name {
-        "null"        => Ok(DeviceType::Null),
-        "file"        => Ok(DeviceType::File),
-        "console"     => Ok(DeviceType::Console),
-        "random"      => Ok(DeviceType::Random),
-        "clk-boot"    => Ok(DeviceType::BootTime),
-        "clk-epoch"   => Ok(DeviceType::EpochTime),
-        "clk-rtc"     => Ok(DeviceType::RTC),
-        "net-tcp"     => Ok(DeviceType::TcpSocket),
-        "net-udp"     => Ok(DeviceType::UdpSocket),
-        "net-gw"      => Ok(DeviceType::NetGw),
-        "net-ip"      => Ok(DeviceType::NetIp),
-        "net-mac"     => Ok(DeviceType::NetMac),
-        "net-usage"   => Ok(DeviceType::NetUsage),
-        "snd-buffer"  => Ok(DeviceType::SoundBuffer),
-        "vga-buffer"  => Ok(DeviceType::VgaBuffer),
-        "vga-font"    => Ok(DeviceType::VgaFont),
-        "vga-mode"    => Ok(DeviceType::VgaMode),
-        "vga-palette" => Ok(DeviceType::VgaPalette),
-        "speaker"     => Ok(DeviceType::Speaker),
-        "ata"         => Ok(DeviceType::Drive),
-        "pipe"        => Ok(DeviceType::Pipe),
-        _             => Err(()),
-    }
 }
 
 pub fn read(path: &str, buf: &mut [u8]) -> Result<usize, ()> {

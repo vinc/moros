@@ -1,9 +1,7 @@
 use crate::api::fs::{FileIO, IO};
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::Device;
-use crate::sys::fs::FileInfo;
-use crate::sys::fs::Resource;
+use crate::sys::fs::{Device, FileInfo, Resource, SeekFrom};
 
 use alloc::vec;
 use core::alloc::Layout;
@@ -60,14 +58,6 @@ pub fn open(path: &str, flags: u8) -> isize {
     -1
 }
 
-pub fn dup(old_handle: usize, new_handle: usize) -> isize {
-    if let Some(file) = sys::process::handle(old_handle) {
-        sys::process::update_handle(new_handle, *file);
-        return 0;
-    }
-    -1
-}
-
 pub fn read(handle: usize, buf: &mut [u8]) -> isize {
     if let Some(mut file) = sys::process::handle(handle) {
         if let Ok(bytes) = file.read(buf) {
@@ -92,6 +82,33 @@ pub fn close(handle: usize) {
     if let Some(mut file) = sys::process::handle(handle) {
         file.close();
         sys::process::delete_handle(handle);
+    }
+}
+
+pub fn dup(old_handle: usize, new_handle: usize) -> isize {
+    if let Some(file) = sys::process::handle(old_handle) {
+        sys::process::update_handle(new_handle, *file);
+        return 0;
+    }
+    -1
+}
+
+pub fn seek(handle: usize, from: SeekFrom) -> isize {
+    if let Some(file) = sys::process::handle(handle) {
+        let mut res = *file;
+        match &mut res {
+            Resource::File(f) => {
+                if let Ok(cursor) = f.seek(from) {
+                    sys::process::update_handle(handle, res);
+                    cursor as isize
+                } else {
+                    -3
+                }
+            }
+            _ => -2
+        }
+    } else {
+        -1
     }
 }
 
@@ -178,6 +195,11 @@ pub fn listen(handle: usize, port: u16) -> isize {
     -1
 }
 
+// TODO: This should return a new file handle for the connection in addition
+// to an address and a port to keep the listening socket open when the
+// connection is closed: `Result<(usize, IpAddress, u16), ()>`.
+// TODO: Remove the blocking+timeout as waiting should be done by polling the
+// listening socket instead.
 pub fn accept(handle: usize) -> Result<IpAddress, ()> {
     if let Some(file) = sys::process::handle(handle) {
         return match *file {

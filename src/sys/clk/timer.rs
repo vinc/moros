@@ -2,10 +2,10 @@ use super::sync;
 use super::cmos::CMOS;
 
 use crate::sys;
+use crate::sys::x86::interrupts;
+use crate::sys::x86::port::*;
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
 
 // At boot the PIT starts with a frequency divider of 0 (equivalent to 65536)
 // which will result in about 54.926 ms between ticks.
@@ -39,14 +39,12 @@ pub fn pit_frequency() -> f64 {
 pub fn set_pit_frequency(divider: u16, channel: u8) {
     interrupts::without_interrupts(|| {
         let bytes = divider.to_le_bytes();
-        let mut cmd: Port<u8> = Port::new(0x43);
-        let mut data: Port<u8> = Port::new(0x40 + channel as u16);
         let operating_mode = 6; // Square wave generator
         let access_mode = 3; // Lobyte + Hibyte
         unsafe {
-            cmd.write((channel << 6) | (access_mode << 4) | operating_mode);
-            data.write(bytes[0]);
-            data.write(bytes[1]);
+            outb(0x43, (channel << 6) | (access_mode << 4) | operating_mode);
+            outb(0x40 + channel as u16, bytes[0]);
+            outb(0x40 + channel as u16, bytes[1]);
         }
     });
 }
