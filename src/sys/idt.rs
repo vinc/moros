@@ -1,12 +1,12 @@
+use crate::{api, hang, sys};
 use crate::api::process::ExitCode;
 use crate::sys::process::Registers;
-use crate::{api, hlt_loop, sys};
+use crate::sys::x86::interrupts;
+use crate::sys::x86::port::*;
 
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
 use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
@@ -145,7 +145,7 @@ extern "x86-interrupt" fn page_fault_handler(
     if error_code.contains(PageFaultErrorCode::USER_MODE) {
         api::syscall::exit(ExitCode::PageFaultError);
     } else {
-        hlt_loop();
+        hang();
     }
 }
 
@@ -252,9 +252,8 @@ extern "sysv64" fn syscall_handler(
 const PIC1: u16 = 0x21;
 const PIC2: u16 = 0xA1;
 
-fn irq_port(irq: u8) -> Port<u8> {
-    let addr = if irq < 8 { PIC1 } else { PIC2 };
-    Port::new(addr)
+fn irq_port(irq: u8) -> u16 {
+    if irq < 8 { PIC1 } else { PIC2 }
 }
 
 fn irq_line(irq: u8) -> u8 {
@@ -262,18 +261,18 @@ fn irq_line(irq: u8) -> u8 {
 }
 
 pub fn set_irq_mask(irq: u8) {
-    let mut port = irq_port(irq);
+    let port = irq_port(irq);
     unsafe {
-        let value = port.read() | (1 << irq_line(irq));
-        port.write(value);
+        let value = inb(port) | (1 << irq_line(irq));
+        outb(port, value);
     }
 }
 
 pub fn clear_irq_mask(irq: u8) {
-    let mut port = irq_port(irq);
+    let port = irq_port(irq);
     unsafe {
-        let value = port.read() & !(1 << irq_line(irq));
-        port.write(value);
+        let value = inb(port) & !(1 << irq_line(irq));
+        outb(port, value);
     }
 }
 

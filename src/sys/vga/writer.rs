@@ -122,39 +122,33 @@ impl Writer {
 
     fn write_cursor(&mut self) {
         let pos = self.cursor[0] + self.cursor[1] * SCREEN_WIDTH;
-        let mut addr = Port::new(CRTC_ADDR_REG);
-        let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
-            addr.write(0x0F as u8);
-            data.write((pos & 0xFF) as u8);
-            addr.write(0x0E as u8);
-            data.write(((pos >> 8) & 0xFF) as u8);
+            outb(CRTC_ADDR_REG, 0x0F);
+            outb(CRTC_DATA_REG, (pos & 0xFF) as u8);
+            outb(CRTC_ADDR_REG, 0x0E);
+            outb(CRTC_DATA_REG, ((pos >> 8) & 0xFF) as u8);
         }
     }
 
     // Source: http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
     fn disable_cursor(&self) {
-        let mut addr = Port::new(CRTC_ADDR_REG);
-        let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
-            addr.write(0x0A as u8);
-            data.write(0x20 as u8);
+            outb(CRTC_ADDR_REG, 0x0A);
+            outb(CRTC_DATA_REG, 0x20);
         }
     }
 
     fn enable_cursor(&self) {
-        let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
-        let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
         let cursor_start = 13; // Starting row
         let cursor_end = 14; // Ending row
         unsafe {
-            addr.write(0x0A); // Cursor Start Register
-            let b = data.read();
-            data.write((b & 0xC0) | cursor_start);
+            outb(CRTC_ADDR_REG, 0x0A); // Cursor Start Register
+            let b = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, (b & 0xC0) | cursor_start);
 
-            addr.write(0x0B); // Cursor End Register
-            let b = data.read();
-            data.write((b & 0xE0) | cursor_end);
+            outb(CRTC_ADDR_REG, 0x0B); // Cursor End Register
+            let b = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, (b & 0xE0) | cursor_end);
         }
     }
 
@@ -269,18 +263,16 @@ impl Writer {
 
     // Source: https://slideplayer.com/slide/3888880
     pub fn set_font(&mut self, font: &Font) {
-        let mut sequencer: Port<u16> = Port::new(SEQUENCER_ADDR_REG);
-        let mut graphics: Port<u16> = Port::new(GRAPHICS_ADDR_REG);
         let buffer = Buffer::addr() as *mut u8;
 
         unsafe {
-            sequencer.write(0x0100); // do a sync reset
-            sequencer.write(0x0402); // write plane 2 only
-            sequencer.write(0x0704); // sequetial access
-            sequencer.write(0x0300); // end the reset
-            graphics.write(0x0204); // read plane 2 only
-            graphics.write(0x0005); // disable odd/even
-            graphics.write(0x0006); // VRAM at 0xA0000
+            outw(SEQUENCER_ADDR_REG, 0x0100); // do a sync reset
+            outw(SEQUENCER_ADDR_REG, 0x0402); // write plane 2 only
+            outw(SEQUENCER_ADDR_REG, 0x0704); // sequetial access
+            outw(SEQUENCER_ADDR_REG, 0x0300); // end the reset
+            outw(GRAPHICS_ADDR_REG,  0x0204); // read plane 2 only
+            outw(GRAPHICS_ADDR_REG,  0x0005); // disable odd/even
+            outw(GRAPHICS_ADDR_REG,  0x0006); // VRAM at 0xA0000
 
             for i in 0..font.size as usize {
                 for j in 0..font.height as usize {
@@ -291,35 +283,31 @@ impl Writer {
                 }
             }
 
-            sequencer.write(0x0100); // do a sync reset
-            sequencer.write(0x0302); // write plane 0 & 1
-            sequencer.write(0x0304); // even/odd access
-            sequencer.write(0x0300); // end the reset
-            graphics.write(0x0004); // restore to default
-            graphics.write(0x1005); // resume odd/even
-            graphics.write(0x0E06); // VRAM at 0xB800
+            outw(SEQUENCER_ADDR_REG, 0x0100); // do a sync reset
+            outw(SEQUENCER_ADDR_REG, 0x0302); // write plane 0 & 1
+            outw(SEQUENCER_ADDR_REG, 0x0304); // even/odd access
+            outw(SEQUENCER_ADDR_REG, 0x0300); // end the reset
+            outw(GRAPHICS_ADDR_REG,  0x0004); // restore to default
+            outw(GRAPHICS_ADDR_REG,  0x1005); // resume odd/even
+            outw(GRAPHICS_ADDR_REG,  0x0E06); // VRAM at 0xB800
         }
     }
 
     pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
-        let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
-        let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         unsafe {
-            addr.write(i as u8);
-            data.write(r >> 2); // Convert 8-bit to 6-bit color
-            data.write(g >> 2);
-            data.write(b >> 2);
+            outb(DAC_ADDR_WRITE_MODE_REG, i as u8);
+            outb(DAC_DATA_REG, r >> 2); // Convert 8-bit to 6-bit color
+            outb(DAC_DATA_REG, g >> 2);
+            outb(DAC_DATA_REG, b >> 2);
         }
     }
 
     pub fn palette(&mut self, i: usize) -> (u8, u8, u8) {
-        let mut addr: Port<u8> = Port::new(DAC_ADDR_READ_MODE_REG);
-        let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         unsafe {
-            addr.write(i as u8);
-            let r = data.read() << 2; // Convert 6-bit to 8-bit color
-            let g = data.read() << 2;
-            let b = data.read() << 2;
+            outb(DAC_ADDR_READ_MODE_REG, i as u8);
+            let r = inb(DAC_DATA_REG) << 2; // Convert 6-bit to 8-bit color
+            let g = inb(DAC_DATA_REG) << 2;
+            let b = inb(DAC_DATA_REG) << 2;
             (r, g, b)
         }
     }

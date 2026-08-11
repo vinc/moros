@@ -18,3 +18,9 @@ pub fn init() {
         }
     }
 }
+
+// RDRAND has been available since 2012 for Intel (Ivy Bridge) processors
+// and 2015 for AMD.
+pub fn has_rdrand() -> bool {
+    CpuId::new().get_feature_info().is_some_and(|info| info.has_rdrand())
+}

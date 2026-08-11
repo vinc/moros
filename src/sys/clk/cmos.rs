@@ -1,21 +1,19 @@
 use super::rtc::{Interrupt, RTC, Register, RTC_CENTURY};
 
+use crate::sys::x86::interrupts;
+use crate::sys::x86::port::*;
+
 use bit_field::BitField;
 use core::hint::spin_loop;
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
 
-pub struct CMOS {
-    addr: Port<u8>,
-    data: Port<u8>,
-}
+const ADDR_PORT: u16 = 0x70;
+const DATA_PORT: u16 = 0x71;
+
+pub struct CMOS;
 
 impl CMOS {
     pub fn new() -> Self {
-        CMOS {
-            addr: Port::new(0x70),
-            data: Port::new(0x71),
-        }
+        Self
     }
 
     fn rtc_unchecked(&mut self) -> RTC {
@@ -128,10 +126,10 @@ impl CMOS {
         interrupts::without_interrupts(|| {
             self.disable_nmi();
             unsafe {
-                self.addr.write(Register::A as u8);
-                let prev = self.data.read();
-                self.addr.write(Register::A as u8);
-                self.data.write((prev & 0xF0) | rate);
+                outb(ADDR_PORT, Register::A as u8);
+                let prev = inb(DATA_PORT);
+                outb(ADDR_PORT, Register::A as u8);
+                outb(DATA_PORT, (prev & 0xF0) | rate);
             }
             self.enable_nmi();
             self.notify_end_of_interrupt();
@@ -142,10 +140,10 @@ impl CMOS {
         interrupts::without_interrupts(|| {
             self.disable_nmi();
             unsafe {
-                self.addr.write(Register::B as u8);
-                let prev = self.data.read();
-                self.addr.write(Register::B as u8);
-                self.data.write(prev | interrupt as u8);
+                outb(ADDR_PORT, Register::B as u8);
+                let prev = inb(DATA_PORT);
+                outb(ADDR_PORT, Register::B as u8);
+                outb(DATA_PORT, prev | interrupt as u8);
             }
             self.enable_nmi();
             self.notify_end_of_interrupt();
@@ -154,8 +152,8 @@ impl CMOS {
 
     pub fn notify_end_of_interrupt(&mut self) {
         unsafe {
-            self.addr.write(Register::C as u8);
-            self.data.read();
+            outb(ADDR_PORT, Register::C as u8);
+            inb(DATA_PORT);
         }
     }
 
@@ -167,36 +165,36 @@ impl CMOS {
 
     fn is_updating(&mut self) -> bool {
         unsafe {
-            self.addr.write(Register::A as u8);
-            self.data.read().get_bit(7)
+            outb(ADDR_PORT, Register::A as u8);
+            inb(DATA_PORT).get_bit(7)
         }
     }
 
     fn read_register(&mut self, reg: Register) -> u8 {
         unsafe {
-            self.addr.write(reg as u8);
-            self.data.read()
+            outb(ADDR_PORT, reg as u8);
+            inb(DATA_PORT)
         }
     }
 
     fn write_register(&mut self, reg: Register, value: u8) {
         unsafe {
-            self.addr.write(reg as u8);
-            self.data.write(value);
+            outb(ADDR_PORT, reg as u8);
+            outb(DATA_PORT, value);
         }
     }
 
     fn enable_nmi(&mut self) {
         unsafe {
-            let prev = self.addr.read();
-            self.addr.write(prev & 0x7F);
+            let prev = inb(ADDR_PORT);
+            outb(ADDR_PORT, prev & 0x7F);
         }
     }
 
     fn disable_nmi(&mut self) {
         unsafe {
-            let prev = self.addr.read();
-            self.addr.write(prev | 0x80);
+            let prev = inb(ADDR_PORT);
+            outb(ADDR_PORT, prev | 0x80);
         }
     }
 }

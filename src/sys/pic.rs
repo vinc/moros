@@ -1,3 +1,5 @@
+use crate::sys::x86::interrupts;
+
 use pic8259::ChainedPics;
 use spin::Mutex;
 
@@ -12,5 +14,5 @@ pub fn init() {
     unsafe {
         PICS.lock().initialize();
     }
-    x86_64::instructions::interrupts::enable();
+    interrupts::enable();
 }

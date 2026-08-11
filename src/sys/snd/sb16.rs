@@ -1,7 +1,7 @@
 use super::{SoundBuffer, SoundConfig};
 
 use crate::sys;
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 use crate::sys::mem::PhysBuf;
 
 use alloc::vec::Vec;
@@ -59,44 +59,50 @@ impl Device {
         // Program the DMA controller
         dma(self.block.addr(), self.block.size() - 1);
 
-        // Set the DSP transfer sampling rate
-        let rate = (self.config.sample_rate as u16).to_be_bytes();
-        outb(DSP_WRITE, 0x41); // Output
-        outb(DSP_WRITE, rate[0]); // High byte
-        outb(DSP_WRITE, rate[1]); // Low byte
+        unsafe {
+            // Set the DSP transfer sampling rate
+            let rate = (self.config.sample_rate as u16).to_be_bytes();
+            outb(DSP_WRITE, 0x41); // Output
+            outb(DSP_WRITE, rate[0]); // High byte
+            outb(DSP_WRITE, rate[1]); // Low byte
 
-        // Send an I/O command
-        outb(DSP_WRITE, 0xC6); // 8-bit output
+            // Send an I/O command
+            outb(DSP_WRITE, 0xC6); // 8-bit output
 
-        // Send the transfer mode
-        outb(DSP_WRITE, 0x00); // 8-bit mono unsigned PCM
+            // Send the transfer mode
+            outb(DSP_WRITE, 0x00); // 8-bit mono unsigned PCM
 
-        // Send the DSP block transfer size
-        let bytes = (self.block.size() - 1).to_le_bytes();
-        outb(DSP_WRITE, bytes[0]);
-        outb(DSP_WRITE, bytes[1]);
+            // Send the DSP block transfer size
+            let bytes = (self.block.size() - 1).to_le_bytes();
+            outb(DSP_WRITE, bytes[0]);
+            outb(DSP_WRITE, bytes[1]);
+        }
     }
 
     pub fn stop(&mut self) {
-        self.is_playing = false;
-        outb(DSP_WRITE, 0xD0); // Pause DMA playback
-        let chan = 1;
-        outb(0x0A, 0x04 + chan); // Disable channel
+        unsafe {
+            self.is_playing = false;
+            outb(DSP_WRITE, 0xD0); // Pause DMA playback
+            let chan = 1;
+            outb(0x0A, 0x04 + chan); // Disable channel
+        }
         self.block.fill(0x80);
         self.buffer.clear();
         self.buffer.shrink_to_fit();
     }
 
     pub fn handle_interrupt(&mut self) {
-        if self.buffer.is_empty() {
-            self.is_playing = false;
-            outb(DSP_WRITE, 0xD0); // Pause
-            let chan = 1;
-            outb(0x0A, 0x04 + chan); // Disable channel
-        } else {
-            self.fill_block();
+        unsafe {
+            if self.buffer.is_empty() {
+                self.is_playing = false;
+                outb(DSP_WRITE, 0xD0); // Pause
+                let chan = 1;
+                outb(0x0A, 0x04 + chan); // Disable channel
+            } else {
+                self.fill_block();
+            }
+            let _ = inb(DSP_ACK);
         }
-        let _ = inb(DSP_ACK);
     }
 
     fn fill_block(&mut self) {
@@ -108,31 +114,35 @@ impl Device {
 }
 
 fn reset() -> bool {
-    outb(DSP_RESET, 1);
-    sys::clk::wait(3000); // 3 microseconds
-    outb(DSP_RESET, 0);
-    for _ in 0..100 {
-        sys::clk::wait(1000);
-        if inb(DSP_READ) == 0xAA {
-            return true;
+    unsafe {
+        outb(DSP_RESET, 1);
+        sys::clk::wait(3000); // 3 microseconds
+        outb(DSP_RESET, 0);
+        for _ in 0..100 {
+            sys::clk::wait(1000);
+            if inb(DSP_READ) == 0xAA {
+                return true;
+            }
         }
+        false
     }
-    false
 }
 
 fn dma(addr: u64, size: usize) {
     let addr = addr.to_le_bytes();
     let size = size.to_le_bytes();
     let chan = 1;
-    outb(0x0A, 0x04 + chan); // Disable channel
-    outb(0x0C, 0x01);        // Flip flop
-    outb(0x0B, 0x58 + chan); // Send transfer mode
-    outb(0x83, addr[2]);     // Send page number
-    outb(0x02, addr[0]);     // Send low bits of addr
-    outb(0x02, addr[1]);     // Send high bits of addr
-    outb(0x03, size[0]);     // Send low bits of size
-    outb(0x03, size[1]);     // Send high bits of size
-    outb(0x0A, chan);        // Enable channel
+    unsafe {
+        outb(0x0A, 0x04 + chan); // Disable channel
+        outb(0x0C, 0x01);        // Flip flop
+        outb(0x0B, 0x58 + chan); // Send transfer mode
+        outb(0x83, addr[2]);     // Send page number
+        outb(0x02, addr[0]);     // Send low bits of addr
+        outb(0x02, addr[1]);     // Send high bits of addr
+        outb(0x03, size[0]);     // Send low bits of size
+        outb(0x03, size[1]);     // Send high bits of size
+        outb(0x0A, chan);        // Enable channel
+    }
 }
 
 fn irq(num: u8) -> u8 {
@@ -146,8 +156,10 @@ fn irq(num: u8) -> u8 {
 }
 
 pub fn init() {
-    outb(MIXER_ADDR, 0x80);
-    outb(MIXER_DATA, irq(IRQ));
+    unsafe {
+        outb(MIXER_ADDR, 0x80);
+        outb(MIXER_DATA, irq(IRQ));
+    }
 }
 
 pub fn find() -> Option<Device> {

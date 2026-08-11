@@ -1,6 +1,15 @@
 # Changelog
 
 ## Unreleased
+- Remove dependency on x86_64::instructions::random (#879)
+- Remove dependency on x86_64::instructions::interrupts (#878)
+- Remove dependency on x86_64::instructions::hlt (#877)
+- Add DOOM to MOROS (#870)
+- Add ATA read-ahead cache (#871)
+- Skip rewalking the list of blocks in File (#868)
+- Add /dev/proc/stat (#874)
+- Move /dev/net/usage to /dev/net/stat (#873)
+- Remove dependency on x86_64::instructions::port (#872)
 - Improve process memory isolation (#869)
 - Add realpath to kernel FS module (#866)
 - Add file seek syscall (#863)

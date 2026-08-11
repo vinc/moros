@@ -8,7 +8,7 @@ macro_rules! entry_point {
             $crate::api::syscall::write(2, msg);
             let code = $crate::api::process::ExitCode::PanicError;
             $crate::api::syscall::exit(code);
-            loop {}
+            loop {} // Unreachable after exit
         }
 
         #[export_name = "_start"]

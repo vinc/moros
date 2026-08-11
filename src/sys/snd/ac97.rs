@@ -1,7 +1,7 @@
 use super::{SoundBuffer, SoundConfig};
 
 use crate::sys;
-use crate::sys::port::*;
+use crate::sys::x86::port::*;
 use crate::sys::mem::PhysBuf;
 
 use alloc::vec::Vec;
@@ -76,10 +76,12 @@ impl Device {
     }
 
     pub fn init(&mut self) {
-        outl(self.bar1 + GLOB_CNT, CR | GIE); // Cold reset
-        sys::clk::wait(100_000); // TODO: Find proper reset delay
-        outw(self.bar0 + NAM_RR, 1); // Reset all registers
-        outw(self.bar0 + NAM_POV, 0); // Set PCM Out Volume to max
+        unsafe {
+            outl(self.bar1 + GLOB_CNT, CR | GIE); // Cold reset
+            sys::clk::wait(100_000); // TODO: Find proper reset delay
+            outw(self.bar0 + NAM_RR, 1); // Reset all registers
+            outw(self.bar0 + NAM_POV, 0); // Set PCM Out Volume to max
+        }
     }
 
     fn fill_next_block(&mut self) -> usize {
@@ -119,46 +121,48 @@ impl Device {
             return;
         }
 
-        // Set Master Volume to max
-        outw(self.bar0 + NAM_MV, 0);
+        unsafe {
+            // Set Master Volume to max
+            outw(self.bar0 + NAM_MV, 0);
 
-        // Set reset bit of output channel
-        outb(self.bar1 + PO_CR, RR);
-        while inb(self.bar1 + PO_CR) & RR != 0 {
-            // Wait for reset to be completed
-            core::hint::spin_loop();
+            // Set reset bit of output channel
+            outb(self.bar1 + PO_CR, RR);
+            while inb(self.bar1 + PO_CR) & RR != 0 {
+                // Wait for reset to be completed
+                core::hint::spin_loop();
+            }
+            debug_assert_eq!(inb(self.bar1 + PO_CIV), 0);
+            debug_assert_eq!(inb(self.bar1 + PO_LVI), 0);
+            self.index.store(0, Ordering::SeqCst);
+
+            // Set sample rate
+            //debug!("SND AC97 Ext Cap: {:#016b}", inw(self.bar0 + NAM_EAR));
+            //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + NAM_PFDR));
+            debug_assert_ne!(inw(self.bar0 + NAM_EAR) & 0x01, 0);
+            outw(self.bar0 + NAM_EAC, 1);
+            outw(self.bar0 + NAM_PFDR, config.sample_rate as u16);
+            //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + NAM_PFDR));
+
+            // Write BDL address to Buffer Descriptor Base Address register
+            let bdl = self.bdl.lock();
+            let addr = sys::mem::phys_addr(bdl.as_ptr() as *const u8);
+            debug_assert!(addr % 8 == 0);
+            outl(self.bar1 + PO_BDBAR, addr as u32);
+            drop(bdl);
+
+            // Load sound data to memory
+            let index = self.fill_next_block();
+            debug_assert_eq!(index, 0);
+
+            // Write BDL index to Last Valid Entry register
+            outb(self.bar1 + PO_LVI, index as u8);
+
+            // Clear any pending status bits before starting
+            outw(self.bar1 + PO_SR, LVBCI | BCIS | FIFOE);
+
+            // Start DMA with interrupts
+            outb(self.bar1 + PO_CR, RPBM | LVBIE | IOCE);
         }
-        debug_assert_eq!(inb(self.bar1 + PO_CIV), 0);
-        debug_assert_eq!(inb(self.bar1 + PO_LVI), 0);
-        self.index.store(0, Ordering::SeqCst);
-
-        // Set sample rate
-        //debug!("SND AC97 Ext Cap: {:#016b}", inw(self.bar0 + NAM_EAR));
-        //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + NAM_PFDR));
-        debug_assert_ne!(inw(self.bar0 + NAM_EAR) & 0x01, 0);
-        outw(self.bar0 + NAM_EAC, 1);
-        outw(self.bar0 + NAM_PFDR, config.sample_rate as u16);
-        //debug!("SND AC97 Sample Rate: {} Hz", inw(self.bar0 + NAM_PFDR));
-
-        // Write BDL address to Buffer Descriptor Base Address register
-        let bdl = self.bdl.lock();
-        let addr = sys::mem::phys_addr(bdl.as_ptr() as *const u8);
-        debug_assert!(addr % 8 == 0);
-        outl(self.bar1 + PO_BDBAR, addr as u32);
-        drop(bdl);
-
-        // Load sound data to memory
-        let index = self.fill_next_block();
-        debug_assert_eq!(index, 0);
-
-        // Write BDL index to Last Valid Entry register
-        outb(self.bar1 + PO_LVI, index as u8);
-
-        // Clear any pending status bits before starting
-        outw(self.bar1 + PO_SR, LVBCI | BCIS | FIFOE);
-
-        // Start DMA with interrupts
-        outb(self.bar1 + PO_CR, RPBM | LVBIE | IOCE);
 
         self.is_playing = true;
     }
@@ -166,7 +170,9 @@ impl Device {
     pub fn stop(&mut self) {
         if self.is_playing {
             self.is_playing = false;
-            outb(self.bar1 + PO_CR, 0); // Stop DMA
+            unsafe {
+                outb(self.bar1 + PO_CR, 0); // Stop DMA
+            }
             for i in 0..BDL {
                 self.blocks[i].fill(0x00);
             }
@@ -176,14 +182,16 @@ impl Device {
     }
 
     pub fn handle_interrupt(&mut self) {
-        // Clear channel status registers
-        outw(self.bar1 + PO_SR, LVBCI | BCIS | FIFOE);
+        unsafe {
+            // Clear channel status registers
+            outw(self.bar1 + PO_SR, LVBCI | BCIS | FIFOE);
 
-        if self.buffer.is_empty() {
-            self.stop();
-        } else {
-            let index = self.fill_next_block();
-            outb(self.bar1 + PO_LVI, index as u8);
+            if self.buffer.is_empty() {
+                self.stop();
+            } else {
+                let index = self.fill_next_block();
+                outb(self.bar1 + PO_LVI, index as u8);
+            }
         }
     }
 }

@@ -6,12 +6,15 @@ use super::{id, set_id};
 use super::page_table;
 use super::ptr_from_addr;
 use super::ProcessContext;
+use super::ProcessStats;
 use super::free_process;
 use super::table::{PROCESS_TABLE, MAX_PROCS};
 
 use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
 use crate::sys::mem;
+use crate::sys::x86::interrupts;
+use crate::sys::x86::rflags;
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -57,15 +60,15 @@ pub fn spawn(
 }
 
 fn create(bin: &[u8]) -> Result<usize, ()> {
-    let parent = {
+    let (parent_id, data, stack_frame, registers) = {
         let process_table = PROCESS_TABLE.read();
-        process_table[id()].clone().unwrap()
+        let proc = process_table[id()].as_ref().unwrap();
+        (proc.ctx.id, proc.data.clone(), proc.stack_frame, proc.registers)
     };
 
+    // Lock the process table and get the pid
     let mut process_table = PROCESS_TABLE.write();
-    let id = (1..MAX_PROCS)
-        .find(|&i| process_table[i].is_none())
-        .ok_or(())?;
+    let id = (1..MAX_PROCS).find(|&i| process_table[i].is_none()).ok_or(())?;
 
     let page_table_frame = mem::with_frame_allocator(|frame_allocator| {
         frame_allocator.allocate_frame().expect("frame allocation failed")
@@ -98,11 +101,6 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         free_process(page_table_frame)
     )?;
 
-    let parent_id = parent.ctx.id;
-    let data = parent.data.clone();
-    let registers = parent.registers;
-    let stack_frame = parent.stack_frame;
-
     let allocator = Arc::new(LockedHeap::empty());
 
     let proc = Process {
@@ -110,6 +108,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         data,
         stack_frame,
         registers,
+        stats: ProcessStats::new(),
         ctx: ProcessContext {
             id,
             stack_addr,
@@ -155,17 +154,18 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
 
+    interrupts::disable();
     unsafe {
         asm!(
-            "cli",        // Disable interrupts
-            "push {:r}",  // Stack segment (SS)
-            "push {:r}",  // Stack pointer (RSP)
-            "push 0x200", // RFLAGS with interrupts enabled
-            "push {:r}",  // Code segment (CS)
-            "push {:r}",  // Instruction pointer (RIP)
+            "push {:r}", // Stack segment (SS)
+            "push {:r}", // Stack pointer (RSP)
+            "push {:r}", // FLAGS register (RFLAGS)
+            "push {:r}", // Code segment (CS)
+            "push {:r}", // Instruction pointer (RIP)
             "iretq",
             in(reg) GDT.1.user_data.0,
             in(reg) ctx.stack_addr,
+            in(reg) rflags::IF,
             in(reg) GDT.1.user_code.0,
             in(reg) ctx.entry_point_addr,
             in("rdi") args_ptr,

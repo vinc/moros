@@ -1,6 +1,7 @@
 use crate::sys;
 use crate::sys::mem::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
+use crate::sys::x86::port::*;
 
 use alloc::slice;
 use alloc::sync::Arc;
@@ -10,7 +11,6 @@ use core::ptr;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
-use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
 // https://pdos.csail.mit.edu/6.828/2019/readings/hardware/8254x_GBe_SDM.pdf
@@ -299,8 +299,8 @@ impl Device {
                 let addr = sys::mem::phys_to_virt(phys).as_u64() as *mut u32;
                 core::ptr::write_volatile(addr, data);
             } else {
-                Port::new(self.io_base + IO_ADDR).write(addr);
-                Port::new(self.io_base + IO_DATA).write(data);
+                outl(self.io_base + IO_ADDR, addr as u32);
+                outl(self.io_base + IO_DATA, data);
             }
         }
     }
@@ -312,8 +312,8 @@ impl Device {
                 let addr = sys::mem::phys_to_virt(phys).as_u64() as *mut u32;
                 core::ptr::read_volatile(addr)
             } else {
-                Port::new(self.io_base + IO_ADDR).write(addr);
-                Port::new(self.io_base + IO_DATA).read()
+                outl(self.io_base + IO_ADDR, addr as u32);
+                inl(self.io_base + IO_DATA)
             }
         }
     }

@@ -1,6 +1,8 @@
 use crate::api;
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
+use crate::sys::x86::interrupts;
+use crate::sys::x86::port::*;
 
 use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
@@ -12,8 +14,6 @@ use pc_keyboard::{
     Keyboard, ScancodeSet1,
 };
 use spin::Mutex;
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
 
 lazy_static! {
     pub static ref BUF: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
@@ -139,8 +139,7 @@ pub fn init() {
 }
 
 fn read_scancode() -> u8 {
-    let mut port = Port::new(0x60);
-    unsafe { port.read() }
+    unsafe { inb(0x60) }
 }
 
 fn send_key(c: char) {
