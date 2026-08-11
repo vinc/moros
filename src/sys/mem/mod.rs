@@ -9,13 +9,12 @@ pub use paging::{
 };
 pub use phys::{phys_addr, PhysBuf};
 
-use crate::sys;
+use crate::sys::boot::MemoryMap;
+use crate::sys::pic;
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
-use x86_64::structures::paging::{
-    OffsetPageTable, Translate,
-};
+use x86_64::structures::paging::{OffsetPageTable, Translate};
 use x86_64::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]
@@ -24,66 +23,11 @@ static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 static PHYS_MEM_OFFSET: Once<u64> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-const MAX_REGIONS: usize = 32;
-
-#[repr(u32)]
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum MemoryRegionType {
-    Usable,
-    Reserved,
-    AcpiUsable,
-    AcpiReserved,
-    Defective,
-    Custom(u32),
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct MemoryRegion {
-    addr: u64,
-    size: u64,
-    kind: MemoryRegionType,
-}
-
-impl MemoryRegion {
-    pub fn new(addr: u64, size: u64, kind: MemoryRegionType) -> Self {
-        Self { addr, size, kind }
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct MemoryMap {
-    regions: [MemoryRegion; MAX_REGIONS],
-    len: usize,
-}
-
-impl MemoryMap {
-    pub fn new() -> Self {
-        let empty = MemoryRegion::new(0, 0, MemoryRegionType::Reserved);
-        Self {
-            regions: [empty; MAX_REGIONS],
-            len: 0,
-        }
-    }
-
-    pub fn add(&mut self, region: MemoryRegion) {
-        self.regions[self.len] = region;
-        self.len += 1;
-    }
-
-    pub fn as_slice(&self) -> &[MemoryRegion] {
-        &self.regions[..self.len]
-    }
-
-    pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
-        self.as_slice().iter()
-    }
-}
-
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
     // during memory allocation otherwise.
-    sys::idt::set_irq_mask(1);
+    pic::mask(pic::KBD_IRQ);
 
     let mut memory_size = 0;
     let mut last_end_addr = 0;
@@ -128,7 +72,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     bitmap::init_frame_allocator(memory_map);
     heap::init_heap().expect("heap initialization failed");
 
-    sys::idt::clear_irq_mask(1);
+    pic::unmask(pic::KBD_IRQ);
 }
 
 pub fn phys_mem_offset() -> u64 {

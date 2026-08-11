@@ -16,9 +16,7 @@ pub mod sys;
 
 pub mod usr;
 
-use sys::mem::MemoryMap;
-use sys::mem::MemoryRegion;
-use sys::mem::MemoryRegionType;
+use sys::boot::{MemoryMap, MemoryRegion, MemoryRegionType};
 
 use bootloader::BootInfo;
 
@@ -28,7 +26,10 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
-    sys::pic::init(); // Enable interrupts
+    sys::pic::init();
+
+    sys::x86::interrupts::enable();
+
     sys::serial::init();
     sys::keyboard::init();
 
