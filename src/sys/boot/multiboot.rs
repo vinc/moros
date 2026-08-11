@@ -30,7 +30,6 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
             BootInformation::load(info as *const BootInformationHeader).unwrap()
         };
         if let Some(memory_map_tag) = boot_info.memory_map_tag() {
-            // FIXME: This is never reached
             use multiboot2::MemoryAreaType as Mem;
             let mut memory_map = MemoryMap::new();
             for region in memory_map_tag.memory_areas() {
@@ -43,9 +42,9 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
                 memory_map.add(MemoryRegion::new(addr, size, kind));
             };
             let offset = 0;
-            moros::init(&memory_map, offset);
+            crate::init(&memory_map, offset);
         }
     }
 
-    exec();
+    crate::exec();
 }
