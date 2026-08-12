@@ -1,7 +1,7 @@
 use super::writer::WRITER;
 
 use crate::api::font::Font;
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys::x86::interrupts;
 
 use core::convert::TryFrom;

@@ -1,7 +1,7 @@
 use super::cmos::CMOS;
 
 use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 
 use alloc::string::String;
 use time::{Date, PrimitiveDateTime};

@@ -1,5 +1,5 @@
 use crate::api::fs;
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys::fs::Dir;
 
 use alloc::string::String;

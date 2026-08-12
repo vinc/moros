@@ -5,14 +5,12 @@ mod device;
 mod dir;
 mod dir_entry;
 mod file;
+mod io;
 mod pipe;
 mod read_dir;
 mod super_block;
 
-use crate::sys::process;
-
-pub use crate::api::fs::{dirname, filename, FileIO, IO};
-pub use crate::sys::ata::BLOCK_SIZE;
+pub use io::{FileIO, IO};
 pub use bitmap_block::BITMAP_SIZE;
 pub use block_device::{
     dismount, format_ata, format_mem, is_mounted, mount_ata, mount_mem
@@ -22,8 +20,13 @@ pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
 
+pub use crate::api::fs::{dirname, filename};
+pub use crate::sys::ata::BLOCK_SIZE;
+
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
+
+use crate::sys::process;
 
 use alloc::format;
 use alloc::string::{String, ToString};

@@ -1,5 +1,5 @@
 use crate::api;
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys;
 use crate::sys::x86::interrupts;
 use crate::sys::x86::port::*;

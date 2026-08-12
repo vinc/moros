@@ -1,7 +1,7 @@
 mod ac97;
 mod sb16;
 
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys::pci::DeviceConfig;
 use crate::sys;
 use crate::sys::x86::interrupts;
