@@ -10,8 +10,6 @@ pub use screen::VgaMode;
 pub use palette::Palette as VgaPalette;
 pub use buffer::Buffer as VgaBuffer;
 
-use color::Color;
-use palette::Palette;
 use writer::WRITER;
 
 use crate::sys::x86::int;
