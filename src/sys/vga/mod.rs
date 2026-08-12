@@ -15,7 +15,6 @@ use writer::WRITER;
 use crate::sys::x86::interrupts;
 use crate::sys::x86::port::*;
 
-use alloc::string::String;
 use bit_field::BitField;
 use core::cmp;
 use core::fmt;

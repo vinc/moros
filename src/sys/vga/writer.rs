@@ -505,7 +505,7 @@ impl Perform for Writer {
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
         if params.len() == 1 {
-            let s = String::from_utf8_lossy(params[0]);
+            let s = core::str::from_utf8(params[0]).unwrap_or("");
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
                     if let Ok((i, r, g, b)) = parse_palette(&s) {
