@@ -1,5 +1,7 @@
 use super::*;
 
+use color::Color;
+
 use crate::sys::fs::{FileIO, IO};
 
 use alloc::boxed::Box;

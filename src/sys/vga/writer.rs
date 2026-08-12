@@ -1,8 +1,11 @@
 use super::*;
 
+use color::Color;
+use palette::Palette;
 use buffer::Buffer;
 
 use crate::api::font::Font;
+
 use crate::sys;
 
 //use core::fmt::Write;
