@@ -16,11 +16,13 @@ pub mod sys;
 
 pub mod usr;
 
+use sys::boot::{MemoryMap, MemoryRegion, MemoryRegionType};
+
 use bootloader::BootInfo;
 
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
-pub fn init(boot_info: &'static BootInfo) {
+pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
@@ -35,7 +37,7 @@ pub fn init(boot_info: &'static BootInfo) {
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
     log!("SYS MOROS v{}", v);
 
-    sys::mem::init(boot_info);
+    sys::mem::init(memory_map, offset);
     sys::cpu::init();
     sys::acpi::init(); // Require MEM
     sys::rng::init();
@@ -47,6 +49,21 @@ pub fn init(boot_info: &'static BootInfo) {
     sys::process::init();
 
     log!("RTC {}", sys::clk::date());
+}
+
+pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
+    use bootloader::bootinfo::MemoryRegionType as Mem;
+    let mut memory_map = MemoryMap::new();
+    for region in boot_info.memory_map.iter() {
+        let addr = region.range.start_addr();
+        let size = region.range.end_addr() - addr;
+        let kind = match region.region_type {
+            Mem::Usable => MemoryRegionType::Usable,
+            _ => MemoryRegionType::Reserved,
+        };
+        memory_map.add(MemoryRegion::new(addr, size, kind));
+    }
+    memory_map
 }
 
 #[allow(dead_code)]
@@ -116,7 +133,9 @@ entry_point!(test_kernel_main);
 
 #[cfg(test)]
 fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    init(boot_info);
+    let memory_map = extract_memory_map(boot_info);
+    let offset = boot_info.physical_memory_offset;
+    init(&memory_map, offset);
     test_main();
     hang();
 }

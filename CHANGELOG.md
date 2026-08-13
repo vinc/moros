@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Replace BootInfo by MemoryMap and offset (#834)
 - Fix sleep::wait timing (#882)
 - Refactor PIC module (#880)
 - Remove dependency on x86_64::instructions::random (#879)

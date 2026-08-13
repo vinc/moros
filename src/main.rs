@@ -14,7 +14,9 @@ use moros::{
 entry_point!(main);
 
 fn main(boot_info: &'static BootInfo) -> ! {
-    moros::init(boot_info);
+    let memory_map = moros::extract_memory_map(boot_info);
+    let offset = boot_info.physical_memory_offset;
+    moros::init(&memory_map, offset);
     print!("\x1b[?25h"); // Enable cursor
     loop {
         if let Some(cmd) = option_env!("MOROS_CMD") {
