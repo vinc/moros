@@ -26,15 +26,17 @@ impl MemoryRegion {
 
 #[derive(Copy, Clone, Debug)]
 pub struct MemoryMap {
-    regions: [MemoryRegion; MAX_REGIONS],
+    regions: [MemoryRegion; Self::CAPACITY],
     len: usize,
 }
 
 impl MemoryMap {
+    pub const CAPACITY: usize = 32;
+
     pub fn new() -> Self {
         let empty = MemoryRegion::new(0, 0, MemoryRegionType::Reserved);
         Self {
-            regions: [empty; MAX_REGIONS],
+            regions: [empty; Self::CAPACITY],
             len: 0,
         }
     }

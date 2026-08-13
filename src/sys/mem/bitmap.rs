@@ -1,4 +1,4 @@
-use crate::sys::boot::{MemoryMap, MemoryRegionType, MAX_REGIONS};
+use crate::sys::boot::{MemoryMap, MemoryRegionType};
 
 use core::{cmp, slice};
 use spin::{Once, Mutex};
@@ -67,7 +67,7 @@ pub fn init_frame_allocator(memory_map: &MemoryMap) {
 pub struct BitmapFrameAllocator {
     bitmap: &'static mut [u64],
     next_free_index: usize,
-    usable_regions: [Option<UsableRegion>; MAX_REGIONS],
+    usable_regions: [Option<UsableRegion>; MemoryMap::CAPACITY],
     regions_count: usize,
     frames_count: usize,
 }
@@ -90,7 +90,7 @@ impl BitmapFrameAllocator {
         let mut allocator = Self {
             bitmap: &mut [],
             next_free_index: 0,
-            usable_regions: [None; MAX_REGIONS],
+            usable_regions: [None; MemoryMap::CAPACITY],
             regions_count: 0,
             frames_count: 0,
         };
@@ -131,7 +131,7 @@ impl BitmapFrameAllocator {
             };
 
             if usable_end - usable_start >= 4096 {
-                if allocator.regions_count >= MAX_REGIONS {
+                if allocator.regions_count >= MemoryMap::CAPACITY {
                     debug!("MEM: Could not add usable region");
                     break;
                 }
