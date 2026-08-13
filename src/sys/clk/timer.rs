@@ -82,9 +82,11 @@ pub fn init() {
     CMOS::new().enable_update_interrupt();
 
     // TSC timmer
-    let calibration_time = 250_000; // 0.25 seconds
+    let d = 250_000;
+    let t = 1_000_000;
     let a = tsc();
-    sync::sleep(calibration_time as f64 / 1e6);
+    sync::sleep(d as f64 / t as f64); // 0.25 seconds
     let b = tsc();
-    TSC_FREQUENCY.store((b - a) / calibration_time, Ordering::Relaxed);
+    let f = (b - a) * t / d;
+    TSC_FREQUENCY.store(f, Ordering::Relaxed);
 }
