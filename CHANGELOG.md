@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Replace BootInfo by MemoryMap and offset (#834)
 - Refactor PIC module (#880)
 - Remove dependency on x86_64::instructions::random (#879)
 - Remove dependency on x86_64::instructions::interrupts (#878)
