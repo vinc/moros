@@ -135,12 +135,14 @@ limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(limine-proto).ld -C link-arg=
 limine-image:
 	cargo build $(cargo-opts),$(limine-proto) --target $(limine-arch)-moros.json
 	cp target/$(limine-arch)-moros/release/moros tmp/boot/kernel.elf
-	sed -i "" "s/default_entry:.*/default_entry: $(limine-proto)/" tmp/boot/limine/limine.conf
+	sed -i "s/default_entry:.*/default_entry: $(limine-proto)/" tmp/boot/limine/limine.conf
 	xorriso -as mkisofs \
 		-b limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		-partition_offset 16 \
 		--protective-msdos-label \
 		tmp/boot -o boot.img
+	tmp/limine-11.3.1/bin/limine bios-install boot.img
 
 ifeq ($(limine-arch),i686)
 qemu = qemu-system-i386
@@ -150,7 +152,7 @@ qemu = qemu-system-x86_64
 endif
 
 limine-qemu:
-	$(qemu) -cdrom boot.img $(qemu-opts)
+	$(qemu) $(qemu-opts) -hda boot.img
 
 website:
 	cd www && sh build.sh
