@@ -120,6 +120,7 @@ test:
 limine-setup:
 	cd tmp
 	wget https://github.com/Limine-Bootloader/Limine/releases/download/v11.3.1/limine-11.3.1.tar.gz
+	tar xvf limine-11.3.1.tar.gz
 	cd limine-11.3.1
 	./configure --enable-bios --enable-bios-cd
 	make
