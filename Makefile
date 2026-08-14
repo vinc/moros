@@ -136,12 +136,20 @@ limine-image:
 	cargo build $(cargo-opts),$(limine-proto) --target $(limine-arch)-moros.json
 	cp target/$(limine-arch)-moros/release/moros tmp/boot/kernel.elf
 	sed -i "s/default_entry:.*/default_entry: $(limine-proto)/" tmp/boot/limine/limine.conf
-	xorriso -as mkisofs \
+	#xorriso -as mkisofs \
 		-b limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		-partition_offset 16 \
 		--protective-msdos-label \
 		tmp/boot -o boot.img
+	dd if=/dev/zero of=boot.img bs=1M count=64
+	printf 'drive z: file="$(CURDIR)/boot.img" partition=1\n' > tmp/mtoolsrc
+	MTOOLSRC=tmp/mtoolsrc mpartition -I -c -a -b 2048 -l 129024 -T 0x0c z:
+	MTOOLSRC=tmp/mtoolsrc mformat -F z:
+	MTOOLSRC=tmp/mtoolsrc mmd z:/limine
+	MTOOLSRC=tmp/mtoolsrc mcopy tmp/boot/kernel.elf z:/
+	MTOOLSRC=tmp/mtoolsrc mcopy tmp/boot/limine/limine.conf z:/limine
+	MTOOLSRC=tmp/mtoolsrc mcopy tmp/boot/limine/limine-bios.sys z:/limine
 	tmp/limine-11.3.1/bin/limine bios-install boot.img
 
 ifeq ($(limine-arch),i686)
