@@ -106,35 +106,6 @@ pub mod x86 {
         }
     }
 
-    #[inline]
-    pub fn cr3() -> (u64, u16) {
-        let value: u64;
-        unsafe {
-            asm!(
-                "mov {}, cr3", out(reg) value,
-                options(nomem, nostack, preserves_flags)
-            );
-        }
-        let mask = 0xFFF;
-        let addr = value & !mask;
-        let flags = (value & mask) as u16;
-        (addr, flags)
-    }
-
-    #[inline]
-    pub fn cr3_write(addr: u64, flags: u16) {
-        debug_assert_eq!(addr.get_bits(..12), 0);
-        debug_assert_eq!(addr.get_bits(52..), 0);
-        debug_assert_eq!(flags.get_bits(12..), 0);
-        let value = addr | flags as u64;
-        unsafe {
-            asm!(
-                "mov cr3, {}", in(reg) value,
-                options(nostack, preserves_flags)
-            );
-        }
-    }
-
     /// Halts the CPU until the next interrupt
     #[inline]
     pub fn hlt() {
