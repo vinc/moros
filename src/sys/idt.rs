@@ -2,7 +2,8 @@ use crate::{api, hang, sys};
 use crate::api::process::ExitCode;
 use crate::sys::pic;
 use crate::sys::process::Registers;
-use crate::sys::x86::{interrupts, Cr2};
+use crate::sys::x86::interrupts;
+use crate::sys::x86::registers::Cr2;
 
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;

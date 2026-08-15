@@ -1,6 +1,6 @@
 use super::with_frame_allocator;
 use super::phys_mem_offset;
-use crate::sys::x86::Cr3;
+use crate::sys::x86::registers::Cr3;
 
 use x86_64::structures::paging::{
     mapper::CleanUp,
