@@ -100,6 +100,11 @@ pub unsafe fn load_ss(sel: SegmentSelector) {
     asm!("mov ss, {:x}", in(reg) sel.0, options(nostack, preserves_flags));
 }
 
+#[inline]
+pub unsafe fn load_tss(sel: SegmentSelector) {
+    asm!("ltr {:x}", in(reg) sel.0, options(nostack, preserves_flags));
+}
+
 #[test_case]
 fn test_cr3() {
     let cr3 = Cr3::read();

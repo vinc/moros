@@ -2,7 +2,6 @@ use crate::sys::x86::reg;
 
 use core::ptr::addr_of;
 use lazy_static::lazy_static;
-use x86_64::instructions::tables::load_tss;
 use x86_64::structures::gdt::{
     Descriptor, GlobalDescriptorTable, SegmentSelector
 };
@@ -75,6 +74,6 @@ pub fn init() {
         reg::load_ds(GDT.1.data);
         reg::load_es(GDT.1.data);
         reg::load_ss(GDT.1.data);
-        load_tss(GDT.1.tss);
+        reg::load_tss(GDT.1.tss);
     }
 }
