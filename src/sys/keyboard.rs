@@ -1,7 +1,7 @@
 use crate::api;
 use crate::api::fs::{FileIO, IO};
 use crate::sys;
-use crate::sys::x86::interrupts;
+use crate::sys::x86::int;
 use crate::sys::x86::port::*;
 
 use alloc::collections::vec_deque::VecDeque;
@@ -72,7 +72,7 @@ impl KeyboardDecoder {
 
 fn set_keyboard(layout: &str) -> bool {
     if let Some(keyboard) = KeyboardDecoder::from(layout) {
-        interrupts::without_interrupts(||
+        int::without_interrupts(||
             *KEYBOARD.lock() = Some(keyboard)
         );
         true
@@ -96,7 +96,7 @@ impl KeyboardLayout {
 
 impl FileIO for KeyboardLayout {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        interrupts::without_interrupts(|| {
+        int::without_interrupts(|| {
             let layout = match *KEYBOARD.lock() {
                 Some(KeyboardDecoder::Azerty(_)) => "azerty",
                 Some(KeyboardDecoder::Dvorak(_)) => "dvorak",
@@ -124,7 +124,7 @@ impl FileIO for KeyboardLayout {
     fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
-        interrupts::without_interrupts(||
+        int::without_interrupts(||
             match event {
                 IO::Read => true,
                 IO::Write => true,
@@ -154,7 +154,7 @@ pub struct KeyboardBuffer;
 
 impl KeyboardBuffer {
     pub fn new() -> Self {
-        interrupts::without_interrupts(|| BUF.lock().clear());
+        int::without_interrupts(|| BUF.lock().clear());
         Self {}
     }
 
@@ -165,7 +165,7 @@ impl KeyboardBuffer {
 
 impl FileIO for KeyboardBuffer {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
-        interrupts::without_interrupts(||
+        int::without_interrupts(||
             if let Some(scancode) = BUF.lock().pop_front() {
                 buf[0] = scancode;
                 Ok(1)
@@ -182,7 +182,7 @@ impl FileIO for KeyboardBuffer {
     fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
-        interrupts::without_interrupts(||
+        int::without_interrupts(||
             match event {
                 IO::Read => !BUF.lock().is_empty(),
                 IO::Write => false,

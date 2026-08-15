@@ -1,5 +1,5 @@
 use crate::sys;
-use crate::sys::x86::interrupts;
+use crate::sys::x86::int;
 
 use core::fmt;
 use core::fmt::Write;
@@ -88,7 +88,7 @@ fn interrupt_handler() {
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         SERIAL.lock().write_fmt(args).expect("Could not print to serial")
     )
 }

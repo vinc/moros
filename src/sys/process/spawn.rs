@@ -13,8 +13,8 @@ use super::table::{PROCESS_TABLE, MAX_PROCS};
 use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
 use crate::sys::mem;
-use crate::sys::x86::interrupts;
-use crate::sys::x86::registers::{Cr3, flags};
+use crate::sys::x86::int;
+use crate::sys::x86::reg::{Cr3, flags};
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -154,7 +154,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
 
-    interrupts::disable();
+    int::disable_interrupts();
     unsafe {
         asm!(
             "push {:r}", // Stack segment (SS)
