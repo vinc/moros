@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add segment registers to x86 module (#885)
 - Refactor x86 module (#884)
 - Add control registers to x86 module (#883)
 - Replace BootInfo by MemoryMap and offset (#834)
