@@ -3,11 +3,11 @@ use crate::api::process::ExitCode;
 use crate::sys::pic;
 use crate::sys::process::Registers;
 use crate::sys::x86::interrupts;
+use crate::sys::x86::registers::Cr2;
 
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
@@ -110,7 +110,7 @@ extern "x86-interrupt" fn page_fault_handler(
 ) {
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
-    let addr = Cr2::read().unwrap().as_u64();
+    let addr = Cr2::read();
     //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
     let mut mapper = unsafe {

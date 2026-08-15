@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add control registers to x86 module (#883)
 - Replace BootInfo by MemoryMap and offset (#834)
 - Fix sleep::wait timing (#882)
 - Refactor PIC module (#880)
