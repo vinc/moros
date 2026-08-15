@@ -1,0 +1,41 @@
+use super::reg;
+
+use core::arch::asm;
+
+#[inline]
+pub fn enable_interrupts() {
+    // NOTE: interrupts are not enabled until after the next instruction
+    unsafe {
+        asm!("sti", options(nostack, preserves_flags));
+    }
+}
+
+#[inline]
+pub fn disable_interrupts() {
+    unsafe {
+        asm!("cli", options(nostack, preserves_flags));
+    }
+}
+
+#[inline]
+pub fn without_interrupts<F, R>(f: F) -> R where F: FnOnce() -> R {
+    let enabled = are_interrupts_enabled();
+    if enabled {
+        disable_interrupts();
+    }
+    let res = f();
+    if enabled {
+        enable_interrupts();
+    }
+    res
+}
+
+#[inline]
+fn are_interrupts_enabled() -> bool {
+    let flags: usize;
+    unsafe {
+        asm!("pushfq; pop {}", out(reg) flags,
+            options(nomem, preserves_flags));
+    }
+    flags & reg::flags::IF != 0
+}

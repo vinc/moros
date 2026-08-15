@@ -37,7 +37,7 @@ use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
 use crate::sys::syscall;
-use crate::sys::x86::registers::Cr3;
+use crate::sys::x86::reg::Cr3;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;

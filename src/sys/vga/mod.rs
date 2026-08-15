@@ -14,7 +14,7 @@ use color::Color;
 use palette::Palette;
 use writer::WRITER;
 
-use crate::sys::x86::interrupts;
+use crate::sys::x86::int;
 use crate::sys::x86::port::*;
 
 use alloc::string::String;
@@ -42,7 +42,7 @@ const INSTAT_READ_REG:         u16 = 0x3DA;
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         WRITER.lock().write_fmt(args).expect("Could not print to VGA")
     )
 }
@@ -60,7 +60,7 @@ pub fn is_printable(c: u8) -> bool {
 // 0x0F -> bottom
 // 0x1F -> max (invisible)
 fn set_underline_location(location: u8) {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         unsafe {
             outb(CRTC_ADDR_REG, 0x14); // Underline Location Register
             outb(CRTC_DATA_REG, location);
@@ -73,7 +73,7 @@ fn disable_underline() {
 }
 
 fn disable_blinking() {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let reg = 0x10; // Attribute Mode Control Register
         let mut attr = get_attr_ctrl_reg(reg);
         attr.set_bit(3, false); // Clear "Blinking Enable" bit
@@ -82,7 +82,7 @@ fn disable_blinking() {
 }
 
 fn set_attr_ctrl_reg(index: u8, value: u8) {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         unsafe {
             inb(INPUT_STATUS_REG); // Reset to address mode
             let tmp = inb(ATTR_ADDR_REG);
@@ -94,7 +94,7 @@ fn set_attr_ctrl_reg(index: u8, value: u8) {
 }
 
 fn get_attr_ctrl_reg(index: u8) -> u8 {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let index = index | 0x20; // Set "Palette Address Source" bit
         unsafe {
             inb(INPUT_STATUS_REG); // Reset to address mode

@@ -1,6 +1,6 @@
 use super::rtc::{Interrupt, RTC, Register, RTC_CENTURY};
 
-use crate::sys::x86::interrupts;
+use crate::sys::x86::int;
 use crate::sys::x86::port::*;
 
 use bit_field::BitField;
@@ -123,7 +123,7 @@ impl CMOS {
     // Resulting in the following frequency: 32768 >> (rate - 1)
     #[allow(dead_code)]
     pub fn set_periodic_interrupt_rate(&mut self, rate: u8) {
-        interrupts::without_interrupts(|| {
+        int::without_interrupts(|| {
             self.disable_nmi();
             unsafe {
                 outb(ADDR_PORT, Register::A as u8);
@@ -137,7 +137,7 @@ impl CMOS {
     }
 
     fn enable_interrupt(&mut self, interrupt: Interrupt) {
-        interrupts::without_interrupts(|| {
+        int::without_interrupts(|| {
             self.disable_nmi();
             unsafe {
                 outb(ADDR_PORT, Register::B as u8);
