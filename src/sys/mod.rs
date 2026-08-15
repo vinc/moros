@@ -44,16 +44,20 @@ pub mod x86 {
     use x86_64::structures::paging::PhysFrame;
     use x86_64::PhysAddr;
 
-    #[inline]
-    pub fn cr2() -> usize {
-        let value: usize;
-        unsafe {
-            asm!(
-                "mov {}, cr2", out(reg) value,
-                options(nomem, nostack, preserves_flags)
-            );
+    pub struct Cr2;
+
+    impl Cr2 {
+        #[inline]
+        pub fn read() -> u64 {
+            let value: u64;
+            unsafe {
+                asm!(
+                    "mov {}, cr2", out(reg) value,
+                    options(nomem, nostack, preserves_flags)
+                );
+            }
+            value
         }
-        value
     }
 
     pub struct Cr3 {
@@ -62,6 +66,7 @@ pub mod x86 {
     }
 
     impl Cr3 {
+        #[inline]
         pub fn read() -> Self {
             let value: u64;
             unsafe {
@@ -76,6 +81,7 @@ pub mod x86 {
             Self { addr, flags }
         }
 
+        #[inline]
         pub unsafe fn write(addr: u64, flags: u16) {
             debug_assert_eq!(addr.get_bits(..12), 0);
             debug_assert_eq!(addr.get_bits(52..), 0);
