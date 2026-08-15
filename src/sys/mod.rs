@@ -40,6 +40,18 @@ macro_rules! log {
 pub mod x86 {
     use core::arch::asm;
 
+    #[inline]
+    pub fn cr2() -> usize {
+        let value: usize;
+        unsafe {
+            asm!(
+                "mov {}, cr2", out(reg) value,
+                options(nomem, nostack, preserves_flags)
+            );
+        }
+        value
+    }
+
     /// Halts the CPU until the next interrupt
     #[inline]
     pub fn hlt() {

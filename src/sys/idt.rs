@@ -7,7 +7,6 @@ use crate::sys::x86::interrupts;
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
@@ -110,7 +109,7 @@ extern "x86-interrupt" fn page_fault_handler(
 ) {
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
-    let addr = Cr2::read().unwrap().as_u64();
+    let addr = sys::x86::cr2() as u64;
     //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
     let mut mapper = unsafe {
