@@ -69,3 +69,16 @@ impl Cr3 {
 pub mod flags {
     pub const IF: usize = 1 << 9; // Interrupt Flag
 }
+
+#[test_case]
+fn test_cr3() {
+    let cr3 = Cr3::read();
+    assert_ne!(cr3.addr(), 0);
+    assert_eq!(cr3.addr() & 0xFFF, 0);
+    assert_eq!(cr3.flags() & !0xFFF, 0);
+
+    unsafe { Cr3::write(cr3.addr(), cr3.flags()) }
+
+    assert_eq!(Cr3::read().addr(), cr3.addr());
+    assert_eq!(Cr3::read().flags(), cr3.flags());
+}
