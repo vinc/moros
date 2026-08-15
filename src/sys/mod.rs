@@ -40,6 +40,10 @@ macro_rules! log {
 pub mod x86 {
     use core::arch::asm;
 
+    use bit_field::BitField;
+    use x86_64::structures::paging::PhysFrame;
+    use x86_64::PhysAddr;
+
     #[inline]
     pub fn cr2() -> usize {
         let value: usize;
@@ -50,6 +54,79 @@ pub mod x86 {
             );
         }
         value
+    }
+
+    pub struct Cr3 {
+        addr: u64,
+        flags: u16,
+    }
+
+    impl Cr3 {
+        pub fn read() -> Self {
+            let value: u64;
+            unsafe {
+                asm!(
+                    "mov {}, cr3", out(reg) value,
+                    options(nomem, nostack, preserves_flags)
+                );
+            }
+            let mask = 0xFFF;
+            let addr = value & !mask;
+            let flags = (value & mask) as u16;
+            Self { addr, flags }
+        }
+
+        pub unsafe fn write(addr: u64, flags: u16) {
+            debug_assert_eq!(addr.get_bits(..12), 0);
+            debug_assert_eq!(addr.get_bits(52..), 0);
+            debug_assert_eq!(flags.get_bits(12..), 0);
+            let value = addr | flags as u64;
+            asm!(
+                "mov cr3, {}", in(reg) value,
+                options(nostack, preserves_flags)
+            );
+        }
+
+        pub fn flags(&self) -> u16 {
+            self.flags
+        }
+
+        pub fn addr(&self) -> u64 {
+            self.addr
+        }
+
+        pub fn frame(&self) -> PhysFrame {
+            PhysFrame::containing_address(PhysAddr::new(self.addr))
+        }
+    }
+
+    #[inline]
+    pub fn cr3() -> (u64, u16) {
+        let value: u64;
+        unsafe {
+            asm!(
+                "mov {}, cr3", out(reg) value,
+                options(nomem, nostack, preserves_flags)
+            );
+        }
+        let mask = 0xFFF;
+        let addr = value & !mask;
+        let flags = (value & mask) as u16;
+        (addr, flags)
+    }
+
+    #[inline]
+    pub fn cr3_write(addr: u64, flags: u16) {
+        debug_assert_eq!(addr.get_bits(..12), 0);
+        debug_assert_eq!(addr.get_bits(52..), 0);
+        debug_assert_eq!(flags.get_bits(12..), 0);
+        let value = addr | flags as u64;
+        unsafe {
+            asm!(
+                "mov cr3, {}", in(reg) value,
+                options(nostack, preserves_flags)
+            );
+        }
     }
 
     /// Halts the CPU until the next interrupt

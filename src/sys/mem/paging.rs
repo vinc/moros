@@ -1,7 +1,7 @@
 use super::with_frame_allocator;
 use super::phys_mem_offset;
+use crate::sys::x86::Cr3;
 
-use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
     mapper::CleanUp,
     page::PageRangeInclusive,
@@ -11,7 +11,7 @@ use x86_64::structures::paging::{
 use x86_64::VirtAddr;
 
 pub unsafe fn active_page_table() -> &'static mut PageTable {
-    let (frame, _) = Cr3::read();
+    let frame = Cr3::read().frame();
     let phys_addr = frame.start_address();
     let virt_addr = super::phys_to_virt(phys_addr);
     let page_table_ptr: *mut PageTable = virt_addr.as_mut_ptr();

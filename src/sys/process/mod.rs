@@ -37,6 +37,7 @@ use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
 use crate::sys::syscall;
+use crate::sys::x86::Cr3;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -44,7 +45,6 @@ use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 use linked_list_allocator::LockedHeap;
-use x86_64::registers::control::Cr3;
 use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
     FrameDeallocator, PageTable, PhysFrame,
@@ -159,7 +159,7 @@ impl Process {
                 id: 0,
                 stack_addr: 0,
                 entry_point_addr: 0,
-                page_table_frame: Cr3::read().0,
+                page_table_frame: Cr3::read().frame(),
                 allocator: Arc::new(LockedHeap::empty()),
             }
         }
@@ -179,8 +179,9 @@ pub fn exit() {
 fn load_process(id: usize) {
     set_id(id);
     unsafe {
-        let (_, flags) = Cr3::read();
-        Cr3::write(page_table_frame(), flags);
+        let addr = page_table_frame().start_address().as_u64();
+        let flags = Cr3::read().flags();
+        Cr3::write(addr, flags);
     }
 }
 
