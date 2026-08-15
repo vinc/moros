@@ -73,6 +73,7 @@ pub fn init() {
     unsafe {
         reg::load_cs(GDT.1.code);
         reg::load_ds(GDT.1.data);
+        reg::load_es(GDT.1.data);
         load_tss(GDT.1.tss);
     }
 }
