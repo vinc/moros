@@ -2,6 +2,7 @@ use core::arch::asm;
 
 use bit_field::BitField;
 use x86_64::structures::paging::PhysFrame;
+use x86_64::structures::gdt::SegmentSelector;
 use x86_64::PhysAddr;
 
 pub struct Cr2;
@@ -68,6 +69,20 @@ impl Cr3 {
 
 pub mod flags {
     pub const IF: usize = 1 << 9; // Interrupt Flag
+}
+
+#[inline]
+pub unsafe fn load_cs(sel: SegmentSelector) {
+    // See `x86_64` and `x86` crates for reference
+    asm!(
+        "push {0}", // Selector
+        "lea {0}, [rip + 2f]",
+        "push {0}", // Return address
+        "retfq",
+        "2:",
+        inout(reg) u64::from(sel.0) => _,
+        options(preserves_flags),
+    );
 }
 
 #[test_case]
