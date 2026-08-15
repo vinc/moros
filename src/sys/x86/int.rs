@@ -39,3 +39,18 @@ fn are_interrupts_enabled() -> bool {
     }
     flags & reg::flags::IF != 0
 }
+
+#[test_case]
+fn test_without_interrupts() {
+    disable_interrupts();
+
+    assert!(!are_interrupts_enabled());
+    assert!(!without_interrupts(|| are_interrupts_enabled()));
+    assert!(!are_interrupts_enabled());
+
+    enable_interrupts();
+
+    assert!(are_interrupts_enabled());
+    assert!(!without_interrupts(|| are_interrupts_enabled()));
+    assert!(are_interrupts_enabled());
+}
