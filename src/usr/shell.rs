@@ -591,7 +591,6 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         ""          => Ok(()),
         "2048"      => usr::pow::main(args),
         "alias"     => cmd_alias(args, config),
-        //"beep"      => usr::beep::main(args),
         "brainfuck" => usr::brainfuck::main(args),
         "calc"      => usr::calc::main(args),
         "chess"     => usr::chess::main(args),
@@ -609,7 +608,6 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "elf"       => usr::elf::main(args),
         "encode"    => usr::encode::main(args),
         "find"      => usr::find::main(args),
-        //"geodate"   => usr::geodate::main(args),
         "goto"      => cmd_change_dir(args, config), // TODO: Remove this
         "hash"      => usr::hash::main(args),
         "help"      => usr::help::main(args),

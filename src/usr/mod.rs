@@ -1,4 +1,3 @@
-// pub mod beep; // TODO: Remove file
 pub mod brainfuck;
 pub mod calc;
 pub mod chess;
@@ -15,7 +14,6 @@ pub mod edit;
 pub mod elf;
 pub mod encode;
 pub mod find;
-//pub mod geodate; // TODO: Remove file
 pub mod hash;
 pub mod help;
 pub mod hex;
