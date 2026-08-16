@@ -134,7 +134,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
 
     // Enter process address space and let the page fault handler allocate
     // user memory.
-    let addr = ctx.page_table_frame.start_address().as_u64();
+    let addr = ctx.page_table_frame.start_address().as_u64() as usize;
     let flags = Cr3::read().flags();
     unsafe {
         Cr3::write(addr, flags);
