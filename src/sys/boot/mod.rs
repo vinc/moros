@@ -1,3 +1,12 @@
+#[cfg(all(feature = "limine", feature = "multiboot"))]
+compile_error!("features limine and multiboot are mutually exclusive");
+
+#[cfg(all(target_arch = "x86", not(feature = "multiboot")))]
+compile_error!("target i686 requires feature multiboot");
+
+#[cfg(all(target_arch = "x86_64", feature = "multiboot"))]
+compile_error!("feature multiboot requires target i686");
+
 #[cfg(not(any(feature = "limine", feature = "multiboot")))]
 pub mod bootloader;
 
