@@ -1,4 +1,20 @@
-pub const MAX_REGIONS: usize = 32;
+#[cfg(all(feature = "limine", feature = "multiboot"))]
+compile_error!("features limine and multiboot are mutually exclusive");
+
+#[cfg(all(target_arch = "x86", not(feature = "multiboot")))]
+compile_error!("target i686 requires feature multiboot");
+
+#[cfg(all(target_arch = "x86_64", feature = "multiboot"))]
+compile_error!("feature multiboot requires target i686");
+
+#[cfg(not(any(feature = "limine", feature = "multiboot")))]
+pub mod bootloader;
+
+#[cfg(feature = "limine")]
+pub mod limine;
+
+#[cfg(feature = "multiboot")]
+pub mod multiboot;
 
 #[repr(u32)]
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -42,8 +58,10 @@ impl MemoryMap {
     }
 
     pub fn add(&mut self, region: MemoryRegion) {
-        self.regions[self.len] = region;
-        self.len += 1;
+        if self.len < Self::CAPACITY {
+            self.regions[self.len] = region;
+            self.len += 1;
+        }
     }
 
     pub fn as_slice(&self) -> &[MemoryRegion] {

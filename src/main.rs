@@ -1,51 +1,56 @@
 #![no_std]
 #![no_main]
 
+#[cfg(target_arch = "x86_64")]
 extern crate alloc;
 
-use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use alloc::string::ToString;
-use moros::api::console::Style;
-use moros::{
-    error, warning, hang, eprint, eprintln, print, println, sys, usr
-};
 
-entry_point!(main);
+// MOROS supports 3 boot protocols: rust-bootloader, limine, and multiboot2
 
-fn main(boot_info: &'static BootInfo) -> ! {
-    let memory_map = moros::extract_memory_map(boot_info);
-    let offset = boot_info.physical_memory_offset;
-    moros::init(&memory_map, offset);
-    print!("\x1b[?25h"); // Enable cursor
-    loop {
-        if let Some(cmd) = option_env!("MOROS_CMD") {
-            let prompt = usr::shell::prompt_string(true);
-            println!("{}{}", prompt, cmd);
-            usr::shell::exec(cmd).ok();
-            sys::acpi::shutdown();
-        } else {
-            user_boot();
-        }
-    }
+#[cfg(not(any(feature = "limine", feature = "multiboot")))]
+#[no_mangle]
+extern "C" fn _start(boot_info: &'static bootloader::BootInfo) -> ! {
+    moros::sys::boot::bootloader::start(boot_info)
 }
 
-fn user_boot() {
-    let script = "/ini/boot.sh";
-    if sys::fs::File::open(script).is_some() {
-        usr::shell::main(&["shell", script]).ok();
-    } else {
-        if sys::fs::is_mounted() {
-            error!("Could not find {:?}", script);
-        } else {
-            warning!("MFS not found, run 'install' to setup the system");
-        }
-        usr::shell::main(&["shell"]).ok();
-    }
+#[cfg(feature = "limine")]
+#[no_mangle]
+extern "C" fn _start() -> ! {
+    moros::sys::boot::limine::start()
 }
 
+#[cfg(feature = "multiboot")]
+core::arch::global_asm!(
+    // Multiboot2 does not provide a stack
+    ".section .bss",
+    ".align 16",
+    "stack_bottom:",
+    ".skip 16384",
+    "stack_top:",
+
+    ".section .text",
+    ".global _start",
+    "_start:",
+    "mov esp, offset stack_top",
+    "push eax", // magic
+    "push ebx", // info
+    "call {start}",
+    "hlt",
+    start = sym start,
+);
+
+#[cfg(feature = "multiboot")]
+extern "C" fn start(info: u32, magic: u32) -> ! {
+    moros::sys::boot::multiboot::start(info, magic)
+}
+
+#[cfg(target_arch = "x86_64")]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
+    use alloc::string::ToString;
+    use moros::api::console::Style;
+    use moros::{error, hang, eprint, eprintln};
     if let Some(location) = info.location() {
         let title = "Panicked";
         let path = location.file();
@@ -65,4 +70,10 @@ fn panic(info: &PanicInfo) -> ! {
         error!("{info}");
     }
     hang();
+}
+
+#[cfg(target_arch = "x86")]
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    moros::hang();
 }

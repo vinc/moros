@@ -179,7 +179,7 @@ pub fn exit() {
 fn load_process(id: usize) {
     set_id(id);
     unsafe {
-        let addr = page_table_frame().start_address().as_u64();
+        let addr = page_table_frame().start_address().as_u64() as usize;
         let flags = Cr3::read().flags();
         Cr3::write(addr, flags);
     }

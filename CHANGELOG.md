@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add Limine support (#835)
 - Set VGA Text Mode during init (#888)
 - Move FileIO from api to sys (#887)
 - Add segment registers to x86 module (#885)

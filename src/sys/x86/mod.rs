@@ -11,6 +11,7 @@ pub fn hlt() {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn rdrand() -> Option<u64> {
     let mut res = 0;
     unsafe {
@@ -20,6 +21,11 @@ pub fn rdrand() -> Option<u64> {
             None
         }
     }
+}
+
+#[cfg(target_arch = "x86")]
+pub fn rdrand() -> Option<u64> {
+    None
 }
 
 pub mod port {

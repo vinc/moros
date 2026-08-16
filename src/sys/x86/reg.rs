@@ -9,8 +9,8 @@ pub struct Cr2;
 
 impl Cr2 {
     #[inline]
-    pub fn read() -> u64 {
-        let value: u64;
+    pub fn read() -> usize {
+        let value: usize;
         unsafe {
             asm!(
                 "mov {}, cr2", out(reg) value,
@@ -22,14 +22,14 @@ impl Cr2 {
 }
 
 pub struct Cr3 {
-    addr: u64,
+    addr: usize,
     flags: u16,
 }
 
 impl Cr3 {
     #[inline]
     pub fn read() -> Self {
-        let value: u64;
+        let value: usize;
         unsafe {
             asm!(
                 "mov {}, cr3", out(reg) value,
@@ -43,11 +43,11 @@ impl Cr3 {
     }
 
     #[inline]
-    pub unsafe fn write(addr: u64, flags: u16) {
+    pub unsafe fn write(addr: usize, flags: u16) {
         debug_assert_eq!(addr.get_bits(..12), 0);
         debug_assert_eq!(addr.get_bits(52..), 0);
         debug_assert_eq!(flags.get_bits(12..), 0);
-        let value = addr | flags as u64;
+        let value = addr | flags as usize;
         asm!(
             "mov cr3, {}", in(reg) value,
             options(nostack, preserves_flags)
@@ -58,12 +58,12 @@ impl Cr3 {
         self.flags
     }
 
-    pub fn addr(&self) -> u64 {
+    pub fn addr(&self) -> usize {
         self.addr
     }
 
     pub fn frame(&self) -> PhysFrame {
-        PhysFrame::containing_address(PhysAddr::new(self.addr))
+        PhysFrame::containing_address(PhysAddr::new(self.addr as u64))
     }
 }
 
@@ -80,7 +80,7 @@ pub unsafe fn load_cs(sel: SegmentSelector) {
         "push {0}", // Return address
         "retfq",
         "2:",
-        inout(reg) u64::from(sel.0) => _,
+        inout(reg) usize::from(sel.0) => _,
         options(preserves_flags),
     );
 }

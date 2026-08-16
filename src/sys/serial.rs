@@ -51,6 +51,7 @@ impl fmt::Write for Serial {
 // Source: https://vt100.net/emu/dec_ansi_parser
 impl Perform for Serial {
     fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
+        #[cfg(target_arch = "x86_64")]
         match c {
             'h' => { // Enable
                 for param in params.iter() {
@@ -73,6 +74,7 @@ impl Perform for Serial {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 fn interrupt_handler() {
     let b = SERIAL.lock().read_byte();
     if b == 0xFF { // Ignore invalid bytes
@@ -95,5 +97,7 @@ pub fn print_fmt(args: fmt::Arguments) {
 
 pub fn init() {
     SERIAL.lock().init();
+
+    #[cfg(target_arch = "x86_64")]
     sys::idt::set_irq_handler(sys::pic::COM_IRQ, interrupt_handler);
 }

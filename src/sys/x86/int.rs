@@ -34,8 +34,11 @@ pub fn without_interrupts<F, R>(f: F) -> R where F: FnOnce() -> R {
 fn are_interrupts_enabled() -> bool {
     let flags: usize;
     unsafe {
-        asm!("pushfq; pop {}", out(reg) flags,
-            options(nomem, preserves_flags));
+        #[cfg(target_arch = "x86_64")]
+        asm!("pushfq; pop {}", out(reg) flags, options(nomem, preserves_flags));
+
+        #[cfg(target_arch = "x86")]
+        asm!("pushfd; pop {}", out(reg) flags, options(nomem, preserves_flags));
     }
     flags & reg::flags::IF != 0
 }
