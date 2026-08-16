@@ -151,7 +151,7 @@ limine-setup:
 limine-image: RUSTFLAGS = -C link-arg=-Trun/boot/$(bootloader-proto).ld -C link-arg=-z -C link-arg=norelro
 limine-image:
 	cargo build $(cargo-opts),$(bootloader-proto) --target $(arch)-moros.json
-	cp target/$(arch)-moros/release/moros run/boot/kernel.elf
+	cp target/$(arch)-moros/$(mode)/moros run/boot/kernel.elf
 	sed -i.old "s/default_entry:.*/default_entry: $(bootloader-proto)/" run/boot/limine/limine.conf
 	rm run/boot/limine/limine.conf.old
 	xorriso -as mkisofs \
@@ -165,7 +165,7 @@ limine-image:
 grub-image: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 grub-image:
 	cargo build $(cargo-opts),multiboot --target i686-moros.json
-	cp target/i686-moros/release/moros run/boot/kernel.elf
+	cp target/i686-moros/$(mode)/moros run/boot/kernel.elf
 	grub-mkrescue -d /usr/lib/grub/i386-pc -o $(bin) /boot=run/boot
 
 website:
