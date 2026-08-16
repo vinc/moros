@@ -135,7 +135,8 @@ limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(limine-proto).ld -C link-arg=
 limine-image:
 	cargo build $(cargo-opts),$(limine-proto) --target $(limine-arch)-moros.json
 	cp target/$(limine-arch)-moros/release/moros tmp/boot/kernel.elf
-	sed -i "s/default_entry:.*/default_entry: $(limine-proto)/" tmp/boot/limine/limine.conf
+	sed -i.old "s/default_entry:.*/default_entry: $(limine-proto)/" tmp/boot/limine/limine.conf
+	rm tmp/boot/limine/limine.conf.old
 	#xorriso -as mkisofs \
 		-b limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
