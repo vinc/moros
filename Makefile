@@ -134,17 +134,17 @@ test:
 		-m $(memory) -cpu core2duo -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04
 
-# Require llvm lld mtools
+limine-version = 11.3.1
+limine-url = https://github.com/Limine-Bootloader/Limine/releases/download/v$(limine-version)/limine-$(limine-version).tar.gz
+limine-dir = tmp/limine-$(limine-version)
+
+# Require llvm lld xorriso
 limine-setup:
-	cd tmp
-	wget https://github.com/Limine-Bootloader/Limine/releases/download/v11.3.1/limine-11.3.1.tar.gz
-	tar xvf limine-11.3.1.tar.gz
-	cd limine-11.3.1
-	./configure --enable-bios --enable-bios-cd
-	make
-	cd ..
-	cp limine-11.3.1/bin/limine-bios-cd.bin boot/limine/
-	cp limine-11.3.1/bin/limine-bios.sys boot/limine/
+	wget -O $(limine-dir).tar.gz $(limine-url)
+	tar xf $(limine-dir).tar.gz -C tmp
+	cd $(limine-dir) && ./configure --enable-bios --enable-bios-cd && make
+	cp $(limine-dir)/bin/limine-bios-cd.bin tmp/boot/limine/
+	cp $(limine-dir)/bin/limine-bios.sys tmp/boot/limine/
 
 limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(bootloader-proto).ld -C link-arg=-z -C link-arg=norelro
 limine-image:
@@ -158,13 +158,13 @@ limine-image:
 		-partition_offset 16 \
 		--protective-msdos-label \
 		tmp/boot -o boot.img
-	tmp/limine-11.3.1/bin/limine bios-install boot.img
+	$(limine-dir)/bin/limine bios-install boot.img
 
 grub-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 grub-image:
 	cargo build $(cargo-opts),multiboot --target i686-moros.json
 	cp target/i686-moros/release/moros tmp/boot/kernel.elf
-	grub-mkrescue -d /usr/lib/grub/i386-pc -o boot.img tmp
+	grub-mkrescue -d /usr/lib/grub/i386-pc -o boot.img tmp -- -m 'limine-*'
 
 website:
 	cd www && sh build.sh
