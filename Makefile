@@ -55,7 +55,7 @@ user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		strip dsk/bin/{}
 
-bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
+bin = moros-$(arch).img
 img = disk.img
 
 $(img):
@@ -72,6 +72,7 @@ image: $(img)
 	touch src/lib.rs
 	env | grep MOROS
 	cargo bootimage $(cargo-opts)
+	cp target/x86_64-moros/$(mode)/bootimage-moros.bin $(bin)
 	dd conv=notrunc if=$(bin) of=$(img)
 
 qemu-opts = -name "MOROS $$MOROS_VERSION" \
@@ -108,9 +109,9 @@ qemu-opts += -trace 'e1000*'
 endif
 
 ifeq ($(bootloader),limine)
-qemu-opts += -hda boot.img
+qemu-opts += -hda $(bin)
 else ifeq ($(bootloader),grub)
-qemu-opts += -hda boot.img
+qemu-opts += -hda $(bin)
 else
 qemu-opts += -hda $(img)
 endif
@@ -158,14 +159,14 @@ limine-image:
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		-partition_offset 16 \
 		--protective-msdos-label \
-		run/boot -o boot.img
-	$(limine-dir)/bin/limine bios-install boot.img
+		run/boot -o $(bin)
+	$(limine-dir)/bin/limine bios-install $(bin)
 
 grub-image: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 grub-image:
 	cargo build $(cargo-opts),multiboot --target i686-moros.json
 	cp target/i686-moros/release/moros run/boot/kernel.elf
-	grub-mkrescue -d /usr/lib/grub/i386-pc -o boot.img /boot=run/boot
+	grub-mkrescue -d /usr/lib/grub/i386-pc -o $(bin) /boot=run/boot
 
 website:
 	cd www && sh build.sh
