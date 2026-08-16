@@ -24,7 +24,7 @@ kvm = false
 pcap = false
 trace = false# e1000
 monitor = false
-bootloader = rust# rust, limine
+bootloader = rust# rust, limine, grub
 bootloader-proto = limine# limine, multiboot
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
@@ -159,6 +159,12 @@ limine-image:
 		--protective-msdos-label \
 		run/boot -o $(bin)
 	$(limine-dir)/bin/limine bios-install $(bin)
+
+grub-image: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
+grub-image:
+	cargo build $(cargo-opts),multiboot --target i686-moros.json
+	cp target/i686-moros/$(mode)/moros run/boot/kernel.elf
+	grub-mkrescue -d /usr/lib/grub/i386-pc -o $(bin) /boot=run/boot
 
 website:
 	cd www && sh build.sh
