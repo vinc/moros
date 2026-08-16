@@ -108,12 +108,10 @@ ifeq ($(trace),e1000)
 qemu-opts += -trace 'e1000*'
 endif
 
-ifeq ($(bootloader),limine)
-qemu-opts += -hda $(bin)
-else ifeq ($(bootloader),grub)
-qemu-opts += -hda $(bin)
+ifeq ($(bootloader),rust)
+qemu-opts += -drive file=$(img),format=raw
 else
-qemu-opts += -hda $(img)
+qemu-opts += -drive file=$(bin),format=raw
 endif
 
 ifeq ($(arch),i686)
