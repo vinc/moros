@@ -58,8 +58,10 @@ impl MemoryMap {
     }
 
     pub fn add(&mut self, region: MemoryRegion) {
-        self.regions[self.len] = region;
-        self.len += 1;
+        if self.len < Self::CAPACITY {
+            self.regions[self.len] = region;
+            self.len += 1;
+        }
     }
 
     pub fn as_slice(&self) -> &[MemoryRegion] {
