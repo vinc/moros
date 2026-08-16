@@ -140,31 +140,32 @@ limine-dir = tmp/limine-$(limine-version)
 
 # Require llvm lld xorriso
 limine-setup:
+	mkdir -p tmp
 	wget -O $(limine-dir).tar.gz $(limine-url)
 	tar xf $(limine-dir).tar.gz -C tmp
 	cd $(limine-dir) && ./configure --enable-bios --enable-bios-cd && make
-	cp $(limine-dir)/bin/limine-bios-cd.bin tmp/boot/limine/
-	cp $(limine-dir)/bin/limine-bios.sys tmp/boot/limine/
+	cp $(limine-dir)/bin/limine-bios-cd.bin run/boot/limine/
+	cp $(limine-dir)/bin/limine-bios.sys run/boot/limine/
 
-limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(bootloader-proto).ld -C link-arg=-z -C link-arg=norelro
+limine-image: RUSTFLAGS = -C link-arg=-Trun/boot/$(bootloader-proto).ld -C link-arg=-z -C link-arg=norelro
 limine-image:
 	cargo build $(cargo-opts),$(bootloader-proto) --target $(arch)-moros.json
-	cp target/$(arch)-moros/release/moros tmp/boot/kernel.elf
-	sed -i.old "s/default_entry:.*/default_entry: $(bootloader-proto)/" tmp/boot/limine/limine.conf
-	rm tmp/boot/limine/limine.conf.old
+	cp target/$(arch)-moros/release/moros run/boot/kernel.elf
+	sed -i.old "s/default_entry:.*/default_entry: $(bootloader-proto)/" run/boot/limine/limine.conf
+	rm run/boot/limine/limine.conf.old
 	xorriso -as mkisofs \
 		-b limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		-partition_offset 16 \
 		--protective-msdos-label \
-		tmp/boot -o boot.img
+		run/boot -o boot.img
 	$(limine-dir)/bin/limine bios-install boot.img
 
-grub-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
+grub-image: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 grub-image:
 	cargo build $(cargo-opts),multiboot --target i686-moros.json
-	cp target/i686-moros/release/moros tmp/boot/kernel.elf
-	grub-mkrescue -d /usr/lib/grub/i386-pc -o boot.img tmp -- -m 'limine-*'
+	cp target/i686-moros/release/moros run/boot/kernel.elf
+	grub-mkrescue -d /usr/lib/grub/i386-pc -o boot.img /boot=run/boot
 
 website:
 	cd www && sh build.sh
