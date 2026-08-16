@@ -162,6 +162,12 @@ endif
 limine-qemu:
 	$(qemu) $(qemu-opts) -hda boot.img
 
+grub-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
+grub-image:
+	cargo build $(cargo-opts),multiboot --target i686-moros.json
+	cp target/i686-moros/release/moros tmp/boot/kernel.elf
+	grub-mkrescue -d /usr/lib/grub/i386-pc -o boot.img tmp
+
 website:
 	cd www && sh build.sh
 
