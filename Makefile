@@ -162,8 +162,8 @@ limine-image:
 
 grub-image: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 grub-image:
-	cargo build $(cargo-opts),multiboot --target i686-moros.json
-	cp target/i686-moros/$(mode)/moros run/boot/kernel.elf
+	cargo build $(cargo-opts),multiboot --target $(arch)-moros.json
+	cp target/$(arch)-moros/$(mode)/moros run/boot/kernel.elf
 	grub-mkrescue -d /usr/lib/grub/i386-pc -o $(bin) /boot=run/boot
 
 website:
