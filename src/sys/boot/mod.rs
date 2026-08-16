@@ -16,8 +16,6 @@ pub mod limine;
 #[cfg(feature = "multiboot")]
 pub mod multiboot;
 
-pub const MAX_REGIONS: usize = 32;
-
 #[repr(u32)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MemoryRegionType {
