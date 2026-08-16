@@ -51,7 +51,7 @@ pub mod boot;
 #[cfg(target_arch = "x86_64")] pub mod mem;
 #[cfg(target_arch = "x86_64")] pub mod net;
 #[cfg(target_arch = "x86_64")] pub mod pci;
-#[cfg(target_arch = "x86_64")] pub mod pic;
+pub mod pic;
 #[cfg(target_arch = "x86_64")] pub mod process;
 #[cfg(target_arch = "x86_64")] pub mod rng;
 #[cfg(target_arch = "x86_64")] pub mod serial;
