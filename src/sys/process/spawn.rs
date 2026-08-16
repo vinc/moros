@@ -13,8 +13,8 @@ use super::table::{PROCESS_TABLE, MAX_PROCS};
 use crate::api::process::ExitCode;
 use crate::sys::gdt::GDT;
 use crate::sys::mem;
-use crate::sys::x86::interrupts;
-use crate::sys::x86::rflags;
+use crate::sys::x86::int;
+use crate::sys::x86::reg::{Cr3, flags};
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -23,7 +23,6 @@ use alloc::vec::Vec;
 use core::arch::asm;
 use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
-use x86_64::registers::control::Cr3;
 use x86_64::structures::paging::{
     FrameAllocator, PageTable, Translate,
 };
@@ -135,9 +134,10 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
 
     // Enter process address space and let the page fault handler allocate
     // user memory.
+    let addr = ctx.page_table_frame.start_address().as_u64();
+    let flags = Cr3::read().flags();
     unsafe {
-        let (_, flags) = Cr3::read();
-        Cr3::write(ctx.page_table_frame, flags);
+        Cr3::write(addr, flags);
     }
 
     // TODO: Move args to the user stack. Current location requires process
@@ -154,7 +154,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
 
-    interrupts::disable();
+    int::disable_interrupts();
     unsafe {
         asm!(
             "push {:r}", // Stack segment (SS)
@@ -165,7 +165,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
             "iretq",
             in(reg) GDT.1.user_data.0,
             in(reg) ctx.stack_addr,
-            in(reg) rflags::IF,
+            in(reg) flags::IF,
             in(reg) GDT.1.user_code.0,
             in(reg) ctx.entry_point_addr,
             in("rdi") args_ptr,

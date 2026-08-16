@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Add segment registers to x86 module (#885)
+- Refactor x86 module (#884)
+- Add control registers to x86 module (#883)
 - Replace BootInfo by MemoryMap and offset (#834)
 - Fix sleep::wait timing (#882)
 - Refactor PIC module (#880)
@@ -18,6 +21,14 @@
 - Add file seek syscall (#863)
 - Add keyboard layout device (#865)
 - Add keyboard buffer device (#864)
+- Bump base64 from 0.23.0 to 0.23.1 (#881)
+- Bump object from 0.39.1 to 0.40.0 (#876)
+- Bump num-bigint from 0.4.6 to 0.5.1 (#861)
+- Bump spin from 0.12.1 to 0.12.2 (#867)
+- Bump base64 from 0.22.1 to 0.23.0 (#875)
+- Bump actions/checkout from 6 to 7 (#855)
+- Bump spin from 0.12.0 to 0.12.1 (#857)
+- Bump actions/cache from 5 to 6 (#858)
 
 ## 0.13.0 (2026-06-21)
 - Fix memory leak during process creation ([#825](https://github.com/vinc/moros/pull/825))

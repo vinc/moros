@@ -4,7 +4,7 @@ mod sb16;
 use crate::sys::fs::{FileIO, IO};
 use crate::sys::pci::DeviceConfig;
 use crate::sys;
-use crate::sys::x86::interrupts;
+use crate::sys::x86::int;
 
 use core::cmp;
 use core::convert::TryFrom;
@@ -142,7 +142,7 @@ impl FileIO for SoundBuffer {
     }
 
     fn write(&mut self, buffer: &[u8]) -> Result<usize, ()> {
-        interrupts::without_interrupts(|| {
+        int::without_interrupts(|| {
             if let Some((ref mut device, ref mut config)) = *SND.lock() {
                 if buffer.is_empty() {
                     device.stop();

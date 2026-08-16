@@ -32,7 +32,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::idt::init();
     sys::pic::init();
 
-    sys::x86::interrupts::enable();
+    sys::x86::int::enable_interrupts();
 
     sys::serial::init();
     sys::keyboard::init();

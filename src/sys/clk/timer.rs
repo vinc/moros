@@ -2,7 +2,7 @@ use super::sync;
 use super::cmos::CMOS;
 
 use crate::sys;
-use crate::sys::x86::interrupts;
+use crate::sys::x86::int;
 use crate::sys::x86::port::*;
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
@@ -37,7 +37,7 @@ pub fn pit_frequency() -> f64 {
 
 // The divider must be between 0 and 65535, with 0 acting as 65536
 pub fn set_pit_frequency(divider: u16, channel: u8) {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let bytes = divider.to_le_bytes();
         let operating_mode = 6; // Square wave generator
         let access_mode = 3; // Lobyte + Hibyte

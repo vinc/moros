@@ -80,7 +80,7 @@ fn set_mode(mode: ModeName) {
         ModeName::G640x480x16 => G_640_480_16,
     };
 
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let mut i = 0;
 
         unsafe {
