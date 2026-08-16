@@ -1,4 +1,4 @@
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::api::process::ExitCode;
 use crate::sys;
 use crate::sys::fs::{Device, FileInfo, Resource, SeekFrom};

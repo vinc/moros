@@ -1,4 +1,4 @@
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys::net::EthernetDeviceIO;
 
 use alloc::format;
