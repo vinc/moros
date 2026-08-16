@@ -10,14 +10,11 @@ pub use screen::VgaMode;
 pub use palette::Palette as VgaPalette;
 pub use buffer::Buffer as VgaBuffer;
 
-use color::Color;
-use palette::Palette;
 use writer::WRITER;
 
 use crate::sys::x86::int;
 use crate::sys::x86::port::*;
 
-use alloc::string::String;
 use bit_field::BitField;
 use core::cmp;
 use core::fmt;
@@ -126,10 +123,5 @@ pub fn init() {
     set_attr_ctrl_reg(0xE, 0x3E);
     set_attr_ctrl_reg(0xF, 0x3F);
 
-    //Palette::default().write();
-
-    disable_blinking();
-    disable_underline();
-
-    WRITER.lock().clear_screen();
+    screen::set_80x25_mode();
 }
