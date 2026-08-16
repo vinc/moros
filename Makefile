@@ -182,4 +182,4 @@ pkg-kernel:
 clean:
 	cargo clean
 	rm -f www/*.html www/images/*.png
-	rm -f moro-*.img
+	rm -f moros-*.img
