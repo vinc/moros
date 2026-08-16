@@ -12,9 +12,10 @@ keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
 
 # Emulation options
-memory = 32
+arch = x86_64# x86_64, i686
 cpu = core2duo
 smp = 2
+memory = 32
 nic = rtl8139# rtl8139, pcnet, e1000
 snd = sb16# ac97, sb16
 audio = sdl# sdl, coreaudio
@@ -23,6 +24,8 @@ kvm = false
 pcap = false
 trace = false# e1000
 monitor = false
+bootloader = rust# rust, limine, grub
+bootloader-proto = limine# limine, multiboot
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_KEYBOARD = $(keyboard)
@@ -104,12 +107,27 @@ ifeq ($(trace),e1000)
 qemu-opts += -trace 'e1000*'
 endif
 
+ifeq ($(bootloader),limine)
+qemu-opts += -hda boot.img
+else ifeq ($(bootloader),grub)
+qemu-opts += -hda boot.img
+else
+qemu-opts += -hda $(img)
+endif
+
+ifeq ($(arch),i686)
+qemu = qemu-system-i386
+cpu = pentium3
+else
+qemu = qemu-system-x86_64
+endif
+
 # In debug mode, open another terminal with the following command
 # and type `continue` to start the boot process:
 # > gdb target/x86_64-moros/debug/moros -ex "target remote :1234"
 
 qemu:
-	qemu-system-x86_64 $(qemu-opts) -hda $(img)
+	$(qemu) $(qemu-opts)
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
@@ -128,40 +146,19 @@ limine-setup:
 	cp limine-11.3.1/bin/limine-bios-cd.bin boot/limine/
 	cp limine-11.3.1/bin/limine-bios.sys boot/limine/
 
-limine-proto = limine# limine, multiboot
-limine-arch = x86_64# x86_64, i686
-
-limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(limine-proto).ld -C link-arg=-z -C link-arg=norelro
+limine-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/$(bootloader-proto).ld -C link-arg=-z -C link-arg=norelro
 limine-image:
-	cargo build $(cargo-opts),$(limine-proto) --target $(limine-arch)-moros.json
-	cp target/$(limine-arch)-moros/release/moros tmp/boot/kernel.elf
-	sed -i.old "s/default_entry:.*/default_entry: $(limine-proto)/" tmp/boot/limine/limine.conf
+	cargo build $(cargo-opts),$(bootloader-proto) --target $(arch)-moros.json
+	cp target/$(arch)-moros/release/moros tmp/boot/kernel.elf
+	sed -i.old "s/default_entry:.*/default_entry: $(bootloader-proto)/" tmp/boot/limine/limine.conf
 	rm tmp/boot/limine/limine.conf.old
-	#xorriso -as mkisofs \
+	xorriso -as mkisofs \
 		-b limine/limine-bios-cd.bin \
 		-no-emul-boot -boot-load-size 4 -boot-info-table \
 		-partition_offset 16 \
 		--protective-msdos-label \
 		tmp/boot -o boot.img
-	dd if=/dev/zero of=boot.img bs=1M count=64
-	printf 'drive z: file="$(CURDIR)/boot.img" partition=1\n' > tmp/mtoolsrc
-	MTOOLSRC=tmp/mtoolsrc mpartition -I -c -a -b 2048 -l 129024 -T 0x0c z:
-	MTOOLSRC=tmp/mtoolsrc mformat -F z:
-	MTOOLSRC=tmp/mtoolsrc mmd z:/limine
-	MTOOLSRC=tmp/mtoolsrc mcopy tmp/boot/kernel.elf z:/
-	MTOOLSRC=tmp/mtoolsrc mcopy tmp/boot/limine/limine.conf z:/limine
-	MTOOLSRC=tmp/mtoolsrc mcopy tmp/boot/limine/limine-bios.sys z:/limine
 	tmp/limine-11.3.1/bin/limine bios-install boot.img
-
-ifeq ($(limine-arch),i686)
-qemu = qemu-system-i386
-cpu = pentium3
-else
-qemu = qemu-system-x86_64
-endif
-
-limine-qemu:
-	$(qemu) $(qemu-opts) -hda boot.img
 
 grub-image: RUSTFLAGS = -C link-arg=-Ttmp/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 grub-image:
