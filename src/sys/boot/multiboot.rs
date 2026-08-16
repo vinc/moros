@@ -54,6 +54,7 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
         }
     }
 
+    crate::sys::serial::init();
     crate::sys::serial::print_fmt(format_args!("MOROS loaded successfully!\n"));
 
     //crate::exec();
