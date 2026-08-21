@@ -18,7 +18,7 @@ limine = []
 multiboot = []
 
 [dependencies]
-acpi = "5.0.0"
+acpi = "6.1.1"
 aml = "0.16.4"
 base64 = { version = "0.23.0", default-features = false, features = ["alloc"] }
 bit_field = "0.10.3"
