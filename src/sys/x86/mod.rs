@@ -1,5 +1,6 @@
 pub mod int;
 pub mod reg;
+pub mod seg;
 
 use core::arch::asm;
 
