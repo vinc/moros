@@ -44,7 +44,7 @@ pub mod boot;
 #[cfg(target_arch = "x86_64")] pub mod console;
 #[cfg(target_arch = "x86_64")] pub mod cpu;
 #[cfg(target_arch = "x86_64")] pub mod fs;
-#[cfg(target_arch = "x86_64")] pub mod gdt;
+pub mod gdt;
 #[cfg(target_arch = "x86_64")] pub mod idt;
 #[cfg(target_arch = "x86_64")] pub mod keyboard;
 #[cfg(target_arch = "x86_64")] pub mod log;

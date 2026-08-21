@@ -26,6 +26,10 @@ const fn desc(desc: Descriptor) -> u64 {
     }
 }
 
+#[cfg(target_arch = "x86")]
+const LEN: usize = 6;
+
+#[cfg(target_arch = "x86_64")]
 const LEN: usize = 7;
 
 struct GlobalDescriptorTable {
@@ -48,7 +52,11 @@ impl GlobalDescriptorTable {
         low.set_bits(56..64, base.get_bits(24..32));
 
         table[TSS.index()] = low;
-        table[TSS.index() + 1] = base.get_bits(32..64);
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            table[TSS.index() + 1] = base.get_bits(32..64);
+        }
 
         Self { table }
     }
