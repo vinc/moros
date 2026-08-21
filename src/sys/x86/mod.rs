@@ -35,6 +35,12 @@ pub struct DescriptorTablePointer {
     pub base: usize,
 }
 
+pub unsafe fn lgdt(gdt: &DescriptorTablePointer) {
+    unsafe {
+        asm!("lgdt [{}]", in(reg) gdt, options(readonly, nostack, preserves_flags));
+    }
+}
+
 pub mod port {
     use core::arch::asm;
 
