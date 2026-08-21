@@ -74,7 +74,18 @@ pub mod flags {
 
 #[inline]
 pub unsafe fn load_cs(sel: SegmentSelector) {
-    // See `x86_64` and `x86` crates for reference
+    #[cfg(target_arch = "x86")]
+    asm!(
+        "push {0}", // Selector
+        "lea {0}, [2f]",
+        "push {0}", // Return address
+        "retf",
+        "2:",
+        inout(reg) usize::from(sel.bits) => _,
+        options(preserves_flags),
+    );
+
+    #[cfg(target_arch = "x86_64")]
     asm!(
         "push {0}", // Selector
         "lea {0}, [rip + 2f]",
