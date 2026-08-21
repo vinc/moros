@@ -2,10 +2,10 @@ use super::sync;
 use super::cmos::CMOS;
 
 use crate::sys;
+use crate::sys::x86::int;
+use crate::sys::x86::port::*;
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
 
 // At boot the PIT starts with a frequency divider of 0 (equivalent to 65536)
 // which will result in about 54.926 ms between ticks.
@@ -37,16 +37,14 @@ pub fn pit_frequency() -> f64 {
 
 // The divider must be between 0 and 65535, with 0 acting as 65536
 pub fn set_pit_frequency(divider: u16, channel: u8) {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let bytes = divider.to_le_bytes();
-        let mut cmd: Port<u8> = Port::new(0x43);
-        let mut data: Port<u8> = Port::new(0x40 + channel as u16);
         let operating_mode = 6; // Square wave generator
         let access_mode = 3; // Lobyte + Hibyte
         unsafe {
-            cmd.write((channel << 6) | (access_mode << 4) | operating_mode);
-            data.write(bytes[0]);
-            data.write(bytes[1]);
+            outb(0x43, (channel << 6) | (access_mode << 4) | operating_mode);
+            outb(0x40 + channel as u16, bytes[0]);
+            outb(0x40 + channel as u16, bytes[1]);
         }
     });
 }
@@ -77,16 +75,18 @@ pub fn init() {
     let divider = PIT_DIVIDER;
     let channel = 0; // PIC
     set_pit_frequency(divider, channel);
-    sys::idt::set_irq_handler(0, pit_interrupt_handler);
+    sys::idt::set_irq_handler(sys::pic::PIT_IRQ, pit_interrupt_handler);
 
     // RTC timmer
-    sys::idt::set_irq_handler(8, rtc_interrupt_handler);
+    sys::idt::set_irq_handler(sys::pic::RTC_IRQ, rtc_interrupt_handler);
     CMOS::new().enable_update_interrupt();
 
     // TSC timmer
-    let calibration_time = 250_000; // 0.25 seconds
+    let d = 250_000;
+    let t = 1_000_000;
     let a = tsc();
-    sync::sleep(calibration_time as f64 / 1e6);
+    sync::sleep(d as f64 / t as f64); // 0.25 seconds
     let b = tsc();
-    TSC_FREQUENCY.store((b - a) / calibration_time, Ordering::Relaxed);
+    let f = (b - a) * t / d;
+    TSC_FREQUENCY.store(f, Ordering::Relaxed);
 }

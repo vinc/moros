@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::x86::int;
 
 use core::fmt;
 use core::fmt::Write;
@@ -6,7 +7,6 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use uart_16550::SerialPort;
 use vte::{Params, Parser, Perform};
-use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));
@@ -51,6 +51,7 @@ impl fmt::Write for Serial {
 // Source: https://vt100.net/emu/dec_ansi_parser
 impl Perform for Serial {
     fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
+        #[cfg(target_arch = "x86_64")]
         match c {
             'h' => { // Enable
                 for param in params.iter() {
@@ -73,18 +74,7 @@ impl Perform for Serial {
     }
 }
 
-#[doc(hidden)]
-pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
-        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
-    )
-}
-
-pub fn init() {
-    SERIAL.lock().init();
-    sys::idt::set_irq_handler(4, interrupt_handler);
-}
-
+#[cfg(target_arch = "x86_64")]
 fn interrupt_handler() {
     let b = SERIAL.lock().read_byte();
     if b == 0xFF { // Ignore invalid bytes
@@ -96,4 +86,18 @@ fn interrupt_handler() {
         c => c,
     };
     sys::console::key_handle(c);
+}
+
+#[doc(hidden)]
+pub fn print_fmt(args: fmt::Arguments) {
+    int::without_interrupts(||
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
+    )
+}
+
+pub fn init() {
+    SERIAL.lock().init();
+
+    #[cfg(target_arch = "x86_64")]
+    sys::idt::set_irq_handler(sys::pic::COM_IRQ, interrupt_handler);
 }

@@ -1,10 +1,9 @@
 use crate::api::console::Style;
-use crate::api::fs::IO;
 use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::sys::console;
-use crate::sys::fs::OpenFlag;
+use crate::sys::fs::{OpenFlag, IO};
 use crate::sys::net::SocketStatus;
 use crate::usr;
 
@@ -72,7 +71,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let buf_len = if let Some(info) = syscall::info(socket_path) {
         info.size() as usize
     } else {
-        error!("Could not open '{}'", socket_path);
+        error!("Could not open {:?}", socket_path);
         return Err(ExitCode::Failure);
     };
 

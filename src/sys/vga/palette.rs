@@ -1,6 +1,8 @@
 use super::*;
 
-use crate::api::fs::{FileIO, IO};
+use color::Color;
+
+use crate::sys::fs::{FileIO, IO};
 
 use alloc::boxed::Box;
 use core::convert::TryFrom;
@@ -118,13 +120,13 @@ impl FileIO for VgaPalette {
 }
 
 fn write_palette(i: usize, r: u8, g: u8, b: u8) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         WRITER.lock().set_palette(i, r, g, b)
     )
 }
 
 fn read_palette(i: usize) -> (u8, u8, u8) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         WRITER.lock().palette(i)
     )
 }

@@ -1,4 +1,4 @@
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys;
 
 use lazy_static::lazy_static;
@@ -6,7 +6,6 @@ use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
 use sha2::{Digest, Sha256};
 use spin::Mutex;
-use x86_64::instructions::random::RdRand;
 
 lazy_static! {
     static ref RNG: Mutex<Hc128Rng> = Mutex::new(Hc128Rng::from_seed([0; 32]));
@@ -60,13 +59,13 @@ pub fn get_u16() -> u16 {
 
 pub fn init() {
     let mut seed = [0; 32];
-    if let Some(rng) = RdRand::new() {
+    if sys::cpu::has_rdrand() {
         log!("RNG RDRAND available");
         for chunk in seed.chunks_mut(8) {
             // NOTE: Intel's Software Developer's Manual, Volume 1, 7.3.17.1
             let mut retry = true;
             for _ in 0..10 { // Retry up to 10 times
-                if let Some(num) = rng.get_u64() {
+                if let Some(num) = sys::x86::rdrand() {
                     chunk.clone_from_slice(&num.to_be_bytes());
                     retry = false;
                     break;

@@ -10,18 +10,16 @@ pub use screen::VgaMode;
 pub use palette::Palette as VgaPalette;
 pub use buffer::Buffer as VgaBuffer;
 
-use color::Color;
-use palette::Palette;
 use writer::WRITER;
 
-use alloc::string::String;
+use crate::sys::x86::int;
+use crate::sys::x86::port::*;
+
 use bit_field::BitField;
 use core::cmp;
 use core::fmt;
 use core::fmt::Write;
 use core::num::ParseIntError;
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
 
 const ATTR_ADDR_REG:           u16 = 0x3C0;
 const ATTR_WRITE_REG:          u16 = 0x3C0;
@@ -41,7 +39,7 @@ const INSTAT_READ_REG:         u16 = 0x3DA;
 
 #[doc(hidden)]
 pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         WRITER.lock().write_fmt(args).expect("Could not print to VGA")
     )
 }
@@ -59,12 +57,10 @@ pub fn is_printable(c: u8) -> bool {
 // 0x0F -> bottom
 // 0x1F -> max (invisible)
 fn set_underline_location(location: u8) {
-    interrupts::without_interrupts(|| {
-        let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
-        let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
+    int::without_interrupts(|| {
         unsafe {
-            addr.write(0x14); // Underline Location Register
-            data.write(location);
+            outb(CRTC_ADDR_REG, 0x14); // Underline Location Register
+            outb(CRTC_DATA_REG, location);
         }
     })
 }
@@ -74,7 +70,7 @@ fn disable_underline() {
 }
 
 fn disable_blinking() {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let reg = 0x10; // Attribute Mode Control Register
         let mut attr = get_attr_ctrl_reg(reg);
         attr.set_bit(3, false); // Clear "Blinking Enable" bit
@@ -83,31 +79,26 @@ fn disable_blinking() {
 }
 
 fn set_attr_ctrl_reg(index: u8, value: u8) {
-    interrupts::without_interrupts(|| {
-        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
-        let mut addr: Port<u8> = Port::new(ATTR_ADDR_REG);
+    int::without_interrupts(|| {
         unsafe {
-            isr.read(); // Reset to address mode
-            let tmp = addr.read();
-            addr.write(index);
-            addr.write(value);
-            addr.write(tmp);
+            inb(INPUT_STATUS_REG); // Reset to address mode
+            let tmp = inb(ATTR_ADDR_REG);
+            outb(ATTR_ADDR_REG, index);
+            outb(ATTR_ADDR_REG, value);
+            outb(ATTR_ADDR_REG, tmp);
         }
     })
 }
 
 fn get_attr_ctrl_reg(index: u8) -> u8 {
-    interrupts::without_interrupts(|| {
-        let mut isr: Port<u8> = Port::new(INPUT_STATUS_REG);
-        let mut addr: Port<u8> = Port::new(ATTR_ADDR_REG);
-        let mut data: Port<u8> = Port::new(ATTR_READ_REG);
+    int::without_interrupts(|| {
         let index = index | 0x20; // Set "Palette Address Source" bit
         unsafe {
-            isr.read(); // Reset to address mode
-            let tmp = addr.read();
-            addr.write(index);
-            let res = data.read();
-            addr.write(tmp);
+            inb(INPUT_STATUS_REG); // Reset to address mode
+            let tmp = inb(ATTR_ADDR_REG);
+            outb(ATTR_ADDR_REG, index);
+            let res = inb(ATTR_READ_REG);
+            outb(ATTR_ADDR_REG, tmp);
             res
         }
     })

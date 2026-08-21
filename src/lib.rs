@@ -6,33 +6,43 @@
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
+#[cfg(target_arch = "x86_64")]
 extern crate alloc;
 
 #[macro_use]
+#[cfg(target_arch = "x86_64")]
 pub mod api;
 
 #[macro_use]
 pub mod sys;
 
+#[cfg(target_arch = "x86_64")]
 pub mod usr;
 
-use bootloader::BootInfo;
+#[cfg(target_arch = "x86_64")]
+use sys::boot::MemoryMap;
 
+#[cfg(target_arch = "x86_64")]
 const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
-pub fn init(boot_info: &'static BootInfo) {
+#[cfg(target_arch = "x86_64")]
+pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
-    sys::pic::init(); // Enable interrupts
+    sys::pic::init();
+
+    sys::x86::int::enable_interrupts();
+
     sys::serial::init();
     sys::keyboard::init();
+
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
     log!("SYS MOROS v{}", v);
 
-    sys::mem::init(boot_info);
+    sys::mem::init(memory_map, offset);
     sys::cpu::init();
     sys::acpi::init(); // Require MEM
     sys::rng::init();
@@ -46,7 +56,33 @@ pub fn init(boot_info: &'static BootInfo) {
     log!("RTC {}", sys::clk::date());
 }
 
+#[cfg(target_arch = "x86_64")]
+pub fn exec() -> ! {
+    print!("\x1b[?25h"); // Enable cursor
+    loop {
+        if let Some(cmd) = option_env!("MOROS_CMD") {
+            let prompt = usr::shell::prompt_string(true);
+            println!("{}{}", prompt, cmd);
+            usr::shell::exec(cmd).ok();
+            sys::acpi::shutdown();
+        } else {
+            let script = "/ini/boot.sh";
+            if sys::fs::File::open(script).is_some() {
+                usr::shell::main(&["shell", script]).ok();
+            } else {
+                if sys::fs::is_mounted() {
+                    error!("Could not find '{}'", script);
+                } else {
+                    warning!("MFS not found, run 'install' to setup the system");
+                }
+                usr::shell::main(&["shell"]).ok();
+            }
+        }
+    }
+}
+
 #[allow(dead_code)]
+#[cfg(target_arch = "x86_64")]
 #[cfg_attr(not(feature = "userspace"), alloc_error_handler)]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     let csi_color = api::console::Style::color("red");
@@ -57,26 +93,28 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
         csi_reset,
         layout.size()
     );
-    hlt_loop();
+    hang();
 }
 
 pub trait Testable {
     fn run(&self);
 }
 
+#[cfg(target_arch = "x86_64")]
 impl<T> Testable for T where T: Fn() {
     fn run(&self) {
-        print!("test {} ... ", core::any::type_name::<T>());
+        printk!("test {} ... ", core::any::type_name::<T>());
         self();
         let csi_color = api::console::Style::color("lime");
         let csi_reset = api::console::Style::reset();
-        println!("{}ok{}", csi_color, csi_reset);
+        printk!("{}ok{}\n", csi_color, csi_reset);
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn test_runner(tests: &[&dyn Testable]) {
     let n = tests.len();
-    println!("\nrunning {} test{}", n, if n == 1 { "" } else { "s" });
+    printk!("\nrunning {} test{}\n", n, if n == 1 { "" } else { "s" });
     for test in tests {
         test.run();
     }
@@ -91,22 +129,19 @@ pub enum QemuExitCode {
 }
 
 pub fn exit_qemu(exit_code: QemuExitCode) {
-    use x86_64::instructions::port::Port;
-
     unsafe {
-        let mut port = Port::new(0xF4);
-        port.write(exit_code as u32);
+        sys::x86::port::outl(0xF4, exit_code as u32);
     }
 }
 
-pub fn hlt_loop() -> ! {
+pub fn hang() -> ! {
     loop {
-        x86_64::instructions::hlt();
+        sys::x86::hlt();
     }
 }
 
 #[cfg(test)]
-use bootloader::entry_point;
+use bootloader::{entry_point, BootInfo};
 
 #[cfg(test)]
 use core::panic::PanicInfo;
@@ -116,9 +151,11 @@ entry_point!(test_kernel_main);
 
 #[cfg(test)]
 fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    init(boot_info);
+    let memory_map = sys::boot::bootloader::extract_memory_map(boot_info);
+    let offset = boot_info.physical_memory_offset;
+    init(&memory_map, offset);
     test_main();
-    hlt_loop();
+    hang();
 }
 
 #[cfg(test)]
@@ -126,10 +163,10 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 fn panic(info: &PanicInfo) -> ! {
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
-    println!("{}failed{}\n", csi_color, csi_reset);
-    println!("{}\n", info);
+    printk!("{}failed{}\n\n", csi_color, csi_reset);
+    printk!("{}\n\n", info);
     exit_qemu(QemuExitCode::Failed);
-    hlt_loop();
+    hang();
 }
 
 #[test_case]

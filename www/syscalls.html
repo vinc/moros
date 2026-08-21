@@ -269,6 +269,15 @@ indicating the result of the operation.</p>
 
     <p>The raw syscall returns a <code>isize</code> that will be converted a <code>FileType</code> if the
 number is positive.</p>
+
+    <h2>SEEK (0x13)</h2>
+
+    <pre><code class="rust">fn seek(handle: usize, offset: SeekFrom) -&gt; isize
+</code></pre>
+
+    <p>Move the read/write offset of a file handle.</p>
+
+    <p>Return the new offset on success.</p>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

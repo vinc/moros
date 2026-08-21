@@ -2,6 +2,7 @@ use crate::api::base64::Base64;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
@@ -49,7 +50,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 // TODO: Add max number of attempts
 fn login(username: &str) -> Result<(), ExitCode> {
     if !fs::exists(USERS) {
-        error!("Could not read '{}'", USERS);
+        error!("Could not read {:?}", USERS);
         return Err(ExitCode::Failure);
     }
 
@@ -80,10 +81,10 @@ fn login(username: &str) -> Result<(), ExitCode> {
     }
 
     let home = format!("/usr/{}", username);
-    sys::process::set_user(username);
-    sys::process::set_dir(&home);
-    sys::process::set_env("USER", username);
-    sys::process::set_env("HOME", &home);
+    sys::process::set_user(username); // TODO: change user from userspace?
+    process::set_dir(&home);
+    process::set_env_var("USER", username);
+    process::set_env_var("HOME", &home);
 
     // TODO: load shell
     Ok(())

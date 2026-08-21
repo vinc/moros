@@ -1,12 +1,12 @@
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys::net::EthernetDeviceIO;
 
 use alloc::format;
 
 #[derive(Debug, Clone)]
-pub struct NetUsage;
+pub struct NetStat;
 
-impl NetUsage {
+impl NetStat {
     pub fn new() -> Self {
         Self
     }
@@ -16,12 +16,12 @@ impl NetUsage {
     }
 }
 
-impl FileIO for NetUsage {
+impl FileIO for NetStat {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         if let Some((_, ref mut device)) = *super::NET.lock() {
             let stats = device.stats();
             let s = format!(
-                "{} {} {} {}",
+                "label packets bytes\nrx {} {}\ntx {} {}",
                 stats.rx_packets_count(),
                 stats.rx_bytes_count(),
                 stats.tx_packets_count(),

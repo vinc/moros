@@ -169,7 +169,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                 let dev = "/dev/vga/palette";
                 if !fs::is_device(dev) || fs::write(dev, &palette).is_err() {
                     config.set_char_mode();
-                    error!("Could not write to '{}'", dev);
+                    error!("Could not write to {:?}", dev);
                     return Err(ExitCode::Failure);
                 }
 
@@ -177,7 +177,7 @@ fn render_bmp(path: &str, config: &mut Config) -> Result<Command, ExitCode> {
                 let dev = "/dev/vga/buffer";
                 if !fs::is_device(dev) || fs::write(dev, &img).is_err() {
                     config.set_char_mode();
-                    error!("Could not write to '{}'", dev);
+                    error!("Could not write to {:?}", dev);
                     return Err(ExitCode::Failure);
                 }
 

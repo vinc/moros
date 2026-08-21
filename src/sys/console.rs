@@ -1,11 +1,12 @@
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys;
+use crate::sys::x86::int;
+
 use alloc::string::String;
 use alloc::string::ToString;
 use core::fmt;
 use core::sync::atomic::{AtomicBool, Ordering};
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
 pub static STDIN: Mutex<String> = Mutex::new(String::new());
 pub static ECHO: AtomicBool = AtomicBool::new(true);
@@ -52,7 +53,7 @@ impl FileIO for Console {
     fn close(&mut self) {}
 
     fn poll(&mut self, event: IO) -> bool {
-        interrupts::without_interrupts(||
+        int::without_interrupts(||
             match event {
                 IO::Read => STDIN.lock().contains('\n'),
                 IO::Write => true,
@@ -128,23 +129,23 @@ pub fn key_handle(key: char) {
 }
 
 pub fn end_of_text() -> bool {
-    interrupts::without_interrupts(|| STDIN.lock().contains(ETX_KEY))
+    int::without_interrupts(|| STDIN.lock().contains(ETX_KEY))
 }
 
 pub fn end_of_transmission() -> bool {
-    interrupts::without_interrupts(|| STDIN.lock().contains(EOT_KEY))
+    int::without_interrupts(|| STDIN.lock().contains(EOT_KEY))
 }
 
 pub fn drain() {
-    interrupts::without_interrupts(|| STDIN.lock().clear())
+    int::without_interrupts(|| STDIN.lock().clear())
 }
 
 pub fn read_char() -> char {
     sys::console::disable_echo();
     sys::console::enable_raw();
     loop {
-        sys::clk::halt();
-        let res = interrupts::without_interrupts(|| {
+        sys::x86::hlt();
+        let res = int::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             if !stdin.is_empty() {
                 Some(stdin.remove(0))
@@ -162,8 +163,8 @@ pub fn read_char() -> char {
 
 pub fn read_line() -> String {
     loop {
-        sys::clk::halt();
-        let res = interrupts::without_interrupts(|| {
+        sys::x86::hlt();
+        let res = int::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.chars().next_back() {
                 Some('\n') => {

@@ -1,3 +1,5 @@
+(var trunc num/int)
+
 (def (floor x)
   "Returns the largest integer less than or equal to the number"
   (if (>= x 0.0)

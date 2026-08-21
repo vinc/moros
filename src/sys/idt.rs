@@ -1,24 +1,17 @@
-use crate::sys::mem::phys_mem_offset;
+use crate::{api, hang, sys};
 use crate::api::process::ExitCode;
+use crate::sys::pic;
 use crate::sys::process::Registers;
-use crate::{api, hlt_loop, sys};
+use crate::sys::x86::int;
+use crate::sys::x86::reg::Cr2;
 
 use core::arch::{asm, naked_asm};
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::interrupts;
-use x86_64::instructions::port::Port;
-use x86_64::registers::control::Cr2;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
-use x86_64::structures::paging::OffsetPageTable;
 use x86_64::VirtAddr;
-
-// Translate IRQ into system interrupt
-fn interrupt_index(irq: u8) -> u8 {
-    sys::pic::PIC_1_OFFSET + irq
-}
 
 fn default_handler() {}
 
@@ -48,22 +41,22 @@ lazy_static! {
                 set_handler_addr(addr).
                 set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
-        idt[interrupt_index(0)].set_handler_fn(irq0_handler);
-        idt[interrupt_index(1)].set_handler_fn(irq1_handler);
-        idt[interrupt_index(2)].set_handler_fn(irq2_handler);
-        idt[interrupt_index(3)].set_handler_fn(irq3_handler);
-        idt[interrupt_index(4)].set_handler_fn(irq4_handler);
-        idt[interrupt_index(5)].set_handler_fn(irq5_handler);
-        idt[interrupt_index(6)].set_handler_fn(irq6_handler);
-        idt[interrupt_index(7)].set_handler_fn(irq7_handler);
-        idt[interrupt_index(8)].set_handler_fn(irq8_handler);
-        idt[interrupt_index(9)].set_handler_fn(irq9_handler);
-        idt[interrupt_index(10)].set_handler_fn(irq10_handler);
-        idt[interrupt_index(11)].set_handler_fn(irq11_handler);
-        idt[interrupt_index(12)].set_handler_fn(irq12_handler);
-        idt[interrupt_index(13)].set_handler_fn(irq13_handler);
-        idt[interrupt_index(14)].set_handler_fn(irq14_handler);
-        idt[interrupt_index(15)].set_handler_fn(irq15_handler);
+        idt[pic::vector(0)].set_handler_fn(irq0_handler);
+        idt[pic::vector(1)].set_handler_fn(irq1_handler);
+        idt[pic::vector(2)].set_handler_fn(irq2_handler);
+        idt[pic::vector(3)].set_handler_fn(irq3_handler);
+        idt[pic::vector(4)].set_handler_fn(irq4_handler);
+        idt[pic::vector(5)].set_handler_fn(irq5_handler);
+        idt[pic::vector(6)].set_handler_fn(irq6_handler);
+        idt[pic::vector(7)].set_handler_fn(irq7_handler);
+        idt[pic::vector(8)].set_handler_fn(irq8_handler);
+        idt[pic::vector(9)].set_handler_fn(irq9_handler);
+        idt[pic::vector(10)].set_handler_fn(irq10_handler);
+        idt[pic::vector(11)].set_handler_fn(irq11_handler);
+        idt[pic::vector(12)].set_handler_fn(irq12_handler);
+        idt[pic::vector(13)].set_handler_fn(irq13_handler);
+        idt[pic::vector(14)].set_handler_fn(irq14_handler);
+        idt[pic::vector(15)].set_handler_fn(irq15_handler);
         idt
     };
 }
@@ -73,11 +66,7 @@ macro_rules! irq_handler {
         pub extern "x86-interrupt" fn $handler(_: InterruptStackFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
-            unsafe {
-                sys::pic::PICS.lock().notify_end_of_interrupt(
-                    interrupt_index($irq)
-                );
-            }
+            pic::eoi($irq);
         }
     };
 }
@@ -121,51 +110,33 @@ extern "x86-interrupt" fn page_fault_handler(
 ) {
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
-    let addr = Cr2::read().unwrap().as_u64();
+    let addr = Cr2::read() as u64;
     //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
 
-    let page_table = unsafe { sys::process::page_table() };
     let mut mapper = unsafe {
-        OffsetPageTable::new(page_table, VirtAddr::new(phys_mem_offset()))
+        sys::mem::create_mapper(sys::process::page_table())
     };
 
-    if error_code.contains(PageFaultErrorCode::CAUSED_BY_WRITE) {
-        if sys::mem::alloc_pages(&mut mapper, addr, 1).is_err() {
-            printk!(
-                "{}Error:{} Could not allocate page at {:#X}\n",
-                csi_color, csi_reset, addr
-            );
-            if error_code.contains(PageFaultErrorCode::USER_MODE) {
-                api::syscall::exit(ExitCode::PageFaultError);
-            } else {
-                hlt_loop();
-            }
-        }
-    } else if error_code.contains(PageFaultErrorCode::USER_MODE) {
-        // TODO: This should be removed when the process page table is no
-        // longer a simple clone of the kernel page table. Currently a process
-        // is executed from its kernel address that is shared with the process.
+    // The heap and the stack of a process are allocated lazily
+    if sys::process::is_userspace(addr) {
         let start = (addr / 4096) * 4096;
         if sys::mem::alloc_pages(&mut mapper, start, 4096).is_ok() {
-            if sys::process::is_userspace(start) {
-                let code_addr = sys::process::code_addr();
-                let src = (code_addr + start) as *mut u8;
-                let dst = start as *mut u8;
-                unsafe {
-                    core::ptr::copy_nonoverlapping(src, dst, 4096);
-                }
-            }
+            return;
         }
+        printk!(
+            "{}Error:{} Could not allocate page at {:#X}\n",
+            csi_color, csi_reset, addr
+        );
     } else {
         printk!(
             "{}Error:{} Page fault exception at {:#X}\n",
             csi_color, csi_reset, addr
         );
-        if error_code.contains(PageFaultErrorCode::USER_MODE) {
-            api::syscall::exit(ExitCode::PageFaultError);
-        } else {
-            hlt_loop();
-        }
+    }
+    if error_code.contains(PageFaultErrorCode::USER_MODE) {
+        api::syscall::exit(ExitCode::PageFaultError);
+    } else {
+        hang();
     }
 }
 
@@ -269,40 +240,12 @@ extern "sysv64" fn syscall_handler(
     regs.rax = res;
 }
 
-const PIC1: u16 = 0x21;
-const PIC2: u16 = 0xA1;
-
-fn irq_port(irq: u8) -> Port<u8> {
-    let addr = if irq < 8 { PIC1 } else { PIC2 };
-    Port::new(addr)
-}
-
-fn irq_line(irq: u8) -> u8 {
-    if irq < 8 { irq } else { irq - 8 }
-}
-
-pub fn set_irq_mask(irq: u8) {
-    let mut port = irq_port(irq);
-    unsafe {
-        let value = port.read() | (1 << irq_line(irq));
-        port.write(value);
-    }
-}
-
-pub fn clear_irq_mask(irq: u8) {
-    let mut port = irq_port(irq);
-    unsafe {
-        let value = port.read() & !(1 << irq_line(irq));
-        port.write(value);
-    }
-}
-
 pub fn set_irq_handler(irq: u8, handler: fn()) {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let mut handlers = IRQ_HANDLERS.lock();
         handlers[irq as usize] = handler;
 
-        clear_irq_mask(irq);
+        pic::unmask(irq);
     });
 }
 

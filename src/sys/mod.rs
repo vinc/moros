@@ -37,70 +37,26 @@ macro_rules! log {
     });
 }
 
-pub mod port {
-    use x86_64::instructions::port::Port;
-
-    pub fn outb(addr: u16, value: u8) {
-        let mut port: Port<u8> = Port::new(addr);
-        unsafe {
-            port.write(value);
-        }
-    }
-
-    pub fn outw(addr: u16, value: u16) {
-        let mut port: Port<u16> = Port::new(addr);
-        unsafe {
-            port.write(value);
-        }
-    }
-
-    pub fn outl(addr: u16, value: u32) {
-        let mut port: Port<u32> = Port::new(addr);
-        unsafe {
-            port.write(value);
-        }
-    }
-
-    pub fn inb(addr: u16) -> u8 {
-        let mut port: Port<u8> = Port::new(addr);
-        unsafe {
-            port.read()
-        }
-    }
-
-    pub fn inw(addr: u16) -> u16 {
-        let mut port: Port<u16> = Port::new(addr);
-        unsafe {
-            port.read()
-        }
-    }
-
-    pub fn inl(addr: u16) -> u32 {
-        let mut port: Port<u32> = Port::new(addr);
-        unsafe {
-            port.read()
-        }
-    }
-}
-
-pub mod acpi;
-pub mod ata;
-pub mod clk;
-pub mod console;
-pub mod cpu;
-pub mod fs;
-pub mod gdt;
-pub mod idt;
-pub mod keyboard;
-pub mod log;
-pub mod mem;
-pub mod net;
-pub mod pci;
+#[cfg(target_arch = "x86_64")] pub mod acpi;
+#[cfg(target_arch = "x86_64")] pub mod ata;
+pub mod boot;
+#[cfg(target_arch = "x86_64")] pub mod clk;
+#[cfg(target_arch = "x86_64")] pub mod console;
+#[cfg(target_arch = "x86_64")] pub mod cpu;
+#[cfg(target_arch = "x86_64")] pub mod fs;
+#[cfg(target_arch = "x86_64")] pub mod gdt;
+#[cfg(target_arch = "x86_64")] pub mod idt;
+#[cfg(target_arch = "x86_64")] pub mod keyboard;
+#[cfg(target_arch = "x86_64")] pub mod log;
+#[cfg(target_arch = "x86_64")] pub mod mem;
+#[cfg(target_arch = "x86_64")] pub mod net;
+#[cfg(target_arch = "x86_64")] pub mod pci;
 pub mod pic;
-pub mod process;
-pub mod rng;
+#[cfg(target_arch = "x86_64")] pub mod process;
+#[cfg(target_arch = "x86_64")] pub mod rng;
 pub mod serial;
-pub mod snd;
-pub mod speaker;
-pub mod syscall;
-pub mod vga;
+#[cfg(target_arch = "x86_64")] pub mod snd;
+#[cfg(target_arch = "x86_64")] pub mod speaker;
+#[cfg(target_arch = "x86_64")] pub mod syscall;
+#[cfg(target_arch = "x86_64")] pub mod vga;
+pub mod x86;

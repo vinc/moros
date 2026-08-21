@@ -1,9 +1,10 @@
 mod ac97;
 mod sb16;
 
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::sys::pci::DeviceConfig;
 use crate::sys;
+use crate::sys::x86::int;
 
 use core::cmp;
 use core::convert::TryFrom;
@@ -141,7 +142,7 @@ impl FileIO for SoundBuffer {
     }
 
     fn write(&mut self, buffer: &[u8]) -> Result<usize, ()> {
-        x86_64::instructions::interrupts::without_interrupts(|| {
+        int::without_interrupts(|| {
             if let Some((ref mut device, ref mut config)) = *SND.lock() {
                 if buffer.is_empty() {
                     device.stop();
@@ -203,9 +204,8 @@ pub fn init() {
     if let Some(device) = sb16::find() {
         *SND.lock() = Some((SoundDevice::SB16(device), config.clone()));
 
-        let irq = sb16::IRQ;
+        let irq = sys::pic::SND_IRQ;
         sys::idt::set_irq_handler(irq, interrupt_handler);
-
         log!("SND DRV SB16 (IRQ {})", irq);
         return;
     }
@@ -221,7 +221,6 @@ pub fn init() {
 
             let irq = pci.interrupt_line;
             sys::idt::set_irq_handler(irq, interrupt_handler);
-
             log!("SND DRV AC97 (IRQ {})", irq);
             return;
         }

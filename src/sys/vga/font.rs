@@ -1,11 +1,11 @@
 use super::writer::WRITER;
 
 use crate::api::font::Font;
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
+use crate::sys::x86::int;
 
 use core::convert::TryFrom;
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
 static FONT: Mutex<Option<Font>> = Mutex::new(None);
 
@@ -44,7 +44,7 @@ impl FileIO for VgaFont {
 }
 
 fn write_font(font: &Font) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         WRITER.lock().set_font(font)
     )
 }

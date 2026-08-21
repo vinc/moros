@@ -22,7 +22,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }
 
-    error!("Could not decode '{}'", path);
+    error!("Could not decode {:?}", path);
     Err(ExitCode::Failure)
 }
 

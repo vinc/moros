@@ -12,8 +12,10 @@ keyboard = qwerty# qwerty, azerty, dvorak
 mode = release
 
 # Emulation options
-memory = 32
+arch = x86_64# x86_64, i686
+cpu = core2duo
 smp = 2
+memory = 32
 nic = rtl8139# rtl8139, pcnet, e1000
 snd = sb16# ac97, sb16
 audio = sdl# sdl, coreaudio
@@ -22,6 +24,8 @@ kvm = false
 pcap = false
 trace = false# e1000
 monitor = false
+bootloader = rust# rust, limine
+bootloader-proto = limine# limine, multiboot
 
 export MOROS_VERSION = $(shell git describe --tags | sed "s/^v//")
 export MOROS_KEYBOARD = $(keyboard)
@@ -33,13 +37,11 @@ user-nasm:
 		sh -c "printf '\x7FBIN' | cat - dsk/bin/{}.tmp > dsk/bin/{}"
 	rm dsk/bin/*.tmp
 
-user-cargo-opts = --no-default-features --features userspace --release
+user-cargo-opts = --release --no-default-features --features userspace
 
-# FIXME: Userspace alloc panic when the default `lld` linker is used because it
-# sets the entry point 0x200000 which is used by the kernel, so we use `ld` to
-# set it at 0x800000 that is free. With `ld` the resulting binaries are much
-# larger though. This is useful only for programs that allocate memory.
-ld-opts = -Ttext=800000 -Trodata=900000 -Tbss=950000
+# Userspace programs are linked inside the user memory region, which lives
+# in its own L4 page table entry.
+ld-opts = -Ttext=8000800000 -Trodata=8000900000 -Tbss=8000950000
 linker-opts = -C linker-flavor=ld -C link-args="$(ld-opts)"
 
 user-rust:
@@ -53,54 +55,70 @@ user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		strip dsk/bin/{}
 
-bin = target/x86_64-moros/$(mode)/bootimage-moros.bin
+bin = moros-$(arch).img
 img = disk.img
 
 $(img):
 	qemu-img create $(img) 32M
 
-cargo-opts = --no-default-features --features $(output) --bin moros
+cargo-opts = --bin moros
 ifeq ($(mode),release)
-	cargo-opts += --release
+cargo-opts += --release
 endif
+cargo-opts += --no-default-features --features $(output)
 
 # Rebuild MOROS if the features list changed
 image: $(img)
 	touch src/lib.rs
 	env | grep MOROS
 	cargo bootimage $(cargo-opts)
+	cp target/x86_64-moros/$(mode)/bootimage-moros.bin $(bin)
 	dd conv=notrunc if=$(bin) of=$(img)
 
 qemu-opts = -name "MOROS $$MOROS_VERSION" \
-			 -m $(memory) -smp $(smp) -drive file=$(img),format=raw \
+			 -m $(memory) -smp $(smp) \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -audio driver=$(audio),model=$(snd) \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
+
 ifeq ($(kvm),true)
-	qemu-opts += -cpu host -accel kvm
+qemu-opts += -cpu host -accel kvm
 else
-	qemu-opts += -cpu core2duo
+qemu-opts += -cpu $(cpu)
 endif
 
 ifeq ($(pcap),true)
-	qemu-opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
+qemu-opts += -object filter-dump,id=f1,netdev=e0,file=/tmp/qemu.pcap
 endif
 
 ifeq ($(monitor),true)
-	qemu-opts += -monitor telnet:127.0.0.1:7777,server,nowait
+qemu-opts += -monitor telnet:127.0.0.1:7777,server,nowait
 endif
 
 ifeq ($(output),serial)
-	qemu-opts += -display none
-	qemu-opts += -chardev stdio,id=s0,signal=$(signal) -serial chardev:s0
+qemu-opts += -display none
+qemu-opts += -chardev stdio,id=s0,signal=$(signal) -serial chardev:s0
 endif
 
 ifeq ($(mode),debug)
-	qemu-opts += -s -S
+qemu-opts += -s -S
 endif
 
 ifeq ($(trace),e1000)
-	qemu-opts += -trace 'e1000*'
+qemu-opts += -trace 'e1000*'
+endif
+
+ifeq ($(bootloader),rust)
+qemu-opts += -drive file=$(img),format=raw
+else
+qemu-opts += -drive file=$(bin),format=raw
+endif
+
+ifeq ($(arch),i686)
+qemu = qemu-system-i386
+cpu = pentium3
+else
+qemu = qemu-system-x86_64
 endif
 
 # In debug mode, open another terminal with the following command
@@ -108,12 +126,39 @@ endif
 # > gdb target/x86_64-moros/debug/moros -ex "target remote :1234"
 
 qemu:
-	qemu-system-x86_64 $(qemu-opts)
+	$(qemu) $(qemu-opts)
 
 test:
 	cargo test --release --lib --no-default-features --features serial -- \
 		-m $(memory) -cpu core2duo -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04
+
+limine-version = 11.3.1
+limine-url = https://github.com/Limine-Bootloader/Limine/releases/download/v$(limine-version)/limine-$(limine-version).tar.gz
+limine-dir = tmp/limine-$(limine-version)
+
+# Require llvm lld xorriso
+limine-setup:
+	mkdir -p tmp
+	wget -O $(limine-dir).tar.gz $(limine-url)
+	tar xf $(limine-dir).tar.gz -C tmp
+	cd $(limine-dir) && ./configure --enable-bios --enable-bios-cd && make
+	cp $(limine-dir)/bin/limine-bios-cd.bin run/boot/limine/
+	cp $(limine-dir)/bin/limine-bios.sys run/boot/limine/
+
+limine-image: RUSTFLAGS = -C link-arg=-Trun/boot/$(bootloader-proto).ld -C link-arg=-z -C link-arg=norelro
+limine-image:
+	cargo build $(cargo-opts),$(bootloader-proto) --target $(arch)-moros.json
+	cp target/$(arch)-moros/$(mode)/moros run/boot/kernel.elf
+	sed -i.old "s/default_entry:.*/default_entry: $(bootloader-proto)/" run/boot/limine/limine.conf
+	rm run/boot/limine/limine.conf.old
+	xorriso -as mkisofs \
+		-b limine/limine-bios-cd.bin \
+		-no-emul-boot -boot-load-size 4 -boot-info-table \
+		-partition_offset 16 \
+		--protective-msdos-label \
+		run/boot -o $(bin)
+	$(limine-dir)/bin/limine bios-install $(bin)
 
 website:
 	cd www && sh build.sh
@@ -131,3 +176,4 @@ pkg-kernel:
 clean:
 	cargo clean
 	rm -f www/*.html www/images/*.png
+	rm -f moros-*.img
