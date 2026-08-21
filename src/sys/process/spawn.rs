@@ -11,7 +11,7 @@ use super::free_process;
 use super::table::{PROCESS_TABLE, MAX_PROCS};
 
 use crate::api::process::ExitCode;
-use crate::sys::gdt::GDT;
+use crate::sys::gdt;
 use crate::sys::mem;
 use crate::sys::x86::int;
 use crate::sys::x86::reg::{Cr3, flags};
@@ -163,10 +163,10 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
             "push {:r}", // Code segment (CS)
             "push {:r}", // Instruction pointer (RIP)
             "iretq",
-            in(reg) GDT.1.user_data.0,
+            in(reg) gdt::USR_DATA.bits,
             in(reg) ctx.stack_addr,
             in(reg) flags::IF,
-            in(reg) GDT.1.user_code.0,
+            in(reg) gdt::USR_CODE.bits,
             in(reg) ctx.entry_point_addr,
             in("rdi") args_ptr,
             in("rsi") args_len,

@@ -28,13 +28,13 @@ lazy_static! {
         unsafe {
             idt.double_fault.
                 set_handler_fn(double_fault_handler).
-                set_stack_index(sys::gdt::DOUBLE_FAULT_IST);
+                set_stack_index(sys::tss::DOUBLE_FAULT as u16);
             idt.page_fault.
                 set_handler_fn(page_fault_handler).
-                set_stack_index(sys::gdt::PAGE_FAULT_IST);
+                set_stack_index(sys::tss::PAGE_FAULT as u16);
             idt.general_protection_fault.
                 set_handler_fn(general_protection_fault_handler).
-                set_stack_index(sys::gdt::GENERAL_PROTECTION_FAULT_IST);
+                set_stack_index(sys::tss::GENERAL_PROTECTION_FAULT as u16);
 
             let addr = VirtAddr::from_ptr(wrapped_syscall_handler as *const ());
             idt[0x80].
