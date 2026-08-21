@@ -29,6 +29,12 @@ pub fn rdrand() -> Option<u64> {
     None
 }
 
+#[repr(C, packed(2))]
+pub struct DescriptorTablePointer {
+    pub limit: u16,
+    pub base: usize,
+}
+
 pub mod port {
     use core::arch::asm;
 
