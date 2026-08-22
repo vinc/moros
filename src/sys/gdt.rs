@@ -7,7 +7,6 @@ use crate::sys::x86::seg::SegmentSelector;
 
 use bit_field::BitField;
 use lazy_static::lazy_static;
-use x86_64::structures::gdt::DescriptorFlags;
 
 lazy_static! {
     static ref GDT: GlobalDescriptorTable = GlobalDescriptorTable::new(&tss::TSS);
@@ -20,7 +19,24 @@ pub const USR_DATA: SegmentSelector = SegmentSelector::new(4, 3);
 pub const TSS:      SegmentSelector = SegmentSelector::new(5, 0);
 
 // Segment descriptor flags (Intel SDM 3.4.5)
-const PRESENT: u64 = 1 << 47;
+const ACCESSED:     u64 = 1 << 40; // Accessed (A)
+const READABLE:     u64 = 1 << 41; // Readable (R)
+const WRITABLE:     u64 = 1 << 41; // Writable (W)
+const EXECUTABLE:   u64 = 1 << 43; // Executable (E)
+const CODE_OR_DATA: u64 = 1 << 44; // Segment (S)
+const RING_3:       u64 = 3 << 45; // Descriptor Privilege-Level (DPL)
+const PRESENT:      u64 = 1 << 47; // Present (P)
+const SIZE_64:      u64 = 1 << 53; // Long (L)
+const SIZE_32:      u64 = 1 << 54; // Default Operand Size (D/B)
+const GRANULARITY:  u64 = 1 << 55; // Granularity (G)
+
+const LIMIT_LO:     u64 = 0xFFFF;
+const LIMIT_HI:     u64 = 0xF << 48;
+const LIMIT:        u64 = LIMIT_LO | LIMIT_HI | GRANULARITY;
+
+const COMMON:       u64 = CODE_OR_DATA | PRESENT | ACCESSED | LIMIT;
+const COMMON_DATA:  u64 = COMMON | WRITABLE;
+const COMMON_CODE:  u64 = COMMON | READABLE | EXECUTABLE;
 
 // System segment type (Intel SDM 3.5)
 const TYPE_TSS: u64 = 0b1001; // 32-bit or 64-bit TSS (Available)
@@ -41,18 +57,18 @@ impl GlobalDescriptorTable {
 
         #[cfg(target_arch = "x86")]
         {
-            table[SYS_CODE.index()] = DescriptorFlags::KERNEL_CODE32.bits();
-            table[USR_CODE.index()] = DescriptorFlags::USER_CODE32.bits();
+            table[SYS_CODE.index()] = COMMON_CODE | SIZE_32;
+            table[USR_CODE.index()] = COMMON_CODE | SIZE_32 | RING_3;
         }
 
         #[cfg(target_arch = "x86_64")]
         {
-            table[SYS_CODE.index()] = DescriptorFlags::KERNEL_CODE64.bits();
-            table[USR_CODE.index()] = DescriptorFlags::USER_CODE64.bits();
+            table[SYS_CODE.index()] = COMMON_CODE | SIZE_64;
+            table[USR_CODE.index()] = COMMON_CODE | SIZE_64 | RING_3;
         }
 
-        table[SYS_DATA.index()] = DescriptorFlags::KERNEL_DATA.bits();
-        table[USR_DATA.index()] = DescriptorFlags::USER_DATA.bits();
+        table[SYS_DATA.index()] = COMMON_DATA | SIZE_32;
+        table[USR_DATA.index()] = COMMON_DATA | SIZE_32 | RING_3;
 
         let base = tss.base() as u64;
         let mut bits = PRESENT;
