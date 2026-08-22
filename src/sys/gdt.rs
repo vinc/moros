@@ -55,6 +55,9 @@ impl GlobalDescriptorTable {
     fn new(tss: &'static TaskStateSegment) -> Self {
         let mut table = [0; LEN];
 
+        table[SYS_DATA.index()] = COMMON_DATA | SIZE_32;
+        table[USR_DATA.index()] = COMMON_DATA | SIZE_32 | RING_3;
+
         #[cfg(target_arch = "x86")]
         {
             table[SYS_CODE.index()] = COMMON_CODE | SIZE_32;
@@ -66,9 +69,6 @@ impl GlobalDescriptorTable {
             table[SYS_CODE.index()] = COMMON_CODE | SIZE_64;
             table[USR_CODE.index()] = COMMON_CODE | SIZE_64 | RING_3;
         }
-
-        table[SYS_DATA.index()] = COMMON_DATA | SIZE_32;
-        table[USR_DATA.index()] = COMMON_DATA | SIZE_32 | RING_3;
 
         let base = tss.base() as u64;
         let mut bits = PRESENT;
