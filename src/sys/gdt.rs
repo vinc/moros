@@ -7,7 +7,7 @@ use crate::sys::x86::seg::SegmentSelector;
 
 use bit_field::BitField;
 use lazy_static::lazy_static;
-use x86_64::structures::gdt::Descriptor;
+use x86_64::structures::gdt::DescriptorFlags;
 
 lazy_static! {
     static ref GDT: GlobalDescriptorTable = GlobalDescriptorTable::new(&tss::TSS);
@@ -18,13 +18,6 @@ pub const SYS_DATA: SegmentSelector = SegmentSelector::new(2, 0);
 pub const USR_CODE: SegmentSelector = SegmentSelector::new(3, 3);
 pub const USR_DATA: SegmentSelector = SegmentSelector::new(4, 3);
 pub const TSS:      SegmentSelector = SegmentSelector::new(5, 0);
-
-const fn desc(desc: Descriptor) -> u64 {
-    match desc {
-        Descriptor::UserSegment(bits) => bits,
-        Descriptor::SystemSegment(..) => panic!("not a segment descriptor"),
-    }
-}
 
 #[cfg(target_arch = "x86")]
 const LEN: usize = 6;
@@ -39,10 +32,21 @@ struct GlobalDescriptorTable {
 impl GlobalDescriptorTable {
     fn new(tss: &'static TaskStateSegment) -> Self {
         let mut table = [0; LEN];
-        table[SYS_CODE.index()] = desc(Descriptor::kernel_code_segment());
-        table[SYS_DATA.index()] = desc(Descriptor::kernel_data_segment());
-        table[USR_CODE.index()] = desc(Descriptor::user_code_segment());
-        table[USR_DATA.index()] = desc(Descriptor::user_data_segment());
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            table[SYS_CODE.index()] = DescriptorFlags::KERNEL_CODE64.bits();
+            table[USR_CODE.index()] = DescriptorFlags::USER_CODE64.bits();
+        }
+
+        #[cfg(target_arch = "x86")]
+        {
+            table[SYS_CODE.index()] = DescriptorFlags::KERNEL_CODE32.bits();
+            table[USR_CODE.index()] = DescriptorFlags::USER_CODE32.bits();
+        }
+
+        table[SYS_DATA.index()] = DescriptorFlags::KERNEL_DATA.bits();
+        table[USR_DATA.index()] = DescriptorFlags::USER_DATA.bits();
 
         let base = tss as *const _ as u64;
         let mut low = 1 << 47;
