@@ -19,6 +19,12 @@ pub const USR_CODE: SegmentSelector = SegmentSelector::new(3, 3);
 pub const USR_DATA: SegmentSelector = SegmentSelector::new(4, 3);
 pub const TSS:      SegmentSelector = SegmentSelector::new(5, 0);
 
+// Segment descriptor flags (Intel SDM 3.4.5)
+const PRESENT: u64 = 1 << 47;
+
+// System segment type (Intel SDM 3.5)
+const TYPE_TSS: u64 = 0b1001; // 32-bit or 64-bit TSS (Available)
+
 #[cfg(target_arch = "x86")]
 const LEN: usize = 6;
 
@@ -33,29 +39,28 @@ impl GlobalDescriptorTable {
     fn new(tss: &'static TaskStateSegment) -> Self {
         let mut table = [0; LEN];
 
-        #[cfg(target_arch = "x86_64")]
-        {
-            table[SYS_CODE.index()] = DescriptorFlags::KERNEL_CODE64.bits();
-            table[USR_CODE.index()] = DescriptorFlags::USER_CODE64.bits();
-        }
-
         #[cfg(target_arch = "x86")]
         {
             table[SYS_CODE.index()] = DescriptorFlags::KERNEL_CODE32.bits();
             table[USR_CODE.index()] = DescriptorFlags::USER_CODE32.bits();
         }
 
+        #[cfg(target_arch = "x86_64")]
+        {
+            table[SYS_CODE.index()] = DescriptorFlags::KERNEL_CODE64.bits();
+            table[USR_CODE.index()] = DescriptorFlags::USER_CODE64.bits();
+        }
+
         table[SYS_DATA.index()] = DescriptorFlags::KERNEL_DATA.bits();
         table[USR_DATA.index()] = DescriptorFlags::USER_DATA.bits();
 
-        let base = tss as *const _ as u64;
-        let mut low = 1 << 47;
-        low.set_bits(0..16, size_of::<TaskStateSegment>() as u64 - 1);
-        low.set_bits(16..40, base.get_bits(0..24));
-        low.set_bits(40..44, 0b1001);
-        low.set_bits(56..64, base.get_bits(24..32));
-
-        table[TSS.index()] = low;
+        let base = tss.base() as u64;
+        let mut bits = PRESENT;
+        bits.set_bits(0..16, tss.limit() as u64);
+        bits.set_bits(16..40, base.get_bits(0..24));
+        bits.set_bits(40..44, TYPE_TSS);
+        bits.set_bits(56..64, base.get_bits(24..32));
+        table[TSS.index()] = bits;
 
         #[cfg(target_arch = "x86_64")]
         {

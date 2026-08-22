@@ -81,8 +81,20 @@ pub struct TaskStateSegment {
 impl TaskStateSegment {
     pub fn new() -> Self {
         let mut tss = Self::default();
-        tss.iomap_base = size_of::<Self>() as u16;
+        tss.iomap_base = Self::size();
         tss
+    }
+
+    const fn size() -> u16 {
+        size_of::<Self>() as u16
+    }
+
+    pub fn limit(&self) -> u16 {
+        Self::size() - 1
+    }
+
+    pub fn base(&self) -> usize {
+        self as *const _ as usize
     }
 
     #[cfg(target_arch = "x86")]
