@@ -96,3 +96,21 @@ pub fn init() {
         reg::load_tss(TSS);
     }
 }
+
+#[test_case]
+fn test_gdt() {
+    assert_eq!(GDT.table.len(), 7);
+
+    assert_eq!(GDT.table[0], 0); // Null descriptor
+    assert_eq!(GDT.table[1], 0x00AF_9B00_0000_FFFF); // Kernel code segment
+    assert_eq!(GDT.table[2], 0x00CF_9300_0000_FFFF); // Kernel data segment
+    assert_eq!(GDT.table[3], 0x00AF_FB00_0000_FFFF); // User code segment
+    assert_eq!(GDT.table[4], 0x00CF_F300_0000_FFFF); // User data segment
+
+    // Task state segment (TSS)
+    let lo = GDT.table[5];
+    let hi = GDT.table[6];
+    let base = lo.get_bits(16..40) | (lo.get_bits(56..64) << 24) | (hi << 32);
+    assert_eq!(base, tss::TSS.base() as u64);
+    assert_eq!(lo.get_bit(47), true); // Present
+}
