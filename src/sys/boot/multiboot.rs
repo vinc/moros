@@ -42,6 +42,7 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
             };
             //let offset = 0;
             //crate::init(&memory_map, offset);
+            crate::sys::gdt::init();
         }
     }
 

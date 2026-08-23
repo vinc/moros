@@ -1,7 +1,8 @@
+use super::seg::SegmentSelector;
+
 use core::arch::asm;
 
 use bit_field::BitField;
-use x86_64::structures::gdt::SegmentSelector;
 use x86_64::structures::paging::PhysFrame;
 use x86_64::PhysAddr;
 
@@ -73,36 +74,47 @@ pub mod flags {
 
 #[inline]
 pub unsafe fn load_cs(sel: SegmentSelector) {
-    // See `x86_64` and `x86` crates for reference
+    #[cfg(target_arch = "x86")]
+    asm!(
+        "push {0}", // Selector
+        "lea {0}, [2f]",
+        "push {0}", // Return address
+        "retf",
+        "2:",
+        inout(reg) usize::from(sel.bits) => _,
+        options(preserves_flags),
+    );
+
+    #[cfg(target_arch = "x86_64")]
     asm!(
         "push {0}", // Selector
         "lea {0}, [rip + 2f]",
         "push {0}", // Return address
         "retfq",
         "2:",
-        inout(reg) usize::from(sel.0) => _,
+        inout(reg) usize::from(sel.bits) => _,
         options(preserves_flags),
     );
 }
 
 #[inline]
 pub unsafe fn load_ds(sel: SegmentSelector) {
-    asm!("mov ds, {:x}", in(reg) sel.0, options(nostack, preserves_flags));
+    asm!("mov ds, {:x}", in(reg) sel.bits, options(nostack, preserves_flags));
 }
 
 #[inline]
 pub unsafe fn load_es(sel: SegmentSelector) {
-    asm!("mov es, {:x}", in(reg) sel.0, options(nostack, preserves_flags));
+    asm!("mov es, {:x}", in(reg) sel.bits, options(nostack, preserves_flags));
 }
 
 #[inline]
 pub unsafe fn load_ss(sel: SegmentSelector) {
-    asm!("mov ss, {:x}", in(reg) sel.0, options(nostack, preserves_flags));
+    asm!("mov ss, {:x}", in(reg) sel.bits, options(nostack, preserves_flags));
 }
 
 #[inline]
 pub unsafe fn load_tss(sel: SegmentSelector) {
-    asm!("ltr {:x}", in(reg) sel.0, options(nostack, preserves_flags));
+    asm!("ltr {:x}", in(reg) sel.bits, options(nostack, preserves_flags));
 }
 
 #[test_case]
