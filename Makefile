@@ -160,11 +160,17 @@ limine-image:
 		run/boot -o $(bin)
 	$(limine-dir)/bin/limine bios-install $(bin)
 
+grub-dir = /usr/lib/grub/i386-pc
+grub-modules = multiboot2 $(shell cat $(grub-dir)/partmap.lst)
+
 grub-image: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 grub-image:
 	cargo build $(cargo-opts),multiboot --target $(arch)-moros.json
 	cp target/$(arch)-moros/$(mode)/moros run/boot/kernel.elf
-	grub-mkrescue -d /usr/lib/grub/i386-pc -o $(bin) /boot=run/boot
+	grub-mkrescue -d $(grub-dir) \
+		--install-modules="$(grub-modules)" \
+		--fonts= --locales= --themes= \
+		-o $(bin) /boot=run/boot
 
 website:
 	cd www && sh build.sh
