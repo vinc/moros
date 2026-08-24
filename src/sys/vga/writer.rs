@@ -25,7 +25,7 @@ const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 struct ColorCode(u8);
 
 impl ColorCode {
-    const fn new(foreground: Color, background: Color) -> Self {
+    fn new(foreground: Color, background: Color) -> Self {
         Self((background as u8) << 4 | (foreground as u8))
     }
 }
@@ -38,12 +38,13 @@ struct ScreenChar {
 }
 
 impl ScreenChar {
-    const fn new() -> Self {
+    const fn zeroed() -> Self {
         Self {
-            ascii_code: b' ',
-            color_code: ColorCode::new(FG, BG),
+            ascii_code: 0,
+            color_code: ColorCode(0)
         }
     }
+
 }
 
 const SCREEN_WIDTH: usize = 80;
@@ -55,8 +56,15 @@ struct ScreenBuffer {
     chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
 }
 
+// Using a static buffer avoids building the array on the stack, and zeroing it
+// puts the buffer in the .bss section instead of .data so it doesn't increase
+// the kernel size.
+//
+// The buffer is always written before being read. The screen is cleared during
+// init, and each row is cleared as it scrolls into view, so the null chars are
+// never rendered.
 static mut SCROLL_BUFFER: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT] =
-    [[ScreenChar::new(); SCREEN_WIDTH]; SCROLL_HEIGHT];
+    [[ScreenChar::zeroed(); SCREEN_WIDTH]; SCROLL_HEIGHT];
 
 lazy_static! {
     pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
