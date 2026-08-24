@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Set VGA resolution (#776)
 - Replace x86_64 GDT and TSS structures (#897)
 - Add Grub support (#889)
 - Add Limine support (#835)
