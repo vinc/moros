@@ -26,7 +26,7 @@ core::arch::global_asm!(
     ".section .bss",
     ".align 16",
     "stack_bottom:",
-    ".skip 16384",
+    ".skip {size}",
     "stack_top:",
 
     ".section .text",
@@ -37,6 +37,7 @@ core::arch::global_asm!(
     "push ebx", // info
     "call {start}",
     "hlt",
+    size = const moros::STACK_SIZE,
     start = sym start,
 );
 
