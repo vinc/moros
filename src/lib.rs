@@ -23,7 +23,9 @@ pub mod usr;
 use sys::boot::MemoryMap;
 
 #[cfg(target_arch = "x86_64")]
-const KERNEL_SIZE: usize = 4 << 20; // 4 MB
+pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
+
+pub const STACK_SIZE: usize = 128 << 10; // 128 KB
 
 #[cfg(target_arch = "x86_64")]
 pub fn init(memory_map: &MemoryMap, offset: u64) {
