@@ -1,5 +1,6 @@
 pub mod int;
 pub mod reg;
+pub mod seg;
 
 use core::arch::asm;
 
@@ -26,6 +27,18 @@ pub fn rdrand() -> Option<u64> {
 #[cfg(target_arch = "x86")]
 pub fn rdrand() -> Option<u64> {
     None
+}
+
+#[repr(C, packed(2))]
+pub struct DescriptorTablePointer {
+    pub limit: u16,
+    pub base: usize,
+}
+
+pub unsafe fn lgdt(gdt: &DescriptorTablePointer) {
+    unsafe {
+        asm!("lgdt [{}]", in(reg) gdt, options(readonly, nostack, preserves_flags));
+    }
 }
 
 pub mod port {

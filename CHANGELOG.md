@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Replace x86_64 GDT and TSS structures (#897)
+- Add Grub support (#889)
 - Add Limine support (#835)
 - Set VGA Text Mode during init (#888)
 - Move FileIO from api to sys (#887)
