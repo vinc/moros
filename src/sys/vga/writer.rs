@@ -51,7 +51,7 @@ const SCREEN_WIDTH: usize = 80;
 const SCREEN_HEIGHT: usize = 25;
 
 #[cfg(target_arch = "x86")]
-const SCROLL_HEIGHT: usize = SCREEN_HEIGHT + 1; // FIXME: Reduced buffer size
+const SCROLL_HEIGHT: usize = SCREEN_HEIGHT; // FIXME: Reduced buffer size
 
 #[cfg(target_arch = "x86_64")]
 const SCROLL_HEIGHT: usize = SCREEN_HEIGHT * 10;
@@ -239,7 +239,7 @@ impl Writer {
             for y in 1..SCREEN_HEIGHT {
                 self.screen_buffer.chars[y - 1] = self.screen_buffer.chars[y];
             }
-            if self.scroll_bottom == SCROLL_HEIGHT - 1 {
+            if self.scroll_bottom == SCROLL_HEIGHT {
                 for y in 1..SCROLL_HEIGHT {
                     self.scroll_buffer[y - 1] = self.scroll_buffer[y];
                 }
