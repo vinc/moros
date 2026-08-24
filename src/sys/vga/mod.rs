@@ -124,6 +124,7 @@ pub fn init() {
     set_attr_ctrl_reg(0xF, 0x3F);
 
     screen::set_text_mode();
+    WRITER.lock().clear_screen();
 }
 
 #[doc(hidden)]
