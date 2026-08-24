@@ -1,9 +1,13 @@
 use super::*;
 
 use color::Color;
+
+#[cfg(target_arch = "x86_64")]
 use palette::Palette;
+
 use buffer::Buffer;
 
+#[cfg(target_arch = "x86_64")]
 use crate::api::font::Font;
 
 use crate::sys;
@@ -45,7 +49,12 @@ impl ScreenChar {
 
 const SCREEN_WIDTH: usize = 80;
 const SCREEN_HEIGHT: usize = 25;
-const SCROLL_HEIGHT: usize = 250;
+
+#[cfg(target_arch = "x86")]
+const SCROLL_HEIGHT: usize = SCREEN_HEIGHT + 1; // FIXME: Reduced buffer size
+
+#[cfg(target_arch = "x86_64")]
+const SCROLL_HEIGHT: usize = SCREEN_HEIGHT * 10;
 
 #[repr(transparent)]
 struct ScreenBuffer {
@@ -156,10 +165,12 @@ impl Writer {
     }
 
     fn disable_echo(&self) {
+        #[cfg(target_arch = "x86_64")]
         sys::console::disable_echo();
     }
 
     fn enable_echo(&self) {
+        #[cfg(target_arch = "x86_64")]
         sys::console::enable_echo();
     }
 
@@ -265,6 +276,7 @@ impl Writer {
     }
 
     // Source: https://slideplayer.com/slide/3888880
+    #[cfg(target_arch = "x86_64")]
     pub fn set_font(&mut self, font: &Font) {
         let buffer = Buffer::addr() as *mut u8;
 
@@ -504,6 +516,7 @@ impl Perform for Writer {
     }
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
+        #[cfg(target_arch = "x86_64")]
         if params.len() == 1 {
             let s = core::str::from_utf8(params[0]).unwrap_or("");
             match s.chars().next() {

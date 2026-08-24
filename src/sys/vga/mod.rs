@@ -1,13 +1,20 @@
 mod color;
-mod font;
+#[cfg(target_arch = "x86_64")] mod font;
 mod buffer;
-mod palette;
+#[cfg(target_arch = "x86_64")] mod palette;
 mod screen;
 mod writer;
 
+#[cfg(target_arch = "x86_64")]
 pub use font::VgaFont;
+
+#[cfg(target_arch = "x86_64")]
 pub use screen::VgaMode;
+
+#[cfg(target_arch = "x86_64")]
 pub use palette::Palette as VgaPalette;
+
+#[cfg(target_arch = "x86_64")]
 pub use buffer::Buffer as VgaBuffer;
 
 use writer::WRITER;
@@ -36,13 +43,6 @@ const CRTC_ADDR_REG:           u16 = 0x3D4;
 const CRTC_DATA_REG:           u16 = 0x3D5;
 const INPUT_STATUS_REG:        u16 = 0x3DA;
 const INSTAT_READ_REG:         u16 = 0x3DA;
-
-#[doc(hidden)]
-pub fn print_fmt(args: fmt::Arguments) {
-    int::without_interrupts(||
-        WRITER.lock().write_fmt(args).expect("Could not print to VGA")
-    )
-}
 
 // ASCII Printable
 // Backspace
@@ -124,4 +124,11 @@ pub fn init() {
     set_attr_ctrl_reg(0xF, 0x3F);
 
     screen::set_text_mode();
+}
+
+#[doc(hidden)]
+pub fn print_fmt(args: fmt::Arguments) {
+    int::without_interrupts(||
+        WRITER.lock().write_fmt(args).expect("Could not print to VGA")
+    )
 }
