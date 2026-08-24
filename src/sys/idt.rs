@@ -1,17 +1,15 @@
 use crate::{api, hang, sys};
 use crate::api::process::ExitCode;
 use crate::sys::pic;
-use crate::sys::process::Registers;
 use crate::sys::x86::int;
 use crate::sys::x86::reg::Cr2;
 
-use core::arch::{asm, naked_asm};
+use core::arch::asm;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
 };
-use x86_64::VirtAddr;
 
 fn default_handler() {}
 
@@ -36,9 +34,8 @@ lazy_static! {
                 set_handler_fn(general_protection_fault_handler).
                 set_stack_index(sys::tss::GENERAL_PROTECTION_FAULT as u16);
 
-            let addr = VirtAddr::from_ptr(wrapped_syscall_handler as *const ());
             idt[0x80].
-                set_handler_addr(addr).
+                set_handler_addr(sys::syscall::handler::addr()).
                 set_privilege_level(x86_64::PrivilegeLevel::Ring3);
         }
         idt[pic::vector(0)].set_handler_fn(irq0_handler);
@@ -168,76 +165,6 @@ extern "x86-interrupt" fn segment_not_present_handler(
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
-}
-
-// Naked function wrapper saving all scratch registers to the stack
-// See: https://os.phil-opp.com/returning-from-exceptions/
-#[unsafe(naked)]
-extern "sysv64" fn wrapped_syscall_handler() -> ! {
-    naked_asm!(
-        "cld",            // Clear direction flag
-        "push rax",
-        "push rcx",
-        "push rdx",
-        "push rsi",
-        "push rdi",
-        "push r8",
-        "push r9",
-        "push r10",
-        "push r11",
-        "mov rsi, rsp",   // Arg #2: register list
-        "mov rdi, rsp",   // Arg #1: interrupt frame
-        "add rdi, 9 * 8", // 9 registers * 8 bytes
-        "sti",            // Enable interrupts during syscall
-        "call {}",
-        "cli",
-        "pop r11",
-        "pop r10",
-        "pop r9",
-        "pop r8",
-        "pop rdi",
-        "pop rsi",
-        "pop rdx",
-        "pop rcx",
-        "pop rax",
-        "iretq",
-        sym syscall_handler
-    );
-}
-
-// NOTE: We can't use "x86-interrupt" for syscall_handler because we need to
-// return a result in the RAX register and it will be overwritten when the
-// context of the caller is restored.
-extern "sysv64" fn syscall_handler(
-    stack_frame: &mut InterruptStackFrame,
-    regs: &mut Registers
-) {
-    let n = regs.rax;
-
-    // The registers order follow the System V ABI convention
-    let arg1 = regs.rdi;
-    let arg2 = regs.rsi;
-    let arg3 = regs.rdx;
-    let arg4 = regs.r8;
-
-    // Backup CPU context before spawning a process
-    if n == sys::syscall::number::SPAWN {
-        sys::process::set_stack_frame(**stack_frame);
-        sys::process::set_registers(*regs);
-    }
-
-    let res = sys::syscall::dispatcher(n, arg1, arg2, arg3, arg4);
-
-    // Restore CPU context before exiting a process
-    if n == sys::syscall::number::EXIT {
-        let sf = sys::process::stack_frame();
-        unsafe {
-            stack_frame.as_mut().write(sf);
-        }
-        *regs = sys::process::registers();
-    }
-
-    regs.rax = res;
 }
 
 pub fn set_irq_handler(irq: u8, handler: fn()) {
