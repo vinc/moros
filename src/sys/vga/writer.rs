@@ -12,7 +12,6 @@ use crate::api::font::Font;
 
 use crate::sys;
 
-//use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use vte::{Params, Parser, Perform};
@@ -26,8 +25,8 @@ const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 struct ColorCode(u8);
 
 impl ColorCode {
-    fn new(foreground: Color, background: Color) -> ColorCode {
-        ColorCode((background as u8) << 4 | (foreground as u8))
+    const fn new(foreground: Color, background: Color) -> Self {
+        Self((background as u8) << 4 | (foreground as u8))
     }
 }
 
@@ -39,7 +38,7 @@ struct ScreenChar {
 }
 
 impl ScreenChar {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             ascii_code: b' ',
             color_code: ColorCode::new(FG, BG),
@@ -49,17 +48,15 @@ impl ScreenChar {
 
 const SCREEN_WIDTH: usize = 80;
 const SCREEN_HEIGHT: usize = 25;
-
-#[cfg(target_arch = "x86")]
-const SCROLL_HEIGHT: usize = SCREEN_HEIGHT; // FIXME: Reduced buffer size
-
-#[cfg(target_arch = "x86_64")]
 const SCROLL_HEIGHT: usize = SCREEN_HEIGHT * 10;
 
 #[repr(transparent)]
 struct ScreenBuffer {
     chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
 }
+
+static mut SCROLL_BUFFER: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT] =
+    [[ScreenChar::new(); SCREEN_WIDTH]; SCROLL_HEIGHT];
 
 lazy_static! {
     pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
@@ -68,7 +65,7 @@ lazy_static! {
         writer: [0; 2],
         color_code: ColorCode::new(FG, BG),
         screen_buffer: unsafe { &mut *(0xB8000 as *mut ScreenBuffer) },
-        scroll_buffer: [[ScreenChar::new(); SCREEN_WIDTH]; SCROLL_HEIGHT],
+        scroll_buffer: unsafe { &mut *core::ptr::addr_of_mut!(SCROLL_BUFFER) },
         scroll_reader: 0,
         scroll_bottom: SCREEN_HEIGHT,
     });
@@ -79,7 +76,7 @@ pub struct Writer {
     writer: [usize; 2], // x, y
     color_code: ColorCode,
     screen_buffer: &'static mut ScreenBuffer,
-    scroll_buffer: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT],
+    scroll_buffer: &'static mut [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT],
     scroll_reader: usize, // Top of the screen
     scroll_bottom: usize, // Bottom of the buffer
 }
