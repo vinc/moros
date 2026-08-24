@@ -12,10 +12,10 @@ use moros::entry_point;
 entry_point!(main);
 
 fn main(_args: &[&str]) {
-    vga::graphic_mode();
+    vga::set_resolution("320x200p");
     print!("\x1b]R\x1b[1A"); // Reset palette
     while io::stdin().read_char().is_none() {
         syscall::sleep(0.1);
     }
-    vga::text_mode();
+    vga::set_resolution("80x25c");
 }

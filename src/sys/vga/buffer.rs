@@ -8,11 +8,14 @@ impl Buffer {
         Self
     }
 
-    pub fn addr() -> u64 {
+    pub const fn addr() -> u64 {
         0xA0000
     }
 
-    pub fn size() -> usize {
+    pub const fn size() -> usize {
+        // TODO: The buffer size is dependent on the current VGA mode so this
+        // should be init to 1 and the size in the dir entry might be updated
+        // when a new mode is set.
         320 * 200
     }
 }
@@ -23,6 +26,7 @@ impl FileIO for Buffer {
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        // FIXME: This only work for 320x200 linear buffer
         let len = buf.len();
         let src = buf.as_ptr();
         let dst = Self::addr() as *mut u8;

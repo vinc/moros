@@ -24,8 +24,8 @@ const FONT: &str = "/ini/fonts/zap-light-8x16.psf";
 
 #[derive(PartialEq)]
 enum Mode {
-    Text,
-    Graphic,
+    Char,
+    Pixel,
 }
 
 struct Config {
@@ -34,20 +34,20 @@ struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        Self { mode: Mode::Text }
+        Self { mode: Mode::Char }
     }
 
-    pub fn text_mode(&mut self) {
-        if self.mode == Mode::Graphic {
-            vga::text_mode();
-            self.mode = Mode::Text;
+    pub fn set_char_mode(&mut self) {
+        if self.mode == Mode::Pixel {
+            vga::set_resolution("80x25c");
+            self.mode = Mode::Char;
         }
     }
 
-    pub fn graphic_mode(&mut self) {
-        if self.mode == Mode::Text {
-            vga::graphic_mode();
-            self.mode = Mode::Graphic;
+    pub fn set_pixel_mode(&mut self) {
+        if self.mode == Mode::Char {
+            vga::set_resolution(&format!("{}x{}p", WIDTH, HEIGHT));
+            self.mode = Mode::Pixel;
         }
     }
 }
@@ -135,11 +135,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             if let Ok(txt) = String::from_utf8(buf) {
                                 txt.trim().to_string()
                             } else {
-                                config.text_mode();
+                                config.set_char_mode();
                                 return Err(ExitCode::Failure);
                             }
                         } else {
-                            config.text_mode();
+                            config.set_char_mode();
                             return Err(ExitCode::Failure);
                         }
                     } else {
@@ -174,11 +174,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         }
                     }
 
-                    config.graphic_mode();
+                    config.set_pixel_mode();
 
                     let dev = "/dev/vga/buffer";
                     if !fs::is_device(dev) || fs::write(dev, &img).is_err() {
-                        config.text_mode();
+                        config.set_char_mode();
                         error!("Could not write to {:?}", dev);
                         return Err(ExitCode::Failure);
                     }
@@ -189,7 +189,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }
 
-    config.text_mode();
+    config.set_char_mode();
     Ok(())
 }
 
