@@ -14,6 +14,12 @@ static REQUESTS_START: RequestsStartMarker = RequestsStartMarker::new();
 
 #[used]
 #[link_section = ".limine_reqs"]
+static STACK_SIZE_REQUEST: StackSizeRequest = StackSizeRequest::new(
+    crate::STACK_SIZE as u64
+);
+
+#[used]
+#[link_section = ".limine_reqs"]
 static MEMMAP_REQUEST: MemmapRequest = MemmapRequest::new();
 
 #[used]
@@ -30,6 +36,8 @@ static REQUESTS_END: RequestsEndMarker = RequestsEndMarker::new();
 
 // TODO: Improve protocol support
 pub extern "C" fn start() -> ! {
+    assert!(STACK_SIZE_REQUEST.response().is_some());
+
     if let Some(res) = FRAMEBUFFER_REQUEST.response() {
         if let Some(fb) = res.framebuffers().first() {
             let ptr = fb.address() as *mut u32;
