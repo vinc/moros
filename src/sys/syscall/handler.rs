@@ -3,14 +3,9 @@ use crate::sys::process::Registers;
 
 use core::arch::naked_asm;
 use x86_64::structures::idt::InterruptStackFrame;
-use x86_64::VirtAddr;
-
-pub fn addr() -> VirtAddr {
-    VirtAddr::from_ptr(wrapper as *const ())
-}
 
 #[unsafe(naked)]
-extern "C" fn wrapper() -> ! {
+pub extern "C" fn handler() -> ! {
     naked_asm!(
         "cld",            // Clear direction flag
         "push rax",
@@ -38,11 +33,11 @@ extern "C" fn wrapper() -> ! {
         "pop rcx",
         "pop rax",
         "iretq",
-        sym handler
+        sym inner
     );
 }
 
-extern "C" fn handler(
+extern "C" fn inner(
     stack_frame: &mut InterruptStackFrame,
     regs: &mut Registers
 ) {

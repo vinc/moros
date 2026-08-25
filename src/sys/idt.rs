@@ -1,15 +1,135 @@
 use crate::{api, hang, sys};
 use crate::api::process::ExitCode;
+use crate::sys::gdt;
 use crate::sys::pic;
+use crate::sys::tss;
+use crate::sys::x86::DescriptorTablePointer;
 use crate::sys::x86::int;
 use crate::sys::x86::reg::Cr2;
+use crate::sys::x86::seg::SegmentSelector;
+use crate::sys::x86;
 
+use bit_field::BitField;
 use core::arch::asm;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::structures::idt::{
-    InterruptDescriptorTable, InterruptStackFrame, PageFaultErrorCode
-};
+use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
+
+const LEN: usize = 256;
+
+const BP: usize = 3; // Breakpoint
+const DF: usize = 8; // Double fault
+const NP: usize = 11; // Segment not present
+const SS: usize = 12; // Stack fault
+const GP: usize = 13; // General protection
+const PF: usize = 14; // Page fault
+
+struct InterruptDescriptorTable {
+    table: [Entry; LEN]
+}
+
+impl InterruptDescriptorTable {
+    fn new() -> Self {
+        let mut table = [Entry::missing(); LEN];
+
+        unsafe {
+            table[BP].set_handler(breakpoint_handler as _);
+            table[DF].set_handler(double_fault_handler as _);
+            table[NP].set_handler(segment_not_present_handler as _);
+            table[SS].set_handler(stack_fault_handler as _);
+            table[GP].set_handler(general_protection_handler as _);
+            table[PF].set_handler(page_fault_handler as _);
+
+            #[cfg(target_arch = "x86_64")]
+            {
+                table[DF].set_stack_index(tss::DF);
+                table[PF].set_stack_index(tss::PF);
+                table[GP].set_stack_index(tss::GP);
+            }
+
+            table[pic::vector(0)].set_handler(irq0_handler as _);
+            table[pic::vector(1)].set_handler(irq1_handler as _);
+            table[pic::vector(2)].set_handler(irq2_handler as _);
+            table[pic::vector(3)].set_handler(irq3_handler as _);
+            table[pic::vector(4)].set_handler(irq4_handler as _);
+            table[pic::vector(5)].set_handler(irq5_handler as _);
+            table[pic::vector(6)].set_handler(irq6_handler as _);
+            table[pic::vector(7)].set_handler(irq7_handler as _);
+            table[pic::vector(8)].set_handler(irq8_handler as _);
+            table[pic::vector(9)].set_handler(irq9_handler as _);
+            table[pic::vector(10)].set_handler(irq10_handler as _);
+            table[pic::vector(11)].set_handler(irq11_handler as _);
+            table[pic::vector(12)].set_handler(irq12_handler as _);
+            table[pic::vector(13)].set_handler(irq13_handler as _);
+            table[pic::vector(14)].set_handler(irq14_handler as _);
+            table[pic::vector(15)].set_handler(irq15_handler as _);
+
+            table[0x80].set_handler(sys::syscall::handler as _);
+            table[0x80].set_privilege_level(3);
+        }
+
+        Self { table }
+    }
+
+    fn limit(&self) -> u16 {
+        (LEN * size_of::<Entry>() - 1) as u16
+    }
+
+    fn pointer(&self) -> DescriptorTablePointer {
+        DescriptorTablePointer {
+            limit: self.limit(),
+            base: self.table.as_ptr() as usize,
+        }
+    }
+
+    fn load(&'static self) {
+        unsafe { x86::lidt(&self.pointer()) }
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+#[repr(C, align(8))]
+struct Entry {
+    pointer_low: u16,
+    selector: SegmentSelector,
+    bits: u16,
+    pointer_mid: u16,
+
+    #[cfg(target_arch = "x86_64")]
+    pointer_high: u32,
+    #[cfg(target_arch = "x86_64")]
+    reserved: u32,
+}
+
+impl Entry {
+    fn missing() -> Self {
+        Self::default()
+    }
+
+    unsafe fn set_handler(&mut self, handler: *const ()) {
+        let addr = handler.addr();
+
+        self.pointer_low = addr as u16;
+        self.pointer_mid = (addr >> 16) as u16;
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            self.pointer_high = (addr >> 32) as u32;
+        }
+
+        self.selector = gdt::SYS_CODE;
+        self.bits.set_bits(8..12, x86::seg::TYPE_IG as u16); // Type
+        self.bits.set_bit(15, true); // Present (P)
+    }
+
+    fn set_privilege_level(&mut self, level: u16) {
+        self.bits.set_bits(13..15, level); // Descriptor Privilege Level (DPL)
+    }
+
+    fn set_stack_index(&mut self, index: usize) {
+        self.bits.set_bits(0..3, (index + 1) as u16); // IST
+    }
+}
 
 fn default_handler() {}
 
@@ -19,42 +139,7 @@ lazy_static! {
     };
 
     static ref IDT: InterruptDescriptorTable = {
-        let mut idt = InterruptDescriptorTable::new();
-        idt.breakpoint.set_handler_fn(breakpoint_handler);
-        idt.stack_segment_fault.set_handler_fn(stack_segment_fault_handler);
-        idt.segment_not_present.set_handler_fn(segment_not_present_handler);
-        unsafe {
-            idt.double_fault.
-                set_handler_fn(double_fault_handler).
-                set_stack_index(sys::tss::DOUBLE_FAULT as u16);
-            idt.page_fault.
-                set_handler_fn(page_fault_handler).
-                set_stack_index(sys::tss::PAGE_FAULT as u16);
-            idt.general_protection_fault.
-                set_handler_fn(general_protection_fault_handler).
-                set_stack_index(sys::tss::GENERAL_PROTECTION_FAULT as u16);
-
-            idt[0x80].
-                set_handler_addr(sys::syscall::handler::addr()).
-                set_privilege_level(x86_64::PrivilegeLevel::Ring3);
-        }
-        idt[pic::vector(0)].set_handler_fn(irq0_handler);
-        idt[pic::vector(1)].set_handler_fn(irq1_handler);
-        idt[pic::vector(2)].set_handler_fn(irq2_handler);
-        idt[pic::vector(3)].set_handler_fn(irq3_handler);
-        idt[pic::vector(4)].set_handler_fn(irq4_handler);
-        idt[pic::vector(5)].set_handler_fn(irq5_handler);
-        idt[pic::vector(6)].set_handler_fn(irq6_handler);
-        idt[pic::vector(7)].set_handler_fn(irq7_handler);
-        idt[pic::vector(8)].set_handler_fn(irq8_handler);
-        idt[pic::vector(9)].set_handler_fn(irq9_handler);
-        idt[pic::vector(10)].set_handler_fn(irq10_handler);
-        idt[pic::vector(11)].set_handler_fn(irq11_handler);
-        idt[pic::vector(12)].set_handler_fn(irq12_handler);
-        idt[pic::vector(13)].set_handler_fn(irq13_handler);
-        idt[pic::vector(14)].set_handler_fn(irq14_handler);
-        idt[pic::vector(15)].set_handler_fn(irq15_handler);
-        idt
+        InterruptDescriptorTable::new()
     };
 }
 
@@ -86,7 +171,7 @@ irq_handler!(irq14_handler, 14);
 irq_handler!(irq15_handler, 15);
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
-    debug!("EXCEPTION: BREAKPOINT");
+    debug!("EXCEPTION: BREAKPOINT (BP)");
     debug!("Stack Frame: {:#?}", stack_frame);
     panic!();
 }
@@ -95,7 +180,7 @@ extern "x86-interrupt" fn double_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: u64,
 ) -> ! {
-    debug!("EXCEPTION: DOUBLE FAULT");
+    debug!("EXCEPTION: DOUBLE FAULT (DF)");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
@@ -137,21 +222,21 @@ extern "x86-interrupt" fn page_fault_handler(
     }
 }
 
-extern "x86-interrupt" fn general_protection_fault_handler(
+extern "x86-interrupt" fn general_protection_handler(
     stack_frame: InterruptStackFrame,
     error_code: u64,
 ) {
-    debug!("EXCEPTION: GENERAL PROTECTION FAULT");
+    debug!("EXCEPTION: GENERAL PROTECTION (GP)");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
 }
 
-extern "x86-interrupt" fn stack_segment_fault_handler(
+extern "x86-interrupt" fn stack_fault_handler(
     stack_frame: InterruptStackFrame,
     error_code: u64,
 ) {
-    debug!("EXCEPTION: STACK SEGMENT FAULT");
+    debug!("EXCEPTION: STACK FAULT (SS)");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
@@ -161,7 +246,7 @@ extern "x86-interrupt" fn segment_not_present_handler(
     stack_frame: InterruptStackFrame,
     error_code: u64,
 ) {
-    debug!("EXCEPTION: SEGMENT NOT PRESENT");
+    debug!("EXCEPTION: SEGMENT NOT PRESENT (NP)");
     debug!("Stack Frame: {:#?}", stack_frame);
     debug!("Error: {:?}", error_code);
     panic!();
@@ -176,15 +261,24 @@ pub fn set_irq_handler(irq: u8, handler: fn()) {
     });
 }
 
-static NULL_IDT: InterruptDescriptorTable = InterruptDescriptorTable::new();
-
 pub fn reset() -> ! {
-    NULL_IDT.load(); // No exception handlers
+    int::disable_interrupts();
+    let idt = DescriptorTablePointer {
+        limit: 0,
+        base: 0,
+    };
     unsafe {
-        asm!("int 0", options(noreturn)); // Division by zero -> Triple fault
+        x86::lidt(&idt);
+        asm!("int3", options(noreturn)); // Triple fault
     }
 }
 
 pub fn init() {
     IDT.load();
+}
+
+#[test_case]
+fn test_idt() {
+    assert_eq!(size_of::<Entry>(), 16);
+    assert_eq!(IDT.limit(), 4095);
 }

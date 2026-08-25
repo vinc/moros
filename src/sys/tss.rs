@@ -3,9 +3,9 @@ use crate::STACK_SIZE;
 use core::ptr::addr_of;
 use lazy_static::lazy_static;
 
-pub const DOUBLE_FAULT: usize = 0;
-pub const PAGE_FAULT: usize = 1;
-pub const GENERAL_PROTECTION_FAULT: usize = 2;
+pub const DF: usize = 0; // Double fault
+pub const PF: usize = 1; // Page fault
+pub const GP: usize = 2; // General protection
 
 lazy_static! {
     pub static ref TSS: TaskStateSegment = {
@@ -28,19 +28,19 @@ lazy_static! {
                 static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
                 STACK_SIZE + addr_of!(STACK) as usize
             };
-            tss.set_interrupt_stack(DOUBLE_FAULT, addr);
+            tss.set_interrupt_stack(DF, addr);
 
             let addr = {
                 static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
                 STACK_SIZE + addr_of!(STACK) as usize
             };
-            tss.set_interrupt_stack(PAGE_FAULT, addr);
+            tss.set_interrupt_stack(PF, addr);
 
             let addr = {
                 static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
                 STACK_SIZE + addr_of!(STACK) as usize
             };
-            tss.set_interrupt_stack(GENERAL_PROTECTION_FAULT, addr);
+            tss.set_interrupt_stack(GP, addr);
         }
         tss
     };
