@@ -1,3 +1,4 @@
+#[cfg(target_arch = "x86_64")]
 use crate::sys::fs::{FileIO, IO};
 
 #[derive(Debug, Clone)]
@@ -8,7 +9,7 @@ impl Buffer {
         Self
     }
 
-    pub const fn addr() -> u64 {
+    pub const fn addr() -> usize {
         0xA0000
     }
 
@@ -20,6 +21,7 @@ impl Buffer {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 impl FileIO for Buffer {
     fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
         Err(()) // TODO
