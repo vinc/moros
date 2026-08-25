@@ -1,3 +1,4 @@
+pub mod handler;
 pub mod number;
 pub mod service;
 

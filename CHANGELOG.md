@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Move syscall handler from idt to syscall module (#900)
 - Set the kernel stack size (#901)
 - Add VGA text mode support for i686 (#899)
 - Set VGA resolution (#776)
