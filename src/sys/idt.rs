@@ -126,6 +126,7 @@ impl Entry {
         self.bits.set_bits(13..15, level); // Descriptor Privilege Level (DPL)
     }
 
+    #[cfg(target_arch = "x86_64")]
     fn set_stack_index(&mut self, index: usize) {
         self.bits.set_bits(0..3, (index + 1) as u16); // IST
     }
