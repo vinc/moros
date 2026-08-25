@@ -15,14 +15,11 @@ static MULTIBOOT_HEADER: [u32; 6] = [
 
 // TODO: Improve protocol support
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
-    let vga = 0xB8000 as *mut u8;
-    let msg = b"MOROS loading...";
-    for (i, &byte) in msg.iter().enumerate() {
-        unsafe {
-            *vga.add(i * 2) = byte;
-            *vga.add(i * 2 + 1) = 0x0F;
-        }
-    }
+    crate::sys::vga::init();
+    crate::sys::vga::print_fmt(format_args!("MOROS loading...\n"));
+
+    crate::sys::serial::init();
+    crate::sys::serial::print_fmt(format_args!("MOROS loading...\n"));
 
     if magic == multiboot2::MAGIC {
         let boot_info = unsafe {
@@ -46,17 +43,8 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
         }
     }
 
-    let vga = 0xB8000 as *mut u8;
-    let msg = b"MOROS loaded successfully!";
-    for (i, &byte) in msg.iter().enumerate() {
-        unsafe {
-            *vga.add(i * 2) = byte;
-            *vga.add(i * 2 + 1) = 0x0F;
-        }
-    }
-
-    crate::sys::serial::init();
     crate::sys::serial::print_fmt(format_args!("MOROS loaded successfully!\n"));
+    crate::sys::vga::print_fmt(format_args!("MOROS loaded successfully!\n"));
 
     //crate::exec();
     crate::hang();

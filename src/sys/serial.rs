@@ -88,16 +88,16 @@ fn interrupt_handler() {
     sys::console::key_handle(c);
 }
 
-#[doc(hidden)]
-pub fn print_fmt(args: fmt::Arguments) {
-    int::without_interrupts(||
-        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
-    )
-}
-
 pub fn init() {
     SERIAL.lock().init();
 
     #[cfg(target_arch = "x86_64")]
     sys::idt::set_irq_handler(sys::pic::COM_IRQ, interrupt_handler);
+}
+
+#[doc(hidden)]
+pub fn print_fmt(args: fmt::Arguments) {
+    int::without_interrupts(||
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
+    )
 }

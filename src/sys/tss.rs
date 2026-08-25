@@ -1,7 +1,8 @@
+use crate::STACK_SIZE;
+
 use core::ptr::addr_of;
 use lazy_static::lazy_static;
 
-const STACK_SIZE: usize = 1024 * 8 * 16;
 pub const DOUBLE_FAULT: usize = 0;
 pub const PAGE_FAULT: usize = 1;
 pub const GENERAL_PROTECTION_FAULT: usize = 2;
