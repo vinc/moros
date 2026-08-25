@@ -281,4 +281,8 @@ pub fn init() {
 fn test_idt() {
     assert_eq!(size_of::<Entry>(), 16);
     assert_eq!(IDT.limit(), 4095);
+
+    assert_eq!(IDT.table[DF].bits, 0x8E01);   // IST 1
+    assert_eq!(IDT.table[0x80].bits, 0xEE00); // DPL 3
+    assert_eq!(IDT.table[0].bits, 0);         // Not present
 }
