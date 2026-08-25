@@ -37,7 +37,19 @@ pub struct DescriptorTablePointer {
 
 pub unsafe fn lgdt(gdt: &DescriptorTablePointer) {
     unsafe {
-        asm!("lgdt [{}]", in(reg) gdt, options(readonly, nostack, preserves_flags));
+        asm!(
+            "lgdt [{}]", in(reg) gdt,
+            options(readonly, nostack, preserves_flags)
+        );
+    }
+}
+
+pub unsafe fn lidt(idt: &DescriptorTablePointer) {
+    unsafe {
+        asm!(
+            "lidt [{}]", in(reg) idt,
+            options(readonly, nostack, preserves_flags)
+        );
     }
 }
 
