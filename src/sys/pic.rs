@@ -49,8 +49,8 @@ pub fn unmask(irq: u8) {
     }
 }
 
-pub fn vector(irq: u8) -> u8 {
-    PIC_OFFSET + irq
+pub fn vector(irq: u8) -> usize {
+    (PIC_OFFSET + irq) as usize
 }
 
 pub fn eoi(irq: u8) {

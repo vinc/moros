@@ -1,16 +1,11 @@
 use crate::sys::process;
 use crate::sys::process::Registers;
+use crate::sys::x86::int::InterruptFrame;
 
 use core::arch::naked_asm;
-use x86_64::structures::idt::InterruptStackFrame;
-use x86_64::VirtAddr;
-
-pub fn addr() -> VirtAddr {
-    VirtAddr::from_ptr(wrapper as *const ())
-}
 
 #[unsafe(naked)]
-extern "C" fn wrapper() -> ! {
+pub extern "C" fn handler() -> ! {
     naked_asm!(
         "cld",            // Clear direction flag
         "push rax",
@@ -38,12 +33,12 @@ extern "C" fn wrapper() -> ! {
         "pop rcx",
         "pop rax",
         "iretq",
-        sym handler
+        sym inner
     );
 }
 
-extern "C" fn handler(
-    stack_frame: &mut InterruptStackFrame,
+extern "C" fn inner(
+    frame: &mut InterruptFrame,
     regs: &mut Registers
 ) {
     let n = regs.rax;
@@ -56,7 +51,7 @@ extern "C" fn handler(
 
     // Backup CPU context before spawning a process
     if n == super::number::SPAWN {
-        process::set_stack_frame(**stack_frame);
+        process::set_interrupt_frame(*frame);
         process::set_registers(*regs);
     }
 
@@ -64,10 +59,7 @@ extern "C" fn handler(
 
     // Restore CPU context before exiting a process
     if n == super::number::EXIT {
-        let sf = process::stack_frame();
-        unsafe {
-            stack_frame.as_mut().write(sf);
-        }
+        *frame = process::interrupt_frame();
         *regs = process::registers();
     }
 

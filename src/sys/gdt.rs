@@ -38,9 +38,6 @@ const COMMON:       u64 = CODE_OR_DATA | PRESENT | ACCESSED | LIMIT;
 const COMMON_DATA:  u64 = COMMON | WRITABLE;
 const COMMON_CODE:  u64 = COMMON | READABLE | EXECUTABLE;
 
-// System segment type (Intel SDM 3.5)
-const TYPE_TSS: u64 = 0b1001; // 32-bit or 64-bit TSS (Available)
-
 #[cfg(target_arch = "x86")]
 const LEN: usize = 6;
 
@@ -48,7 +45,7 @@ const LEN: usize = 6;
 const LEN: usize = 7;
 
 struct GlobalDescriptorTable {
-    table: [u64; LEN],
+    table: [u64; LEN]
 }
 
 impl GlobalDescriptorTable {
@@ -74,7 +71,7 @@ impl GlobalDescriptorTable {
         let mut bits = PRESENT;
         bits.set_bits(0..16, tss.limit() as u64);
         bits.set_bits(16..40, base.get_bits(0..24));
-        bits.set_bits(40..44, TYPE_TSS);
+        bits.set_bits(40..44, x86::seg::TYPE_TSS as u64);
         bits.set_bits(56..64, base.get_bits(24..32));
         table[TSS.index()] = bits;
 

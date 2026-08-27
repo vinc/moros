@@ -59,10 +59,10 @@ pub fn spawn(
 }
 
 fn create(bin: &[u8]) -> Result<usize, ()> {
-    let (parent_id, data, stack_frame, registers) = {
+    let (parent_id, data, interrupt_frame, registers) = {
         let process_table = PROCESS_TABLE.read();
         let proc = process_table[id()].as_ref().unwrap();
-        (proc.ctx.id, proc.data.clone(), proc.stack_frame, proc.registers)
+        (proc.ctx.id, proc.data.clone(), proc.interrupt_frame, proc.registers)
     };
 
     // Lock the process table and get the pid
@@ -105,7 +105,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let proc = Process {
         parent_id,
         data,
-        stack_frame,
+        interrupt_frame,
         registers,
         stats: ProcessStats::new(),
         ctx: ProcessContext {

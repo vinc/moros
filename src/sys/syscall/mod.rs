@@ -1,6 +1,8 @@
-pub mod handler;
+mod handler;
 pub mod number;
 pub mod service;
+
+pub use handler::handler;
 
 use crate::api::process::ExitCode;
 use crate::sys;
