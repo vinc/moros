@@ -1,8 +1,8 @@
 use crate::sys::process;
 use crate::sys::process::Registers;
+use crate::sys::x86::int::InterruptFrame;
 
 use core::arch::naked_asm;
-use x86_64::structures::idt::InterruptStackFrame;
 
 #[unsafe(naked)]
 pub extern "C" fn handler() -> ! {
@@ -38,7 +38,7 @@ pub extern "C" fn handler() -> ! {
 }
 
 extern "C" fn inner(
-    stack_frame: &mut InterruptStackFrame,
+    frame: &mut InterruptFrame,
     regs: &mut Registers
 ) {
     let n = regs.rax;
@@ -51,7 +51,7 @@ extern "C" fn inner(
 
     // Backup CPU context before spawning a process
     if n == super::number::SPAWN {
-        process::set_stack_frame(**stack_frame);
+        process::set_interrupt_frame(*frame);
         process::set_registers(*regs);
     }
 
@@ -59,10 +59,7 @@ extern "C" fn inner(
 
     // Restore CPU context before exiting a process
     if n == super::number::EXIT {
-        let sf = process::stack_frame();
-        unsafe {
-            stack_frame.as_mut().write(sf);
-        }
+        *frame = process::interrupt_frame();
         *regs = process::registers();
     }
 

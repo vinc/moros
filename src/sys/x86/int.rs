@@ -2,6 +2,16 @@ use super::reg;
 
 use core::arch::asm;
 
+#[derive(Clone, Copy, Debug)]
+#[repr(C)]
+pub struct InterruptFrame {
+    ip: usize,
+    cs: usize,
+    flags: usize,
+    sp: usize,
+    ss: usize,
+}
+
 #[inline]
 pub fn enable_interrupts() {
     // NOTE: interrupts are not enabled until after the next instruction
@@ -41,6 +51,11 @@ fn are_interrupts_enabled() -> bool {
         asm!("pushfd; pop {}", out(reg) flags, options(nomem, preserves_flags));
     }
     flags & reg::flags::IF != 0
+}
+
+#[test_case]
+fn test_interrupt_frame() {
+    assert_eq!(size_of::<InterruptFrame>(), 5 * size_of::<usize>());
 }
 
 #[test_case]

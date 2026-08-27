@@ -5,6 +5,7 @@ use crate::sys::pic;
 use crate::sys::tss;
 use crate::sys::x86::DescriptorTablePointer;
 use crate::sys::x86::int;
+use crate::sys::x86::int::InterruptFrame;
 use crate::sys::x86::reg::Cr2;
 use crate::sys::x86::seg::SegmentSelector;
 use crate::sys::x86;
@@ -13,16 +14,19 @@ use bit_field::BitField;
 use core::arch::asm;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::structures::idt::{InterruptStackFrame, PageFaultErrorCode};
 
 const LEN: usize = 256;
 
+// Vectors
 const BP: usize = 3; // Breakpoint
 const DF: usize = 8; // Double fault
 const NP: usize = 11; // Segment not present
 const SS: usize = 12; // Stack fault
 const GP: usize = 13; // General protection
 const PF: usize = 14; // Page fault
+
+// Page fault errors
+const PF_U: usize = 2; // User mode
 
 struct InterruptDescriptorTable {
     table: [Entry; LEN]
@@ -146,7 +150,7 @@ lazy_static! {
 
 macro_rules! irq_handler {
     ($handler:ident, $irq:expr) => {
-        pub extern "x86-interrupt" fn $handler(_: InterruptStackFrame) {
+        pub extern "x86-interrupt" fn $handler(_: InterruptFrame) {
             let handlers = IRQ_HANDLERS.lock();
             handlers[$irq]();
             pic::eoi($irq);
@@ -171,30 +175,34 @@ irq_handler!(irq13_handler, 13);
 irq_handler!(irq14_handler, 14);
 irq_handler!(irq15_handler, 15);
 
-extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
-    debug!("EXCEPTION: BREAKPOINT (BP)");
-    debug!("Stack Frame: {:#?}", stack_frame);
+extern "x86-interrupt" fn breakpoint_handler(frame: InterruptFrame) {
+    debug!("EXCEPTION: BREAKPOINT (#BP)");
+    debug!("Frame: {:#?}", frame);
     panic!();
 }
 
 extern "x86-interrupt" fn double_fault_handler(
-    stack_frame: InterruptStackFrame,
-    error_code: u64,
+    frame: InterruptFrame,
+    error: usize,
 ) -> ! {
-    debug!("EXCEPTION: DOUBLE FAULT (DF)");
-    debug!("Stack Frame: {:#?}", stack_frame);
-    debug!("Error: {:?}", error_code);
+    debug!("EXCEPTION: DOUBLE FAULT (#DF)");
+    debug!("Frame: {:#?}", frame);
+    debug!("Error: {:#X}", error);
     panic!();
 }
 
 extern "x86-interrupt" fn page_fault_handler(
-    _stack_frame: InterruptStackFrame,
-    error_code: PageFaultErrorCode,
+    _frame: InterruptFrame,
+    error: usize,
 ) {
+    //debug!("EXCEPTION: PAGE FAULT (#PF)");
+    //debug!("Frame: {:#?}", frame);
+    //debug!("Error: {:#X}", error);
+
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
     let addr = Cr2::read() as u64;
-    //debug!("EXCEPTION: PAGE FAULT ({:?}) at {:#X}", error_code, addr);
+    //debug!("Addr: {:#X}", addr);
 
     let mut mapper = unsafe {
         sys::mem::create_mapper(sys::process::page_table())
@@ -216,7 +224,7 @@ extern "x86-interrupt" fn page_fault_handler(
             csi_color, csi_reset, addr
         );
     }
-    if error_code.contains(PageFaultErrorCode::USER_MODE) {
+    if error.get_bit(PF_U) { // Userspace
         api::syscall::exit(ExitCode::PageFaultError);
     } else {
         hang();
@@ -224,32 +232,32 @@ extern "x86-interrupt" fn page_fault_handler(
 }
 
 extern "x86-interrupt" fn general_protection_handler(
-    stack_frame: InterruptStackFrame,
-    error_code: u64,
+    frame: InterruptFrame,
+    error: usize,
 ) {
-    debug!("EXCEPTION: GENERAL PROTECTION (GP)");
-    debug!("Stack Frame: {:#?}", stack_frame);
-    debug!("Error: {:?}", error_code);
+    debug!("EXCEPTION: GENERAL PROTECTION (#GP)");
+    debug!("Frame: {:#?}", frame);
+    debug!("Error: {:#X}", error);
     panic!();
 }
 
 extern "x86-interrupt" fn stack_fault_handler(
-    stack_frame: InterruptStackFrame,
-    error_code: u64,
+    frame: InterruptFrame,
+    error: usize,
 ) {
-    debug!("EXCEPTION: STACK FAULT (SS)");
-    debug!("Stack Frame: {:#?}", stack_frame);
-    debug!("Error: {:?}", error_code);
+    debug!("EXCEPTION: STACK FAULT (#SS)");
+    debug!("Frame: {:#?}", frame);
+    debug!("Error: {:#X}", error);
     panic!();
 }
 
 extern "x86-interrupt" fn segment_not_present_handler(
-    stack_frame: InterruptStackFrame,
-    error_code: u64,
+    frame: InterruptFrame,
+    error: usize,
 ) {
-    debug!("EXCEPTION: SEGMENT NOT PRESENT (NP)");
-    debug!("Stack Frame: {:#?}", stack_frame);
-    debug!("Error: {:?}", error_code);
+    debug!("EXCEPTION: SEGMENT NOT PRESENT (#NP)");
+    debug!("Frame: {:#?}", frame);
+    debug!("Error: {:#X}", error);
     panic!();
 }
 

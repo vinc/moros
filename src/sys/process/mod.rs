@@ -20,7 +20,7 @@ pub use table::{
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
     registers, set_registers,
-    stack_frame, set_stack_frame,
+    interrupt_frame, set_interrupt_frame,
 };
 
 use table::{
@@ -37,6 +37,7 @@ use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
 use crate::sys::syscall;
+use crate::sys::x86::int::InterruptFrame;
 use crate::sys::x86::reg::Cr3;
 
 use alloc::boxed::Box;
@@ -45,7 +46,6 @@ use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 use linked_list_allocator::LockedHeap;
-use x86_64::structures::idt::InterruptStackFrameValue;
 use x86_64::structures::paging::{
     FrameDeallocator, PageTable, PhysFrame,
 };
@@ -140,7 +140,7 @@ impl ProcessStats {
 
 pub struct Process {
     parent_id: usize,
-    stack_frame: Option<InterruptStackFrameValue>,
+    interrupt_frame: Option<InterruptFrame>,
     registers: Registers,
     stats: ProcessStats,
     data: ProcessData,
@@ -151,7 +151,7 @@ impl Process {
     fn new() -> Self {
         Self {
             parent_id: 0,
-            stack_frame: None,
+            interrupt_frame: None,
             registers: Registers::default(),
             stats: ProcessStats::new(),
             data: ProcessData::new("/", None),
