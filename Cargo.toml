@@ -51,7 +51,7 @@ bootloader = { version = "0.9.34", features = ["map_physical_memory", "sse"] }
 limine = "0.6.3"
 
 [target.'cfg(target_arch = "x86")'.dependencies]
-multiboot2 = { version = "0.25.1", default-features = false }
+multiboot2 = { version = "0.26.1", default-features = false }
 
 [package.metadata.bootloader]
 physical-memory-offset = "0xFFFF800000000000"
