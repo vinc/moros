@@ -16,10 +16,9 @@ static MULTIBOOT_HEADER: [u32; 6] = [
 // TODO: Improve protocol support
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     crate::sys::vga::init();
-    crate::sys::vga::print_fmt(format_args!("MOROS loading...\n"));
-
     crate::sys::serial::init();
-    crate::sys::serial::print_fmt(format_args!("MOROS loading...\n"));
+
+    printk!("MOROS loading...\n");
 
     if magic == multiboot2::MAGIC {
         let boot_info = unsafe {
@@ -43,8 +42,7 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
         }
     }
 
-    crate::sys::serial::print_fmt(format_args!("MOROS loaded successfully!\n"));
-    crate::sys::vga::print_fmt(format_args!("MOROS loaded successfully!\n"));
+    printk!("MOROS loaded successfully!\n");
 
     //crate::exec();
     crate::hang();

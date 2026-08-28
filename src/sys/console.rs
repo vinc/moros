@@ -44,7 +44,7 @@ impl Input {
         self.len = 0;
     }
 
-    pub fn last(&self) -> Option<char> {
+    pub fn back(&self) -> Option<char> {
         if self.len > 0 {
             Some(self.buf[self.len - 1])
         } else {
@@ -52,7 +52,7 @@ impl Input {
         }
     }
 
-    pub fn pop(&mut self) -> Option<char> {
+    pub fn pop_back(&mut self) -> Option<char> {
         if self.len > 0 {
             self.len -= 1;
             Some(self.buf[self.len])
@@ -61,22 +61,22 @@ impl Input {
         }
     }
 
-    pub fn remove(&mut self, i: usize) -> char {
-        if i < self.len {
-            let c = self.buf[i];
+    pub fn pop_front(&mut self) -> Option<char> {
+        if self.len > 0 {
+            let c = self.buf[0];
             self.len -= 1;
-            let mut j = i;
-            while j < self.len {
-                self.buf[j] = self.buf[j + 1];
-                j += 1;
+            let mut i = 0;
+            while i < self.len {
+                self.buf[i] = self.buf[i + 1];
+                i += 1;
             }
-            c
+            Some(c)
         } else {
-            panic!();
+            None
         }
     }
 
-    pub fn push(&mut self, c: char) -> Result<(), ()> {
+    pub fn push_back(&mut self, c: char) -> Result<(), ()> {
         if self.len < MAX {
             self.buf[self.len] = c;
             self.len += 1;
@@ -186,7 +186,7 @@ pub fn key_handle(key: char) {
 
     if key == BS_KEY && !is_raw_enabled() {
         // Avoid printing more backspaces than chars inserted into STDIN
-        if let Some(c) = stdin.pop() {
+        if let Some(c) = stdin.pop_back() {
             if is_echo_enabled() {
                 let n = match c {
                     ETX_KEY | EOT_KEY | ESC_KEY => 2,
@@ -209,7 +209,7 @@ pub fn key_handle(key: char) {
         } else {
             key
         };
-        if stdin.push(key).is_ok() && is_echo_enabled() {
+        if stdin.push_back(key).is_ok() && is_echo_enabled() {
             match key {
                 ETX_KEY => print_fmt(format_args!("^C")),
                 EOT_KEY => print_fmt(format_args!("^D")),
@@ -237,15 +237,7 @@ pub fn read_char() -> char {
     sys::console::enable_raw();
     loop {
         sys::x86::hlt();
-        let res = int::without_interrupts(|| {
-            let mut stdin = STDIN.lock();
-            if !stdin.is_empty() {
-                Some(stdin.remove(0))
-            } else {
-                None
-            }
-        });
-        if let Some(c) = res {
+        if let Some(c) = int::without_interrupts(|| STDIN.lock().pop_front()) {
             sys::console::enable_echo();
             sys::console::disable_raw();
             return c;
@@ -259,7 +251,7 @@ pub fn read_line() -> String {
         sys::x86::hlt();
         let res = int::without_interrupts(|| {
             let mut stdin = STDIN.lock();
-            match stdin.last() {
+            match stdin.back() {
                 Some('\n') => {
                     let line = stdin.to_string();
                     stdin.clear();
