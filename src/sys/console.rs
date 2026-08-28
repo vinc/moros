@@ -83,14 +83,7 @@ impl Input {
     }
 
     pub fn contains(&self, c: char) -> bool {
-        let mut i = 0;
-        while i < self.len {
-            if self.buf[i] == c {
-                return true;
-            }
-            i += 1;
-        }
-        false
+        self.buf[..self.len].contains(&c)
     }
 }
 
