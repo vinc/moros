@@ -1,14 +1,18 @@
+#[cfg(target_arch = "x86_64")]
 use crate::sys::fs::{FileIO, IO};
+
 use crate::sys;
 use crate::sys::x86::int;
 
-use alloc::string::String;
-use alloc::string::ToString;
+#[cfg(target_arch = "x86_64")]
+use alloc::string::{String, ToString};
+
 use core::fmt;
+use core::fmt::Write;
 use core::sync::atomic::{AtomicBool, Ordering};
 use spin::Mutex;
 
-pub static STDIN: Mutex<String> = Mutex::new(String::new());
+pub static STDIN: Mutex<Input> = Mutex::new(Input::new());
 pub static ECHO: AtomicBool = AtomicBool::new(true);
 pub static RAW: AtomicBool = AtomicBool::new(false);
 
@@ -16,6 +20,92 @@ pub const BS_KEY: char = '\x08'; // Backspace
 pub const EOT_KEY: char = '\x04'; // End of Transmission
 pub const ESC_KEY: char = '\x1B'; // Escape
 pub const ETX_KEY: char = '\x03'; // End of Text
+
+pub const MAX: usize = 1024;
+
+pub struct Input {
+    buf: [char; MAX],
+    len: usize
+}
+
+impl Input {
+    pub const fn new() -> Self {
+        Self {
+            buf: ['\0'; MAX],
+            len: 0
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    pub fn last(&self) -> Option<char> {
+        if self.len > 0 {
+            Some(self.buf[self.len - 1])
+        } else {
+            None
+        }
+    }
+
+    pub fn pop(&mut self) -> Option<char> {
+        if self.len > 0 {
+            self.len -= 1;
+            Some(self.buf[self.len])
+        } else {
+            None
+        }
+    }
+
+    pub fn remove(&mut self, i: usize) -> char {
+        if i < self.len {
+            let c = self.buf[i];
+            self.len -= 1;
+            let mut j = i;
+            while j < self.len {
+                self.buf[j] = self.buf[j + 1];
+                j += 1;
+            }
+            c
+        } else {
+            panic!();
+        }
+    }
+
+    pub fn push(&mut self, c: char) -> Result<(), ()> {
+        if self.len < MAX {
+            self.buf[self.len] = c;
+            self.len += 1;
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    pub fn contains(&self, c: char) -> bool {
+        let mut i = 0;
+        while i < self.len {
+            if self.buf[i] == c {
+                return true;
+            }
+            i += 1;
+        }
+        false
+    }
+}
+
+impl fmt::Display for Input {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for c in &self.buf[0..self.len] {
+            f.write_char(*c)?;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Console;
@@ -30,6 +120,7 @@ impl Console {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 impl FileIO for Console {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let mut s = if buf.len() == 4 {
@@ -107,7 +198,9 @@ pub fn key_handle(key: char) {
                         }
                     }
                 };
-                print_fmt(format_args!("{}", BS_KEY.to_string().repeat(n)));
+                for _ in 0..n {
+                    print_fmt(format_args!("{}", BS_KEY));
+                }
             }
         }
     } else {
@@ -116,8 +209,7 @@ pub fn key_handle(key: char) {
         } else {
             key
         };
-        stdin.push(key);
-        if is_echo_enabled() {
+        if stdin.push(key).is_ok() && is_echo_enabled() {
             match key {
                 ETX_KEY => print_fmt(format_args!("^C")),
                 EOT_KEY => print_fmt(format_args!("^D")),
@@ -161,14 +253,15 @@ pub fn read_char() -> char {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn read_line() -> String {
     loop {
         sys::x86::hlt();
         let res = int::without_interrupts(|| {
             let mut stdin = STDIN.lock();
-            match stdin.chars().next_back() {
+            match stdin.last() {
                 Some('\n') => {
-                    let line = stdin.clone();
+                    let line = stdin.to_string();
                     stdin.clear();
                     Some(line)
                 }

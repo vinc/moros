@@ -41,7 +41,7 @@ macro_rules! log {
 #[cfg(target_arch = "x86_64")] pub mod ata;
 pub mod boot;
 #[cfg(target_arch = "x86_64")] pub mod clk;
-#[cfg(target_arch = "x86_64")] pub mod console;
+pub mod console;
 #[cfg(target_arch = "x86_64")] pub mod cpu;
 #[cfg(target_arch = "x86_64")] pub mod fs;
 pub mod gdt;
