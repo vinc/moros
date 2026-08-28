@@ -64,12 +64,8 @@ impl Input {
     pub fn pop_front(&mut self) -> Option<char> {
         if self.len > 0 {
             let c = self.buf[0];
+            self.buf.copy_within(1..self.len, 0);
             self.len -= 1;
-            let mut i = 0;
-            while i < self.len {
-                self.buf[i] = self.buf[i + 1];
-                i += 1;
-            }
             Some(c)
         } else {
             None
