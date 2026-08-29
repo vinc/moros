@@ -170,12 +170,10 @@ impl Writer {
     }
 
     fn disable_echo(&self) {
-        #[cfg(target_arch = "x86_64")]
         sys::console::disable_echo();
     }
 
     fn enable_echo(&self) {
-        #[cfg(target_arch = "x86_64")]
         sys::console::enable_echo();
     }
 

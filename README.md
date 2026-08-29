@@ -14,6 +14,9 @@ This project started from the [seventh post][1] of the second edition of
 be accomplished after completing an OSDev tutorial, while reading the
 [OSDev wiki][3] along with many open source kernels.
 
+> **Note:** the kernel is currently being refactored to support the i686
+> architecture in addition to x86-64.
+
 [![GitHub Actions][s1]](https://github.com/vinc/moros)
 [![Crates.io][s2]](https://crates.io/crates/moros)
 

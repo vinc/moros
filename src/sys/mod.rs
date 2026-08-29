@@ -5,6 +5,15 @@ macro_rules! printk {
     });
 }
 
+// TODO: Remove this
+#[cfg(target_arch = "x86")]
+macro_rules! debug {
+    ($($arg:tt)*) => ({
+        $crate::sys::console::print_fmt(format_args!($($arg)*));
+    });
+}
+
+#[cfg(target_arch = "x86_64")]
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => ({
@@ -41,11 +50,11 @@ macro_rules! log {
 #[cfg(target_arch = "x86_64")] pub mod ata;
 pub mod boot;
 #[cfg(target_arch = "x86_64")] pub mod clk;
-#[cfg(target_arch = "x86_64")] pub mod console;
+pub mod console;
 #[cfg(target_arch = "x86_64")] pub mod cpu;
 #[cfg(target_arch = "x86_64")] pub mod fs;
 pub mod gdt;
-#[cfg(target_arch = "x86_64")] pub mod idt;
+pub mod idt;
 #[cfg(target_arch = "x86_64")] pub mod keyboard;
 #[cfg(target_arch = "x86_64")] pub mod log;
 #[cfg(target_arch = "x86_64")] pub mod mem;

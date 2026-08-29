@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add console::Input for i686 (#905)
 - Add idt::InterruptDescriptorTable (#902)
 - Move syscall handler from idt to syscall module (#900)
 - Set the kernel stack size (#901)
