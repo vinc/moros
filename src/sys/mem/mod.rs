@@ -1,12 +1,17 @@
-mod bitmap;
-mod heap;
-mod paging;
-mod phys;
+#[cfg(target_arch = "x86_64")] mod bitmap;
+pub mod heap;
+#[cfg(target_arch = "x86_64")] mod paging;
+#[cfg(target_arch = "x86_64")] mod phys;
 
+#[cfg(target_arch = "x86_64")]
 pub use bitmap::{frame_allocator, with_frame_allocator};
+
+#[cfg(target_arch = "x86_64")]
 pub use paging::{
     alloc_pages, free_pages, active_page_table, create_page_table, create_mapper
 };
+
+#[cfg(target_arch = "x86_64")]
 pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys::boot::MemoryMap;
@@ -14,15 +19,20 @@ use crate::sys::pic;
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
+
+#[cfg(target_arch = "x86_64")]
 use x86_64::structures::paging::{OffsetPageTable, Translate};
+
 use x86_64::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]
+#[cfg(target_arch = "x86_64")]
 static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 
 static PHYS_MEM_OFFSET: Once<u64> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
+#[cfg(target_arch = "x86_64")]
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
@@ -79,6 +89,7 @@ pub fn phys_mem_offset() -> u64 {
     unsafe { *PHYS_MEM_OFFSET.get_unchecked() }
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn mapper() -> &'static mut OffsetPageTable<'static> {
     #[allow(static_mut_refs)]
     unsafe { MAPPER.get_mut_unchecked() }
@@ -100,6 +111,7 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
     VirtAddr::new(addr.as_u64() + phys_mem_offset())
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr)
 }
