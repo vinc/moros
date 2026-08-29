@@ -17,6 +17,9 @@ be accomplished after completing an OSDev tutorial, while reading the
 [![GitHub Actions][s1]](https://github.com/vinc/moros)
 [![Crates.io][s2]](https://crates.io/crates/moros)
 
+> **Note:** the kernel is currently being refactored to support the i686
+> architecture in addition to x86-64.
+
 ## Features
 
 - External bootloader (using [bootloader][4])
