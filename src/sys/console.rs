@@ -187,13 +187,7 @@ pub fn key_handle(key: char) {
             if is_echo_enabled() {
                 let n = match c {
                     ETX_KEY | EOT_KEY | ESC_KEY => 2,
-                    _ => {
-                        if (c as u32) < 0xFF {
-                            1
-                        } else {
-                            c.len_utf8()
-                        }
-                    }
+                    _ => 1,
                 };
                 for _ in 0..n {
                     print_fmt(format_args!("{}", BS_KEY));
@@ -201,12 +195,6 @@ pub fn key_handle(key: char) {
             }
         }
     } else {
-        let key = if (key as u32) < 0xFF {
-            (key as u8) as char
-        } else {
-            key
-        };
-
         // Reserve the last slot in the buffer for the newline
         let reserved = (key != '\n') as usize;
         if stdin.len() + reserved >= stdin.capacity() {
