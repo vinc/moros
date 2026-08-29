@@ -21,19 +21,27 @@ pub const EOT_KEY: char = '\x04'; // End of Transmission
 pub const ESC_KEY: char = '\x1B'; // Escape
 pub const ETX_KEY: char = '\x03'; // End of Text
 
-pub const MAX: usize = 1024;
+const MAX_INPUT: usize = 1024;
 
 pub struct Input {
-    buf: [char; MAX],
+    buf: [char; MAX_INPUT],
     len: usize
 }
 
 impl Input {
     pub const fn new() -> Self {
         Self {
-            buf: ['\0'; MAX],
+            buf: ['\0'; MAX_INPUT],
             len: 0
         }
+    }
+
+    pub const fn capacity(&self) -> usize {
+        MAX_INPUT
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
     }
 
     pub fn is_empty(&self) -> bool {
@@ -73,7 +81,7 @@ impl Input {
     }
 
     pub fn push_back(&mut self, c: char) -> Result<(), ()> {
-        if self.len < MAX {
+        if self.len < MAX_INPUT {
             self.buf[self.len] = c;
             self.len += 1;
             Ok(())
@@ -198,6 +206,13 @@ pub fn key_handle(key: char) {
         } else {
             key
         };
+
+        // Reserve the last slot in the buffer for the newline
+        let reserved = (key != '\n') as usize;
+        if stdin.len() + reserved >= stdin.capacity() {
+            return;
+        }
+
         if stdin.push_back(key).is_ok() && is_echo_enabled() {
             match key {
                 ETX_KEY => print_fmt(format_args!("^C")),
