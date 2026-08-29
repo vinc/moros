@@ -88,8 +88,6 @@ fn interrupt_handler() {
 
 pub fn init() {
     SERIAL.lock().init();
-
-    #[cfg(target_arch = "x86_64")]
     sys::idt::set_irq_handler(sys::pic::COM_IRQ, interrupt_handler);
 }
 

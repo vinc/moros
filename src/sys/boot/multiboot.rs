@@ -16,7 +16,6 @@ static MULTIBOOT_HEADER: [u32; 6] = [
 // TODO: Improve protocol support
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     crate::sys::vga::init();
-    crate::sys::serial::init();
 
     printk!("MOROS loading...\n");
 
@@ -42,6 +41,7 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
             crate::sys::idt::init();
             crate::sys::pic::init();
             crate::sys::x86::int::enable_interrupts();
+            crate::sys::serial::init();
         }
     }
 
