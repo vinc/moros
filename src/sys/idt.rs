@@ -1,5 +1,4 @@
-use crate::{api, hang, sys};
-use crate::api::process::ExitCode;
+use crate::{hang, sys};
 use crate::sys::gdt;
 use crate::sys::pic;
 use crate::sys::tss;
@@ -68,8 +67,11 @@ impl InterruptDescriptorTable {
             table[pic::vector(14)].set_handler(irq14_handler as _);
             table[pic::vector(15)].set_handler(irq15_handler as _);
 
-            table[0x80].set_handler(sys::syscall::handler as _);
-            table[0x80].set_privilege_level(3);
+            #[cfg(target_arch = "x86_64")]
+            {
+                table[0x80].set_handler(sys::syscall::handler as _);
+                table[0x80].set_privilege_level(3);
+            }
         }
 
         Self { table }
@@ -191,6 +193,18 @@ extern "x86-interrupt" fn double_fault_handler(
     panic!();
 }
 
+#[cfg(target_arch = "x86")]
+extern "x86-interrupt" fn page_fault_handler(
+    frame: InterruptFrame,
+    error: usize,
+) {
+    debug!("EXCEPTION: PAGE FAULT (#PF)");
+    debug!("Frame: {:#?}", frame);
+    debug!("Error: {:#X}", error);
+    panic!();
+}
+
+#[cfg(target_arch = "x86_64")]
 extern "x86-interrupt" fn page_fault_handler(
     _frame: InterruptFrame,
     error: usize,
@@ -199,6 +213,8 @@ extern "x86-interrupt" fn page_fault_handler(
     //debug!("Frame: {:#?}", frame);
     //debug!("Error: {:#X}", error);
 
+    use crate::api;
+    use crate::api::process::ExitCode;
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
     let addr = Cr2::read() as u64;
