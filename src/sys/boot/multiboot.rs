@@ -26,6 +26,8 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
         if let Some(memory_map_tag) = boot_info.memory_map_tag() {
             use multiboot2::MemoryAreaType as Mem;
             let mut memory_map = MemoryMap::new();
+            let mut heap_start = 0;
+            let mut heap_size = 0;
             for region in memory_map_tag.memory_areas() {
                 let addr = region.start_address();
                 let size = region.size();
@@ -33,6 +35,10 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
                     Mem::Available => MemoryRegionType::Usable,
                     _              => MemoryRegionType::Reserved,
                 };
+                if size > heap_size && kind == MemoryRegionType::Usable {
+                    heap_start = addr;
+                    heap_size = size;
+                }
                 memory_map.add(MemoryRegion::new(addr, size, kind));
             };
             //let offset = 0;
@@ -42,6 +48,11 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
             crate::sys::pic::init();
             crate::sys::x86::int::enable_interrupts();
             crate::sys::serial::init();
+
+            crate::sys::mem::heap::init_alloc(
+                heap_start as *mut u8,
+                heap_size as usize
+            );
         }
     }
 
