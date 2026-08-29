@@ -198,7 +198,7 @@ pub fn key_handle(key: char) {
         // Reserve the last slot in the buffer for the newline
         let reserved = (key != '\n') as usize;
         if stdin.len() + reserved >= stdin.capacity() {
-            return;
+            return; // Keys are dropped when there is no room for them
         }
 
         if stdin.push_back(key).is_ok() && is_echo_enabled() {
@@ -212,10 +212,12 @@ pub fn key_handle(key: char) {
     }
 }
 
+// TODO: Implement proper signals instead of pushing ETX in STDIN
 pub fn end_of_text() -> bool {
     int::without_interrupts(|| STDIN.lock().contains(ETX_KEY))
 }
 
+// TODO: Implement proper end-of-file instead of pushing EOT in STDIN
 pub fn end_of_transmission() -> bool {
     int::without_interrupts(|| STDIN.lock().contains(EOT_KEY))
 }
