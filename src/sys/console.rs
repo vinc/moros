@@ -268,3 +268,43 @@ pub fn print_fmt(args: fmt::Arguments) {
         sys::serial::print_fmt(args);
     }
 }
+
+#[test_case]
+fn test_console_with_short_input() {
+    drain();
+    disable_echo();
+    let msg = "Hello, World!\n";
+    for c in msg.chars() {
+        key_handle(c);
+    }
+    enable_echo();
+    assert_eq!(read_line(), msg);
+}
+
+#[test_case]
+fn test_console_with_long_input() {
+    drain();
+    disable_echo();
+    let msg = "h".repeat(MAX_INPUT * 2);
+    for c in msg.chars() {
+        key_handle(c);
+    }
+    key_handle('\n');
+    enable_echo();
+    assert_eq!(STDIN.lock().len(), MAX_INPUT);
+    assert_eq!(STDIN.lock().back(), Some('\n'));
+    assert_eq!(read_line().len(), MAX_INPUT);
+}
+
+#[test_case]
+fn test_console_with_backspace() {
+    drain();
+    disable_echo();
+    for c in "abc".chars() {
+        key_handle(c);
+    }
+    key_handle(BS_KEY);
+    key_handle('\n');
+    enable_echo();
+    assert_eq!(read_line(), "ab\n");
+}
