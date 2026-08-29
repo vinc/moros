@@ -39,6 +39,9 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
             //let offset = 0;
             //crate::init(&memory_map, offset);
             crate::sys::gdt::init();
+            crate::sys::idt::init();
+            crate::sys::pic::init();
+            crate::sys::x86::int::enable_interrupts();
         }
     }
 
