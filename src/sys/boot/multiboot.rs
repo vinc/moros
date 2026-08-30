@@ -1,4 +1,4 @@
-use super::{MemoryMap, MemoryRegion, MemoryRegionType};
+use super::{MemoryMap, MemoryRegion};
 
 use multiboot2::{BootInformation, BootInformationHeader};
 
@@ -17,14 +17,15 @@ static MULTIBOOT_HEADER: [u32; 6] = [
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     crate::sys::vga::init();
 
-    printk!("MOROS loading...\n");
+    printk!("Loading MOROS ...\n");
 
     if magic == multiboot2::MAGIC {
         let boot_info = unsafe {
             BootInformation::load(info as *const BootInformationHeader).unwrap()
         };
         if let Some(memory_map_tag) = boot_info.memory_map_tag() {
-            use multiboot2::MemoryAreaType as Mem;
+            use multiboot2::MemoryAreaType as B;
+            use super::MemoryRegionType as K;
             let mut memory_map = MemoryMap::new();
             let mut heap_start = 0;
             let mut heap_size = 0;
@@ -32,14 +33,16 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
                 let addr = region.start_address();
                 let size = region.size();
                 let kind = match region.typ().into() {
-                    Mem::Available => MemoryRegionType::Usable,
-                    _              => MemoryRegionType::Reserved,
+                    B::Available => K::Usable,
+                    _            => K::Reserved,
                 };
-                if size > heap_size && kind == MemoryRegionType::Usable {
+                printk!("MEM [{:#016X}-{:#016X}] {:?}\n", addr, addr + size, kind);
+                memory_map.add(MemoryRegion::new(addr, size, kind));
+
+                if size > heap_size && kind == K::Usable {
                     heap_start = addr;
                     heap_size = size;
                 }
-                memory_map.add(MemoryRegion::new(addr, size, kind));
             };
             //let offset = 0;
             //crate::init(&memory_map, offset);
@@ -56,7 +59,7 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
         }
     }
 
-    printk!("MOROS loaded successfully!\n");
+    printk!("Loaded MOROS successfully!\n");
 
     //crate::exec();
     crate::hang();
