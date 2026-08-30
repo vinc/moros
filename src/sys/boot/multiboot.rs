@@ -1,4 +1,4 @@
-use super::{MemoryMap, MemoryRegion, MemoryRegionType};
+use super::{MemoryMap, MemoryRegion};
 
 use multiboot2::{BootInformation, BootInformationHeader};
 
@@ -13,27 +13,66 @@ static MULTIBOOT_HEADER: [u32; 6] = [
     8,           // end tag size
 ];
 
+// Defined in run/boot/multiboot.ld
+extern "C" {
+    static KERNEL_START: u8;
+    static KERNEL_END: u8;
+}
+
+fn kernel_start() -> u64 {
+    unsafe { (&raw const KERNEL_START).addr() as u64 }
+}
+
+fn kernel_end() -> u64 {
+    unsafe { (&raw const KERNEL_END).addr() as u64 }
+}
+
 // TODO: Improve protocol support
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     crate::sys::vga::init();
 
-    printk!("MOROS loading...\n");
+    printk!("Loading MOROS ...\n");
 
     if magic == multiboot2::MAGIC {
         let boot_info = unsafe {
             BootInformation::load(info as *const BootInformationHeader).unwrap()
         };
+
         if let Some(memory_map_tag) = boot_info.memory_map_tag() {
-            use multiboot2::MemoryAreaType as Mem;
+            use multiboot2::MemoryAreaType as B;
+            use super::MemoryRegionType as K;
             let mut memory_map = MemoryMap::new();
+            let mut heap_start = 0;
+            let mut heap_size = 0;
             for region in memory_map_tag.memory_areas() {
                 let addr = region.start_address();
                 let size = region.size();
                 let kind = match region.typ().into() {
-                    Mem::Available => MemoryRegionType::Usable,
-                    _              => MemoryRegionType::Reserved,
+                    B::Available => K::Usable,
+                    _            => K::Reserved,
                 };
-                memory_map.add(MemoryRegion::new(addr, size, kind));
+
+                if addr == kernel_start() && kind == K::Usable {
+                    // Kernel
+                    let k_addr = kernel_start();
+                    let k_size = kernel_end() - addr;
+                    let k_kind = K::Kernel;
+                    memory_map.add(MemoryRegion::new(k_addr, k_size, k_kind));
+                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", k_addr, k_addr + k_size - 1, k_kind);
+
+                    // Usable
+                    let u_addr = k_addr + k_size;
+                    let u_size = size - k_size;
+                    let u_kind = K::Usable;
+                    memory_map.add(MemoryRegion::new(u_addr, u_size, u_kind));
+                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", u_addr, u_addr + u_size - 1, u_kind);
+
+                    heap_start = u_addr;
+                    heap_size = u_size / 2;
+                } else {
+                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", addr, addr + size - 1, kind);
+                    memory_map.add(MemoryRegion::new(addr, size, kind));
+                }
             };
             //let offset = 0;
             //crate::init(&memory_map, offset);
@@ -42,10 +81,15 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
             crate::sys::pic::init();
             crate::sys::x86::int::enable_interrupts();
             crate::sys::serial::init();
+
+            crate::sys::mem::heap::init_alloc(
+                heap_start as *mut u8,
+                heap_size as usize
+            );
         }
     }
 
-    printk!("MOROS loaded successfully!\n");
+    printk!("Loaded MOROS successfully!\n");
 
     //crate::exec();
     crate::hang();

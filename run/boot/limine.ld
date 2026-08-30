@@ -1,7 +1,7 @@
-KERNEL_OFFSET = 0xFFFFFFFF80000000;
+KERNEL_START = 0xFFFFFFFF80000000;
 
 SECTIONS {
-    . = KERNEL_OFFSET;
+    . = KERNEL_START;
 
     .text : { *(.text .text.*) }
     . = ALIGN(4096);
@@ -19,6 +19,7 @@ SECTIONS {
 
     .bss : { *(.bss .bss.*) *(COMMON) }
     . = ALIGN(4096);
+    KERNEL_END = .;
 
     /DISCARD/ : { *(.eh_frame*) *(.note*) *(.comment*) }
 }

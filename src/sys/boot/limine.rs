@@ -55,6 +55,8 @@ pub extern "C" fn start() -> ! {
     for entry in memmap.entries() {
         let kind = match entry.type_ {
             memmap::MEMMAP_USABLE => MemoryRegionType::Usable,
+            memmap::MEMMAP_EXECUTABLE_AND_MODULES => MemoryRegionType::Kernel,
+            memmap::MEMMAP_BOOTLOADER_RECLAIMABLE => MemoryRegionType::Bootloader,
             _ => MemoryRegionType::Reserved,
         };
         memory_map.add(MemoryRegion::new(entry.base, entry.length, kind));
