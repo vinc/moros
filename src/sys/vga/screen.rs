@@ -2,7 +2,7 @@ use super::*;
 
 use buffer::Buffer;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use spin::Mutex;
@@ -144,17 +144,15 @@ fn set_80x25c_mode() {
     disable_blinking();
     disable_underline();
     if restorable {
-        #[cfg(target_arch = "x86_64")]
         palette::restore_palette();
 
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(target_arch = "x86_64")] // TODO: Remove
         font::restore_font();
     }
 }
 
 fn set_320x200p_mode() {
     if is_80x25c_mode() {
-        #[cfg(target_arch = "x86_64")]
         palette::backup_palette();
     }
     set_mode(ModeName::P320x200x256);
@@ -163,7 +161,6 @@ fn set_320x200p_mode() {
 
 fn set_640x480p_mode() {
     if is_80x25c_mode() {
-        #[cfg(target_arch = "x86_64")]
         palette::backup_palette();
     }
     set_mode(ModeName::P640x480x16);
@@ -197,7 +194,7 @@ impl VgaMode {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for VgaMode {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match *MODE.lock() {

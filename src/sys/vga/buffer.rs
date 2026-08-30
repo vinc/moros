@@ -1,4 +1,4 @@
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 #[derive(Debug, Clone)]
@@ -21,7 +21,7 @@ impl Buffer {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for Buffer {
     fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
         Err(()) // TODO

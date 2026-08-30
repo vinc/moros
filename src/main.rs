@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 
-#[cfg(target_arch = "x86_64")]
 extern crate alloc;
 
 use core::panic::PanicInfo;
@@ -46,7 +45,7 @@ extern "C" fn start(info: u32, magic: u32) -> ! {
     moros::sys::boot::multiboot::start(info, magic)
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     use alloc::string::ToString;

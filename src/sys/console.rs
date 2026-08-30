@@ -1,10 +1,9 @@
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use crate::sys;
 use crate::sys::x86::int;
 
-#[cfg(target_arch = "x86_64")]
 use alloc::string::{String, ToString};
 
 use core::fmt;
@@ -117,7 +116,7 @@ impl Console {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for Console {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let mut s = if buf.len() == 4 {
@@ -239,10 +238,8 @@ pub fn read_char() -> char {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
 pub fn read_line() -> String {
     loop {
-        sys::x86::hlt();
         let res = int::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.back() {
@@ -257,6 +254,7 @@ pub fn read_line() -> String {
         if let Some(line) = res {
             return line;
         }
+        sys::x86::hlt();
     }
 }
 

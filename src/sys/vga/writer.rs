@@ -2,12 +2,11 @@ use super::*;
 
 use color::Color;
 
-#[cfg(target_arch = "x86_64")]
 use palette::Palette;
 
 use buffer::Buffer;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::api::font::Font;
 
 use crate::sys;
@@ -279,7 +278,7 @@ impl Writer {
     }
 
     // Source: https://slideplayer.com/slide/3888880
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(target_arch = "x86_64")] // TODO: Remove
     pub fn set_font(&mut self, font: &Font) {
         let buffer = Buffer::addr() as *mut u8;
 
@@ -519,7 +518,6 @@ impl Perform for Writer {
     }
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
-        #[cfg(target_arch = "x86_64")]
         if params.len() == 1 {
             let s = core::str::from_utf8(params[0]).unwrap_or("");
             match s.chars().next() {

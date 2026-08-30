@@ -2,6 +2,7 @@ use super::*;
 
 use color::Color;
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use alloc::boxed::Box;
@@ -93,6 +94,7 @@ impl TryFrom<&[u8]> for Palette {
     }
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for VgaPalette {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let res = Palette::read().to_bytes();

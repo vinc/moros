@@ -110,6 +110,25 @@ pub fn init() {
     }
 }
 
+#[cfg(target_arch = "x86")]
+#[test_case]
+fn test_gdt() {
+    assert_eq!(GDT.table.len(), 6);
+
+    assert_eq!(GDT.table[0], 0); // Null descriptor
+    assert_eq!(GDT.table[1], 0x00CF_9B00_0000_FFFF); // Kernel code segment
+    assert_eq!(GDT.table[2], 0x00CF_9300_0000_FFFF); // Kernel data segment
+    assert_eq!(GDT.table[3], 0x00CF_FB00_0000_FFFF); // User code segment
+    assert_eq!(GDT.table[4], 0x00CF_F300_0000_FFFF); // User data segment
+
+    // Task state segment (TSS)
+    let lo = GDT.table[5];
+    let base = lo.get_bits(16..40) | (lo.get_bits(56..64) << 24);
+    assert_eq!(base, tss::TSS.base() as u64);
+    assert_eq!(lo.get_bit(47), true); // Present
+}
+
+#[cfg(target_arch = "x86_64")]
 #[test_case]
 fn test_gdt() {
     assert_eq!(GDT.table.len(), 7);

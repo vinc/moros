@@ -6,5 +6,8 @@ json-target-spec = true
 [build]
 target = "x86_64-moros.json"
 
-[target.'cfg(target_os = "none")']
+[target.x86_64-moros]
 runner = "bootimage runner"
+
+[target.i686-moros]
+runner = "run/limine-runner.sh"

@@ -67,7 +67,7 @@ impl InterruptDescriptorTable {
             table[pic::vector(14)].set_handler(irq14_handler as _);
             table[pic::vector(15)].set_handler(irq15_handler as _);
 
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(target_arch = "x86_64")] // TODO: Remove
             {
                 table[0x80].set_handler(sys::syscall::handler as _);
                 table[0x80].set_privilege_level(3);
@@ -204,7 +204,7 @@ extern "x86-interrupt" fn page_fault_handler(
     panic!();
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 extern "x86-interrupt" fn page_fault_handler(
     _frame: InterruptFrame,
     error: usize,
@@ -302,12 +302,31 @@ pub fn init() {
     IDT.load();
 }
 
+#[cfg(target_arch = "x86")]
+#[test_case]
+fn test_idt() {
+    assert_eq!(size_of::<Entry>(), 8);
+    assert_eq!(IDT.limit(), 2047);
+
+    // No IST on i686
+    assert_eq!(IDT.table[DF].bits, 0x8E00);
+    assert_eq!(IDT.table[PF].bits, 0x8E00);
+    assert_eq!(IDT.table[GP].bits, 0x8E00);
+
+    assert_eq!(IDT.table[0].bits, 0);         // Not present
+}
+
+#[cfg(target_arch = "x86_64")]
 #[test_case]
 fn test_idt() {
     assert_eq!(size_of::<Entry>(), 16);
     assert_eq!(IDT.limit(), 4095);
 
     assert_eq!(IDT.table[DF].bits, 0x8E01);   // IST 1
+    assert_eq!(IDT.table[PF].bits, 0x8E02);   // IST 2
+    assert_eq!(IDT.table[GP].bits, 0x8E03);   // IST 3
+
     assert_eq!(IDT.table[0x80].bits, 0xEE00); // DPL 3
+
     assert_eq!(IDT.table[0].bits, 0);         // Not present
 }

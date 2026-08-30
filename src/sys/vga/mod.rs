@@ -1,20 +1,20 @@
 mod color;
 #[cfg(target_arch = "x86_64")] mod font;
 mod buffer;
-#[cfg(target_arch = "x86_64")] mod palette;
+mod palette;
 mod screen;
 mod writer;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub use font::VgaFont;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub use screen::VgaMode;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub use palette::Palette as VgaPalette;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub use buffer::Buffer as VgaBuffer;
 
 use writer::WRITER;

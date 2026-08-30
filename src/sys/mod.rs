@@ -5,15 +5,6 @@ macro_rules! printk {
     });
 }
 
-// TODO: Remove this
-#[cfg(target_arch = "x86")]
-macro_rules! debug {
-    ($($arg:tt)*) => ({
-        $crate::sys::console::print_fmt(format_args!($($arg)*));
-    });
-}
-
-#[cfg(target_arch = "x86_64")]
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => ({

@@ -7,7 +7,7 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub const HEAP_START: u64 = 0x4444_4444_0000;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn init_heap() -> Result<(), ()> {
     let mapper = super::mapper();
 
@@ -60,7 +60,7 @@ pub fn heap_free() -> usize {
 }
 
 #[test_case]
-fn many_boxes() {
+fn test_box_alloc() {
     use alloc::boxed::Box;
 
     let heap_value_1 = Box::new(42);
@@ -75,7 +75,7 @@ fn many_boxes() {
 }
 
 #[test_case]
-fn large_vec() {
+fn test_vec_alloc() {
     use alloc::vec::Vec;
 
     let n = 1000;
