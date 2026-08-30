@@ -60,21 +60,15 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
                     memory_map.add(MemoryRegion::new(k_addr, k_size, k_kind));
                     printk!("MEM [{:#016X}-{:#016X}] {:?}\n", k_addr, k_addr + k_size - 1, k_kind);
 
-                    // Heap (TODO: remove when mem::init() is called directly)
-                    let h_addr = k_addr + k_size;
-                    let h_size = (size - k_size) / 2;
-                    let h_kind = K::Usable;
-                    memory_map.add(MemoryRegion::new(h_addr, h_size, h_kind));
-                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", h_addr, h_addr + h_size - 1, h_kind);
-                    heap_start = h_addr;
-                    heap_size = h_size;
-
                     // Usable
-                    let u_addr = h_addr + h_size;
-                    let u_size = size - k_size - h_size;
+                    let u_addr = k_addr + k_size;
+                    let u_size = size - k_size;
                     let u_kind = K::Usable;
                     memory_map.add(MemoryRegion::new(u_addr, u_size, u_kind));
                     printk!("MEM [{:#016X}-{:#016X}] {:?}\n", u_addr, u_addr + u_size - 1, u_kind);
+
+                    heap_start = u_addr;
+                    heap_size = u_size / 2;
                 } else {
                     printk!("MEM [{:#016X}-{:#016X}] {:?}\n", addr, addr + size - 1, kind);
                     memory_map.add(MemoryRegion::new(addr, size, kind));
