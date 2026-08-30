@@ -4,7 +4,6 @@ use crate::sys::fs::{FileIO, IO};
 use crate::sys;
 use crate::sys::x86::int;
 
-#[cfg(target_arch = "x86_64")]
 use alloc::string::{String, ToString};
 
 use core::fmt;

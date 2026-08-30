@@ -36,7 +36,6 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 
     sys::serial::init();
     sys::keyboard::init();
-
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
@@ -82,7 +81,6 @@ pub fn exec() -> ! {
 }
 
 #[allow(dead_code)]
-#[cfg(target_arch = "x86_64")]
 #[cfg_attr(not(feature = "userspace"), alloc_error_handler)]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     let csi_color = api::console::Style::color("red");
@@ -100,7 +98,6 @@ pub trait Testable {
     fn run(&self);
 }
 
-#[cfg(target_arch = "x86_64")]
 impl<T> Testable for T where T: Fn() {
     fn run(&self) {
         printk!("test {} ... ", core::any::type_name::<T>());
@@ -111,7 +108,6 @@ impl<T> Testable for T where T: Fn() {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
 pub fn test_runner(tests: &[&dyn Testable]) {
     let n = tests.len();
     printk!("\nrunning {} test{}\n", n, if n == 1 { "" } else { "s" });
@@ -140,20 +136,57 @@ pub fn hang() -> ! {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 #[cfg(test)]
 use bootloader::{entry_point, BootInfo};
 
 #[cfg(test)]
 use core::panic::PanicInfo;
 
+#[cfg(target_arch = "x86_64")]
 #[cfg(test)]
 entry_point!(test_kernel_main);
 
+// TODO: define a multiboot_entry_point macro to avoid duplicating this
+#[cfg(target_arch = "x86")]
+#[cfg(test)]
+core::arch::global_asm!(
+    // Multiboot2 does not provide a stack
+    ".section .bss",
+    ".align 16",
+    "stack_bottom:",
+    ".skip {size}",
+    "stack_top:",
+
+    ".section .text",
+    ".global _start",
+    "_start:",
+    "mov esp, offset stack_top",
+    "push eax", // magic
+    "push ebx", // info
+    "call {start}",
+    "hlt",
+    size = const STACK_SIZE,
+    start = sym test_kernel_main,
+);
+
+#[cfg(target_arch = "x86_64")]
 #[cfg(test)]
 fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
     let memory_map = sys::boot::bootloader::extract_memory_map(boot_info);
     let offset = boot_info.physical_memory_offset;
     init(&memory_map, offset);
+    test_main();
+    hang();
+}
+
+#[cfg(target_arch = "x86")]
+#[cfg(test)]
+extern "C" fn test_kernel_main(info: u32, magic: u32) -> ! {
+    let memory_map = sys::boot::multiboot::extract_memory_map(info, magic);
+    sys::boot::multiboot::init(&memory_map);
+    //let offset = 0;
+    //init(&memory_map, offset);
     test_main();
     hang();
 }
