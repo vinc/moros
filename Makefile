@@ -137,7 +137,7 @@ limine-version = 11.3.1
 limine-url = https://github.com/Limine-Bootloader/Limine/releases/download/v$(limine-version)/limine-$(limine-version).tar.gz
 limine-dir = tmp/limine-$(limine-version)
 
-# Require llvm lld xorriso
+# Require clang llvm lld xorriso nasm
 limine-setup:
 	mkdir -p tmp
 	wget -O $(limine-dir).tar.gz $(limine-url)
