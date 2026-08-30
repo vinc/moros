@@ -19,11 +19,11 @@ extern "C" {
 }
 
 fn kernel_start() -> u64 {
-    unsafe { (&raw const KERNEL_START).addr() as u64 }
+    (&raw const KERNEL_START).addr() as u64
 }
 
 fn kernel_end() -> u64 {
-    unsafe { (&raw const KERNEL_END).addr() as u64 }
+    (&raw const KERNEL_END).addr() as u64
 }
 
 // TODO: Improve protocol support
