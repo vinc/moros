@@ -3,7 +3,7 @@
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
+#![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
@@ -16,6 +16,9 @@ pub mod sys;
 
 #[cfg(target_arch = "x86_64")]
 pub mod usr;
+
+#[cfg(test)]
+mod test;
 
 #[cfg(target_arch = "x86_64")]
 use sys::boot::MemoryMap;
@@ -94,112 +97,10 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     hang();
 }
 
-pub trait Testable {
-    fn run(&self);
-}
-
-impl<T> Testable for T where T: Fn() {
-    fn run(&self) {
-        printk!("test {} ... ", core::any::type_name::<T>());
-        self();
-        let csi_color = api::console::Style::color("lime");
-        let csi_reset = api::console::Style::reset();
-        printk!("{}ok{}\n", csi_color, csi_reset);
-    }
-}
-
-pub fn test_runner(tests: &[&dyn Testable]) {
-    let n = tests.len();
-    printk!("\nrunning {} test{}\n", n, if n == 1 { "" } else { "s" });
-    for test in tests {
-        test.run();
-    }
-    exit_qemu(QemuExitCode::Success);
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u32)]
-pub enum QemuExitCode {
-    Success = 0x10,
-    Failed = 0x11,
-}
-
-pub fn exit_qemu(exit_code: QemuExitCode) {
-    unsafe {
-        sys::x86::port::outl(0xF4, exit_code as u32);
-    }
-}
-
 pub fn hang() -> ! {
     loop {
         sys::x86::hlt();
     }
-}
-
-#[cfg(target_arch = "x86_64")]
-#[cfg(test)]
-use bootloader::{entry_point, BootInfo};
-
-#[cfg(test)]
-use core::panic::PanicInfo;
-
-#[cfg(target_arch = "x86_64")]
-#[cfg(test)]
-entry_point!(test_kernel_main);
-
-// TODO: define a multiboot_entry_point macro to avoid duplicating this
-#[cfg(target_arch = "x86")]
-#[cfg(test)]
-core::arch::global_asm!(
-    // Multiboot2 does not provide a stack
-    ".section .bss",
-    ".align 16",
-    "stack_bottom:",
-    ".skip {size}",
-    "stack_top:",
-
-    ".section .text",
-    ".global _start",
-    "_start:",
-    "mov esp, offset stack_top",
-    "push eax", // magic
-    "push ebx", // info
-    "call {start}",
-    "hlt",
-    size = const STACK_SIZE,
-    start = sym test_kernel_main,
-);
-
-#[cfg(target_arch = "x86_64")]
-#[cfg(test)]
-fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    let memory_map = sys::boot::bootloader::extract_memory_map(boot_info);
-    let offset = boot_info.physical_memory_offset;
-    init(&memory_map, offset);
-    test_main();
-    hang();
-}
-
-#[cfg(target_arch = "x86")]
-#[cfg(test)]
-extern "C" fn test_kernel_main(info: u32, magic: u32) -> ! {
-    let memory_map = sys::boot::multiboot::extract_memory_map(info, magic);
-    sys::boot::multiboot::init(&memory_map);
-    //let offset = 0;
-    //init(&memory_map, offset);
-    test_main();
-    hang();
-}
-
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    let csi_color = api::console::Style::color("red");
-    let csi_reset = api::console::Style::reset();
-    printk!("{}failed{}\n\n", csi_color, csi_reset);
-    printk!("{}\n\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    hang();
 }
 
 #[test_case]
