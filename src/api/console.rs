@@ -1,4 +1,6 @@
+#[cfg(target_arch = "x86_64")]
 use crate::api::process;
+
 use crate::sys;
 
 use alloc::string::ToString;
@@ -112,11 +114,23 @@ pub fn is_printable(c: char) -> bool {
 
 // The size of the screen in VGA Text Mode is 80x25
 
+#[cfg(target_arch = "x86")]
+pub fn cols() -> usize {
+    80
+}
+
+#[cfg(target_arch = "x86")]
+pub fn rows() -> usize {
+    25
+}
+
+#[cfg(target_arch = "x86_64")]
 pub fn cols() -> usize {
     let n = 80; // chars
     process::env_var("COLS").unwrap_or(n.to_string()).parse().unwrap_or(n)
 }
 
+#[cfg(target_arch = "x86_64")]
 pub fn rows() -> usize {
     let n = 25; // lines
     process::env_var("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)

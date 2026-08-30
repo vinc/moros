@@ -9,7 +9,6 @@
 extern crate alloc;
 
 #[macro_use]
-#[cfg(target_arch = "x86_64")]
 pub mod api;
 
 #[macro_use]
