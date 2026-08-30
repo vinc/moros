@@ -13,6 +13,20 @@ static MULTIBOOT_HEADER: [u32; 6] = [
     8,           // end tag size
 ];
 
+// Defined in run/boot/multiboot.ld
+extern "C" {
+    static KERNEL_START: u8;
+    static KERNEL_END: u8;
+}
+
+fn kernel_start() -> u64 {
+    unsafe { (&raw const KERNEL_START).addr() as u64 }
+}
+
+fn kernel_end() -> u64 {
+    unsafe { (&raw const KERNEL_END).addr() as u64 }
+}
+
 // TODO: Improve protocol support
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     crate::sys::vga::init();
@@ -23,6 +37,7 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
         let boot_info = unsafe {
             BootInformation::load(info as *const BootInformationHeader).unwrap()
         };
+
         if let Some(memory_map_tag) = boot_info.memory_map_tag() {
             use multiboot2::MemoryAreaType as B;
             use super::MemoryRegionType as K;
@@ -36,12 +51,33 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
                     B::Available => K::Usable,
                     _            => K::Reserved,
                 };
-                printk!("MEM [{:#016X}-{:#016X}] {:?}\n", addr, addr + size, kind);
-                memory_map.add(MemoryRegion::new(addr, size, kind));
 
-                if size > heap_size && kind == K::Usable {
-                    heap_start = addr;
-                    heap_size = size;
+                if addr == kernel_start() && kind == K::Usable {
+                    // Kernel
+                    let k_addr = kernel_start();
+                    let k_size = kernel_end() - addr;
+                    let k_kind = K::Kernel;
+                    memory_map.add(MemoryRegion::new(k_addr, k_size, k_kind));
+                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", k_addr, k_addr + k_size - 1, k_kind);
+
+                    // Heap (TODO: remove when mem::init() is called directly)
+                    let h_addr = k_addr + k_size;
+                    let h_size = (size - k_size) / 2;
+                    let h_kind = K::Usable;
+                    memory_map.add(MemoryRegion::new(h_addr, h_size, h_kind));
+                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", h_addr, h_addr + h_size - 1, h_kind);
+                    heap_start = h_addr;
+                    heap_size = h_size;
+
+                    // Usable
+                    let u_addr = h_addr + h_size;
+                    let u_size = size - k_size - h_size;
+                    let u_kind = K::Usable;
+                    memory_map.add(MemoryRegion::new(u_addr, u_size, u_kind));
+                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", u_addr, u_addr + u_size - 1, u_kind);
+                } else {
+                    printk!("MEM [{:#016X}-{:#016X}] {:?}\n", addr, addr + size - 1, kind);
+                    memory_map.add(MemoryRegion::new(addr, size, kind));
                 }
             };
             //let offset = 0;

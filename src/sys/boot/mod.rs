@@ -16,7 +16,6 @@ pub mod limine;
 #[cfg(feature = "multiboot")]
 pub mod multiboot;
 
-#[repr(u32)]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum MemoryRegionType {
     Usable,
@@ -24,7 +23,9 @@ pub enum MemoryRegionType {
     AcpiUsable,
     AcpiReserved,
     Defective,
-    Custom(u32),
+    Bootloader,
+    Kernel,
+    Unknown(u32),
 }
 
 #[derive(Copy, Clone, Debug)]

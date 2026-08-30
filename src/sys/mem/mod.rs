@@ -1,5 +1,5 @@
 #[cfg(target_arch = "x86_64")] mod bitmap;
-pub mod heap;
+pub mod heap; // TODO: Remove pub when multiboot2 is done
 #[cfg(target_arch = "x86_64")] mod paging;
 #[cfg(target_arch = "x86_64")] mod phys;
 

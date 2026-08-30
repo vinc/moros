@@ -1,7 +1,7 @@
-KERNEL_OFFSET = 0x100000;
+KERNEL_START = 0x100000;
 
 SECTIONS {
-    . = KERNEL_OFFSET;
+    . = KERNEL_START;
 
     .multiboot : { *(.multiboot) }
     . = ALIGN(4096);
@@ -26,4 +26,5 @@ SECTIONS {
         *(COMMON)
     }
     . = ALIGN(4096);
+    KERNEL_END = .;
 }
