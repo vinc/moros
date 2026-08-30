@@ -32,7 +32,7 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-i686-${{ hashFiles('**/Cargo.lock') }}
     - run: sudo apt-get -qqy update
-    - run: sudo apt-get -qqy install qemu-system-x86 xorriso clang llvm lld
+    - run: sudo apt-get -qqy install qemu-system-x86 xorriso clang llvm lld nasm
     - run: make
     - run: make limine-setup
     - run: make limine-image arch=i686 bootloader-proto=multiboot
