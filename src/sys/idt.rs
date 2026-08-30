@@ -302,6 +302,7 @@ pub fn init() {
     IDT.load();
 }
 
+#[cfg(target_arch = "x86_64")]
 #[test_case]
 fn test_idt() {
     assert_eq!(size_of::<Entry>(), 16);

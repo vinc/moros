@@ -238,10 +238,8 @@ pub fn read_char() -> char {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
 pub fn read_line() -> String {
     loop {
-        sys::x86::hlt();
         let res = int::without_interrupts(|| {
             let mut stdin = STDIN.lock();
             match stdin.back() {
@@ -256,6 +254,7 @@ pub fn read_line() -> String {
         if let Some(line) = res {
             return line;
         }
+        sys::x86::hlt();
     }
 }
 

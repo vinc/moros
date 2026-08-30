@@ -110,6 +110,7 @@ pub fn init() {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 #[test_case]
 fn test_gdt() {
     assert_eq!(GDT.table.len(), 7);
