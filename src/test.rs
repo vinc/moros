@@ -6,10 +6,11 @@ use bootloader::{entry_point, BootInfo};
 
 use core::panic::PanicInfo;
 
+// MOROS use rust-bootloader for the tests on AMD64 and multiboot2 on i686
+
 #[cfg(target_arch = "x86_64")]
 entry_point!(test_kernel_main);
 
-// TODO: define a multiboot_entry_point macro to avoid duplicating this
 #[cfg(target_arch = "x86")]
 core::arch::global_asm!(
     // Multiboot2 does not provide a stack
@@ -30,6 +31,25 @@ core::arch::global_asm!(
     size = const crate::STACK_SIZE,
     start = sym test_kernel_main,
 );
+
+#[cfg(target_arch = "x86_64")]
+fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
+    let memory_map = sys::boot::bootloader::extract_memory_map(boot_info);
+    let offset = boot_info.physical_memory_offset;
+    crate::init(&memory_map, offset);
+    crate::test_main();
+    crate::hang();
+}
+
+#[cfg(target_arch = "x86")]
+extern "C" fn test_kernel_main(info: u32, magic: u32) -> ! {
+    let memory_map = sys::boot::multiboot::extract_memory_map(info, magic);
+    sys::boot::multiboot::init(&memory_map);
+    //let offset = 0;
+    //init(&memory_map, offset);
+    crate::test_main();
+    crate::hang();
+}
 
 pub trait Testable {
     fn run(&self);
@@ -65,25 +85,6 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     unsafe {
         sys::x86::port::outl(0xF4, exit_code as u32);
     }
-}
-
-#[cfg(target_arch = "x86_64")]
-fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    let memory_map = sys::boot::bootloader::extract_memory_map(boot_info);
-    let offset = boot_info.physical_memory_offset;
-    crate::init(&memory_map, offset);
-    crate::test_main();
-    crate::hang();
-}
-
-#[cfg(target_arch = "x86")]
-extern "C" fn test_kernel_main(info: u32, magic: u32) -> ! {
-    let memory_map = sys::boot::multiboot::extract_memory_map(info, magic);
-    sys::boot::multiboot::init(&memory_map);
-    //let offset = 0;
-    //init(&memory_map, offset);
-    crate::test_main();
-    crate::hang();
 }
 
 #[panic_handler]

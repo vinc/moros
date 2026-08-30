@@ -83,6 +83,12 @@ pub fn exec() -> ! {
     }
 }
 
+pub fn hang() -> ! {
+    loop {
+        sys::x86::hlt();
+    }
+}
+
 #[allow(dead_code)]
 #[cfg_attr(not(feature = "userspace"), alloc_error_handler)]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
@@ -97,13 +103,7 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
     hang();
 }
 
-pub fn hang() -> ! {
-    loop {
-        sys::x86::hlt();
-    }
-}
-
 #[test_case]
-fn trivial_assertion() {
-    assert_eq!(1, 1);
+fn test_lib() {
+    assert_eq!(1, 1); // Trivial assertion
 }
