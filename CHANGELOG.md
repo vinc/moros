@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Enable tests on i686 (#907)
 - Enable alloc on i686 (#906)
 - Add console::Input for i686 (#905)
 - Add idt::InterruptDescriptorTable (#902)
