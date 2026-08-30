@@ -3,7 +3,7 @@ on: [push]
 env:
   CARGO_TERM_COLOR: always
 jobs:
-  test:
+  test-amd64:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
@@ -13,9 +13,27 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-amd64-${{ hashFiles('**/Cargo.lock') }}
     - run: sudo apt-get -qqy update
     - run: sudo apt-get -qqy install qemu-system-x86
     - run: make
     - run: make user-rust
     - run: make test
+
+  test-i686:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/cache@v6
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-i686-${{ hashFiles('**/Cargo.lock') }}
+    - run: sudo apt-get -qqy update
+    - run: sudo apt-get -qqy install qemu-system-x86 xorriso clang llvm lld
+    - run: make
+    - run: make limine-setup
+    - run: make limine-image arch=i686 bootloader-proto=multiboot
+    - run: make limine-test
