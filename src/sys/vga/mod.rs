@@ -1,7 +1,7 @@
 mod color;
 #[cfg(target_arch = "x86_64")] mod font;
 mod buffer;
-#[cfg(target_arch = "x86_64")] mod palette;
+mod palette;
 mod screen;
 mod writer;
 

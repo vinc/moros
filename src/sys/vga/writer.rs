@@ -2,7 +2,6 @@ use super::*;
 
 use color::Color;
 
-#[cfg(target_arch = "x86_64")]
 use palette::Palette;
 
 use buffer::Buffer;
@@ -519,7 +518,6 @@ impl Perform for Writer {
     }
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
-        #[cfg(target_arch = "x86_64")]
         if params.len() == 1 {
             let s = core::str::from_utf8(params[0]).unwrap_or("");
             match s.chars().next() {
