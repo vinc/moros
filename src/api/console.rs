@@ -1,4 +1,4 @@
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::api::process;
 
 use crate::sys;
@@ -124,13 +124,13 @@ pub fn rows() -> usize {
     25
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn cols() -> usize {
     let n = 80; // chars
     process::env_var("COLS").unwrap_or(n.to_string()).parse().unwrap_or(n)
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn rows() -> usize {
     let n = 25; // lines
     process::env_var("ROWS").unwrap_or(n.to_string()).parse().unwrap_or(n)

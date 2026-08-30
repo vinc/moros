@@ -67,7 +67,7 @@ impl InterruptDescriptorTable {
             table[pic::vector(14)].set_handler(irq14_handler as _);
             table[pic::vector(15)].set_handler(irq15_handler as _);
 
-            #[cfg(target_arch = "x86_64")]
+            #[cfg(target_arch = "x86_64")] // TODO: Remove
             {
                 table[0x80].set_handler(sys::syscall::handler as _);
                 table[0x80].set_privilege_level(3);
@@ -204,7 +204,7 @@ extern "x86-interrupt" fn page_fault_handler(
     panic!();
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 extern "x86-interrupt" fn page_fault_handler(
     _frame: InterruptFrame,
     error: usize,

@@ -22,7 +22,7 @@ macro_rules! entry_point {
     };
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
@@ -32,7 +32,7 @@ macro_rules! print {
     });
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! println {
     () => ({
@@ -43,7 +43,7 @@ macro_rules! println {
     });
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! eprint {
     ($($arg:tt)*) => ({
@@ -53,7 +53,7 @@ macro_rules! eprint {
     });
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! eprintln {
     () => ({
@@ -64,7 +64,7 @@ macro_rules! eprintln {
     });
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => ({
@@ -76,7 +76,7 @@ macro_rules! error {
     });
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => ({

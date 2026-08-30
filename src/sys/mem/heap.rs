@@ -7,7 +7,7 @@ static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 pub const HEAP_START: u64 = 0x4444_4444_0000;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn init_heap() -> Result<(), ()> {
     let mapper = super::mapper();
 

@@ -14,13 +14,12 @@ pub mod api;
 #[macro_use]
 pub mod sys;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub mod usr;
 
 #[cfg(test)]
 mod test;
 
-#[cfg(target_arch = "x86_64")]
 use sys::boot::MemoryMap;
 
 #[cfg(target_arch = "x86_64")]
@@ -28,7 +27,7 @@ pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
 pub const STACK_SIZE: usize = 128 << 10; // 128 KB
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
@@ -58,7 +57,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     log!("RTC {}", sys::clk::date());
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn exec() -> ! {
     print!("\x1b[?25h"); // Enable cursor
     loop {
