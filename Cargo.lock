@@ -409,9 +409,9 @@ dependencies = [
 
 [[package]]
 name = "multiboot2"
-version = "0.25.1"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6760efa924ec07b86ae4de352624143d08424b7a040a9fcb808c1421e63718dd"
+checksum = "eb3eaa4cbc37beb91ac69a14e00339f9d44e1a2d35b4e953ebc8ef2bbaadafbe"
 dependencies = [
  "bitflags 2.11.1",
  "elf",
@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "multiboot2-common"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d86c2ae21d6c7d8d42085137f7aaeee2849ea5b18b88a9d83146a1d33ce2fab"
+checksum = "b0afbba14dd18000daaab68fd5be3ccce6d58d1df2f6f2afd4c5e16ababf0dfb"
 dependencies = [
  "ptr_meta",
  "thiserror",
