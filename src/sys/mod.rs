@@ -47,7 +47,7 @@ pub mod console;
 pub mod gdt;
 pub mod idt;
 #[cfg(target_arch = "x86_64")] pub mod keyboard;
-#[cfg(target_arch = "x86_64")] pub mod log;
+pub mod log;
 pub mod mem;
 #[cfg(target_arch = "x86_64")] pub mod net;
 #[cfg(target_arch = "x86_64")] pub mod pci;

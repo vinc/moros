@@ -87,8 +87,8 @@ pub fn init(memory_map: &MemoryMap) {
     let mut heap_addr = 0;
     let mut heap_size = 0;
     for region in memory_map.iter() {
-        printk!(
-            "MEM [{:#016X}-{:#016X}] {:?}\n",
+        log!(
+            "MEM [{:#016X}-{:#016X}] {:?}",
             region.addr, region.addr + region.size - 1, region.kind
         );
         if region.kind == MemoryRegionType::Usable {
