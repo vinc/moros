@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Enable cpuid on i686 (#909)
 - Enable clocks on i686 (#908)
 - Enable tests on i686 (#907)
 - Enable alloc on i686 (#906)
