@@ -42,7 +42,7 @@ macro_rules! log {
 pub mod boot;
 pub mod clk;
 pub mod console;
-#[cfg(target_arch = "x86_64")] pub mod cpu;
+pub mod cpu;
 #[cfg(target_arch = "x86_64")] pub mod fs;
 pub mod gdt;
 pub mod idt;
