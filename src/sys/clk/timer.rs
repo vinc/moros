@@ -51,10 +51,7 @@ pub fn set_pit_frequency(divider: u16, channel: u8) {
 
 // Time Stamp Counter
 pub fn tsc() -> u64 {
-    unsafe {
-        core::arch::x86_64::_mm_lfence();
-        core::arch::x86_64::_rdtsc()
-    }
+    sys::x86::rdtsc()
 }
 
 pub fn tsc_frequency() -> u64 {

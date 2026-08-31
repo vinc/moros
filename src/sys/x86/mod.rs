@@ -12,6 +12,11 @@ pub fn hlt() {
     }
 }
 
+#[cfg(target_arch = "x86")]
+pub fn rdrand() -> Option<u64> {
+    None
+}
+
 #[cfg(target_arch = "x86_64")]
 pub fn rdrand() -> Option<u64> {
     let mut res = 0;
@@ -25,8 +30,19 @@ pub fn rdrand() -> Option<u64> {
 }
 
 #[cfg(target_arch = "x86")]
-pub fn rdrand() -> Option<u64> {
-    None
+pub fn rdtsc() -> u64 {
+    unsafe {
+        core::arch::x86::_mm_lfence();
+        core::arch::x86::_rdtsc()
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+pub fn rdtsc() -> u64 {
+    unsafe {
+        core::arch::x86_64::_mm_lfence();
+        core::arch::x86_64::_rdtsc()
+    }
 }
 
 #[repr(C, packed(2))]
