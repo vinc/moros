@@ -116,7 +116,7 @@ endif
 
 ifeq ($(arch),i686)
 qemu = qemu-system-i386
-cpu = pentium3
+cpu = n270
 else
 qemu = qemu-system-x86_64
 endif

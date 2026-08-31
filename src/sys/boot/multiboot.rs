@@ -82,6 +82,7 @@ pub fn init(memory_map: &MemoryMap) {
     crate::sys::x86::int::enable_interrupts();
     crate::sys::serial::init();
     crate::sys::clk::init();
+    crate::sys::cpu::init();
 
     // TODO: Use sys::mem::init() instead
     let mut heap_addr = 0;
