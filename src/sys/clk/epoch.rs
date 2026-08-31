@@ -1,6 +1,7 @@
 use super::cmos::CMOS;
 use super::timer;
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use alloc::format;
@@ -23,6 +24,7 @@ impl EpochTime {
     }
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for EpochTime {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let time = format!("{:.6}", epoch_time());

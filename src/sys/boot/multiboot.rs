@@ -81,13 +81,14 @@ pub fn init(memory_map: &MemoryMap) {
     crate::sys::pic::init();
     crate::sys::x86::int::enable_interrupts();
     crate::sys::serial::init();
+    crate::sys::clk::init();
 
     // TODO: Use sys::mem::init() instead
     let mut heap_addr = 0;
     let mut heap_size = 0;
     for region in memory_map.iter() {
-        printk!(
-            "MEM [{:#016X}-{:#016X}] {:?}\n",
+        log!(
+            "MEM [{:#016X}-{:#016X}] {:?}",
             region.addr, region.addr + region.size - 1, region.kind
         );
         if region.kind == MemoryRegionType::Usable {

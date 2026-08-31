@@ -90,7 +90,7 @@ macro_rules! warning {
 
 #[cfg(target_arch = "x86_64")] pub mod allocator;
 #[cfg(target_arch = "x86_64")] pub mod base64;
-#[cfg(target_arch = "x86_64")] pub mod clock;
+pub mod clock;
 pub mod console;
 #[cfg(target_arch = "x86_64")] pub mod font;
 #[cfg(target_arch = "x86_64")] pub mod fs;

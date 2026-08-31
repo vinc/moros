@@ -1,6 +1,8 @@
 use super::cmos::CMOS;
 
 use crate::api::clock::{DATE_TIME, DATE_TIME_LEN};
+
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use alloc::string::String;
@@ -52,6 +54,7 @@ impl RTC {
     }
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for RTC {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         self.sync();
