@@ -81,6 +81,7 @@ pub fn init(memory_map: &MemoryMap) {
     crate::sys::pic::init();
     crate::sys::x86::int::enable_interrupts();
     crate::sys::serial::init();
+    crate::sys::keyboard::init();
     crate::sys::clk::init();
     crate::sys::cpu::init();
 
