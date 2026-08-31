@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Enable clocks on i686 (#908)
 - Enable tests on i686 (#907)
 - Enable alloc on i686 (#906)
 - Add console::Input for i686 (#905)
