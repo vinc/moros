@@ -6,7 +6,6 @@ use palette::Palette;
 
 use buffer::Buffer;
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::api::font::Font;
 
 use crate::sys;
@@ -278,7 +277,6 @@ impl Writer {
     }
 
     // Source: https://slideplayer.com/slide/3888880
-    #[cfg(target_arch = "x86_64")] // TODO: Remove
     pub fn set_font(&mut self, font: &Font) {
         let buffer = Buffer::addr() as *mut u8;
 

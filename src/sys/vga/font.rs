@@ -1,7 +1,10 @@
 use super::writer::WRITER;
 
 use crate::api::font::Font;
+
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
+
 use crate::sys::x86::int;
 
 use core::convert::TryFrom;
@@ -18,6 +21,7 @@ impl VgaFont {
     }
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for VgaFont {
     fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
         Err(()) // TODO
