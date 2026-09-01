@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Enable keyboard on i686 (#910)
 - Enable cpuid on i686 (#909)
 - Enable clocks on i686 (#908)
 - Enable tests on i686 (#907)
