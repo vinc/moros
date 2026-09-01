@@ -107,6 +107,7 @@ pub fn init(memory_map: &MemoryMap) {
     );
 
     crate::sys::pci::init();
+    crate::sys::ata::init();
 
     printk!("Loaded MOROS successfully!\n");
 }
