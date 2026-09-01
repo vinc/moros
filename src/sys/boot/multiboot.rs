@@ -106,6 +106,8 @@ pub fn init(memory_map: &MemoryMap) {
         heap_size as usize
     );
 
+    crate::sys::pci::init();
+
     printk!("Loaded MOROS successfully!\n");
 }
 

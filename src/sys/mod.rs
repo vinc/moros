@@ -50,7 +50,7 @@ pub mod keyboard;
 pub mod log;
 pub mod mem;
 #[cfg(target_arch = "x86_64")] pub mod net;
-#[cfg(target_arch = "x86_64")] pub mod pci;
+pub mod pci;
 pub mod pic;
 #[cfg(target_arch = "x86_64")] pub mod process;
 pub mod rng;
