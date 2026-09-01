@@ -84,6 +84,7 @@ pub fn init(memory_map: &MemoryMap) {
     crate::sys::keyboard::init();
     crate::sys::clk::init();
     crate::sys::cpu::init();
+    crate::sys::rng::init();
 
     // TODO: Use sys::mem::init() instead
     let mut heap_addr = 0;
