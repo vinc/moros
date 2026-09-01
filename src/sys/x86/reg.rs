@@ -1,10 +1,11 @@
 use super::seg::SegmentSelector;
+use super::addr::PhysAddr;
 
 use core::arch::asm;
 
 use bit_field::BitField;
 use x86_64::structures::paging::PhysFrame;
-use x86_64::PhysAddr;
+//use x86_64::PhysAddr;
 
 pub struct Cr2;
 
@@ -64,7 +65,7 @@ impl Cr3 {
     }
 
     pub fn frame(&self) -> PhysFrame {
-        PhysFrame::containing_address(PhysAddr::new(self.addr as u64))
+        PhysFrame::containing_address(PhysAddr::new(self.addr))
     }
 }
 

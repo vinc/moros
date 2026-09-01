@@ -126,3 +126,88 @@ pub mod port {
         value
     }
 }
+
+pub mod addr {
+    use core::ops::{Add, Sub};
+
+    #[derive(Clone, Copy)]
+    pub struct PhysAddr(usize); // NOTE: Uncompatible with x86-32 PAE
+
+    impl PhysAddr {
+        #[cfg(target_arch = "x86")]
+        pub fn new(addr: usize) -> Self {
+            Self(addr)
+        }
+
+        #[cfg(target_arch = "x86_64")]
+        pub fn new(addr: usize) -> Self {
+            let valid_addr = addr % (1 << 52);
+            if addr != valid_addr {
+                panic!("the address is not valid");
+            }
+            Self(addr)
+        }
+
+        pub fn as_usize(&self) -> usize {
+            self.0
+        }
+    }
+
+    impl Add<usize> for PhysAddr {
+        type Output = Self;
+
+        #[inline]
+        fn add(self, other: usize) -> Self::Output {
+            Self::new(self.0.checked_add(other).expect("overflow"))
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    pub struct VirtAddr(usize);
+
+    impl VirtAddr {
+        #[cfg(target_arch = "x86")]
+        pub fn new(addr: usize) -> Self {
+            Self(addr)
+        }
+
+        #[cfg(target_arch = "x86_64")]
+        pub fn new(addr: usize) -> Self {
+            let canonical_addr = ((addr << 16) as isize >> 16) as usize;
+            if addr != canonical_addr {
+                panic!("the address is not canonical");
+            }
+            Self(addr)
+        }
+
+        pub fn as_usize(&self) -> usize {
+            self.0
+        }
+
+        pub const fn as_ptr<T>(self) -> *const T {
+            self.0 as *const T
+        }
+
+        pub const fn as_mut_ptr<T>(self) -> *mut T {
+            self.as_ptr::<T>() as *mut T
+        }
+    }
+
+    impl Add<usize> for VirtAddr {
+        type Output = Self;
+
+        #[inline]
+        fn add(self, other: usize) -> Self::Output {
+            Self::new(self.0.checked_add(other).expect("overflow"))
+        }
+    }
+
+    impl Sub<usize> for VirtAddr {
+        type Output = Self;
+
+        #[inline]
+        fn sub(self, other: usize) -> Self::Output {
+            Self::new(self.0.checked_sub(other).expect("underflow"))
+        }
+    }
+}

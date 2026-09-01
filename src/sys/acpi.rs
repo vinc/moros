@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::x86::addr::PhysAddr;
 use crate::sys::x86::port::*;
 
 use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
@@ -7,7 +8,7 @@ use alloc::boxed::Box;
 use aml::value::AmlValue;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use core::ptr::NonNull;
-use x86_64::PhysAddr;
+//use x86_64::PhysAddr;
 
 static mut PM1A_CNT_BLK: u16 = 0;
 static mut SLP_TYPA: u16 = 0;
@@ -34,7 +35,7 @@ pub fn init() {
                 }
             }
             if let Ok(dsdt) = acpi.dsdt() {
-                let phys_addr = PhysAddr::new(dsdt.address as u64);
+                let phys_addr = PhysAddr::new(dsdt.address);
                 let virt_addr = sys::mem::phys_to_virt(phys_addr);
                 let ptr = virt_addr.as_ptr();
                 let table = unsafe {
@@ -87,7 +88,7 @@ impl AcpiHandler for MorosAcpiHandler {
         addr: usize,
         size: usize,
     ) -> PhysicalMapping<Self, T> {
-        let phys_addr = PhysAddr::new(addr as u64);
+        let phys_addr = PhysAddr::new(addr);
         let virt_addr = sys::mem::phys_to_virt(phys_addr);
         let ptr = NonNull::new(virt_addr.as_mut_ptr()).unwrap();
         PhysicalMapping::new(addr, ptr, size, size, Self)
@@ -163,7 +164,7 @@ impl Handler for MorosAmlHandler {
 }
 
 fn read_addr<T>(addr: usize) -> T where T: Copy {
-    let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(addr as u64));
+    let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(addr));
     unsafe { *virtual_address.as_ptr::<T>() }
 }
 

@@ -126,7 +126,7 @@ fn reset() -> bool {
     }
 }
 
-fn dma(addr: u64, size: usize) {
+fn dma(addr: usize, size: usize) {
     let addr = addr.to_le_bytes();
     let size = size.to_le_bytes();
     let chan = 1;

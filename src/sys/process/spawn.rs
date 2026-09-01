@@ -13,6 +13,7 @@ use super::table::{PROCESS_TABLE, MAX_PROCS};
 use crate::api::process::ExitCode;
 use crate::sys::gdt;
 use crate::sys::mem;
+use crate::sys::x86::addr::VirtAddr;
 use crate::sys::x86::int;
 use crate::sys::x86::reg::{Cr3, flags};
 
@@ -26,7 +27,7 @@ use object::{Object, ObjectSegment};
 use x86_64::structures::paging::{
     FrameAllocator, PageTable, Translate,
 };
-use x86_64::VirtAddr;
+//use x86_64::VirtAddr;
 
 const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
 const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
@@ -93,7 +94,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
         }
     }
 
-    let proc_size = MAX_PROC_SIZE as u64;
+    let proc_size = MAX_PROC_SIZE;
     let stack_addr = USER_ADDR + proc_size - 4096;
 
     let entry_point_addr = load(bin, page_table).map_err(|_|
@@ -126,7 +127,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
 fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
     // Copy the args to the kernel heap
     let args: Vec<String> = unsafe {
-        let ptr = ptr_from_addr(args_ptr as u64) as *const &str;
+        let ptr = ptr_from_addr(args_ptr) as *const &str;
         core::slice::from_raw_parts(ptr, args_len)
     }.iter().map(|arg| arg.to_string()).collect();
 
@@ -148,7 +149,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
     let args_ptr = copy_args(&args, args_addr, args_size);
     drop(args);
 
-    let heap_addr = args_addr + args_size as u64;
+    let heap_addr = args_addr + args_size;
     let heap_size = ((ctx.stack_addr - heap_addr) / 2) as usize;
     unsafe {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
@@ -174,7 +175,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
     }
 }
 
-fn copy_args(args: &[String], addr: u64, size: usize) -> usize {
+fn copy_args(args: &[String], addr: usize, size: usize) -> usize {
     let len = args.len();
     let mut offset = addr;
 
@@ -185,7 +186,7 @@ fn copy_args(args: &[String], addr: u64, size: usize) -> usize {
     // Copy each arg and record it as a &str in the user memory region
     let tmp: Vec<&str> = args.iter().map(|arg| {
         let arg_ptr = offset as *mut u8;
-        offset += arg.len() as u64;
+        offset += arg.len();
         unsafe {
             let dst = core::slice::from_raw_parts_mut(arg_ptr, arg.len());
             dst.copy_from_slice(arg.as_bytes());
@@ -194,7 +195,7 @@ fn copy_args(args: &[String], addr: u64, size: usize) -> usize {
     }).collect();
 
     // Copy slice of &str
-    let align = core::mem::align_of::<&str>() as u64;
+    let align = core::mem::align_of::<&str>();
     offset += align - (offset % align);
     unsafe {
         let args_ptr = offset as *mut &str;
@@ -207,10 +208,10 @@ fn copy_args(args: &[String], addr: u64, size: usize) -> usize {
     offset as usize
 }
 
-fn load(bin: &[u8], page_table: &mut PageTable) -> Result<u64, ()> {
+fn load(bin: &[u8], page_table: &mut PageTable) -> Result<usize, ()> {
     if bin.get(0..4) == Some(&ELF_MAGIC) { // ELF binary
         let obj = object::File::parse(bin).map_err(|_| ())?;
-        let entry_point_addr = obj.entry();
+        let entry_point_addr = obj.entry() as usize;
         if !is_userspace(entry_point_addr) {
             return Err(());
         }
@@ -221,13 +222,13 @@ fn load(bin: &[u8], page_table: &mut PageTable) -> Result<u64, ()> {
             // NOTE: The size of the segment in memory can be larger than on
             // the disk because the object can contain uninitialized sections
             // like bss that has a length but no data.
-            let addr = segment.address(); // Loaded at link address
+            let addr = segment.address() as usize; // Loaded at link address
             let size = segment.size() as usize;
             if size > 0 {
                 if !is_userspace(addr) {
                     return Err(());
                 }
-                if !is_userspace(addr + size as u64 - 1) {
+                if !is_userspace(addr + size - 1) {
                     return Err(());
                 }
                 load_segment(addr, size, data, page_table)?;
@@ -243,7 +244,7 @@ fn load(bin: &[u8], page_table: &mut PageTable) -> Result<u64, ()> {
 }
 
 fn load_segment(
-    addr: u64, size: usize, buf: &[u8], page_table: &mut PageTable
+    addr: usize, size: usize, buf: &[u8], page_table: &mut PageTable
 ) -> Result<(), ()> {
     debug_assert!(size >= buf.len());
     let mut mapper = unsafe { mem::create_mapper(page_table) };
@@ -253,7 +254,7 @@ fn load_segment(
     mem::alloc_pages(&mut mapper, addr, size)?;
     let mut offset = 0;
     while offset < buf.len() {
-        let page_addr = VirtAddr::new(addr + offset as u64);
+        let page_addr = VirtAddr::new(addr + offset);
         let phys_addr = mapper.translate_addr(page_addr).ok_or(())?;
         let dst = mem::phys_to_virt(phys_addr).as_mut_ptr::<u8>();
 
@@ -274,7 +275,7 @@ fn test_load() {
 
     let print_bin = include_bytes!("../../../dsk/bin/print").to_vec();
     let print_obj = object::File::parse(&print_bin[..]).unwrap();
-    let print_pos = print_obj.entry();
+    let print_pos = print_obj.entry() as usize;
 
     let bins = vec![
         (vec![], Err(())),

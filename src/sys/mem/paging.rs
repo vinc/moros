@@ -1,5 +1,6 @@
 use super::with_frame_allocator;
 use super::phys_mem_offset;
+use crate::sys::x86::addr::VirtAddr;
 use crate::sys::x86::reg::Cr3;
 
 use x86_64::structures::paging::{
@@ -8,7 +9,7 @@ use x86_64::structures::paging::{
     OffsetPageTable, PageTable, PhysFrame, Size4KiB,
     Page, PageTableFlags, Mapper, FrameAllocator, FrameDeallocator
 };
-use x86_64::VirtAddr;
+//use x86_64::VirtAddr;
 
 pub unsafe fn active_page_table() -> &'static mut PageTable {
     let frame = Cr3::read().frame();
@@ -30,9 +31,9 @@ pub unsafe fn create_mapper(page_table: &mut PageTable) -> OffsetPageTable<'_> {
 }
 
 pub fn alloc_pages(
-    mapper: &mut OffsetPageTable, addr: u64, size: usize
+    mapper: &mut OffsetPageTable, addr: usize, size: usize
 ) -> Result<(), ()> {
-    let size = size.saturating_sub(1) as u64;
+    let size = size.saturating_sub(1) as usize;
 
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr));
@@ -75,8 +76,8 @@ pub fn alloc_pages(
 }
 
 // TODO: Replace `free` by `dealloc`
-pub fn free_pages(mapper: &mut OffsetPageTable, addr: u64, size: usize) {
-    let size = size.saturating_sub(1) as u64;
+pub fn free_pages(mapper: &mut OffsetPageTable, addr: usize, size: usize) {
+    let size = size.saturating_sub(1) as usize;
 
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr));

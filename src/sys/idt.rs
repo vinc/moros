@@ -217,7 +217,7 @@ extern "x86-interrupt" fn page_fault_handler(
     use crate::api::process::ExitCode;
     let csi_color = api::console::Style::color("red");
     let csi_reset = api::console::Style::reset();
-    let addr = Cr2::read() as u64;
+    let addr = Cr2::read();
     //debug!("Addr: {:#X}", addr);
 
     let mut mapper = unsafe {

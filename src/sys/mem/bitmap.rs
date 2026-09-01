@@ -1,4 +1,5 @@
 use crate::sys::boot::{MemoryMap, MemoryRegionType};
+use crate::sys::x86::addr::PhysAddr;
 
 use core::{cmp, slice};
 use spin::{Once, Mutex};
@@ -7,7 +8,7 @@ use x86_64::structures::paging::{
     FrameAllocator, FrameDeallocator,
     PhysFrame, Size4KiB
 };
-use x86_64::PhysAddr;
+//use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct UsableRegion {
@@ -17,7 +18,7 @@ struct UsableRegion {
 
 impl UsableRegion {
     // NOTE: end_addr is exclusive
-    pub fn new(start_addr: u64, end_addr: u64) -> Self {
+    pub fn new(start_addr: usize, end_addr: usize) -> Self {
         let first_frame = frame_at(start_addr);
         let last_frame = frame_at(end_addr - 1);
         let a = first_frame.start_address();
@@ -52,7 +53,7 @@ impl UsableRegion {
     }
 }
 
-fn frame_at(addr: u64) -> PhysFrame<Size4KiB> {
+fn frame_at(addr: usize) -> PhysFrame<Size4KiB> {
     PhysFrame::containing_address(PhysAddr::new(addr))
 }
 
@@ -100,9 +101,9 @@ impl BitmapFrameAllocator {
                 continue;
             }
 
-            let region_start = region.addr;
-            let region_end = region.addr + region.size;
             let region_size = region.size as usize;
+            let region_start = region.addr as usize;
+            let region_end = region_start + region_size;
 
             // Try to place the bitmap in the region
             if bitmap_addr.is_none() && region_size >= bitmap_size {
@@ -121,7 +122,7 @@ impl BitmapFrameAllocator {
             // Calculate usable portion
             let (usable_start, usable_end) = match bitmap_addr {
                 Some(addr) if region_start == addr => {
-                    let bitmap_end = region_start + bitmap_size as u64;
+                    let bitmap_end = region_start + bitmap_size;
                     if bitmap_end >= region_end {
                         continue; // Entire region consumed by the bitmap
                     }

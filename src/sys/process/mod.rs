@@ -54,13 +54,13 @@ pub const MAX_HANDLES: usize = 64;
 pub const MAX_PROC_SIZE: usize = 32 << 20;
 
 // The user memory region lives in its own L4 entry of each process page table.
-pub const USER_ADDR: u64 = 0x0000_0080_0000_0000;
+pub const USER_ADDR: usize = 0x0000_0080_0000_0000;
 
-pub fn is_userspace(addr: u64) -> bool {
-    USER_ADDR <= addr && addr < USER_ADDR + MAX_PROC_SIZE as u64
+pub fn is_userspace(addr: usize) -> bool {
+    USER_ADDR <= addr && addr < USER_ADDR + MAX_PROC_SIZE
 }
 
-pub fn ptr_from_addr(addr: u64) -> *mut u8 {
+pub fn ptr_from_addr(addr: usize) -> *mut u8 {
     addr as *mut u8
 }
 
@@ -110,8 +110,8 @@ impl ProcessData {
 #[derive(Clone)]
 struct ProcessContext {
     id: usize,
-    stack_addr: u64,
-    entry_point_addr: u64,
+    stack_addr: usize,
+    entry_point_addr: usize,
     page_table_frame: PhysFrame,
     allocator: Arc<LockedHeap>,
 }

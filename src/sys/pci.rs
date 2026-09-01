@@ -1,3 +1,4 @@
+use crate::sys::x86::addr::PhysAddr;
 use crate::sys::x86::port::*;
 
 use alloc::vec;
@@ -5,7 +6,7 @@ use alloc::vec::Vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::PhysAddr;
+//use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceConfig {
@@ -120,7 +121,7 @@ impl DeviceConfig {
                 panic!("Unknown base address size");
             }
         };
-        PhysAddr::new(addr)
+        PhysAddr::new(addr as usize)
     }
 
     pub fn bar_io(&self, n: usize) -> u16 {
