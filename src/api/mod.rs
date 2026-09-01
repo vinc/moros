@@ -89,19 +89,19 @@ macro_rules! warning {
 }
 
 #[cfg(target_arch = "x86_64")] pub mod allocator;
-#[cfg(target_arch = "x86_64")] pub mod base64;
+pub mod base64;
 pub mod clock;
 pub mod console;
-#[cfg(target_arch = "x86_64")] pub mod font;
+pub mod font;
 #[cfg(target_arch = "x86_64")] pub mod fs;
-#[cfg(target_arch = "x86_64")] pub mod ini;
+pub mod ini;
 #[cfg(target_arch = "x86_64")] pub mod io;
 #[cfg(target_arch = "x86_64")] pub mod power;
 #[cfg(target_arch = "x86_64")] pub mod process;
 #[cfg(target_arch = "x86_64")] pub mod prompt;
 #[cfg(target_arch = "x86_64")] pub mod rng;
-#[cfg(target_arch = "x86_64")] pub mod regex;
+pub mod regex;
 #[cfg(target_arch = "x86_64")] pub mod syscall;
 #[cfg(target_arch = "x86_64")] pub mod time;
-#[cfg(target_arch = "x86_64")] pub mod unit;
+pub mod unit;
 #[cfg(target_arch = "x86_64")] pub mod vga;

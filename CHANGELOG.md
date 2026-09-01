@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Enable more modules on i686 (#911)
 - Enable keyboard on i686 (#910)
 - Enable cpuid on i686 (#909)
 - Enable clocks on i686 (#908)

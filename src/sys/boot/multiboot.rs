@@ -84,6 +84,7 @@ pub fn init(memory_map: &MemoryMap) {
     crate::sys::keyboard::init();
     crate::sys::clk::init();
     crate::sys::cpu::init();
+    crate::sys::rng::init();
 
     // TODO: Use sys::mem::init() instead
     let mut heap_addr = 0;
@@ -104,6 +105,9 @@ pub fn init(memory_map: &MemoryMap) {
         heap_addr as *mut u8,
         heap_size as usize
     );
+
+    crate::sys::pci::init();
+    crate::sys::ata::init();
 
     printk!("Loaded MOROS successfully!\n");
 }

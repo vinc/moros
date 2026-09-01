@@ -1,5 +1,7 @@
-use crate::sys::fs::{FileIO, IO};
 use crate::sys;
+
+#[cfg(target_arch = "x86_64")]
+use crate::sys::fs::{FileIO, IO};
 
 use lazy_static::lazy_static;
 use rand::{RngCore, SeedableRng};
@@ -20,6 +22,7 @@ impl Random {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 impl FileIO for Random {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let n = buf.len();

@@ -146,7 +146,6 @@ fn set_80x25c_mode() {
     if restorable {
         palette::restore_palette();
 
-        #[cfg(target_arch = "x86_64")] // TODO: Remove
         font::restore_font();
     }
 }

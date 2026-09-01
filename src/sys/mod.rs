@@ -38,7 +38,7 @@ macro_rules! log {
 }
 
 #[cfg(target_arch = "x86_64")] pub mod acpi;
-#[cfg(target_arch = "x86_64")] pub mod ata;
+pub mod ata;
 pub mod boot;
 pub mod clk;
 pub mod console;
@@ -50,13 +50,13 @@ pub mod keyboard;
 pub mod log;
 pub mod mem;
 #[cfg(target_arch = "x86_64")] pub mod net;
-#[cfg(target_arch = "x86_64")] pub mod pci;
+pub mod pci;
 pub mod pic;
 #[cfg(target_arch = "x86_64")] pub mod process;
-#[cfg(target_arch = "x86_64")] pub mod rng;
+pub mod rng;
 pub mod serial;
 #[cfg(target_arch = "x86_64")] pub mod snd;
-#[cfg(target_arch = "x86_64")] pub mod speaker;
+pub mod speaker;
 #[cfg(target_arch = "x86_64")] pub mod syscall;
 pub mod tss;
 pub mod vga;
