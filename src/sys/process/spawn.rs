@@ -21,6 +21,7 @@ use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use bit_field::BitField;
 use core::arch::asm;
 use linked_list_allocator::LockedHeap;
 use object::{Object, ObjectSegment};
@@ -84,7 +85,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
 
     // Clone the page table entries of the active page table, except the
     // entry of the user memory region.
-    let l4_user = VirtAddr::new(USER_ADDR).p4_index().into();
+    let l4_user = USER_ADDR.get_bits(39..48);
     let pages = page_table.iter_mut().zip(kernel_page_table.iter());
     for (l4_index, (user_page, kernel_page)) in pages.enumerate() {
         if l4_index == l4_user {
@@ -258,7 +259,7 @@ fn load_segment(
         let phys_addr = mapper.translate_addr(page_addr.into()).ok_or(())?;
         let dst = mem::phys_to_virt(phys_addr.into()).as_mut_ptr::<u8>();
 
-        let page_offset = usize::from(page_addr.page_offset());
+        let page_offset = page_addr.page_offset();
         let n = core::cmp::min(4096 - page_offset, buf.len() - offset);
 
         unsafe {

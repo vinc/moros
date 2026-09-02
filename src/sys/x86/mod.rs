@@ -191,6 +191,10 @@ pub mod addr {
         pub const fn as_mut_ptr<T>(self) -> *mut T {
             self.as_ptr::<T>() as *mut T
         }
+
+        pub const fn page_offset(self) -> usize {
+            self.0 & 0xFFF
+        }
     }
 
     impl Add<usize> for VirtAddr {
