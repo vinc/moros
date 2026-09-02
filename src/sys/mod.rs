@@ -55,7 +55,7 @@ pub mod pic;
 #[cfg(target_arch = "x86_64")] pub mod process;
 pub mod rng;
 pub mod serial;
-#[cfg(target_arch = "x86_64")] pub mod snd;
+pub mod snd;
 pub mod speaker;
 #[cfg(target_arch = "x86_64")] pub mod syscall;
 pub mod tss;

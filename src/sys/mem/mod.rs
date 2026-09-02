@@ -1,7 +1,7 @@
 #[cfg(target_arch = "x86_64")] mod bitmap;
 mod heap;
 #[cfg(target_arch = "x86_64")] mod paging;
-#[cfg(target_arch = "x86_64")] mod phys;
+mod phys;
 
 #[cfg(target_arch = "x86_64")]
 pub use bitmap::{frame_allocator, with_frame_allocator};
@@ -11,7 +11,6 @@ pub use paging::{
     alloc_pages, free_pages, active_page_table, create_page_table, create_mapper
 };
 
-#[cfg(target_arch = "x86_64")]
 pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys::boot::MemoryMap;
@@ -133,8 +132,13 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
     VirtAddr::new(phys_mem_offset() + addr.as_usize())
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
+#[cfg(target_arch = "x86")]
+pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
+    // Pagination is not enabled on i686
+    Some(PhysAddr::new(addr.as_usize()))
+}
+
+#[cfg(target_arch = "x86_64")]
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr.into()).map(|x| x.into())
 }
-

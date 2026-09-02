@@ -1,7 +1,9 @@
 mod ac97;
 mod sb16;
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
+
 use crate::sys::pci::DeviceConfig;
 use crate::sys;
 use crate::sys::x86::int;
@@ -136,6 +138,7 @@ impl SoundBuffer {
     }
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for SoundBuffer {
     fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
         Err(())

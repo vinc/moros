@@ -48,10 +48,10 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::rng::init();
     sys::pci::init(); // Require MEM
     sys::ata::init();
+    sys::snd::init();
 
     #[cfg(target_arch = "x86_64")] // TODO: Remove
     {
-        sys::snd::init();
         sys::net::init(); // Require PCI
         sys::fs::init(); // Require ATA
         sys::process::init();
