@@ -72,6 +72,8 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 
     PHYS_MEM_OFFSET.call_once(|| offset as usize);
 
+    // TODO: Pick a space in the lowest usable region for DMA
+
     #[cfg(target_arch = "x86")]
     {
         // Paging is not enabled on i686 for now so we just use half of the
