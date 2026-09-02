@@ -76,16 +76,20 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     #[cfg(target_arch = "x86")]
     {
         // Paging is not enabled on i686 for now so we just use half of the
-        // largest usable region for the heap.
+        // largest usable region for the heap below the 4 GB limit.
         let mut heap_addr = 0;
         let mut heap_size = 0;
         for region in memory_map.iter() {
-            if region.is_usable() {
-                if region.size > heap_size * 2 {
-                    heap_addr = region.addr;
-                    heap_size = region.size / 2;
-                }
+            let free = region.is_usable();
+            let addr = region.addr;
+            let size = region.size / 2;
+            if free && addr + size <= (1 << 32) && size > heap_size {
+                heap_addr = addr;
+                heap_size = size;
             }
+        }
+        if heap_size == 0 {
+            panic!("Could not find a usable region for the heap");
         }
         heap::init_alloc(heap_addr as *mut u8, heap_size as usize);
     }
