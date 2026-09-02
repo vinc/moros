@@ -6,6 +6,7 @@ use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags};
 #[cfg_attr(not(feature = "userspace"), global_allocator)]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
+#[cfg(target_arch = "x86_64")]
 pub const HEAP_START: usize = 0x4444_4444_0000;
 
 #[cfg(target_arch = "x86_64")] // TODO: Remove

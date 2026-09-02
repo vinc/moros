@@ -215,14 +215,12 @@ pub mod addr {
         }
     }
 
-    #[cfg(target_arch = "x86_64")]
     impl From<PhysAddr> for x86_64::PhysAddr {
         fn from(addr: PhysAddr) -> Self {
             Self::new(addr.0 as u64)
         }
     }
 
-    #[cfg(target_arch = "x86_64")]
     impl From<x86_64::PhysAddr> for PhysAddr {
         fn from(addr: x86_64::PhysAddr) -> Self {
             Self::new(addr.as_u64() as usize)
