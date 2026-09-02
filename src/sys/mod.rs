@@ -49,7 +49,7 @@ pub mod idt;
 pub mod keyboard;
 pub mod log;
 pub mod mem;
-#[cfg(target_arch = "x86_64")] pub mod net;
+pub mod net;
 pub mod pci;
 pub mod pic;
 #[cfg(target_arch = "x86_64")] pub mod process;
