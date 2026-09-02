@@ -1,8 +1,8 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::hex;
 use crate::api::process::ExitCode;
 
-use crate::usr;
 use object::{Object, ObjectSection};
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -36,7 +36,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         color, name, reset, addr, size, align
                     );
                     if let Ok(data) = section.data() {
-                        usr::hex::print_hex_at(data, addr);
+                        print!("{}", hex::format_hex_at(data, addr));
                     }
                 }
             }
