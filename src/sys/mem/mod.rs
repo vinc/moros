@@ -75,7 +75,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     unsafe {
         MAPPER.call_once(|| OffsetPageTable::new(
             paging::active_page_table(),
-            VirtAddr::new(offset as usize),
+            VirtAddr::new(offset as usize).into(),
         ))
     };
 
@@ -114,6 +114,6 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
 
 #[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
-    mapper().translate_addr(addr)
+    mapper().translate_addr(addr.into()).map(|x| x.into())
 }
 

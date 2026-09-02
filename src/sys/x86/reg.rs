@@ -65,7 +65,7 @@ impl Cr3 {
     }
 
     pub fn frame(&self) -> PhysFrame {
-        PhysFrame::containing_address(PhysAddr::new(self.addr))
+        PhysFrame::containing_address(PhysAddr::new(self.addr).into())
     }
 }
 

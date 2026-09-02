@@ -18,8 +18,8 @@ pub fn init_heap() -> Result<(), ()> {
 
     let pages = {
         let heap_end = heap_start + heap_size - 1;
-        let heap_start_page = Page::containing_address(heap_start);
-        let heap_end_page = Page::containing_address(heap_end);
+        let heap_start_page = Page::containing_address(heap_start.into());
+        let heap_end_page = Page::containing_address(heap_end.into());
         Page::range_inclusive(heap_start_page, heap_end_page)
     };
 

@@ -255,8 +255,8 @@ fn load_segment(
     let mut offset = 0;
     while offset < buf.len() {
         let page_addr = VirtAddr::new(addr + offset);
-        let phys_addr = mapper.translate_addr(page_addr).ok_or(())?;
-        let dst = mem::phys_to_virt(phys_addr).as_mut_ptr::<u8>();
+        let phys_addr = mapper.translate_addr(page_addr.into()).ok_or(())?;
+        let dst = mem::phys_to_virt(phys_addr.into()).as_mut_ptr::<u8>();
 
         let page_offset = usize::from(page_addr.page_offset());
         let n = core::cmp::min(4096 - page_offset, buf.len() - offset);

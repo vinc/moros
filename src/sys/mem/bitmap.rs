@@ -54,7 +54,7 @@ impl UsableRegion {
 }
 
 fn frame_at(addr: usize) -> PhysFrame<Size4KiB> {
-    PhysFrame::containing_address(PhysAddr::new(addr))
+    PhysFrame::containing_address(PhysAddr::new(addr).into())
 }
 
 static FRAME_ALLOCATOR: Once<Mutex<BitmapFrameAllocator>> = Once::new();
