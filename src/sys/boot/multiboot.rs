@@ -1,6 +1,8 @@
 use super::{MemoryMap, MemoryRegion};
 use multiboot2::{BootInformation, BootInformationHeader};
 
+use crate::sys;
+
 #[used]
 #[link_section = ".multiboot"]
 static MULTIBOOT_HEADER: [u32; 6] = [
@@ -67,56 +69,10 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
     memory_map
 }
 
-// TODO: Remove this when init is done on i686
-pub fn init(memory_map: &MemoryMap) {
-    use crate::sys::boot::MemoryRegionType;
-    crate::sys::vga::init();
-
-    printk!("Loading MOROS ...\n");
-
-    //let offset = 0;
-    //crate::init(&memory_map, offset);
-    crate::sys::gdt::init();
-    crate::sys::idt::init();
-    crate::sys::pic::init();
-    crate::sys::x86::int::enable_interrupts();
-    crate::sys::serial::init();
-    crate::sys::keyboard::init();
-    crate::sys::clk::init();
-    crate::sys::cpu::init();
-    crate::sys::rng::init();
-
-    // TODO: Use sys::mem::init() instead
-    let mut heap_addr = 0;
-    let mut heap_size = 0;
-    for region in memory_map.iter() {
-        log!(
-            "MEM [{:#016X}-{:#016X}] {:?}",
-            region.addr, region.addr + region.size - 1, region.kind
-        );
-        if region.kind == MemoryRegionType::Usable {
-            if region.size > heap_size * 2 {
-                heap_addr = region.addr;
-                heap_size = region.size / 2;
-            }
-        }
-    }
-    crate::sys::mem::heap::init_alloc(
-        heap_addr as *mut u8,
-        heap_size as usize
-    );
-
-    crate::sys::pci::init();
-    crate::sys::ata::init();
-
-    printk!("Loaded MOROS successfully!\n");
-}
-
 pub extern "C" fn start(info: u32, magic: u32) -> ! {
     let memory_map = extract_memory_map(info, magic);
-    //let offset = 0;
-    //crate::init(&memory_map, offset);
+    let offset = 0;
+    crate::init(&memory_map, offset);
     //crate::exec();
-    init(&memory_map);
     crate::hang();
 }

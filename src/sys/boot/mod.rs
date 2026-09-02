@@ -39,6 +39,10 @@ impl MemoryRegion {
     pub fn new(addr: u64, size: u64, kind: MemoryRegionType) -> Self {
         Self { addr, size, kind }
     }
+
+    pub fn is_usable(&self) -> bool {
+        self.kind == MemoryRegionType::Usable
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

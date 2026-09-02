@@ -44,9 +44,8 @@ fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
 #[cfg(target_arch = "x86")]
 extern "C" fn test_kernel_main(info: u32, magic: u32) -> ! {
     let memory_map = sys::boot::multiboot::extract_memory_map(info, magic);
-    sys::boot::multiboot::init(&memory_map);
-    //let offset = 0;
-    //init(&memory_map, offset);
+    let offset = 0;
+    crate::init(&memory_map, offset);
     crate::test_main();
     crate::hang();
 }

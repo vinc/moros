@@ -1,5 +1,5 @@
 #[cfg(target_arch = "x86_64")] mod bitmap;
-pub mod heap; // TODO: Remove pub when multiboot2 is done
+mod heap;
 #[cfg(target_arch = "x86_64")] mod paging;
 #[cfg(target_arch = "x86_64")] mod phys;
 
@@ -33,7 +33,6 @@ static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 static PHYS_MEM_OFFSET: Once<usize> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
@@ -69,19 +68,41 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     // system. It doesn't affect the count in megabytes.
     log!("RAM {} MB", memory_size >> 20);
 
+    // TODO: Only count usable memory and use SMBIOS to report the RAM
     MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
 
-    #[allow(static_mut_refs)]
-    unsafe {
-        MAPPER.call_once(|| OffsetPageTable::new(
-            paging::active_page_table(),
-            VirtAddr::new(offset as usize).into(),
-        ))
-    };
-
     PHYS_MEM_OFFSET.call_once(|| offset as usize);
-    bitmap::init_frame_allocator(memory_map);
-    heap::init_heap().expect("heap initialization failed");
+
+    #[cfg(target_arch = "x86")]
+    {
+        // Paging is not enabled on i686 for now so we just use half of the
+        // largest usable region for the heap.
+        let mut heap_addr = 0;
+        let mut heap_size = 0;
+        for region in memory_map.iter() {
+            if region.is_usable() {
+                if region.size > heap_size * 2 {
+                    heap_addr = region.addr;
+                    heap_size = region.size / 2;
+                }
+            }
+        }
+        heap::init_alloc(heap_addr as *mut u8, heap_size as usize);
+    }
+
+    #[cfg(target_arch = "x86_64")] // TODO: Remove
+    {
+        #[allow(static_mut_refs)]
+        unsafe {
+            MAPPER.call_once(|| OffsetPageTable::new(
+                paging::active_page_table(),
+                VirtAddr::new(offset as usize).into(),
+            ))
+        };
+
+        bitmap::init_frame_allocator(memory_map);
+        heap::init_heap().expect("heap initialization failed");
+    }
 
     pic::unmask(pic::KBD_IRQ);
 }
