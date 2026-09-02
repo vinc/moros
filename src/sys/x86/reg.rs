@@ -5,7 +5,6 @@ use core::arch::asm;
 
 use bit_field::BitField;
 use x86_64::structures::paging::PhysFrame;
-//use x86_64::PhysAddr;
 
 pub struct Cr2;
 

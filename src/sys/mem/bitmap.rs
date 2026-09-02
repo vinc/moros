@@ -8,7 +8,6 @@ use x86_64::structures::paging::{
     FrameAllocator, FrameDeallocator,
     PhysFrame, Size4KiB
 };
-//use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct UsableRegion {

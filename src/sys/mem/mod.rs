@@ -22,7 +22,6 @@ use spin::Once;
 #[cfg(target_arch = "x86_64")]
 use x86_64::structures::paging::{OffsetPageTable, Translate};
 
-//use x86_64::{PhysAddr, VirtAddr};
 use crate::sys::x86::addr::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]

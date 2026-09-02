@@ -12,7 +12,6 @@ use core::ptr;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
-//use x86_64::PhysAddr;
 
 // https://pdos.csail.mit.edu/6.828/2019/readings/hardware/8254x_GBe_SDM.pdf
 

@@ -9,7 +9,6 @@ use x86_64::structures::paging::{
     OffsetPageTable, PageTable, PhysFrame, Size4KiB,
     Page, PageTableFlags, Mapper, FrameAllocator, FrameDeallocator
 };
-//use x86_64::VirtAddr;
 
 pub unsafe fn active_page_table() -> &'static mut PageTable {
     let frame = Cr3::read().frame();

@@ -6,7 +6,6 @@ use crate::sys;
 use crate::sys::x86::addr::PhysAddr;
 
 use core::num::ParseIntError;
-//use x86_64::PhysAddr;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match *args.get(1).unwrap_or(&"") {

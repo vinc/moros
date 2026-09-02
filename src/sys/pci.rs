@@ -6,7 +6,6 @@ use alloc::vec::Vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
-//use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceConfig {

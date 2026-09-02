@@ -8,7 +8,6 @@ use alloc::boxed::Box;
 use aml::value::AmlValue;
 use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use core::ptr::NonNull;
-//use x86_64::PhysAddr;
 
 static mut PM1A_CNT_BLK: u16 = 0;
 static mut SLP_TYPA: u16 = 0;

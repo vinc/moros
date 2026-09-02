@@ -6,7 +6,6 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::{Index, IndexMut};
 use spin::Mutex;
-//use x86_64::VirtAddr;
 
 #[derive(Clone)]
 pub struct PhysBuf {

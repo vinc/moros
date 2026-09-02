@@ -28,7 +28,6 @@ use object::{Object, ObjectSegment};
 use x86_64::structures::paging::{
     FrameAllocator, PageTable, Translate,
 };
-//use x86_64::VirtAddr;
 
 const ELF_MAGIC: [u8; 4] = [0x7F, b'E', b'L', b'F'];
 const BIN_MAGIC: [u8; 4] = [0x7F, b'B', b'I', b'N'];
