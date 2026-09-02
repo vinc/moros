@@ -94,6 +94,7 @@ pub mod clock;
 pub mod console;
 pub mod font;
 #[cfg(target_arch = "x86_64")] pub mod fs;
+pub mod hex;
 pub mod ini;
 #[cfg(target_arch = "x86_64")] pub mod io;
 #[cfg(target_arch = "x86_64")] pub mod power;
