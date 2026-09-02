@@ -210,7 +210,7 @@ impl Device {
         }
 
         let ptr = ptr::addr_of!(rx_descs[0]) as *const u8;
-        let phys_addr = sys::mem::phys_addr(ptr);
+        let phys_addr = sys::mem::phys_addr(ptr) as u64;
 
         // Ring address and length
         self.write(REG_RDBAL, phys_addr.get_bits(0..32) as u32);
@@ -236,7 +236,7 @@ impl Device {
         }
 
         let ptr = ptr::addr_of!(tx_descs[0]) as *const _;
-        let phys_addr = sys::mem::phys_addr(ptr);
+        let phys_addr = sys::mem::phys_addr(ptr) as u64;
 
         // Ring address and length
         self.write(REG_TDBAL, phys_addr.get_bits(0..32) as u32);
