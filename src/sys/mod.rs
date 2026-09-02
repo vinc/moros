@@ -37,7 +37,7 @@ macro_rules! log {
     });
 }
 
-#[cfg(target_arch = "x86_64")] pub mod acpi;
+pub mod acpi;
 pub mod ata;
 pub mod boot;
 pub mod clk;
