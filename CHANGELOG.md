@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add sys::x86::addr module (#912)
 - Add hex module to api (#913)
 - Enable more modules on i686 (#911)
 - Enable keyboard on i686 (#910)
