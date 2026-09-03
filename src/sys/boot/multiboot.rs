@@ -73,6 +73,5 @@ pub extern "C" fn start(info: u32, magic: u32) -> ! {
     let memory_map = extract_memory_map(info, magic);
     let offset = 0;
     crate::init(&memory_map, offset);
-    //crate::exec();
-    crate::hang();
+    crate::exec();
 }

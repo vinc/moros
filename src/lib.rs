@@ -54,7 +54,6 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     log!("RTC {}", sys::clk::date());
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn exec() -> ! {
     print!("\x1b[?25h"); // Enable cursor
     loop {
