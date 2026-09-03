@@ -6,7 +6,6 @@ use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
-use crate::sys;
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -80,8 +79,12 @@ fn login(username: &str) -> Result<(), ExitCode> {
         }
     }
 
+    if process::set_user(username).is_err() {
+        error!("Could not set user as {:?}", username);
+        return Err(ExitCode::Failure);
+    }
+
     let home = format!("/usr/{}", username);
-    sys::process::set_user(username); // TODO: change user from userspace?
     process::set_dir(&home);
     process::set_env_var("USER", username);
     process::set_env_var("HOME", &home);
