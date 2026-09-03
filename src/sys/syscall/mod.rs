@@ -40,13 +40,13 @@ pub fn dispatcher(
             0
         }
         number::DELETE => {
-            let ptr = sys::process::ptr_from_addr(arg1 as u64);
+            let ptr = sys::process::ptr_from_addr(arg1);
             let len = arg2;
             let path = utf8_from_raw_parts(ptr, len);
             service::delete(path) as usize
         }
         number::INFO => {
-            let ptr = sys::process::ptr_from_addr(arg1 as u64);
+            let ptr = sys::process::ptr_from_addr(arg1);
             let len = arg2;
             let path = utf8_from_raw_parts(ptr, len);
             let info = unsafe { &mut *(arg3 as *mut FileInfo) };
@@ -57,7 +57,7 @@ pub fn dispatcher(
             service::kind(handle) as usize
         }
         number::OPEN => {
-            let ptr = sys::process::ptr_from_addr(arg1 as u64);
+            let ptr = sys::process::ptr_from_addr(arg1);
             let len = arg2;
             let path = utf8_from_raw_parts(ptr, len);
             let flags = arg3 as u8;
@@ -65,7 +65,7 @@ pub fn dispatcher(
         }
         number::READ => {
             let handle = arg1;
-            let ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let ptr = sys::process::ptr_from_addr(arg2);
             let len = arg3;
             let buf = unsafe {
                 core::slice::from_raw_parts_mut(ptr, len)
@@ -74,7 +74,7 @@ pub fn dispatcher(
         }
         number::WRITE => {
             let handle = arg1;
-            let ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let ptr = sys::process::ptr_from_addr(arg2);
             let len = arg3;
             let buf = unsafe {
                 core::slice::from_raw_parts_mut(ptr, len) // TODO: Remove mut
@@ -102,7 +102,7 @@ pub fn dispatcher(
             service::seek(handle, offset) as usize
         }
         number::SPAWN => {
-            let path_ptr = sys::process::ptr_from_addr(arg1 as u64);
+            let path_ptr = sys::process::ptr_from_addr(arg1);
             let path_len = arg2;
             let path = utf8_from_raw_parts(path_ptr, path_len);
             let args_ptr = arg3;
@@ -114,14 +114,14 @@ pub fn dispatcher(
             service::stop(code)
         }
         number::POLL => {
-            let ptr = sys::process::ptr_from_addr(arg1 as u64) as *const _;
+            let ptr = sys::process::ptr_from_addr(arg1) as *const _;
             let len = arg2;
             let list = unsafe { core::slice::from_raw_parts(ptr, len) };
             service::poll(list) as usize
         }
         number::CONNECT => {
             let handle = arg1;
-            let ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let ptr = sys::process::ptr_from_addr(arg2);
             let len = arg3;
             let buf = unsafe { core::slice::from_raw_parts(ptr, len) };
             if let Ok(buf) = buf.try_into() {
@@ -139,7 +139,7 @@ pub fn dispatcher(
         }
         number::ACCEPT => {
             let handle = arg1;
-            let ptr = sys::process::ptr_from_addr(arg2 as u64);
+            let ptr = sys::process::ptr_from_addr(arg2);
             let len = arg3;
             let buf = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
             if let Ok(IpAddress::Ipv4(addr)) = service::accept(handle) {

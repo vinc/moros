@@ -37,7 +37,7 @@ macro_rules! log {
     });
 }
 
-#[cfg(target_arch = "x86_64")] pub mod acpi;
+pub mod acpi;
 pub mod ata;
 pub mod boot;
 pub mod clk;
@@ -49,13 +49,13 @@ pub mod idt;
 pub mod keyboard;
 pub mod log;
 pub mod mem;
-#[cfg(target_arch = "x86_64")] pub mod net;
+pub mod net;
 pub mod pci;
 pub mod pic;
 #[cfg(target_arch = "x86_64")] pub mod process;
 pub mod rng;
 pub mod serial;
-#[cfg(target_arch = "x86_64")] pub mod snd;
+pub mod snd;
 pub mod speaker;
 #[cfg(target_arch = "x86_64")] pub mod syscall;
 pub mod tss;

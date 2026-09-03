@@ -126,7 +126,9 @@ fn reset() -> bool {
     }
 }
 
-fn dma(addr: u64, size: usize) {
+fn dma(addr: usize, size: usize) {
+    debug_assert_eq!(addr >> 24, 0); // Under 16 MB
+    debug_assert_eq!(addr >> 16, (addr + size) >> 16); // Inside one 64 KB page
     let addr = addr.to_le_bytes();
     let size = size.to_le_bytes();
     let chan = 1;

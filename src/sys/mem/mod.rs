@@ -1,7 +1,7 @@
 #[cfg(target_arch = "x86_64")] mod bitmap;
-pub mod heap; // TODO: Remove pub when multiboot2 is done
+mod heap;
 #[cfg(target_arch = "x86_64")] mod paging;
-#[cfg(target_arch = "x86_64")] mod phys;
+mod phys;
 
 #[cfg(target_arch = "x86_64")]
 pub use bitmap::{frame_allocator, with_frame_allocator};
@@ -11,7 +11,6 @@ pub use paging::{
     alloc_pages, free_pages, active_page_table, create_page_table, create_mapper
 };
 
-#[cfg(target_arch = "x86_64")]
 pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys::boot::MemoryMap;
@@ -23,16 +22,15 @@ use spin::Once;
 #[cfg(target_arch = "x86_64")]
 use x86_64::structures::paging::{OffsetPageTable, Translate};
 
-use x86_64::{PhysAddr, VirtAddr};
+use crate::sys::x86::addr::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]
 #[cfg(target_arch = "x86_64")]
 static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 
-static PHYS_MEM_OFFSET: Once<u64> = Once::new();
+static PHYS_MEM_OFFSET: Once<usize> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
@@ -68,24 +66,52 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     // system. It doesn't affect the count in megabytes.
     log!("RAM {} MB", memory_size >> 20);
 
+    // TODO: Only count usable memory and use SMBIOS to report the RAM
     MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
 
-    #[allow(static_mut_refs)]
-    unsafe {
-        MAPPER.call_once(|| OffsetPageTable::new(
-            paging::active_page_table(),
-            VirtAddr::new(offset),
-        ))
-    };
+    PHYS_MEM_OFFSET.call_once(|| offset as usize);
 
-    PHYS_MEM_OFFSET.call_once(|| offset);
-    bitmap::init_frame_allocator(memory_map);
-    heap::init_heap().expect("heap initialization failed");
+    // TODO: Pick a space in the lowest usable region for DMA
+
+    #[cfg(target_arch = "x86")]
+    {
+        // Paging is not enabled on i686 for now so we just use half of the
+        // largest usable region for the heap below the 4 GB limit.
+        let mut heap_addr = 0;
+        let mut heap_size = 0;
+        for region in memory_map.iter() {
+            let free = region.is_usable();
+            let addr = region.addr;
+            let size = region.size / 2;
+            if free && addr + size <= (1 << 32) && size > heap_size {
+                heap_addr = addr;
+                heap_size = size;
+            }
+        }
+        if heap_size == 0 {
+            panic!("Could not find a usable region for the heap");
+        }
+        heap::init_alloc(heap_addr as *mut u8, heap_size as usize);
+    }
+
+    #[cfg(target_arch = "x86_64")] // TODO: Remove
+    {
+        #[allow(static_mut_refs)]
+        unsafe {
+            MAPPER.call_once(|| OffsetPageTable::new(
+                paging::active_page_table(),
+                VirtAddr::new(offset as usize).into(),
+            ))
+        };
+
+        bitmap::init_frame_allocator(memory_map);
+        heap::init_heap().expect("heap initialization failed");
+    }
 
     pic::unmask(pic::KBD_IRQ);
 }
 
-pub fn phys_mem_offset() -> u64 {
+pub fn phys_mem_offset() -> usize {
     unsafe { *PHYS_MEM_OFFSET.get_unchecked() }
 }
 
@@ -108,11 +134,16 @@ pub fn memory_free() -> usize {
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
-    VirtAddr::new(addr.as_u64() + phys_mem_offset())
+    VirtAddr::new(phys_mem_offset() + addr.as_usize())
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
+#[cfg(target_arch = "x86")]
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
-    mapper().translate_addr(addr)
+    // Pagination is not enabled on i686
+    Some(PhysAddr::new(addr.as_usize()))
 }
 
+#[cfg(target_arch = "x86_64")]
+pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
+    mapper().translate_addr(addr.into()).map(|x| x.into())
+}

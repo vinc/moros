@@ -1,4 +1,6 @@
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
+
 use crate::sys::net::EthernetDeviceIO;
 
 use alloc::format;
@@ -16,6 +18,7 @@ impl NetStat {
     }
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for NetStat {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         if let Some((_, ref mut device)) = *super::NET.lock() {

@@ -1,6 +1,7 @@
 use crate::sys;
 use crate::sys::mem::PhysBuf;
 use crate::sys::net::{EthernetDeviceIO, Config, Stats};
+use crate::sys::x86::addr::PhysAddr;
 use crate::sys::x86::port::*;
 
 use alloc::slice;
@@ -11,7 +12,6 @@ use core::ptr;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use smoltcp::wire::EthernetAddress;
 use spin::Mutex;
-use x86_64::PhysAddr;
 
 // https://pdos.csail.mit.edu/6.828/2019/readings/hardware/8254x_GBe_SDM.pdf
 
@@ -204,12 +204,12 @@ impl Device {
         let mut rx_descs = self.rx_descs.lock();
         let n = RX_BUFFERS_COUNT;
         for i in 0..n {
-            rx_descs[i].addr = self.rx_buffers[i].addr();
+            rx_descs[i].addr = self.rx_buffers[i].addr() as u64;
             rx_descs[i].status = 0;
         }
 
         let ptr = ptr::addr_of!(rx_descs[0]) as *const u8;
-        let phys_addr = sys::mem::phys_addr(ptr);
+        let phys_addr = sys::mem::phys_addr(ptr) as u64;
 
         // Ring address and length
         self.write(REG_RDBAL, phys_addr.get_bits(0..32) as u32);
@@ -229,13 +229,13 @@ impl Device {
         let mut tx_descs = self.tx_descs.lock();
         let n = TX_BUFFERS_COUNT;
         for i in 0..n {
-            tx_descs[i].addr = self.tx_buffers[i].addr();
+            tx_descs[i].addr = self.tx_buffers[i].addr() as u64;
             tx_descs[i].cmd = 0;
             tx_descs[i].status = TSTA_DD;
         }
 
         let ptr = ptr::addr_of!(tx_descs[0]) as *const _;
-        let phys_addr = sys::mem::phys_addr(ptr);
+        let phys_addr = sys::mem::phys_addr(ptr) as u64;
 
         // Ring address and length
         self.write(REG_TDBAL, phys_addr.get_bits(0..32) as u32);
@@ -276,7 +276,7 @@ impl Device {
         } else {
             unsafe {
                 let phys = self.mem_base + 0x5400;
-                let addr = sys::mem::phys_to_virt(phys).as_u64();
+                let addr = sys::mem::phys_to_virt(phys).as_usize();
                 let mac_32 = core::ptr::read_volatile(addr as *const u32);
                 if mac_32 != 0 {
                     let mac_8 = slice::from_raw_parts(addr as *const u8, 6);
@@ -295,8 +295,8 @@ impl Device {
     fn write(&self, addr: u16, data: u32) {
         unsafe {
             if self.bar_type == 0 {
-                let phys = self.mem_base + addr as u64;
-                let addr = sys::mem::phys_to_virt(phys).as_u64() as *mut u32;
+                let phys = self.mem_base + addr as usize;
+                let addr = sys::mem::phys_to_virt(phys).as_usize() as *mut u32;
                 core::ptr::write_volatile(addr, data);
             } else {
                 outl(self.io_base + IO_ADDR, addr as u32);
@@ -308,8 +308,8 @@ impl Device {
     fn read(&self, addr: u16) -> u32 {
         unsafe {
             if self.bar_type == 0 {
-                let phys = self.mem_base + addr as u64;
-                let addr = sys::mem::phys_to_virt(phys).as_u64() as *mut u32;
+                let phys = self.mem_base + addr as usize;
+                let addr = sys::mem::phys_to_virt(phys).as_usize() as *mut u32;
                 core::ptr::read_volatile(addr)
             } else {
                 outl(self.io_base + IO_ADDR, addr as u32);
@@ -425,7 +425,6 @@ impl EthernetDeviceIO for Device {
     fn transmit_packet(&mut self, len: usize) {
         let tx_id = self.tx_id.load(Ordering::SeqCst);
         let mut tx_descs = self.tx_descs.lock();
-        debug_assert_eq!(tx_descs[tx_id].addr, self.tx_buffers[tx_id].addr());
 
         // Setup descriptor
         tx_descs[tx_id].len = len as u16;

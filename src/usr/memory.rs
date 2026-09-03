@@ -3,9 +3,9 @@ use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::api::unit::SizeUnit;
 use crate::sys;
+use crate::sys::x86::addr::PhysAddr;
 
 use core::num::ParseIntError;
-use x86_64::PhysAddr;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match *args.get(1).unwrap_or(&"") {
@@ -43,7 +43,7 @@ fn dump(args: &[&str]) -> Result<(), ExitCode> {
     }
     let addr = parse_usize(args[0]).unwrap();
     let size = parse_usize(args[1]).unwrap();
-    let phys_addr = PhysAddr::new(addr as u64);
+    let phys_addr = PhysAddr::new(addr);
     let virt_addr = sys::mem::phys_to_virt(phys_addr);
     let buf = unsafe {
         core::slice::from_raw_parts(virt_addr.as_ptr(), size)

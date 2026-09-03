@@ -1,10 +1,10 @@
 use super::seg::SegmentSelector;
+use super::addr::PhysAddr;
 
 use core::arch::asm;
 
 use bit_field::BitField;
 use x86_64::structures::paging::PhysFrame;
-use x86_64::PhysAddr;
 
 pub struct Cr2;
 
@@ -46,8 +46,11 @@ impl Cr3 {
     #[inline]
     pub unsafe fn write(addr: usize, flags: u16) {
         debug_assert_eq!(addr.get_bits(..12), 0);
-        debug_assert_eq!(addr.get_bits(52..), 0);
         debug_assert_eq!(flags.get_bits(12..), 0);
+
+        #[cfg(target_arch = "x86_64")]
+        debug_assert_eq!(addr.get_bits(52..), 0);
+
         let value = addr | flags as usize;
         asm!(
             "mov cr3, {}", in(reg) value,
@@ -64,7 +67,7 @@ impl Cr3 {
     }
 
     pub fn frame(&self) -> PhysFrame {
-        PhysFrame::containing_address(PhysAddr::new(self.addr as u64))
+        PhysFrame::containing_address(PhysAddr::new(self.addr).into())
     }
 }
 

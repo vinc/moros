@@ -1,3 +1,4 @@
+use crate::sys::x86::addr::PhysAddr;
 use crate::sys::x86::port::*;
 
 use alloc::vec;
@@ -5,7 +6,6 @@ use alloc::vec::Vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceConfig {
@@ -105,22 +105,26 @@ impl DeviceConfig {
         let bar0 = self.base_addresses[0];
         let bar1 = self.base_addresses[1];
         let addr = match bar0.get_bits(1..3) {
-            0 => { // 32 bits
+            0 => { // 32-bit
                 (bar0 & 0xFFFFFFF0) as u64
             }
-            1 => { // 16 bits
-                (bar0 & 0x0000FFF0) as u64
-            }
-            2 => { // 64 bits
+            2 => { // 64-bit
                 let l = (bar0 & 0xFFFFFFF0) as u64;
-                let h = (bar1 & 0xFFFFFFF0) as u64;
+                let h = bar1 as u64;
+
+                #[cfg(target_arch = "x86")]
+                if h != 0 {
+                    panic!("Base address above 4 GB: {:#010X}{:08X}", h, l);
+                }
+
                 l + (h << 32)
             }
-            _ => { // TODO
-                panic!("Unknown base address size");
+            t => {
+                // NOTE: Alternatively we could treat that as 32-bit
+                panic!("Unsupported base address type {}", t);
             }
         };
-        PhysAddr::new(addr)
+        PhysAddr::new(addr as usize)
     }
 
     pub fn bar_io(&self, n: usize) -> u16 {

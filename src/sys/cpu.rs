@@ -5,7 +5,7 @@ pub fn cpuid() -> CpuId<impl CpuIdReader> {
     // The crate requires sse on x86 which we don't have inside the kernel
     // See: https://github.com/gz/rust-cpuid/issues/134
     CpuId::with_cpuid_fn(|leaf, sub_leaf| {
-        let res = unsafe { core::arch::x86::__cpuid_count(leaf, sub_leaf) };
+        let res = core::arch::x86::__cpuid_count(leaf, sub_leaf);
         raw_cpuid::CpuIdResult {
             eax: res.eax,
             ebx: res.ebx,
