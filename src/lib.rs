@@ -22,7 +22,6 @@ mod test;
 
 use sys::boot::MemoryMap;
 
-#[cfg(target_arch = "x86_64")]
 pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
 pub const STACK_SIZE: usize = 128 << 10; // 128 KB
@@ -50,12 +49,8 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::snd::init();
     sys::net::init(); // Require PCI
     sys::ata::init();
-
-    #[cfg(target_arch = "x86_64")] // TODO: Remove
-    {
-        sys::fs::init(); // Require ATA
-        sys::process::init();
-    }
+    sys::fs::init(); // Require ATA
+    sys::process::init();
 
     log!("RTC {}", sys::clk::date());
 }

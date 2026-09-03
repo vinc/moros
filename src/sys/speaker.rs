@@ -1,6 +1,5 @@
 use super::clk;
 
-#[cfg(target_arch = "x86_64")]
 use crate::sys::fs::{FileIO, IO};
 
 use crate::sys::x86::port::*;
@@ -16,7 +15,6 @@ impl Speaker {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
 impl FileIO for Speaker {
     fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
         Err(())

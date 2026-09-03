@@ -1,6 +1,5 @@
 use crate::sys;
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use crate::sys::x86::int;
@@ -96,7 +95,6 @@ impl KeyboardLayout {
     }
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for KeyboardLayout {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         int::without_interrupts(|| {
@@ -166,7 +164,6 @@ impl KeyboardBuffer {
     }
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for KeyboardBuffer {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         int::without_interrupts(||

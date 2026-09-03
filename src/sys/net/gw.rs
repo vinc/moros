@@ -1,4 +1,3 @@
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use alloc::string::{String, ToString};
@@ -18,7 +17,6 @@ impl NetGw {
     }
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for NetGw {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         if let Some((ref mut iface, _)) = *super::NET.lock() {

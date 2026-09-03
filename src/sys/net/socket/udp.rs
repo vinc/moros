@@ -1,6 +1,5 @@
 use crate::sys;
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use crate::sys::net::SocketStatus;
@@ -97,7 +96,6 @@ impl UdpSocket {
     }
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for UdpSocket {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         let timeout = 5.0;

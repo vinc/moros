@@ -38,7 +38,10 @@ use table::{
 use crate::sys::console::Console;
 use crate::sys::fs::{Device, Resource};
 use crate::sys::mem;
+
+#[cfg(target_arch = "x86_64")]
 use crate::sys::mem::with_frame_allocator;
+
 use crate::sys::syscall;
 use crate::sys::x86::int::InterruptFrame;
 use crate::sys::x86::reg::Cr3;
@@ -57,8 +60,10 @@ pub const MAX_HANDLES: usize = 64;
 pub const MAX_PROC_SIZE: usize = 32 << 20;
 
 // The user memory region lives in its own L4 entry of each process page table.
+#[cfg(target_arch = "x86_64")]
 pub const USER_ADDR: usize = 0x0000_0080_0000_0000;
 
+#[cfg(target_arch = "x86_64")]
 pub fn is_userspace(addr: usize) -> bool {
     USER_ADDR <= addr && addr < USER_ADDR + MAX_PROC_SIZE
 }
@@ -192,6 +197,8 @@ pub fn exit() {
 
 fn load_process(id: usize) {
     set_id(id);
+
+    #[cfg(target_arch = "x86_64")]
     unsafe {
         let addr = page_table_frame().start_address().as_u64() as usize;
         let flags = Cr3::read().flags();
@@ -213,12 +220,14 @@ fn free_process(page_table_frame: PhysFrame) {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 unsafe fn page_table_frame() -> PhysFrame {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
     proc.ctx.page_table_frame
 }
 
+#[cfg(target_arch = "x86_64")]
 pub unsafe fn page_table() -> &'static mut PageTable {
     mem::create_page_table(page_table_frame())
 }
