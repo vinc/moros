@@ -22,7 +22,6 @@ macro_rules! entry_point {
     };
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ({
@@ -32,7 +31,6 @@ macro_rules! print {
     });
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! println {
     () => ({
@@ -43,7 +41,6 @@ macro_rules! println {
     });
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! eprint {
     ($($arg:tt)*) => ({
@@ -53,7 +50,6 @@ macro_rules! eprint {
     });
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! eprintln {
     () => ({
@@ -64,7 +60,6 @@ macro_rules! eprintln {
     });
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => ({
@@ -76,7 +71,6 @@ macro_rules! error {
     });
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => ({
@@ -88,7 +82,7 @@ macro_rules! warning {
     });
 }
 
-#[cfg(target_arch = "x86_64")] pub mod allocator;
+pub mod allocator;
 pub mod base64;
 pub mod clock;
 pub mod console;
@@ -96,13 +90,13 @@ pub mod font;
 pub mod fs;
 pub mod hex;
 pub mod ini;
-#[cfg(target_arch = "x86_64")] pub mod io;
-#[cfg(target_arch = "x86_64")] pub mod power;
+pub mod io;
+pub mod power;
 pub mod process;
-#[cfg(target_arch = "x86_64")] pub mod prompt;
-#[cfg(target_arch = "x86_64")] pub mod rng;
+pub mod prompt;
+pub mod rng;
 pub mod regex;
 pub mod syscall;
-#[cfg(target_arch = "x86_64")] pub mod time;
+pub mod time;
 pub mod unit;
-#[cfg(target_arch = "x86_64")] pub mod vga;
+pub mod vga;
