@@ -25,6 +25,12 @@ pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
 pub const STACK_SIZE: usize = 128 << 10; // 128 KB
 
+#[cfg(target_arch = "x86")]
+const ARCH: &str = "i686";
+
+#[cfg(target_arch = "x86_64")]
+const ARCH: &str = "amd64";
+
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
@@ -38,7 +44,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
-    log!("SYS MOROS v{}", v);
+    log!("SYS MOROS v{} {}", v, ARCH);
 
     sys::mem::init(memory_map, offset);
     sys::cpu::init();
