@@ -14,7 +14,6 @@ pub mod api;
 #[macro_use]
 pub mod sys;
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub mod usr;
 
 #[cfg(test)]
