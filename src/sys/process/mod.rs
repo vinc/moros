@@ -64,10 +64,21 @@ pub fn ptr_from_addr(addr: usize) -> *mut u8 {
     addr as *mut u8
 }
 
+#[cfg(target_arch = "x86")]
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Registers {
+    pub edi: usize,
+    pub edx: usize,
+    pub ecx: usize,
+    pub ebx: usize,
+    pub eax: usize,
+}
+
+#[cfg(target_arch = "x86_64")]
 #[repr(C, align(8))]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Registers {
-    // Saved scratch registers
     pub r11: usize,
     pub r10: usize,
     pub r9: usize,
