@@ -1,7 +1,7 @@
 mod dir;
 mod env;
 mod id;
-mod spawn;
+#[cfg(target_arch = "x86_64")] mod spawn;
 mod table;
 mod user;
 mod stat;
@@ -11,7 +11,10 @@ pub use dir::ProcDir;
 pub use env::ProcEnv;
 pub use user::ProcUser;
 pub use stat::ProcStat;
+
+#[cfg(target_arch = "x86_64")]
 pub use spawn::spawn;
+
 pub use table::{
     init,
     env_var,
