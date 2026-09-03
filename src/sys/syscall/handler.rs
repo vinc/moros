@@ -69,13 +69,15 @@ extern "C" fn inner(
     frame: &mut InterruptFrame,
     regs: &mut Registers
 ) {
-    let n = regs.rax;
+    // Linux i386 convention (skipping esi used by LLVM)
+    #[cfg(target_arch = "x86")]
+    let (n, arg1, arg2, arg3, arg4) =
+        (regs.eax, regs.ebx, regs.ecx, regs.edx, regs.edi);
 
-    // The registers order follow the System V ABI convention
-    let arg1 = regs.rdi;
-    let arg2 = regs.rsi;
-    let arg3 = regs.rdx;
-    let arg4 = regs.r8;
+    // System V AMD64 ABI convention
+    #[cfg(target_arch = "x86_64")]
+    let (n, arg1, arg2, arg3, arg4) =
+        (regs.rax, regs.rdi, regs.rsi, regs.rdx, regs.r8);
 
     // Backup CPU context before spawning a process
     if n == super::number::SPAWN {
@@ -91,5 +93,13 @@ extern "C" fn inner(
         *regs = process::registers();
     }
 
-    regs.rax = res;
+    #[cfg(target_arch = "x86")]
+    {
+        regs.eax = res;
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    {
+        regs.rax = res;
+    }
 }
