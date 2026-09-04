@@ -23,7 +23,7 @@ use sys::boot::MemoryMap;
 
 pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
-pub const STACK_SIZE: usize = 128 << 10; // 128 KB
+pub const STACK_SIZE: usize = 256 << 10; // 256 KB
 
 #[cfg(target_arch = "x86")]
 const ARCH: &str = "i686";
