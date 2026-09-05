@@ -1,4 +1,3 @@
-use super::boot;
 use super::timer;
 
 use crate::sys;
@@ -8,8 +7,9 @@ use crate::sys;
 /// This function works by repeatedly halting the CPU until the time is
 /// elapsed.
 pub fn sleep(seconds: f64) {
-    let start = boot::boot_time();
-    while boot::boot_time() - start < seconds {
+    let count = (seconds / timer::time_between_ticks() + 0.5) as usize;
+    let start = timer::ticks();
+    while timer::ticks() - start < count {
         sys::x86::hlt();
     }
 }

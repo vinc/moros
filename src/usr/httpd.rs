@@ -450,7 +450,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
             if let Some(delay) = iface.poll_delay(time, &sockets) {
                 let duration = (delay.total_millis() as usize) / POLL_DELAY_DIV;
-                syscall::sleep(duration);
+                syscall::sleep(duration.clamp(1, 100));
             }
         }
     } else {
