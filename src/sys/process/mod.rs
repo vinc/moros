@@ -229,6 +229,8 @@ pub fn exit() {
     };
 
     load_process(proc.parent_id);
+
+    #[cfg(target_arch = "x86_64")]
     free_process(proc.ctx.page_table_frame);
 }
 
@@ -243,17 +245,15 @@ fn load_process(id: usize) {
     }
 }
 
+#[cfg(target_arch = "x86_64")]
 fn free_process(page_table_frame: PhysFrame) {
-    #[cfg(target_arch = "x86_64")]
-    {
-        let page_table = unsafe { mem::create_page_table(page_table_frame) };
-        let mut mapper = unsafe { mem::create_mapper(page_table) };
-        mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
-        unsafe {
-            with_frame_allocator(|allocator| {
-                allocator.deallocate_frame(page_table_frame);
-            });
-        }
+    let page_table = unsafe { mem::create_page_table(page_table_frame) };
+    let mut mapper = unsafe { mem::create_mapper(page_table) };
+    mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
+    unsafe {
+        with_frame_allocator(|allocator| {
+            allocator.deallocate_frame(page_table_frame);
+        });
     }
 }
 
