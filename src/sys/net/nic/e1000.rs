@@ -4,7 +4,6 @@ use crate::sys::net::{EthernetDeviceIO, Config, Stats};
 use crate::sys::x86::addr::PhysAddr;
 use crate::sys::x86::port::*;
 
-use alloc::slice;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -18,7 +17,7 @@ use spin::Mutex;
 // Registers
 const REG_CTRL: u16 =   0x0000; // Device Control Register
 const REG_STATUS: u16 = 0x0008; // Device Status Register
-const REG_EECD: u16 =   0x0014; // EEPROM/Flash Control & Data Register
+const REG_EERD: u16 =   0x0014; // EEPROM Read Register
 const REG_ICR: u16 =    0x00C0; // Interrupt Cause Read Register
 const REG_IMS: u16 =    0x00D0; // Interrupt Mask Set/Read Register
 const REG_IMC: u16 =    0x00D8; // Interrupt Mask Clear Register
@@ -35,6 +34,8 @@ const REG_TDBAH: u16 =  0x3804; // Transmit Descriptor Base Address High
 const REG_TDLEN: u16 =  0x3808; // Transmit Descriptor Length
 const REG_TDH: u16 =    0x3810; // Transmit Descriptor Head
 const REG_TDT: u16 =    0x3818; // Transmit Descriptor Tail
+const REG_RAL: u16 =    0x5400; // Receive Address Low
+const REG_RAH: u16 =    0x5404; // Receive Address High
 const REG_MTA: u16 =    0x5200; // Multicast Table Array
 
 const CTRL_LRST: u32 = 1 << 3;  // Link Reset
@@ -119,10 +120,14 @@ struct TxDesc {
 }
 
 #[derive(Clone)]
+pub enum Base {
+    IO(u16),
+    Mem(PhysAddr),
+}
+
+#[derive(Clone)]
 pub struct Device {
-    mem_base: PhysAddr,
-    io_base: u16,
-    bar_type: u16,
+    base: Base,
     has_eeprom: bool,
     config: Arc<Config>,
     stats: Arc<Stats>,
@@ -135,14 +140,12 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new(io_base: u16, mem_base: PhysAddr, bar_type: u16) -> Self {
+    pub fn new(base: Base) -> Self {
         const RX: usize = RX_BUFFERS_COUNT;
         const TX: usize = TX_BUFFERS_COUNT;
 
         let mut device = Self {
-            bar_type: bar_type,
-            io_base: io_base,
-            mem_base: mem_base,
+            base,
             has_eeprom: false,
             config: Arc::new(Config::new()),
             stats: Arc::new(Stats::new()),
@@ -263,28 +266,14 @@ impl Device {
     fn read_mac(&self) -> EthernetAddress {
         let mut mac = [0; 6];
         if self.has_eeprom {
-            let mut tmp;
-            tmp = self.read_eeprom(0);
-            mac[0] = (tmp &0xff) as u8;
-            mac[1] = (tmp >> 8) as u8;
-            tmp = self.read_eeprom(1);
-            mac[2] = (tmp &0xff) as u8;
-            mac[3] = (tmp >> 8) as u8;
-            tmp = self.read_eeprom(2);
-            mac[4] = (tmp &0xff) as u8;
-            mac[5] = (tmp >> 8) as u8;
+            mac[0..2].copy_from_slice(&self.read_eeprom(0).to_le_bytes());
+            mac[2..4].copy_from_slice(&self.read_eeprom(1).to_le_bytes());
+            mac[4..6].copy_from_slice(&self.read_eeprom(2).to_le_bytes());
         } else {
-            unsafe {
-                let phys = self.mem_base + 0x5400;
-                let addr = sys::mem::phys_to_virt(phys).as_usize();
-                let mac_32 = core::ptr::read_volatile(addr as *const u32);
-                if mac_32 != 0 {
-                    let mac_8 = slice::from_raw_parts(addr as *const u8, 6);
-                    mac[..].clone_from_slice(mac_8);
-                }
-            }
+            mac[0..4].copy_from_slice(&self.read(REG_RAL).to_le_bytes());
+            mac[4..6].copy_from_slice(&self.read(REG_RAH).to_le_bytes()[0..2]);
         }
-        EthernetAddress::from_bytes(&mac[..])
+        EthernetAddress::from_bytes(&mac)
     }
 
     fn link_up(&self) {
@@ -294,47 +283,55 @@ impl Device {
 
     fn write(&self, addr: u16, data: u32) {
         unsafe {
-            if self.bar_type == 0 {
-                let phys = self.mem_base + addr as usize;
-                let addr = sys::mem::phys_to_virt(phys).as_usize() as *mut u32;
-                core::ptr::write_volatile(addr, data);
-            } else {
-                outl(self.io_base + IO_ADDR, addr as u32);
-                outl(self.io_base + IO_DATA, data);
+            match self.base {
+                Base::Mem(mem_base) => {
+                    let phys = mem_base + addr as usize;
+                    let virt = sys::mem::phys_to_virt(phys);
+                    let ptr = virt.as_mut_ptr::<u32>();
+                    core::ptr::write_volatile(ptr, data);
+                }
+                Base::IO(io_base) => {
+                    outl(io_base + IO_ADDR, addr as u32);
+                    outl(io_base + IO_DATA, data);
+                }
             }
         }
     }
 
     fn read(&self, addr: u16) -> u32 {
         unsafe {
-            if self.bar_type == 0 {
-                let phys = self.mem_base + addr as usize;
-                let addr = sys::mem::phys_to_virt(phys).as_usize() as *mut u32;
-                core::ptr::read_volatile(addr)
-            } else {
-                outl(self.io_base + IO_ADDR, addr as u32);
-                inl(self.io_base + IO_DATA)
+            match self.base {
+                Base::Mem(mem_base) => {
+                    let phys = mem_base + addr as usize;
+                    let virt = sys::mem::phys_to_virt(phys);
+                    let ptr = virt.as_ptr::<u32>();
+                    core::ptr::read_volatile(ptr)
+                }
+                Base::IO(io_base) => {
+                    outl(io_base + IO_ADDR, addr as u32);
+                    inl(io_base + IO_DATA)
+                }
             }
         }
     }
 
     fn detect_eeprom(&mut self) {
-        self.write(REG_EECD, 1);
+        self.write(REG_EERD, 1);
         let mut i = 0;
         while !self.has_eeprom && i < 1000 {
-            self.has_eeprom = self.read(REG_EECD) & 0x10 > 0;
+            self.has_eeprom = self.read(REG_EERD) & 0x10 > 0;
             i += 1;
         }
     }
 
-    fn read_eeprom(&self, addr: u16) -> u32 {
+    fn read_eeprom(&self, addr: u16) -> u16 {
         let e = if self.has_eeprom { 4 } else { 0 };
-        self.write(REG_EECD, 1 | ((addr as u32) << (2 * e)));
+        self.write(REG_EERD, 1 | ((addr as u32) << (2 * e)));
         let mut res = 0;
         while res & (1 << e) == 0 {
-            res = self.read(REG_EECD);
+            res = self.read(REG_EERD);
         }
-        (res >> 16) & 0xFFFF
+        (res >> 16) as u16
     }
 
     #[allow(dead_code)]
