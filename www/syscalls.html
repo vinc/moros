@@ -181,10 +181,11 @@ indicate the result of the operation.</p>
 
     <h2>SLEEP (0x0B)</h2>
 
-    <pre><code class="rust">fn sleep(seconds: f64)
+    <pre><code class="rust">fn sleep(milliseconds: usize)
 </code></pre>
 
-    <p>The system will sleep for the given amount of seconds.</p>
+    <p>The system will sleep for approximately the given amount of milliseconds (to
+the nearest timer tick).</p>
 
     <h2>POLL (0x0C)</h2>
 

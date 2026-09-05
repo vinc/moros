@@ -33,7 +33,7 @@ fn stop_sound() -> Result<(), ()> {
 
 fn beep(freq: f64, len: f64) -> Result<(), ()> {
     start_sound(freq)?;
-    syscall::sleep(len);
+    syscall::sleep((len * 1000.0) as usize);
     stop_sound()
 }
 

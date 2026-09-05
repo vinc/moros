@@ -15,7 +15,7 @@ fn main(_args: &[&str]) {
     vga::set_resolution("320x200p");
     print!("\x1b]R\x1b[1A"); // Reset palette
     while io::stdin().read_char().is_none() {
-        syscall::sleep(0.1);
+        syscall::sleep(100);
     }
     vga::set_resolution("80x25c");
 }

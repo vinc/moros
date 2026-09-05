@@ -36,7 +36,7 @@ pub fn dispatcher(
     match n {
         number::EXIT => service::exit(ExitCode::from(arg1)) as usize,
         number::SLEEP => {
-            service::sleep(f64::from_bits(arg1 as u64));
+            service::sleep(arg1);
             0
         }
         number::DELETE => {
