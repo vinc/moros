@@ -10,7 +10,6 @@ use alloc::format;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use core::cmp;
 use smoltcp::iface::SocketSet;
 use smoltcp::socket::dhcpv4;
 use smoltcp::time::Instant;
@@ -66,8 +65,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
 
             if let Some(delay) = iface.poll_delay(time, &sockets) {
-                let duration = cmp::min(delay.total_millis() as usize, 100);
-                syscall::sleep(duration);
+                let duration = delay.total_millis() as usize;
+                syscall::sleep(duration.clamp(1, 100));
             }
         }
     } else {
