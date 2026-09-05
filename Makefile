@@ -137,8 +137,13 @@ endif
 qemu:
 	$(qemu) $(qemu-opts)
 
+test-opts = --lib
+ifeq ($(mode),release)
+test-opts += --release
+endif
+
 test:
-	cargo test --release --lib --no-default-features --features serial -- \
+	cargo test $(test-opts) --no-default-features --features serial -- \
 		-m $(memory) -cpu $(cpu) -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04
 
@@ -172,7 +177,7 @@ limine-image:
 limine-test: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 limine-test: LIMINE_DIR = $(limine-dir)
 limine-test:
-	cargo test --release --lib --no-default-features --features serial,multiboot --target i686-moros.json -- \
+	cargo test $(test-opts) --no-default-features --features serial,multiboot --target i686-moros.json -- \
 		-m $(memory) -cpu pentium3 -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04
 
