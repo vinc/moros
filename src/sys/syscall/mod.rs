@@ -237,9 +237,11 @@ macro_rules! syscall_fns {
     };
 }
 
+// Linux i386 convention (except esi reserved by LLVM)
 #[cfg(target_arch = "x86")]
 syscall_fns!("eax", "ebx", "ecx", "edx", "edi");
 
+// System V AMD64 ABI convention
 #[cfg(target_arch = "x86_64")]
 syscall_fns!("rax", "rdi", "rsi", "rdx", "rcx");
 

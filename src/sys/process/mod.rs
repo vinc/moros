@@ -280,3 +280,33 @@ pub fn increment_syscall_count(number: usize) {
     let proc = current_process(&table);
     proc.stats.increment_syscall_count(number);
 }
+
+#[cfg(target_arch = "x86")]
+#[test_case]
+fn test_registers() {
+    let mut regs = Registers::default();
+    regs.eax = 1;
+    regs.ebx = 2;
+    regs.ecx = 3;
+    regs.edx = 4;
+    regs.edi = 5;
+    assert_eq!([regs[0], regs[1], regs[2], regs[3], regs[4]], [1, 2, 3, 4, 5]);
+
+    regs[0] = 9;
+    assert_eq!(regs.eax, 9);
+}
+
+#[cfg(target_arch = "x86_64")]
+#[test_case]
+fn test_registers() {
+    let mut regs = Registers::default();
+    regs.rax = 1;
+    regs.rdi = 2;
+    regs.rsi = 3;
+    regs.rdx = 4;
+    regs.rcx = 5;
+    assert_eq!([regs[0], regs[1], regs[2], regs[3], regs[4]], [1, 2, 3, 4, 5]);
+
+    regs[0] = 9;
+    assert_eq!(regs.rax, 9);
+}

@@ -14,8 +14,8 @@ pub extern "C" fn handler() -> ! {
         "push ecx",
         "push ebx",
         "push eax",
-        "mov eax, esp",           // Register list
-        "lea edx, [esp + 5 * 4]", // Interrupt frame (5 registers * 4 bytes)
+        "mov eax, esp",           // Registers
+        "lea edx, [esp + 5 * 4]", // InterruptFrame (5 registers * 4 bytes)
         "sti",                    // Enable interrupts during syscall
         "push eax",               // Arg #2
         "push edx",               // Arg #1
@@ -46,8 +46,8 @@ pub extern "C" fn handler() -> ! {
         "push rsi",
         "push rdi",
         "push rax",
-        "mov rsi, rsp",           // Arg #2: register list
-        "lea rdi, [rsp + 9 * 8]", // Arg #1: interrupt frame (9 registers * 8 bytes)
+        "mov rsi, rsp",           // Arg #2: Registers
+        "lea rdi, [rsp + 9 * 8]", // Arg #1: InterruptFrame (9 registers * 8 bytes)
         "sti",                    // Enable interrupts during syscall
         "call {}",
         "cli",

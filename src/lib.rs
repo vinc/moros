@@ -23,6 +23,7 @@ use sys::boot::MemoryMap;
 
 pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
+// NOTE: The stack size for the bootloader crate is set in Cargo.toml
 pub const STACK_SIZE: usize = 256 << 10; // 256 KB
 
 #[cfg(target_arch = "x86")]
