@@ -20,11 +20,17 @@ be converted into a pointer and a length for the raw syscall.</p>
 occurred. In the high-level API, this will be typically converted to an
     <code>Option</code> or a <code>Result</code> type.</p>
 
-    <p>At the lowest level a syscall follows the System V ABI convention with its
-number set in the <code>RAX</code> register, and its arguments in the <code>RDI</code>, <code>RSI</code>, <code>RDX</code>,
-and <code>R8</code> registers. The <code>RAX</code> register is reused for the return value.</p>
+    <p>At the lowest level on x86-64 a syscall follows the System V AMD64 ABI
+convention with its number set in the <code>rax</code> register, and its arguments in the
+    <code>rdi</code>, <code>rsi</code>, <code>rdx</code>, and <code>rcx</code> registers. The <code>rax</code> register is reused for the
+return value.</p>
 
-    <p>Hello world example in assembly using the <code>WRITE</code> and <code>EXIT</code> syscalls:</p>
+    <p>On x86-32 a syscall follows the Linux i386 convention (except <code>esi</code> reserved by
+LLVM) with its number set in the <code>eax</code> register, and its arguments in the
+    <code>ebx</code>, <code>ecx</code>, <code>edx</code>, and <code>edi</code> registers. The <code>eax</code> register is also reused for
+the return value.</p>
+
+    <p>Hello world example in assembly using the <code>WRITE</code> and <code>EXIT</code> syscalls on x86-64:</p>
 
     <pre><code class="nasm">[bits 64]
 
@@ -63,7 +69,8 @@ _start:
     OpenError      = 128,
     ReadError      = 129,
     ExecError      = 130,
-    PageFaultError = 200,
+    PanicError     = 200,
+    PageFaultError = 201,
     ShellExit      = 255,
 }
 </code></pre>
