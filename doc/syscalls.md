@@ -188,10 +188,10 @@ The system will reboot with `0xCAFE` and halt with `0xDEAD`.
 ## SLEEP (0x0B)
 
 ```rust
-fn sleep(seconds: f64)
+fn sleep(milliseconds: usize)
 ```
 
-The system will sleep for the given amount of seconds.
+The system will sleep for the given amount of milliseconds.
 
 ## POLL (0x0C)
 

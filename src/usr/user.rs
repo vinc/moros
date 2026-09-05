@@ -56,7 +56,7 @@ fn login(username: &str) -> Result<(), ExitCode> {
 
     if username.is_empty() {
         println!();
-        syscall::sleep(1.0);
+        syscall::sleep(1000);
         return main(&["user", "login"]);
     }
 
@@ -69,13 +69,13 @@ fn login(username: &str) -> Result<(), ExitCode> {
             println!();
             if check(&password, &hash).is_err() {
                 println!();
-                syscall::sleep(1.0);
+                syscall::sleep(1000);
                 return main(&["user", "login"]);
             }
         }
         None => {
             println!();
-            syscall::sleep(1.0);
+            syscall::sleep(1000);
             return main(&["user", "login"]);
         }
     }
