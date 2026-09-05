@@ -241,7 +241,7 @@ macro_rules! syscall_fns {
 syscall_fns!("eax", "ebx", "ecx", "edx", "edi");
 
 #[cfg(target_arch = "x86_64")]
-syscall_fns!("rax", "rdi", "rsi", "rdx", "r8");
+syscall_fns!("rax", "rdi", "rsi", "rdx", "rcx");
 
 #[macro_export]
 macro_rules! syscall {
