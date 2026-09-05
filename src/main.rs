@@ -45,7 +45,6 @@ extern "C" fn start(info: u32, magic: u32) -> ! {
     moros::sys::boot::multiboot::start(info, magic)
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     use alloc::string::ToString;
@@ -70,10 +69,4 @@ fn panic(info: &PanicInfo) -> ! {
         error!("{info}");
     }
     hang();
-}
-
-#[cfg(target_arch = "x86")]
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    moros::hang();
 }

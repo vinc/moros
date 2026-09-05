@@ -169,97 +169,107 @@ pub fn dispatcher(
     }
 }
 
-#[doc(hidden)]
-pub unsafe fn syscall0(n: usize) -> usize {
-    let res: usize;
-    asm!(
-        "int 0x80", in("rax") n,
-        lateout("rax") res
-    );
-    res
+macro_rules! syscall_fns {
+    ($r0:tt, $r1:tt, $r2:tt, $r3:tt, $r4:tt) => {
+        #[doc(hidden)]
+        pub unsafe fn syscall0(
+            n: usize
+        ) -> usize {
+            let res: usize;
+            asm!(
+                "int 0x80", in($r0) n,
+                lateout($r0) res
+            );
+            res
+        }
+
+        #[doc(hidden)]
+        pub unsafe fn syscall1(
+            n: usize, arg1: usize
+        ) -> usize {
+            let res: usize;
+            asm!(
+                "int 0x80", in($r0) n,
+                in($r1) arg1,
+                lateout($r0) res
+            );
+            res
+        }
+
+        #[doc(hidden)]
+        pub unsafe fn syscall2(
+            n: usize, arg1: usize, arg2: usize
+        ) -> usize {
+            let res: usize;
+            asm!(
+                "int 0x80", in($r0) n,
+                in($r1) arg1, in($r2) arg2,
+                lateout($r0) res
+            );
+            res
+        }
+
+        #[doc(hidden)]
+        pub unsafe fn syscall3(
+            n: usize, arg1: usize, arg2: usize, arg3: usize
+        ) -> usize {
+            let res: usize;
+            asm!(
+                "int 0x80", in($r0) n,
+                in($r1) arg1, in($r2) arg2, in($r3) arg3,
+                lateout($r0) res
+            );
+            res
+        }
+
+        #[doc(hidden)]
+        pub unsafe fn syscall4(
+            n: usize, arg1: usize, arg2: usize, arg3: usize, arg4: usize
+        ) -> usize {
+            let res: usize;
+            asm!(
+                "int 0x80", in($r0) n,
+                in($r1) arg1, in($r2) arg2, in($r3) arg3, in($r4) arg4,
+                lateout($r0) res
+            );
+            res
+        }
+    };
 }
 
-#[doc(hidden)]
-pub unsafe fn syscall1(n: usize, arg1: usize) -> usize {
-    let res: usize;
-    asm!(
-        "int 0x80", in("rax") n,
-        in("rdi") arg1,
-        lateout("rax") res
-    );
-    res
-}
+// Linux i386 convention (except esi reserved by LLVM)
+#[cfg(target_arch = "x86")]
+syscall_fns!("eax", "ebx", "ecx", "edx", "edi");
 
-#[doc(hidden)]
-pub unsafe fn syscall2(n: usize, arg1: usize, arg2: usize) -> usize {
-    let res: usize;
-    asm!(
-        "int 0x80", in("rax") n,
-        in("rdi") arg1, in("rsi") arg2,
-        lateout("rax") res
-    );
-    res
-}
-
-#[doc(hidden)]
-pub unsafe fn syscall3(
-    n: usize,
-    arg1: usize,
-    arg2: usize,
-    arg3: usize
-) -> usize {
-    let res: usize;
-    asm!(
-        "int 0x80", in("rax") n,
-        in("rdi") arg1, in("rsi") arg2, in("rdx") arg3,
-        lateout("rax") res
-    );
-    res
-}
-
-#[doc(hidden)]
-pub unsafe fn syscall4(
-    n: usize,
-    arg1: usize,
-    arg2: usize,
-    arg3: usize,
-    arg4: usize
-) -> usize {
-    let res: usize;
-    asm!(
-        "int 0x80", in("rax") n,
-        in("rdi") arg1, in("rsi") arg2, in("rdx") arg3, in("r8") arg4,
-        lateout("rax") res
-    );
-    res
-}
+// System V AMD64 ABI convention
+#[cfg(target_arch = "x86_64")]
+syscall_fns!("rax", "rdi", "rsi", "rdx", "rcx");
 
 #[macro_export]
 macro_rules! syscall {
-    ($n:expr) => {
-        $crate::sys::syscall::syscall0($n as usize)
-    };
-    ($n:expr, $a1:expr) => {
-        $crate::sys::syscall::syscall1($n as usize, $a1 as usize)
-    };
-    ($n:expr, $a1:expr, $a2:expr) => {
-        $crate::sys::syscall::syscall2($n as usize, $a1 as usize, $a2 as usize)
-    };
-    ($n:expr, $a1:expr, $a2:expr, $a3:expr) => {
-        $crate::sys::syscall::syscall3(
-            $n as usize,
-            $a1 as usize,
-            $a2 as usize,
-            $a3 as usize,
+    ($r0:expr) => {
+        $crate::sys::syscall::syscall0(
+            $r0 as usize
         )
     };
-    ($n:expr, $a1:expr, $a2:expr, $a3:expr, $a4:expr) => {
+    ($r0:expr, $r1:expr) => {
+        $crate::sys::syscall::syscall1(
+            $r0 as usize, $r1 as usize
+        )
+    };
+    ($r0:expr, $r1:expr, $r2:expr) => {
+        $crate::sys::syscall::syscall2(
+            $r0 as usize, $r1 as usize, $r2 as usize
+        )
+    };
+    ($r0:expr, $r1:expr, $r2:expr, $r3:expr) => {
+        $crate::sys::syscall::syscall3(
+            $r0 as usize, $r1 as usize, $r2 as usize, $r3 as usize
+        )
+    };
+    ($r0:expr, $r1:expr, $r2:expr, $r3:expr, $r4:expr) => {
         $crate::sys::syscall::syscall4(
-            $n as usize,
-            $a1 as usize,
-            $a2 as usize,
-            $a3 as usize,
-            $a4 as usize,
+            $r0 as usize, $r1 as usize, $r2 as usize, $r3 as usize, $r4 as usize
         )
     };
 }

@@ -112,6 +112,12 @@ pub fn seek(handle: usize, from: SeekFrom) -> isize {
     }
 }
 
+#[cfg(target_arch = "x86")]
+pub fn spawn(_path: &str, _args_ptr: usize, _args_len: usize) -> ExitCode {
+    ExitCode::ExecError
+}
+
+#[cfg(target_arch = "x86_64")] // TODO: Remove this
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,

@@ -5,6 +5,7 @@ use bootloader::BootInfo;
 pub fn extract_memory_map(boot_info: &'static BootInfo) -> MemoryMap {
     use bootloader::bootinfo::MemoryRegionType as B;
     use super::MemoryRegionType as K;
+
     let mut memory_map = MemoryMap::new();
     for region in boot_info.memory_map.iter() {
         let addr = region.range.start_addr();

@@ -12,11 +12,17 @@ Any negative number returned by a raw syscall indicates that an error has
 occurred. In the high-level API, this will be typically converted to an
 `Option` or a `Result` type.
 
-At the lowest level a syscall follows the System V ABI convention with its
-number set in the `RAX` register, and its arguments in the `RDI`, `RSI`, `RDX`,
-and `R8` registers. The `RAX` register is reused for the return value.
+At the lowest level on x86-64 a syscall follows the System V AMD64 ABI
+convention with its number set in the `rax` register, and its arguments in the
+`rdi`, `rsi`, `rdx`, and `rcx` registers. The `rax` register is reused for the
+return value.
 
-Hello world example in assembly using the `WRITE` and `EXIT` syscalls:
+On x86-32 a syscall follows the Linux i386 convention (except `esi` reserved by
+LLVM) with its number set in the `eax` register, and its arguments in the
+`ebx`, `ecx`, `edx`, and `edi` registers. The `eax` register is also reused for
+the return value.
+
+Hello world example in assembly using the `WRITE` and `EXIT` syscalls on x86-64:
 
 ```nasm
 [bits 64]
@@ -58,7 +64,8 @@ pub enum ExitCode {
     OpenError      = 128,
     ReadError      = 129,
     ExecError      = 130,
-    PageFaultError = 200,
+    PanicError     = 200,
+    PageFaultError = 201,
     ShellExit      = 255,
 }
 ```

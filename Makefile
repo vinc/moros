@@ -39,21 +39,30 @@ user-nasm:
 
 user-cargo-opts = --release --no-default-features --features userspace
 
+ifeq ($(shell uname -s),Darwin)
+user-ld = x86_64-elf-ld
+user-strip = x86_64-elf-strip
+else
+user-ld = ld
+user-strip = strip
+endif
+
 # Userspace programs are linked inside the user memory region, which lives
 # in its own L4 page table entry.
-ld-opts = -Ttext=8000800000 -Trodata=8000900000 -Tbss=8000950000
-linker-opts = -C linker-flavor=ld -C link-args="$(ld-opts)"
+user-ld-opts = -Ttext=8000800000 -Trodata=8000900000 -Tbss=8000950000
+user-linker-opts = -C linker=$(user-ld) -C link-args="$(user-ld-opts)" \
+									 -C linker-flavor=ld
 
 user-rust:
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		touch dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cargo rustc $(user-cargo-opts) --bin {} \
-			-- $(linker-opts)
+			-- $(user-linker-opts)
 	basename -s .rs src/bin/*.rs | xargs -I {} \
 		cp target/x86_64-moros/release/{} dsk/bin/{}
 	basename -s .rs src/bin/*.rs | xargs -I {} \
-		strip dsk/bin/{}
+		$(user-strip) dsk/bin/{}
 
 bin = moros-$(arch).img
 img = disk.img

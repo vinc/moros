@@ -8,7 +8,11 @@ pub struct InterruptFrame {
     ip: usize,
     cs: usize,
     flags: usize,
+
+    #[cfg(target_arch = "x86_64")]
     sp: usize,
+
+    #[cfg(target_arch = "x86_64")]
     ss: usize,
 }
 
@@ -55,6 +59,10 @@ fn are_interrupts_enabled() -> bool {
 
 #[test_case]
 fn test_interrupt_frame() {
+    #[cfg(target_arch = "x86")]
+    assert_eq!(size_of::<InterruptFrame>(), 3 * size_of::<usize>());
+
+    #[cfg(target_arch = "x86_64")]
     assert_eq!(size_of::<InterruptFrame>(), 5 * size_of::<usize>());
 }
 

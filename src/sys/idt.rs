@@ -67,11 +67,8 @@ impl InterruptDescriptorTable {
             table[pic::vector(14)].set_handler(irq14_handler as _);
             table[pic::vector(15)].set_handler(irq15_handler as _);
 
-            #[cfg(target_arch = "x86_64")] // TODO: Remove
-            {
-                table[0x80].set_handler(sys::syscall::handler as _);
-                table[0x80].set_privilege_level(3);
-            }
+            table[0x80].set_handler(sys::syscall::handler as _);
+            table[0x80].set_privilege_level(3);
         }
 
         Self { table }
@@ -312,6 +309,8 @@ fn test_idt() {
     assert_eq!(IDT.table[DF].bits, 0x8E00);
     assert_eq!(IDT.table[PF].bits, 0x8E00);
     assert_eq!(IDT.table[GP].bits, 0x8E00);
+
+    assert_eq!(IDT.table[0x80].bits, 0xEE00); // DPL 3
 
     assert_eq!(IDT.table[0].bits, 0);         // Not present
 }

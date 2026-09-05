@@ -4,34 +4,62 @@ use crate::sys::x86::int::InterruptFrame;
 
 use core::arch::naked_asm;
 
+#[cfg(target_arch = "x86")]
 #[unsafe(naked)]
 pub extern "C" fn handler() -> ! {
     naked_asm!(
-        "cld",            // Clear direction flag
-        "push rax",
+        "cld",                     // Clear direction flag
+        "push edi",
+        "push edx",
+        "push ecx",
+        "push ebx",
+        "push eax",
+        "mov eax, esp",           // Registers
+        "lea edx, [esp + 5 * 4]", // InterruptFrame (5 registers * 4 bytes)
+        "sti",                    // Enable interrupts during syscall
+        "push eax",               // Arg #2
+        "push edx",               // Arg #1
+        "call {}",
+        "add esp, 8",             // Caller cleans up convention (cdecl)
+        "cli",
+        "pop eax",
+        "pop ebx",
+        "pop ecx",
+        "pop edx",
+        "pop edi",
+        "iretd",
+        sym inner
+    );
+}
+
+#[cfg(target_arch = "x86_64")]
+#[unsafe(naked)]
+pub extern "C" fn handler() -> ! {
+    naked_asm!(
+        "cld",                     // Clear direction flag
+        "push r11",
+        "push r10",
+        "push r9",
+        "push r8",
         "push rcx",
         "push rdx",
         "push rsi",
         "push rdi",
-        "push r8",
-        "push r9",
-        "push r10",
-        "push r11",
-        "mov rsi, rsp",   // Arg #2: register list
-        "mov rdi, rsp",   // Arg #1: interrupt frame
-        "add rdi, 9 * 8", // 9 registers * 8 bytes
-        "sti",            // Enable interrupts during syscall
+        "push rax",
+        "mov rsi, rsp",           // Arg #2: Registers
+        "lea rdi, [rsp + 9 * 8]", // Arg #1: InterruptFrame (9 registers * 8 bytes)
+        "sti",                    // Enable interrupts during syscall
         "call {}",
         "cli",
-        "pop r11",
-        "pop r10",
-        "pop r9",
-        "pop r8",
+        "pop rax",
         "pop rdi",
         "pop rsi",
         "pop rdx",
         "pop rcx",
-        "pop rax",
+        "pop r8",
+        "pop r9",
+        "pop r10",
+        "pop r11",
         "iretq",
         sym inner
     );
@@ -41,13 +69,11 @@ extern "C" fn inner(
     frame: &mut InterruptFrame,
     regs: &mut Registers
 ) {
-    let n = regs.rax;
-
-    // The registers order follow the System V ABI convention
-    let arg1 = regs.rdi;
-    let arg2 = regs.rsi;
-    let arg3 = regs.rdx;
-    let arg4 = regs.r8;
+    let n    = regs[0];
+    let arg1 = regs[1];
+    let arg2 = regs[2];
+    let arg3 = regs[3];
+    let arg4 = regs[4];
 
     // Backup CPU context before spawning a process
     if n == super::number::SPAWN {
@@ -63,5 +89,5 @@ extern "C" fn inner(
         *regs = process::registers();
     }
 
-    regs.rax = res;
+    regs[0] = res;
 }

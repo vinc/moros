@@ -14,7 +14,6 @@ pub mod api;
 #[macro_use]
 pub mod sys;
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub mod usr;
 
 #[cfg(test)]
@@ -22,10 +21,16 @@ mod test;
 
 use sys::boot::MemoryMap;
 
-#[cfg(target_arch = "x86_64")]
 pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
 
-pub const STACK_SIZE: usize = 128 << 10; // 128 KB
+// NOTE: The stack size for the bootloader crate is set in Cargo.toml
+pub const STACK_SIZE: usize = 256 << 10; // 256 KB
+
+#[cfg(target_arch = "x86")]
+const ARCH: &str = "i686";
+
+#[cfg(target_arch = "x86_64")]
+const ARCH: &str = "amd64";
 
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
@@ -40,7 +45,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
-    log!("SYS MOROS v{}", v);
+    log!("SYS MOROS v{} {}", v, ARCH);
 
     sys::mem::init(memory_map, offset);
     sys::cpu::init();
@@ -50,17 +55,12 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::snd::init();
     sys::net::init(); // Require PCI
     sys::ata::init();
-
-    #[cfg(target_arch = "x86_64")] // TODO: Remove
-    {
-        sys::fs::init(); // Require ATA
-        sys::process::init();
-    }
+    sys::fs::init(); // Require ATA
+    sys::process::init();
 
     log!("RTC {}", sys::clk::date());
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn exec() -> ! {
     print!("\x1b[?25h"); // Enable cursor
     loop {

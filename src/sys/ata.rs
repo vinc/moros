@@ -1,6 +1,5 @@
 use crate::sys;
 
-#[cfg(target_arch = "x86_64")]
 use crate::sys::fs::{FileIO, IO};
 
 use crate::sys::x86::port::*;
@@ -380,7 +379,6 @@ impl Drive {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
 impl FileIO for Drive {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         if self.block_index == self.block_count {

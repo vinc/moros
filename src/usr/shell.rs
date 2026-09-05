@@ -809,6 +809,7 @@ fn help() -> Result<(), ExitCode> {
     Ok(())
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[test_case]
 fn test_shell() {
     use alloc::string::ToString;

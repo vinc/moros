@@ -1,4 +1,3 @@
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 use crate::sys::fs::{FileIO, IO};
 
 use alloc::format;
@@ -19,7 +18,6 @@ impl NetIp {
     }
 }
 
-#[cfg(target_arch = "x86_64")] // TODO: Remove
 impl FileIO for NetIp {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         if let Some((ref mut iface, _)) = *super::NET.lock() {
