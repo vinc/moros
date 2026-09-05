@@ -549,14 +549,15 @@ impl fmt::Write for Writer {
     }
 }
 
-fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
-    debug_assert!(palette.len() == 8);
-    debug_assert!(palette.starts_with('P'));
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ()> {
+    if palette.len() != 8 || !palette.starts_with('P') {
+        return Err(());
+    }
 
-    let i = usize::from_str_radix(&palette[1..2], 16)?;
-    let r = u8::from_str_radix(&palette[2..4], 16)?;
-    let g = u8::from_str_radix(&palette[4..6], 16)?;
-    let b = u8::from_str_radix(&palette[6..8], 16)?;
+    let i = usize::from_str_radix(&palette[1..2], 16).map_err(|_| ())?;
+    let r = u8::from_str_radix(&palette[2..4], 16).map_err(|_| ())?;
+    let g = u8::from_str_radix(&palette[4..6], 16).map_err(|_| ())?;
+    let b = u8::from_str_radix(&palette[6..8], 16).map_err(|_| ())?;
 
     Ok((i, r, g, b))
 }
@@ -565,6 +566,6 @@ fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
 fn test_parse_palette() {
     assert_eq!(parse_palette("P0282828"), Ok((0, 0x28, 0x28, 0x28)));
     assert_eq!(parse_palette("P4CC241D"), Ok((4, 0xCC, 0x24, 0x1D)));
-    assert!(parse_palette("BAAAAAAD").is_ok());
-    assert!(parse_palette("GOOOOOOD").is_err());
+    assert!(parse_palette("BAD").is_err());
+    assert!(parse_palette("BAAAAAAD").is_err());
 }
