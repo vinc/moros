@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Enable process, syscall, and file system on i686 (#914)
 - Add sys::x86::addr module (#912)
 - Add hex module to api (#913)
 - Enable more modules on i686 (#911)
