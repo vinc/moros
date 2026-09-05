@@ -9,11 +9,11 @@ use core::arch::naked_asm;
 pub extern "C" fn handler() -> ! {
     naked_asm!(
         "cld",                     // Clear direction flag
-        "push eax",
-        "push ebx",
-        "push ecx",
-        "push edx",
         "push edi",
+        "push edx",
+        "push ecx",
+        "push ebx",
+        "push eax",
         "mov eax, esp",           // Register list
         "lea edx, [esp + 5 * 4]", // Interrupt frame (5 registers * 4 bytes)
         "sti",                    // Enable interrupts during syscall
@@ -22,11 +22,11 @@ pub extern "C" fn handler() -> ! {
         "call {}",
         "add esp, 8",             // Caller cleans up convention (cdecl)
         "cli",
-        "pop edi",
-        "pop edx",
-        "pop ecx",
-        "pop ebx",
         "pop eax",
+        "pop ebx",
+        "pop ecx",
+        "pop edx",
+        "pop edi",
         "iretd",
         sym inner
     );
@@ -37,29 +37,29 @@ pub extern "C" fn handler() -> ! {
 pub extern "C" fn handler() -> ! {
     naked_asm!(
         "cld",                     // Clear direction flag
-        "push rax",
+        "push r11",
+        "push r10",
+        "push r9",
+        "push r8",
         "push rcx",
         "push rdx",
         "push rsi",
         "push rdi",
-        "push r8",
-        "push r9",
-        "push r10",
-        "push r11",
+        "push rax",
         "mov rsi, rsp",           // Arg #2: register list
         "lea rdi, [rsp + 9 * 8]", // Arg #1: interrupt frame (9 registers * 8 bytes)
         "sti",                    // Enable interrupts during syscall
         "call {}",
         "cli",
-        "pop r11",
-        "pop r10",
-        "pop r9",
-        "pop r8",
+        "pop rax",
         "pop rdi",
         "pop rsi",
         "pop rdx",
         "pop rcx",
-        "pop rax",
+        "pop r8",
+        "pop r9",
+        "pop r10",
+        "pop r11",
         "iretq",
         sym inner
     );
@@ -69,15 +69,11 @@ extern "C" fn inner(
     frame: &mut InterruptFrame,
     regs: &mut Registers
 ) {
-    // Linux i386 convention (except esi reserved by LLVM)
-    #[cfg(target_arch = "x86")]
-    let (n, arg1, arg2, arg3, arg4) =
-        (regs.eax, regs.ebx, regs.ecx, regs.edx, regs.edi);
-
-    // System V AMD64 ABI convention
-    #[cfg(target_arch = "x86_64")]
-    let (n, arg1, arg2, arg3, arg4) =
-        (regs.rax, regs.rdi, regs.rsi, regs.rdx, regs.rcx);
+    let n    = regs[0];
+    let arg1 = regs[1];
+    let arg2 = regs[2];
+    let arg3 = regs[3];
+    let arg4 = regs[4];
 
     // Backup CPU context before spawning a process
     if n == super::number::SPAWN {
@@ -93,13 +89,5 @@ extern "C" fn inner(
         *regs = process::registers();
     }
 
-    #[cfg(target_arch = "x86")]
-    {
-        regs.eax = res;
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    {
-        regs.rax = res;
-    }
+    regs[0] = res;
 }

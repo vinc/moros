@@ -50,6 +50,7 @@ use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::sync::Arc;
+use core::ops::{Index, IndexMut};
 use core::sync::atomic::{AtomicU64, Ordering};
 use linked_list_allocator::LockedHeap;
 use x86_64::structures::paging::{
@@ -76,26 +77,62 @@ pub fn ptr_from_addr(addr: usize) -> *mut u8 {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Registers {
-    pub edi: usize,
-    pub edx: usize,
-    pub ecx: usize,
-    pub ebx: usize,
+    // Linux i386 convention (except esi reserved by LLVM)
     pub eax: usize,
+    pub ebx: usize,
+    pub ecx: usize,
+    pub edx: usize,
+    pub edi: usize,
 }
 
 #[cfg(target_arch = "x86_64")]
-#[repr(C, align(8))]
+#[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Registers {
-    pub r11: usize,
-    pub r10: usize,
-    pub r9: usize,
-    pub r8: usize,
+    // System V AMD64 ABI convention
+    pub rax: usize,
     pub rdi: usize,
     pub rsi: usize,
     pub rdx: usize,
     pub rcx: usize,
-    pub rax: usize,
+    pub r8: usize,
+    pub r9: usize,
+    pub r10: usize,
+    pub r11: usize,
+}
+
+impl Registers {
+    #[inline]
+    fn as_slice(&self) -> &[usize] {
+        let len = core::mem::size_of::<Self>() / core::mem::size_of::<usize>();
+        unsafe {
+            core::slice::from_raw_parts(self as *const _ as *const usize, len)
+        }
+    }
+
+    #[inline]
+    fn as_mut_slice(&mut self) -> &mut [usize] {
+        let len = core::mem::size_of::<Self>() / core::mem::size_of::<usize>();
+        unsafe {
+            core::slice::from_raw_parts_mut(self as *mut _ as *mut usize, len)
+        }
+    }
+}
+
+impl Index<usize> for Registers {
+    type Output = usize;
+
+    #[inline]
+    fn index(&self, i: usize) -> &usize {
+        &self.as_slice()[i]
+    }
+}
+
+impl IndexMut<usize> for Registers {
+    #[inline]
+    fn index_mut(&mut self, i: usize) -> &mut usize {
+        &mut self.as_mut_slice()[i]
+    }
 }
 
 #[derive(Clone, Debug)]
