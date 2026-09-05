@@ -191,7 +191,8 @@ The system will reboot with `0xCAFE` and halt with `0xDEAD`.
 fn sleep(milliseconds: usize)
 ```
 
-The system will sleep for the given amount of milliseconds.
+The system will sleep for approximately the given amount of milliseconds (to
+the nearest timer tick).
 
 ## POLL (0x0C)
 
