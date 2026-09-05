@@ -564,8 +564,8 @@ fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ()> {
 
 #[test_case]
 fn test_parse_palette() {
-    assert_eq!(parse_palette("P0282828"), Ok((0, 0x28, 0x28, 0x28)));
-    assert_eq!(parse_palette("P4CC241D"), Ok((4, 0xCC, 0x24, 0x1D)));
-    assert!(parse_palette("BAD").is_err());
-    assert!(parse_palette("BAAAAAAD").is_err());
+    assert_eq!(parse_palette("P0282828"), Ok((0x0, 0x28, 0x28, 0x28)));
+    assert_eq!(parse_palette("PADDDDED"), Ok((0xA, 0xDD, 0xDD, 0xED)));
+    assert_eq!(parse_palette("BAAAAAAD"), Err(()));
+    assert_eq!(parse_palette("BAD"), Err(()));
 }
