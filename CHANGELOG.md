@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Allow running test in debug mode (#915)
 - Use usize milliseconds instead of float seconds for sleep (#916)
 - Enable process, syscall, and file system on i686 (#914)
 - Add sys::x86::addr module (#912)
