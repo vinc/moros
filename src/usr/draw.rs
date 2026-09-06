@@ -184,7 +184,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                     refresh = false;
                 }
-                syscall::sleep(0.1);
+                syscall::sleep(100);
             }
         }
     }

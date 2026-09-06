@@ -12,8 +12,8 @@ pub fn exit(code: ExitCode) -> ExitCode {
     code
 }
 
-pub fn sleep(seconds: f64) {
-    sys::clk::sleep(seconds);
+pub fn sleep(milliseconds: usize) {
+    sys::clk::sleep(milliseconds as f64 / 1000.0);
 }
 
 pub fn delete(path: &str) -> isize {

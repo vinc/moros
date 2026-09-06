@@ -65,8 +65,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
 
             if let Some(delay) = iface.poll_delay(time, &sockets) {
-                let d = (delay.total_micros() as f64) / 1000000.0;
-                syscall::sleep(d.min(0.1)); // Don't sleep longer than 0.1s
+                let duration = delay.total_millis() as usize;
+                syscall::sleep(duration.clamp(1, 100));
             }
         }
     } else {

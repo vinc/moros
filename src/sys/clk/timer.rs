@@ -87,3 +87,11 @@ pub fn init() {
     let f = (b - a) * t / d;
     TSC_FREQUENCY.store(f, Ordering::Relaxed);
 }
+
+#[test_case]
+fn test_timer_ticks() {
+    // 1 tick is almost 1 ms
+    let ms = time_between_ticks() * 1000.0;
+    assert_eq!(ms, 0.9998477460124121);
+    assert!(ms < 1.0);
+}
