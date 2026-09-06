@@ -820,14 +820,14 @@ fn test_shell() {
     usr::install::copy_files(false);
 
     // Redirect standard output
-    exec("print test1 => /tmp/test1").ok();
+    exec("echo test1 => /tmp/test1").ok();
     assert_eq!(
         api::fs::read_to_string("/tmp/test1"),
         Ok("test1\n".to_string())
     );
 
     // Redirect standard output explicitely
-    exec("print test2 1=> /tmp/test2").ok();
+    exec("echo test2 1=> /tmp/test2").ok();
     assert_eq!(
         api::fs::read_to_string("/tmp/test2"),
         Ok("test2\n".to_string())
@@ -840,7 +840,7 @@ fn test_shell() {
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();
-    exec_with_config("print a $b $c d => /test", &mut config).ok();
+    exec_with_config("echo a $b $c d => /test", &mut config).ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();
