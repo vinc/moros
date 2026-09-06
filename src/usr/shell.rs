@@ -16,12 +16,13 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 43] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 44] = [
     "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "deflate",
     "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode", "goto",
     "hash", "help", "hex", "host", "http", "httpd", "inflate", "install",
-    "life", "lisp", "list", "memory", "move", "net", "pci", "quit", "read",
-    "render", "shell", "socket", "spell", "tcp", "time", "user", "view", "write"
+    "life", "lisp", "list", "memory", "move", "net", "pci", "print", "quit",
+    "read", "render", "shell", "socket", "spell", "tcp", "time", "user", "view",
+    "write"
 ];
 
 struct Config {
@@ -289,10 +290,10 @@ fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     cmd
 }
 
-fn cmd_echo(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+fn cmd_print(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     println!("{}", args[1..].join(" "));
 
-    // Handle dir changed with `echo /tmp => /dev/proc/dir`
+    // Handle dir changed with `print /tmp => /dev/proc/dir`
     config.env.insert("dir".to_string(), process::dir());
 
     Ok(())
@@ -603,7 +604,6 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "disk"      => usr::disk::main(args),
         "draw"      => usr::draw::main(args),
         "drop"      => usr::drop::main(args),
-        "echo"      => cmd_echo(args, config),
         "edit"      => usr::edit::main(args),
         "elf"       => usr::elf::main(args),
         "encode"    => usr::encode::main(args),
@@ -626,6 +626,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "net"       => usr::net::main(args),
         "pci"       => usr::pci::main(args),
         "pi"        => usr::pi::main(args),
+        "print"     => cmd_print(args, config),
         "quit"      => Err(ExitCode::ShellExit),
         "read"      => usr::read::main(args),
         "render"    => usr::render::main(args),
