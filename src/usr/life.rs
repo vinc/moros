@@ -62,7 +62,7 @@ impl Game {
                 return;
             }
             print!("{}", self);
-            syscall::sleep(1.0 / self.speed);
+            syscall::sleep((1000.0 / self.speed) as usize);
             if self.is_game_over() {
                 continue; // Display the screen until ^C is received
             }

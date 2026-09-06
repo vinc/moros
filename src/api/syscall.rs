@@ -12,8 +12,8 @@ pub fn exit(code: ExitCode) {
     unsafe { syscall!(EXIT, code as usize) };
 }
 
-pub fn sleep(seconds: f64) {
-    unsafe { syscall!(SLEEP, seconds.to_bits()) };
+pub fn sleep(milliseconds: usize) {
+    unsafe { syscall!(SLEEP, milliseconds) };
 }
 
 pub fn delete(path: &str) -> Result<(), ()> {

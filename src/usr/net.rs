@@ -291,7 +291,7 @@ fn monitor() {
                 println!();
                 return;
             }
-            syscall::sleep(0.1);
+            syscall::sleep(100);
 
             let ms = (clock::epoch_time() * 1000000.0) as i64;
             let time = Instant::from_micros(ms);
