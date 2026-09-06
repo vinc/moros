@@ -137,10 +137,15 @@ endif
 qemu:
 	$(qemu) $(qemu-opts)
 
+test-opts = --lib
+ifeq ($(mode),release)
+test-opts += --release
+endif
+
 test:
-	cargo test --release --lib --no-default-features --features serial -- \
+	cargo test $(test-opts) --no-default-features --features serial -- \
 		-m $(memory) -cpu $(cpu) -display none -serial stdio \
-		-device isa-debug-exit,iobase=0xF4,iosize=0x04
+		-device isa-debug-exit,iobase=0xF4,iosize=0x04 -device $(nic)
 
 limine-version = 11.3.1
 limine-url = https://github.com/Limine-Bootloader/Limine/releases/download/v$(limine-version)/limine-$(limine-version).tar.gz
@@ -172,9 +177,9 @@ limine-image:
 limine-test: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 limine-test: LIMINE_DIR = $(limine-dir)
 limine-test:
-	cargo test --release --lib --no-default-features --features serial,multiboot --target i686-moros.json -- \
+	cargo test $(test-opts) --no-default-features --features serial,multiboot --target i686-moros.json -- \
 		-m $(memory) -cpu pentium3 -display none -serial stdio \
-		-device isa-debug-exit,iobase=0xF4,iosize=0x04
+		-device isa-debug-exit,iobase=0xF4,iosize=0x04 -device $(nic)
 
 grub-dir = /usr/lib/grub/i386-pc
 grub-modules = multiboot2 $(shell cat $(grub-dir)/partmap.lst)

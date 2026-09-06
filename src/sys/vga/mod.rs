@@ -19,7 +19,6 @@ use bit_field::BitField;
 use core::cmp;
 use core::fmt;
 use core::fmt::Write;
-use core::num::ParseIntError;
 
 const ATTR_ADDR_REG:           u16 = 0x3C0;
 const ATTR_WRITE_REG:          u16 = 0x3C0;

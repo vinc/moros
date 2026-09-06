@@ -297,10 +297,12 @@ pub fn init() {
     }
     for id in E1000_DEVICES {
         if let Some(dev) = find_device(0x8086, id) {
-            let io = dev.bar_io(0);
-            let mem = dev.mem_base();
-            let bar = dev.bar_type();
-            let nic = nic::e1000::Device::new(io, mem, bar);
+            let base = if dev.is_io() {
+                nic::e1000::Base::IO(dev.bar_io(0))
+            } else {
+                nic::e1000::Base::Mem(dev.mem_base())
+            };
+            let nic = nic::e1000::Device::new(base);
             add(EthernetDevice::E1000(nic), "E1000");
         }
     }

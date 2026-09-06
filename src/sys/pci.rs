@@ -96,12 +96,17 @@ impl DeviceConfig {
         self.command = register.read() as u16;
     }
 
-    pub fn bar_type(&self) -> u16 {
-        self.base_addresses[0].get_bits(1..3) as u16
+    pub fn is_io(&self) -> bool {
+        self.base_addresses[0].get_bit(0)
+    }
+
+    pub fn bar_io(&self, n: usize) -> u16 {
+        debug_assert!(self.is_io());
+        (self.base_addresses[n] as u16) & 0xFFFC
     }
 
     pub fn mem_base(&self) -> PhysAddr {
-        debug_assert!(self.base_addresses[0].get_bit(0) == false);
+        debug_assert!(!self.is_io());
         let bar0 = self.base_addresses[0];
         let bar1 = self.base_addresses[1];
         let addr = match bar0.get_bits(1..3) {
@@ -125,11 +130,6 @@ impl DeviceConfig {
             }
         };
         PhysAddr::new(addr as usize)
-    }
-
-    pub fn bar_io(&self, n: usize) -> u16 {
-        debug_assert!(self.base_addresses[n].get_bit(0) == true);
-        (self.base_addresses[n] as u16) & 0xFFF0
     }
 }
 
