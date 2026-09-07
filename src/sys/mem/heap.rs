@@ -38,7 +38,7 @@ pub fn init_heap() -> Result<(), ()> {
         Ok(())
     })?;
 
-    init_alloc(heap_start.as_mut_ptr(), heap_size as usize);
+    init_alloc(heap_start.as_mut_ptr(), heap_size);
 
     Ok(())
 }

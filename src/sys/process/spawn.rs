@@ -150,7 +150,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
     drop(args);
 
     let heap_addr = args_addr + args_size;
-    let heap_size = ((ctx.stack_addr - heap_addr) / 2) as usize;
+    let heap_size = (ctx.stack_addr - heap_addr) / 2;
     unsafe {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
@@ -203,9 +203,9 @@ fn copy_args(args: &[String], addr: usize, size: usize) -> usize {
         dst.copy_from_slice(tmp.as_slice());
     }
 
-    let bytes = len * core::mem::size_of::<&str>() + (offset - addr) as usize;
+    let bytes = len * core::mem::size_of::<&str>() + (offset - addr);
     debug_assert!(bytes < size);
-    offset as usize
+    offset
 }
 
 fn load(bin: &[u8], page_table: &mut PageTable) -> Result<usize, ()> {

@@ -32,7 +32,7 @@ pub unsafe fn create_mapper(page_table: &mut PageTable) -> OffsetPageTable<'_> {
 pub fn alloc_pages(
     mapper: &mut OffsetPageTable, addr: usize, size: usize
 ) -> Result<(), ()> {
-    let size = size.saturating_sub(1) as usize;
+    let size = size.saturating_sub(1);
 
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr).into());
@@ -76,7 +76,7 @@ pub fn alloc_pages(
 
 // TODO: Replace `free` by `dealloc`
 pub fn free_pages(mapper: &mut OffsetPageTable, addr: usize, size: usize) {
-    let size = size.saturating_sub(1) as usize;
+    let size = size.saturating_sub(1);
 
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr).into());
