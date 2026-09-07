@@ -1,3 +1,4 @@
+use bit_field::BitField;
 use core::ops::{Add, Sub};
 
 #[derive(Clone, Copy)]
@@ -20,6 +21,10 @@ impl PhysAddr {
 
     pub fn as_usize(&self) -> usize {
         self.0
+    }
+
+    pub fn page_offset(self) -> usize {
+        self.0.get_bits(0..12)
     }
 }
 
@@ -62,8 +67,8 @@ impl VirtAddr {
         self.as_ptr::<T>() as *mut T
     }
 
-    pub const fn page_offset(self) -> usize {
-        self.0 & 0xFFF
+    pub fn page_offset(self) -> usize {
+        self.0.get_bits(0..12)
     }
 }
 
@@ -114,7 +119,7 @@ pub struct PhysFrame(PhysAddr);
 
 impl PhysFrame {
     pub fn from_start_address(addr: PhysAddr) -> Self {
-        debug_assert_eq!(addr.as_usize() & 0xFFF, 0);
+        debug_assert_eq!(addr.page_offset(), 0);
         Self(addr)
     }
 
