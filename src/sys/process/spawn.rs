@@ -98,7 +98,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let stack_addr = USER_ADDR + proc_size - 4096;
 
     let entry_point_addr = load(bin, page_table).map_err(|_|
-        free_process(page_table_frame)
+        free_process(page_table_frame.into())
     )?;
 
     let allocator = Arc::new(LockedHeap::empty());
@@ -113,7 +113,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
             id,
             stack_addr,
             entry_point_addr,
-            page_table_frame,
+            page_table_frame: page_table_frame.into(),
             allocator,
         }
     };
@@ -135,7 +135,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
 
     // Enter process address space and let the page fault handler allocate
     // user memory.
-    let addr = ctx.page_table_frame.start_address().as_u64() as usize;
+    let addr = ctx.page_table_frame.start_address().as_usize();
     let flags = Cr3::read().flags();
     unsafe {
         Cr3::write(addr, flags);
@@ -294,7 +294,7 @@ fn test_load() {
         let page_table = unsafe { mem::create_page_table(frame) };
         page_table.zero();
         assert_eq!(load(&bin, page_table), *res);
-        free_process(frame);
+        free_process(frame.into());
         assert_eq!(mem::with_frame_allocator(|a| a.used_frames()), used);
     }
 }

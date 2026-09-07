@@ -43,6 +43,7 @@ use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
 
 use crate::sys::syscall;
+use crate::sys::x86::addr::PhysFrame;
 use crate::sys::x86::int::InterruptFrame;
 use crate::sys::x86::reg::Cr3;
 
@@ -53,9 +54,7 @@ use alloc::sync::Arc;
 use core::ops::{Index, IndexMut};
 use core::sync::atomic::{AtomicU64, Ordering};
 use linked_list_allocator::LockedHeap;
-use x86_64::structures::paging::{
-    FrameDeallocator, PageTable, PhysFrame,
-};
+use x86_64::structures::paging::{FrameDeallocator, PageTable};
 
 pub const MAX_HANDLES: usize = 64;
 pub const MAX_PROC_SIZE: usize = 32 << 20;
@@ -239,7 +238,7 @@ fn load_process(id: usize) {
 
     #[cfg(target_arch = "x86_64")]
     unsafe {
-        let addr = page_table_frame().start_address().as_u64() as usize;
+        let addr = page_table_frame().start_address().as_usize();
         let flags = Cr3::read().flags();
         Cr3::write(addr, flags);
     }
@@ -247,12 +246,12 @@ fn load_process(id: usize) {
 
 #[cfg(target_arch = "x86_64")]
 fn free_process(page_table_frame: PhysFrame) {
-    let page_table = unsafe { mem::create_page_table(page_table_frame) };
+    let page_table = unsafe { mem::create_page_table(page_table_frame.into()) };
     let mut mapper = unsafe { mem::create_mapper(page_table) };
     mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
     unsafe {
         with_frame_allocator(|allocator| {
-            allocator.deallocate_frame(page_table_frame);
+            allocator.deallocate_frame(page_table_frame.into());
         });
     }
 }
@@ -266,7 +265,7 @@ unsafe fn page_table_frame() -> PhysFrame {
 
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn page_table() -> &'static mut PageTable {
-    mem::create_page_table(page_table_frame())
+    mem::create_page_table(page_table_frame().into())
 }
 
 pub fn syscall_count(number: usize) -> u64 {

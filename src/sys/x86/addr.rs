@@ -97,16 +97,40 @@ impl From<x86_64::PhysAddr> for PhysAddr {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
 impl From<VirtAddr> for x86_64::VirtAddr {
     fn from(addr: VirtAddr) -> Self {
         Self::new(addr.0 as u64)
     }
 }
 
-#[cfg(target_arch = "x86_64")]
 impl From<x86_64::VirtAddr> for VirtAddr {
     fn from(addr: x86_64::VirtAddr) -> Self {
         Self::new(addr.as_u64() as usize)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct PhysFrame(PhysAddr);
+
+impl PhysFrame {
+    pub fn from_start_address(addr: PhysAddr) -> Self {
+        debug_assert_eq!(addr.as_usize() & 0xFFF, 0);
+        Self(addr)
+    }
+
+    pub fn start_address(self) -> PhysAddr {
+        self.0
+    }
+}
+
+impl From<PhysFrame> for x86_64::structures::paging::PhysFrame {
+    fn from(frame: PhysFrame) -> Self {
+        Self::from_start_address(frame.start_address().into()).unwrap()
+    }
+}
+
+impl From<x86_64::structures::paging::PhysFrame> for PhysFrame {
+    fn from(frame: x86_64::structures::paging::PhysFrame) -> Self {
+        Self::from_start_address(frame.start_address().into())
     }
 }
