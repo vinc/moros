@@ -409,9 +409,9 @@ dependencies = [
 
 [[package]]
 name = "multiboot2"
-version = "0.26.1"
+version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb3eaa4cbc37beb91ac69a14e00339f9d44e1a2d35b4e953ebc8ef2bbaadafbe"
+checksum = "15f5b5ac4cbbf051351f2a4ad5d95bcef763b480b603889a6497077427a5a572"
 dependencies = [
  "bitflags 2.11.1",
  "elf",
@@ -424,9 +424,9 @@ dependencies = [
 
 [[package]]
 name = "multiboot2-common"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0afbba14dd18000daaab68fd5be3ccce6d58d1df2f6f2afd4c5e16ababf0dfb"
+checksum = "aed6ce26d8fe318f0d893eda35969bc4a3ea0f99a132b3e4dee26396456414b9"
 dependencies = [
  "ptr_meta",
  "thiserror",
@@ -801,9 +801,9 @@ dependencies = [
 
 [[package]]
 name = "uefi-raw"
-version = "0.15.1"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a36f49db0b04a8dfd246a26ddf8d2526a2ffd8cf946ae7fe603fd0c5fbd2786"
+checksum = "0b86018f5a44661f30db808298ccfcbe326279239c4d17a347c5476065ff72c0"
 dependencies = [
  "bitflags 2.11.1",
  "uguid",
