@@ -1,4 +1,4 @@
-#[cfg(target_arch = "x86_64")] mod bitmap;
+mod bitmap;
 mod heap;
 #[cfg(target_arch = "x86_64")] mod paging;
 mod phys;
