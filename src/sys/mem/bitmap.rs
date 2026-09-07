@@ -17,9 +17,7 @@ impl UsableRegion {
     pub fn new(start_addr: usize, end_addr: usize) -> Self {
         let first_frame = frame_at(start_addr);
         let last_frame = frame_at(end_addr - 1);
-        let a = first_frame.start_address();
-        let b = last_frame.start_address();
-        let frame_count = ((b - a) / 4096) + 1;
+        let frame_count = last_frame.number() - first_frame.number() + 1;
 
         Self {
             first_frame,
@@ -32,7 +30,7 @@ impl UsableRegion {
     }
 
     pub fn last_frame(&self) -> PhysFrame {
-        self.first_frame + (self.frame_count - 1)
+        PhysFrame::from_number(self.first_frame.number() + self.frame_count - 1)
     }
 
     pub fn len(&self) -> usize {
@@ -44,8 +42,7 @@ impl UsableRegion {
     }
 
     pub fn offset(&self, frame: PhysFrame) -> usize {
-        let addr = frame.start_address() - self.first_frame.start_address();
-        addr / 4096
+        frame.number() - self.first_frame.number()
     }
 }
 
@@ -159,8 +156,9 @@ impl BitmapFrameAllocator {
         for i in 0..self.regions_count {
             if let Some(region) = self.usable_regions[i] {
                 if index < base + region.len() {
-                    let frame_offset = index - base;
-                    return Some(region.first_frame() + frame_offset);
+                    let offset = index - base;
+                    let number = region.first_frame().number() + offset;
+                    return Some(PhysFrame::from_number(number));
                 }
                 base += region.len();
             }
@@ -173,8 +171,8 @@ impl BitmapFrameAllocator {
         for i in 0..self.regions_count {
             if let Some(region) = self.usable_regions[i] {
                 if region.contains(frame) {
-                    let frame_offset = region.offset(frame);
-                    return Some(base + frame_offset);
+                    let offset = region.offset(frame);
+                    return Some(base + offset);
                 }
                 base += region.len();
             }

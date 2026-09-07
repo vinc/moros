@@ -1,5 +1,5 @@
 use bit_field::BitField;
-use core::ops::{Add, Sub, Div};
+use core::ops::{Add, Sub};
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct PhysAddr(usize); // NOTE: Uncompatible with x86-32 PAE
@@ -44,24 +44,6 @@ impl Sub<usize> for PhysAddr {
     #[inline]
     fn sub(self, other: usize) -> Self::Output {
         Self::new(self.0.checked_sub(other).expect("underflow"))
-    }
-}
-
-impl Sub<PhysAddr> for PhysAddr {
-    type Output = Self;
-
-    #[inline]
-    fn sub(self, other: Self) -> Self::Output {
-        Self::new(self.0.checked_sub(other.0).expect("underflow"))
-    }
-}
-
-impl Div<usize> for PhysAddr {
-    type Output = usize;
-
-    #[inline]
-    fn div(self, other: usize) -> Self::Output {
-        self.0.checked_div(other).expect("zero")
     }
 }
 
@@ -159,14 +141,13 @@ impl PhysFrame {
     pub fn start_address(self) -> PhysAddr {
         self.0
     }
-}
 
-impl Add<usize> for PhysFrame {
-    type Output = Self;
+    pub fn from_number(number: usize) -> Self {
+        Self::from_start_address(PhysAddr::new(number << 12))
+    }
 
-    #[inline]
-    fn add(self, other: usize) -> Self::Output {
-        Self::from_start_address(self.0 + other * super::PAGE_SIZE)
+    pub fn number(self) -> usize {
+        self.0.as_usize() >> 12
     }
 }
 
