@@ -170,15 +170,6 @@ impl Add<usize> for PhysFrame {
     }
 }
 
-impl Sub<usize> for PhysFrame {
-    type Output = Self;
-
-    #[inline]
-    fn sub(self, other: usize) -> Self::Output {
-        Self::from_start_address(self.0 - other * super::PAGE_SIZE)
-    }
-}
-
 impl From<PhysFrame> for x86_64::structures::paging::PhysFrame {
     fn from(frame: PhysFrame) -> Self {
         Self::from_start_address(frame.start_address().into()).unwrap()
