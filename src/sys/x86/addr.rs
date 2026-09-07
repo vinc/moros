@@ -1,7 +1,7 @@
 use bit_field::BitField;
-use core::ops::{Add, Sub};
+use core::ops::{Add, Sub, Div};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct PhysAddr(usize); // NOTE: Uncompatible with x86-32 PAE
 
 impl PhysAddr {
@@ -24,6 +24,7 @@ impl PhysAddr {
     }
 
     pub fn page_offset(self) -> usize {
+        debug_assert_eq!(super::PAGE_SIZE, 1 << 12);
         self.0.get_bits(0..12)
     }
 }
@@ -34,6 +35,33 @@ impl Add<usize> for PhysAddr {
     #[inline]
     fn add(self, other: usize) -> Self::Output {
         Self::new(self.0.checked_add(other).expect("overflow"))
+    }
+}
+
+impl Sub<usize> for PhysAddr {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, other: usize) -> Self::Output {
+        Self::new(self.0.checked_sub(other).expect("underflow"))
+    }
+}
+
+impl Sub<PhysAddr> for PhysAddr {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, other: Self) -> Self::Output {
+        Self::new(self.0.checked_sub(other.0).expect("underflow"))
+    }
+}
+
+impl Div<usize> for PhysAddr {
+    type Output = usize;
+
+    #[inline]
+    fn div(self, other: usize) -> Self::Output {
+        self.0.checked_div(other).expect("zero")
     }
 }
 
@@ -68,6 +96,7 @@ impl VirtAddr {
     }
 
     pub fn page_offset(self) -> usize {
+        debug_assert_eq!(super::PAGE_SIZE, 1 << 12);
         self.0.get_bits(0..12)
     }
 }
@@ -114,10 +143,14 @@ impl From<x86_64::VirtAddr> for VirtAddr {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct PhysFrame(PhysAddr);
 
 impl PhysFrame {
+    pub fn containing_address(addr: PhysAddr) -> Self {
+        Self::from_start_address(addr - addr.page_offset())
+    }
+
     pub fn from_start_address(addr: PhysAddr) -> Self {
         debug_assert_eq!(addr.page_offset(), 0);
         Self(addr)
@@ -125,6 +158,24 @@ impl PhysFrame {
 
     pub fn start_address(self) -> PhysAddr {
         self.0
+    }
+}
+
+impl Add<usize> for PhysFrame {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, other: usize) -> Self::Output {
+        Self::from_start_address(self.0 + other * super::PAGE_SIZE)
+    }
+}
+
+impl Sub<usize> for PhysFrame {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, other: usize) -> Self::Output {
+        Self::from_start_address(self.0 - other * super::PAGE_SIZE)
     }
 }
 
@@ -137,5 +188,21 @@ impl From<PhysFrame> for x86_64::structures::paging::PhysFrame {
 impl From<x86_64::structures::paging::PhysFrame> for PhysFrame {
     fn from(frame: x86_64::structures::paging::PhysFrame) -> Self {
         Self::from_start_address(frame.start_address().into())
+    }
+}
+
+#[test_case]
+fn test_phys_frame() {
+    let values = [
+        (0x0000, 0x0000),
+        (0x1000, 0x1000),
+        (0xA000, 0xA000),
+        (0xAFFF, 0xA000),
+    ];
+    for (addr1, addr2) in values {
+        assert_eq!(
+            PhysFrame::containing_address(PhysAddr::new(addr1)).start_address(),
+            PhysAddr::new(addr2)
+        );
     }
 }

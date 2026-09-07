@@ -1,13 +1,10 @@
 use crate::sys::boot::{MemoryMap, MemoryRegionType};
-use crate::sys::x86::addr::PhysAddr;
+use crate::sys::x86::addr::{PhysAddr, PhysFrame};
 
 use core::{cmp, slice};
 use spin::{Once, Mutex};
 use bit_field::BitField;
-use x86_64::structures::paging::{
-    FrameAllocator, FrameDeallocator,
-    PhysFrame, Size4KiB
-};
+use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, Size4KiB};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct UsableRegion {
@@ -22,7 +19,7 @@ impl UsableRegion {
         let last_frame = frame_at(end_addr - 1);
         let a = first_frame.start_address();
         let b = last_frame.start_address();
-        let frame_count = ((b - a) / 4096) as usize + 1;
+        let frame_count = ((b - a) / 4096) + 1;
 
         Self {
             first_frame,
@@ -35,7 +32,7 @@ impl UsableRegion {
     }
 
     pub fn last_frame(&self) -> PhysFrame {
-        self.first_frame + (self.frame_count - 1) as u64
+        self.first_frame + (self.frame_count - 1)
     }
 
     pub fn len(&self) -> usize {
@@ -48,12 +45,12 @@ impl UsableRegion {
 
     pub fn offset(&self, frame: PhysFrame) -> usize {
         let addr = frame.start_address() - self.first_frame.start_address();
-        (addr / 4096) as usize
+        addr / 4096
     }
 }
 
-fn frame_at(addr: usize) -> PhysFrame<Size4KiB> {
-    PhysFrame::containing_address(PhysAddr::new(addr).into())
+fn frame_at(addr: usize) -> PhysFrame {
+    PhysFrame::containing_address(PhysAddr::new(addr))
 }
 
 static FRAME_ALLOCATOR: Once<Mutex<BitmapFrameAllocator>> = Once::new();
@@ -163,7 +160,7 @@ impl BitmapFrameAllocator {
             if let Some(region) = self.usable_regions[i] {
                 if index < base + region.len() {
                     let frame_offset = index - base;
-                    return Some(region.first_frame() + frame_offset as u64);
+                    return Some(region.first_frame() + frame_offset);
                 }
                 base += region.len();
             }
@@ -196,9 +193,7 @@ impl BitmapFrameAllocator {
         let bit_index = index % 64;
         self.bitmap[word_index].set_bit(bit_index, allocated);
     }
-}
 
-unsafe impl FrameAllocator<Size4KiB> for BitmapFrameAllocator {
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
         for i in 0..self.frames_count {
             let index = (self.next_free_index + i) % self.frames_count;
@@ -210,10 +205,8 @@ unsafe impl FrameAllocator<Size4KiB> for BitmapFrameAllocator {
         }
         None // No free frames
     }
-}
 
-impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
-    unsafe fn deallocate_frame(&mut self, frame: PhysFrame<Size4KiB>) {
+    unsafe fn deallocate_frame(&mut self, frame: PhysFrame) {
         if let Some(index) = self.frame_to_index(frame) {
             if self.is_frame_allocated(index) {
                 self.set_frame_allocated(index, false);
@@ -224,6 +217,18 @@ impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
         } else {
             //panic!("Deallocating a frame not managed by the allocator");
         }
+    }
+}
+
+unsafe impl FrameAllocator<Size4KiB> for BitmapFrameAllocator {
+    fn allocate_frame(&mut self) -> Option<x86_64::structures::paging::PhysFrame> {
+        self.allocate_frame().map(|f| f.into())
+    }
+}
+
+impl FrameDeallocator<Size4KiB> for BitmapFrameAllocator {
+    unsafe fn deallocate_frame(&mut self, frame: x86_64::structures::paging::PhysFrame<Size4KiB>) {
+        self.deallocate_frame(frame.into())
     }
 }
 
