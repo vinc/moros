@@ -45,6 +45,7 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
         for region in memory_map_tag.memory_areas() {
             let mut addr = region.start_address();
             let mut size = region.size();
+            let mut clipped = 0;
 
             // Skip region above 4 GB
             if addr >= limit {
@@ -52,6 +53,12 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
                 let kind = K::Unaddressable;
                 memory_map.add(MemoryRegion::new(addr, size, kind));
                 continue;
+            }
+
+            // Clip region below 4 GB
+            if addr + size > limit {
+                clipped = (addr + size) - limit;
+                size -= clipped;
             }
 
             let kind = match region.typ().into() {
@@ -70,6 +77,13 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
 
             memory_map.add(MemoryRegion::new(addr, size, kind));
 
+            // Mark the rest of the clipped region above 4 GB
+            if clipped > 0 {
+                let addr = limit;
+                let size = clipped;
+                let kind = K::Unaddressable;
+                memory_map.add(MemoryRegion::new(addr, size, kind));
+            }
         };
     }
     memory_map
