@@ -57,7 +57,7 @@ pub struct MemoryMap {
 }
 
 impl MemoryMap {
-    pub const CAPACITY: usize = 32;
+    pub const CAPACITY: usize = 64;
 
     pub fn new() -> Self {
         let empty = MemoryRegion::new(0, 0, MemoryRegionType::Reserved);
