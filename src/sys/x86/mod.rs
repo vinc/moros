@@ -6,7 +6,7 @@ pub mod seg;
 
 use core::arch::asm;
 
-const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 4096;
 
 /// Halts the CPU until the next interrupt
 #[inline]

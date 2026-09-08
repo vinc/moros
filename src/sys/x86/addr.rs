@@ -47,7 +47,7 @@ impl Sub<usize> for PhysAddr {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct VirtAddr(usize);
 
 impl VirtAddr {
@@ -164,6 +164,22 @@ impl From<x86_64::structures::paging::PhysFrame> for PhysFrame {
 }
 
 #[test_case]
+fn test_phys_addr() {
+    assert_eq!(PhysAddr::new(0x1234).as_usize(), 0x1234);
+    assert_eq!(PhysAddr::new(0x1234).page_offset(), 0x234);
+    assert_eq!(PhysAddr::new(0x1000) + 0x0234, PhysAddr::new(0x1234));
+    assert_eq!(PhysAddr::new(0x1234) - 0x0234, PhysAddr::new(0x1000));
+}
+
+#[test_case]
+fn test_virt_addr() {
+    assert_eq!(VirtAddr::new(0x1234).as_usize(), 0x1234);
+    assert_eq!(VirtAddr::new(0x1234).page_offset(), 0x234);
+    assert_eq!(VirtAddr::new(0x1000) + 0x0234, VirtAddr::new(0x1234));
+    assert_eq!(VirtAddr::new(0x1234) - 0x0234, VirtAddr::new(0x1000));
+}
+
+#[test_case]
 fn test_phys_frame() {
     let values = [
         (0x0000, 0x0000),
@@ -175,6 +191,13 @@ fn test_phys_frame() {
         assert_eq!(
             PhysFrame::containing_address(PhysAddr::new(addr1)).start_address(),
             PhysAddr::new(addr2)
+        );
+    }
+
+    for i in 0..10 {
+        assert_eq!(
+            PhysFrame::from_number(i).start_address(),
+            PhysAddr::new(i * super::PAGE_SIZE)
         );
     }
 }

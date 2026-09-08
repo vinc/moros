@@ -117,11 +117,13 @@ pub unsafe fn load_tss(sel: SegmentSelector) {
     asm!("ltr {:x}", in(reg) sel.bits, options(nostack, preserves_flags));
 }
 
-#[cfg(target_arch = "x86_64")]
 #[test_case]
 fn test_cr3() {
     let cr3 = Cr3::read();
+
+    #[cfg(target_arch = "x86_64")]
     assert_ne!(cr3.addr(), 0);
+
     assert_eq!(cr3.addr() & 0xFFF, 0);
     assert_eq!(cr3.flags() & !0xFFF, 0);
 
