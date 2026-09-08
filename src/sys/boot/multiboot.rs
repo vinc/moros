@@ -41,9 +41,19 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
     if let Some(memory_map_tag) = boot_info.memory_map_tag() {
         use multiboot2::MemoryAreaType as B;
         use super::MemoryRegionType as K;
+        let limit = 1 << 32; // 4 GB
         for region in memory_map_tag.memory_areas() {
             let addr = region.start_address();
             let size = region.size();
+
+            // Skip region above 4 GB
+            if addr >= limit {
+                let size = region.size();
+                let kind = K::Unaddressable;
+                memory_map.add(MemoryRegion::new(addr, size, kind));
+                continue;
+            }
+
             let kind = match region.typ().into() {
                 B::Available => K::Usable,
                 _            => K::Reserved,

@@ -25,6 +25,7 @@ pub enum MemoryRegionType {
     Defective,
     Bootloader,
     Kernel,
+    Unaddressable,
     Unknown(u32),
 }
 
@@ -42,6 +43,10 @@ impl MemoryRegion {
 
     pub fn is_usable(&self) -> bool {
         self.kind == MemoryRegionType::Usable
+    }
+
+    pub fn is_addressable(&self) -> bool {
+        self.kind != MemoryRegionType::Unaddressable
     }
 }
 

@@ -49,14 +49,18 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
                 last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
             );
             if start_addr < (1 << 20) {
-                memory_size += hole as usize; // BIOS memory
+                memory_size += hole; // BIOS memory
             }
         }
         log!(
             "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
             start_addr, end_addr - 1, region.kind //, size >> 10
         );
-        memory_size += region.size as usize;
+        if region.is_addressable() {
+            // On i686 the maximum amount of memory addressable is around 3 GB
+            // because some of it will be mapped above the 4 GB limit.
+            memory_size += region.size;
+        }
         last_end_addr = end_addr;
     }
 
@@ -67,7 +71,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     log!("RAM {} MB", memory_size >> 20);
 
     // TODO: Only count usable memory and use SMBIOS to report the RAM
-    MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
+    MEMORY_SIZE.store(memory_size as usize, Ordering::Relaxed);
 
     PHYS_MEM_OFFSET.call_once(|| offset as usize);
 
@@ -80,10 +84,9 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
         let mut heap_addr = 0;
         let mut heap_size = 0;
         for region in memory_map.iter() {
-            let free = region.is_usable();
             let addr = region.addr;
             let size = region.size / 2;
-            if free && addr + size <= (1 << 32) && size > heap_size {
+            if region.is_usable() && size > heap_size {
                 heap_addr = addr;
                 heap_size = size;
             }
