@@ -66,6 +66,15 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
                 _            => K::Reserved,
             };
 
+            // Reserve the first page
+            if addr == 0 && kind == K::Usable {
+                let page_size = sys::x86::PAGE_SIZE as u64;
+                debug_assert!(page_size < size);
+                memory_map.add(MemoryRegion::new(0, page_size, K::Reserved));
+                addr += page_size;
+                size -= page_size;
+            }
+
             // Reserve the area used by the kernel
             if addr == kernel_start() && kind == K::Usable {
                 let kernel_size = kernel_end() - kernel_start();
