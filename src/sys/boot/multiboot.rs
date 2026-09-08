@@ -43,8 +43,8 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
         use super::MemoryRegionType as K;
         let limit = 1 << 32; // 4 GB
         for region in memory_map_tag.memory_areas() {
-            let addr = region.start_address();
-            let size = region.size();
+            let mut addr = region.start_address();
+            let mut size = region.size();
 
             // Skip region above 4 GB
             if addr >= limit {
@@ -59,21 +59,17 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
                 _            => K::Reserved,
             };
 
+            // Reserve the area used by the kernel
             if addr == kernel_start() && kind == K::Usable {
-                // Kernel
-                let k_addr = kernel_start();
-                let k_size = kernel_end() - addr;
-                let k_kind = K::Kernel;
-                memory_map.add(MemoryRegion::new(k_addr, k_size, k_kind));
-
-                // Usable
-                let u_addr = k_addr + k_size;
-                let u_size = size - k_size;
-                let u_kind = K::Usable;
-                memory_map.add(MemoryRegion::new(u_addr, u_size, u_kind));
-            } else {
-                memory_map.add(MemoryRegion::new(addr, size, kind));
+                let kernel_size = kernel_end() - kernel_start();
+                debug_assert!(kernel_size < size);
+                memory_map.add(MemoryRegion::new(addr, kernel_size, K::Kernel));
+                addr += kernel_size;
+                size -= kernel_size;
             }
+
+            memory_map.add(MemoryRegion::new(addr, size, kind));
+
         };
     }
     memory_map
