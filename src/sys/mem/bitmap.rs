@@ -110,7 +110,6 @@ impl BitmapFrameAllocator {
             if bitmap_addr.is_none() && region_size >= bitmap_size {
                 bitmap_addr = Some(region_start);
 
-                // TODO: Check alignment
                 let addr = super::phys_to_virt(PhysAddr::new(region_start));
                 let ptr = addr.as_mut_ptr();
                 let len = bitmap_size;
