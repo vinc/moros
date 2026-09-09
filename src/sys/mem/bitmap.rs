@@ -1,5 +1,5 @@
 use crate::sys::boot::{MemoryMap, MemoryRegionType};
-use crate::sys::x86::addr::{PhysAddr, PhysFrame};
+use crate::sys::x86::addr::{align_up, PhysAddr, PhysFrame};
 
 use core::{cmp, slice};
 use spin::{Once, Mutex};
@@ -70,10 +70,12 @@ impl BitmapFrameAllocator {
     pub fn init(memory_map: &MemoryMap) -> Self {
         let mut bitmap_addr = None;
 
+        // Compute an upper bound on the number of usable frames, knowing that
+        // the bitmap will occupy some of them and the regions may be aligned
+        // inward.
         let frames_count: usize = memory_map.iter().map(|region| {
             if region.kind == MemoryRegionType::Usable {
                 let size = region.size;
-                debug_assert_eq!(size % 4096, 0);
                 (size / 4096) as usize
             } else {
                 0
@@ -95,9 +97,14 @@ impl BitmapFrameAllocator {
                 continue;
             }
 
-            let region_size = region.size as usize;
-            let region_start = region.addr as usize;
-            let region_end = region_start + region_size;
+            let region_start = region.aligned_start();
+            let region_end = region.aligned_end();
+
+            if region_end <= region_start {
+                continue;
+            }
+
+            let region_size = region_end - region_start;
 
             // Try to place the bitmap in the region
             if bitmap_addr.is_none() && region_size >= bitmap_size {
@@ -116,7 +123,7 @@ impl BitmapFrameAllocator {
             // Calculate usable portion
             let (usable_start, usable_end) = match bitmap_addr {
                 Some(addr) if region_start == addr => {
-                    let bitmap_end = region_start + bitmap_size;
+                    let bitmap_end = align_up(region_start + bitmap_size);
                     if bitmap_end >= region_end {
                         continue; // Entire region consumed by the bitmap
                     }

@@ -48,6 +48,16 @@ impl MemoryRegion {
     pub fn is_addressable(&self) -> bool {
         self.kind != MemoryRegionType::Unaddressable
     }
+
+    pub fn aligned_start(&self) -> usize {
+        debug_assert!(self.is_usable()); // Unaddressable would overflow
+        crate::sys::x86::addr::align_up(self.addr as usize)
+    }
+
+    pub fn aligned_end(&self) -> usize {
+        debug_assert!(self.is_usable()); // Unaddressable would overflow
+        crate::sys::x86::addr::align_down((self.addr + self.size) as usize)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]

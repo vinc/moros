@@ -1,6 +1,14 @@
 use bit_field::BitField;
 use core::ops::{Add, Sub};
 
+pub fn align_up(addr: usize) -> usize {
+    addr.next_multiple_of(super::PAGE_SIZE)
+}
+
+pub fn align_down(addr: usize) -> usize {
+    addr - (addr % super::PAGE_SIZE)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct PhysAddr(usize); // NOTE: Uncompatible with x86-32 PAE
 
@@ -130,7 +138,7 @@ pub struct PhysFrame(PhysAddr);
 
 impl PhysFrame {
     pub fn containing_address(addr: PhysAddr) -> Self {
-        Self::from_start_address(addr - addr.page_offset())
+        Self::from_start_address(addr - addr.page_offset()) // Align down
     }
 
     pub fn from_start_address(addr: PhysAddr) -> Self {
