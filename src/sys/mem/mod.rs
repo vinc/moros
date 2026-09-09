@@ -43,14 +43,8 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
         let start_addr = region.addr;
         let end_addr = region.addr + region.size;
         let hole = start_addr - last_end_addr;
-        if hole > 0 {
-            log!(
-                "MEM [{:#016X}-{:#016X}] {}", // "({} KB)"
-                last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
-            );
-            if start_addr < (1 << 20) {
-                memory_size += hole; // BIOS memory
-            }
+        if hole > 0 && start_addr < (1 << 20) {
+            memory_size += hole; // Count BIOS memory
         }
         log!(
             "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
