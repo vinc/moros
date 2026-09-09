@@ -59,7 +59,7 @@ pub fn init_frame_allocator(memory_map: &MemoryMap) {
 }
 
 pub struct BitmapFrameAllocator {
-    bitmap: &'static mut [u64],
+    bitmap: &'static mut [u8],
     next_free_index: usize,
     usable_regions: [Option<UsableRegion>; MemoryMap::CAPACITY],
     regions_count: usize,
@@ -79,7 +79,8 @@ impl BitmapFrameAllocator {
                 0
             }
         }).sum();
-        let bitmap_size = ((frames_count + 63) / 64) * 8;
+
+        let bitmap_size = frames_count.div_ceil(8); // 8 frames per byte
 
         let mut allocator = Self {
             bitmap: &mut [],
@@ -105,7 +106,7 @@ impl BitmapFrameAllocator {
                 // TODO: Check alignment
                 let addr = super::phys_to_virt(PhysAddr::new(region_start));
                 let ptr = addr.as_mut_ptr();
-                let len = bitmap_size / 8;
+                let len = bitmap_size;
                 unsafe {
                     allocator.bitmap = slice::from_raw_parts_mut(ptr, len);
                     allocator.bitmap.fill(0);
@@ -181,15 +182,11 @@ impl BitmapFrameAllocator {
     }
 
     fn is_frame_allocated(&self, index: usize) -> bool {
-        let word_index = index / 64;
-        let bit_index = index % 64;
-        self.bitmap[word_index].get_bit(bit_index)
+        self.bitmap[index / 8].get_bit(index % 8)
     }
 
     fn set_frame_allocated(&mut self, index: usize, allocated: bool) {
-        let word_index = index / 64;
-        let bit_index = index % 64;
-        self.bitmap[word_index].set_bit(bit_index, allocated);
+        self.bitmap[index / 8].set_bit(index % 8, allocated);
     }
 
     fn allocate_frame(&mut self) -> Option<PhysFrame> {
