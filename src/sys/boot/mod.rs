@@ -84,11 +84,11 @@ impl MemoryMap {
         }
     }
 
-    pub fn as_slice(&self) -> &[MemoryRegion] {
-        &self.regions[..self.len]
+    pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
+        self.regions[..self.len].iter()
     }
 
-    pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
-        self.as_slice().iter()
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, MemoryRegion> {
+        self.regions[..self.len].iter_mut()
     }
 }
