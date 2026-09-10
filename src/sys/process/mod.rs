@@ -22,7 +22,7 @@ pub use table::{
     dir,
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
-    registers, set_registers,
+    syscall_registers, set_syscall_registers,
     interrupt_registers, set_interrupt_registers,
 };
 
@@ -75,7 +75,7 @@ pub fn ptr_from_addr(addr: usize) -> *mut u8 {
 #[cfg(target_arch = "x86")]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Registers {
+pub struct SyscallRegisters {
     // Linux i386 convention (except esi reserved by LLVM)
     pub eax: usize,
     pub ebx: usize,
@@ -87,7 +87,7 @@ pub struct Registers {
 #[cfg(target_arch = "x86_64")]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Registers {
+pub struct SyscallRegisters {
     // System V AMD64 ABI convention
     pub rax: usize,
     pub rdi: usize,
@@ -100,7 +100,7 @@ pub struct Registers {
     pub r11: usize,
 }
 
-impl Registers {
+impl SyscallRegisters {
     #[inline]
     fn as_slice(&self) -> &[usize] {
         let len = core::mem::size_of::<Self>() / core::mem::size_of::<usize>();
@@ -118,7 +118,7 @@ impl Registers {
     }
 }
 
-impl Index<usize> for Registers {
+impl Index<usize> for SyscallRegisters {
     type Output = usize;
 
     #[inline]
@@ -127,7 +127,7 @@ impl Index<usize> for Registers {
     }
 }
 
-impl IndexMut<usize> for Registers {
+impl IndexMut<usize> for SyscallRegisters {
     #[inline]
     fn index_mut(&mut self, i: usize) -> &mut usize {
         &mut self.as_mut_slice()[i]
@@ -196,7 +196,7 @@ impl ProcessStats {
 pub struct Process {
     parent_id: usize,
     interrupt_registers: Option<InterruptRegisters>,
-    registers: Registers,
+    syscall_registers: SyscallRegisters,
     stats: ProcessStats,
     data: ProcessData,
     ctx: ProcessContext,
@@ -207,7 +207,7 @@ impl Process {
         Self {
             parent_id: 0,
             interrupt_registers: None,
-            registers: Registers::default(),
+            syscall_registers: SyscallRegisters::default(),
             stats: ProcessStats::new(),
             data: ProcessData::new("/", None),
             ctx: ProcessContext {
@@ -283,7 +283,7 @@ pub fn increment_syscall_count(number: usize) {
 #[cfg(target_arch = "x86")]
 #[test_case]
 fn test_registers() {
-    let mut regs = Registers::default();
+    let mut regs = SyscallRegisters::default();
     regs.eax = 1;
     regs.ebx = 2;
     regs.ecx = 3;
@@ -298,7 +298,7 @@ fn test_registers() {
 #[cfg(target_arch = "x86_64")]
 #[test_case]
 fn test_registers() {
-    let mut regs = Registers::default();
+    let mut regs = SyscallRegisters::default();
     regs.rax = 1;
     regs.rdi = 2;
     regs.rsi = 3;

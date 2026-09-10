@@ -1,5 +1,5 @@
 use super::Process;
-use super::Registers;
+use super::SyscallRegisters;
 use super::MAX_HANDLES;
 
 use crate::sys::fs::Resource;
@@ -120,16 +120,16 @@ pub fn delete_handle(handle: usize) {
     proc.data.handles[handle] = None;
 }
 
-pub fn registers() -> Registers {
+pub fn syscall_registers() -> SyscallRegisters {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
-    proc.registers
+    proc.syscall_registers
 }
 
-pub fn set_registers(regs: Registers) {
+pub fn set_syscall_registers(regs: SyscallRegisters) {
     let mut table = PROCESS_TABLE.write();
     let proc = current_process_mut(&mut table);
-    proc.registers = regs
+    proc.syscall_registers = regs
 }
 
 pub fn interrupt_registers() -> InterruptRegisters {
