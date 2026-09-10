@@ -4,7 +4,7 @@ use core::arch::asm;
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-pub struct InterruptFrame {
+pub struct InterruptRegisters {
     ip: usize,
     cs: usize,
     flags: usize,
@@ -58,12 +58,12 @@ fn are_interrupts_enabled() -> bool {
 }
 
 #[test_case]
-fn test_interrupt_frame() {
+fn test_interrupt_registers() {
     #[cfg(target_arch = "x86")]
-    assert_eq!(size_of::<InterruptFrame>(), 3 * size_of::<usize>());
+    assert_eq!(size_of::<InterruptRegisters>(), 3 * size_of::<usize>());
 
     #[cfg(target_arch = "x86_64")]
-    assert_eq!(size_of::<InterruptFrame>(), 5 * size_of::<usize>());
+    assert_eq!(size_of::<InterruptRegisters>(), 5 * size_of::<usize>());
 }
 
 #[test_case]

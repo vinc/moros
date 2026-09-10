@@ -23,7 +23,7 @@ pub use table::{
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
     registers, set_registers,
-    interrupt_frame, set_interrupt_frame,
+    interrupt_registers, set_interrupt_registers,
 };
 
 use table::{
@@ -44,7 +44,7 @@ use crate::sys::mem::with_frame_allocator;
 
 use crate::sys::syscall;
 use crate::sys::x86::addr::PhysFrame;
-use crate::sys::x86::int::InterruptFrame;
+use crate::sys::x86::int::InterruptRegisters;
 use crate::sys::x86::reg::Cr3;
 
 use alloc::boxed::Box;
@@ -195,7 +195,7 @@ impl ProcessStats {
 
 pub struct Process {
     parent_id: usize,
-    interrupt_frame: Option<InterruptFrame>,
+    interrupt_registers: Option<InterruptRegisters>,
     registers: Registers,
     stats: ProcessStats,
     data: ProcessData,
@@ -206,7 +206,7 @@ impl Process {
     fn new() -> Self {
         Self {
             parent_id: 0,
-            interrupt_frame: None,
+            interrupt_registers: None,
             registers: Registers::default(),
             stats: ProcessStats::new(),
             data: ProcessData::new("/", None),

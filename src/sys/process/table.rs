@@ -3,7 +3,7 @@ use super::Registers;
 use super::MAX_HANDLES;
 
 use crate::sys::fs::Resource;
-use crate::sys::x86::int::InterruptFrame;
+use crate::sys::x86::int::InterruptRegisters;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -132,16 +132,16 @@ pub fn set_registers(regs: Registers) {
     proc.registers = regs
 }
 
-pub fn interrupt_frame() -> InterruptFrame {
+pub fn interrupt_registers() -> InterruptRegisters {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
-    proc.interrupt_frame.unwrap()
+    proc.interrupt_registers.unwrap()
 }
 
-pub fn set_interrupt_frame(frame: InterruptFrame) {
+pub fn set_interrupt_registers(regs: InterruptRegisters) {
     let mut table = PROCESS_TABLE.write();
     let proc = current_process_mut(&mut table);
-    proc.interrupt_frame = Some(frame);
+    proc.interrupt_registers = Some(regs);
 }
 
 pub unsafe fn alloc(layout: Layout) -> *mut u8 {

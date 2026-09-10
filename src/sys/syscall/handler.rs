@@ -1,6 +1,6 @@
 use crate::sys::process;
 use crate::sys::process::Registers;
-use crate::sys::x86::int::InterruptFrame;
+use crate::sys::x86::int::InterruptRegisters;
 
 use core::arch::naked_asm;
 
@@ -15,7 +15,7 @@ pub extern "C" fn handler() -> ! {
         "push ebx",
         "push eax",
         "mov eax, esp",           // Registers
-        "lea edx, [esp + 5 * 4]", // InterruptFrame (5 registers * 4 bytes)
+        "lea edx, [esp + 5 * 4]", // InterruptRegisters (5 * 4 bytes)
         "sti",                    // Enable interrupts during syscall
         "push eax",               // Arg #2
         "push edx",               // Arg #1
@@ -47,7 +47,7 @@ pub extern "C" fn handler() -> ! {
         "push rdi",
         "push rax",
         "mov rsi, rsp",           // Arg #2: Registers
-        "lea rdi, [rsp + 9 * 8]", // Arg #1: InterruptFrame (9 registers * 8 bytes)
+        "lea rdi, [rsp + 9 * 8]", // Arg #1: InterruptRegisters (9 * 8 bytes)
         "sti",                    // Enable interrupts during syscall
         "call {}",
         "cli",
@@ -66,7 +66,7 @@ pub extern "C" fn handler() -> ! {
 }
 
 extern "C" fn inner(
-    frame: &mut InterruptFrame,
+    interrupt_registers: &mut InterruptRegisters,
     regs: &mut Registers
 ) {
     let n    = regs[0];
@@ -77,7 +77,7 @@ extern "C" fn inner(
 
     // Backup CPU context before spawning a process
     if n == super::number::SPAWN {
-        process::set_interrupt_frame(*frame);
+        process::set_interrupt_registers(*interrupt_registers);
         process::set_registers(*regs);
     }
 
@@ -85,7 +85,7 @@ extern "C" fn inner(
 
     // Restore CPU context before exiting a process
     if n == super::number::EXIT {
-        *frame = process::interrupt_frame();
+        *interrupt_registers = process::interrupt_registers();
         *regs = process::registers();
     }
 
