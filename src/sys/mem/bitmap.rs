@@ -1,4 +1,6 @@
-use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
+use crate::sys::boot::{MemoryMap, MemoryRegionType};
+use crate::sys::x86::addr::PhysAddr;
+
 use core::{cmp, slice};
 use spin::{Once, Mutex};
 use bit_field::BitField;
@@ -6,7 +8,6 @@ use x86_64::structures::paging::{
     FrameAllocator, FrameDeallocator,
     PhysFrame, Size4KiB
 };
-use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct UsableRegion {
@@ -16,7 +17,7 @@ struct UsableRegion {
 
 impl UsableRegion {
     // NOTE: end_addr is exclusive
-    pub fn new(start_addr: u64, end_addr: u64) -> Self {
+    pub fn new(start_addr: usize, end_addr: usize) -> Self {
         let first_frame = frame_at(start_addr);
         let last_frame = frame_at(end_addr - 1);
         let a = first_frame.start_address();
@@ -51,35 +52,33 @@ impl UsableRegion {
     }
 }
 
-fn frame_at(addr: u64) -> PhysFrame<Size4KiB> {
-    PhysFrame::containing_address(PhysAddr::new(addr))
+fn frame_at(addr: usize) -> PhysFrame<Size4KiB> {
+    PhysFrame::containing_address(PhysAddr::new(addr).into())
 }
 
 static FRAME_ALLOCATOR: Once<Mutex<BitmapFrameAllocator>> = Once::new();
 
-pub fn init_frame_allocator(memory_map: &'static MemoryMap) {
+pub fn init_frame_allocator(memory_map: &MemoryMap) {
     FRAME_ALLOCATOR.call_once(|| {
         Mutex::new(BitmapFrameAllocator::init(memory_map))
     });
 }
 
-const MAX_REGIONS: usize = 32;
-
 pub struct BitmapFrameAllocator {
     bitmap: &'static mut [u64],
     next_free_index: usize,
-    usable_regions: [Option<UsableRegion>; MAX_REGIONS],
+    usable_regions: [Option<UsableRegion>; MemoryMap::CAPACITY],
     regions_count: usize,
     frames_count: usize,
 }
 
 impl BitmapFrameAllocator {
-    pub fn init(memory_map: &'static MemoryMap) -> Self {
+    pub fn init(memory_map: &MemoryMap) -> Self {
         let mut bitmap_addr = None;
 
         let frames_count: usize = memory_map.iter().map(|region| {
-            if region.region_type == MemoryRegionType::Usable {
-                let size = region.range.end_addr() - region.range.start_addr();
+            if region.kind == MemoryRegionType::Usable {
+                let size = region.size;
                 debug_assert_eq!(size % 4096, 0);
                 (size / 4096) as usize
             } else {
@@ -91,19 +90,19 @@ impl BitmapFrameAllocator {
         let mut allocator = Self {
             bitmap: &mut [],
             next_free_index: 0,
-            usable_regions: [None; MAX_REGIONS],
+            usable_regions: [None; MemoryMap::CAPACITY],
             regions_count: 0,
             frames_count: 0,
         };
 
         for region in memory_map.iter() {
-            if region.region_type != MemoryRegionType::Usable {
+            if region.kind != MemoryRegionType::Usable {
                 continue;
             }
 
-            let region_start = region.range.start_addr();
-            let region_end = region.range.end_addr();
-            let region_size = (region_end - region_start) as usize;
+            let region_size = region.size as usize;
+            let region_start = region.addr as usize;
+            let region_end = region_start + region_size;
 
             // Try to place the bitmap in the region
             if bitmap_addr.is_none() && region_size >= bitmap_size {
@@ -122,7 +121,7 @@ impl BitmapFrameAllocator {
             // Calculate usable portion
             let (usable_start, usable_end) = match bitmap_addr {
                 Some(addr) if region_start == addr => {
-                    let bitmap_end = region_start + bitmap_size as u64;
+                    let bitmap_end = region_start + bitmap_size;
                     if bitmap_end >= region_end {
                         continue; // Entire region consumed by the bitmap
                     }
@@ -132,7 +131,7 @@ impl BitmapFrameAllocator {
             };
 
             if usable_end - usable_start >= 4096 {
-                if allocator.regions_count >= MAX_REGIONS {
+                if allocator.regions_count >= MemoryMap::CAPACITY {
                     debug!("MEM: Could not add usable region");
                     break;
                 }
@@ -148,6 +147,10 @@ impl BitmapFrameAllocator {
         }
 
         allocator
+    }
+
+    pub fn used_frames(&self) -> usize {
+        self.bitmap.iter().map(|w| w.count_ones() as usize).sum()
     }
 
     fn index_to_frame(&self, index: usize) -> Option<PhysFrame> {

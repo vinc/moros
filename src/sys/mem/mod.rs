@@ -1,41 +1,47 @@
-mod bitmap;
+#[cfg(target_arch = "x86_64")] mod bitmap;
 mod heap;
-mod paging;
+#[cfg(target_arch = "x86_64")] mod paging;
 mod phys;
 
+#[cfg(target_arch = "x86_64")]
 pub use bitmap::{frame_allocator, with_frame_allocator};
-pub use paging::{alloc_pages, free_pages, active_page_table, create_page_table};
+
+#[cfg(target_arch = "x86_64")]
+pub use paging::{
+    alloc_pages, free_pages, active_page_table, create_page_table, create_mapper
+};
+
 pub use phys::{phys_addr, PhysBuf};
 
-use crate::sys;
+use crate::sys::boot::MemoryMap;
+use crate::sys::pic;
 
-use bootloader::bootinfo::{BootInfo, MemoryMap};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
-use x86_64::structures::paging::{
-    OffsetPageTable, Translate,
-};
-use x86_64::{PhysAddr, VirtAddr};
+
+#[cfg(target_arch = "x86_64")]
+use x86_64::structures::paging::{OffsetPageTable, Translate};
+
+use crate::sys::x86::addr::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]
+#[cfg(target_arch = "x86_64")]
 static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 
-static PHYS_MEM_OFFSET: Once<u64> = Once::new();
-static MEMORY_MAP: Once<&MemoryMap> = Once::new();
+static PHYS_MEM_OFFSET: Once<usize> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-pub fn init(boot_info: &'static BootInfo) {
+pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
     // the keyboard interrupt that would create a panic if a key is pressed
     // during memory allocation otherwise.
-    sys::idt::set_irq_mask(1);
+    pic::mask(pic::KBD_IRQ);
 
     let mut memory_size = 0;
     let mut last_end_addr = 0;
-    for region in boot_info.memory_map.iter() {
-        let start_addr = region.range.start_addr();
-        let end_addr = region.range.end_addr();
-        let size = end_addr - start_addr;
+    for region in memory_map.iter() {
+        let start_addr = region.addr;
+        let end_addr = region.addr + region.size;
         let hole = start_addr - last_end_addr;
         if hole > 0 {
             log!(
@@ -48,9 +54,9 @@ pub fn init(boot_info: &'static BootInfo) {
         }
         log!(
             "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
-            start_addr, end_addr - 1, region.region_type //, size >> 10
+            start_addr, end_addr - 1, region.kind //, size >> 10
         );
-        memory_size += size as usize;
+        memory_size += region.size as usize;
         last_end_addr = end_addr;
     }
 
@@ -60,28 +66,56 @@ pub fn init(boot_info: &'static BootInfo) {
     // system. It doesn't affect the count in megabytes.
     log!("RAM {} MB", memory_size >> 20);
 
+    // TODO: Only count usable memory and use SMBIOS to report the RAM
     MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
 
-    #[allow(static_mut_refs)]
-    unsafe {
-        MAPPER.call_once(|| OffsetPageTable::new(
-            paging::active_page_table(),
-            VirtAddr::new(boot_info.physical_memory_offset),
-        ))
-    };
+    PHYS_MEM_OFFSET.call_once(|| offset as usize);
 
-    PHYS_MEM_OFFSET.call_once(|| boot_info.physical_memory_offset);
-    MEMORY_MAP.call_once(|| &boot_info.memory_map);
-    bitmap::init_frame_allocator(&boot_info.memory_map);
-    heap::init_heap().expect("heap initialization failed");
+    // TODO: Pick a space in the lowest usable region for DMA
 
-    sys::idt::clear_irq_mask(1);
+    #[cfg(target_arch = "x86")]
+    {
+        // Paging is not enabled on i686 for now so we just use half of the
+        // largest usable region for the heap below the 4 GB limit.
+        let mut heap_addr = 0;
+        let mut heap_size = 0;
+        for region in memory_map.iter() {
+            let free = region.is_usable();
+            let addr = region.addr;
+            let size = region.size / 2;
+            if free && addr + size <= (1 << 32) && size > heap_size {
+                heap_addr = addr;
+                heap_size = size;
+            }
+        }
+        if heap_size == 0 {
+            panic!("Could not find a usable region for the heap");
+        }
+        heap::init_alloc(heap_addr as *mut u8, heap_size as usize);
+    }
+
+    #[cfg(target_arch = "x86_64")] // TODO: Remove
+    {
+        #[allow(static_mut_refs)]
+        unsafe {
+            MAPPER.call_once(|| OffsetPageTable::new(
+                paging::active_page_table(),
+                VirtAddr::new(offset as usize).into(),
+            ))
+        };
+
+        bitmap::init_frame_allocator(memory_map);
+        heap::init_heap().expect("heap initialization failed");
+    }
+
+    pic::unmask(pic::KBD_IRQ);
 }
 
-pub fn phys_mem_offset() -> u64 {
+pub fn phys_mem_offset() -> usize {
     unsafe { *PHYS_MEM_OFFSET.get_unchecked() }
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 pub fn mapper() -> &'static mut OffsetPageTable<'static> {
     #[allow(static_mut_refs)]
     unsafe { MAPPER.get_mut_unchecked() }
@@ -100,10 +134,16 @@ pub fn memory_free() -> usize {
 }
 
 pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
-    VirtAddr::new(addr.as_u64() + phys_mem_offset())
+    VirtAddr::new(phys_mem_offset() + addr.as_usize())
 }
 
+#[cfg(target_arch = "x86")]
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
-    mapper().translate_addr(addr)
+    // Pagination is not enabled on i686
+    Some(PhysAddr::new(addr.as_usize()))
 }
 
+#[cfg(target_arch = "x86_64")]
+pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
+    mapper().translate_addr(addr.into()).map(|x| x.into())
+}

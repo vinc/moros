@@ -1,10 +1,9 @@
 use crate::api::console::Style;
-use crate::api::fs::IO;
 use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::sys::console;
-use crate::sys::fs::OpenFlag;
+use crate::sys::fs::{OpenFlag, IO};
 use crate::sys::net::SocketStatus;
 use crate::usr;
 
@@ -113,7 +112,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if syscall::accept(handle).is_ok() {
                     connected = true;
                 } else {
-                    syscall::sleep(0.01);
+                    syscall::sleep(10);
                     continue;
                 }
             }
@@ -131,7 +130,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                 }
             } else {
-                syscall::sleep(0.01);
+                syscall::sleep(10);
                 if connected {
                     let mut data = vec![0; 1]; // 1 byte status read
                     match syscall::read(handle, &mut data) {

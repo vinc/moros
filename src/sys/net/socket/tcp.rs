@@ -1,6 +1,7 @@
 use crate::sys;
 
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
+
 use crate::sys::net::SocketStatus;
 
 use super::SOCKETS;
@@ -91,7 +92,7 @@ impl TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
         }
         Ok(())
@@ -110,7 +111,7 @@ impl TcpSocket {
             if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                 wait(d);
             }
-            sys::clk::halt();
+            sys::x86::hlt();
             Ok(())
         } else {
             Err(())
@@ -136,7 +137,7 @@ impl TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
         } else {
             Err(())
@@ -174,7 +175,7 @@ impl FileIO for TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
             Ok(bytes)
         } else {
@@ -208,7 +209,7 @@ impl FileIO for TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
             Ok(buf.len())
         } else {
@@ -233,7 +234,7 @@ impl FileIO for TcpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
         }
     }

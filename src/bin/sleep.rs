@@ -10,7 +10,7 @@ entry_point!(main);
 fn main(args: &[&str]) {
     if args.len() == 2 {
         if let Ok(duration) = args[1].parse::<f64>() {
-            syscall::sleep(duration);
+            syscall::sleep((duration * 1000.0) as usize);
         } else {
             syscall::exit(ExitCode::DataError);
         }

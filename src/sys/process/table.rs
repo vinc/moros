@@ -3,6 +3,7 @@ use super::Registers;
 use super::MAX_HANDLES;
 
 use crate::sys::fs::Resource;
+use crate::sys::x86::int::InterruptFrame;
 
 use alloc::boxed::Box;
 use alloc::collections::btree_map::BTreeMap;
@@ -11,7 +12,6 @@ use core::alloc::{GlobalAlloc, Layout};
 use core::sync::atomic::{AtomicUsize, Ordering};
 use lazy_static::lazy_static;
 use spin::RwLock;
-use x86_64::structures::idt::InterruptStackFrameValue;
 
 pub const MAX_PROCS: usize = 32;
 static PID: AtomicUsize = AtomicUsize::new(0);
@@ -120,12 +120,6 @@ pub fn delete_handle(handle: usize) {
     proc.data.handles[handle] = None;
 }
 
-pub fn code_addr() -> u64 {
-    let table = PROCESS_TABLE.read();
-    let proc = current_process(&table);
-    proc.ctx.code_addr
-}
-
 pub fn registers() -> Registers {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
@@ -138,16 +132,16 @@ pub fn set_registers(regs: Registers) {
     proc.registers = regs
 }
 
-pub fn stack_frame() -> InterruptStackFrameValue {
+pub fn interrupt_frame() -> InterruptFrame {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
-    proc.stack_frame.unwrap()
+    proc.interrupt_frame.unwrap()
 }
 
-pub fn set_stack_frame(stack_frame: InterruptStackFrameValue) {
+pub fn set_interrupt_frame(frame: InterruptFrame) {
     let mut table = PROCESS_TABLE.write();
     let proc = current_process_mut(&mut table);
-    proc.stack_frame = Some(stack_frame);
+    proc.interrupt_frame = Some(frame);
 }
 
 pub unsafe fn alloc(layout: Layout) -> *mut u8 {

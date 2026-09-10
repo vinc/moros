@@ -32,6 +32,7 @@ pub fn copy_files(verbose: bool) {
     //copy_file!("/bin/blank", verbose);
     //copy_file!("/bin/browse", verbose);
     copy_file!("/bin/clear", verbose);
+    copy_file!("/bin/echo", verbose);
     //copy_file!("/bin/exec", verbose);
     //copy_file!("/bin/fetch", verbose);
     //copy_file!("/bin/geocal", verbose);
@@ -41,7 +42,6 @@ pub fn copy_files(verbose: bool) {
     //copy_file!("/bin/mandelbrot", verbose);
     copy_file!("/bin/ntp", verbose);
     copy_file!("/bin/pkg", verbose);
-    copy_file!("/bin/print", verbose);
     copy_file!("/bin/reboot", verbose);
     copy_file!("/bin/sleep", verbose);
 
@@ -49,6 +49,7 @@ pub fn copy_files(verbose: bool) {
     create_dir("/dev/ata/0", verbose);
     create_dir("/dev/ata/1", verbose);
     create_dir("/dev/clk", verbose); // Clock
+    create_dir("/dev/kbd", verbose); // Keyboard
     create_dir("/dev/net", verbose); // Network
     create_dir("/dev/snd", verbose); // Sound
     create_dir("/dev/vga", verbose);
@@ -62,18 +63,21 @@ pub fn copy_files(verbose: bool) {
     create_dev("/dev/clk/epoch", "clk-epoch", verbose);
     create_dev("/dev/clk/rtc", "clk-rtc", verbose);
     create_dev("/dev/console", "console", verbose);
+    create_dev("/dev/kbd/buffer", "kbd-buffer", verbose);
+    create_dev("/dev/kbd/layout", "kbd-layout", verbose);
     create_dev("/dev/net/tcp", "net-tcp", verbose);
     create_dev("/dev/net/udp", "net-udp", verbose);
     create_dev("/dev/net/gw", "net-gw", verbose);
     create_dev("/dev/net/ip", "net-ip", verbose);
     create_dev("/dev/net/mac", "net-mac", verbose);
-    create_dev("/dev/net/usage", "net-usage", verbose);
+    create_dev("/dev/net/stat", "net-stat", verbose);
     create_dev("/dev/null", "null", verbose);
     create_dev("/dev/pipe", "pipe", verbose);
     create_dev("/dev/proc/id", "proc-id", verbose);
     create_dev("/dev/proc/dir", "proc-dir", verbose);
     create_dev("/dev/proc/env", "proc-env", verbose);
     create_dev("/dev/proc/user", "proc-user", verbose);
+    create_dev("/dev/proc/stat", "proc-stat", verbose);
     create_dev("/dev/random", "random", verbose);
     create_dev("/dev/snd/buffer", "snd-buffer", verbose);
     create_dev("/dev/speaker", "speaker", verbose);

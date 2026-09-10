@@ -3,7 +3,7 @@
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
+#![test_runner(crate::test::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
@@ -16,23 +16,38 @@ pub mod sys;
 
 pub mod usr;
 
-use bootloader::BootInfo;
+#[cfg(test)]
+mod test;
 
-const KERNEL_SIZE: usize = 4 << 20; // 4 MB
+use sys::boot::MemoryMap;
 
-pub fn init(boot_info: &'static BootInfo) {
+pub const KERNEL_SIZE: usize = 4 << 20; // 4 MB
+
+// NOTE: The stack size for the bootloader crate is set in Cargo.toml
+pub const STACK_SIZE: usize = 256 << 10; // 256 KB
+
+#[cfg(target_arch = "x86")]
+const ARCH: &str = "i686";
+
+#[cfg(target_arch = "x86_64")]
+const ARCH: &str = "amd64";
+
+pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::vga::init();
     sys::gdt::init();
     sys::idt::init();
-    sys::pic::init(); // Enable interrupts
+    sys::pic::init();
+
+    sys::x86::int::enable_interrupts();
+
     sys::serial::init();
     sys::keyboard::init();
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
-    log!("SYS MOROS v{}", v);
+    log!("SYS MOROS v{} {}", v, ARCH);
 
-    sys::mem::init(boot_info);
+    sys::mem::init(memory_map, offset);
     sys::cpu::init();
     sys::acpi::init(); // Require MEM
     sys::rng::init();
@@ -46,6 +61,36 @@ pub fn init(boot_info: &'static BootInfo) {
     log!("RTC {}", sys::clk::date());
 }
 
+pub fn exec() -> ! {
+    print!("\x1b[?25h"); // Enable cursor
+    loop {
+        if let Some(cmd) = option_env!("MOROS_CMD") {
+            let prompt = usr::shell::prompt_string(true);
+            println!("{}{}", prompt, cmd);
+            usr::shell::exec(cmd).ok();
+            sys::acpi::shutdown();
+        } else {
+            let script = "/ini/boot.sh";
+            if sys::fs::File::open(script).is_some() {
+                usr::shell::main(&["shell", script]).ok();
+            } else {
+                if sys::fs::is_mounted() {
+                    error!("Could not find '{}'", script);
+                } else {
+                    warning!("MFS not found, run 'install' to setup the system");
+                }
+                usr::shell::main(&["shell"]).ok();
+            }
+        }
+    }
+}
+
+pub fn hang() -> ! {
+    loop {
+        sys::x86::hlt();
+    }
+}
+
 #[allow(dead_code)]
 #[cfg_attr(not(feature = "userspace"), alloc_error_handler)]
 fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
@@ -57,82 +102,10 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
         csi_reset,
         layout.size()
     );
-    hlt_loop();
-}
-
-pub trait Testable {
-    fn run(&self);
-}
-
-impl<T> Testable for T where T: Fn() {
-    fn run(&self) {
-        print!("test {} ... ", core::any::type_name::<T>());
-        self();
-        let csi_color = api::console::Style::color("lime");
-        let csi_reset = api::console::Style::reset();
-        println!("{}ok{}", csi_color, csi_reset);
-    }
-}
-
-pub fn test_runner(tests: &[&dyn Testable]) {
-    let n = tests.len();
-    println!("\nrunning {} test{}", n, if n == 1 { "" } else { "s" });
-    for test in tests {
-        test.run();
-    }
-    exit_qemu(QemuExitCode::Success);
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u32)]
-pub enum QemuExitCode {
-    Success = 0x10,
-    Failed = 0x11,
-}
-
-pub fn exit_qemu(exit_code: QemuExitCode) {
-    use x86_64::instructions::port::Port;
-
-    unsafe {
-        let mut port = Port::new(0xF4);
-        port.write(exit_code as u32);
-    }
-}
-
-pub fn hlt_loop() -> ! {
-    loop {
-        x86_64::instructions::hlt();
-    }
-}
-
-#[cfg(test)]
-use bootloader::entry_point;
-
-#[cfg(test)]
-use core::panic::PanicInfo;
-
-#[cfg(test)]
-entry_point!(test_kernel_main);
-
-#[cfg(test)]
-fn test_kernel_main(boot_info: &'static BootInfo) -> ! {
-    init(boot_info);
-    test_main();
-    hlt_loop();
-}
-
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    let csi_color = api::console::Style::color("red");
-    let csi_reset = api::console::Style::reset();
-    println!("{}failed{}\n", csi_color, csi_reset);
-    println!("{}\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    hlt_loop();
+    hang();
 }
 
 #[test_case]
-fn trivial_assertion() {
-    assert_eq!(1, 1);
+fn test_lib() {
+    assert_eq!(1, 1); // Trivial assertion
 }

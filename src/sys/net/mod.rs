@@ -2,10 +2,10 @@ mod nic;
 pub mod gw;
 pub mod ip;
 pub mod mac;
-pub mod usage;
+pub mod stat;
 pub mod socket;
 
-use crate::{sys, usr};
+use crate::{api, sys};
 use crate::sys::pci::DeviceConfig;
 
 use alloc::format;
@@ -111,7 +111,7 @@ impl<'a> smoltcp::phy::Device for EthernetDevice {
         if let Some(buffer) = self.receive_packet() {
             if self.config().is_debug_enabled() {
                 debug!("NET Packet Received");
-                usr::hex::print_hex(&buffer);
+                printk!("{}", api::hex::format_hex(&buffer));
             }
             self.stats().rx_add(buffer.len() as u64);
             let rx = RxToken { buffer };
@@ -163,7 +163,7 @@ impl smoltcp::phy::TxToken for TxToken {
         let res = f(buf);
         if config.is_debug_enabled() {
             debug!("NET Packet Transmitted");
-            usr::hex::print_hex(buf);
+            printk!("{}", api::hex::format_hex(buf));
         }
         self.device.transmit_packet(len);
         self.device.stats().tx_add(len as u64);
@@ -297,10 +297,12 @@ pub fn init() {
     }
     for id in E1000_DEVICES {
         if let Some(dev) = find_device(0x8086, id) {
-            let io = dev.bar_io(0);
-            let mem = dev.mem_base();
-            let bar = dev.bar_type();
-            let nic = nic::e1000::Device::new(io, mem, bar);
+            let base = if dev.is_io() {
+                nic::e1000::Base::IO(dev.bar_io(0))
+            } else {
+                nic::e1000::Base::Mem(dev.mem_base())
+            };
+            let nic = nic::e1000::Device::new(base);
             add(EthernetDevice::E1000(nic), "E1000");
         }
     }

@@ -1,9 +1,10 @@
+use crate::sys::x86::int;
+
 use alloc::string::String;
 use core::fmt;
 use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
 lazy_static! {
     static ref LOG: Mutex<LogBuffer> = Mutex::new(LogBuffer::new());
@@ -50,13 +51,13 @@ impl core::fmt::Write for LogBuffer {
 
 #[doc(hidden)]
 pub fn write_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         LOG.lock().write_fmt(args).expect("Could not write log")
     )
 }
 
 pub fn read() -> String {
-    interrupts::without_interrupts(|| {
+    int::without_interrupts(|| {
         let log = LOG.lock();
         String::from_utf8_lossy(log.buf()).into_owned()
     })

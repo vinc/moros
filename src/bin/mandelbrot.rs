@@ -10,6 +10,8 @@ use moros::api::io;
 use moros::api::vga;
 use moros::entry_point;
 
+use alloc::format;
+
 entry_point!(main);
 
 const WIDTH: usize = 320;
@@ -150,7 +152,7 @@ fn main(args: &[&str]) {
         i += 1;
     }
 
-    vga::graphic_mode();
+    vga::set_resolution(&format!("{}x{}p", WIDTH, HEIGHT));
     fs::write("/dev/vga/palette", &palette(&config)).ok();
 
     let mut escape = false;
@@ -197,7 +199,7 @@ fn main(args: &[&str]) {
         }
     }
 
-    vga::text_mode();
+    vga::set_resolution("80x25c");
 }
 
 fn help() {
