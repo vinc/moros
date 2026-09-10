@@ -278,7 +278,7 @@ fn load_segment(
 fn test_load() {
     use alloc::vec;
 
-    let print_bin = include_bytes!("../../../dsk/bin/print").to_vec();
+    let print_bin = include_bytes!("../../../dsk/bin/echo").to_vec();
     let print_obj = object::File::parse(&print_bin[..]).unwrap();
     let print_pos = print_obj.entry() as usize;
 
