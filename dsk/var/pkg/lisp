@@ -1,12 +1,13 @@
 /lib/lisp/alias.lsp
+/lib/lisp/compat.lsp
 /lib/lisp/core.lsp
 /lib/lisp/dict.lsp
 /lib/lisp/file.lsp
 /lib/lisp/ini.lsp
-/lib/lisp/legacy.lsp
 /lib/lisp/math.lsp
 /tmp/lisp/colors.lsp
 /tmp/lisp/doc.lsp
+/tmp/lisp/echo.lsp
 /tmp/lisp/factorial.lsp
 /tmp/lisp/fibonacci.lsp
 /tmp/lisp/geotime.lsp

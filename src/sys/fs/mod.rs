@@ -5,31 +5,47 @@ mod device;
 mod dir;
 mod dir_entry;
 mod file;
+mod io;
 mod pipe;
 mod read_dir;
 mod super_block;
 
-use crate::sys;
-
-pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
-pub use crate::sys::ata::BLOCK_SIZE;
+pub use io::{FileIO, IO};
 pub use bitmap_block::BITMAP_SIZE;
 pub use block_device::{
     dismount, format_ata, format_mem, is_mounted, mount_ata, mount_mem
 };
-pub use device::{Device, DeviceType};
+pub use device::{Device, device_type};
 pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
 
+pub use crate::api::fs::{dirname, filename};
+pub use crate::sys::ata::BLOCK_SIZE;
+
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
 
+use crate::sys::process;
+
+use alloc::format;
 use alloc::string::{String, ToString};
 use core::convert::TryFrom;
 use core::ops::BitOr;
 
 pub const VERSION: u8 = 2;
+
+// Duplicate of `api::fs::realpath`, using `process::dir()` from `sys` instead
+// of `api` to bypass syscall overhead.
+pub fn realpath(pathname: &str) -> String {
+    if pathname.starts_with('/') {
+        pathname.into()
+    } else {
+        let dirname = process::dir();
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
+        format!("{}{}{}", dirname, sep, pathname)
+    }
+}
 
 // TODO: Move that to API
 #[derive(Clone, Copy)]
@@ -178,7 +194,7 @@ impl FileIO for Resource {
 }
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
-    match sys::process::env("HOME") {
+    match process::env_var("HOME") {
         Some(home) => {
             if path.starts_with('~') {
                 Ok(path.replace('~', &home))

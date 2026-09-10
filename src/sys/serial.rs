@@ -1,4 +1,5 @@
 use crate::sys;
+use crate::sys::x86::int;
 
 use core::fmt;
 use core::fmt::Write;
@@ -6,7 +7,6 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use uart_16550::SerialPort;
 use vte::{Params, Parser, Perform};
-use x86_64::instructions::interrupts;
 
 lazy_static! {
     pub static ref SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));
@@ -20,7 +20,7 @@ pub struct Serial {
 impl Serial {
     fn new(addr: u16) -> Self {
         Self {
-            port: unsafe { SerialPort::new(addr) },
+            port: unsafe { SerialPort::new(addr) }
         }
     }
 
@@ -73,18 +73,6 @@ impl Perform for Serial {
     }
 }
 
-#[doc(hidden)]
-pub fn print_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
-        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
-    )
-}
-
-pub fn init() {
-    SERIAL.lock().init();
-    sys::idt::set_irq_handler(4, interrupt_handler);
-}
-
 fn interrupt_handler() {
     let b = SERIAL.lock().read_byte();
     if b == 0xFF { // Ignore invalid bytes
@@ -96,4 +84,16 @@ fn interrupt_handler() {
         c => c,
     };
     sys::console::key_handle(c);
+}
+
+pub fn init() {
+    SERIAL.lock().init();
+    sys::idt::set_irq_handler(sys::pic::COM_IRQ, interrupt_handler);
+}
+
+#[doc(hidden)]
+pub fn print_fmt(args: fmt::Arguments) {
+    int::without_interrupts(||
+        SERIAL.lock().write_fmt(args).expect("Could not print to serial")
+    )
 }

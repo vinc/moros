@@ -1,53 +1,52 @@
-use super::with_frame_allocator;
-
-use crate::sys;
+use crate::sys::x86::addr::VirtAddr;
 
 use linked_list_allocator::LockedHeap;
-use x86_64::structures::paging::{
-    mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB
-};
-use x86_64::VirtAddr;
+use x86_64::structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags};
 
 #[cfg_attr(not(feature = "userspace"), global_allocator)]
 static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
-pub const HEAP_START: u64 = 0x4444_4444_0000;
+#[cfg(target_arch = "x86_64")]
+pub const HEAP_START: usize = 0x4444_4444_0000;
 
-pub fn init_heap() -> Result<(), MapToError<Size4KiB>> {
+#[cfg(target_arch = "x86_64")] // TODO: Remove
+pub fn init_heap() -> Result<(), ()> {
     let mapper = super::mapper();
 
     // Use half of the memory for the heap
-    let heap_size = (super::memory_size() / 2) as u64;
+    let heap_size = super::memory_size() / 2;
     let heap_start = VirtAddr::new(HEAP_START);
 
-    // And some memory after that for the processes
-    sys::process::set_process_addr(HEAP_START + heap_size);
-
     let pages = {
-        let heap_end = heap_start + heap_size - 1u64;
-        let heap_start_page = Page::containing_address(heap_start);
-        let heap_end_page = Page::containing_address(heap_end);
+        let heap_end = heap_start + heap_size - 1;
+        let heap_start_page = Page::containing_address(heap_start.into());
+        let heap_end_page = Page::containing_address(heap_end.into());
         Page::range_inclusive(heap_start_page, heap_end_page)
     };
 
     let flags = PageTableFlags::PRESENT | PageTableFlags::WRITABLE;
 
-    with_frame_allocator(|frame_allocator| -> Result<(), MapToError<Size4KiB>> {
+    super::with_frame_allocator(|frame_allocator| -> Result<(), ()> {
         for page in pages {
-            let err = MapToError::FrameAllocationFailed;
-            let frame = frame_allocator.allocate_frame().ok_or(err)?;
+            let frame = frame_allocator.allocate_frame().ok_or(())?;
             unsafe {
-                mapper.map_to(page, frame, flags, frame_allocator)?.flush();
+                mapper.map_to(
+                    page, frame, flags, frame_allocator
+                ).map_err(|_| ())?.flush();
             }
         }
         Ok(())
     })?;
 
-    unsafe {
-        ALLOCATOR.lock().init(heap_start.as_mut_ptr(), heap_size as usize);
-    }
+    init_alloc(heap_start.as_mut_ptr(), heap_size as usize);
 
     Ok(())
+}
+
+pub fn init_alloc(ptr: *mut u8, size: usize) {
+    unsafe {
+        ALLOCATOR.lock().init(ptr, size);
+    }
 }
 
 pub fn heap_size() -> usize {
@@ -63,7 +62,7 @@ pub fn heap_free() -> usize {
 }
 
 #[test_case]
-fn many_boxes() {
+fn test_box_alloc() {
     use alloc::boxed::Box;
 
     let heap_value_1 = Box::new(42);
@@ -78,7 +77,7 @@ fn many_boxes() {
 }
 
 #[test_case]
-fn large_vec() {
+fn test_vec_alloc() {
     use alloc::vec::Vec;
 
     let n = 1000;

@@ -21,7 +21,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(())
     }
 
-    error!("Could not encode '{}'", path);
+    error!("Could not encode {:?}", path);
     Err(ExitCode::Failure)
 }
 

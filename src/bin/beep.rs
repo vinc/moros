@@ -20,7 +20,7 @@ const SPEAKER: &str = "/dev/speaker";
 fn start_sound(freq: f64) -> Result<(), ()> {
     let buf = freq.to_string();
     if !fs::is_device(SPEAKER) || fs::write(SPEAKER, buf.as_bytes()).is_err() {
-        error!("Could not write to '{}'", SPEAKER);
+        error!("Could not write to {:?}", SPEAKER);
         Err(())
     } else {
         Ok(())
@@ -33,7 +33,7 @@ fn stop_sound() -> Result<(), ()> {
 
 fn beep(freq: f64, len: f64) -> Result<(), ()> {
     start_sound(freq)?;
-    syscall::sleep(len);
+    syscall::sleep((len * 1000.0) as usize);
     stop_sound()
 }
 

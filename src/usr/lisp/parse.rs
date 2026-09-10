@@ -202,7 +202,7 @@ pub fn parse(input: &str) -> Result<(String, Exp), Err> {
                 ])))
             } else {
                 let line = err.input.lines().next().unwrap();
-                could_not!("parse '{}'", line)
+                could_not!("parse {:?}", line)
             }
         }
         _ => could_not!("parse input"),

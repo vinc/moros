@@ -96,7 +96,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         };
         Ok(())
     } else {
-        error!("Could not read '{}'", path);
+        error!("Could not read {:?}", path);
         Err(ExitCode::Failure)
     }
 }

@@ -18,7 +18,6 @@ alias go     goto
 alias sh     shell
 alias dsk    disk
 alias mem    memory
-alias kbd    keyboard
 alias bf     brainfuck
 
 # Unix compatibility

@@ -2,23 +2,21 @@ use super::*;
 
 use buffer::Buffer;
 
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 
 use spin::Mutex;
 
 #[derive(Copy, Clone)]
-enum ModeName {
-    T80x25,
-    G320x200x256,
-    G640x480x16,
+enum ModeName { // TODO: Rename to Resolution
+    C80x25,
+    P320x200x256,
+    P640x480x16,
 }
-
-static BUFFER: [u8; 640 * 480] = [0; 640 * 480];
 
 static MODE: Mutex<Option<ModeName>> = Mutex::new(None);
 
 // Source: https://www.singlix.com/trdos/archive/vga/Graphics%20in%20pmode.pdf
-const T_80_25: [u8; 61] = [
+const C_80_25: [u8; 61] = [
     // MISC
     0x67,
     // SEQ
@@ -34,7 +32,7 @@ const T_80_25: [u8; 61] = [
     0x3C, 0x3D, 0x3E, 0x3F, 0x0C, 0x00, 0x0F, 0x08, 0x00
 ];
 
-const G_320_200_256: [u8; 61] = [
+const P_320_200_256: [u8; 61] = [
     // MISC
     0x63,
     // SEQ
@@ -50,7 +48,7 @@ const G_320_200_256: [u8; 61] = [
     0x0C, 0x0D, 0x0E, 0x0F, 0x41, 0x00, 0x0F, 0x00, 0x00
 ];
 
-const G_640_480_16: [u8; 61] = [
+const P_640_480_16: [u8; 61] = [
     // MISC
     0xE3,
     // SEQ
@@ -75,121 +73,113 @@ const AC_REGS_COUNT: usize = 21;
 fn set_mode(mode: ModeName) {
     *MODE.lock() = Some(mode);
     let mut regs = match mode {
-        ModeName::T80x25 => T_80_25,
-        ModeName::G320x200x256 => G_320_200_256,
-        ModeName::G640x480x16 => G_640_480_16,
-    }.to_vec();
+        ModeName::C80x25 => C_80_25,
+        ModeName::P320x200x256 => P_320_200_256,
+        ModeName::P640x480x16 => P_640_480_16,
+    };
 
-    interrupts::without_interrupts(|| {
-        let mut misc_write: Port<u8> = Port::new(MISC_WRITE_REG);
-        let mut crtc_addr: Port<u8> = Port::new(CRTC_ADDR_REG);
-        let mut crtc_data: Port<u8> = Port::new(CRTC_DATA_REG);
-        let mut seq_addr: Port<u8> = Port::new(SEQUENCER_ADDR_REG);
-        let mut seq_data: Port<u8> = Port::new(SEQUENCER_DATA_REG);
-        let mut gc_addr: Port<u8> = Port::new(GRAPHICS_ADDR_REG);
-        let mut gc_data: Port<u8> = Port::new(GRAPHICS_DATA_REG);
-        let mut ac_addr: Port<u8> = Port::new(ATTR_ADDR_REG);
-        let mut ac_write: Port<u8> = Port::new(ATTR_WRITE_REG);
-        let mut instat_read: Port<u8> = Port::new(INSTAT_READ_REG);
-
+    int::without_interrupts(|| {
         let mut i = 0;
 
         unsafe {
-            misc_write.write(regs[i]);
+            outb(MISC_WRITE_REG, regs[i]);
             i += 1;
 
             for j in 0..SEQ_REGS_COUNT {
-                seq_addr.write(j as u8);
-                seq_data.write(regs[i]);
+                outb(SEQUENCER_ADDR_REG, j as u8);
+                outb(SEQUENCER_DATA_REG, regs[i]);
                 i += 1;
             }
 
             // Unlock CRTC regs
-            crtc_addr.write(0x03);
-            let data = crtc_data.read();
-            crtc_data.write(data | 0x80);
-            crtc_addr.write(0x11);
-            let data = crtc_data.read();
-            crtc_data.write(data & !0x80);
+            outb(CRTC_ADDR_REG, 0x03);
+            let data = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, data | 0x80);
+            outb(CRTC_ADDR_REG, 0x11);
+            let data = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, data & !0x80);
 
             // Keep them unlocked
             regs[0x03] |= 0x80;
             regs[0x11] &= !0x80;
 
             for j in 0..CRTC_REGS_COUNT {
-                crtc_addr.write(j as u8);
-                crtc_data.write(regs[i]);
+                outb(CRTC_ADDR_REG, j as u8);
+                outb(CRTC_DATA_REG, regs[i]);
                 i += 1;
             }
 
             for j in 0..GC_REGS_COUNT {
-                gc_addr.write(j as u8);
-                gc_data.write(regs[i]);
+                outb(GRAPHICS_ADDR_REG, j as u8);
+                outb(GRAPHICS_DATA_REG, regs[i]);
                 i += 1;
             }
 
             for j in 0..AC_REGS_COUNT {
-                instat_read.read();
-                ac_addr.write(j as u8);
-                ac_write.write(regs[i]);
+                inb(INSTAT_READ_REG);
+                outb(ATTR_ADDR_REG, j as u8);
+                outb(ATTR_WRITE_REG, regs[i]);
                 i += 1;
             }
 
             // Lock 16-color palette and unblank display
-            instat_read.read();
-            ac_addr.write(0x20);
+            inb(INSTAT_READ_REG);
+            outb(ATTR_ADDR_REG, 0x20);
         }
     });
 }
 
-fn is_80x25_mode() -> bool {
+fn is_80x25c_mode() -> bool {
     match *MODE.lock() {
-        Some(ModeName::T80x25) | None => true,
+        Some(ModeName::C80x25) | None => true,
         _ => false
     }
 }
 
-fn set_80x25_mode() {
+fn set_80x25c_mode() {
+    let restorable = MODE.lock().is_some();
     clear_screen();
-    set_mode(ModeName::T80x25);
+    set_mode(ModeName::C80x25);
     disable_blinking();
     disable_underline();
-    palette::restore_palette();
-    font::restore_font();
+    if restorable {
+        palette::restore_palette();
+
+        font::restore_font();
+    }
 }
 
-fn set_320x200_mode() {
-    if is_80x25_mode() {
+fn set_320x200p_mode() {
+    if is_80x25c_mode() {
         palette::backup_palette();
     }
-    set_mode(ModeName::G320x200x256);
+    set_mode(ModeName::P320x200x256);
     clear_screen();
 }
 
-fn set_640x480_mode() {
-    if is_80x25_mode() {
+fn set_640x480p_mode() {
+    if is_80x25c_mode() {
         palette::backup_palette();
     }
-    set_mode(ModeName::G640x480x16);
+    set_mode(ModeName::P640x480x16);
     clear_screen();
 }
 
 fn clear_screen() {
-    // Clear screen
     let size = match *MODE.lock() {
-        Some(ModeName::G320x200x256) => 320 * 200,
-        Some(ModeName::G640x480x16) => 640 * 480,
+        Some(ModeName::P320x200x256) => 320 * 200,
+        Some(ModeName::P640x480x16) => (640 / 4 / 2) * 480,
         _ => return,
     };
-    let src = BUFFER.as_ptr();
+    // FIXME: This only work for 320x200 linear buffer
     let dst = Buffer::addr() as *mut u8;
     unsafe {
-        core::ptr::copy_nonoverlapping(src, dst, size);
+        core::ptr::write_bytes(dst, 0, size);
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct VgaMode;
+pub struct VgaMode; // TODO: Rename to VgaResolution
 
 impl VgaMode {
     pub fn new() -> Self {
@@ -197,7 +187,7 @@ impl VgaMode {
     }
 
     pub fn size() -> usize {
-        // Must be at least 4 + 1 + 4 bytes: "<width>x<height>"
+        // Must be at least 4 + 1 + 4 + 1 bytes: "<width>x<height><mode>"
         16
     }
 }
@@ -205,17 +195,17 @@ impl VgaMode {
 impl FileIO for VgaMode {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         match *MODE.lock() {
-            Some(ModeName::T80x25) | None => write_mode(buf, b"80x25"),
-            Some(ModeName::G320x200x256) => write_mode(buf, b"320x200"),
-            Some(ModeName::G640x480x16) => write_mode(buf, b"640x480"),
+            Some(ModeName::C80x25) | None => write_mode(buf, b"80x25c"),
+            Some(ModeName::P320x200x256) => write_mode(buf, b"320x200p"),
+            Some(ModeName::P640x480x16) => write_mode(buf, b"640x480p"),
         }
     }
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         match buf {
-            b"80x25" => set_80x25_mode(),
-            b"320x200" => set_320x200_mode(),
-            b"640x480" => set_640x480_mode(),
+            b"80x25c" => set_80x25c_mode(),
+            b"320x200p" => set_320x200p_mode(),
+            b"640x480p" => set_640x480p_mode(),
             _ => return Err(()),
         }
         Ok(buf.len())
@@ -239,4 +229,8 @@ fn write_mode(buf: &mut [u8], mode: &[u8]) -> Result<usize, ()> {
         buf[0..n].clone_from_slice(mode);
         Ok(n)
     }
+}
+
+pub fn set_text_mode() {
+    set_80x25c_mode();
 }

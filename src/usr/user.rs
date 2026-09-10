@@ -2,10 +2,10 @@ use crate::api::base64::Base64;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::io;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
-use crate::sys;
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::format;
@@ -49,13 +49,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 // TODO: Add max number of attempts
 fn login(username: &str) -> Result<(), ExitCode> {
     if !fs::exists(USERS) {
-        error!("Could not read '{}'", USERS);
+        error!("Could not read {:?}", USERS);
         return Err(ExitCode::Failure);
     }
 
     if username.is_empty() {
         println!();
-        syscall::sleep(1.0);
+        syscall::sleep(1000);
         return main(&["user", "login"]);
     }
 
@@ -68,22 +68,26 @@ fn login(username: &str) -> Result<(), ExitCode> {
             println!();
             if check(&password, &hash).is_err() {
                 println!();
-                syscall::sleep(1.0);
+                syscall::sleep(1000);
                 return main(&["user", "login"]);
             }
         }
         None => {
             println!();
-            syscall::sleep(1.0);
+            syscall::sleep(1000);
             return main(&["user", "login"]);
         }
     }
 
+    if process::set_user(username).is_err() {
+        error!("Could not set user as {:?}", username);
+        return Err(ExitCode::Failure);
+    }
+
     let home = format!("/usr/{}", username);
-    sys::process::set_user(username);
-    sys::process::set_dir(&home);
-    sys::process::set_env("USER", username);
-    sys::process::set_env("HOME", &home);
+    process::set_dir(&home);
+    process::set_env_var("USER", username);
+    process::set_env_var("HOME", &home);
 
     // TODO: load shell
     Ok(())

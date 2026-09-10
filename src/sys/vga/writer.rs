@@ -1,11 +1,15 @@
 use super::*;
 
+use color::Color;
+
+use palette::Palette;
+
 use buffer::Buffer;
 
 use crate::api::font::Font;
+
 use crate::sys;
 
-//use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use vte::{Params, Parser, Perform};
@@ -19,8 +23,8 @@ const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
 struct ColorCode(u8);
 
 impl ColorCode {
-    fn new(foreground: Color, background: Color) -> ColorCode {
-        ColorCode((background as u8) << 4 | (foreground as u8))
+    fn new(foreground: Color, background: Color) -> Self {
+        Self((background as u8) << 4 | (foreground as u8))
     }
 }
 
@@ -32,22 +36,33 @@ struct ScreenChar {
 }
 
 impl ScreenChar {
-    fn new() -> Self {
+    const fn zeroed() -> Self {
         Self {
-            ascii_code: b' ',
-            color_code: ColorCode::new(FG, BG),
+            ascii_code: 0,
+            color_code: ColorCode(0)
         }
     }
+
 }
 
 const SCREEN_WIDTH: usize = 80;
 const SCREEN_HEIGHT: usize = 25;
-const SCROLL_HEIGHT: usize = 250;
+const SCROLL_HEIGHT: usize = SCREEN_HEIGHT * 10;
 
 #[repr(transparent)]
 struct ScreenBuffer {
     chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
 }
+
+// Using a static buffer avoids building the array on the stack, and zeroing it
+// puts the buffer in the .bss section instead of .data so it doesn't increase
+// the kernel size.
+//
+// The buffer is always written before being read. The screen is cleared during
+// init, and each row is cleared as it scrolls into view, so the null chars are
+// never rendered.
+static mut SCROLL_BUFFER: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT] =
+    [[ScreenChar::zeroed(); SCREEN_WIDTH]; SCROLL_HEIGHT];
 
 lazy_static! {
     pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
@@ -56,7 +71,7 @@ lazy_static! {
         writer: [0; 2],
         color_code: ColorCode::new(FG, BG),
         screen_buffer: unsafe { &mut *(0xB8000 as *mut ScreenBuffer) },
-        scroll_buffer: [[ScreenChar::new(); SCREEN_WIDTH]; SCROLL_HEIGHT],
+        scroll_buffer: unsafe { &mut *core::ptr::addr_of_mut!(SCROLL_BUFFER) },
         scroll_reader: 0,
         scroll_bottom: SCREEN_HEIGHT,
     });
@@ -67,7 +82,7 @@ pub struct Writer {
     writer: [usize; 2], // x, y
     color_code: ColorCode,
     screen_buffer: &'static mut ScreenBuffer,
-    scroll_buffer: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT],
+    scroll_buffer: &'static mut [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT],
     scroll_reader: usize, // Top of the screen
     scroll_bottom: usize, // Bottom of the buffer
 }
@@ -122,39 +137,33 @@ impl Writer {
 
     fn write_cursor(&mut self) {
         let pos = self.cursor[0] + self.cursor[1] * SCREEN_WIDTH;
-        let mut addr = Port::new(CRTC_ADDR_REG);
-        let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
-            addr.write(0x0F as u8);
-            data.write((pos & 0xFF) as u8);
-            addr.write(0x0E as u8);
-            data.write(((pos >> 8) & 0xFF) as u8);
+            outb(CRTC_ADDR_REG, 0x0F);
+            outb(CRTC_DATA_REG, (pos & 0xFF) as u8);
+            outb(CRTC_ADDR_REG, 0x0E);
+            outb(CRTC_DATA_REG, ((pos >> 8) & 0xFF) as u8);
         }
     }
 
     // Source: http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
     fn disable_cursor(&self) {
-        let mut addr = Port::new(CRTC_ADDR_REG);
-        let mut data = Port::new(CRTC_DATA_REG);
         unsafe {
-            addr.write(0x0A as u8);
-            data.write(0x20 as u8);
+            outb(CRTC_ADDR_REG, 0x0A);
+            outb(CRTC_DATA_REG, 0x20);
         }
     }
 
     fn enable_cursor(&self) {
-        let mut addr: Port<u8> = Port::new(CRTC_ADDR_REG);
-        let mut data: Port<u8> = Port::new(CRTC_DATA_REG);
         let cursor_start = 13; // Starting row
         let cursor_end = 14; // Ending row
         unsafe {
-            addr.write(0x0A); // Cursor Start Register
-            let b = data.read();
-            data.write((b & 0xC0) | cursor_start);
+            outb(CRTC_ADDR_REG, 0x0A); // Cursor Start Register
+            let b = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, (b & 0xC0) | cursor_start);
 
-            addr.write(0x0B); // Cursor End Register
-            let b = data.read();
-            data.write((b & 0xE0) | cursor_end);
+            outb(CRTC_ADDR_REG, 0x0B); // Cursor End Register
+            let b = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, (b & 0xE0) | cursor_end);
         }
     }
 
@@ -231,7 +240,7 @@ impl Writer {
             for y in 1..SCREEN_HEIGHT {
                 self.screen_buffer.chars[y - 1] = self.screen_buffer.chars[y];
             }
-            if self.scroll_bottom == SCROLL_HEIGHT - 1 {
+            if self.scroll_bottom == SCROLL_HEIGHT {
                 for y in 1..SCROLL_HEIGHT {
                     self.scroll_buffer[y - 1] = self.scroll_buffer[y];
                 }
@@ -269,18 +278,16 @@ impl Writer {
 
     // Source: https://slideplayer.com/slide/3888880
     pub fn set_font(&mut self, font: &Font) {
-        let mut sequencer: Port<u16> = Port::new(SEQUENCER_ADDR_REG);
-        let mut graphics: Port<u16> = Port::new(GRAPHICS_ADDR_REG);
         let buffer = Buffer::addr() as *mut u8;
 
         unsafe {
-            sequencer.write(0x0100); // do a sync reset
-            sequencer.write(0x0402); // write plane 2 only
-            sequencer.write(0x0704); // sequetial access
-            sequencer.write(0x0300); // end the reset
-            graphics.write(0x0204); // read plane 2 only
-            graphics.write(0x0005); // disable odd/even
-            graphics.write(0x0006); // VRAM at 0xA0000
+            outw(SEQUENCER_ADDR_REG, 0x0100); // do a sync reset
+            outw(SEQUENCER_ADDR_REG, 0x0402); // write plane 2 only
+            outw(SEQUENCER_ADDR_REG, 0x0704); // sequetial access
+            outw(SEQUENCER_ADDR_REG, 0x0300); // end the reset
+            outw(GRAPHICS_ADDR_REG,  0x0204); // read plane 2 only
+            outw(GRAPHICS_ADDR_REG,  0x0005); // disable odd/even
+            outw(GRAPHICS_ADDR_REG,  0x0006); // VRAM at 0xA0000
 
             for i in 0..font.size as usize {
                 for j in 0..font.height as usize {
@@ -291,35 +298,31 @@ impl Writer {
                 }
             }
 
-            sequencer.write(0x0100); // do a sync reset
-            sequencer.write(0x0302); // write plane 0 & 1
-            sequencer.write(0x0304); // even/odd access
-            sequencer.write(0x0300); // end the reset
-            graphics.write(0x0004); // restore to default
-            graphics.write(0x1005); // resume odd/even
-            graphics.write(0x0E06); // VRAM at 0xB800
+            outw(SEQUENCER_ADDR_REG, 0x0100); // do a sync reset
+            outw(SEQUENCER_ADDR_REG, 0x0302); // write plane 0 & 1
+            outw(SEQUENCER_ADDR_REG, 0x0304); // even/odd access
+            outw(SEQUENCER_ADDR_REG, 0x0300); // end the reset
+            outw(GRAPHICS_ADDR_REG,  0x0004); // restore to default
+            outw(GRAPHICS_ADDR_REG,  0x1005); // resume odd/even
+            outw(GRAPHICS_ADDR_REG,  0x0E06); // VRAM at 0xB800
         }
     }
 
     pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
-        let mut addr: Port<u8> = Port::new(DAC_ADDR_WRITE_MODE_REG);
-        let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         unsafe {
-            addr.write(i as u8);
-            data.write(r >> 2); // Convert 8-bit to 6-bit color
-            data.write(g >> 2);
-            data.write(b >> 2);
+            outb(DAC_ADDR_WRITE_MODE_REG, i as u8);
+            outb(DAC_DATA_REG, r >> 2); // Convert 8-bit to 6-bit color
+            outb(DAC_DATA_REG, g >> 2);
+            outb(DAC_DATA_REG, b >> 2);
         }
     }
 
     pub fn palette(&mut self, i: usize) -> (u8, u8, u8) {
-        let mut addr: Port<u8> = Port::new(DAC_ADDR_READ_MODE_REG);
-        let mut data: Port<u8> = Port::new(DAC_DATA_REG);
         unsafe {
-            addr.write(i as u8);
-            let r = data.read() << 2; // Convert 6-bit to 8-bit color
-            let g = data.read() << 2;
-            let b = data.read() << 2;
+            outb(DAC_ADDR_READ_MODE_REG, i as u8);
+            let r = inb(DAC_DATA_REG) << 2; // Convert 6-bit to 8-bit color
+            let g = inb(DAC_DATA_REG) << 2;
+            let b = inb(DAC_DATA_REG) << 2;
             (r, g, b)
         }
     }
@@ -514,7 +517,7 @@ impl Perform for Writer {
 
     fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
         if params.len() == 1 {
-            let s = String::from_utf8_lossy(params[0]);
+            let s = core::str::from_utf8(params[0]).unwrap_or("");
             match s.chars().next() {
                 Some('P') if s.len() == 8 => {
                     if let Ok((i, r, g, b)) = parse_palette(&s) {
@@ -546,22 +549,23 @@ impl fmt::Write for Writer {
     }
 }
 
-fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ParseIntError> {
-    debug_assert!(palette.len() == 8);
-    debug_assert!(palette.starts_with('P'));
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ()> {
+    if palette.len() != 8 || !palette.starts_with('P') {
+        return Err(());
+    }
 
-    let i = usize::from_str_radix(&palette[1..2], 16)?;
-    let r = u8::from_str_radix(&palette[2..4], 16)?;
-    let g = u8::from_str_radix(&palette[4..6], 16)?;
-    let b = u8::from_str_radix(&palette[6..8], 16)?;
+    let i = usize::from_str_radix(&palette[1..2], 16).map_err(|_| ())?;
+    let r = u8::from_str_radix(&palette[2..4], 16).map_err(|_| ())?;
+    let g = u8::from_str_radix(&palette[4..6], 16).map_err(|_| ())?;
+    let b = u8::from_str_radix(&palette[6..8], 16).map_err(|_| ())?;
 
     Ok((i, r, g, b))
 }
 
 #[test_case]
 fn test_parse_palette() {
-    assert_eq!(parse_palette("P0282828"), Ok((0, 0x28, 0x28, 0x28)));
-    assert_eq!(parse_palette("P4CC241D"), Ok((4, 0xCC, 0x24, 0x1D)));
-    assert!(parse_palette("BAAAAAAD").is_ok());
-    assert!(parse_palette("GOOOOOOD").is_err());
+    assert_eq!(parse_palette("P0282828"), Ok((0x0, 0x28, 0x28, 0x28)));
+    assert_eq!(parse_palette("PADDDDED"), Ok((0xA, 0xDD, 0xDD, 0xED)));
+    assert_eq!(parse_palette("BAAAAAAD"), Err(()));
+    assert_eq!(parse_palette("BAD"), Err(()));
 }

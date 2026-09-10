@@ -11,7 +11,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let res = usr::shell::exec(&cmd);
     let duration = clock::epoch_time() - start;
     eprintln!(
-        "{}Executed '{}' in {:.6}s{}",
+        "{}Executed {:?} in {:.6}s{}",
         csi_color, cmd, duration, csi_reset
     );
     res

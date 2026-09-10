@@ -40,11 +40,6 @@ macro_rules! read_uint_fn {
 }
 
 impl ReadDir {
-    /// Total number of bytes read
-    pub fn offset(&self) -> usize {
-        self.block_index * self.block.len() + self.block_offset
-    }
-
     /// Number of bytes read in current block
     pub fn block_offset(&self) -> usize {
         self.block_offset
@@ -77,7 +72,7 @@ impl Iterator for ReadDir {
                 let offset = self.block_offset; // Backup cursor position
 
                 // Switch to next block if no space left for another entry
-                if offset >= self.block.len() - DirEntry::empty_len() {
+                if offset >= self.block.capacity() - DirEntry::empty_len() {
                     break;
                 }
 
@@ -95,7 +90,7 @@ impl Iterator for ReadDir {
                 let mut entry_size = self.read_u32();
                 let mut entry_time = self.read_u64();
                 let mut n = self.read_u8() as usize;
-                let remaining = self.block.len() - self.block_offset;
+                let remaining = self.block.capacity() - self.block_offset;
                 if n == 0 || n >= remaining {
                     if self.skip_unused {
                         self.block_offset = offset; // Rewind the cursor

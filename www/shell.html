@@ -196,11 +196,11 @@ multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
     <li>Name of the shell or the script: <code>$0</code></li>
     <li>Script arguments: <code>$1</code>, <code>$2</code>, <code>$3</code>, <code>$4</code>, ...</li>
     <li>Exit code: <code>$?</code></li>
-    <li>Process environment variable: <code>$HOME</code>, ...</li>
-    <li>Shell environment variable: <code>$foo</code>, ...</li>
+    <li>Environment variable: <code>$HOME</code>, ...</li>
+    <li>Shell variable: <code>$foo</code>, ...</li>
     </ul>
 
-    <p>Setting a variable in the shell environment is done with the following command:</p>
+    <p>Setting a variable in the shell is done with the following command:</p>
 
     <pre><code>&gt; set foo 42
 
@@ -216,13 +216,22 @@ multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
 Hello Alice and Bob
 </code></pre>
 
-    <p>The process environment is copied to the shell environment when a session is
-started. By convention a process env var should be in uppercase and a shell
-env var should be lowercase.</p>
-
     <p>Unsetting a variable is done like this:</p>
 
     <pre><code>&gt; unset foo
+</code></pre>
+
+    <p>Environment variables are copied to the shell when a session is started.
+By convention an env var should be in uppercase and a shell var should be
+lowercase. They can be changed by using <code>--env</code> or <code>-e</code>.</p>
+
+    <pre><code>&gt; date
+2026-04-21 17:24:06 +0000
+
+&gt; set --env TZ 7200
+
+&gt; date
+2026-04-21 19:24:14 +0200
 </code></pre>
 
     <h2>Globbing</h2>
