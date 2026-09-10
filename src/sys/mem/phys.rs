@@ -21,7 +21,7 @@ impl PhysBuf {
     fn from(vec: Vec<u8>) -> Self {
         let buffer_end = vec.len() - 1;
         let memory_end = phys_addr(&vec[buffer_end]) - phys_addr(&vec[0]);
-        if buffer_end == memory_end as usize {
+        if buffer_end == memory_end {
             Self {
                 buf: Arc::new(Mutex::new(vec)),
             }

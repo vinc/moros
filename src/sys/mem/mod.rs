@@ -1,4 +1,4 @@
-#[cfg(target_arch = "x86_64")] mod bitmap;
+mod bitmap;
 mod heap;
 #[cfg(target_arch = "x86_64")] mod paging;
 mod phys;
@@ -43,20 +43,18 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
         let start_addr = region.addr;
         let end_addr = region.addr + region.size;
         let hole = start_addr - last_end_addr;
-        if hole > 0 {
-            log!(
-                "MEM [{:#016X}-{:#016X}] {}", // "({} KB)"
-                last_end_addr, start_addr - 1, "Unmapped" //, hole >> 10
-            );
-            if start_addr < (1 << 20) {
-                memory_size += hole as usize; // BIOS memory
-            }
+        if hole > 0 && start_addr < (1 << 20) {
+            memory_size += hole; // Count BIOS memory
         }
         log!(
             "MEM [{:#016X}-{:#016X}] {:?}", // "({} KB)"
             start_addr, end_addr - 1, region.kind //, size >> 10
         );
-        memory_size += region.size as usize;
+        if region.is_addressable() {
+            // On i686 the maximum amount of memory addressable is around 3 GB
+            // because some of it will be mapped above the 4 GB limit.
+            memory_size += region.size;
+        }
         last_end_addr = end_addr;
     }
 
@@ -67,7 +65,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     log!("RAM {} MB", memory_size >> 20);
 
     // TODO: Only count usable memory and use SMBIOS to report the RAM
-    MEMORY_SIZE.store(memory_size, Ordering::Relaxed);
+    MEMORY_SIZE.store(memory_size as usize, Ordering::Relaxed);
 
     PHYS_MEM_OFFSET.call_once(|| offset as usize);
 
@@ -75,22 +73,25 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 
     #[cfg(target_arch = "x86")]
     {
+        let mut memory_map = memory_map.clone();
+
         // Paging is not enabled on i686 for now so we just use half of the
-        // largest usable region for the heap below the 4 GB limit.
-        let mut heap_addr = 0;
-        let mut heap_size = 0;
-        for region in memory_map.iter() {
-            let free = region.is_usable();
-            let addr = region.addr;
+        // largest usable region for the heap.
+        let (heap_addr, heap_size) = {
+            let region = memory_map.iter_mut().
+                filter(|region| region.is_usable()).
+                max_by_key(|region| region.size).
+                expect("not usable region");
+
             let size = region.size / 2;
-            if free && addr + size <= (1 << 32) && size > heap_size {
-                heap_addr = addr;
-                heap_size = size;
-            }
-        }
-        if heap_size == 0 {
-            panic!("Could not find a usable region for the heap");
-        }
+            let addr = region.addr + size;
+
+            region.size = size;
+
+            (addr, size)
+        };
+
+        bitmap::init_frame_allocator(&memory_map);
         heap::init_alloc(heap_addr as *mut u8, heap_size as usize);
     }
 

@@ -13,7 +13,7 @@ use x86_64::structures::paging::{
 pub unsafe fn active_page_table() -> &'static mut PageTable {
     let frame = Cr3::read().frame();
     let phys_addr = frame.start_address();
-    let virt_addr = super::phys_to_virt(phys_addr.into());
+    let virt_addr = super::phys_to_virt(phys_addr);
     let page_table_ptr: *mut PageTable = virt_addr.as_mut_ptr();
     &mut *page_table_ptr // unsafe
 }
@@ -32,7 +32,7 @@ pub unsafe fn create_mapper(page_table: &mut PageTable) -> OffsetPageTable<'_> {
 pub fn alloc_pages(
     mapper: &mut OffsetPageTable, addr: usize, size: usize
 ) -> Result<(), ()> {
-    let size = size.saturating_sub(1) as usize;
+    let size = size.saturating_sub(1);
 
     let pages = {
         let start_page = Page::containing_address(VirtAddr::new(addr).into());
@@ -76,7 +76,7 @@ pub fn alloc_pages(
 
 // TODO: Replace `free` by `dealloc`
 pub fn free_pages(mapper: &mut OffsetPageTable, addr: usize, size: usize) {
-    let size = size.saturating_sub(1) as usize;
+    let size = size.saturating_sub(1);
 
     let pages: PageRangeInclusive<Size4KiB> = {
         let start_page = Page::containing_address(VirtAddr::new(addr).into());

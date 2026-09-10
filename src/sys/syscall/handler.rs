@@ -1,6 +1,6 @@
 use crate::sys::process;
-use crate::sys::process::Registers;
-use crate::sys::x86::int::InterruptFrame;
+use crate::sys::process::SyscallRegisters;
+use crate::sys::x86::int::InterruptRegisters;
 
 use core::arch::naked_asm;
 
@@ -14,8 +14,8 @@ pub extern "C" fn handler() -> ! {
         "push ecx",
         "push ebx",
         "push eax",
-        "mov eax, esp",           // Registers
-        "lea edx, [esp + 5 * 4]", // InterruptFrame (5 registers * 4 bytes)
+        "mov eax, esp",           // SyscallRegisters
+        "lea edx, [esp + 5 * 4]", // InterruptRegisters (5 * 4 bytes)
         "sti",                    // Enable interrupts during syscall
         "push eax",               // Arg #2
         "push edx",               // Arg #1
@@ -46,8 +46,8 @@ pub extern "C" fn handler() -> ! {
         "push rsi",
         "push rdi",
         "push rax",
-        "mov rsi, rsp",           // Arg #2: Registers
-        "lea rdi, [rsp + 9 * 8]", // Arg #1: InterruptFrame (9 registers * 8 bytes)
+        "mov rsi, rsp",           // Arg #2: SyscallRegisters
+        "lea rdi, [rsp + 9 * 8]", // Arg #1: InterruptRegisters (9 * 8 bytes)
         "sti",                    // Enable interrupts during syscall
         "call {}",
         "cli",
@@ -66,28 +66,28 @@ pub extern "C" fn handler() -> ! {
 }
 
 extern "C" fn inner(
-    frame: &mut InterruptFrame,
-    regs: &mut Registers
+    interrupt_registers: &mut InterruptRegisters,
+    syscall_registers: &mut SyscallRegisters
 ) {
-    let n    = regs[0];
-    let arg1 = regs[1];
-    let arg2 = regs[2];
-    let arg3 = regs[3];
-    let arg4 = regs[4];
+    let n    = syscall_registers[0];
+    let arg1 = syscall_registers[1];
+    let arg2 = syscall_registers[2];
+    let arg3 = syscall_registers[3];
+    let arg4 = syscall_registers[4];
 
     // Backup CPU context before spawning a process
     if n == super::number::SPAWN {
-        process::set_interrupt_frame(*frame);
-        process::set_registers(*regs);
+        process::set_interrupt_registers(*interrupt_registers);
+        process::set_syscall_registers(*syscall_registers);
     }
 
     let res = super::dispatcher(n, arg1, arg2, arg3, arg4);
 
     // Restore CPU context before exiting a process
     if n == super::number::EXIT {
-        *frame = process::interrupt_frame();
-        *regs = process::registers();
+        *interrupt_registers = process::interrupt_registers();
+        *syscall_registers = process::syscall_registers();
     }
 
-    regs[0] = res;
+    syscall_registers[0] = res;
 }

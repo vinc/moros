@@ -1,10 +1,8 @@
 use super::seg::SegmentSelector;
-use super::addr::PhysAddr;
-
-use core::arch::asm;
+use super::addr::{PhysAddr, Frame};
 
 use bit_field::BitField;
-use x86_64::structures::paging::PhysFrame;
+use core::arch::asm;
 
 pub struct Cr2;
 
@@ -37,19 +35,18 @@ impl Cr3 {
                 options(nomem, nostack, preserves_flags)
             );
         }
-        let mask = 0xFFF;
-        let addr = value & !mask;
-        let flags = (value & mask) as u16;
+        let flags = value.get_bits(0..12) as u16;
+        let addr = value.get_bits(12..) << 12;
         Self { addr, flags }
     }
 
     #[inline]
     pub unsafe fn write(addr: usize, flags: u16) {
-        debug_assert_eq!(addr.get_bits(..12), 0);
-        debug_assert_eq!(flags.get_bits(12..), 0);
-
         #[cfg(target_arch = "x86_64")]
-        debug_assert_eq!(addr.get_bits(52..), 0);
+        debug_assert_eq!(addr.get_bits(52..64), 0);
+
+        debug_assert_eq!(addr.get_bits(0..12), 0);
+        debug_assert_eq!(flags.get_bits(12..16), 0);
 
         let value = addr | flags as usize;
         asm!(
@@ -66,8 +63,8 @@ impl Cr3 {
         self.addr
     }
 
-    pub fn frame(&self) -> PhysFrame {
-        PhysFrame::containing_address(PhysAddr::new(self.addr).into())
+    pub fn frame(&self) -> Frame {
+        Frame::from_start_address(PhysAddr::new(self.addr))
     }
 }
 
@@ -120,11 +117,13 @@ pub unsafe fn load_tss(sel: SegmentSelector) {
     asm!("ltr {:x}", in(reg) sel.bits, options(nostack, preserves_flags));
 }
 
-#[cfg(target_arch = "x86_64")]
 #[test_case]
 fn test_cr3() {
     let cr3 = Cr3::read();
+
+    #[cfg(target_arch = "x86_64")]
     assert_ne!(cr3.addr(), 0);
+
     assert_eq!(cr3.addr() & 0xFFF, 0);
     assert_eq!(cr3.flags() & !0xFFF, 0);
 

@@ -22,8 +22,8 @@ pub use table::{
     dir,
     alloc, free,
     handle, create_handle, update_handle, delete_handle,
-    registers, set_registers,
-    interrupt_frame, set_interrupt_frame,
+    syscall_registers, set_syscall_registers,
+    interrupt_registers, set_interrupt_registers,
 };
 
 use table::{
@@ -43,7 +43,8 @@ use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
 
 use crate::sys::syscall;
-use crate::sys::x86::int::InterruptFrame;
+use crate::sys::x86::addr::Frame;
+use crate::sys::x86::int::InterruptRegisters;
 use crate::sys::x86::reg::Cr3;
 
 use alloc::boxed::Box;
@@ -53,9 +54,7 @@ use alloc::sync::Arc;
 use core::ops::{Index, IndexMut};
 use core::sync::atomic::{AtomicU64, Ordering};
 use linked_list_allocator::LockedHeap;
-use x86_64::structures::paging::{
-    FrameDeallocator, PageTable, PhysFrame,
-};
+use x86_64::structures::paging::{FrameDeallocator, PageTable};
 
 pub const MAX_HANDLES: usize = 64;
 pub const MAX_PROC_SIZE: usize = 32 << 20;
@@ -73,10 +72,11 @@ pub fn ptr_from_addr(addr: usize) -> *mut u8 {
     addr as *mut u8
 }
 
+/// Registers pushed by the syscall handler
 #[cfg(target_arch = "x86")]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Registers {
+pub struct SyscallRegisters {
     // Linux i386 convention (except esi reserved by LLVM)
     pub eax: usize,
     pub ebx: usize,
@@ -85,10 +85,11 @@ pub struct Registers {
     pub edi: usize,
 }
 
+/// Registers pushed by the syscall handler
 #[cfg(target_arch = "x86_64")]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Registers {
+pub struct SyscallRegisters {
     // System V AMD64 ABI convention
     pub rax: usize,
     pub rdi: usize,
@@ -101,7 +102,7 @@ pub struct Registers {
     pub r11: usize,
 }
 
-impl Registers {
+impl SyscallRegisters {
     #[inline]
     fn as_slice(&self) -> &[usize] {
         let len = core::mem::size_of::<Self>() / core::mem::size_of::<usize>();
@@ -119,7 +120,7 @@ impl Registers {
     }
 }
 
-impl Index<usize> for Registers {
+impl Index<usize> for SyscallRegisters {
     type Output = usize;
 
     #[inline]
@@ -128,7 +129,7 @@ impl Index<usize> for Registers {
     }
 }
 
-impl IndexMut<usize> for Registers {
+impl IndexMut<usize> for SyscallRegisters {
     #[inline]
     fn index_mut(&mut self, i: usize) -> &mut usize {
         &mut self.as_mut_slice()[i]
@@ -168,7 +169,7 @@ struct ProcessContext {
     id: usize,
     stack_addr: usize,
     entry_point_addr: usize,
-    page_table_frame: PhysFrame,
+    page_table_frame: Frame,
     allocator: Arc<LockedHeap>,
 }
 
@@ -196,8 +197,8 @@ impl ProcessStats {
 
 pub struct Process {
     parent_id: usize,
-    interrupt_frame: Option<InterruptFrame>,
-    registers: Registers,
+    interrupt_registers: Option<InterruptRegisters>,
+    syscall_registers: SyscallRegisters,
     stats: ProcessStats,
     data: ProcessData,
     ctx: ProcessContext,
@@ -207,8 +208,8 @@ impl Process {
     fn new() -> Self {
         Self {
             parent_id: 0,
-            interrupt_frame: None,
-            registers: Registers::default(),
+            interrupt_registers: None,
+            syscall_registers: SyscallRegisters::default(),
             stats: ProcessStats::new(),
             data: ProcessData::new("/", None),
             ctx: ProcessContext {
@@ -239,26 +240,26 @@ fn load_process(id: usize) {
 
     #[cfg(target_arch = "x86_64")]
     unsafe {
-        let addr = page_table_frame().start_address().as_u64() as usize;
+        let addr = page_table_frame().start_address().as_usize();
         let flags = Cr3::read().flags();
         Cr3::write(addr, flags);
     }
 }
 
 #[cfg(target_arch = "x86_64")]
-fn free_process(page_table_frame: PhysFrame) {
-    let page_table = unsafe { mem::create_page_table(page_table_frame) };
+fn free_process(page_table_frame: Frame) {
+    let page_table = unsafe { mem::create_page_table(page_table_frame.into()) };
     let mut mapper = unsafe { mem::create_mapper(page_table) };
     mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
     unsafe {
         with_frame_allocator(|allocator| {
-            allocator.deallocate_frame(page_table_frame);
+            allocator.deallocate_frame(page_table_frame.into());
         });
     }
 }
 
 #[cfg(target_arch = "x86_64")]
-unsafe fn page_table_frame() -> PhysFrame {
+unsafe fn page_table_frame() -> Frame {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
     proc.ctx.page_table_frame
@@ -266,7 +267,7 @@ unsafe fn page_table_frame() -> PhysFrame {
 
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn page_table() -> &'static mut PageTable {
-    mem::create_page_table(page_table_frame())
+    mem::create_page_table(page_table_frame().into())
 }
 
 pub fn syscall_count(number: usize) -> u64 {
@@ -283,8 +284,8 @@ pub fn increment_syscall_count(number: usize) {
 
 #[cfg(target_arch = "x86")]
 #[test_case]
-fn test_registers() {
-    let mut regs = Registers::default();
+fn test_syscall_registers() {
+    let mut regs = SyscallRegisters::default();
     regs.eax = 1;
     regs.ebx = 2;
     regs.ecx = 3;
@@ -298,8 +299,8 @@ fn test_registers() {
 
 #[cfg(target_arch = "x86_64")]
 #[test_case]
-fn test_registers() {
-    let mut regs = Registers::default();
+fn test_syscall_registers() {
+    let mut regs = SyscallRegisters::default();
     regs.rax = 1;
     regs.rdi = 2;
     regs.rsi = 3;

@@ -25,6 +25,7 @@ pub enum MemoryRegionType {
     Defective,
     Bootloader,
     Kernel,
+    Unaddressable,
     Unknown(u32),
 }
 
@@ -43,6 +44,20 @@ impl MemoryRegion {
     pub fn is_usable(&self) -> bool {
         self.kind == MemoryRegionType::Usable
     }
+
+    pub fn is_addressable(&self) -> bool {
+        self.kind != MemoryRegionType::Unaddressable
+    }
+
+    pub fn aligned_start(&self) -> usize {
+        debug_assert!(self.is_usable()); // Unaddressable would overflow
+        crate::sys::x86::addr::align_up(self.addr as usize)
+    }
+
+    pub fn aligned_end(&self) -> usize {
+        debug_assert!(self.is_usable()); // Unaddressable would overflow
+        crate::sys::x86::addr::align_down((self.addr + self.size) as usize)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -52,7 +67,7 @@ pub struct MemoryMap {
 }
 
 impl MemoryMap {
-    pub const CAPACITY: usize = 32;
+    pub const CAPACITY: usize = 64;
 
     pub fn new() -> Self {
         let empty = MemoryRegion::new(0, 0, MemoryRegionType::Reserved);
@@ -69,11 +84,11 @@ impl MemoryMap {
         }
     }
 
-    pub fn as_slice(&self) -> &[MemoryRegion] {
-        &self.regions[..self.len]
+    pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
+        self.regions[..self.len].iter()
     }
 
-    pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
-        self.as_slice().iter()
+    pub fn iter_mut(&mut self) -> core::slice::IterMut<'_, MemoryRegion> {
+        self.regions[..self.len].iter_mut()
     }
 }

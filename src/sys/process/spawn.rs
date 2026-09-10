@@ -60,10 +60,15 @@ pub fn spawn(
 }
 
 fn create(bin: &[u8]) -> Result<usize, ()> {
-    let (parent_id, data, interrupt_frame, registers) = {
+    let (parent_id, data, interrupt_registers, syscall_registers) = {
         let process_table = PROCESS_TABLE.read();
         let proc = process_table[id()].as_ref().unwrap();
-        (proc.ctx.id, proc.data.clone(), proc.interrupt_frame, proc.registers)
+        (
+            proc.ctx.id,
+            proc.data.clone(),
+            proc.interrupt_registers,
+            proc.syscall_registers
+        )
     };
 
     // Lock the process table and get the pid
@@ -98,7 +103,7 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let stack_addr = USER_ADDR + proc_size - 4096;
 
     let entry_point_addr = load(bin, page_table).map_err(|_|
-        free_process(page_table_frame)
+        free_process(page_table_frame.into())
     )?;
 
     let allocator = Arc::new(LockedHeap::empty());
@@ -106,14 +111,14 @@ fn create(bin: &[u8]) -> Result<usize, ()> {
     let proc = Process {
         parent_id,
         data,
-        interrupt_frame,
-        registers,
+        interrupt_registers,
+        syscall_registers,
         stats: ProcessStats::new(),
         ctx: ProcessContext {
             id,
             stack_addr,
             entry_point_addr,
-            page_table_frame,
+            page_table_frame: page_table_frame.into(),
             allocator,
         }
     };
@@ -135,7 +140,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
 
     // Enter process address space and let the page fault handler allocate
     // user memory.
-    let addr = ctx.page_table_frame.start_address().as_u64() as usize;
+    let addr = ctx.page_table_frame.start_address().as_usize();
     let flags = Cr3::read().flags();
     unsafe {
         Cr3::write(addr, flags);
@@ -150,7 +155,7 @@ fn exec(ctx: ProcessContext, args_ptr: usize, args_len: usize) {
     drop(args);
 
     let heap_addr = args_addr + args_size;
-    let heap_size = ((ctx.stack_addr - heap_addr) / 2) as usize;
+    let heap_size = (ctx.stack_addr - heap_addr) / 2;
     unsafe {
         ctx.allocator.lock().init(heap_addr as *mut u8, heap_size);
     }
@@ -203,9 +208,9 @@ fn copy_args(args: &[String], addr: usize, size: usize) -> usize {
         dst.copy_from_slice(tmp.as_slice());
     }
 
-    let bytes = len * core::mem::size_of::<&str>() + (offset - addr) as usize;
+    let bytes = len * core::mem::size_of::<&str>() + (offset - addr);
     debug_assert!(bytes < size);
-    offset as usize
+    offset
 }
 
 fn load(bin: &[u8], page_table: &mut PageTable) -> Result<usize, ()> {
@@ -294,7 +299,7 @@ fn test_load() {
         let page_table = unsafe { mem::create_page_table(frame) };
         page_table.zero();
         assert_eq!(load(&bin, page_table), *res);
-        free_process(frame);
+        free_process(frame.into());
         assert_eq!(mem::with_frame_allocator(|a| a.used_frames()), used);
     }
 }
