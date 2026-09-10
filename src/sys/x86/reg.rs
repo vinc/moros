@@ -1,5 +1,5 @@
 use super::seg::SegmentSelector;
-use super::addr::{PhysAddr, PhysFrame};
+use super::addr::{PhysAddr, Frame};
 
 use bit_field::BitField;
 use core::arch::asm;
@@ -63,8 +63,8 @@ impl Cr3 {
         self.addr
     }
 
-    pub fn frame(&self) -> PhysFrame {
-        PhysFrame::from_start_address(PhysAddr::new(self.addr))
+    pub fn frame(&self) -> Frame {
+        Frame::from_start_address(PhysAddr::new(self.addr))
     }
 }
 

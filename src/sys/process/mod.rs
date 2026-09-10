@@ -43,7 +43,7 @@ use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
 
 use crate::sys::syscall;
-use crate::sys::x86::addr::PhysFrame;
+use crate::sys::x86::addr::Frame;
 use crate::sys::x86::int::InterruptRegisters;
 use crate::sys::x86::reg::Cr3;
 
@@ -167,7 +167,7 @@ struct ProcessContext {
     id: usize,
     stack_addr: usize,
     entry_point_addr: usize,
-    page_table_frame: PhysFrame,
+    page_table_frame: Frame,
     allocator: Arc<LockedHeap>,
 }
 
@@ -245,7 +245,7 @@ fn load_process(id: usize) {
 }
 
 #[cfg(target_arch = "x86_64")]
-fn free_process(page_table_frame: PhysFrame) {
+fn free_process(page_table_frame: Frame) {
     let page_table = unsafe { mem::create_page_table(page_table_frame.into()) };
     let mut mapper = unsafe { mem::create_mapper(page_table) };
     mem::free_pages(&mut mapper, USER_ADDR, MAX_PROC_SIZE);
@@ -257,7 +257,7 @@ fn free_process(page_table_frame: PhysFrame) {
 }
 
 #[cfg(target_arch = "x86_64")]
-unsafe fn page_table_frame() -> PhysFrame {
+unsafe fn page_table_frame() -> Frame {
     let table = PROCESS_TABLE.read();
     let proc = current_process(&table);
     proc.ctx.page_table_frame

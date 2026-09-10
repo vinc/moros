@@ -1,5 +1,5 @@
 use crate::sys::boot::{MemoryMap, MemoryRegionType};
-use crate::sys::x86::addr::{align_up, PhysAddr, PhysFrame};
+use crate::sys::x86::addr::{align_up, PhysAddr, Frame};
 
 use core::{cmp, slice};
 use spin::{Once, Mutex};
@@ -8,7 +8,7 @@ use x86_64::structures::paging::{FrameAllocator, FrameDeallocator, Size4KiB};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct UsableRegion {
-    first_frame: PhysFrame,
+    first_frame: Frame,
     frame_count: usize,
 }
 
@@ -25,29 +25,29 @@ impl UsableRegion {
         }
     }
 
-    pub fn first_frame(&self) -> PhysFrame {
+    pub fn first_frame(&self) -> Frame {
         self.first_frame
     }
 
-    pub fn last_frame(&self) -> PhysFrame {
-        PhysFrame::from_number(self.first_frame.number() + self.frame_count - 1)
+    pub fn last_frame(&self) -> Frame {
+        Frame::from_number(self.first_frame.number() + self.frame_count - 1)
     }
 
     pub fn len(&self) -> usize {
         self.frame_count
     }
 
-    pub fn contains(&self, frame: PhysFrame) -> bool {
+    pub fn contains(&self, frame: Frame) -> bool {
         self.first_frame() <= frame && frame <= self.last_frame()
     }
 
-    pub fn offset(&self, frame: PhysFrame) -> usize {
+    pub fn offset(&self, frame: Frame) -> usize {
         frame.number() - self.first_frame.number()
     }
 }
 
-fn frame_at(addr: usize) -> PhysFrame {
-    PhysFrame::containing_address(PhysAddr::new(addr))
+fn frame_at(addr: usize) -> Frame {
+    Frame::containing_address(PhysAddr::new(addr))
 }
 
 static FRAME_ALLOCATOR: Once<Mutex<BitmapFrameAllocator>> = Once::new();
@@ -154,7 +154,7 @@ impl BitmapFrameAllocator {
         self.bitmap.iter().map(|w| w.count_ones() as usize).sum()
     }
 
-    fn index_to_frame(&self, index: usize) -> Option<PhysFrame> {
+    fn index_to_frame(&self, index: usize) -> Option<Frame> {
         if index >= self.frames_count {
             return None;
         }
@@ -165,7 +165,7 @@ impl BitmapFrameAllocator {
                 if index < base + region.len() {
                     let offset = index - base;
                     let number = region.first_frame().number() + offset;
-                    return Some(PhysFrame::from_number(number));
+                    return Some(Frame::from_number(number));
                 }
                 base += region.len();
             }
@@ -173,7 +173,7 @@ impl BitmapFrameAllocator {
         None
     }
 
-    fn frame_to_index(&self, frame: PhysFrame) -> Option<usize> {
+    fn frame_to_index(&self, frame: Frame) -> Option<usize> {
         let mut base = 0;
         for i in 0..self.regions_count {
             if let Some(region) = self.usable_regions[i] {
@@ -195,7 +195,7 @@ impl BitmapFrameAllocator {
         self.bitmap[index / 8].set_bit(index % 8, allocated);
     }
 
-    fn allocate_frame(&mut self) -> Option<PhysFrame> {
+    fn allocate_frame(&mut self) -> Option<Frame> {
         for i in 0..self.frames_count {
             let index = (self.next_free_index + i) % self.frames_count;
             if !self.is_frame_allocated(index) {
@@ -207,7 +207,7 @@ impl BitmapFrameAllocator {
         None // No free frames
     }
 
-    unsafe fn deallocate_frame(&mut self, frame: PhysFrame) {
+    unsafe fn deallocate_frame(&mut self, frame: Frame) {
         if let Some(index) = self.frame_to_index(frame) {
             if self.is_frame_allocated(index) {
                 self.set_frame_allocated(index, false);

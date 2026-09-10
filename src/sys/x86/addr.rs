@@ -134,9 +134,9 @@ impl From<x86_64::VirtAddr> for VirtAddr {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-pub struct PhysFrame(PhysAddr);
+pub struct Frame(PhysAddr);
 
-impl PhysFrame {
+impl Frame {
     pub fn containing_address(addr: PhysAddr) -> Self {
         Self::from_start_address(addr - addr.page_offset()) // Align down
     }
@@ -159,13 +159,13 @@ impl PhysFrame {
     }
 }
 
-impl From<PhysFrame> for x86_64::structures::paging::PhysFrame {
-    fn from(frame: PhysFrame) -> Self {
+impl From<Frame> for x86_64::structures::paging::PhysFrame {
+    fn from(frame: Frame) -> Self {
         Self::from_start_address(frame.start_address().into()).unwrap()
     }
 }
 
-impl From<x86_64::structures::paging::PhysFrame> for PhysFrame {
+impl From<x86_64::structures::paging::PhysFrame> for Frame {
     fn from(frame: x86_64::structures::paging::PhysFrame) -> Self {
         Self::from_start_address(frame.start_address().into())
     }
@@ -197,14 +197,14 @@ fn test_phys_frame() {
     ];
     for (addr1, addr2) in values {
         assert_eq!(
-            PhysFrame::containing_address(PhysAddr::new(addr1)).start_address(),
+            Frame::containing_address(PhysAddr::new(addr1)).start_address(),
             PhysAddr::new(addr2)
         );
     }
 
     for i in 0..10 {
         assert_eq!(
-            PhysFrame::from_number(i).start_address(),
+            Frame::from_number(i).start_address(),
             PhysAddr::new(i * super::PAGE_SIZE)
         );
     }
