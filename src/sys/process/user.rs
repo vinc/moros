@@ -26,7 +26,13 @@ impl FileIO for ProcUser {
         Ok(n)
     }
 
-    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        if super::id() == 0 {
+            if let Ok(user) = String::from_utf8(buf.to_vec()) {
+                super::set_user(&user);
+                return Ok(user.len());
+            }
+        }
         Err(())
     }
 
@@ -35,7 +41,7 @@ impl FileIO for ProcUser {
     fn poll(&mut self, event: IO) -> bool {
         match event {
             IO::Read => true,
-            IO::Write => false,
+            IO::Write => true,
         }
     }
 }
