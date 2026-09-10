@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add userspace login (#853)
 - Swap print and echo (#917)
 - Allow running test in debug mode (#915)
 - Use usize milliseconds instead of float seconds for sleep (#916)
