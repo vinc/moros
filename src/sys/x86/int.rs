@@ -2,6 +2,7 @@ use super::reg;
 
 use core::arch::asm;
 
+/// Registers pushed by the CPU onto the interrupt stack frame
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct InterruptRegisters {

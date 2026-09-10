@@ -72,6 +72,7 @@ pub fn ptr_from_addr(addr: usize) -> *mut u8 {
     addr as *mut u8
 }
 
+/// Registers pushed by the syscall handler
 #[cfg(target_arch = "x86")]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
@@ -84,6 +85,7 @@ pub struct SyscallRegisters {
     pub edi: usize,
 }
 
+/// Registers pushed by the syscall handler
 #[cfg(target_arch = "x86_64")]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
