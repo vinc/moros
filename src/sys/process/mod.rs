@@ -284,7 +284,7 @@ pub fn increment_syscall_count(number: usize) {
 
 #[cfg(target_arch = "x86")]
 #[test_case]
-fn test_registers() {
+fn test_syscall_registers() {
     let mut regs = SyscallRegisters::default();
     regs.eax = 1;
     regs.ebx = 2;
@@ -299,7 +299,7 @@ fn test_registers() {
 
 #[cfg(target_arch = "x86_64")]
 #[test_case]
-fn test_registers() {
+fn test_syscall_registers() {
     let mut regs = SyscallRegisters::default();
     regs.rax = 1;
     regs.rdi = 2;

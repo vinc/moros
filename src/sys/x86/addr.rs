@@ -188,7 +188,7 @@ fn test_virt_addr() {
 }
 
 #[test_case]
-fn test_phys_frame() {
+fn test_frame() {
     let values = [
         (0x0000, 0x0000),
         (0x1000, 0x1000),
