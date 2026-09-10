@@ -32,6 +32,7 @@ pub fn copy_files(verbose: bool) {
     //copy_file!("/bin/blank", verbose);
     //copy_file!("/bin/browse", verbose);
     copy_file!("/bin/clear", verbose);
+    copy_file!("/bin/echo", verbose);
     //copy_file!("/bin/exec", verbose);
     //copy_file!("/bin/fetch", verbose);
     //copy_file!("/bin/geocal", verbose);
@@ -41,7 +42,6 @@ pub fn copy_files(verbose: bool) {
     //copy_file!("/bin/mandelbrot", verbose);
     copy_file!("/bin/ntp", verbose);
     copy_file!("/bin/pkg", verbose);
-    copy_file!("/bin/print", verbose);
     copy_file!("/bin/reboot", verbose);
     copy_file!("/bin/sleep", verbose);
 
