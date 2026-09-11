@@ -182,7 +182,7 @@ limine-image:
 limine-test: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 limine-test: LIMINE_DIR = $(limine-dir)
 limine-test:
-	cargo test $(test-opts) --no-default-features --features serial,multiboot --target $(arch)-moros.json -- \
+	cargo test $(test-opts) --no-default-features --features serial,$(bootloader-proto) --target $(arch)-moros.json -- \
 		-m $(memory) -cpu $(cpu) -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04 -device $(nic)
 
