@@ -36,7 +36,10 @@ pub fn rdrand() -> Option<u64> {
 #[cfg(target_arch = "x86")]
 pub fn rdtsc() -> u64 {
     unsafe {
-        core::arch::x86::_mm_lfence();
+        // Starting with i686 the out-of-order execution requires a
+        // serialization instruction. Using cpuid instead of lfence
+        // is slower but doesn't require SSE2.
+        core::arch::x86::__cpuid_count(0, 0);
         core::arch::x86::_rdtsc()
     }
 }
