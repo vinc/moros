@@ -68,6 +68,32 @@ impl Cr3 {
     }
 }
 
+pub struct Cr4;
+
+impl Cr4 {
+    pub const PSE: usize = 1 << 4;
+
+    #[inline]
+    pub fn read() -> usize {
+        let value: usize;
+        unsafe {
+            asm!(
+                "mov {}, cr4", out(reg) value,
+                options(nomem, nostack, preserves_flags)
+            );
+        }
+        value
+    }
+
+    #[inline]
+    pub unsafe fn write(value: usize) {
+        asm!(
+            "mov cr4, {}", in(reg) value,
+            options(nostack, preserves_flags)
+        );
+    }
+}
+
 pub mod flags {
     pub const IF: usize = 1 << 9; // Interrupt Flag
 }
