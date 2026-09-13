@@ -1,5 +1,6 @@
 use crate::sys::boot::{MemoryMap, MemoryRegionType};
-use crate::sys::x86::addr::{align_up, PhysAddr, Frame};
+use crate::sys::x86::addr::{align_up, PhysAddr};
+use crate::sys::x86::page::Frame;
 
 use core::{cmp, slice};
 use spin::{Once, Mutex};

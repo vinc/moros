@@ -1,8 +1,37 @@
+use super::addr::PhysAddr;
+use super::page::Frame;
 use super::seg::SegmentSelector;
-use super::addr::{PhysAddr, Frame};
 
 use bit_field::BitField;
 use core::arch::asm;
+
+pub struct Cr0;
+
+impl Cr0 {
+    pub const PE: usize = 1 << 0; // Protection Enabled
+    pub const WP: usize = 1 << 16; // Write Protect
+    pub const PG: usize = 1 << 31; // Paging
+
+    #[inline]
+    pub fn read() -> usize {
+        let value: usize;
+        unsafe {
+            asm!(
+                "mov {}, cr0", out(reg) value,
+                options(nomem, nostack, preserves_flags)
+            );
+        }
+        value
+    }
+
+    #[inline]
+    pub unsafe fn write(value: usize) {
+        asm!(
+            "mov cr0, {}", in(reg) value,
+            options(nostack, preserves_flags)
+        );
+    }
+}
 
 pub struct Cr2;
 
@@ -68,6 +97,32 @@ impl Cr3 {
     }
 }
 
+pub struct Cr4;
+
+impl Cr4 {
+    pub const PSE: usize = 1 << 4; // Page Size Extension
+
+    #[inline]
+    pub fn read() -> usize {
+        let value: usize;
+        unsafe {
+            asm!(
+                "mov {}, cr4", out(reg) value,
+                options(nomem, nostack, preserves_flags)
+            );
+        }
+        value
+    }
+
+    #[inline]
+    pub unsafe fn write(value: usize) {
+        asm!(
+            "mov cr4, {}", in(reg) value,
+            options(nostack, preserves_flags)
+        );
+    }
+}
+
 pub mod flags {
     pub const IF: usize = 1 << 9; // Interrupt Flag
 }
@@ -115,6 +170,11 @@ pub unsafe fn load_ss(sel: SegmentSelector) {
 #[inline]
 pub unsafe fn load_tss(sel: SegmentSelector) {
     asm!("ltr {:x}", in(reg) sel.bits, options(nostack, preserves_flags));
+}
+
+#[test_case]
+fn test_cr0() {
+    assert_eq!(Cr0::read() & Cr0::PE, Cr0::PE);
 }
 
 #[test_case]

@@ -43,7 +43,7 @@ use crate::sys::mem;
 use crate::sys::mem::with_frame_allocator;
 
 use crate::sys::syscall;
-use crate::sys::x86::addr::Frame;
+use crate::sys::x86::page::Frame;
 use crate::sys::x86::int::InterruptRegisters;
 use crate::sys::x86::reg::Cr3;
 
