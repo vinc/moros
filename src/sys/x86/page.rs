@@ -36,6 +36,7 @@ impl PageTable {
 }
 
 #[derive(Clone, Copy)]
+#[repr(transparent)]
 pub struct PageTableEntry(pub usize);
 
 impl PageTableEntry {

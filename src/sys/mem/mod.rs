@@ -13,15 +13,21 @@ pub use paging::{
 
 pub use phys::{phys_addr, PhysBuf};
 
-use crate::sys;
 use crate::sys::boot::MemoryMap;
 use crate::sys::pic;
 use crate::sys::x86::addr::{PhysAddr, VirtAddr};
+
+#[cfg(target_arch = "x86")]
 use crate::sys::x86::page::{PageTable, PageTableEntry, PageTableFlags};
-use crate::sys::x86::reg::{Cr0, Cr3, Cr4};
 
 use core::sync::atomic::{AtomicUsize, Ordering};
-use spin::{Mutex, Once};
+use spin::Once;
+
+#[cfg(target_arch = "x86")]
+use spin::Mutex;
+
+#[cfg(target_arch = "x86")]
+static KERNEL_PAGE_DIRECTORY: Mutex<PageTable> = Mutex::new(PageTable::new());
 
 #[cfg(target_arch = "x86_64")]
 use x86_64::structures::paging::{OffsetPageTable, Translate};
@@ -32,7 +38,6 @@ static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 
 static PHYS_MEM_OFFSET: Once<usize> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
-static KERNEL_PAGE_DIRECTORY: Mutex<PageTable> = Mutex::new(PageTable::new());
 
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
@@ -117,9 +122,9 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 }
 
 // TODO: Move to paging module
-// TODO: Init on x86_64 in addition to x86
+#[cfg(target_arch = "x86")]
 pub fn init_paging() {
-    if !sys::cpu::has_pse() {
+    if !crate::sys::cpu::has_pse() {
         log!("MEM PSE unavailable: paging disabled");
         return;
     }
@@ -139,6 +144,7 @@ pub fn init_paging() {
         phys_addr(pd.entries.as_ptr())
     };
 
+    use crate::sys::x86::reg::{Cr0, Cr3, Cr4};
     unsafe {
         // Enable page size extension
         Cr4::write(Cr4::read() | Cr4::PSE);
