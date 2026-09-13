@@ -193,3 +193,22 @@ pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
     mapper().translate_addr(addr.into()).map(|x| x.into())
 }
+
+#[test_case]
+fn test_control_registers() {
+    use crate::sys::x86::reg::{Cr0, Cr3, Cr4};
+
+    #[cfg(target_arch = "x86")]
+    assert_eq!(Cr4::read() & Cr4::PSE, Cr4::PSE);
+
+    #[cfg(target_arch = "x86")]
+    assert_eq!(
+        Cr3::read().addr(),
+        phys_addr(KERNEL_PAGE_DIRECTORY.lock().entries.as_ptr())
+    );
+
+    assert_eq!(Cr3::read().flags(), 0);
+
+    assert_eq!(Cr0::read() & Cr0::PG, Cr0::PG);
+    assert_eq!(Cr0::read() & Cr0::WP, Cr0::WP);
+}
