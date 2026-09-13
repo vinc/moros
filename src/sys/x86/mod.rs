@@ -1,5 +1,6 @@
 pub mod addr;
 pub mod int;
+pub mod page;
 pub mod port;
 pub mod reg;
 pub mod seg;

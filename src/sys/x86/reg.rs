@@ -1,5 +1,6 @@
+use super::addr::PhysAddr;
+use super::page::Frame;
 use super::seg::SegmentSelector;
-use super::addr::{PhysAddr, Frame};
 
 use bit_field::BitField;
 use core::arch::asm;
