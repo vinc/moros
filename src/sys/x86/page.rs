@@ -45,7 +45,7 @@ impl PageTableEntry {
     pub fn new(level: usize, index: usize, flags: usize) -> Self {
         let level = LEVELS - level;
         let addr = index * (super::PAGE_SIZE << (level * INDEX_BITS));
-        Self(addr | flags as usize)
+        Self(addr | flags)
     }
 
     pub const fn unused() -> Self {

@@ -83,8 +83,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     {
         let mut memory_map = memory_map.clone();
 
-        // Paging is not enabled on i686 for now so we just use half of the
-        // largest usable region for the heap.
+        // Reserve the second half of the largest usable region for the heap
         let (heap_addr, heap_size) = {
             let region = memory_map.iter_mut().
                 filter(|region| region.is_usable()).
@@ -123,7 +122,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 
 // TODO: Move to paging module
 #[cfg(target_arch = "x86")]
-pub fn init_paging() {
+fn init_paging() {
     if !crate::sys::cpu::has_pse() {
         log!("MEM PSE unavailable: paging disabled");
         return;
@@ -185,7 +184,6 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
 
 #[cfg(target_arch = "x86")]
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
-    // Pagination is not enabled on i686
     Some(PhysAddr::new(addr.as_usize()))
 }
 
@@ -200,6 +198,9 @@ fn test_control_registers() {
 
     #[cfg(target_arch = "x86")]
     assert_eq!(Cr4::read() & Cr4::PSE, Cr4::PSE);
+
+    #[cfg(target_arch = "x86_64")]
+    assert_eq!(Cr4::read() & Cr4::PSE, 0);
 
     #[cfg(target_arch = "x86")]
     assert_eq!(
