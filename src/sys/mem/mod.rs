@@ -13,16 +13,18 @@ pub use paging::{
 
 pub use phys::{phys_addr, PhysBuf};
 
+use crate::sys;
 use crate::sys::boot::MemoryMap;
 use crate::sys::pic;
+use crate::sys::x86::addr::{PhysAddr, VirtAddr};
+use crate::sys::x86::page::{PageTable, PageTableEntry, PageTableFlags};
+use crate::sys::x86::reg::{Cr0, Cr3, Cr4};
 
 use core::sync::atomic::{AtomicUsize, Ordering};
-use spin::Once;
+use spin::{Mutex, Once};
 
 #[cfg(target_arch = "x86_64")]
 use x86_64::structures::paging::{OffsetPageTable, Translate};
-
-use crate::sys::x86::addr::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]
 #[cfg(target_arch = "x86_64")]
@@ -30,6 +32,7 @@ static mut MAPPER: Once<OffsetPageTable<'static>> = Once::new();
 
 static PHYS_MEM_OFFSET: Once<usize> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
+static KERNEL_PAGE_DIRECTORY: Mutex<PageTable> = Mutex::new(PageTable::new());
 
 pub fn init(memory_map: &MemoryMap, offset: u64) {
     // Keep the timer interrupt to have accurate boot time measurement but mask
@@ -93,6 +96,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 
         bitmap::init_frame_allocator(&memory_map);
         heap::init_alloc(heap_addr as *mut u8, heap_size as usize);
+        init_paging();
     }
 
     #[cfg(target_arch = "x86_64")] // TODO: Remove
@@ -110,6 +114,41 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     }
 
     pic::unmask(pic::KBD_IRQ);
+}
+
+// TODO: Move to paging module
+// TODO: Init on x86_64 in addition to x86
+pub fn init_paging() {
+    if !sys::cpu::has_pse() {
+        log!("MEM PSE unavailable: paging disabled");
+        return;
+    }
+
+    let addr = {
+        let mut pd = KERNEL_PAGE_DIRECTORY.lock();
+
+        let level = 1;
+        let flags = PageTableFlags::PRESENT as usize
+                  | PageTableFlags::WRITABLE as usize
+                  | PageTableFlags::HUGE as usize; // PSE must be enabled
+
+        for (index, entry) in pd.entries.iter_mut().enumerate() {
+            *entry = PageTableEntry::new(level, index, flags);
+        }
+
+        phys_addr(pd.entries.as_ptr())
+    };
+
+    unsafe {
+        // Enable page size extension
+        Cr4::write(Cr4::read() | Cr4::PSE);
+
+        // Load page directory
+        Cr3::write(addr, 0);
+
+        // Enable paging and write protection
+        Cr0::write(Cr0::read() | Cr0::PG | Cr0::WP);
+    }
 }
 
 pub fn phys_mem_offset() -> usize {
