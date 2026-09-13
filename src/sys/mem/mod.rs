@@ -212,3 +212,20 @@ fn test_control_registers() {
     assert_eq!(Cr0::read() & Cr0::PG, Cr0::PG);
     assert_eq!(Cr0::read() & Cr0::WP, Cr0::WP);
 }
+
+#[cfg(target_arch = "x86")]
+#[test_case]
+fn test_paging() {
+    let pd = KERNEL_PAGE_DIRECTORY.lock();
+
+    let flags = PageTableFlags::PRESENT as usize
+              | PageTableFlags::WRITABLE as usize
+              | PageTableFlags::HUGE as usize;
+
+    let dirty = PageTableFlags::ACCESSED as usize
+              | PageTableFlags::DIRTY as usize;
+
+    assert_eq!(pd.entries[0].0,    0x0000_0000 | flags | dirty);
+    assert_eq!(pd.entries[1].0,    0x0040_0000 | flags);
+    assert_eq!(pd.entries[1023].0, 0xFFC0_0000 | flags);
+}

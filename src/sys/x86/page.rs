@@ -5,6 +5,8 @@ pub enum PageTableFlags {
     PRESENT  = 1 << 0,
     WRITABLE = 1 << 1,
     USER     = 1 << 2,
+    ACCESSED = 1 << 5,
+    DIRTY    = 1 << 6,
     HUGE     = 1 << 7,
 }
 
