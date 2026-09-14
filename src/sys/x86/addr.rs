@@ -2,11 +2,11 @@ use bit_field::BitField;
 use core::ops::{Add, Sub};
 
 pub fn align_up(addr: usize) -> usize {
-    addr.next_multiple_of(super::PAGE_SIZE)
+    addr.next_multiple_of(super::page::PAGE_SIZE)
 }
 
 pub fn align_down(addr: usize) -> usize {
-    addr - (addr % super::PAGE_SIZE)
+    addr - (addr % super::page::PAGE_SIZE)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
@@ -32,7 +32,7 @@ impl PhysAddr {
     }
 
     pub fn page_offset(self) -> usize {
-        debug_assert_eq!(super::PAGE_SIZE, 1 << 12);
+        debug_assert_eq!(super::page::PAGE_SIZE, 1 << 12);
         self.0.get_bits(0..12)
     }
 }
@@ -86,7 +86,7 @@ impl VirtAddr {
     }
 
     pub fn page_offset(self) -> usize {
-        debug_assert_eq!(super::PAGE_SIZE, 1 << 12);
+        debug_assert_eq!(super::page::PAGE_SIZE, 1 << 12);
         self.0.get_bits(0..12)
     }
 }
@@ -133,44 +133,6 @@ impl From<x86_64::VirtAddr> for VirtAddr {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-pub struct Frame(PhysAddr);
-
-impl Frame {
-    pub fn containing_address(addr: PhysAddr) -> Self {
-        Self::from_start_address(addr - addr.page_offset()) // Align down
-    }
-
-    pub fn from_start_address(addr: PhysAddr) -> Self {
-        debug_assert_eq!(addr.page_offset(), 0);
-        Self(addr)
-    }
-
-    pub fn start_address(self) -> PhysAddr {
-        self.0
-    }
-
-    pub fn from_number(number: usize) -> Self {
-        Self::from_start_address(PhysAddr::new(number << 12))
-    }
-
-    pub fn number(self) -> usize {
-        self.0.as_usize() >> 12
-    }
-}
-
-impl From<Frame> for x86_64::structures::paging::PhysFrame {
-    fn from(frame: Frame) -> Self {
-        Self::from_start_address(frame.start_address().into()).unwrap()
-    }
-}
-
-impl From<x86_64::structures::paging::PhysFrame> for Frame {
-    fn from(frame: x86_64::structures::paging::PhysFrame) -> Self {
-        Self::from_start_address(frame.start_address().into())
-    }
-}
-
 #[test_case]
 fn test_phys_addr() {
     assert_eq!(PhysAddr::new(0x1234).as_usize(), 0x1234);
@@ -185,27 +147,4 @@ fn test_virt_addr() {
     assert_eq!(VirtAddr::new(0x1234).page_offset(), 0x234);
     assert_eq!(VirtAddr::new(0x1000) + 0x0234, VirtAddr::new(0x1234));
     assert_eq!(VirtAddr::new(0x1234) - 0x0234, VirtAddr::new(0x1000));
-}
-
-#[test_case]
-fn test_frame() {
-    let values = [
-        (0x0000, 0x0000),
-        (0x1000, 0x1000),
-        (0xA000, 0xA000),
-        (0xAFFF, 0xA000),
-    ];
-    for (addr1, addr2) in values {
-        assert_eq!(
-            Frame::containing_address(PhysAddr::new(addr1)).start_address(),
-            PhysAddr::new(addr2)
-        );
-    }
-
-    for i in 0..10 {
-        assert_eq!(
-            Frame::from_number(i).start_address(),
-            PhysAddr::new(i * super::PAGE_SIZE)
-        );
-    }
 }

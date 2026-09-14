@@ -68,7 +68,7 @@ pub fn extract_memory_map(info: u32, magic: u32) -> MemoryMap {
 
             // Reserve the first page
             if addr == 0 && kind == K::Usable {
-                let page_size = sys::x86::PAGE_SIZE as u64;
+                let page_size = sys::x86::page::PAGE_SIZE as u64;
                 debug_assert!(page_size < size);
                 memory_map.add(MemoryRegion::new(0, page_size, K::Reserved));
                 addr += page_size;
