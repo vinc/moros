@@ -1,15 +1,17 @@
 mod bitmap;
 mod heap;
-#[cfg(target_arch = "x86_64")] mod paging;
+#[cfg(target_arch = "x86_64")] mod mapping;
+mod paging;
 mod phys;
 
 #[cfg(target_arch = "x86_64")]
 pub use bitmap::{frame_allocator, with_frame_allocator};
 
 #[cfg(target_arch = "x86_64")]
-pub use paging::{
-    alloc_pages, free_pages, active_page_table, create_page_table, create_mapper
-};
+pub use mapping::{alloc_pages, free_pages, create_mapper};
+
+#[cfg(target_arch = "x86_64")]
+pub use paging::{active_page_table, create_page_table};
 
 pub use phys::{phys_addr, PhysBuf};
 
