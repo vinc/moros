@@ -37,14 +37,32 @@ impl PageTable {
     }
 }
 
+// x86-64:
+//
+//     63      48 47     39 38     30 29     21 20     12 11         0
+//    +----------+---------+---------+---------+---------+------------+
+//    | sign ext |  PML4   |  PDPT   |   PD    |   PT    |   offset   |
+//    +----------+---------+---------+---------+---------+------------+
+//
+// x86-32:
+//
+//                              31        22 21        12 11         0
+//                             +------------+------------+------------+
+//                             |     PD     |     PT     |   offset   |
+//                             +------------+------------+------------+
+// L4 = PML4
+// L3 = PDPT
+// L2 = PD
+// L1 = PT
+
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct PageTableEntry(pub usize);
 
 impl PageTableEntry {
     pub fn new(level: usize, index: usize, flags: usize) -> Self {
-        let level = LEVELS - level;
-        let addr = index * (super::PAGE_SIZE << (level * INDEX_BITS));
+        debug_assert!(0 < level && level <= LEVELS);
+        let addr = index * (super::PAGE_SIZE << ((level - 1) * INDEX_BITS));
         Self(addr | flags)
     }
 

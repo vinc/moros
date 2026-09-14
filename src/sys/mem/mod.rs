@@ -131,7 +131,7 @@ fn init_paging() {
     let addr = {
         let mut pd = KERNEL_PAGE_DIRECTORY.lock();
 
-        let level = 1;
+        let level = 2;
         let flags = PageTableFlags::PRESENT as usize
                   | PageTableFlags::WRITABLE as usize
                   | PageTableFlags::HUGE as usize; // PSE must be enabled
