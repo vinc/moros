@@ -94,7 +94,7 @@ fn test_control_registers() {
 
 #[cfg(target_arch = "x86")]
 #[test_case]
-fn test_paging() {
+fn test_page_table() {
     let page_table = KERNEL_PAGE_TABLE.lock();
 
     let flags = PageTableEntry::PRESENT
