@@ -101,6 +101,7 @@ pub struct Cr4;
 
 impl Cr4 {
     pub const PSE: usize = 1 << 4; // Page Size Extension
+    pub const PAE: usize = 1 << 5; // Physical Address Extension
 
     #[inline]
     pub fn read() -> usize {

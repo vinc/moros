@@ -18,7 +18,7 @@ use crate::sys::pic;
 use crate::sys::x86::addr::{PhysAddr, VirtAddr};
 
 #[cfg(target_arch = "x86")]
-use crate::sys::x86::page::{PageTable, PageTableEntry, PageTableFlags};
+use crate::sys::x86::page::{PageTable, PageTableEntry};
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
@@ -27,7 +27,7 @@ use spin::Once;
 use spin::Mutex;
 
 #[cfg(target_arch = "x86")]
-static KERNEL_PAGE_DIRECTORY: Mutex<PageTable> = Mutex::new(PageTable::new());
+static KERNEL_PAGE_TABLE: Mutex<PageTable> = Mutex::new(PageTable::new());
 
 #[cfg(target_arch = "x86_64")]
 use x86_64::structures::paging::{OffsetPageTable, Translate};
@@ -129,18 +129,18 @@ fn init_paging() {
     }
 
     let addr = {
-        let mut pd = KERNEL_PAGE_DIRECTORY.lock();
+        let mut page_table = KERNEL_PAGE_TABLE.lock();
 
         let level = 2;
-        let flags = PageTableFlags::PRESENT as usize
-                  | PageTableFlags::WRITABLE as usize
-                  | PageTableFlags::HUGE as usize; // PSE must be enabled
+        let flags = PageTableEntry::PRESENT
+                  | PageTableEntry::WRITABLE
+                  | PageTableEntry::LARGE; // PSE must be enabled
 
-        for (index, entry) in pd.entries.iter_mut().enumerate() {
+        for (index, entry) in page_table.entries.iter_mut().enumerate() {
             *entry = PageTableEntry::new(level, index, flags);
         }
 
-        phys_addr(pd.entries.as_ptr())
+        phys_addr(page_table.entries.as_ptr())
     };
 
     use crate::sys::x86::reg::{Cr0, Cr3, Cr4};
@@ -197,15 +197,21 @@ fn test_control_registers() {
     use crate::sys::x86::reg::{Cr0, Cr3, Cr4};
 
     #[cfg(target_arch = "x86")]
-    assert_eq!(Cr4::read() & Cr4::PSE, Cr4::PSE);
+    {
+        assert_eq!(Cr4::read() & Cr4::PSE, Cr4::PSE);
+        assert_eq!(Cr4::read() & Cr4::PAE, 0);
+    }
 
     #[cfg(target_arch = "x86_64")]
-    assert_eq!(Cr4::read() & Cr4::PSE, 0);
+    {
+        assert_eq!(Cr4::read() & Cr4::PSE, 0);
+        assert_eq!(Cr4::read() & Cr4::PAE, Cr4::PAE);
+    }
 
     #[cfg(target_arch = "x86")]
     assert_eq!(
         Cr3::read().addr(),
-        phys_addr(KERNEL_PAGE_DIRECTORY.lock().entries.as_ptr())
+        phys_addr(KERNEL_PAGE_TABLE.lock().entries.as_ptr())
     );
 
     assert_eq!(Cr3::read().flags(), 0);
@@ -217,16 +223,16 @@ fn test_control_registers() {
 #[cfg(target_arch = "x86")]
 #[test_case]
 fn test_paging() {
-    let pd = KERNEL_PAGE_DIRECTORY.lock();
+    let page_table = KERNEL_PAGE_TABLE.lock();
 
-    let flags = PageTableFlags::PRESENT as usize
-              | PageTableFlags::WRITABLE as usize
-              | PageTableFlags::HUGE as usize;
+    let flags = PageTableEntry::PRESENT
+              | PageTableEntry::WRITABLE
+              | PageTableEntry::LARGE;
 
-    let dirty = PageTableFlags::ACCESSED as usize
-              | PageTableFlags::DIRTY as usize;
+    let dirty = PageTableEntry::ACCESSED
+              | PageTableEntry::DIRTY;
 
-    assert_eq!(pd.entries[0].0,    0x0000_0000 | flags | dirty);
-    assert_eq!(pd.entries[1].0,    0x0040_0000 | flags);
-    assert_eq!(pd.entries[1023].0, 0xFFC0_0000 | flags);
+    assert_eq!(page_table.entries[0].0,    0x0000_0000 | flags | dirty);
+    assert_eq!(page_table.entries[1].0,    0x0040_0000 | flags);
+    assert_eq!(page_table.entries[1023].0, 0xFFC0_0000 | flags);
 }

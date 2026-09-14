@@ -1,16 +1,23 @@
 use super::addr::PhysAddr;
 
-#[repr(usize)]
-pub enum PageTableFlags {
-    PRESENT  = 1 << 0,
-    WRITABLE = 1 << 1,
-    USER     = 1 << 2,
-    ACCESSED = 1 << 5,
-    DIRTY    = 1 << 6,
-    HUGE     = 1 << 7,
-}
-
-pub const ENTRIES: usize = super::PAGE_SIZE / core::mem::size_of::<usize>();
+// 64-bit virtual address:
+//
+//     63      48 47     39 38     30 29     21 20     12 11         0
+//    +----------+---------+---------+---------+---------+------------+
+//    | sign ext |  PML4   |   PDP   |   PD    |   PT    |   offset   |
+//    +----------+---------+---------+---------+---------+------------+
+//
+// 32-bit virtual address:
+//
+//                                  31      22 21      12 11         0
+//                                 +----------+----------+------------+
+//                                 |    PD    |    PT    |   offset   |
+//                                 +----------+----------+------------+
+//
+// L4 = PML4 (Page Map Level 4)
+// L3 = PDP (Page Directory Pointer)
+// L2 = PD (Page Directory)
+// L1 = PT (Page Table)
 
 #[cfg(target_arch = "x86")]
 const LEVELS: usize = 2;
@@ -18,11 +25,13 @@ const LEVELS: usize = 2;
 #[cfg(target_arch = "x86_64")]
 const LEVELS: usize = 4;
 
-#[cfg(target_arch = "x86")]
-pub const INDEX_BITS: usize = 10;
+pub const PAGE_SIZE: usize = 4096;
 
-#[cfg(target_arch = "x86_64")]
-pub const INDEX_BITS: usize = 9;
+// 1024 entries per table on 32-bit, 512 on 64-bit
+pub const ENTRIES: usize = PAGE_SIZE / core::mem::size_of::<PageTableEntry>();
+
+// 10 bits per level on 32-bit, 9 bits on 64-bit
+pub const LEVEL_SHIFT: usize = ENTRIES.ilog2() as usize;
 
 #[repr(C, align(4096))]
 pub struct PageTable {
@@ -37,32 +46,21 @@ impl PageTable {
     }
 }
 
-// x86-64:
-//
-//     63      48 47     39 38     30 29     21 20     12 11         0
-//    +----------+---------+---------+---------+---------+------------+
-//    | sign ext |  PML4   |  PDPT   |   PD    |   PT    |   offset   |
-//    +----------+---------+---------+---------+---------+------------+
-//
-// x86-32:
-//
-//                              31        22 21        12 11         0
-//                             +------------+------------+------------+
-//                             |     PD     |     PT     |   offset   |
-//                             +------------+------------+------------+
-// L4 = PML4
-// L3 = PDPT
-// L2 = PD
-// L1 = PT
-
 #[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct PageTableEntry(pub usize);
 
 impl PageTableEntry {
+    pub const PRESENT:  usize = 1 << 0;
+    pub const WRITABLE: usize = 1 << 1;
+    pub const USER:     usize = 1 << 2;
+    pub const ACCESSED: usize = 1 << 5;
+    pub const DIRTY:    usize = 1 << 6;
+    pub const LARGE:    usize = 1 << 7;
+
     pub fn new(level: usize, index: usize, flags: usize) -> Self {
         debug_assert!(0 < level && level <= LEVELS);
-        let addr = index * (super::PAGE_SIZE << ((level - 1) * INDEX_BITS));
+        let addr = index * (PAGE_SIZE << ((level - 1) * LEVEL_SHIFT));
         Self(addr | flags)
     }
 
@@ -127,7 +125,7 @@ fn test_frame() {
     for i in 0..10 {
         assert_eq!(
             Frame::from_number(i).start_address(),
-            PhysAddr::new(i * super::PAGE_SIZE)
+            PhysAddr::new(i * PAGE_SIZE)
         );
     }
 }

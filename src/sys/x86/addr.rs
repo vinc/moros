@@ -2,11 +2,11 @@ use bit_field::BitField;
 use core::ops::{Add, Sub};
 
 pub fn align_up(addr: usize) -> usize {
-    addr.next_multiple_of(super::PAGE_SIZE)
+    addr.next_multiple_of(super::page::PAGE_SIZE)
 }
 
 pub fn align_down(addr: usize) -> usize {
-    addr - (addr % super::PAGE_SIZE)
+    addr - (addr % super::page::PAGE_SIZE)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
@@ -32,7 +32,7 @@ impl PhysAddr {
     }
 
     pub fn page_offset(self) -> usize {
-        debug_assert_eq!(super::PAGE_SIZE, 1 << 12);
+        debug_assert_eq!(super::page::PAGE_SIZE, 1 << 12);
         self.0.get_bits(0..12)
     }
 }
@@ -86,7 +86,7 @@ impl VirtAddr {
     }
 
     pub fn page_offset(self) -> usize {
-        debug_assert_eq!(super::PAGE_SIZE, 1 << 12);
+        debug_assert_eq!(super::page::PAGE_SIZE, 1 << 12);
         self.0.get_bits(0..12)
     }
 }
