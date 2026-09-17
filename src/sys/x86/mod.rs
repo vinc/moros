@@ -1,12 +1,11 @@
 pub mod addr;
 pub mod int;
+pub mod page;
 pub mod port;
 pub mod reg;
 pub mod seg;
 
 use core::arch::asm;
-
-pub const PAGE_SIZE: usize = 4096;
 
 /// Halts the CPU until the next interrupt
 #[inline]

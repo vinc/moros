@@ -1,28 +1,29 @@
 mod bitmap;
 mod heap;
-#[cfg(target_arch = "x86_64")] mod paging;
+#[cfg(target_arch = "x86_64")] mod mapping;
+mod paging;
 mod phys;
 
 #[cfg(target_arch = "x86_64")]
 pub use bitmap::{frame_allocator, with_frame_allocator};
 
 #[cfg(target_arch = "x86_64")]
-pub use paging::{
-    alloc_pages, free_pages, active_page_table, create_page_table, create_mapper
-};
+pub use mapping::{alloc_pages, free_pages, create_mapper};
+
+#[cfg(target_arch = "x86_64")]
+pub use paging::{active_page_table, create_page_table};
 
 pub use phys::{phys_addr, PhysBuf};
 
 use crate::sys::boot::MemoryMap;
 use crate::sys::pic;
+use crate::sys::x86::addr::{PhysAddr, VirtAddr};
 
 use core::sync::atomic::{AtomicUsize, Ordering};
 use spin::Once;
 
 #[cfg(target_arch = "x86_64")]
 use x86_64::structures::paging::{OffsetPageTable, Translate};
-
-use crate::sys::x86::addr::{PhysAddr, VirtAddr};
 
 #[allow(static_mut_refs)]
 #[cfg(target_arch = "x86_64")]
@@ -75,8 +76,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     {
         let mut memory_map = memory_map.clone();
 
-        // Paging is not enabled on i686 for now so we just use half of the
-        // largest usable region for the heap.
+        // Reserve the second half of the largest usable region for the heap
         let (heap_addr, heap_size) = {
             let region = memory_map.iter_mut().
                 filter(|region| region.is_usable()).
@@ -93,6 +93,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 
         bitmap::init_frame_allocator(&memory_map);
         heap::init_alloc(heap_addr as *mut u8, heap_size as usize);
+        paging::init();
     }
 
     #[cfg(target_arch = "x86_64")] // TODO: Remove
@@ -140,7 +141,6 @@ pub fn phys_to_virt(addr: PhysAddr) -> VirtAddr {
 
 #[cfg(target_arch = "x86")]
 pub fn virt_to_phys(addr: VirtAddr) -> Option<PhysAddr> {
-    // Pagination is not enabled on i686
     Some(PhysAddr::new(addr.as_usize()))
 }
 

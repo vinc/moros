@@ -145,7 +145,7 @@ impl Device {
 
             // Write BDL address to Buffer Descriptor Base Address register
             let bdl = self.bdl.lock();
-            let addr = sys::mem::phys_addr(bdl.as_ptr() as *const u8);
+            let addr = sys::mem::phys_addr(bdl.as_ptr());
             debug_assert!(addr % 8 == 0);
             outl(self.bar1 + PO_BDBAR, addr as u32);
             drop(bdl);

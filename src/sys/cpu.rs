@@ -39,8 +39,20 @@ pub fn init() {
     }
 }
 
-// RDRAND has been available since 2012 for Intel (Ivy Bridge) processors
-// and 2015 for AMD.
+// RDRAND (Read Random)
+//
+// Support:
+// - Intel Ivy Bridge (2012)
+// - AMD Excavator (2015)
 pub fn has_rdrand() -> bool {
     cpuid().get_feature_info().is_some_and(|info| info.has_rdrand())
+}
+
+// PSE (Page Size Extension)
+//
+// Support:
+// - Intel Pentium (1993)
+// - AMD Athlon (1999)
+pub fn has_pse() -> bool {
+    cpuid().get_feature_info().is_some_and(|info| info.has_pse())
 }

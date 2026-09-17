@@ -73,7 +73,7 @@ impl core::ops::DerefMut for PhysBuf {
     }
 }
 
-pub fn phys_addr(ptr: *const u8) -> usize {
+pub fn phys_addr<T>(ptr: *const T) -> usize {
     let virt_addr = VirtAddr::new(ptr as usize);
     let phys_addr = super::virt_to_phys(virt_addr).unwrap();
     phys_addr.as_usize()

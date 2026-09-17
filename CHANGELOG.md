@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Enable paging on i686 (#921)
 - Enable bitmap frame allocator on i686 (#919)
 - Add userspace login (#853)
 - Swap print and echo (#917)
