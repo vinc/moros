@@ -126,6 +126,7 @@ endif
 ifeq ($(arch),i686)
 qemu = qemu-system-i386
 cpu = n270
+smp = 1
 else ifeq ($(arch),i586)
 qemu = qemu-system-i386
 qemu-opts += -d int,cpu_reset -D qemu.log -no-reboot -no-shutdown
