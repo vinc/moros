@@ -15,11 +15,11 @@ use spin::Mutex;
 // https://pdos.csail.mit.edu/6.828/2019/readings/hardware/8254x_GBe_SDM.pdf
 
 // Registers
+// const REG_IMS: u16 = 0x00D0; // Interrupt Mask Set/Read Register
 const REG_CTRL: u16 =   0x0000; // Device Control Register
 const REG_STATUS: u16 = 0x0008; // Device Status Register
 const REG_EERD: u16 =   0x0014; // EEPROM Read Register
 const REG_ICR: u16 =    0x00C0; // Interrupt Cause Read Register
-const REG_IMS: u16 =    0x00D0; // Interrupt Mask Set/Read Register
 const REG_IMC: u16 =    0x00D8; // Interrupt Mask Clear Register
 const REG_RCTL: u16 =   0x0100; // Receive Control Register
 const REG_RDBAL: u16 =  0x2800; // Receive Descriptor Base Address Low
@@ -191,7 +191,6 @@ impl Device {
 
         // TODO: Enable interrupts
         //self.write(REG_IMS, ICR_LSC | ICR_RXDMT0 | ICR_RXT0);
-        self.write(REG_IMS, 0);
 
         // Clear interrupts
         self.read(REG_ICR);

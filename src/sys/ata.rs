@@ -33,7 +33,7 @@ const STATUS_REGISTER:           u16 = 7;
 const COMMAND_REGISTER:          u16 = 7;
 
 const ALTERNATE_STATUS_REGISTER: u16 = 0;
-const CONTROL_REGISTER:          u16 = 0;
+// const CONTROL_REGISTER:       u16 = 0;
 
 #[repr(u16)]
 #[derive(Debug, Clone, Copy)]
@@ -284,16 +284,6 @@ impl Bus {
                 );
                 Err(())
             }
-        }
-    }
-
-    #[allow(dead_code)]
-    fn reset(&self) {
-        unsafe {
-            outb(self.ctrl_base + CONTROL_REGISTER, 4); // Set SRST bit
-            self.wait(5); // Wait at least 5 ns
-            outb(self.ctrl_base + CONTROL_REGISTER, 0); // Then clear it
-            self.wait(2000); // Wait at least 2 ms
         }
     }
 
