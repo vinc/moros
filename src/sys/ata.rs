@@ -267,6 +267,9 @@ impl Bus {
                 return Err(());
             }
         }
+
+        self.poll(Status::BSY, false)?;
+
         match (self.lba1(), self.lba2()) {
             (0x00, 0x00) => {
                 self.sync()?;
