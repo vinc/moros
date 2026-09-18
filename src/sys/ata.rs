@@ -277,7 +277,13 @@ impl Bus {
             }
             (0x14, 0xEB) => Ok(IdentifyResponse::Atapi),
             (0x3C, 0xC3) => Ok(IdentifyResponse::Sata),
-            (_, _) => Err(()),
+            (lba1, lba2) => {
+                debug!(
+                    "ATA {} unknown signature {:02X} {:02X}",
+                    self.id, lba1, lba2
+                );
+                Err(())
+            }
         }
     }
 
