@@ -36,4 +36,4 @@ jobs:
     - run: make
     - run: make limine-setup
     - run: make limine-image arch=i686 bootloader-proto=multiboot
-    - run: make limine-test
+    - run: make limine-test arch=i686 bootloader-proto=multiboot

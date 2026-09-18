@@ -33,7 +33,7 @@ const STATUS_REGISTER:           u16 = 7;
 const COMMAND_REGISTER:          u16 = 7;
 
 const ALTERNATE_STATUS_REGISTER: u16 = 0;
-const CONTROL_REGISTER:          u16 = 0;
+// const CONTROL_REGISTER:       u16 = 0;
 
 #[repr(u16)]
 #[derive(Debug, Clone, Copy)]
@@ -267,6 +267,9 @@ impl Bus {
                 return Err(());
             }
         }
+
+        self.poll(Status::BSY, false)?;
+
         match (self.lba1(), self.lba2()) {
             (0x00, 0x00) => {
                 self.sync()?;
@@ -274,17 +277,13 @@ impl Bus {
             }
             (0x14, 0xEB) => Ok(IdentifyResponse::Atapi),
             (0x3C, 0xC3) => Ok(IdentifyResponse::Sata),
-            (_, _) => Err(()),
-        }
-    }
-
-    #[allow(dead_code)]
-    fn reset(&self) {
-        unsafe {
-            outb(self.ctrl_base + CONTROL_REGISTER, 4); // Set SRST bit
-            self.wait(5); // Wait at least 5 ns
-            outb(self.ctrl_base + CONTROL_REGISTER, 0); // Then clear it
-            self.wait(2000); // Wait at least 2 ms
+            (lba1, lba2) => {
+                debug!(
+                    "ATA {} unknown signature {:02X} {:02X}",
+                    self.id, lba1, lba2
+                );
+                Err(())
+            }
         }
     }
 

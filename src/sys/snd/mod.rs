@@ -194,9 +194,8 @@ fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     }
 }
 
-const AC97_DEVICES: [(u16, u16); 2] = [
+const AC97_DEVICES: [(u16, u16); 1] = [
     (0x8086, 0x2415), // Intel ICH
-    (0x1002, 0x4370), // ATI SB400
 ];
 
 pub fn init() {

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add i586 support (#922)
 - Enable paging on i686 (#921)
 - Enable bitmap frame allocator on i686 (#919)
 - Add userspace login (#853)

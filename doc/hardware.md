@@ -3,6 +3,8 @@
 ## Emulators
 
 - [x] QEMU
+  - [x] CPU: Intel Pentium
+  - [x] CPU: Intel Atom N270
   - [x] CPU: Intel Core 2 Duo T7700
   - [x] DSK: ATA
   - [x] NET: Intel PRO/1000 MT Desktop
@@ -56,6 +58,12 @@
   - [ ] NET: Realtek RTL8111HN
 
 ### Laptops
+
+- [x] IBM ThinkPad X20 (2000)
+  - [x] CPU: Intel Mobile Pentium III (600 MHz)
+  - [x] DSK: ATA
+  - [ ] NET: Intel PRO/100 SP Mobile (82550EY)
+  - [ ] SND: Cirrus Logic CS4297 (AC'97)
 
 - [x] Dell Latitude E6400 (2008)
   - [x] CPU: Intel Core 2 Duo P8600 (2.4 GHz)
