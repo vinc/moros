@@ -13,6 +13,7 @@ enum Cell {
     Unsure,
     Mine,
     Blank,
+    Error,
     Number(u8),
 }
 
@@ -25,6 +26,7 @@ impl fmt::Display for Cell {
             Cell::Unsure   => write!(f, "?"),
             Cell::Blank    => write!(f, "."),
             Cell::Mine     => write!(f, "#"),
+            Cell::Error    => write!(f, "X"),
             Cell::Number(n) => {
                 let color = match n {
                     1 => Style::color("aqua"),
@@ -104,11 +106,12 @@ impl Game {
                         let y = self.cursor.0;
                         let x = self.cursor.1;
                         if self.mines[y][x] {
-                            self.board[y][x] = Cell::Mine;
-                            for y in 0..8 {
-                                for x in 0..8 {
-                                    if self.mines[y][x] && self.is_blank(y, x) {
-                                        self.board[y][x] = Cell::Mine;
+                            for y2 in 0..8 {
+                                for x2 in 0..8 {
+                                    if self.is_missed(y2, x2) {
+                                        self.board[y2][x2] = Cell::Mine;
+                                    } else if self.is_misflagged(y2, x2) {
+                                        self.board[y2][x2] = Cell::Error;
                                     }
                                 }
                             }
@@ -218,6 +221,14 @@ impl Game {
             Cell::Empty | Cell::Number(_) => true,
             _ => false
         }
+    }
+
+    fn is_missed(&self, y: usize, x: usize) -> bool {
+        self.mines[y][x] && self.board[y][x] != Cell::Flag
+    }
+
+    fn is_misflagged(&self, y: usize, x: usize) -> bool {
+        !self.mines[y][x] && self.board[y][x] == Cell::Flag
     }
 
     fn is_neighbor(y: usize, x: usize, y2: usize, x2: usize) -> bool {
