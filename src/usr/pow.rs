@@ -12,13 +12,6 @@ struct Game {
     board: [usize; 16],
 }
 
-pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
-    print!("\x1b[?25l"); // Disable cursor
-    Game::new().run();
-    print!("\x1b[?25h"); // Enable cursor
-    Ok(())
-}
-
 impl Game {
     pub fn new() -> Self {
         Self {
@@ -41,7 +34,7 @@ impl Game {
                     for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
                     }
-                    print!("\x1b[20A{}", self);
+                    print!("\x1b[20A{}", self); // Move cursor to top
                 }
             }
         }
@@ -49,7 +42,6 @@ impl Game {
 
     fn seed(&mut self) {
         let zeros: Vec<_> = (0..16).filter(|i| self.board[*i] == 0).collect();
-
         if !zeros.is_empty() {
             let i = (rng::get_u64() as usize) % zeros.len();
             self.board[zeros[i]] = 2;
@@ -162,6 +154,13 @@ impl Perform for Game {
             _ => {}
         }
     }
+}
+
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
+    print!("\x1b[?25l"); // Disable cursor
+    Game::new().run();
+    print!("\x1b[?25h"); // Enable cursor
+    Ok(())
 }
 
 #[test_case]
