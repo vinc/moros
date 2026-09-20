@@ -70,6 +70,7 @@ impl Game {
                 'q' | console::ETX_KEY | console::EOT_KEY => {
                     self.move_to_bottom();
                     print!("\x1b[?25h"); // Enable cursor
+                    println!("\n  GAME OVER: You bailed");
                     return;
                 }
                 ' ' => {
@@ -106,6 +107,7 @@ impl Game {
                             self.move_to_cursor();
                             self.move_to_bottom();
                             print!("\x1b[?25h"); // Enable cursor
+                            println!("\n  GAME OVER: You failed");
                             return;
                         }
                         self.reveal(y, x);
@@ -124,6 +126,7 @@ impl Game {
             print!("\x1b[?25h"); // Enable cursor
             if self.is_uncovered() {
                 self.move_to_bottom();
+                println!("\n  GAME OVER: You won");
                 return;
             }
         }
