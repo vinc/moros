@@ -55,6 +55,45 @@ impl Game {
                 board[y][x] = Cell::Mine;
                 mines -= 1;
             }
+            for y in 0..8 {
+                for x in 0..8 {
+                    let mut n = 0;
+                    if board[y][x] == Cell::Mine {
+                        continue;
+                    }
+                    if y > 0 {
+                        if x > 0 && board[y - 1][x - 1] == Cell::Mine {
+                            n += 1;
+                        }
+                        if board[y - 1][x] == Cell::Mine {
+                            n += 1;
+                        }
+                        if x < 7 && board[y - 1][x + 1] == Cell::Mine {
+                            n += 1;
+                        }
+                    }
+                    if x > 0 && board[y][x - 1] == Cell::Mine {
+                        n += 1;
+                    }
+                    if x < 7 && board[y][x + 1] == Cell::Mine {
+                        n += 1;
+                    }
+                    if y < 7 {
+                        if x > 0 && board[y + 1][x - 1] == Cell::Mine {
+                            n += 1;
+                        }
+                        if board[y + 1][x] == Cell::Mine {
+                            n += 1;
+                        }
+                        if x < 7 && board[y + 1][x + 1] == Cell::Mine {
+                            n += 1;
+                        }
+                    }
+                    if n > 0 {
+                        board[y][x] = Cell::Number(n);
+                    }
+                }
+            }
         }
         Self { board }
     }
