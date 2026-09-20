@@ -84,6 +84,18 @@ impl Game {
                         print!("{}", self);
                         self.move_to_cursor();
                 }
+                '?' => {
+                        self.move_to_top();
+                        let y = self.cursor.0;
+                        let x = self.cursor.1;
+                        if self.board[y][x] == Cell::Blank {
+                            self.board[y][x] = Cell::Unsure;
+                        } else if self.board[y][x] == Cell::Unsure {
+                            self.board[y][x] = Cell::Blank;
+                        }
+                        print!("{}", self);
+                        self.move_to_cursor();
+                }
                 '\n' => {
                         self.move_to_top();
                         let y = self.cursor.0;
