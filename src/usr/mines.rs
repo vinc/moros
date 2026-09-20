@@ -9,9 +9,10 @@ use vte::{Params, Parser, Perform};
 #[derive(Clone, Copy, PartialEq)]
 enum Cell {
     Empty,
-    Blank,
-    Mine,
+    Flag,
     Unsure,
+    Mine,
+    Blank,
     Number(u8),
 }
 
@@ -20,23 +21,19 @@ impl fmt::Display for Cell {
         let reset = Style::reset();
         match self {
             Cell::Empty    => write!(f, " "),
+            Cell::Flag     => write!(f, "!"),
+            Cell::Unsure   => write!(f, "?"),
             Cell::Blank    => write!(f, "."),
             Cell::Mine     => write!(f, "#"),
-            Cell::Unsure   => write!(f, "?"),
-            Cell::Number(n) => write!(f, "{}{}{}", reset, n, Style::color("silver")),
-            /*
-                        4 => Style::color("blue"),
-                        8 => Style::color("aqua"),
-                        16 => Style::color("lime"),
-                        32 => Style::color("yellow"),
-                        64 => Style::color("red"),
-                        128 => Style::color("fushia"),
-                        256 => Style::color("purple"),
-                        512 => Style::color("fushia"),
-                        1024 => Style::color("maroon"),
-                        2048 => Style::color("olive"),
-                        _ => Style::color("white"),
-            */
+            Cell::Number(n) => {
+                let color = match n {
+                    1 => Style::color("aqua"),
+                    2 => Style::color("lime"),
+                    3 => Style::color("red"),
+                    _ => Style::color("fushia"),
+                };
+                write!(f, "{}{}{}", color, n, reset)
+            }
         }
     }
 }

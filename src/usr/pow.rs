@@ -34,7 +34,7 @@ impl Game {
                     for b in c.to_string().as_bytes() {
                         parser.advance(self, *b);
                     }
-                    print!("\x1b[20A{}", self); // Move cursor to top
+                    print!("\x1b[20A{}", self);
                 }
             }
         }
