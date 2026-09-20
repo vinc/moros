@@ -75,7 +75,7 @@ impl Game {
                     println!("\n  GAME OVER: You bailed");
                     return;
                 }
-                ' ' => {
+                '!' | ' ' => { // Flag
                         self.move_to_top();
                         let y = self.cursor.0;
                         let x = self.cursor.1;
@@ -87,7 +87,7 @@ impl Game {
                         print!("{}", self);
                         self.move_to_cursor();
                 }
-                '?' => {
+                '?' => { // Unsure
                         self.move_to_top();
                         let y = self.cursor.0;
                         let x = self.cursor.1;
@@ -99,7 +99,7 @@ impl Game {
                         print!("{}", self);
                         self.move_to_cursor();
                 }
-                '\n' => {
+                '\n' => { // Reveal
                         self.move_to_top();
                         let y = self.cursor.0;
                         let x = self.cursor.1;
