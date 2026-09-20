@@ -39,11 +39,13 @@ impl fmt::Display for Cell {
 }
 
 struct Game {
+    cursor: (usize, usize),
     board: [[Cell; 8]; 8],
 }
 
 impl Game {
     pub fn new(mut mines: usize) -> Self {
+        let cursor = (0, 0);
         let mut board = [[Cell::Blank; 8]; 8];
         while mines > 0 {
             let y = (rng::get_u16() % 8) as usize;
@@ -92,37 +94,70 @@ impl Game {
                 }
             }
         }
-        Self { board }
+        Self { cursor, board }
     }
 
     pub fn run(&mut self) {
         print!("\n{}", self);
+        self.move_to_cursor();
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
                 'q' | console::ETX_KEY | console::EOT_KEY => {
+                    self.move_to_bottom();
                     return;
                 }
                 c => {
                     for b in c.to_string().as_bytes() {
+                        print!("\x1b[?25l"); // Disable cursor
+                        self.move_to_top();
                         parser.advance(self, *b);
+                        print!("{}", self);
+                        print!("\x1b[?25h"); // Enable cursor
+                        self.move_to_cursor();
                     }
-                    print!("\x1b[17A{}", self); // Move cursor to top
                 }
             }
         }
     }
 
+    fn move_to_top(&self) {
+        print!("\x1b[{}A", 2 * self.cursor.0 + 1);
+        print!("\x1b[{}D", 4 * self.cursor.1 + 4);
+    }
+
+    fn move_to_cursor(&self) {
+        print!("\x1b[{}A", 16 - 2 * self.cursor.0);
+        print!("\x1b[{}C", 4 * self.cursor.1 + 4);
+    }
+
+    fn move_to_bottom(&self) {
+        print!("\x1b[{}B", 16 - 2 * self.cursor.0);
+        print!("\x1b[{}D", 4 * self.cursor.1 + 4);
+    }
+
     fn handle_up_key(&mut self) {
+        if self.cursor.0 > 0 {
+            self.cursor.0 -= 1;
+        }
     }
 
     fn handle_down_key(&mut self) {
+        if self.cursor.0 < 7 {
+            self.cursor.0 += 1;
+        }
     }
 
     fn handle_forward_key(&mut self) {
+        if self.cursor.1 < 7 {
+            self.cursor.1 += 1;
+        }
     }
 
     fn handle_backward_key(&mut self) {
+        if self.cursor.1 > 0 {
+            self.cursor.1 -= 1;
+        }
     }
 }
 
@@ -154,8 +189,6 @@ impl Perform for Game {
 }
 
 pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
-    print!("\x1b[?25l"); // Disable cursor
     Game::new(10).run();
-    print!("\x1b[?25h"); // Enable cursor
     Ok(())
 }
