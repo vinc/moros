@@ -279,7 +279,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if i + 1 < n {
                     i += 1;
                     count = args[i].parse().unwrap_or(10);
-                    if count > 64 {
+                    if count >= 64 {
                         error!("Invalid --count <num>");
                         return Err(ExitCode::UsageError);
                     }
