@@ -41,83 +41,137 @@ impl fmt::Display for Cell {
 struct Game {
     cursor: (usize, usize),
     board: [[Cell; 8]; 8],
+    mines: [[bool; 8]; 8],
 }
 
 impl Game {
-    pub fn new(mut mines: usize) -> Self {
+    pub fn new(mut count: usize) -> Self {
         let cursor = (0, 0);
-        let mut board = [[Cell::Blank; 8]; 8];
-        while mines > 0 {
+        let board = [[Cell::Blank; 8]; 8];
+        let mut mines = [[false; 8]; 8];
+        while count > 0 {
             let y = (rng::get_u16() % 8) as usize;
             let x = (rng::get_u16() % 8) as usize;
-            if board[y][x] != Cell::Mine {
-                board[y][x] = Cell::Mine;
-                mines -= 1;
+            if !mines[y][x] {
+                mines[y][x] = true;
+                count -= 1;
             }
-            for y in 0..8 {
-                for x in 0..8 {
-                    let mut n = 0;
-                    if board[y][x] == Cell::Mine {
-                        continue;
-                    }
-                    if y > 0 {
-                        if x > 0 && board[y - 1][x - 1] == Cell::Mine {
-                            n += 1;
-                        }
-                        if board[y - 1][x] == Cell::Mine {
-                            n += 1;
-                        }
-                        if x < 7 && board[y - 1][x + 1] == Cell::Mine {
-                            n += 1;
-                        }
-                    }
-                    if x > 0 && board[y][x - 1] == Cell::Mine {
+        }
+        Self { cursor, board, mines }
+    }
+
+    pub fn is_flagged(&self, y: usize, x: usize) -> bool {
+        match self.board[y][x] {
+            Cell::Flag | Cell::Unsure => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_empty(&self, y: usize, x: usize) -> bool {
+        self.board[y][x] == Cell::Empty
+    }
+
+    pub fn is_blank(&self, y: usize, x: usize) -> bool {
+        self.board[y][x] == Cell::Blank
+    }
+
+    pub fn render(&mut self) {
+        for y in 0..8 {
+            for x in 0..8 {
+                let mut n = 0;
+                if self.mines[y][x] || self.is_blank(y, x) || !self.is_empty(y, x) {
+                    continue;
+                }
+                if y > 0 {
+                    if x > 0 && self.mines[y - 1][x - 1] {
                         n += 1;
                     }
-                    if x < 7 && board[y][x + 1] == Cell::Mine {
+                    if self.mines[y - 1][x] {
                         n += 1;
                     }
-                    if y < 7 {
-                        if x > 0 && board[y + 1][x - 1] == Cell::Mine {
-                            n += 1;
-                        }
-                        if board[y + 1][x] == Cell::Mine {
-                            n += 1;
-                        }
-                        if x < 7 && board[y + 1][x + 1] == Cell::Mine {
-                            n += 1;
-                        }
+                    if x < 7 && self.mines[y - 1][x + 1] {
+                        n += 1;
                     }
-                    if n > 0 {
-                        board[y][x] = Cell::Number(n);
+                }
+                if x > 0 && self.mines[y][x - 1] {
+                    n += 1;
+                }
+                if x < 7 && self.mines[y][x + 1] {
+                    n += 1;
+                }
+                if y < 7 {
+                    if x > 0 && self.mines[y + 1][x - 1] {
+                        n += 1;
                     }
+                    if self.mines[y + 1][x] {
+                        n += 1;
+                    }
+                    if x < 7 && self.mines[y + 1][x + 1] {
+                        n += 1;
+                    }
+                }
+                if n > 0 {
+                    self.board[y][x] = Cell::Number(n);
                 }
             }
         }
-        Self { cursor, board }
     }
 
     pub fn run(&mut self) {
+        self.render();
         print!("\n{}", self);
         self.move_to_cursor();
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
+            print!("\x1b[?25l"); // Disable cursor
             match c {
                 'q' | console::ETX_KEY | console::EOT_KEY => {
                     self.move_to_bottom();
+                    print!("\x1b[?25h"); // Enable cursor
                     return;
+                }
+                ' ' => {
+                        self.move_to_top();
+                        let y = self.cursor.0;
+                        let x = self.cursor.1;
+                        if self.board[y][x] == Cell::Blank {
+                            self.board[y][x] = Cell::Flag;
+                        } else if self.board[y][x] == Cell::Flag {
+                            self.board[y][x] = Cell::Blank;
+                        }
+                        print!("{}", self);
+                        self.move_to_cursor();
+                }
+                '\n' => {
+                        self.move_to_top();
+                        let y = self.cursor.0;
+                        let x = self.cursor.1;
+                        if self.mines[y][x] {
+                            self.board[y][x] = Cell::Mine;
+                            self.render();
+                            print!("{}", self);
+                            self.move_to_cursor();
+                            self.move_to_bottom();
+                            print!("\x1b[?25h"); // Enable cursor
+                            return;
+                        }
+                        if self.board[y][x] == Cell::Blank {
+                            self.board[y][x] = Cell::Empty;
+                            self.render();
+                        }
+                        print!("{}", self);
+                        self.move_to_cursor();
                 }
                 c => {
                     for b in c.to_string().as_bytes() {
-                        print!("\x1b[?25l"); // Disable cursor
                         self.move_to_top();
                         parser.advance(self, *b);
                         print!("{}", self);
-                        print!("\x1b[?25h"); // Enable cursor
                         self.move_to_cursor();
                     }
                 }
             }
+            print!("\x1b[?25h"); // Enable cursor
         }
     }
 
