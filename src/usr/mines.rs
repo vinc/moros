@@ -29,8 +29,10 @@ impl fmt::Display for Cell {
                 let color = match n {
                     1 => Style::color("aqua"),
                     2 => Style::color("lime"),
-                    3 => Style::color("red"),
-                    _ => Style::color("fushia"),
+                    3 => Style::color("yellow"),
+                    4 => Style::color("red"),
+                    5 => Style::color("fushia"),
+                    _ => Style::color("blue"),
                 };
                 write!(f, "{}{}{}", color, n, reset)
             }
