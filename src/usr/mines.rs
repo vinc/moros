@@ -105,9 +105,14 @@ impl Game {
                         let x = self.cursor.1;
                         if self.mines[y][x] {
                             self.board[y][x] = Cell::Mine;
+                            for y in 0..8 {
+                                for x in 0..8 {
+                                    if self.mines[y][x] && self.is_blank(y, x) {
+                                        self.board[y][x] = Cell::Mine;
+                                    }
+                                }
+                            }
                             print!("{}", self);
-                            self.move_to_cursor();
-                            self.move_to_bottom();
                             print!("\x1b[?25h"); // Enable cursor
                             println!("\n  GAME OVER: You failed");
                             return;
