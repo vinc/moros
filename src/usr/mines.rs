@@ -60,65 +60,7 @@ impl Game {
         Self { cursor, board, mines }
     }
 
-    pub fn is_flagged(&self, y: usize, x: usize) -> bool {
-        match self.board[y][x] {
-            Cell::Flag | Cell::Unsure => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_empty(&self, y: usize, x: usize) -> bool {
-        self.board[y][x] == Cell::Empty
-    }
-
-    pub fn is_blank(&self, y: usize, x: usize) -> bool {
-        self.board[y][x] == Cell::Blank
-    }
-
-    pub fn render(&mut self) {
-        for y in 0..8 {
-            for x in 0..8 {
-                let mut n = 0;
-                if self.mines[y][x] || self.is_blank(y, x) || !self.is_empty(y, x) {
-                    continue;
-                }
-                if y > 0 {
-                    if x > 0 && self.mines[y - 1][x - 1] {
-                        n += 1;
-                    }
-                    if self.mines[y - 1][x] {
-                        n += 1;
-                    }
-                    if x < 7 && self.mines[y - 1][x + 1] {
-                        n += 1;
-                    }
-                }
-                if x > 0 && self.mines[y][x - 1] {
-                    n += 1;
-                }
-                if x < 7 && self.mines[y][x + 1] {
-                    n += 1;
-                }
-                if y < 7 {
-                    if x > 0 && self.mines[y + 1][x - 1] {
-                        n += 1;
-                    }
-                    if self.mines[y + 1][x] {
-                        n += 1;
-                    }
-                    if x < 7 && self.mines[y + 1][x + 1] {
-                        n += 1;
-                    }
-                }
-                if n > 0 {
-                    self.board[y][x] = Cell::Number(n);
-                }
-            }
-        }
-    }
-
     pub fn run(&mut self) {
-        self.render();
         print!("\n{}", self);
         self.move_to_cursor();
         let mut parser = Parser::new();
@@ -148,17 +90,13 @@ impl Game {
                         let x = self.cursor.1;
                         if self.mines[y][x] {
                             self.board[y][x] = Cell::Mine;
-                            self.render();
                             print!("{}", self);
                             self.move_to_cursor();
                             self.move_to_bottom();
                             print!("\x1b[?25h"); // Enable cursor
                             return;
                         }
-                        if self.board[y][x] == Cell::Blank {
-                            self.board[y][x] = Cell::Empty;
-                            self.render();
-                        }
+                        self.reveal(y, x);
                         print!("{}", self);
                         self.move_to_cursor();
                 }
@@ -212,6 +150,47 @@ impl Game {
         if self.cursor.1 > 0 {
             self.cursor.1 -= 1;
         }
+    }
+
+    fn reveal(&mut self, y: usize, x: usize) {
+        if !self.is_blank(y, x) || self.mines[y][x] {
+            return;
+        }
+        let count = self.count_mines(y, x);
+        if count > 0 {
+            self.board[y][x] = Cell::Number(count);
+            return;
+        }
+        self.board[y][x] = Cell::Empty;
+        for y2 in 0..8 {
+            for x2 in 0..8 {
+                if Self::is_neighbor(y, x, y2, x2) {
+                    self.reveal(y2, x2);
+                }
+            }
+        }
+    }
+
+    fn count_mines(&self, y: usize, x: usize) -> u8 {
+        let mut count = 0;
+        for y2 in 0..8 {
+            for x2 in 0..8 {
+                if Self::is_neighbor(y, x, y2, x2) && self.mines[y2][x2] {
+                    count += 1;
+                }
+            }
+        }
+        count
+    }
+
+    fn is_blank(&self, y: usize, x: usize) -> bool {
+        self.board[y][x] == Cell::Blank
+    }
+
+    fn is_neighbor(y: usize, x: usize, y2: usize, x2: usize) -> bool {
+        let dy = y.abs_diff(y2);
+        let dx = x.abs_diff(x2);
+        dy <= 1 && dx <= 1 && (dy, dx) != (0, 0)
     }
 }
 
