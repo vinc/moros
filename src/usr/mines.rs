@@ -126,23 +126,12 @@ impl Game {
                 }
             }
             print!("\x1b[?25h"); // Enable cursor
-            if self.is_uncovered() {
+            if self.is_solved() {
                 self.move_to_bottom();
                 println!("\n  GAME OVER: You won");
                 return;
             }
         }
-    }
-
-    fn is_uncovered(&self) -> bool {
-        for y in 0..8 {
-            for x in 0..8 {
-                if self.board[y][x] == Cell::Blank {
-                    return false;
-                }
-            }
-        }
-        true
     }
 
     fn move_to_top(&self) {
@@ -219,10 +208,28 @@ impl Game {
         self.board[y][x] == Cell::Blank
     }
 
+    fn is_uncovered(&self, y: usize, x: usize) -> bool {
+        match self.board[y][x] {
+            Cell::Empty | Cell::Number(_) => true,
+            _ => false
+        }
+    }
+
     fn is_neighbor(y: usize, x: usize, y2: usize, x2: usize) -> bool {
         let dy = y.abs_diff(y2);
         let dx = x.abs_diff(x2);
         dy <= 1 && dx <= 1 && (dy, dx) != (0, 0)
+    }
+
+    fn is_solved(&self) -> bool {
+        for y in 0..8 {
+            for x in 0..8 {
+                if !self.mines[y][x] && !self.is_uncovered(y, x) {
+                    return false;
+                }
+            }
+        }
+        true
     }
 }
 
