@@ -72,7 +72,7 @@ impl Game {
                 'q' | console::ETX_KEY | console::EOT_KEY => {
                     self.move_to_bottom();
                     print!("\x1b[?25h"); // Enable cursor
-                    println!("\n  GAME OVER: You bailed");
+                    println!("\n  GAME OVER: You quit");
                     return;
                 }
                 '!' | ' ' => { // Flag
@@ -114,7 +114,7 @@ impl Game {
                             }
                             print!("{}", self);
                             print!("\x1b[?25h"); // Enable cursor
-                            println!("\n  GAME OVER: You failed");
+                            println!("\n  GAME OVER: You lost");
                             return;
                         }
                         self.reveal(y, x);
