@@ -46,8 +46,17 @@ struct Game {
 }
 
 impl Game {
-    pub fn new() -> Self {
-        Self { board: [[Cell::Blank; 8]; 8] }
+    pub fn new(mut mines: usize) -> Self {
+        let mut board = [[Cell::Blank; 8]; 8];
+        while mines > 0 {
+            let y = (rng::get_u16() % 8) as usize;
+            let x = (rng::get_u16() % 8) as usize;
+            if board[y][x] != Cell::Mine {
+                board[y][x] = Cell::Mine;
+                mines -= 1;
+            }
+        }
+        Self { board }
     }
 
     pub fn run(&mut self) {
@@ -110,7 +119,7 @@ impl Perform for Game {
 
 pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
     print!("\x1b[?25l"); // Disable cursor
-    Game::new().run();
+    Game::new(10).run();
     print!("\x1b[?25h"); // Enable cursor
     Ok(())
 }
