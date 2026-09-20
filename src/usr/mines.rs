@@ -251,7 +251,51 @@ impl Perform for Game {
     }
 }
 
-pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
-    Game::new(10).run();
+pub fn main(args: &[&str]) -> Result<(), ExitCode> {
+    let mut count = 10;
+    let mut i = 0;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                usage();
+                return Ok(());
+            }
+            "-n" | "--count" => {
+                if i + 1 < n {
+                    i += 1;
+                    count = args[i].parse().unwrap_or(10);
+                } else {
+                    error!("Missing --count <num>");
+                    return Err(ExitCode::UsageError);
+                }
+            }
+            arg => {
+                if arg.starts_with('-') {
+                    error!("Invalid option {:?}", arg);
+                    return Err(ExitCode::UsageError);
+                }
+            }
+        }
+        i += 1;
+    }
+    Game::new(count).run();
     Ok(())
+}
+
+fn usage() {
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
+    let csi_reset = Style::reset();
+    println!(
+        "{}Usage:{} mines {}<options>{1}",
+        csi_title, csi_reset, csi_option
+    );
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!(
+        "  {0}-n{1}, {0}--count <num>{1}   \
+        Set the number of mines to {0}<num>{1}",
+        csi_option, csi_reset
+    );
 }
