@@ -122,7 +122,22 @@ impl Game {
                 }
             }
             print!("\x1b[?25h"); // Enable cursor
+            if self.is_uncovered() {
+                self.move_to_bottom();
+                return;
+            }
         }
+    }
+
+    fn is_uncovered(&self) -> bool {
+        for y in 0..8 {
+            for x in 0..8 {
+                if self.board[y][x] == Cell::Blank {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     fn move_to_top(&self) {
