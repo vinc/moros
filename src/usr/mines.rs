@@ -13,7 +13,7 @@ enum Cell {
     Unsure,
     Mine,
     Blank,
-    Error,
+    Wrong,
     Number(u8),
 }
 
@@ -26,7 +26,7 @@ impl fmt::Display for Cell {
             Cell::Unsure   => write!(f, "?"),
             Cell::Blank    => write!(f, "."),
             Cell::Mine     => write!(f, "#"),
-            Cell::Error    => write!(f, "X"),
+            Cell::Wrong    => write!(f, "X"),
             Cell::Number(n) => {
                 let color = match n {
                     1 => Style::color("aqua"),
@@ -110,8 +110,8 @@ impl Game {
                                 for x2 in 0..8 {
                                     if self.is_missed(y2, x2) {
                                         self.board[y2][x2] = Cell::Mine;
-                                    } else if self.is_misflagged(y2, x2) {
-                                        self.board[y2][x2] = Cell::Error;
+                                    } else if self.is_wrong(y2, x2) {
+                                        self.board[y2][x2] = Cell::Wrong;
                                     }
                                 }
                             }
@@ -227,7 +227,7 @@ impl Game {
         self.mines[y][x] && self.board[y][x] != Cell::Flag
     }
 
-    fn is_misflagged(&self, y: usize, x: usize) -> bool {
+    fn is_wrong(&self, y: usize, x: usize) -> bool {
         !self.mines[y][x] && self.board[y][x] == Cell::Flag
     }
 
