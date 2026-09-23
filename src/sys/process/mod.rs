@@ -59,7 +59,11 @@ use x86_64::structures::paging::{FrameDeallocator, PageTable};
 pub const MAX_HANDLES: usize = 64;
 pub const MAX_PROC_SIZE: usize = 32 << 20;
 
-// The user memory region lives in its own L4 entry of each process page table.
+#[cfg(target_arch = "x86")]
+pub const USER_ADDR: usize = 0x8000_0000;
+
+// On x86-64 the user memory region lives in its own L4 entry of
+// each process page table.
 #[cfg(target_arch = "x86_64")]
 pub const USER_ADDR: usize = 0x0000_0080_0000_0000;
 

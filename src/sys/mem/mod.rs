@@ -76,6 +76,12 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     {
         let mut memory_map = memory_map.clone();
 
+        // Reserve userspace
+        use crate::sys::process;
+        let user_addr = process::USER_ADDR as u64;
+        let user_size = process::MAX_PROC_SIZE as u64;
+        memory_map.reserve(user_addr, user_size);
+
         // Reserve the second half of the largest usable region for the heap
         let (heap_addr, heap_size) = {
             let region = memory_map.iter_mut().
