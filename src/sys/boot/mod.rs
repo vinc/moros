@@ -94,6 +94,14 @@ impl MemoryMap {
         self.len += 1;
     }
 
+    pub fn remove(&mut self, mut i: usize) {
+        while i + 1 < self.len {
+            self.regions[i] = self.regions[i + 1];
+            i += 1;
+        }
+        self.len -= 1;
+    }
+
     pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
         self.regions[..self.len].iter()
     }
@@ -143,4 +151,24 @@ fn test_memory_map_insert() {
     assert_eq!(memory_map.regions[0].size, 1024);
     assert_eq!(memory_map.regions[1].size, 1024);
     assert_eq!(memory_map.regions[2].size, 4096);
+}
+
+#[test_case]
+fn test_memory_map_remove() {
+    let mut memory_map = MemoryMap::new();
+
+    assert_eq!(memory_map.len, 0);
+    memory_map.add(MemoryRegion::new(0, 1024, MemoryRegionType::Kernel));
+    assert_eq!(memory_map.len, 1);
+    memory_map.add(MemoryRegion::new(1024, 1024, MemoryRegionType::Usable));
+    assert_eq!(memory_map.len, 2);
+    memory_map.add(MemoryRegion::new(2048, 4096, MemoryRegionType::Usable));
+    assert_eq!(memory_map.len, 3);
+    memory_map.remove(2);
+    assert_eq!(memory_map.len, 2);
+    memory_map.remove(0);
+    assert_eq!(memory_map.len, 1);
+
+    assert_eq!(memory_map.regions[0].addr, 1024);
+    assert_eq!(memory_map.regions[0].size, 1024);
 }
