@@ -92,3 +92,24 @@ impl MemoryMap {
         self.regions[..self.len].iter_mut()
     }
 }
+
+#[test_case]
+fn test_memory_map_add() {
+    let mut memory_map = MemoryMap::new();
+
+    assert_eq!(memory_map.len, 0);
+    memory_map.add(MemoryRegion::new(0, 1024, MemoryRegionType::Kernel));
+    assert_eq!(memory_map.len, 1);
+    memory_map.add(MemoryRegion::new(1024, 1024, MemoryRegionType::Usable));
+    assert_eq!(memory_map.len, 2);
+    memory_map.add(MemoryRegion::new(2048, 4096, MemoryRegionType::Usable));
+    assert_eq!(memory_map.len, 3);
+
+    assert_eq!(memory_map.regions[0].addr, 0);
+    assert_eq!(memory_map.regions[1].addr, 1024);
+    assert_eq!(memory_map.regions[2].addr, 2048);
+
+    assert_eq!(memory_map.regions[0].size, 1024);
+    assert_eq!(memory_map.regions[1].size, 1024);
+    assert_eq!(memory_map.regions[2].size, 4096);
+}
