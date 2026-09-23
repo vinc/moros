@@ -84,6 +84,16 @@ impl MemoryMap {
         }
     }
 
+    pub fn insert(&mut self, i: usize, region: MemoryRegion) {
+        let mut j = self.len;
+        while j > i {
+            self.regions[j] = self.regions[j - 1];
+            j -= 1;
+        }
+        self.regions[i] = region;
+        self.len += 1;
+    }
+
     pub fn iter(&self) -> core::slice::Iter<'_, MemoryRegion> {
         self.regions[..self.len].iter()
     }
@@ -103,6 +113,27 @@ fn test_memory_map_add() {
     memory_map.add(MemoryRegion::new(1024, 1024, MemoryRegionType::Usable));
     assert_eq!(memory_map.len, 2);
     memory_map.add(MemoryRegion::new(2048, 4096, MemoryRegionType::Usable));
+    assert_eq!(memory_map.len, 3);
+
+    assert_eq!(memory_map.regions[0].addr, 0);
+    assert_eq!(memory_map.regions[1].addr, 1024);
+    assert_eq!(memory_map.regions[2].addr, 2048);
+
+    assert_eq!(memory_map.regions[0].size, 1024);
+    assert_eq!(memory_map.regions[1].size, 1024);
+    assert_eq!(memory_map.regions[2].size, 4096);
+}
+
+#[test_case]
+fn test_memory_map_insert() {
+    let mut memory_map = MemoryMap::new();
+
+    assert_eq!(memory_map.len, 0);
+    memory_map.add(MemoryRegion::new(1024, 1024, MemoryRegionType::Usable));
+    assert_eq!(memory_map.len, 1);
+    memory_map.add(MemoryRegion::new(2048, 4096, MemoryRegionType::Usable));
+    assert_eq!(memory_map.len, 2);
+    memory_map.insert(0, MemoryRegion::new(0, 1024, MemoryRegionType::Kernel));
     assert_eq!(memory_map.len, 3);
 
     assert_eq!(memory_map.regions[0].addr, 0);
