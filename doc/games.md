@@ -12,6 +12,10 @@
 
 ![life](images/life.png)
 
+## Minesweeper
+
+![minesweeper](images/minesweeper.png)
+
 ## 2048
 
 ![2048](images/2048.png)
