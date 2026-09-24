@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Reserve userspace memory on i686 (#925)
 - Add minesweeper game (#924)
 - Add i586 support (#922)
 - Enable paging on i686 (#921)
