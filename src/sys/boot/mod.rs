@@ -78,13 +78,16 @@ impl MemoryMap {
     }
 
     pub fn add(&mut self, region: MemoryRegion) {
-        if self.len < Self::CAPACITY {
-            self.regions[self.len] = region;
-            self.len += 1;
-        }
+        debug_assert!(self.len < Self::CAPACITY);
+
+        self.regions[self.len] = region;
+        self.len += 1;
     }
 
     pub fn insert(&mut self, i: usize, region: MemoryRegion) {
+        debug_assert!(self.len < Self::CAPACITY);
+        debug_assert!(i <= self.len);
+
         let mut j = self.len;
         while j > i {
             self.regions[j] = self.regions[j - 1];
@@ -95,6 +98,8 @@ impl MemoryMap {
     }
 
     pub fn remove(&mut self, mut i: usize) {
+        debug_assert!(i < self.len);
+
         while i + 1 < self.len {
             self.regions[i] = self.regions[i + 1];
             i += 1;
@@ -103,6 +108,8 @@ impl MemoryMap {
     }
 
     pub fn reserve(&mut self, addr: u64, size: u64) {
+        debug_assert!(size > 0);
+
         let end = addr + size;
         let mut i = 0;
         while i < self.len {
