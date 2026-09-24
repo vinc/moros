@@ -26,6 +26,7 @@ pub mod life;
 pub mod lisp;
 pub mod list;
 pub mod memory;
+pub mod mines;
 pub mod net;
 pub mod pci;
 pub mod pi;
