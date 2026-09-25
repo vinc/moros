@@ -10,7 +10,7 @@ html {
 body {
   font-family: system-ui, sans-serif;
   max-width: var(--img-width);
-  margin: 20px;
+  margin: 16px;
   background: #FBF1C7;
   color: #3C3836;
   line-height: 1.5;
@@ -31,7 +31,7 @@ li code, p code {
 }
 pre {
   background: #282828;
-  padding: 10px;
+  padding: 8px;
   line-height: 1.1;
 }
 img {
@@ -40,7 +40,7 @@ img {
 :root img {
   width: var(--img-width);
   margin-left: calc(-16px - 2px);
-  margin-bottom: 1em;
+  margin-bottom: 16px;
   border: solid 16px #D5C4A1;
   border-radius: 16px;
   box-shadow:
@@ -58,7 +58,7 @@ img {
   padding: 2px;
 }
 footer {
-  margin-top: 2em;
+  margin-top: 32px;
   text-align: center;
 }
 h2::before {
