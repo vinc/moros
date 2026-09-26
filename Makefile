@@ -200,6 +200,13 @@ grub-image:
 		-o $(bin) /boot=run/boot
 
 website:
+	qemu-img create demo.img 32M
+	make grub-image bootloader-proto=multiboot arch=i686
+	dd conv=notrunc if=moros-i686.img of=demo.img
+	cp demo.img www/v86/disk.img
+	zstd -19 www/v86/disk.img -o www/v86/disk.img.zst
+	sh run/grub-floppy.sh
+	cp moros-i686-floppy.img www/v86/floppy.img
 	cd www && sh build.sh
 
 spell:

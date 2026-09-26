@@ -37,7 +37,7 @@ pre {
 img {
   border: solid 2px #7C6F64;
 }
-:root img {
+:root img, #screen {
   width: var(--img-width);
   margin-left: calc(-16px - 2px);
   margin-bottom: 16px;
