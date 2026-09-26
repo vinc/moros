@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>MOROS: Obscure Rust Operating System</title>
-    <link rel="stylesheet" type="text/css" href="moros.css">
+    <link rel="stylesheet" type="text/css" href="moros.css?v=2">
   </head>
   <body>
     <h1>MOROS: Obscure Rust Operating System</h1>
@@ -65,15 +65,34 @@ RTL8139, and PCNET cards, enabling internet access:</p>
 
     <p><img src="images/light.png" alt="light mode screenshot"></p>
 
-    <h2>Demo (currently disabled)</h2>
+    <h2>Demo</h2>
 
-    <p>Log in to a demo using the name of the system as the password for the guest
-account:</p>
+    <p>Log in to the demo using "guest" as username and password. Happy hacking!</p>
 
-    <pre><code>$ ssh guest@try.moros.cc
-</code></pre>
+    <div id="screen" style="display: grid; place-content: center; min-height: 400px">
+      <button id="boot">Try MOROS in your browser</button>
+    </div>
 
-    <p>Happy hacking!</p>
+    <script src="v86/libv86.js"></script>
+    <script>
+    document.getElementById("boot").onclick = function() {
+      this.remove();
+      window.emulator = new V86({
+        wasm_path: "v86/v86.wasm",
+        bios: { url: "v86/seabios.bin" },
+        vga_bios: { url: "v86/vgabios.bin" },
+        hda: { url: "v86/disk.img.zst", size: 32 * 1024 * 1024 },
+        boot_order: 0x321,
+        memory_size: 64 * 1024 * 1024,
+        screen: {
+          container: document.getElementById("screen"),
+          use_graphical_text: true,
+        },
+        acpi: true,
+        autostart: true,
+      });
+    };
+    </script>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

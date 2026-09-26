@@ -4,17 +4,15 @@
 html {
   display: grid;
   place-content: center;
-
   --shadow-color: 49deg 36% 46%;
   --img-width: 720px;
 }
 body {
-  font-family: sans-serif;
+  font-family: system-ui, sans-serif;
   max-width: var(--img-width);
-  margin: 1rem;
+  margin: 16px;
   background: #FBF1C7;
   color: #3C3836;
-  font-size: 18px;
   line-height: 1.5;
 }
 a {
@@ -25,21 +23,24 @@ a:hover, a:active {
 }
 li code, p code, pre {
   color: #EBDBB2;
-  border-radius: 0.25rem;
+  border-radius: 4px;
 }
 li code, p code {
   background: #7C6F64;
-  padding: 0.125rem;
+  padding: 2px;
 }
 pre {
   background: #282828;
-  padding: 1rem;
+  padding: 8px;
   line-height: 1.1;
 }
 img {
+  border: solid 2px #7C6F64;
+}
+:root img, #screen {
   width: var(--img-width);
   margin-left: calc(-16px - 2px);
-  margin-bottom: 1em;
+  margin-bottom: 16px;
   border: solid 16px #D5C4A1;
   border-radius: 16px;
   box-shadow:
@@ -57,7 +58,7 @@ img {
   padding: 2px;
 }
 footer {
-  margin-top: 2em;
+  margin-top: 32px;
   text-align: center;
 }
 h2::before {
