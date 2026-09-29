@@ -26,6 +26,15 @@
   - [x] NET: Intel PRO/1000 T Server (82543GC)
   - [x] NET: AMD PCnet-FAST III
 
+- [x] 86Box
+  - [x] MB: Abit BF6
+  - [x] CPU: Intel Pentium II (233 MHz)
+  - [x] GPU: Cirrus Logic GD5446
+  - [x] RAM: 16 MB
+  - [x] DSK: Western Digital Caviar 14300 (4.3 GB)
+  - [x] NET: AMD PCnet-FAST III
+  - [/] SND: Creative SoundBlaster 16
+
 - [x] Bochs
 
 ## Computers
