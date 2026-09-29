@@ -2,6 +2,12 @@
 
 ## Emulators
 
+- [x] v86 ([demo](/demo))
+  - [x] CPU: Intel Pentium 4 (1.0 GHz)
+  - [x] DSK: ATA
+  - [ ] NET: Realtek RTL8390 (NE2000)
+  - [?] SND: Creative SoundBlaster 16
+
 - [x] QEMU
   - [x] CPU: Intel Pentium
   - [x] CPU: Intel Atom N270
