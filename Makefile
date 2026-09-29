@@ -86,6 +86,7 @@ image: $(img)
 
 qemu-opts = -name "MOROS $$MOROS_VERSION" \
 			 -m $(memory) -smp $(smp) \
+			 -drive file=$(img),format=raw \
 			 -audiodev $(audio),id=a0 -machine pcspk-audiodev=a0 \
 			 -audio driver=$(audio),model=$(snd) \
 			 -netdev user,id=e0,hostfwd=tcp::8080-:80 -device $(nic),netdev=e0
@@ -115,12 +116,6 @@ endif
 
 ifeq ($(trace),e1000)
 qemu-opts += -trace 'e1000*'
-endif
-
-ifeq ($(bootloader),rust)
-qemu-opts += -drive file=$(img),format=raw
-else
-qemu-opts += -drive file=$(bin),format=raw
 endif
 
 ifeq ($(arch),i686)
@@ -187,26 +182,32 @@ limine-test:
 		-m $(memory) -cpu $(cpu) -display none -serial stdio \
 		-device isa-debug-exit,iobase=0xF4,iosize=0x04 -device $(nic)
 
+ifeq ($(shell uname -s),Darwin)
+grub = i686-elf-grub
+grub-dir = /usr/local/lib/i686-elf/grub/i386-pc/
+else
+grub = grub
 grub-dir = /usr/lib/grub/i386-pc
+endif
+
 grub-modules = multiboot2 $(shell cat $(grub-dir)/partmap.lst)
 
 grub-image: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
-grub-image:
+grub-image: $(img)
 	cargo build $(cargo-opts),multiboot --target $(arch)-moros.json
 	cp target/$(arch)-moros/$(mode)/moros run/boot/kernel.elf
-	grub-mkrescue -d $(grub-dir) \
+	$(grub)-mkrescue -d $(grub-dir) \
 		--install-modules="$(grub-modules)" \
 		--fonts= --locales= --themes= \
 		-o $(bin) /boot=run/boot
+	dd conv=notrunc if=$(bin) of=$(img)
 
 website:
-	qemu-img create demo.img 32M
-	make grub-image bootloader-proto=multiboot arch=i686
-	dd conv=notrunc if=moros-i686.img of=demo.img
-	cp demo.img www/v86/disk.img
-	zstd -19 www/v86/disk.img -o www/v86/disk.img.zst
+	make grub-image bootloader-proto=multiboot arch=i686 img=demo.img
+	cp demo.img www/demo/disk.img
+	zstd -19 --rm -f www/demo/disk.img -o www/demo/disk.img.zst
 	sh run/grub-floppy.sh
-	cp moros-i686-floppy.img www/v86/floppy.img
+	cp moros-i686-floppy.img www/floppy.img
 	cd www && sh build.sh
 
 spell:
