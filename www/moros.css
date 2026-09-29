@@ -37,7 +37,7 @@ pre {
 img {
   border: solid 2px #7C6F64;
 }
-:root img, #screen {
+:root img, #demo {
   width: var(--img-width);
   margin-left: calc(-16px - 2px);
   margin-bottom: 16px;
@@ -59,6 +59,9 @@ img {
 }
 footer {
   margin-top: 32px;
+  text-align: center;
+}
+h1 {
   text-align: center;
 }
 h2::before {
