@@ -174,6 +174,7 @@ limine-image:
 		--protective-msdos-label \
 		run/boot -o $(bin)
 	$(limine-dir)/bin/limine bios-install $(bin)
+	dd conv=notrunc if=$(bin) of=$(img)
 
 limine-test: RUSTFLAGS = -C link-arg=-Trun/boot/multiboot.ld -C link-arg=-z -C link-arg=norelro
 limine-test: LIMINE_DIR = $(limine-dir)
