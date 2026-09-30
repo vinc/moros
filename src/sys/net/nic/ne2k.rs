@@ -86,8 +86,11 @@ impl Device {
         // Initialize Transmit Configuration Register
         self.write(TCR, TCR_LB0); // Internal Loopback
 
-        // Mask interrupts
+        // Clear Interrupt Status Register
         self.write(ISR, 0xFF);
+
+        // Initialize Interrupt Mask Register
+        self.write(IMR, 0);
     }
 }
 
