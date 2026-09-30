@@ -13,6 +13,7 @@ const ISR:   u16 = 0x07; // Interrupt Status Register
 const RBCR0: u16 = 0x0A; // Remote Byte Count Register 0
 const RBCR1: u16 = 0x0B; // Remote Byte Count Register 1
 const RCR:   u16 = 0x0C; // Receive Configuration Register
+const TCR:   u16 = 0x0C; // Transmit Configuration Register
 const DCR:   u16 = 0x0E; // Data Configuration Register
 const RESET: u16 = 0x1F;
 
@@ -25,6 +26,9 @@ const ISR_RST: u8 = 1 << 7; // Reset Status
 
 // Receive Configuration Register bits
 const RCR_MON: u8 = 1 << 5; // Monitor Mode
+
+// Transmit Configuration Register bits
+const TCR_LB0: u8 = 1 << 1; // Loopback Mode
 
 // Data Configuration Register bits
 const DCR_WTS: u8 = 1 << 0; // Word Transfer Select
@@ -67,19 +71,20 @@ impl Device {
         }
 
         // Program Command Register for page 0
-        // --> Stop + Abort DMA
-        self.write(CR, CR_STP | CR_RD2);
+        self.write(CR, CR_STP | CR_RD2); // Stop and Abort DMA
 
         // Initialize Data Configuration Register
-        // --> Word-wide DMA transfer + Normal operation
-        self.write(DCR, DCR_WTS | DCR_LS | DCR_FT1);
+        self.write(DCR, DCR_WTS | DCR_LS | DCR_FT1); // Word-wide DMA transfer
 
         // Clear Remote Byte Count Registers
         self.write(RBCR0, 0);
         self.write(RBCR1, 0);
 
         // Initialize Receive Configuration Register
-        self.write(RCR, RCR_MON);
+        self.write(RCR, RCR_MON); // Monitor
+
+        // Initialize Transmit Configuration Register
+        self.write(TCR, TCR_LB0); // Internal Loopback
 
         // Mask interrupts
         self.write(ISR, 0xFF);
