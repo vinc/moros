@@ -10,6 +10,7 @@ const MTU: usize = 1536;
 // Page 0 registers
 const CR:    u16 = 0x00; // Command Register
 const ISR:   u16 = 0x07; // Interrupt Status Register
+const DCR:   u16 = 0x0E; // Data Configuration Register
 const RESET: u16 = 0x1F;
 
 // Command Register bits
@@ -18,6 +19,11 @@ const CR_RD2: u8 = 1 << 5; // Abort/Complete Remote DMA
 
 // Interrupt Status Register bits
 const ISR_RST: u8 = 1 << 7; // Reset Status
+
+// Data Configuration Register bits
+const DCR_WTS: u8 = 1 << 0; // Word Transfer Select
+const DCR_LS:  u8 = 1 << 3; // Loopback Select
+const DCR_FT1: u8 = 1 << 6; // FIFO threshold select bit 1
 
 #[derive(Clone)]
 pub struct Device {
@@ -48,14 +54,20 @@ impl Device {
     }
 
     fn init(&mut self) {
+        // Reset
         self.write(RESET, self.read(RESET));
-
         while self.read(ISR) & ISR_RST == 0 {
             spin_loop();
         }
 
-        self.write(CR, CR_STP | CR_RD2); // Stop and Abort DMA
-        self.write(ISR, 0xFF); // Mask interrupts
+        // Stop + Abort DMA
+        self.write(CR, CR_STP | CR_RD2);
+
+        // Word-wide DMA transfer + normal operation
+        self.write(DCR, DCR_WTS | DCR_LS | DCR_FT1);
+
+        // Mask interrupts
+        self.write(ISR, 0xFF);
     }
 }
 
