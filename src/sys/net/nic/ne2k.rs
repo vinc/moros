@@ -6,8 +6,6 @@ use alloc::vec::Vec;
 use core::hint::spin_loop;
 use smoltcp::wire::EthernetAddress;
 
-const MTU: usize = 1536;
-
 // Page 0 registers
 const CR:    u16 = 0x00; // Command Register
 const ISR:   u16 = 0x07; // Interrupt Status Register
@@ -58,7 +56,7 @@ impl Device {
             io_base,
             config: Arc::new(Config::new()),
             stats: Arc::new(Stats::new()),
-            tx_buffer: Vec::with_capacity(MTU),
+            tx_buffer: Vec::new(),
         };
         device.init();
         device
@@ -143,10 +141,10 @@ impl EthernetDeviceIO for Device {
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        return None;
+        None
     }
 
-    fn transmit_packet(&mut self, len: usize) {
+    fn transmit_packet(&mut self, _len: usize) {
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
