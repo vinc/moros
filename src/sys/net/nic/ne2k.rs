@@ -3,8 +3,17 @@ use crate::sys::x86::port::*;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::hint::spin_loop;
 
 const MTU: usize = 1536;
+
+// Page 0 registers
+const CR:    u16 = 0x00; // Command
+const ISR:   u16 = 0x07; // Interrupt Status
+const RESET: u16 = 0x1F;
+
+// Interrupt Status Register bits
+const ISR_RST: u8 = 1 << 7; // Reset Status
 
 #[derive(Clone)]
 pub struct Device {
@@ -26,7 +35,22 @@ impl Device {
         device
     }
 
+    fn read(&self, reg: u16) -> u8 {
+        unsafe { inb(self.io_base + reg) }
+    }
+
+    fn write(&self, reg: u16, value: u8) {
+        unsafe { outb(self.io_base + reg, value) }
+    }
+
     fn init(&mut self) {
+        self.write(RESET, self.read(RESET));
+
+        while self.read(ISR) & ISR_RST == 0 {
+            spin_loop();
+        }
+
+        self.write(ISR, 0xFF); // Mask interrupts
     }
 }
 
