@@ -10,6 +10,9 @@ const MTU: usize = 1536;
 // Page 0 registers
 const CR:    u16 = 0x00; // Command Register
 const ISR:   u16 = 0x07; // Interrupt Status Register
+const RBCR0: u16 = 0x0A; // Remote Byte Count Register 0
+const RBCR1: u16 = 0x0B; // Remote Byte Count Register 1
+const RCR:   u16 = 0x0C; // Receive Configuration Register
 const DCR:   u16 = 0x0E; // Data Configuration Register
 const RESET: u16 = 0x1F;
 
@@ -19,6 +22,9 @@ const CR_RD2: u8 = 1 << 5; // Abort/Complete Remote DMA
 
 // Interrupt Status Register bits
 const ISR_RST: u8 = 1 << 7; // Reset Status
+
+// Receive Configuration Register bits
+const RCR_MON: u8 = 1 << 5; // Monitor Mode
 
 // Data Configuration Register bits
 const DCR_WTS: u8 = 1 << 0; // Word Transfer Select
@@ -60,11 +66,20 @@ impl Device {
             spin_loop();
         }
 
-        // Stop + Abort DMA
+        // Program Command Register for page 0
+        // --> Stop + Abort DMA
         self.write(CR, CR_STP | CR_RD2);
 
-        // Word-wide DMA transfer + normal operation
+        // Initialize Data Configuration Register
+        // --> Word-wide DMA transfer + Normal operation
         self.write(DCR, DCR_WTS | DCR_LS | DCR_FT1);
+
+        // Clear Remote Byte Count Registers
+        self.write(RBCR0, 0);
+        self.write(RBCR1, 0);
+
+        // Initialize Receive Configuration Register
+        self.write(RCR, RCR_MON);
 
         // Mask interrupts
         self.write(ISR, 0xFF);
