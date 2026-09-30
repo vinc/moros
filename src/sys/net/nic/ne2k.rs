@@ -8,9 +8,13 @@ use core::hint::spin_loop;
 const MTU: usize = 1536;
 
 // Page 0 registers
-const CR:    u16 = 0x00; // Command
-const ISR:   u16 = 0x07; // Interrupt Status
+const CR:    u16 = 0x00; // Command Register
+const ISR:   u16 = 0x07; // Interrupt Status Register
 const RESET: u16 = 0x1F;
+
+// Command Register bits
+const CR_STP: u8 = 1 << 0; // Stop
+const CR_RD2: u8 = 1 << 5; // Abort/Complete Remote DMA
 
 // Interrupt Status Register bits
 const ISR_RST: u8 = 1 << 7; // Reset Status
@@ -50,6 +54,7 @@ impl Device {
             spin_loop();
         }
 
+        self.write(CR, CR_STP | CR_RD2); // Stop and Abort DMA
         self.write(ISR, 0xFF); // Mask interrupts
     }
 }
