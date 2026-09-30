@@ -150,6 +150,8 @@ impl EthernetDeviceIO for Device {
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
+        self.tx_buffer.clear();
+        self.tx_buffer.resize(core::cmp::max(60, len), 0);
         &mut self.tx_buffer[0..len]
     }
 }
