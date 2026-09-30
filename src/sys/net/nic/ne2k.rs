@@ -4,25 +4,34 @@ use crate::sys::x86::port::*;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::hint::spin_loop;
+use smoltcp::wire::EthernetAddress;
 
 const MTU: usize = 1536;
 
 // Page 0 registers
 const CR:    u16 = 0x00; // Command Register
 const ISR:   u16 = 0x07; // Interrupt Status Register
+const RSAR0: u16 = 0x08; // Remote Start Address Register 0
+const RSAR1: u16 = 0x09; // Remote Start Address Register 1
 const RBCR0: u16 = 0x0A; // Remote Byte Count Register 0
 const RBCR1: u16 = 0x0B; // Remote Byte Count Register 1
 const RCR:   u16 = 0x0C; // Receive Configuration Register
-const TCR:   u16 = 0x0C; // Transmit Configuration Register
+const TCR:   u16 = 0x0D; // Transmit Configuration Register
 const DCR:   u16 = 0x0E; // Data Configuration Register
-const RESET: u16 = 0x1F;
+const IMR:   u16 = 0x0F; // Interrupt Mask Register
+
+const DATA:  u16 = 0x10; // Remote DMA Port
+const RESET: u16 = 0x1F; // Reset Port
 
 // Command Register bits
 const CR_STP: u8 = 1 << 0; // Stop
+const CR_STA: u8 = 1 << 1; // Start
+const CR_RD0: u8 = 1 << 3; // Remote Read
 const CR_RD2: u8 = 1 << 5; // Abort/Complete Remote DMA
 
 // Interrupt Status Register bits
 const ISR_RST: u8 = 1 << 7; // Reset Status
+const ISR_RDC: u8 = 1 << 6; // Remote DMA Complete
 
 // Receive Configuration Register bits
 const RCR_MON: u8 = 1 << 5; // Monitor Mode
@@ -61,6 +70,32 @@ impl Device {
 
     fn write(&self, reg: u16, value: u8) {
         unsafe { outb(self.io_base + reg, value) }
+    }
+
+    fn read_buffer(&self, addr: u16, size: usize) -> Vec<u8> {
+        let n = size.next_multiple_of(2);
+
+        let rbcr = n.to_le_bytes();
+        self.write(RBCR0, rbcr[0]);
+        self.write(RBCR1, rbcr[1]);
+
+        let rsar = addr.to_le_bytes();
+        self.write(RSAR0, rsar[0]);
+        self.write(RSAR1, rsar[1]);
+
+        self.write(CR, CR_STA | CR_RD0);
+
+        let mut buf = Vec::with_capacity(n);
+        for _ in 0..(n / 2) {
+            let data = unsafe { inw(self.io_base + DATA) };
+            buf.extend_from_slice(&data.to_le_bytes());
+        }
+        while self.read(ISR) & ISR_RDC == 0 {
+            spin_loop()
+        }
+        self.write(ISR, ISR_RDC);
+        buf.truncate(size);
+        buf
     }
 
     fn init(&mut self) {
