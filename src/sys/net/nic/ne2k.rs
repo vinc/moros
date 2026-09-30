@@ -126,6 +126,10 @@ impl Device {
 
         // Initialize Interrupt Mask Register
         self.write(IMR, 0);
+
+        let prom = self.read_buffer(0, 12);
+        let mac: [u8; 6] = core::array::from_fn(|i| prom[i * 2]);
+        self.config.update_mac(EthernetAddress::from_bytes(&mac));
     }
 }
 
