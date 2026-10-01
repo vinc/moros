@@ -23,6 +23,7 @@ const IMR:    u16 = 0x0F; // Interrupt Mask Register
 
 // Page 1 registers
 const PAR0:   u16 = 0x01; // Physical Address Register 0
+const MAR0:   u16 = 0x08; // Multicast Address Register 0
 
 const DATA:   u16 = 0x10; // Remote DMA Port
 const RESET:  u16 = 0x1F; // Reset Port
@@ -151,6 +152,11 @@ impl Device {
         // Initialize Physical Address Registers
         for i in 0..6 {
             self.write(PAR0 + i, mac[i as usize]);
+        }
+
+        // Initialize Multicast Address Registers
+        for i in 0..6 {
+            self.write(MAR0 + i, 0xFF);
         }
     }
 }
