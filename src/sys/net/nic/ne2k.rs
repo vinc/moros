@@ -7,19 +7,22 @@ use core::hint::spin_loop;
 use smoltcp::wire::EthernetAddress;
 
 // Page 0 registers
-const CR:    u16 = 0x00; // Command Register
-const ISR:   u16 = 0x07; // Interrupt Status Register
-const RSAR0: u16 = 0x08; // Remote Start Address Register 0
-const RSAR1: u16 = 0x09; // Remote Start Address Register 1
-const RBCR0: u16 = 0x0A; // Remote Byte Count Register 0
-const RBCR1: u16 = 0x0B; // Remote Byte Count Register 1
-const RCR:   u16 = 0x0C; // Receive Configuration Register
-const TCR:   u16 = 0x0D; // Transmit Configuration Register
-const DCR:   u16 = 0x0E; // Data Configuration Register
-const IMR:   u16 = 0x0F; // Interrupt Mask Register
+const CR:     u16 = 0x00; // Command Register
+const PSTART: u16 = 0x01; // Page Start Register
+const PSTOP:  u16 = 0x02; // Page Stop Register
+const BNRY:   u16 = 0x03; // Boundary Register
+const ISR:    u16 = 0x07; // Interrupt Status Register
+const RSAR0:  u16 = 0x08; // Remote Start Address Register 0
+const RSAR1:  u16 = 0x09; // Remote Start Address Register 1
+const RBCR0:  u16 = 0x0A; // Remote Byte Count Register 0
+const RBCR1:  u16 = 0x0B; // Remote Byte Count Register 1
+const RCR:    u16 = 0x0C; // Receive Configuration Register
+const TCR:    u16 = 0x0D; // Transmit Configuration Register
+const DCR:    u16 = 0x0E; // Data Configuration Register
+const IMR:    u16 = 0x0F; // Interrupt Mask Register
 
-const DATA:  u16 = 0x10; // Remote DMA Port
-const RESET: u16 = 0x1F; // Reset Port
+const DATA:   u16 = 0x10; // Remote DMA Port
+const RESET:  u16 = 0x1F; // Reset Port
 
 // Command Register bits
 const CR_STP: u8 = 1 << 0; // Stop
@@ -41,6 +44,9 @@ const TCR_LB0: u8 = 1 << 1; // Loopback Mode
 const DCR_WTS: u8 = 1 << 0; // Word Transfer Select
 const DCR_LS:  u8 = 1 << 3; // Loopback Select
 const DCR_FT1: u8 = 1 << 6; // FIFO threshold select bit 1
+
+const RX_START: u8 = 0x4C; // Receive buffer ring start page
+const RX_STOP:  u8 = 0x80; // Receive buffer ring stop page (exclusive)
 
 #[derive(Clone)]
 pub struct Device {
@@ -118,6 +124,11 @@ impl Device {
 
         // Initialize Transmit Configuration Register
         self.write(TCR, TCR_LB0); // Internal Loopback
+
+        // Initialize Receive Buffer Ring
+        self.write(BNRY, RX_START);
+        self.write(PSTART, RX_START);
+        self.write(PSTOP, RX_STOP);
 
         // Clear Interrupt Status Register
         self.write(ISR, 0xFF);
