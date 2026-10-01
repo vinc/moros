@@ -21,6 +21,9 @@ const TCR:    u16 = 0x0D; // Transmit Configuration Register
 const DCR:    u16 = 0x0E; // Data Configuration Register
 const IMR:    u16 = 0x0F; // Interrupt Mask Register
 
+// Page 1 registers
+const PAR0:   u16 = 0x01; // Physical Address Register 0
+
 const DATA:   u16 = 0x10; // Remote DMA Port
 const RESET:  u16 = 0x1F; // Reset Port
 
@@ -144,6 +147,11 @@ impl Device {
         let prom = self.read_buffer(0, 12);
         let mac: [u8; 6] = core::array::from_fn(|i| prom[i * 2]);
         self.config.update_mac(EthernetAddress::from_bytes(&mac));
+
+        // Initialize Physical Address Registers
+        for i in 0..6 {
+            self.write(PAR0 + i, mac[i as usize]);
+        }
     }
 }
 
