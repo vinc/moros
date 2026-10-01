@@ -221,7 +221,7 @@ impl EthernetDeviceIO for Device {
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
         // Read Current Page Register
-        self.write(CR, CR_PS0 | CR_STP | CR_RD2); // Page 1
+        self.write(CR, CR_PS0 | CR_STA | CR_RD2); // Page 1
         let curr = self.read(CURR);
         self.write(CR, CR_STA | CR_RD2); // Page 0
 
