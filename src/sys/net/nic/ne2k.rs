@@ -165,6 +165,9 @@ impl Device {
 
         // Program Command Register for page 0
         self.write(CR, CR_STA | CR_RD2); // Start and Abort DMA
+
+        // Initialize the Transmit Configuration
+        self.write(TCR, 0); // Normal Operation
     }
 }
 
