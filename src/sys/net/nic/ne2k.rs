@@ -29,6 +29,7 @@ const CR_STP: u8 = 1 << 0; // Stop
 const CR_STA: u8 = 1 << 1; // Start
 const CR_RD0: u8 = 1 << 3; // Remote Read
 const CR_RD2: u8 = 1 << 5; // Abort/Complete Remote DMA
+const CR_PS0: u8 = 1 << 6; // NE2000 compatible (page 1)
 
 // Interrupt Status Register bits
 const ISR_RST: u8 = 1 << 7; // Reset Status
@@ -136,6 +137,10 @@ impl Device {
         // Initialize Interrupt Mask Register
         self.write(IMR, 0);
 
+        // Program Command Register for page 1
+        self.write(CR, CR_PS0 | CR_STP | CR_RD2);
+
+        // Read MAC address
         let prom = self.read_buffer(0, 12);
         let mac: [u8; 6] = core::array::from_fn(|i| prom[i * 2]);
         self.config.update_mac(EthernetAddress::from_bytes(&mac));
