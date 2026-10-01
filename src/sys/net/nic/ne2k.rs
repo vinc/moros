@@ -162,6 +162,9 @@ impl Device {
 
         // Initialize Current Pointer
         self.write(CURR, RX_START);
+
+        // Program Command Register for page 0
+        self.write(CR, CR_STA | CR_RD2); // Start and Abort DMA
     }
 }
 
