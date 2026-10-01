@@ -23,6 +23,7 @@ const IMR:    u16 = 0x0F; // Interrupt Mask Register
 
 // Page 1 registers
 const PAR0:   u16 = 0x01; // Physical Address Register 0
+const CURR:   u16 = 0x07; // Current Page Register
 const MAR0:   u16 = 0x08; // Multicast Address Register 0
 
 const DATA:   u16 = 0x10; // Remote DMA Port
@@ -158,6 +159,9 @@ impl Device {
         for i in 0..6 {
             self.write(MAR0 + i, 0xFF);
         }
+
+        // Initialize Current Pointer
+        self.write(CURR, RX_START);
     }
 }
 
