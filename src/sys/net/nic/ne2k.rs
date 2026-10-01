@@ -3,6 +3,7 @@ use crate::sys::x86::port::*;
 
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use core::cmp;
 use core::hint::spin_loop;
 use smoltcp::wire::EthernetAddress;
 
@@ -11,6 +12,9 @@ const CR:     u16 = 0x00; // Command Register
 const PSTART: u16 = 0x01; // Page Start Register
 const PSTOP:  u16 = 0x02; // Page Stop Register
 const BNRY:   u16 = 0x03; // Boundary Register
+const TPSR:   u16 = 0x04; // Transmit Page Start Register
+const TBCR0:  u16 = 0x05; // Transmit Byte Count Register 0
+const TBCR1:  u16 = 0x06; // Transmit Byte Count Register 1
 const ISR:    u16 = 0x07; // Interrupt Status Register
 const RSAR0:  u16 = 0x08; // Remote Start Address Register 0
 const RSAR1:  u16 = 0x09; // Remote Start Address Register 1
@@ -32,14 +36,17 @@ const RESET:  u16 = 0x1F; // Reset Port
 // Command Register bits
 const CR_STP: u8 = 1 << 0; // Stop
 const CR_STA: u8 = 1 << 1; // Start
+const CR_TXP: u8 = 1 << 2; // Transmit Packet
 const CR_RD0: u8 = 1 << 3; // Remote DMA Command bit 0
 const CR_RD1: u8 = 1 << 4; // Remote DMA Command bit 1
 const CR_RD2: u8 = 1 << 5; // Remote DMA Command bit 2
 const CR_PS0: u8 = 1 << 6; // Page Select bit 0
 
 // Interrupt Status Register bits
-const ISR_RST: u8 = 1 << 7; // Reset Status
+const ISR_PTX: u8 = 1 << 1; // Packet Transmitted
+const ISR_TXE: u8 = 1 << 3; // Transmit Error
 const ISR_RDC: u8 = 1 << 6; // Remote DMA Complete
+const ISR_RST: u8 = 1 << 7; // Reset Status
 
 // Receive Configuration Register bits
 const RCR_MON: u8 = 1 << 5; // Monitor Mode
@@ -52,8 +59,11 @@ const DCR_WTS: u8 = 1 << 0; // Word Transfer Select
 const DCR_LS:  u8 = 1 << 3; // Loopback Select
 const DCR_FT1: u8 = 1 << 6; // FIFO threshold select bit 1
 
+const TX_START: u8 = 0x40; // Transmit buffer start page
 const RX_START: u8 = 0x4C; // Receive buffer ring start page
 const RX_STOP:  u8 = 0x80; // Receive buffer ring stop page (exclusive)
+
+const MIN_PACKET: usize = 60;
 
 #[derive(Clone)]
 pub struct Device {
@@ -212,12 +222,25 @@ impl EthernetDeviceIO for Device {
         None
     }
 
-    fn transmit_packet(&mut self, _len: usize) {
+    fn transmit_packet(&mut self, len: usize) {
+        let len = cmp::max(MIN_PACKET, len);
+        self.write_buffer((TX_START as u16) << 8, &self.tx_buffer[..len]);
+
+        self.write(TPSR, TX_START);
+        let tbcr = len.to_le_bytes();
+        self.write(TBCR0, tbcr[0]);
+        self.write(TBCR1, tbcr[1]);
+        self.write(CR, CR_STA | CR_TXP | CR_RD2);
+
+        while self.read(ISR) & (ISR_PTX | ISR_TXE) == 0 {
+            spin_loop()
+        }
+        self.write(ISR, ISR_PTX | ISR_TXE);
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
         self.tx_buffer.clear();
-        self.tx_buffer.resize(core::cmp::max(60, len), 0);
+        self.tx_buffer.resize(cmp::max(MIN_PACKET, len), 0);
         &mut self.tx_buffer[0..len]
     }
 }
