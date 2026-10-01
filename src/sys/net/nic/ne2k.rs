@@ -33,6 +33,7 @@ const RESET:  u16 = 0x1F; // Reset Port
 const CR_STP: u8 = 1 << 0; // Stop
 const CR_STA: u8 = 1 << 1; // Start
 const CR_RD0: u8 = 1 << 3; // Remote DMA Command bit 0
+const CR_RD1: u8 = 1 << 4; // Remote DMA Command bit 1
 const CR_RD2: u8 = 1 << 5; // Remote DMA Command bit 2
 const CR_PS0: u8 = 1 << 6; // Page Select bit 0
 
@@ -82,8 +83,8 @@ impl Device {
         unsafe { outb(self.io_base + reg, value) }
     }
 
-    fn read_buffer(&self, addr: u16, size: usize) -> Vec<u8> {
-        let n = size.next_multiple_of(2);
+    fn read_buffer(&self, addr: u16, len: usize) -> Vec<u8> {
+        let n = len.next_multiple_of(2);
 
         let rbcr = n.to_le_bytes();
         self.write(RBCR0, rbcr[0]);
@@ -93,7 +94,7 @@ impl Device {
         self.write(RSAR0, rsar[0]);
         self.write(RSAR1, rsar[1]);
 
-        self.write(CR, CR_STA | CR_RD0);
+        self.write(CR, CR_STA | CR_RD0); // Remote Read
 
         let mut buf = Vec::with_capacity(n);
         for _ in 0..(n / 2) {
@@ -104,8 +105,35 @@ impl Device {
             spin_loop()
         }
         self.write(ISR, ISR_RDC);
-        buf.truncate(size);
+        buf.truncate(len);
         buf
+    }
+
+    fn write_buffer(&self, addr: u16, buf: &[u8]) {
+        let n = buf.len().next_multiple_of(2);
+
+        let rbcr = n.to_le_bytes();
+        self.write(RBCR0, rbcr[0]);
+        self.write(RBCR1, rbcr[1]);
+
+        let rsar = addr.to_le_bytes();
+        self.write(RSAR0, rsar[0]);
+        self.write(RSAR1, rsar[1]);
+
+        self.write(CR, CR_STA | CR_RD1); // Remote Write
+
+        for chunk in buf.chunks(2) {
+            let data = match *chunk {
+                [b0, b1] => u16::from_le_bytes([b0, b1]),
+                [b0] => u16::from(b0), // Last chunk of an odd-length buffer
+                _ => unreachable!(),
+            };
+            unsafe { outw(self.io_base + DATA, data) };
+        }
+        while self.read(ISR) & ISR_RDC == 0 {
+            spin_loop()
+        }
+        self.write(ISR, ISR_RDC);
     }
 
     fn init(&mut self) {
