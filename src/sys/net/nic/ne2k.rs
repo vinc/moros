@@ -49,6 +49,7 @@ const ISR_RDC: u8 = 1 << 6; // Remote DMA Complete
 const ISR_RST: u8 = 1 << 7; // Reset Status
 
 // Receive Configuration Register bits
+const RCR_AB:  u8 = 1 << 2; // Accept Broadcast
 const RCR_MON: u8 = 1 << 5; // Monitor Mode
 
 // Transmit Configuration Register bits
@@ -204,8 +205,8 @@ impl Device {
         // Program Command Register for page 0
         self.write(CR, CR_STA | CR_RD2); // Start and Abort DMA
 
-        // Initialize the Transmit Configuration
         self.write(TCR, 0); // Normal Operation
+        self.write(RCR, RCR_AB); // Accept Broadcast
     }
 }
 
@@ -219,17 +220,51 @@ impl EthernetDeviceIO for Device {
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
-        None
+        // Read Current Page Register
+        self.write(CR, CR_PS0 | CR_STP | CR_RD2); // Page 1
+        let curr = self.read(CURR);
+        self.write(CR, CR_STA | CR_RD2); // Page 0
+
+        // Find the page of the next packet
+        let mut page = self.read(BNRY) + 1;
+        if page == RX_STOP {
+            page = RX_START;
+        }
+        if page == curr {
+            return None; // Receive buffer ring is empty
+        }
+
+        // Read packet header
+        let addr = (page as u16) << 8;
+        let header = self.read_buffer(addr, 4);
+        let next = header[1];
+        let len = u16::from_le_bytes([header[2], header[3]]) as usize;
+
+        // Read packet
+        let packet = self.read_buffer(addr + 4, len - 4);
+
+        // Update Boundary Register
+        let bnry = if next == RX_START { RX_STOP } else { next };
+        self.write(BNRY, bnry - 1);
+
+        Some(packet)
     }
 
     fn transmit_packet(&mut self, len: usize) {
         let len = cmp::max(MIN_PACKET, len);
+
+        // Write packet
         self.write_buffer((TX_START as u16) << 8, &self.tx_buffer[..len]);
 
+        // Set Transmit Page Start Register
         self.write(TPSR, TX_START);
+
+        // Set Transmit Byte Count
         let tbcr = len.to_le_bytes();
         self.write(TBCR0, tbcr[0]);
         self.write(TBCR1, tbcr[1]);
+
+        // Start transmission
         self.write(CR, CR_STA | CR_TXP | CR_RD2);
 
         while self.read(ISR) & (ISR_PTX | ISR_TXE) == 0 {
