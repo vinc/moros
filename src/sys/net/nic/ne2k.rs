@@ -32,9 +32,9 @@ const RESET:  u16 = 0x1F; // Reset Port
 // Command Register bits
 const CR_STP: u8 = 1 << 0; // Stop
 const CR_STA: u8 = 1 << 1; // Start
-const CR_RD0: u8 = 1 << 3; // Remote Read
-const CR_RD2: u8 = 1 << 5; // Abort/Complete Remote DMA
-const CR_PS0: u8 = 1 << 6; // NE2000 compatible (page 1)
+const CR_RD0: u8 = 1 << 3; // Remote DMA Command bit 0
+const CR_RD2: u8 = 1 << 5; // Remote DMA Command bit 2
+const CR_PS0: u8 = 1 << 6; // Page Select bit 0
 
 // Interrupt Status Register bits
 const ISR_RST: u8 = 1 << 7; // Reset Status
@@ -142,13 +142,13 @@ impl Device {
         // Initialize Interrupt Mask Register
         self.write(IMR, 0);
 
-        // Program Command Register for page 1
-        self.write(CR, CR_PS0 | CR_STP | CR_RD2);
-
-        // Read MAC address
+        // Read MAC address from PROM (discard high byte of each word)
         let prom = self.read_buffer(0, 12);
         let mac: [u8; 6] = core::array::from_fn(|i| prom[i * 2]);
         self.config.update_mac(EthernetAddress::from_bytes(&mac));
+
+        // Program Command Register for page 1
+        self.write(CR, CR_PS0 | CR_STP | CR_RD2);
 
         // Initialize Physical Address Registers
         for i in 0..6 {
@@ -156,12 +156,12 @@ impl Device {
         }
 
         // Initialize Multicast Address Registers
-        for i in 0..6 {
+        for i in 0..8 {
             self.write(MAR0 + i, 0xFF);
         }
 
         // Initialize Current Pointer
-        self.write(CURR, RX_START);
+        self.write(CURR, RX_START + 1);
 
         // Program Command Register for page 0
         self.write(CR, CR_STA | CR_RD2); // Start and Abort DMA
