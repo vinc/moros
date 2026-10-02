@@ -500,10 +500,12 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         } else if Regex::new("^<=*>+$").is_match(args[i]) {
             is_fat_arrow = true;
             left_handle = 0;
-            n += 2;
-            args.insert(i + 2, args[i + 1]);
-            args.insert(i + 2, args[i].trim_start_matches('<'));
-            args[i] = "<=";
+            if i + 1 < n {
+                n += 2;
+                args.insert(i + 2, args[i + 1]);
+                args.insert(i + 2, args[i].trim_start_matches('<'));
+                args[i] = "<=";
+            }
         } else if Regex::new("^[?\\d*]?=*>+[?\\d*]?$").is_match(args[i]) {
             // Redirections to
             // read foo.txt ==> bar.txt
