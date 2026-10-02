@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add v86 demo on website (#927)
 - Reserve userspace memory on i686 (#925)
 - Add minesweeper game (#924)
 - Add i586 support (#922)
