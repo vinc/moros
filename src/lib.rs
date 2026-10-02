@@ -41,7 +41,6 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::x86::int::enable_interrupts();
 
     sys::serial::init();
-    sys::keyboard::init();
     sys::clk::init();
 
     let v = option_env!("MOROS_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
@@ -57,6 +56,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
     sys::ata::init();
     sys::fs::init(); // Require ATA
     sys::process::init();
+    sys::keyboard::init(); // Require MEM
 
     log!("RTC {}", sys::clk::date());
 }

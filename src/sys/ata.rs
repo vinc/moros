@@ -50,6 +50,12 @@ enum IdentifyResponse {
     None,
 }
 
+impl IdentifyResponse {
+    fn read_str(buf: &[u8]) -> String {
+        String::from_utf8_lossy(&buf).trim().trim_matches('\0').into()
+    }
+}
+
 #[allow(dead_code)]
 #[repr(usize)]
 #[derive(Debug, Clone, Copy)]
@@ -338,8 +344,8 @@ impl Drive {
         let res = buses[bus as usize].identify_drive(dsk);
         if let Ok(IdentifyResponse::Ata(res)) = res {
             let buf = res.map(u16::to_be_bytes).concat();
-            let model = String::from_utf8_lossy(&buf[54..94]).trim().into();
-            let serial = String::from_utf8_lossy(&buf[20..40]).trim().into();
+            let model = IdentifyResponse::read_str(&buf[54..94]);
+            let serial = IdentifyResponse::read_str(&buf[20..40]);
             let block_count = u32::from_be_bytes(
                 buf[120..124].try_into().unwrap()
             ).rotate_left(16);

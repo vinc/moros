@@ -90,6 +90,7 @@ fn get_attr_ctrl_reg(index: u8) -> u8 {
             let tmp = inb(ATTR_ADDR_REG);
             outb(ATTR_ADDR_REG, index);
             let res = inb(ATTR_READ_REG);
+            inb(INPUT_STATUS_REG);
             outb(ATTR_ADDR_REG, tmp);
             res
         }

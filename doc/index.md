@@ -57,11 +57,6 @@ And it's quite [customizable](colors.md):
 
 ![light mode screenshot](images/light.png)
 
-## Demo (currently disabled)
+## Demo
 
-Log in to a demo using the name of the system as the password for the guest
-account:
-
-    $ ssh guest@try.moros.cc
-
-Happy hacking!
+Try a [demo](demo) inside your browser.

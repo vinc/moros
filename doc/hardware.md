@@ -2,97 +2,112 @@
 
 ## Emulators
 
-- [x] QEMU
-  - [x] CPU: Intel Pentium
-  - [x] CPU: Intel Atom N270
-  - [x] CPU: Intel Core 2 Duo T7700
-  - [x] DSK: ATA
-  - [x] NET: Intel PRO/1000 MT Desktop
-  - [x] NET: Realtek RTL8139C
-  - [x] NET: AMD PCnet-FAST III
-  - [x] SND: Creative SoundBlaster 16
-  - [x] SND: Intel 82801AA (AC'97)
+- [X] v86 ([demo](/demo))
+  - [X] CPU: Intel Pentium 4 (1.0 GHz)
+  - [X] DSK: ATA
+  - [ ] NET: Realtek RTL8390 (NE2000)
+  - [?] SND: Creative SoundBlaster 16
 
-- [x] VirtualBox
-  - [x] DSK: ATA
-  - [x] NET: Intel PRO/1000 MT Desktop (82540EM)
-  - [x] NET: Intel PRO/1000 MT Server (82545EM)
-  - [x] NET: Intel PRO/1000 T Server (82543GC)
-  - [x] NET: AMD PCnet-FAST III
+- [X] QEMU
+  - [X] CPU: Intel Pentium
+  - [X] CPU: Intel Atom N270
+  - [X] CPU: Intel Core 2 Duo T7700
+  - [X] DSK: ATA
+  - [X] NET: Intel PRO/1000 MT Desktop
+  - [X] NET: Realtek RTL8139C
+  - [X] NET: AMD PCnet-FAST III
+  - [X] SND: Creative SoundBlaster 16
+  - [X] SND: Intel 82801AA (AC'97)
 
-- [x] Bochs
+- [X] VirtualBox
+  - [X] DSK: ATA
+  - [X] NET: Intel PRO/1000 MT Desktop (82540EM)
+  - [X] NET: Intel PRO/1000 MT Server (82545EM)
+  - [X] NET: Intel PRO/1000 T Server (82543GC)
+  - [X] NET: AMD PCnet-FAST III
+
+- [X] 86Box
+  - [X] MB: Abit BF6
+  - [X] CPU: Intel Pentium II (233 MHz)
+  - [X] GPU: Cirrus Logic GD5446
+  - [X] RAM: 16 MB
+  - [X] DSK: Western Digital Caviar 14300 (4.3 GB)
+  - [X] NET: AMD PCnet-FAST III
+  - [/] SND: Creative SoundBlaster 16
+
+- [X] Bochs
 
 ## Computers
 
 ### Desktops
 
-- [x] Custom (2004)
-  - [x] MB: MSI RS482M
-  - [x] DSK: ATA
-  - [x] CPU: AMD Athlon 64 3200+ (2.0 GHz)
-  - [x] NET: Realtek RTL8100C
+- [X] Custom (2004)
+  - [X] MB: MSI RS482M
+  - [X] DSK: ATA
+  - [X] CPU: AMD Athlon 64 3200+ (2.0 GHz)
+  - [X] NET: Realtek RTL8100C
   - [ ] SND: Realtek ALC655 (AC'97)
 
-- [x] Custom (2007)
-  - [x] MB: Asus P5K
-  - [x] DSK: ATA
-  - [x] CPU: Intel Core 2 Duo E6850 (3.0 GHz)
+- [X] Custom (2007)
+  - [X] MB: Asus P5K
+  - [X] DSK: ATA
+  - [X] CPU: Intel Core 2 Duo E6850 (3.0 GHz)
   - [ ] NET: Attansic L1
-  - [x] NET: Intel PRO/1000 GT Desktop (PCI)
-  - [x] NET: Realtek RTL8139B (PCI)
-  - [x] NET: Realtek RTL8139C (PCI)
-  - [x] NET: Realtek RTL8139D (PCI)
+  - [X] NET: Intel PRO/1000 GT Desktop (PCI)
+  - [X] NET: Realtek RTL8139B (PCI)
+  - [X] NET: Realtek RTL8139C (PCI)
+  - [X] NET: Realtek RTL8139D (PCI)
   - [ ] SND: Realtek ALC883 (HDA)
 
-- [x] HP ProLiant MicroServer N40L (2012)
-  - [x] CPU: AMD Athlon II Dual Core
+- [X] HP ProLiant MicroServer N40L (2012)
+  - [X] CPU: AMD Athlon II Dual Core
   - [ ] NET: HP NC107i
 
-- [x] Lenovo ThinkCentre M83 SFF (2014)
-  - [x] CPU: Intel Pentium G3220 (3.0 GHz)
-  - [x] NET: Intel I217-LM
+- [X] Lenovo ThinkCentre M83 SFF (2014)
+  - [X] CPU: Intel Pentium G3220 (3.0 GHz)
+  - [X] NET: Intel I217-LM
 
-- [x] Intel NUC 5CPYH (2015)
-  - [x] CPU: Intel Celeron N3050 (1.6 - 2.16 GHz)
+- [X] Intel NUC 5CPYH (2015)
+  - [X] CPU: Intel Celeron N3050 (1.6 - 2.16 GHz)
   - [ ] DSK: AHCI
   - [ ] NET: Realtek RTL8111HN
 
 ### Laptops
 
-- [x] IBM ThinkPad X20 (2000)
-  - [x] CPU: Intel Mobile Pentium III (600 MHz)
-  - [x] DSK: ATA
+- [X] IBM ThinkPad X20 (2000)
+  - [X] CPU: Intel Mobile Pentium III (600 MHz)
+  - [X] DSK: ATA
   - [ ] NET: Intel PRO/100 SP Mobile (82550EY)
   - [ ] SND: Cirrus Logic CS4297 (AC'97)
 
-- [x] Dell Latitude E6400 (2008)
-  - [x] CPU: Intel Core 2 Duo P8600 (2.4 GHz)
-  - [x] DSK: ATA
+- [X] Dell Latitude E6400 (2008)
+  - [X] CPU: Intel Core 2 Duo P8600 (2.4 GHz)
+  - [X] DSK: ATA
   - [ ] DSK: AHCI
-  - [x] NET: Intel 82567LM
+  - [X] NET: Intel 82567LM
 
-- [x] Lenovo ThinkPad X200 (2008)
-  - [x] CPU: Intel Core 2 Duo P8600 (2.4 GHz)
-  - [x] DSK: ATA
+- [X] Lenovo ThinkPad X200 (2008)
+  - [X] CPU: Intel Core 2 Duo P8600 (2.4 GHz)
+  - [X] DSK: ATA
   - [ ] DSK: AHCI
-  - [x] NET: Intel 82567LM
+  - [X] NET: Intel 82567LM
 
-- [x] Lenovo ThinkPad T440p (2013)
-  - [x] CPU: Intel Core i5-4300M (2.6 - 3.3 GHz)
+- [X] Lenovo ThinkPad T440p (2013)
+  - [X] CPU: Intel Core i5-4300M (2.6 - 3.3 GHz)
   - [ ] DSK: AHCI
-  - [x] NET: Intel I217-LM
+  - [X] NET: Intel I217-LM
 
-- [x] Lenovo ThinkPad X260 (2016)
-  - [x] CPU: Intel i3-6100U (2.3 GHz)
+- [X] Lenovo ThinkPad X260 (2016)
+  - [X] CPU: Intel i3-6100U (2.3 GHz)
   - [ ] DSK: AHCI
-  - [x] NET: Intel I219-V
+  - [X] NET: Intel I219-V
 
-- [x] Lenovo ThinkPad X270 (2017)
-  - [x] CPU: Intel i3-6100U (2.6 - 3.3 GHz)
+- [X] Lenovo ThinkPad X270 (2017)
+  - [X] CPU: Intel i3-6100U (2.6 - 3.3 GHz)
   - [ ] DSK: AHCI
-  - [x] NET: Intel I219-V
+  - [X] NET: Intel I219-V
 
-- [x] Lenovo ThinkPad T480 (2018)
-  - [x] CPU: Intel Core i5-8350U (1.7 - 3.6 GHz)
+- [X] Lenovo ThinkPad T480 (2018)
+  - [X] CPU: Intel Core i5-8350U (1.7 - 3.6 GHz)
   - [ ] DSK: AHCI
   - [ ] NET: Intel I219-LM

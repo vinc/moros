@@ -191,7 +191,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             println!("{}Formatting disk ...{}", csi_color, csi_reset);
             print!("Enter path of disk to format: ");
             let path = io::stdin().read_line();
-            if path.trim_end() == "/dev/mem" {
+            if path.trim_end().is_empty() {
+                error!("No path given");
+                return Err(ExitCode::Failure);
+            } else if path.trim_end() == "/dev/mem" {
                 usr::shell::exec(&format!("memory format"))?;
             } else {
                 usr::shell::exec(&format!("disk format {}", path.trim_end()))?;
