@@ -5,7 +5,7 @@
 - [X] v86 ([demo](/demo))
   - [X] CPU: Intel Pentium 4 (1.0 GHz)
   - [X] DSK: ATA
-  - [ ] NET: Realtek RTL8390 (NE2000)
+  - [X] NET: Realtek RTL8390 (NE2000)
   - [?] SND: Creative SoundBlaster 16
 
 - [X] QEMU
@@ -41,10 +41,17 @@
 
 ### Desktops
 
+- [x] Custom (1995)
+  - [X] MB: Intel Advanced/ZP Zappa
+  - [X] CPU: Intel Pentium (100 MHz)
+  - [X] GPU: Cirrus Logic GD5446
+  - [X] RAM: 32 MB
+  - [ ] DSK: ATA
+
 - [X] Custom (2004)
   - [X] MB: MSI RS482M
-  - [X] DSK: ATA
   - [X] CPU: AMD Athlon 64 3200+ (2.0 GHz)
+  - [X] DSK: ATA
   - [X] NET: Realtek RTL8100C
   - [ ] SND: Realtek ALC655 (AC'97)
 
