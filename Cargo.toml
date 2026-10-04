@@ -22,7 +22,6 @@ acpi = "5.0.0"
 aml = "0.16.4"
 base64 = { version = "0.23.0", default-features = false, features = ["alloc"] }
 bit_field = "0.10.3"
-chumsky = { version = "0.13.0", default-features = false }
 geodate = { version = "0.5.0", default-features = false }
 lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
 libm = "0.2.16"

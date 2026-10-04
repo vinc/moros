@@ -4,7 +4,19 @@ use crate::api::io;
 use crate::api::process::ExitCode;
 
 use alloc::vec::Vec;
-use chumsky::prelude::*;
+use nom::Err::{Error, Failure, Incomplete};
+use nom::IResult;
+use nom::Parser;
+use nom::branch::alt;
+use nom::character::complete::char;
+use nom::character::complete::none_of;
+use nom::combinator::all_consuming;
+use nom::combinator::map;
+use nom::combinator::value;
+use nom::multi::many0;
+use nom::sequence::delimited;
+use nom::sequence::preceded;
+use nom::sequence::terminated;
 
 const TAPE_LEN: usize = 30_000;
 
@@ -20,17 +32,33 @@ enum Instr {
     Loop(Vec<Self>),
 }
 
-fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Instr>, extra::Err<Rich<'a, char>>> {
-    let comment = none_of("<>+-,.[]").ignored();
-    recursive(|bf| choice((
-        just('<').to(Instr::Left),
-        just('>').to(Instr::Right),
-        just('+').to(Instr::Incr),
-        just('-').to(Instr::Decr),
-        just(',').to(Instr::Read),
-        just('.').to(Instr::Write),
-        bf.delimited_by(just('['), just(']')).map(Instr::Loop),
-    )).padded_by(comment.repeated()).repeated().collect())
+fn ignored(input: &str) -> IResult<&str, ()> {
+    map(many0(none_of("<>+-,.[]")), |_| ()).parse(input)
+}
+
+fn instr(input: &str) -> IResult<&str, Instr> {
+    alt((
+        value(Instr::Left,  char('<')),
+        value(Instr::Right, char('>')),
+        value(Instr::Incr,  char('+')),
+        value(Instr::Decr,  char('-')),
+        value(Instr::Read,  char(',')),
+        value(Instr::Write, char('.')),
+        map(delimited(char('['), program, char(']')), Instr::Loop)
+    )).parse(input)
+}
+
+fn program(input: &str) -> IResult<&str, Vec<Instr>> {
+    preceded(ignored, many0(terminated(instr, ignored))).parse(input)
+}
+
+fn parse(input: &str) -> Result<Vec<Instr>, usize> {
+    match all_consuming(program).parse(input) {
+        Ok((_, ast)) => Ok(ast),
+        Err(Error(e)) => Err(input.len() - e.input.len()),
+        Err(Failure(e)) => Err(input.len() - e.input.len()),
+        Err(Incomplete(_)) => Err(input.len()),
+    }
 }
 
 fn eval(ast: &[Instr], ptr: &mut usize, tape: &mut [u8; TAPE_LEN]) {
@@ -81,18 +109,18 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let reset = Style::reset();
     let path = args[1];
     if let Ok(buf) = fs::read_to_string(path) {
-        match parser().parse(&buf).into_result() {
+        match parse(&buf) {
             Ok(ast) => eval(&ast, &mut 0, &mut [0; TAPE_LEN]),
-            Err(errs) => errs.into_iter().for_each(|e| {
-                let (row, col) = pos(&buf, e.span().start);
+            Err(i) => {
+                let (row, col) = pos(&buf, i);
                 error!("Unexpected token at {path}:{row}:{col}");
 
                 let line = buf.lines().nth(row - 1).unwrap();
                 let space = " ".repeat(col - 1);
-                let arrow = "^".repeat(e.span().end - e.span().start);
+                let arrow = "^";
                 let reason = "unexpected token";
                 eprintln!("\n{line}\n{space}{error}{arrow} {reason}{reset}");
-            })
+            }
         };
         Ok(())
     } else {
@@ -119,5 +147,5 @@ fn test_parser() {
         Instr::Incr, Instr::Incr, Instr::Incr, Instr::Incr, Instr::Incr,
         Instr::Loop(vec![Instr::Decr])
     ];
-    assert_eq!(parser().parse(src).into_result(), Ok(ast));
+    assert_eq!(parse(src), Ok(ast));
 }
