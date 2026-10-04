@@ -49,7 +49,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             arg => {
                 if arg.starts_with('-') {
-                    error!("Invalid option '{}'", arg);
+                    error!("Invalid option {:?}", arg);
                     return Err(ExitCode::UsageError);
                 }
                 paths.push(arg);
@@ -90,7 +90,7 @@ fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
                 }
                 Ok(())
             } else {
-                error!("Could not read '{}'", path);
+                error!("Could not read {:?}", path);
                 Err(ExitCode::Failure)
             }
         } else if conf.recursive && info.is_dir() {
@@ -104,15 +104,15 @@ fn print_hash(path: &str, conf: Config) -> Result<(), ExitCode> {
                 }
                 Ok(())
             } else {
-                error!("Could not read '{}'", path);
+                error!("Could not read {:?}", path);
                 Err(ExitCode::Failure)
             }
         } else {
-            error!("Could not hash '{}'", path);
+            error!("Could not hash {:?}", path);
             Err(ExitCode::Failure)
         }
     } else {
-        error!("Could not find file '{}'", path);
+        error!("Could not find file {:?}", path);
         Err(ExitCode::Failure)
     }
 }

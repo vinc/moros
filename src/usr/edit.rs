@@ -162,11 +162,11 @@ impl Editor {
         if fs::write(path, contents.as_bytes()).is_ok() {
             self.pathname = path.into();
             let n = self.lines.len();
-            let status = format!("Wrote {}L to '{}'", n, path);
+            let status = format!("Wrote {}L to {:?}", n, path);
             self.print_status(&status, "yellow");
             Ok(())
         } else {
-            let status = format!("Could not write to '{}'", path);
+            let status = format!("Could not write to {:?}", path);
             self.print_status(&status, "red");
             Err(ExitCode::Failure)
         }
@@ -191,7 +191,7 @@ impl Editor {
             path.truncate(max - 3);
             path.push_str("...");
         }
-        let start = format!("Editing '{}'", path);
+        let start = format!("Editing {:?}", path);
 
         let x = self.offset.x + self.cursor.x + 1;
         let y = self.offset.y + self.cursor.y + 1;
@@ -1049,7 +1049,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             _ => {
                 if args[i].starts_with('-') {
-                    error!("Invalid option '{}'", args[i]);
+                    error!("Invalid option {:?}", args[i]);
                     return Err(ExitCode::UsageError);
                 } else {
                     paths.push(args[i])

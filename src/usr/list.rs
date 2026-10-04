@@ -49,7 +49,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     "size" => files.sort_by_key(|f| f.size()),
                     "time" => files.sort_by_key(|f| f.time()),
                     _ => {
-                        error!("Invalid sort key '{}'", sort);
+                        error!("Invalid sort key {:?}", sort);
                         return Err(ExitCode::Failure);
                     }
                 }
@@ -64,7 +64,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 }
                 Ok(())
             } else {
-                error!("Could not read directory '{}'", path);
+                error!("Could not read directory {:?}", path);
                 Err(ExitCode::Failure)
             }
         } else {
@@ -72,7 +72,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Ok(())
         }
     } else {
-        error!("Could not find file or directory '{}'", path);
+        error!("Could not find file or directory {:?}", path);
         Err(ExitCode::Failure)
     }
 }

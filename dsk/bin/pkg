@@ -7,7 +7,7 @@
 
 (def (pkg/fetch path) (do
   "Download the given file"
-  (print (str "Retrieving '" path "'"))
+  (print (str "Retrieving \"" path "\""))
   (set dir (dirname path))
   (if (not (file/exists? dir))
     (sh (str "write -p " dir "/")))
@@ -15,14 +15,14 @@
   (if (= res 0)
     (if (regex/match? "\\.z$" path)
       (do
-        (print (str "Extracting '" (slice path 0 (- (len path) 2)) "'"))
+        (print (str "Extracting \"" (slice path 0 (- (len path) 2)) "\""))
         (sh (str "inflate " path)))
       res)
     res)))
 
 (def (pkg/delete path) (do
   "Delete the given file"
-  (print (str "Deleting '" path "'"))
+  (print (str "Deleting \"" path "\""))
   (set dir (dirname path))
   (sh (str "drop " path))))
 
@@ -36,8 +36,8 @@
         (map pkg/fetch files))
       (do
         (sh (str "drop " path))
-        (error (str "Could not find package '" pkg "'"))))
-    (error (str "Could not find package '" pkg "'")))))
+        (error (str "Could not find package \"" pkg "\""))))
+    (error (str "Could not find package \"" pkg "\"")))))
 
 (def (pkg/remove pkg) (do
   "Removes the given package"
@@ -53,8 +53,8 @@
           (map pkg/delete files))
         (do
           (sh (str "drop " path))
-          (error (str "Could not find package '" pkg "'")))))
-    (error (str "Could not find package '" pkg "'")))))
+          (error (str "Could not find package \"" pkg "\"")))))
+    (error (str "Could not find package \"" pkg "\"")))))
 
 (def (pkg/list)
   (sh (str "http " base "/var/pkg/")))

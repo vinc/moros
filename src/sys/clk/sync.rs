@@ -1,17 +1,10 @@
-use super::boot;
 use super::timer;
 
-use x86_64::instructions::interrupts;
+use crate::sys;
 
-/// Halts the CPU until the next interrupt.
-///
-/// This function preserves interrupt state.
-pub fn halt() {
-    let disabled = !interrupts::are_enabled();
-    interrupts::enable_and_hlt();
-    if disabled {
-        interrupts::disable();
-    }
+// Convert to the nearest number of ticks
+fn seconds_to_ticks(seconds: f64) -> usize {
+    (seconds / timer::time_between_ticks() + 0.5) as usize
 }
 
 /// Sleeps for the specified number of seconds.
@@ -19,9 +12,10 @@ pub fn halt() {
 /// This function works by repeatedly halting the CPU until the time is
 /// elapsed.
 pub fn sleep(seconds: f64) {
-    let start = boot::boot_time();
-    while boot::boot_time() - start < seconds {
-        halt();
+    let count = seconds_to_ticks(seconds);
+    let start = timer::ticks();
+    while timer::ticks() - start < count {
+        sys::x86::hlt();
     }
 }
 
@@ -30,9 +24,21 @@ pub fn sleep(seconds: f64) {
 /// This function use a busy-wait loop with the `RDTSC` and `PAUSE`
 /// instructions.
 pub fn wait(nanoseconds: u64) {
-    let delta = nanoseconds * timer::tsc_frequency();
+    let delta = nanoseconds * timer::tsc_frequency() / 1_000_000_000;
     let start = timer::tsc();
     while timer::tsc() - start < delta {
         core::hint::spin_loop();
     }
+}
+
+#[test_case]
+fn test_sleep_seconds_to_ticks() {
+    assert_eq!(seconds_to_ticks(0.0000), 0);
+    assert_eq!(seconds_to_ticks(0.0004), 0);
+    assert_eq!(seconds_to_ticks(0.0006), 1);
+    assert_eq!(seconds_to_ticks(0.0010), 1);
+    assert_eq!(seconds_to_ticks(0.0014), 1);
+    assert_eq!(seconds_to_ticks(0.0016), 2);
+    assert_eq!(seconds_to_ticks(0.1000), 100);
+    assert_eq!(seconds_to_ticks(1.0000), 1000);
 }

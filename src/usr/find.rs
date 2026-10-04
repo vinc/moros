@@ -60,7 +60,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             _ => {
                 if args[i].starts_with('-') {
-                    error!("Invalid option '{}'", args[i]);
+                    error!("Invalid option {:?}", args[i]);
                     return Err(ExitCode::UsageError);
                 } else if path.is_empty() {
                     path = args[i].into();

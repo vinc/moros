@@ -1,9 +1,7 @@
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::Device;
-use crate::sys::fs::FileInfo;
-use crate::sys::fs::Resource;
+use crate::sys::fs::{Device, FileInfo, Resource, SeekFrom};
 
 use alloc::vec;
 use core::alloc::Layout;
@@ -14,8 +12,8 @@ pub fn exit(code: ExitCode) -> ExitCode {
     code
 }
 
-pub fn sleep(seconds: f64) {
-    sys::clk::sleep(seconds);
+pub fn sleep(milliseconds: usize) {
+    sys::clk::sleep(milliseconds as f64 / 1000.0);
 }
 
 pub fn delete(path: &str) -> isize {
@@ -60,14 +58,6 @@ pub fn open(path: &str, flags: u8) -> isize {
     -1
 }
 
-pub fn dup(old_handle: usize, new_handle: usize) -> isize {
-    if let Some(file) = sys::process::handle(old_handle) {
-        sys::process::update_handle(new_handle, *file);
-        return 0;
-    }
-    -1
-}
-
 pub fn read(handle: usize, buf: &mut [u8]) -> isize {
     if let Some(mut file) = sys::process::handle(handle) {
         if let Ok(bytes) = file.read(buf) {
@@ -95,6 +85,39 @@ pub fn close(handle: usize) {
     }
 }
 
+pub fn dup(old_handle: usize, new_handle: usize) -> isize {
+    if let Some(file) = sys::process::handle(old_handle) {
+        sys::process::update_handle(new_handle, *file);
+        return 0;
+    }
+    -1
+}
+
+pub fn seek(handle: usize, from: SeekFrom) -> isize {
+    if let Some(file) = sys::process::handle(handle) {
+        let mut res = *file;
+        match &mut res {
+            Resource::File(f) => {
+                if let Ok(cursor) = f.seek(from) {
+                    sys::process::update_handle(handle, res);
+                    cursor as isize
+                } else {
+                    -3
+                }
+            }
+            _ => -2
+        }
+    } else {
+        -1
+    }
+}
+
+#[cfg(target_arch = "x86")]
+pub fn spawn(_path: &str, _args_ptr: usize, _args_len: usize) -> ExitCode {
+    ExitCode::ExecError
+}
+
+#[cfg(target_arch = "x86_64")] // TODO: Remove this
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,

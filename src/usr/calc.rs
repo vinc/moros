@@ -106,10 +106,10 @@ fn parse_eval(line: &str) -> Result<f64, String> {
             if line.is_empty() {
                 Ok(eval(parsed))
             } else {
-                Err(format!("Could not parse '{}'", line))
+                Err(format!("Could not parse {:?}", line))
             }
         }
-        Err(_) => Err(format!("Could not parse '{}'", line)),
+        Err(_) => Err(format!("Could not parse {:?}", line)),
     }
 }
 

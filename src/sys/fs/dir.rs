@@ -119,11 +119,13 @@ impl Dir {
             // A unused dir entry is a virtual entry with a null addr
             // and a size indicating the unused space
             if other.addr() == 0 {
+                let total = entries.block.capacity();
+
                 // Bytes read for the entry
                 let read = DirEntry::empty_len() + other.name().len();
 
                 // Bytes from the start of the entry to the end of the block
-                let rest = entries.block.len() - entries.block_offset + read;
+                let rest = total - entries.block_offset + read;
 
                 if entry_len > rest {
                     continue; // Not enough space
@@ -196,9 +198,10 @@ impl Dir {
                 this_block_addr = entries.block.addr();
             }
             if entry.name() == name {
+                let n = entries.block.capacity();
                 let i = entries.block_offset() - entry.len();
-                let j = entries.block.len() - entry.len();
-                let reminder = entries.block_offset()..entries.block.len();
+                let j = n - entry.len();
+                let reminder = entries.block_offset()..n;
                 let data = entries.block.data_mut();
 
                 // Shift the reminder of the block over this entry

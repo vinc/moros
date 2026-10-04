@@ -5,7 +5,7 @@
 During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.
 
-    [0.250962] SYS MOROS v0.12.0
+    [0.250962] SYS MOROS v0.13.0
     [0.254961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
     [0.255961] MEM [0x00000000001000-0x00000000004FFF] PageTable
     [0.256961] MEM [0x00000000005000-0x00000000014FFF] Bootloader
@@ -50,7 +50,7 @@ commands to test the system or `install` to setup the
 
     /
     > install
-    Welcome to MOROS v0.12.0 installation program!
+    Welcome to MOROS v0.13.0 installation program!
 
     Proceed? [y/N] y
 
@@ -101,7 +101,7 @@ commands to test the system or `install` to setup the
     Creating '/dev/net/gw'
     Creating '/dev/net/ip'
     Creating '/dev/net/mac'
-    Creating '/dev/net/usage'
+    Creating '/dev/net/stat'
     Creating '/dev/null'
     Creating '/dev/random'
     Creating '/dev/speaker'
@@ -319,22 +319,23 @@ for example you can use `e` instead of `edit` to edit a file.
 
     > read /ini/shell.sh
     # Command shortcuts
-    alias c    copy
-    alias d    delete
-    alias e    edit
-    alias f    find
-    alias h    help
-    alias l    list
-    alias m    move
-    alias p    print
-    alias q    quit
-    alias r    read
-    alias w    write
+    alias c      copy
+    alias d      drop
+    alias e      edit
+    alias f      find
+    alias g      goto
+    alias h      help
+    alias l      list
+    alias m      move
+    alias p      print
+    alias q      quit
+    alias r      read
+    alias v      view
+    alias w      write
 
-    alias sh   shell
-    alias dsk  disk
-    alias mem  memory
-    alias kbd  keyboard
+    alias sh     shell
+    alias dsk    disk
+    alias mem    memory
 
 ## Network
 

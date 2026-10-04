@@ -1,10 +1,11 @@
+use crate::sys::x86::addr::PhysAddr;
+use crate::sys::x86::port::*;
+
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
 use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::port::Port;
-use x86_64::PhysAddr;
 
 #[derive(Debug, Clone, Copy)]
 pub struct DeviceConfig {
@@ -95,36 +96,40 @@ impl DeviceConfig {
         self.command = register.read() as u16;
     }
 
-    pub fn bar_type(&self) -> u16 {
-        self.base_addresses[0].get_bits(1..3) as u16
-    }
-
-    pub fn mem_base(&self) -> PhysAddr {
-        debug_assert!(self.base_addresses[0].get_bit(0) == false);
-        let bar0 = self.base_addresses[0];
-        let bar1 = self.base_addresses[1];
-        let addr = match bar0.get_bits(1..3) {
-            0 => { // 32 bits
-                (bar0 & 0xFFFFFFF0) as u64
-            }
-            1 => { // 16 bits
-                (bar0 & 0x0000FFF0) as u64
-            }
-            2 => { // 64 bits
-                let l = (bar0 & 0xFFFFFFF0) as u64;
-                let h = (bar1 & 0xFFFFFFF0) as u64;
-                l + (h << 32)
-            }
-            _ => { // TODO
-                panic!("Unknown base address size");
-            }
-        };
-        PhysAddr::new(addr)
+    pub fn is_io(&self) -> bool {
+        self.base_addresses[0].get_bit(0)
     }
 
     pub fn bar_io(&self, n: usize) -> u16 {
-        debug_assert!(self.base_addresses[n].get_bit(0) == true);
-        (self.base_addresses[n] as u16) & 0xFFF0
+        debug_assert!(self.is_io());
+        (self.base_addresses[n] as u16) & 0xFFFC
+    }
+
+    pub fn mem_base(&self) -> PhysAddr {
+        debug_assert!(!self.is_io());
+        let bar0 = self.base_addresses[0];
+        let bar1 = self.base_addresses[1];
+        let addr = match bar0.get_bits(1..3) {
+            0 => { // 32-bit
+                (bar0 & 0xFFFFFFF0) as u64
+            }
+            2 => { // 64-bit
+                let l = (bar0 & 0xFFFFFFF0) as u64;
+                let h = bar1 as u64;
+
+                #[cfg(target_arch = "x86")]
+                if h != 0 {
+                    panic!("Base address above 4 GB: {:#010X}{:08X}", h, l);
+                }
+
+                l + (h << 32)
+            }
+            t => {
+                // NOTE: Alternatively we could treat that as 32-bit
+                panic!("Unsupported base address type {}", t);
+            }
+        };
+        PhysAddr::new(addr as usize)
     }
 }
 
@@ -192,17 +197,16 @@ fn get_header_type(bus: u8, device: u8, function: u8) -> u8 {
     register.read().get_bits(16..24) as u8
 }
 
+const DATA_PORT: u16 = 0xCFC;
+const ADDR_PORT: u16 = 0xCF8;
+
 struct ConfigRegister {
-    data_port: Port<u32>,
-    addr_port: Port<u32>,
     addr: u32,
 }
 
 impl ConfigRegister {
     pub fn new(bus: u8, device: u8, function: u8, offset: u8) -> Self {
         Self {
-            data_port: Port::new(0xCFC),
-            addr_port: Port::new(0xCF8),
             addr: 0x8000_0000
                 | ((bus as u32) << 16)
                 | ((device as u32) << 11)
@@ -213,15 +217,15 @@ impl ConfigRegister {
 
     pub fn read(&mut self) -> u32 {
         unsafe {
-            self.addr_port.write(self.addr);
-            self.data_port.read()
+            outl(ADDR_PORT, self.addr);
+            inl(DATA_PORT)
         }
     }
 
     pub fn write(&mut self, data: u32) {
         unsafe {
-            self.addr_port.write(self.addr);
-            self.data_port.write(data);
+            outl(ADDR_PORT, self.addr);
+            outl(DATA_PORT, data);
         }
     }
 }

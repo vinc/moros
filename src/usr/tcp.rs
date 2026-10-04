@@ -56,7 +56,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let buf_len = if let Some(info) = syscall::info(socket_path) {
         info.size() as usize
     } else {
-        error!("Could not open '{}'", socket_path);
+        error!("Could not open {:?}", socket_path);
         return Err(ExitCode::Failure);
     };
 

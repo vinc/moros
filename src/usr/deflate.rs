@@ -26,19 +26,19 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if fs::delete(path).is_ok() {
                     Ok(())
                 } else {
-                    error!("Could not drop '{}'", path);
+                    error!("Could not drop {:?}", path);
                     Err(ExitCode::Failure)
                 }
             } else {
-                error!("Could not deflate to '{}'", dest); 
+                error!("Could not deflate to {:?}", dest);
                 Err(ExitCode::Failure)
             }
         } else {
-            error!("Could not read '{}'", path);
+            error!("Could not read {:?}", path);
             Err(ExitCode::Failure)
         }
     } else {
-        error!("Could not open '{}'", path);
+        error!("Could not open {:?}", path);
         Err(ExitCode::Failure)
     }
 }

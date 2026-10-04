@@ -1,10 +1,11 @@
+use crate::sys::x86::addr::VirtAddr;
+
 use alloc::slice::SliceIndex;
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::{Index, IndexMut};
 use spin::Mutex;
-use x86_64::VirtAddr;
 
 #[derive(Clone)]
 pub struct PhysBuf {
@@ -20,7 +21,7 @@ impl PhysBuf {
     fn from(vec: Vec<u8>) -> Self {
         let buffer_end = vec.len() - 1;
         let memory_end = phys_addr(&vec[buffer_end]) - phys_addr(&vec[0]);
-        if buffer_end == memory_end as usize {
+        if buffer_end == memory_end {
             Self {
                 buf: Arc::new(Mutex::new(vec)),
             }
@@ -29,7 +30,7 @@ impl PhysBuf {
         }
     }
 
-    pub fn addr(&self) -> u64 {
+    pub fn addr(&self) -> usize {
         phys_addr(&self.buf.lock()[0])
     }
 
@@ -72,8 +73,8 @@ impl core::ops::DerefMut for PhysBuf {
     }
 }
 
-pub fn phys_addr(ptr: *const u8) -> u64 {
-    let virt_addr = VirtAddr::new(ptr as u64);
+pub fn phys_addr<T>(ptr: *const T) -> usize {
+    let virt_addr = VirtAddr::new(ptr as usize);
     let phys_addr = super::virt_to_phys(virt_addr).unwrap();
-    phys_addr.as_u64()
+    phys_addr.as_usize()
 }

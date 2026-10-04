@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>MOROS Demo</title>
+    <link rel="stylesheet" type="text/css" href="/moros.css?v=3">
+    <style>
+      #demo {
+        display: grid;
+        place-content: center;
+        min-height: 400px;
+        margin-bottom: 32px;
+      }
+      #demo.loading > * {
+        display: none !important;
+      }
+      #demo.loading::before {
+        content: "Loading...";
+      }
+    </style>
+  </head>
+  <body>
+    <h1>MOROS: Obscure Rust Operating System</h1>
+
+    <div id="demo" class="loading"></div>
+
+    <p style="text-align:center">Log in to the demo using "guest" as username and password. Happy hacking!</p>
+
+    <script src="libv86.js"></script>
+    <script>
+      window.emulator = new V86({
+        wasm_path: "v86.wasm",
+        bios: { url: "seabios.bin" },
+        vga_bios: { url: "vgabios.bin" },
+        hda: { url: "disk.img.zst", size: 32 * 1024 * 1024 },
+        boot_order: 0x321,
+        memory_size: 64 * 1024 * 1024,
+        screen: {
+          container: document.getElementById("demo"),
+          use_graphical_text: true,
+        },
+        acpi: true,
+        autostart: true,
+      });
+      window.emulator.add_listener("emulator-loaded", () => {
+        document.getElementById("demo").classList.remove("loading");
+      });
+    </script>
+  <footer><p><a href="/">MOROS</a></footer>
+  </body>
+</html>

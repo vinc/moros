@@ -78,7 +78,7 @@ impl Viewer {
             path.truncate(max - 3);
             path.push_str("...");
         }
-        let start = format!("Viewing '{}'", path);
+        let start = format!("Viewing {:?}", path);
 
         let x = self.x + 1;
         let y = cmp::min(self.lines.len(), self.y + rows());

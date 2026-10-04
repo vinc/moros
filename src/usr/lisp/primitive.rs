@@ -717,7 +717,7 @@ pub fn lisp_date(args: &[Exp]) -> Result<Exp, Err> {
 
 pub fn lisp_sleep(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
-    let s = float(&args[0])?;
-    syscall::sleep(s);
+    let duration = float(&args[0])?;
+    syscall::sleep((duration * 1000.0) as usize);
     Ok(Exp::List(Vec::new()))
 }

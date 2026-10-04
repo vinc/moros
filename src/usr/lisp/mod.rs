@@ -261,7 +261,7 @@ fn parse_eval(
 }
 
 fn exec(path: &str, env: &mut Rc<RefCell<Env>>) -> Result<(), Err> {
-    let buf = fs::read_to_string(&path).or(could_not!("read file '{}'", path))?;
+    let buf = fs::read_to_string(&path).or(could_not!("read file {:?}", path))?;
     let mut input = buf.clone();
     loop {
         match parse_eval(&input, env) {
@@ -301,7 +301,7 @@ fn repl(env: &mut Rc<RefCell<Env>>) -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
-    println!("MOROS Lisp v0.7.0\n");
+    println!("MOROS Lisp v0.9.0\n");
 
     let mut prompt = Prompt::new();
     let history_file = "~/.lisp-history";

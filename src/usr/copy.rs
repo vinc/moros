@@ -30,7 +30,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let dest = destination(args[1], args[2]);
 
     if fs::is_dir(source) { // TODO: Implement dir copy
-        error!("Could not copy directory '{}'", source);
+        error!("Could not copy directory {:?}", source);
         return Err(ExitCode::Failure);
     }
 
@@ -38,11 +38,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         if fs::write(&dest, &contents).is_ok() {
             Ok(())
         } else {
-            error!("Could not write to '{}'", dest);
+            error!("Could not write to {:?}", dest);
             Err(ExitCode::Failure)
         }
     } else {
-        error!("Could not read file '{}'", source);
+        error!("Could not read file {:?}", source);
         Err(ExitCode::Failure)
     }
 }

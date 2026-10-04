@@ -32,7 +32,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 fn parse_disk_path(pathname: &str) -> Result<(u8, u8), String> {
     let path: Vec<_> = pathname.split('/').collect();
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
-        return Err(format!("Could not find disk at '{}'", pathname));
+        return Err(format!("Could not find disk at {:?}", pathname));
     }
     let bus = path[3].parse().or(Err("Could not parse <bus>".to_string()))?;
     let dsk = path[4].parse().or(Err("Could not parse <dsk>".to_string()))?;

@@ -25,7 +25,7 @@ fn help_command(cmd: &str) -> Result<(), ExitCode> {
 }
 
 fn help_unknown(cmd: &str) -> Result<(), ExitCode> {
-    error!("Help not found for command '{}'", cmd);
+    error!("Help not found for command {:?}", cmd);
     Err(ExitCode::Failure)
 }
 

@@ -16,13 +16,13 @@ use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
 // TODO: Scan /bin
-const AUTOCOMPLETE_COMMANDS: [&str; 44] = [
+const AUTOCOMPLETE_COMMANDS: [&str; 45] = [
     "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "deflate",
-    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode",
-    "goto", "hash", "help", "hex", "host", "http", "httpd", "inflate",
-    "install", "keyboard", "life", "lisp", "list", "memory", "move", "net",
-    "pci", "quit", "read", "render", "shell", "socket", "spell", "tcp", "time",
-    "user", "view", "write",
+    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode", "goto",
+    "hash", "help", "hex", "host", "http", "httpd", "inflate", "install",
+    "life", "lisp", "list", "memory", "mines", "move", "net", "pci", "print",
+    "quit", "read", "render", "shell", "socket", "spell", "tcp", "time", "user",
+    "view", "write"
 ];
 
 struct Config {
@@ -290,10 +290,10 @@ fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     cmd
 }
 
-fn cmd_echo(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+fn cmd_print(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     println!("{}", args[1..].join(" "));
 
-    // Handle dir changed with `echo /tmp => /dev/proc/dir`
+    // Handle dir changed with `print /tmp => /dev/proc/dir`
     config.env.insert("dir".to_string(), process::dir());
 
     Ok(())
@@ -315,7 +315,7 @@ fn cmd_change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
                 config.env.insert("dir".to_string(), process::dir());
                 Ok(())
             } else {
-                error!("Could not find file '{}'", path);
+                error!("Could not find file {:?}", path);
                 Err(ExitCode::Failure)
             }
         }
@@ -351,7 +351,7 @@ fn cmd_unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 
     if config.aliases.remove(args[1]).is_none() {
-        error!("Could not unalias '{}'", args[1]);
+        error!("Could not unalias {:?}", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -400,7 +400,7 @@ fn cmd_set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             }
             _ => {
                 if args[i].starts_with('-') {
-                    error!("Invalid option '{}'", args[i]);
+                    error!("Invalid option {:?}", args[i]);
                     return Err(ExitCode::UsageError);
                 } else if key.is_none() {
                     key = Some(args[i]);
@@ -440,7 +440,7 @@ fn cmd_unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 
     if config.env.remove(args[1]).is_none() {
-        error!("Could not unset '{}'", args[1]);
+        error!("Could not unset {:?}", args[1]);
         return Err(ExitCode::Failure);
     }
 
@@ -500,10 +500,12 @@ fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
         } else if Regex::new("^<=*>+$").is_match(args[i]) {
             is_fat_arrow = true;
             left_handle = 0;
-            n += 2;
-            args.insert(i + 2, args[i + 1]);
-            args.insert(i + 2, args[i].trim_start_matches('<'));
-            args[i] = "<=";
+            if i + 1 < n {
+                n += 2;
+                args.insert(i + 2, args[i + 1]);
+                args.insert(i + 2, args[i].trim_start_matches('<'));
+                args[i] = "<=";
+            }
         } else if Regex::new("^[?\\d*]?=*>+[?\\d*]?$").is_match(args[i]) {
             // Redirections to
             // read foo.txt ==> bar.txt
@@ -592,7 +594,6 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         ""          => Ok(()),
         "2048"      => usr::pow::main(args),
         "alias"     => cmd_alias(args, config),
-        //"beep"      => usr::beep::main(args),
         "brainfuck" => usr::brainfuck::main(args),
         "calc"      => usr::calc::main(args),
         "chess"     => usr::chess::main(args),
@@ -605,12 +606,10 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "disk"      => usr::disk::main(args),
         "draw"      => usr::draw::main(args),
         "drop"      => usr::drop::main(args),
-        "echo"      => cmd_echo(args, config),
         "edit"      => usr::edit::main(args),
         "elf"       => usr::elf::main(args),
         "encode"    => usr::encode::main(args),
         "find"      => usr::find::main(args),
-        //"geodate"   => usr::geodate::main(args),
         "goto"      => cmd_change_dir(args, config), // TODO: Remove this
         "hash"      => usr::hash::main(args),
         "help"      => usr::help::main(args),
@@ -620,16 +619,17 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "httpd"     => usr::httpd::main(args),
         "inflate"   => usr::inflate::main(args),
         "install"   => usr::install::main(args),
-        "keyboard"  => usr::keyboard::main(args),
         "life"      => usr::life::main(args),
         "lisp"      => usr::lisp::main(args),
         "list"      => usr::list::main(args),
         "logs"      => cmd_logs(),
         "memory"    => usr::memory::main(args),
+        "mines"     => usr::mines::main(args),
         "move"      => usr::r#move::main(args),
         "net"       => usr::net::main(args),
         "pci"       => usr::pci::main(args),
         "pi"        => usr::pi::main(args),
+        "print"     => cmd_print(args, config),
         "quit"      => Err(ExitCode::ShellExit),
         "read"      => usr::read::main(args),
         "render"    => usr::render::main(args),
@@ -690,15 +690,15 @@ fn spawn(
     // Binary
     match api::process::spawn(path, args) {
         Err(ExitCode::OpenError) => {
-            error!("Could not open '{}'", args[0]);
+            error!("Could not open {:?}", args[0]);
             Err(ExitCode::OpenError)
         }
         Err(ExitCode::ReadError) => {
-            error!("Could not read '{}'", args[0]);
+            error!("Could not read {:?}", args[0]);
             Err(ExitCode::ReadError)
         }
         Err(ExitCode::ExecError) => {
-            error!("Could not execute '{}'", args[0]);
+            error!("Could not execute {:?}", args[0]);
             Err(ExitCode::ExecError)
         }
         res => res,
@@ -796,7 +796,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             Ok(())
         } else {
-            error!("Could not read file '{}'", path);
+            error!("Could not read file {:?}", path);
             Err(ExitCode::Failure)
         }
     }
@@ -813,6 +813,7 @@ fn help() -> Result<(), ExitCode> {
     Ok(())
 }
 
+#[cfg(target_arch = "x86_64")] // TODO: Remove
 #[test_case]
 fn test_shell() {
     use alloc::string::ToString;
@@ -822,14 +823,14 @@ fn test_shell() {
     usr::install::copy_files(false);
 
     // Redirect standard output
-    exec("print test1 => /tmp/test1").ok();
+    exec("echo test1 => /tmp/test1").ok();
     assert_eq!(
         api::fs::read_to_string("/tmp/test1"),
         Ok("test1\n".to_string())
     );
 
     // Redirect standard output explicitely
-    exec("print test2 1=> /tmp/test2").ok();
+    exec("echo test2 1=> /tmp/test2").ok();
     assert_eq!(
         api::fs::read_to_string("/tmp/test2"),
         Ok("test2\n".to_string())
@@ -838,11 +839,11 @@ fn test_shell() {
     // Redirect standard error explicitely
     exec("hex /nope 2=> /tmp/test3").ok();
     assert!(api::fs::read_to_string("/tmp/test3").unwrap().
-        contains("Could not read file '/nope'"));
+        contains("Could not read file \"/nope\""));
 
     let mut config = Config::new();
     exec_with_config("set b 42", &mut config).ok();
-    exec_with_config("print a $b $c d => /test", &mut config).ok();
+    exec_with_config("echo a $b $c d => /test", &mut config).ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();
