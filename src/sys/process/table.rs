@@ -10,15 +10,15 @@ use alloc::collections::btree_map::BTreeMap;
 use alloc::string::String;
 use core::alloc::{GlobalAlloc, Layout};
 use core::sync::atomic::{AtomicUsize, Ordering};
-use spin::{LazyLock, RwLock};
+use spin::RwLock;
 
 pub const MAX_PROCS: usize = 32;
 static PID: AtomicUsize = AtomicUsize::new(0);
 
 type ProcessTable = [Option<Box<Process>>; MAX_PROCS];
 
-pub static PROCESS_TABLE: LazyLock<RwLock<ProcessTable>> = LazyLock::new(||
-    RwLock::new([(); MAX_PROCS].map(|_| None))
+pub static PROCESS_TABLE: RwLock<ProcessTable> = RwLock::new(
+    [const { None }; MAX_PROCS]
 );
 
 pub fn init() {

@@ -7,7 +7,7 @@ use spin::{LazyLock, Mutex};
 use uart_16550::SerialPort;
 use vte::{Params, Parser, Perform};
 
-pub static SERIAL: LazyLock<Mutex<Serial>> = LazyLock::new(|| Mutex::new(Serial::new(0x3F8)));
+pub static SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));
 pub static PARSER: LazyLock<Mutex<Parser>> = LazyLock::new(|| Mutex::new(Parser::new()));
 
 pub struct Serial {
@@ -15,7 +15,7 @@ pub struct Serial {
 }
 
 impl Serial {
-    fn new(addr: u16) -> Self {
+    const fn new(addr: u16) -> Self {
         Self {
             port: unsafe { SerialPort::new(addr) }
         }
