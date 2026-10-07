@@ -137,11 +137,11 @@ impl Entry {
 
 fn default_handler() {}
 
-lazy_static! {
-    static ref IRQ_HANDLERS: Mutex<[fn(); 16]> = {
-        Mutex::new([default_handler; 16])
-    };
+static IRQ_HANDLERS: Mutex<[fn(); 16]> = {
+    Mutex::new([default_handler; 16])
+};
 
+lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         InterruptDescriptorTable::new()
     };

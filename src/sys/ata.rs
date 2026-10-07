@@ -10,7 +10,6 @@ use bit_field::BitField;
 use core::convert::TryInto;
 use core::fmt;
 use core::hint::spin_loop;
-use lazy_static::lazy_static;
 use spin::Mutex;
 
 // Information Technology
@@ -308,9 +307,7 @@ impl Bus {
     }
 }
 
-lazy_static! {
-    pub static ref BUSES: Mutex<Vec<Bus>> = Mutex::new(Vec::new());
-}
+pub static BUSES: Mutex<Vec<Bus>> = Mutex::new(Vec::new());
 
 pub fn init() {
     {
