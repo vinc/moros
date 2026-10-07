@@ -11,14 +11,11 @@ use alloc::string::{String,ToString};
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 
-use lazy_static::lazy_static;
 use littlewing::chess::*;
 use littlewing::color::*;
 use spin::Mutex;
 
-lazy_static! {
-    static ref MOVES: Mutex<Vec<String>> = Mutex::new(Vec::new());
-}
+static MOVES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 const FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const COMMANDS: [&str; 11] = [

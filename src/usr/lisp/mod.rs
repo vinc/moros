@@ -30,7 +30,6 @@ use core::cell::RefCell;
 use core::cmp;
 use core::convert::TryInto;
 use core::fmt;
-use lazy_static::lazy_static;
 use spin::Mutex;
 
 // MOROS Lisp is a lisp-1 like Scheme and Clojure
@@ -151,9 +150,7 @@ pub enum Err {
     Reason(String),
 }
 
-lazy_static! {
-    pub static ref FUNCTIONS: Mutex<Vec<String>> = Mutex::new(Vec::new());
-}
+pub static FUNCTIONS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 #[macro_export]
 macro_rules! ensure_length_eq {

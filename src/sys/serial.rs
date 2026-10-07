@@ -3,22 +3,19 @@ use crate::sys::x86::int;
 
 use core::fmt;
 use core::fmt::Write;
-use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{LazyLock, Mutex};
 use uart_16550::SerialPort;
 use vte::{Params, Parser, Perform};
 
-lazy_static! {
-    pub static ref SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));
-    pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
-}
+pub static SERIAL: Mutex<Serial> = Mutex::new(Serial::new(0x3F8));
+pub static PARSER: LazyLock<Mutex<Parser>> = LazyLock::new(|| Mutex::new(Parser::new()));
 
 pub struct Serial {
     port: SerialPort,
 }
 
 impl Serial {
-    fn new(addr: u16) -> Self {
+    const fn new(addr: u16) -> Self {
         Self {
             port: unsafe { SerialPort::new(addr) }
         }
