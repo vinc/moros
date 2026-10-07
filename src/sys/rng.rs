@@ -5,9 +5,9 @@ use crate::sys::fs::{FileIO, IO};
 use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
 use sha2::{Digest, Sha256};
-use spin::{LazyLock, Mutex};
+use spin::{Once, Mutex};
 
-static RNG: LazyLock<Mutex<Hc128Rng>> = LazyLock::new(|| Mutex::new(Hc128Rng::from_seed([0; 32])));
+static RNG: Once<Mutex<Hc128Rng>> = Once::new();
 
 #[derive(Debug, Clone)]
 pub struct Random;
@@ -44,7 +44,7 @@ impl FileIO for Random {
 }
 
 pub fn get_u64() -> u64 {
-    RNG.lock().next_u64()
+    RNG.get().expect("RNG not initialized").lock().next_u64()
 }
 
 pub fn get_u32() -> u32 {
@@ -84,5 +84,5 @@ pub fn init() {
         seed = hasher.finalize().into();
     }
 
-    *RNG.lock() = Hc128Rng::from_seed(seed);
+    RNG.call_once(|| Mutex::new(Hc128Rng::from_seed(seed)));
 }
