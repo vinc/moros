@@ -11,8 +11,7 @@ use crate::sys::x86;
 
 use bit_field::BitField;
 use core::arch::asm;
-use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{LazyLock, Mutex};
 
 const LEN: usize = 256;
 
@@ -141,11 +140,9 @@ static IRQ_HANDLERS: Mutex<[fn(); 16]> = {
     Mutex::new([default_handler; 16])
 };
 
-lazy_static! {
-    static ref IDT: InterruptDescriptorTable = {
-        InterruptDescriptorTable::new()
-    };
-}
+static IDT: LazyLock<InterruptDescriptorTable> = LazyLock::new(||
+    InterruptDescriptorTable::new()
+);
 
 macro_rules! irq_handler {
     ($handler:ident, $irq:expr) => {

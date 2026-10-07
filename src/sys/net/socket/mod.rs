@@ -4,16 +4,13 @@ pub mod tcp;
 pub mod udp;
 
 use alloc::vec;
-use lazy_static::lazy_static;
 use smoltcp::iface::SocketSet;
 use smoltcp::time::Duration;
-use spin::Mutex;
+use spin::{LazyLock, Mutex};
 
-lazy_static! {
-    pub static ref SOCKETS: Mutex<SocketSet<'static>> = {
-        Mutex::new(SocketSet::new(vec![]))
-    };
-}
+pub static SOCKETS: LazyLock<Mutex<SocketSet<'static>>> = LazyLock::new(||
+    Mutex::new(SocketSet::new(vec![]))
+);
 
 fn random_port() -> u16 {
     49152 + sys::rng::get_u16() % 16384

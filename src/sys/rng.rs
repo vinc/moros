@@ -2,15 +2,12 @@ use crate::sys;
 
 use crate::sys::fs::{FileIO, IO};
 
-use lazy_static::lazy_static;
 use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
 use sha2::{Digest, Sha256};
-use spin::Mutex;
+use spin::{LazyLock, Mutex};
 
-lazy_static! {
-    static ref RNG: Mutex<Hc128Rng> = Mutex::new(Hc128Rng::from_seed([0; 32]));
-}
+static RNG: LazyLock<Mutex<Hc128Rng>> = LazyLock::new(|| Mutex::new(Hc128Rng::from_seed([0; 32])));
 
 #[derive(Debug, Clone)]
 pub struct Random;

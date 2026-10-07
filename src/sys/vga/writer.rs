@@ -10,8 +10,7 @@ use crate::api::font::Font;
 
 use crate::sys;
 
-use lazy_static::lazy_static;
-use spin::Mutex;
+use spin::{LazyLock, Mutex};
 use vte::{Params, Parser, Perform};
 
 const FG: Color = Color::DarkWhite;
@@ -64,9 +63,12 @@ struct ScreenBuffer {
 static mut SCROLL_BUFFER: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT] =
     [[ScreenChar::zeroed(); SCREEN_WIDTH]; SCROLL_HEIGHT];
 
-lazy_static! {
-    pub static ref PARSER: Mutex<Parser> = Mutex::new(Parser::new());
-    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+pub static PARSER: LazyLock<Mutex<Parser>> = LazyLock::new(||
+    Mutex::new(Parser::new())
+);
+
+pub static WRITER: LazyLock<Mutex<Writer>> = LazyLock::new(||
+    Mutex::new(Writer {
         cursor: [0; 2],
         writer: [0; 2],
         color_code: ColorCode::new(FG, BG),
@@ -74,8 +76,8 @@ lazy_static! {
         scroll_buffer: unsafe { &mut *core::ptr::addr_of_mut!(SCROLL_BUFFER) },
         scroll_reader: 0,
         scroll_bottom: SCREEN_HEIGHT,
-    });
-}
+    })
+);
 
 pub struct Writer {
     cursor: [usize; 2], // x, y

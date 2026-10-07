@@ -10,19 +10,16 @@ use alloc::collections::btree_map::BTreeMap;
 use alloc::string::String;
 use core::alloc::{GlobalAlloc, Layout};
 use core::sync::atomic::{AtomicUsize, Ordering};
-use lazy_static::lazy_static;
-use spin::RwLock;
+use spin::{LazyLock, RwLock};
 
 pub const MAX_PROCS: usize = 32;
 static PID: AtomicUsize = AtomicUsize::new(0);
 
 type ProcessTable = [Option<Box<Process>>; MAX_PROCS];
 
-lazy_static! {
-    pub static ref PROCESS_TABLE: RwLock<ProcessTable> = {
-        RwLock::new([(); MAX_PROCS].map(|_| None))
-    };
-}
+pub static PROCESS_TABLE: LazyLock<RwLock<ProcessTable>> = LazyLock::new(||
+    RwLock::new([(); MAX_PROCS].map(|_| None))
+);
 
 pub fn init() {
     let mut table = PROCESS_TABLE.write();
