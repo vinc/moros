@@ -13,6 +13,47 @@ static mut PM1A_CNT_BLK: u16 = 0;
 static mut SLP_TYPA: u16 = 0;
 static SLP_LEN: u16 = 1 << 13;
 
+fn find_pm1a_control_block(acpi: &AcpiTables<MorosAcpiHandler>) -> Option<u16> {
+    if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
+        if let Ok(block) = fadt.pm1a_control_block() {
+            debug_assert!(block.address <= u16::MAX as u64);
+            return Some(block.address as u16);
+        }
+    }
+    None
+}
+
+fn find_s5(acpi: &AcpiTables<MorosAcpiHandler>) -> Option<u16> {
+    if let Ok(dsdt) = acpi.dsdt() {
+        let phys_addr = PhysAddr::new(dsdt.address);
+        let virt_addr = sys::mem::phys_to_virt(phys_addr);
+        let ptr = virt_addr.as_ptr();
+        let table = unsafe {
+            core::slice::from_raw_parts(ptr , dsdt.length as usize)
+        };
+        let handler = Box::new(MorosAmlHandler);
+        let mut aml = AmlContext::new(handler, DebugVerbosity::None);
+        if aml.parse_table(table).is_ok() {
+            let name = AmlName::from_str("\\_S5").unwrap();
+            let res = aml.namespace.get_by_path(&name);
+            if let Ok(AmlValue::Package(s5)) = res {
+                if let AmlValue::Integer(value) = s5[0] {
+                    return Some(value as u16);
+                }
+            }
+        } else {
+            debug!("ACPI: Could not parse AML in DSDT");
+            // FIXME: AML parsing works on QEMU and Bochs but not
+            // on VirtualBox at the moment, so we use the following
+            // hardcoded value:
+            return Some(5);
+        }
+    } else {
+        debug!("ACPI: Could not find DSDT in BIOS");
+    }
+    None
+}
+
 pub fn init() {
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
     match res {
@@ -25,47 +66,18 @@ pub fn init() {
                     }
                 }
             }
-            if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
-                if let Ok(block) = fadt.pm1a_control_block() {
-                    debug_assert!(block.address <= u16::MAX as u64);
-                    unsafe {
-                        PM1A_CNT_BLK = block.address as u16;
-                    }
+            if let Some(block) = find_pm1a_control_block(&acpi) {
+                unsafe {
+                    PM1A_CNT_BLK = block;
                 }
             }
-            if let Ok(dsdt) = acpi.dsdt() {
-                let phys_addr = PhysAddr::new(dsdt.address);
-                let virt_addr = sys::mem::phys_to_virt(phys_addr);
-                let ptr = virt_addr.as_ptr();
-                let table = unsafe {
-                    core::slice::from_raw_parts(ptr , dsdt.length as usize)
-                };
-                let handler = Box::new(MorosAmlHandler);
-                let mut aml = AmlContext::new(handler, DebugVerbosity::None);
-                if aml.parse_table(table).is_ok() {
-                    let name = AmlName::from_str("\\_S5").unwrap();
-                    let res = aml.namespace.get_by_path(&name);
-                    if let Ok(AmlValue::Package(s5)) = res {
-                        if let AmlValue::Integer(value) = s5[0] {
-                            unsafe {
-                                SLP_TYPA = value as u16;
-                            }
-                        }
-                    }
-                } else {
-                    debug!("ACPI: Could not parse AML in DSDT");
-                    // FIXME: AML parsing works on QEMU and Bochs but not
-                    // on VirtualBox at the moment, so we use the following
-                    // hardcoded value:
-                    unsafe {
-                        SLP_TYPA = (5 & 7) << 10;
-                    }
+            if let Some(value) = find_s5(&acpi) {
+                unsafe {
+                    SLP_TYPA = ((value & 7) as u16) << 10;
                 }
-            } else {
-                debug!("ACPI: Could not find DSDT in BIOS");
             }
         }
-        Err(_e) => {
+        Err(_) => {
             debug!("ACPI: Could not find RDSP in BIOS");
         }
     };
