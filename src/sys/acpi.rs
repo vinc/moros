@@ -37,9 +37,9 @@ fn find_s5(acpi: &AcpiTables<MorosAcpiHandler>) -> Option<u16> {
                 debug_assert!(i + 5 + len <= aml.len());
                 let num = aml[i + 6] as usize; // NumElements
                 debug_assert!(num > 0);
-                let j = i + 5 + len;
-                debug!("AML S5 dump");
-                printk!("{}", crate::api::hex::format_hex_at(&aml[i..j], i));
+                //let j = i + 5 + len;
+                //debug!("AML S5 dump");
+                //printk!("{}", crate::api::hex::format_hex_at(&aml[i..j], i));
                 let b = aml[i + 7];
                 match b {
                     0x00 => return Some(0), // ZeroOp
@@ -73,7 +73,6 @@ pub fn init() {
                 }
             }
             if let Some(value) = find_s5(&acpi) {
-                debug!("S5={}", value);
                 unsafe {
                     SLP_TYPA = ((value & 7) as u16) << 10;
                 }
