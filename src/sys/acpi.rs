@@ -31,22 +31,35 @@ fn find_s5(acpi: &AcpiTables<MorosAcpiHandler>) -> Option<u16> {
         let table = unsafe {
             core::slice::from_raw_parts(ptr , dsdt.length as usize)
         };
+        //debug!("AML dump");
+        //printk!("{}", crate::api::hex::format_hex(table));
+        if let Some(i) = table.windows(4).position(|w| w == b"_S5_") {
+            if table[i + 4] == 0x12 {
+                debug!("AML S5 dump");
+                let j = i + 5 + table[i + 5] as usize;
+                printk!("{}", crate::api::hex::format_hex_at(&table[i..j], i));
+            }
+        }
         let handler = Box::new(MorosAmlHandler);
         let mut aml = AmlContext::new(handler, DebugVerbosity::None);
-        if aml.parse_table(table).is_ok() {
-            let name = AmlName::from_str("\\_S5").unwrap();
-            let res = aml.namespace.get_by_path(&name);
-            if let Ok(AmlValue::Package(s5)) = res {
-                if let AmlValue::Integer(value) = s5[0] {
-                    return Some(value as u16);
+        match aml.parse_table(table) {
+            Ok(_) => {
+                let name = AmlName::from_str("\\_S5").unwrap();
+                let res = aml.namespace.get_by_path(&name);
+                if let Ok(AmlValue::Package(s5)) = res {
+                    if let AmlValue::Integer(value) = s5[0] {
+                        return Some(value as u16);
+                    }
                 }
             }
-        } else {
-            debug!("ACPI: Could not parse AML in DSDT");
-            // FIXME: AML parsing works on QEMU and Bochs but not
-            // on VirtualBox at the moment, so we use the following
-            // hardcoded value:
-            return Some(5);
+            Err(e) => {
+                debug!("ACPI: Could not parse AML in DSDT");
+                debug!("{:?}", e);
+                // FIXME: AML parsing works on QEMU and Bochs but not
+                // on VirtualBox at the moment, so we use the following
+                // hardcoded value:
+                return Some(7);
+            }
         }
     } else {
         debug!("ACPI: Could not find DSDT in BIOS");
@@ -72,6 +85,7 @@ pub fn init() {
                 }
             }
             if let Some(value) = find_s5(&acpi) {
+                debug!("S5={}", value);
                 unsafe {
                     SLP_TYPA = ((value & 7) as u16) << 10;
                 }
