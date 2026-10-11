@@ -118,3 +118,11 @@ fn log_cpu(processor: &Processor) {
     };
     log!("CPU {}:{} {}", kind, processor.processor_uid, state);
 }
+
+#[test_case]
+fn test_find_s5() {
+    let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
+    if let Ok(acpi) = res {
+        assert_eq!(find_s5(&acpi), Some(0));
+    }
+}
