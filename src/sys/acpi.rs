@@ -4,9 +4,6 @@ use crate::sys::x86::port::*;
 
 use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
 use acpi::platform::{Processor, ProcessorState};
-use alloc::boxed::Box;
-use aml::value::AmlValue;
-use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use core::ptr::NonNull;
 
 static mut PM1A_CNT_BLK: u16 = 0;
@@ -28,37 +25,28 @@ fn find_s5(acpi: &AcpiTables<MorosAcpiHandler>) -> Option<u16> {
         let phys_addr = PhysAddr::new(dsdt.address);
         let virt_addr = sys::mem::phys_to_virt(phys_addr);
         let ptr = virt_addr.as_ptr();
-        let table = unsafe {
+        let aml = unsafe {
             core::slice::from_raw_parts(ptr , dsdt.length as usize)
         };
         //debug!("AML dump");
-        //printk!("{}", crate::api::hex::format_hex(table));
-        if let Some(i) = table.windows(4).position(|w| w == b"_S5_") {
-            if table[i + 4] == 0x12 {
+        //printk!("{}", crate::api::hex::format_hex(aml));
+        if let Some(i) = aml.windows(4).position(|w| w == b"_S5_") {
+            debug_assert!(i + 5 < aml.len());
+            if aml[i + 4] == 0x12 { // PackageOp
+                let len = aml[i + 5] as usize; // PkgLength
+                debug_assert!(i + 5 + len <= aml.len());
+                let num = aml[i + 6] as usize; // NumElements
+                debug_assert!(num > 0);
+                let j = i + 5 + len;
                 debug!("AML S5 dump");
-                let j = i + 5 + table[i + 5] as usize;
-                printk!("{}", crate::api::hex::format_hex_at(&table[i..j], i));
-            }
-        }
-        let handler = Box::new(MorosAmlHandler);
-        let mut aml = AmlContext::new(handler, DebugVerbosity::None);
-        match aml.parse_table(table) {
-            Ok(_) => {
-                let name = AmlName::from_str("\\_S5").unwrap();
-                let res = aml.namespace.get_by_path(&name);
-                if let Ok(AmlValue::Package(s5)) = res {
-                    if let AmlValue::Integer(value) = s5[0] {
-                        return Some(value as u16);
-                    }
+                printk!("{}", crate::api::hex::format_hex_at(&aml[i..j], i));
+                let b = aml[i + 7];
+                match b {
+                    0x00 => return Some(0), // ZeroOp
+                    0x01 => return Some(1), // OneOp
+                    0x0A => return Some(aml[i + 8] as u16), // BytePrefix
+                       _ => debug!("ACPI: Could not parse '{:#X}' in AML", b),
                 }
-            }
-            Err(e) => {
-                debug!("ACPI: Could not parse AML in DSDT");
-                debug!("{:?}", e);
-                // FIXME: AML parsing works on QEMU and Bochs but not
-                // on VirtualBox at the moment, so we use the following
-                // hardcoded value:
-                return Some(7);
             }
         }
     } else {
@@ -120,77 +108,6 @@ impl AcpiHandler for MorosAcpiHandler {
     }
 
     fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {}
-}
-
-struct MorosAmlHandler;
-
-impl Handler for MorosAmlHandler {
-    fn read_u8(&self, address: usize) -> u8 {
-        read_addr::<u8>(address)
-    }
-    fn read_u16(&self, address: usize) -> u16 {
-        read_addr::<u16>(address)
-    }
-    fn read_u32(&self, address: usize) -> u32 {
-        read_addr::<u32>(address)
-    }
-    fn read_u64(&self, address: usize) -> u64 {
-        read_addr::<u64>(address)
-    }
-
-    fn write_u8(&mut self, _: usize, _: u8) {
-        unimplemented!()
-    }
-    fn write_u16(&mut self, _: usize, _: u16) {
-        unimplemented!()
-    }
-    fn write_u32(&mut self, _: usize, _: u32) {
-        unimplemented!()
-    }
-    fn write_u64(&mut self, _: usize, _: u64) {
-        unimplemented!()
-    }
-    fn read_io_u8(&self, _: u16) -> u8 {
-        unimplemented!()
-    }
-    fn read_io_u16(&self, _: u16) -> u16 {
-        unimplemented!()
-    }
-    fn read_io_u32(&self, _: u16) -> u32 {
-        unimplemented!()
-    }
-    fn write_io_u8(&self, _: u16, _: u8) {
-        unimplemented!()
-    }
-    fn write_io_u16(&self, _: u16, _: u16) {
-        unimplemented!()
-    }
-    fn write_io_u32(&self, _: u16, _: u32) {
-        unimplemented!()
-    }
-    fn read_pci_u8(&self, _: u16, _: u8, _: u8, _: u8, _: u16) -> u8 {
-        unimplemented!()
-    }
-    fn read_pci_u16(&self, _: u16, _: u8, _: u8, _: u8, _: u16) -> u16 {
-        unimplemented!()
-    }
-    fn read_pci_u32(&self, _: u16, _: u8, _: u8, _: u8, _: u16) -> u32 {
-        unimplemented!()
-    }
-    fn write_pci_u8(&self, _: u16, _: u8, _: u8, _: u8, _: u16, _: u8) {
-        unimplemented!()
-    }
-    fn write_pci_u16(&self, _: u16, _: u8, _: u8, _: u8, _: u16, _: u16) {
-        unimplemented!()
-    }
-    fn write_pci_u32(&self, _: u16, _: u8, _: u8, _: u8, _: u16, _: u32) {
-        unimplemented!()
-    }
-}
-
-fn read_addr<T>(addr: usize) -> T where T: Copy {
-    let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(addr));
-    unsafe { *virtual_address.as_ptr::<T>() }
 }
 
 fn log_cpu(processor: &Processor) {
