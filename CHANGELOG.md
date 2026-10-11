@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Add NE2000 driver (#928)
 - Fix ACPI shutdown (#931)
 - Add v86 demo on website (#927)
 - Reserve userspace memory on i686 (#925)
