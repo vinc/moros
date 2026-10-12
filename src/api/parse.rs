@@ -1,3 +1,4 @@
+use alloc::format;
 use alloc::string::{String, ToString};
 use nom::IResult;
 use nom::Parser;
@@ -100,4 +101,8 @@ pub fn string(input: &str) -> IResult<&str, String> {
         |inner| inner.unwrap_or("".to_string())
     );
     delimited(char('"'), escaped, char('"')).parse(input)
+}
+
+pub fn quote(s: &str) -> String {
+    format!("{:?}", s).replace("\\u{8}", "\\b").replace("\\u{1b}", "\\e")
 }

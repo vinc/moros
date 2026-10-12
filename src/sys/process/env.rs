@@ -1,5 +1,6 @@
 use crate::sys::fs::{FileIO, IO};
 use crate::api::ini;
+use crate::api::parse::quote;
 
 use alloc::format;
 use alloc::string::String;
@@ -23,7 +24,7 @@ impl FileIO for ProcEnv {
         let env = super::env();
         let max = env.keys().map(|k| k.len()).max().unwrap_or(0);
         let res = env.iter().map(|(k, v)|
-            format!("{:max$} = \"{}\"", k, v)
+            format!("{:max$} = {}", k, quote(v))
         ).collect::<Vec<String>>().join("\n");
         let n = res.len();
         if n > buf.len() {
