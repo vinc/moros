@@ -14,6 +14,7 @@ use nom::combinator::all_consuming;
 use nom::combinator::map;
 use nom::combinator::value;
 use nom::multi::many0;
+use nom::multi::many0_count;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
@@ -33,7 +34,7 @@ enum Instr {
 }
 
 fn ignored(input: &str) -> IResult<&str, ()> {
-    map(many0(none_of("<>+-,.[]")), |_| ()).parse(input)
+    map(many0_count(none_of("<>+-,.[]")), |_| ()).parse(input)
 }
 
 fn instr(input: &str) -> IResult<&str, Instr> {

@@ -15,6 +15,7 @@ use nom::combinator::opt;
 use nom::combinator::recognize;
 use nom::combinator::value;
 use nom::multi::many0;
+use nom::multi::many0_count;
 use nom::multi::many1;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
@@ -26,7 +27,7 @@ fn comment(input: &str) -> IResult<&str, &str> {
 
 // Whitespaces and comments are ignored
 pub fn ignored(input: &str) -> IResult<&str, ()> {
-    map(many0(alt((multispace1, comment))), |_| ()).parse(input)
+    map(many0_count(alt((multispace1, comment))), |_| ()).parse(input)
 }
 
 // https://docs.rs/nom/latest/nom/recipes/index.html#hexadecimal
