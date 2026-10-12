@@ -1,4 +1,4 @@
-use crate::api::parse::{ignored, hexadecimal, decimal, binary, float};
+use crate::api::parse::{ignored, hexadecimal, decimal, binary, float, string};
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
@@ -6,16 +6,13 @@ use alloc::vec::Vec;
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
-use nom::bytes::complete::escaped_transform;
 use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
 use nom::character::complete::char;
 use nom::character::complete::space0;
 use nom::combinator::all_consuming;
-use nom::combinator::map;
 use nom::combinator::opt;
 use nom::combinator::recognize;
-use nom::combinator::value;
 use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
@@ -24,29 +21,9 @@ use nom::sequence::terminated;
 
 type ConfigMap = BTreeMap<String, String>;
 
-fn parse_str(input: &str) -> IResult<&str, String> {
-    let escaped = map(
-        opt(escaped_transform(
-            is_not("\\\""),
-            '\\',
-            alt((
-                value("\\", tag("\\")),
-                value("\"", tag("\"")),
-                value("\n", tag("n")),
-                value("\r", tag("r")),
-                value("\t", tag("t")),
-                value("\x08", tag("b")),
-                value("\x1B", tag("e"))
-            ))
-        )),
-        |inner| inner.unwrap_or("".to_string())
-    );
-    delimited(char('"'), escaped, char('"')).parse(input)
-}
-
 fn parse_val(input: &str) -> IResult<&str, String> {
     alt((
-        parse_str,
+        string,
         recognize((
             opt(alt((char('+'), char('-')))),
             alt((float, hexadecimal, binary, decimal)),

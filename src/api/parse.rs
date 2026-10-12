@@ -1,6 +1,9 @@
+use alloc::string::{String, ToString};
 use nom::IResult;
 use nom::Parser;
 use nom::branch::alt;
+use nom::bytes::complete::escaped_transform;
+use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
 use nom::character::complete::char;
 use nom::character::complete::multispace1;
@@ -9,8 +12,10 @@ use nom::character::complete::one_of;
 use nom::combinator::map;
 use nom::combinator::opt;
 use nom::combinator::recognize;
+use nom::combinator::value;
 use nom::multi::many0;
 use nom::multi::many1;
+use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
 
@@ -75,4 +80,24 @@ pub fn float(input: &str) -> IResult<&str, &str> {
             (decimal, char('.'), opt(decimal))
         )
     )).parse(input)
+}
+
+pub fn string(input: &str) -> IResult<&str, String> {
+    let escaped = map(
+        opt(escaped_transform(
+            is_not("\\\""),
+            '\\',
+            alt((
+                value("\\", tag("\\")),
+                value("\"", tag("\"")),
+                value("\n", tag("n")),
+                value("\r", tag("r")),
+                value("\t", tag("t")),
+                value("\x08", tag("b")),
+                value("\x1B", tag("e"))
+            ))
+        )),
+        |inner| inner.unwrap_or("".to_string())
+    );
+    delimited(char('"'), escaped, char('"')).parse(input)
 }
