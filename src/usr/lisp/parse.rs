@@ -1,6 +1,6 @@
 use super::{Err, Exp, Number};
 use crate::could_not;
-use crate::api::parse::{ignored, hexadecimal, decimal, binary, float, string};
+use crate::api::parse::{ignored, number, string};
 
 use alloc::string::String;
 use alloc::string::ToString;
@@ -13,8 +13,6 @@ use nom::bytes::complete::tag;
 use nom::bytes::complete::take_while1;
 use nom::character::complete::char;
 use nom::combinator::map;
-use nom::combinator::opt;
-use nom::combinator::recognize;
 use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
@@ -34,11 +32,7 @@ fn parse_sym(input: &str) -> IResult<&str, Exp> {
 }
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
-    let (input, num) = recognize((
-        opt(alt((char('+'), char('-')))),
-        alt((float, hexadecimal, binary, decimal))
-    )).parse(input)?;
-    Ok((input, Exp::Num(Number::from(num))))
+    map(number, |s| Exp::Num(Number::from(s))).parse(input)
 }
 
 fn parse_bool(input: &str) -> IResult<&str, Exp> {

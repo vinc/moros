@@ -1,4 +1,4 @@
-use crate::api::parse::{ignored, hexadecimal, decimal, binary, float, string};
+use crate::api::parse::{ignored, number, string};
 
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
@@ -8,11 +8,9 @@ use nom::Parser;
 use nom::branch::alt;
 use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
-use nom::character::complete::char;
 use nom::character::complete::space0;
 use nom::combinator::all_consuming;
-use nom::combinator::opt;
-use nom::combinator::recognize;
+use nom::combinator::map;
 use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::sequence::preceded;
@@ -21,22 +19,16 @@ use nom::sequence::terminated;
 
 type ConfigMap = BTreeMap<String, String>;
 
-fn parse_val(input: &str) -> IResult<&str, String> {
-    alt((
-        string,
-        recognize((
-            opt(alt((char('+'), char('-')))),
-            alt((float, hexadecimal, binary, decimal)),
-        )).map(|s: &str| s.to_string()),
-    )).parse(input)
-}
-
 fn parse_key(input: &str) -> IResult<&str, &str> {
     is_not(" \t\r\n#=").parse(input)
 }
 
 fn parse_eq(input: &str) -> IResult<&str, &str> {
     delimited(space0, tag("="), space0).parse(input)
+}
+
+fn parse_val(input: &str) -> IResult<&str, String> {
+    alt((string, map(number, String::from))).parse(input)
 }
 
 fn parse_pair(input: &str) -> IResult<&str, (&str, String)> {
