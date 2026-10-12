@@ -6,6 +6,8 @@
     (while (< i (len pairs)) (do
       (set pair (str/split (get pairs i) "="))
       (if (= (len pair) 2)
-        (set res (put res (str/trim (first pair)) (str/trim (second pair)))))
+        (set res (put res
+          (str/trim (first pair))
+          (parse (str/trim (second pair))))))
       (set i (+ i 1))))))
   res))
