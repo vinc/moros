@@ -37,10 +37,14 @@
         memory_size: 64 * 1024 * 1024,
         screen: {
           container: document.getElementById("demo"),
-          use_graphical_text: true,
+          use_graphical_text: true
+        },
+        net_device: {
+          type: "ne2k",
+          relay_url: "wss://relay.widgetry.org/"
         },
         acpi: true,
-        autostart: true,
+        autostart: true
       });
       window.emulator.add_listener("emulator-loaded", () => {
         document.getElementById("demo").classList.remove("loading");

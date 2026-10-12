@@ -4,14 +4,56 @@ use crate::sys::x86::port::*;
 
 use acpi::{AcpiHandler, AcpiTables, PhysicalMapping};
 use acpi::platform::{Processor, ProcessorState};
-use alloc::boxed::Box;
-use aml::value::AmlValue;
-use aml::{AmlContext, AmlName, DebugVerbosity, Handler};
 use core::ptr::NonNull;
 
 static mut PM1A_CNT_BLK: u16 = 0;
 static mut SLP_TYPA: u16 = 0;
 static SLP_LEN: u16 = 1 << 13;
+
+fn find_pm1a_control_block(acpi: &AcpiTables<MorosAcpiHandler>) -> Option<u16> {
+    if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
+        if let Ok(block) = fadt.pm1a_control_block() {
+            debug_assert!(block.address <= u16::MAX as u64);
+            return Some(block.address as u16);
+        }
+    }
+    None
+}
+
+fn find_s5(acpi: &AcpiTables<MorosAcpiHandler>) -> Option<u16> {
+    if let Ok(dsdt) = acpi.dsdt() {
+        let phys_addr = PhysAddr::new(dsdt.address);
+        let virt_addr = sys::mem::phys_to_virt(phys_addr);
+        let ptr = virt_addr.as_ptr();
+        let aml = unsafe {
+            core::slice::from_raw_parts(ptr , dsdt.length as usize)
+        };
+        //debug!("AML dump");
+        //printk!("{}", crate::api::hex::format_hex(aml));
+        if let Some(i) = aml.windows(4).position(|w| w == b"_S5_") {
+            debug_assert!(i + 5 < aml.len());
+            if aml[i + 4] == 0x12 { // PackageOp
+                let len = aml[i + 5] as usize; // PkgLength
+                debug_assert!(i + 5 + len <= aml.len());
+                let num = aml[i + 6] as usize; // NumElements
+                debug_assert!(num > 0);
+                //let j = i + 5 + len;
+                //debug!("AML S5 dump");
+                //printk!("{}", crate::api::hex::format_hex_at(&aml[i..j], i));
+                let b = aml[i + 7];
+                match b {
+                    0x00 => return Some(0), // ZeroOp
+                    0x01 => return Some(1), // OneOp
+                    0x0A => return Some(aml[i + 8] as u16), // BytePrefix
+                       _ => debug!("ACPI: Could not parse '{:#X}' in AML", b),
+                }
+            }
+        }
+    } else {
+        debug!("ACPI: Could not find DSDT in BIOS");
+    }
+    None
+}
 
 pub fn init() {
     let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
@@ -25,47 +67,18 @@ pub fn init() {
                     }
                 }
             }
-            if let Ok(fadt) = acpi.find_table::<acpi::fadt::Fadt>() {
-                if let Ok(block) = fadt.pm1a_control_block() {
-                    debug_assert!(block.address <= u16::MAX as u64);
-                    unsafe {
-                        PM1A_CNT_BLK = block.address as u16;
-                    }
+            if let Some(block) = find_pm1a_control_block(&acpi) {
+                unsafe {
+                    PM1A_CNT_BLK = block;
                 }
             }
-            if let Ok(dsdt) = acpi.dsdt() {
-                let phys_addr = PhysAddr::new(dsdt.address);
-                let virt_addr = sys::mem::phys_to_virt(phys_addr);
-                let ptr = virt_addr.as_ptr();
-                let table = unsafe {
-                    core::slice::from_raw_parts(ptr , dsdt.length as usize)
-                };
-                let handler = Box::new(MorosAmlHandler);
-                let mut aml = AmlContext::new(handler, DebugVerbosity::None);
-                if aml.parse_table(table).is_ok() {
-                    let name = AmlName::from_str("\\_S5").unwrap();
-                    let res = aml.namespace.get_by_path(&name);
-                    if let Ok(AmlValue::Package(s5)) = res {
-                        if let AmlValue::Integer(value) = s5[0] {
-                            unsafe {
-                                SLP_TYPA = value as u16;
-                            }
-                        }
-                    }
-                } else {
-                    debug!("ACPI: Could not parse AML in DSDT");
-                    // FIXME: AML parsing works on QEMU and Bochs but not
-                    // on VirtualBox at the moment, so we use the following
-                    // hardcoded value:
-                    unsafe {
-                        SLP_TYPA = (5 & 7) << 10;
-                    }
+            if let Some(value) = find_s5(&acpi) {
+                unsafe {
+                    SLP_TYPA = ((value & 7) as u16) << 10;
                 }
-            } else {
-                debug!("ACPI: Could not find DSDT in BIOS");
             }
         }
-        Err(_e) => {
+        Err(_) => {
             debug!("ACPI: Could not find RDSP in BIOS");
         }
     };
@@ -96,77 +109,6 @@ impl AcpiHandler for MorosAcpiHandler {
     fn unmap_physical_region<T>(_region: &PhysicalMapping<Self, T>) {}
 }
 
-struct MorosAmlHandler;
-
-impl Handler for MorosAmlHandler {
-    fn read_u8(&self, address: usize) -> u8 {
-        read_addr::<u8>(address)
-    }
-    fn read_u16(&self, address: usize) -> u16 {
-        read_addr::<u16>(address)
-    }
-    fn read_u32(&self, address: usize) -> u32 {
-        read_addr::<u32>(address)
-    }
-    fn read_u64(&self, address: usize) -> u64 {
-        read_addr::<u64>(address)
-    }
-
-    fn write_u8(&mut self, _: usize, _: u8) {
-        unimplemented!()
-    }
-    fn write_u16(&mut self, _: usize, _: u16) {
-        unimplemented!()
-    }
-    fn write_u32(&mut self, _: usize, _: u32) {
-        unimplemented!()
-    }
-    fn write_u64(&mut self, _: usize, _: u64) {
-        unimplemented!()
-    }
-    fn read_io_u8(&self, _: u16) -> u8 {
-        unimplemented!()
-    }
-    fn read_io_u16(&self, _: u16) -> u16 {
-        unimplemented!()
-    }
-    fn read_io_u32(&self, _: u16) -> u32 {
-        unimplemented!()
-    }
-    fn write_io_u8(&self, _: u16, _: u8) {
-        unimplemented!()
-    }
-    fn write_io_u16(&self, _: u16, _: u16) {
-        unimplemented!()
-    }
-    fn write_io_u32(&self, _: u16, _: u32) {
-        unimplemented!()
-    }
-    fn read_pci_u8(&self, _: u16, _: u8, _: u8, _: u8, _: u16) -> u8 {
-        unimplemented!()
-    }
-    fn read_pci_u16(&self, _: u16, _: u8, _: u8, _: u8, _: u16) -> u16 {
-        unimplemented!()
-    }
-    fn read_pci_u32(&self, _: u16, _: u8, _: u8, _: u8, _: u16) -> u32 {
-        unimplemented!()
-    }
-    fn write_pci_u8(&self, _: u16, _: u8, _: u8, _: u8, _: u16, _: u8) {
-        unimplemented!()
-    }
-    fn write_pci_u16(&self, _: u16, _: u8, _: u8, _: u8, _: u16, _: u16) {
-        unimplemented!()
-    }
-    fn write_pci_u32(&self, _: u16, _: u8, _: u8, _: u8, _: u16, _: u32) {
-        unimplemented!()
-    }
-}
-
-fn read_addr<T>(addr: usize) -> T where T: Copy {
-    let virtual_address = sys::mem::phys_to_virt(PhysAddr::new(addr));
-    unsafe { *virtual_address.as_ptr::<T>() }
-}
-
 fn log_cpu(processor: &Processor) {
     let kind = if processor.is_ap { "AP" } else { "BP" };
     let state = match processor.state {
@@ -175,4 +117,12 @@ fn log_cpu(processor: &Processor) {
         ProcessorState::WaitingForSipi => "waiting",
     };
     log!("CPU {}:{} {}", kind, processor.processor_uid, state);
+}
+
+#[test_case]
+fn test_find_s5() {
+    let res = unsafe { AcpiTables::search_for_rsdp_bios(MorosAcpiHandler) };
+    if let Ok(acpi) = res {
+        assert_eq!(find_s5(&acpi), Some(0));
+    }
 }
