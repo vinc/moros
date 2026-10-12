@@ -91,6 +91,7 @@ pub mod fs;
 pub mod hex;
 pub mod ini;
 pub mod io;
+pub mod parse;
 pub mod power;
 pub mod process;
 pub mod prompt;

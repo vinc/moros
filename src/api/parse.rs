@@ -1,0 +1,78 @@
+use nom::IResult;
+use nom::Parser;
+use nom::branch::alt;
+use nom::bytes::complete::tag;
+use nom::character::complete::char;
+use nom::character::complete::multispace1;
+use nom::character::complete::not_line_ending;
+use nom::character::complete::one_of;
+use nom::combinator::map;
+use nom::combinator::opt;
+use nom::combinator::recognize;
+use nom::multi::many0;
+use nom::multi::many1;
+use nom::sequence::preceded;
+use nom::sequence::terminated;
+
+fn comment(input: &str) -> IResult<&str, &str> {
+    preceded(char('#'), not_line_ending).parse(input)
+}
+
+// Whitespaces and comments are ignored
+pub fn ignored(input: &str) -> IResult<&str, ()> {
+    map(many0(alt((multispace1, comment))), |_| ()).parse(input)
+}
+
+// https://docs.rs/nom/latest/nom/recipes/index.html#hexadecimal
+pub fn hexadecimal(input: &str) -> IResult<&str, &str> {
+    preceded(
+        tag("0x"),
+        recognize(many1(terminated(
+            one_of("0123456789abcdefABCDEF"),
+            many0(char('_'))
+        )))
+    ).parse(input)
+}
+
+// https://docs.rs/nom/latest/nom/recipes/index.html#decimal
+pub fn decimal(input: &str) -> IResult<&str, &str> {
+    recognize(
+        many1(terminated(one_of("0123456789"), many0(char('_'))))
+    ).parse(input)
+}
+
+// https://docs.rs/nom/latest/nom/recipes/index.html#binary
+pub fn binary(input: &str) -> IResult<&str, &str> {
+    preceded(
+        tag("0b"),
+        recognize(many1(terminated(one_of("01"), many0(char('_')))))
+    ).parse(input)
+}
+
+// https://docs.rs/nom/latest/nom/recipes/index.html#floating-point-numbers
+pub fn float(input: &str) -> IResult<&str, &str> {
+    alt((
+        recognize(
+            // .42
+            (
+                char('.'),
+                decimal,
+                opt((one_of("eE"), opt(one_of("+-")), decimal))
+            )
+        ),
+        recognize(
+            // 42e42 and 42.42e42
+            (
+                decimal,
+                opt(preceded(char('.'), decimal)),
+                one_of("eE"),
+                opt(one_of("+-")),
+                decimal
+            )
+        ),
+        recognize(
+            // 42. and 42.42
+            (decimal, char('.'), opt(decimal))
+        )
+    )).parse(input)
+}
