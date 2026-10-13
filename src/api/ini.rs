@@ -74,6 +74,26 @@ fn test_parse_with_whitespace() {
 }
 
 #[test_case]
+fn test_parse_with_spaced_value() {
+    let input = "key = \"  val  \"";
+    let expected = BTreeMap::from([
+        ("key".to_string(), "  val  ".to_string()),
+    ]);
+
+    assert_eq!(parse(input), Some(expected));
+}
+
+#[test_case]
+fn test_parse_with_empty_value() {
+    let input = "key = \"\"";
+    let expected = BTreeMap::from([
+        ("key".to_string(), "".to_string()),
+    ]);
+
+    assert_eq!(parse(input), Some(expected));
+}
+
+#[test_case]
 fn test_parse_with_empty_lines() {
     let input = "key1=\"foo\"\n\nkey2=42\n";
     let expected = BTreeMap::from([
@@ -115,4 +135,15 @@ fn test_parse_with_comments() {
     ]);
 
     assert_eq!(parse(input), Some(expected));
+}
+
+#[test_case]
+fn test_parse_file() {
+    let buf = include_bytes!("../../dsk/ini/chess.ini");
+    let input = String::from_utf8_lossy(buf);
+    let expected = BTreeMap::from([
+        ("puzzle".to_string(), "/tmp/chess/mi2.epd".to_string()),
+    ]);
+
+    assert_eq!(parse(&input), Some(expected));
 }

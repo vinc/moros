@@ -114,3 +114,19 @@ pub fn string(input: &str) -> IResult<&str, String> {
 pub fn quote(s: &str) -> String {
     format!("{:?}", s).replace("\\u{8}", "\\b").replace("\\u{1b}", "\\e")
 }
+
+#[test_case]
+fn test_quote() {
+    let strings = [
+        "",
+        "  spaced  ",
+        "print \"hello\"",
+        "/bin/sleep",
+        "/tmp/a\\b",
+        "line 1\nline 2\r\n",
+        "\x1B[1mbold\x1B[0m\t\x08",
+    ];
+    for s in strings {
+        assert_eq!(string(&quote(s)), Ok(("", s.to_string())));
+    }
+}
