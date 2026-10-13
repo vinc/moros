@@ -234,7 +234,7 @@ pub fn set_config(attribute: &str, value: &str) {
             warning!("This command is deprecated, use {:?} instead", DNS_FILE);
             let servers = value.trim();
             if servers.split(',').all(|s| Ipv4Address::from_str(s).is_ok()) {
-                let config = format!("dns = {}\n", servers);
+                let config = format!("dns = \"{}\"\n", servers);
                 if fs::write(DNS_FILE, config.as_bytes()).is_ok() {
                     log!("NET DNS {}", servers);
                 } else {

@@ -102,7 +102,7 @@ device files, and the `/ini/dns.ini` configuration file:
     > print 10.0.2.2 => /dev/net/gw
     [985.646908] NET GW 10.0.2.2
 
-    > print "dns = 10.0.2.3" => /ini/dns.ini
+    > print "dns = \"10.0.2.3\"" => /ini/dns.ini
 
 Reading `/dev/net/mac` will return the MAC address:
 
