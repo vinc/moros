@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Remove chumsky crate (#849)
 - Add NE2000 driver (#928)
 - Fix ACPI shutdown (#931)
 - Add v86 demo on website (#927)
