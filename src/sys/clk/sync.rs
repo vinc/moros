@@ -24,9 +24,8 @@ pub fn sleep(seconds: f64) {
 /// This function use a busy-wait loop with the `RDTSC` and `PAUSE`
 /// instructions.
 pub fn wait(nanoseconds: u64) {
-    let delta = nanoseconds * timer::tsc_frequency() / 1_000_000_000;
-    let start = timer::tsc();
-    while timer::tsc() - start < delta {
+    let timer = timer::Timer::new(nanoseconds);
+    while !timer.is_elapsed() {
         core::hint::spin_loop();
     }
 }
