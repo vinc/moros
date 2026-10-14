@@ -152,6 +152,7 @@ impl Device {
     }
 }
 
+// TODO: Return an error in case of timeout
 fn write_dsp(val: u8) {
     let timer = sys::clk::timer(TIMEOUT);
     unsafe {
