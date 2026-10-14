@@ -1,4 +1,5 @@
 mod bitmap;
+pub mod dma;
 mod heap;
 #[cfg(target_arch = "x86_64")] mod mapping;
 mod paging;
