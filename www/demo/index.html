@@ -49,6 +49,9 @@
       window.emulator.add_listener("emulator-loaded", () => {
         document.getElementById("demo").classList.remove("loading");
       });
+      const resume = () => emulator.speaker_adapter?.audio_context?.resume();
+      document.addEventListener("click", resume);
+      document.addEventListener("keydown", resume);
     </script>
   <footer><p><a href="/">MOROS</a></footer>
   </body>

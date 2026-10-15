@@ -1,4 +1,5 @@
 mod bitmap;
+pub mod dma;
 mod heap;
 #[cfg(target_arch = "x86_64")] mod mapping;
 mod paging;
@@ -32,6 +33,7 @@ static PHYS_MEM_OFFSET: Once<usize> = Once::new();
 static MEMORY_SIZE: AtomicUsize = AtomicUsize::new(0);
 
 pub fn init(memory_map: &MemoryMap, offset: u64) {
+    let mut memory_map = memory_map.clone();
     let mut memory_size = 0;
     let mut last_end_addr = 0;
     for region in memory_map.iter() {
@@ -64,12 +66,11 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
 
     PHYS_MEM_OFFSET.call_once(|| offset as usize);
 
-    // TODO: Pick a space in the lowest usable region for DMA
+    // Reserve ISA DMA
+    dma::reserve(&mut memory_map);
 
     #[cfg(target_arch = "x86")]
     {
-        let mut memory_map = memory_map.clone();
-
         // Reserve userspace
         use crate::sys::process;
         let user_addr = process::USER_ADDR as u64;
@@ -106,7 +107,7 @@ pub fn init(memory_map: &MemoryMap, offset: u64) {
             ))
         };
 
-        bitmap::init_frame_allocator(memory_map);
+        bitmap::init_frame_allocator(&memory_map);
         heap::init_heap().expect("heap initialization failed");
     }
 }
