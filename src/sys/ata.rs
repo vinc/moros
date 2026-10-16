@@ -191,12 +191,10 @@ impl Bus {
 
     // Wait for the drive to be ready to transfer one sector of data
     fn sync(&self) -> Res {
+        self.poll(Status::BSY, false)?;
         if self.is_error() {
-            //debug!("ATA {:?} command errored", cmd);
-            //self.debug();
             return Err(());
         }
-        self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, true)?;
         Ok(())
     }
