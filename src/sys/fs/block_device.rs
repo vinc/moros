@@ -1,4 +1,5 @@
 use super::bitmap_block::BitmapBlock;
+use super::block::Block;
 use super::dir::Dir;
 use super::super_block::SuperBlock;
 
@@ -196,6 +197,9 @@ pub fn format_ata() {
 
         // Write zeros into block bitmaps
         super::bitmap_block::free_all();
+
+        // Write zeros into root dir block
+        Block::new(sb.data_area()).write();
 
         // Allocate root dir
         debug_assert!(is_mounted());
