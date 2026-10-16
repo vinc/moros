@@ -142,23 +142,18 @@ impl Bus {
     }
 
     fn select_drive(&self, drive: u8) -> Res {
-        self.poll(Status::BSY, false)?;
-        self.poll(Status::DRQ, false)?;
-
-        // Skip the rest if this drive was already selected
-        if *LAST_SELECTED.lock() == Some((self.id, drive)) {
-            return Ok(());
-        } else {
+        // Skip select if this drive was already selected
+        if *LAST_SELECTED.lock() != Some((self.id, drive)) {
             *LAST_SELECTED.lock() = Some((self.id, drive));
+            unsafe {
+                // Bit 4 => DEV
+                // Bit 5 => 1
+                // Bit 7 => 1
+                outb(self.io_base + DRIVE_REGISTER, 0xA0 | (drive << 4));
+            }
+            sys::clk::wait(400); // Wait at least 400 ns
         }
-
-        unsafe {
-            // Bit 4 => DEV
-            // Bit 5 => 1
-            // Bit 7 => 1
-            outb(self.io_base + DRIVE_REGISTER, 0xA0 | (drive << 4));
-        }
-        sys::clk::wait(400); // Wait at least 400 ns
+        self.check_floating_bus()?;
         self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, false)?;
         Ok(())
@@ -196,12 +191,10 @@ impl Bus {
 
     // Wait for the drive to be ready to transfer one sector of data
     fn sync(&self) -> Res {
+        self.poll(Status::BSY, false)?;
         if self.is_error() {
-            //debug!("ATA {:?} command errored", cmd);
-            //self.debug();
             return Err(());
         }
-        self.poll(Status::BSY, false)?;
         self.poll(Status::DRQ, true)?;
         Ok(())
     }
@@ -261,9 +254,6 @@ impl Bus {
     }
 
     fn identify_drive(&self, drive: u8) -> Result<IdentifyResponse, ()> {
-        if self.check_floating_bus().is_err() {
-            return Ok(IdentifyResponse::None);
-        }
         self.select_drive(drive)?;
         self.write_command_params(drive, 0, 1)?;
         if self.write_command(Command::Identify).is_err() {

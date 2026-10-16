@@ -1,4 +1,5 @@
 use super::bitmap_block::BitmapBlock;
+use super::block::Block;
 use super::dir::Dir;
 use super::super_block::SuperBlock;
 
@@ -148,6 +149,9 @@ impl AtaBlockDevice {
 
 impl BlockDeviceIO for AtaBlockDevice {
     fn read(&mut self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
+        if block_addr as usize > self.block_count() {
+            return Err(());
+        }
         if let Some(cached) = self.cached_block(block_addr) {
             buf.copy_from_slice(cached);
             return Ok(());
@@ -165,6 +169,9 @@ impl BlockDeviceIO for AtaBlockDevice {
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
+        if block_addr as usize > self.block_count() {
+            return Err(());
+        }
         sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)?;
         self.set_cached_block(block_addr, buf);
         Ok(())
@@ -190,6 +197,9 @@ pub fn format_ata() {
 
         // Write zeros into block bitmaps
         super::bitmap_block::free_all();
+
+        // Write zeros into root dir block
+        Block::new(sb.data_area()).write();
 
         // Allocate root dir
         debug_assert!(is_mounted());
