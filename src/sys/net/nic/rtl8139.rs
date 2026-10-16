@@ -63,6 +63,11 @@ const TCR_MXDMA2: u32 = 1 << 10;
 //const IMR_TOK: u16 = 1 << 2; // Transmit OK Interrupt
 //const IMR_ROK: u16 = 1 << 0; // Receive OK Interrupt
 
+// Interrupt Status Register
+const ISR_FOVW:  u16 = 1 << 6; // Rx FIFO Overflow
+const ISR_RXOVW: u16 = 1 << 4; // Rx Buffer Overflow
+const ISR_ROK:   u16 = 1 << 0; // Receive OK
+
 //const CRS: u32 = 1 << 31; // Carrier Sense Lost
 //const TAB: u32 = 1 << 30; // Transmit Abort
 //const OWC: u32 = 1 << 29; // Out of Window Collision
@@ -79,7 +84,7 @@ const CR:      u16 = 0x37; // Command Register
 const CAPR:    u16 = 0x38; // Current Address of Packet Read
 const CBA:     u16 = 0x3A; // Current Buffer Address
 //const IMR:     u16 = 0x3C; // Interrupt Mask Register
-//const ISR:     u16 = 0x3E; // Interrupt Status Register
+const ISR:     u16 = 0x3E; // Interrupt Status Register
 const TCR:     u16 = 0x40; // Transmit (Tx) Configuration Register
 const RCR:     u16 = 0x44; // Receive (Rx) Configuration Register
 const CONFIG0: u16 = 0x51; // Configuration 0
@@ -144,11 +149,11 @@ impl Ports {
     pub fn write_imr(&self, value: u16) {
         unsafe { outw(self.io_base + IMR, value) }
     }
+    */
 
     pub fn write_isr(&self, value: u16) {
         unsafe { outw(self.io_base + ISR, value) }
     }
-    */
 
     pub fn write_tcr(&self, value: u32) {
         unsafe { outl(self.io_base + TCR, value) }
@@ -289,6 +294,7 @@ impl EthernetDeviceIO for Device {
         if header & ROK != ROK {
             let capr = ((cba as usize) % RX_BUFFER_LEN) - RX_BUFFER_PAD;
             self.ports.write_capr(capr as u16);
+            self.ports.write_isr(ISR_ROK | ISR_RXOVW | ISR_FOVW);
             return None;
         }
 
@@ -300,6 +306,7 @@ impl EthernetDeviceIO for Device {
         self.rx_offset = (offset + n + 4 + 3) & !3;
         let capr = (self.rx_offset % RX_BUFFER_LEN) - RX_BUFFER_PAD;
         self.ports.write_capr(capr as u16);
+        self.ports.write_isr(ISR_ROK | ISR_RXOVW | ISR_FOVW);
 
         Some(self.rx_buffer[(offset + 4)..(offset + n)].to_vec())
     }

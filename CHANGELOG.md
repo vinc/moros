@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix RTL8139 rx buffer overflow (#934)
 - Fix ATA on some computers (#933)
 - Rewrite SB16 driver for real hardware (#932)
 - Remove chumsky crate (#849)
