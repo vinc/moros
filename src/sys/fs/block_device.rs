@@ -148,6 +148,9 @@ impl AtaBlockDevice {
 
 impl BlockDeviceIO for AtaBlockDevice {
     fn read(&mut self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
+        if block_addr as usize > self.block_count() {
+            return Err(());
+        }
         if let Some(cached) = self.cached_block(block_addr) {
             buf.copy_from_slice(cached);
             return Ok(());
@@ -165,6 +168,9 @@ impl BlockDeviceIO for AtaBlockDevice {
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
+        if block_addr as usize > self.block_count() {
+            return Err(());
+        }
         sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)?;
         self.set_cached_block(block_addr, buf);
         Ok(())
