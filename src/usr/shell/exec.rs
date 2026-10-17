@@ -16,13 +16,13 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::sync::atomic::{fence, Ordering};
 
-pub const AUTOCOMPLETE_COMMANDS: [&str; 45] = [
+pub const AUTOCOMPLETE_COMMANDS: [&str; 47] = [
     "2048", "brainfuck", "calc", "chess", "copy", "date", "decode", "deflate",
-    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode", "goto",
-    "hash", "help", "hex", "host", "http", "httpd", "inflate", "install",
-    "life", "lisp", "list", "memory", "mines", "move", "net", "pci", "print",
-    "quit", "read", "render", "shell", "socket", "spell", "tcp", "time", "user",
-    "view", "write"
+    "dhcp", "diff", "disk", "draw", "drop", "edit", "elf", "encode", "false",
+    "goto", "hash", "help", "hex", "host", "http", "httpd", "inflate",
+    "install", "life", "lisp", "list", "memory", "mines", "move", "net", "pci",
+    "print", "quit", "read", "render", "shell", "socket", "spell", "tcp",
+    "time", "true", "user", "view", "write"
 ];
 
 fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
@@ -81,6 +81,8 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "user"      => usr::user::main(args),
         "view"      => usr::view::main(args),
         "write"     => usr::write::main(args),
+        "true"      => Ok(()),
+        "false"     => Err(ExitCode::Failure),
         "panic"     => panic!("{}", args[1..].join(" ")),
         _ => {
             let mut path = fs::realpath(args[0]);
