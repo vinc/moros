@@ -112,18 +112,36 @@ impl Regex {
     }
 
     pub fn replace_all(&self, text: &str, replacement: &str) -> String {
+        // `find` reports character offsets, so stay in that coordinate system.
+        // A zero-width match consumes nothing; step one character afterwards,
+        // and stop after a single empty match at the end of the text.
+        let chars: Vec<char> = text.chars().collect(); // UTF-32
         let mut res = String::new();
         let mut o = 0;
-        while let Some((i, j)) = self.find(&text[o..]) {
-            let mut tmp = String::from(&text[o..(o + j)]);
-            tmp.replace_range(i..j, replacement);
-            res.push_str(&tmp);
-            o += j;
-            if o == text.len() {
+        while o <= chars.len() {
+            let tail: String = chars[o..].iter().collect();
+            if let Some((i, j)) = self.find(&tail) {
+                for c in &chars[o..(o + i)] {
+                    res.push(*c);
+                }
+                res.push_str(replacement);
+                o += j;
+                if i == j {
+                    if o == chars.len() {
+                        break;
+                    }
+                    res.push(chars[o]);
+                    o += 1;
+                } else if o == chars.len() {
+                    break;
+                }
+            } else {
                 break;
             }
         }
-        res.push_str(&text[o..]);
+        for c in &chars[o..] {
+            res.push(*c);
+        }
         res
     }
 }
@@ -427,4 +445,9 @@ fn test_regex_replace_all() {
     assert_eq!(Regex::new("a\\wa").replace_all("aaa", "bbb"), "bbb");
     assert_eq!(Regex::new("a\\wa").replace_all("abc", "bbb"), "abc");
     assert_eq!(Regex::new("a\\wa").replace_all("aba aca", "bbb"), "bbb bbb");
+    assert_eq!(Regex::new("a*").replace_all("bbb", "-"), "-b-b-b-");
+    assert_eq!(Regex::new("a*").replace_all("", "-"), "-");
+    assert_eq!(Regex::new("").replace_all("bbb", "-"), "-b-b-b-");
+    assert_eq!(Regex::new("").replace_all("", "-"), "-");
+    assert_eq!(Regex::new("w+").replace_all("héllo wörld", "X"), "héllo Xörld");
 }
