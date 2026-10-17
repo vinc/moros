@@ -8,7 +8,7 @@ macro_rules! printk {
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => ({
-        let csi_color = $crate::api::console::Style::color("LightBlue");
+        let csi_color = $crate::api::console::Style::color("blue");
         let csi_reset = $crate::api::console::Style::reset();
         $crate::sys::console::print_fmt(format_args!(
             "{}DEBUG: {}{}\n", csi_color, format_args!($($arg)*), csi_reset
@@ -20,28 +20,27 @@ macro_rules! debug {
 macro_rules! log {
     ($($arg:tt)*) => ({
         if !cfg!(test) {
-            let uptime = $crate::sys::clock::uptime();
-            let csi_color = $crate::api::console::Style::color("LightGreen");
+            let time = $crate::sys::clk::boot_time();
+            let csi_color = $crate::api::console::Style::color("lime");
             let csi_reset = $crate::api::console::Style::reset();
             $crate::sys::console::print_fmt(format_args!(
                 "{}[{:.6}]{} {}\n",
-                csi_color, uptime, csi_reset, format_args!($($arg)*)
+                csi_color, time, csi_reset, format_args!($($arg)*)
             ));
 
-            let realtime = $crate::sys::clock::realtime();
+            let time = $crate::sys::clk::epoch_time();
             $crate::sys::log::write_fmt(format_args!(
                 "[{:.6}] {}\n",
-                realtime, format_args!($($arg)*)
+                time, format_args!($($arg)*)
             ));
         }
     });
 }
 
 pub mod acpi;
-pub mod allocator;
 pub mod ata;
-pub mod clock;
-pub mod cmos;
+pub mod boot;
+pub mod clk;
 pub mod console;
 pub mod cpu;
 pub mod fs;
@@ -56,6 +55,9 @@ pub mod pic;
 pub mod process;
 pub mod rng;
 pub mod serial;
+pub mod snd;
+pub mod speaker;
 pub mod syscall;
-pub mod time;
+pub mod tss;
 pub mod vga;
+pub mod x86;

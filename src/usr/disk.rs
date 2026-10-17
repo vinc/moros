@@ -32,7 +32,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 fn parse_disk_path(pathname: &str) -> Result<(u8, u8), String> {
     let path: Vec<_> = pathname.split('/').collect();
     if !pathname.starts_with("/dev/ata/") || path.len() != 5 {
-        return Err(format!("Could not find disk at '{}'", pathname));
+        return Err(format!("Could not find disk at {:?}", pathname));
     }
     let bus = path[3].parse().or(Err("Could not parse <bus>".to_string()))?;
     let dsk = path[4].parse().or(Err("Could not parse <dsk>".to_string()))?;
@@ -128,7 +128,7 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
     let width = [size, used, free].iter().fold(0, |acc, num|
         core::cmp::max(acc, unit.format(*num).len())
     );
-    let color = Style::color("LightCyan");
+    let color = Style::color("aqua");
     let reset = Style::reset();
     println!(
         "{}size:{} {:>width$}",
@@ -155,8 +155,8 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help_usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} disk usage {}<options>{}",
@@ -171,8 +171,8 @@ fn help_usage() {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} disk {}<command>{}",

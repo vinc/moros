@@ -13,36 +13,40 @@
     <p>During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.</p>
 
-    <pre><code>[0.250962] MOROS v0.10.3
-[0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
-[0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
-[0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
-[0.250962] MEM [0x00000000016000-0x00000000016FFF] BootInfo
-[0.250962] MEM [0x00000000017000-0x0000000002DFFF] Kernel
-[0.250962] MEM [0x0000000002E000-0x0000000009EFFF] KernelStack
-[0.250962] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
-[0.250962] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
-[0.250962] MEM [0x00000000100000-0x0000000028EFFF] KernelStack
-[0.250962] MEM [0x0000000028F000-0x000000003FFFFF] Usable
-[0.250962] MEM [0x00000000400000-0x000000005E1FFF] Kernel
-[0.250962] MEM [0x000000005E2000-0x000000005EFFFF] PageTable
-[0.250962] MEM [0x000000005F0000-0x00000001FDFFFF] Usable
-[0.250962] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
-[0.250962] MEM [0x000000FEFFC000-0x000000FEFFFFFF] Reserved
-[0.250962] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
-[0.250962] MEM 32720 KB
-[0.251962] CPU GenuineIntel
-[0.254961] CPU Intel(R) Core(TM) i5-4300M CPU @ 2.60GHz
-[0.284957] PCI 0000:00:00 [8086:1237]
-[0.312952] PCI 0000:01:00 [8086:7000]
-[0.321951] PCI 0000:01:01 [8086:7010]
-[0.321951] PCI 0000:01:03 [8086:7113]
-[0.322951] PCI 0000:02:00 [1234:1111]
-[0.323951] PCI 0000:03:00 [10EC:8139]
-[0.377942] NET RTL8139 MAC 52-54-00-12-34-56
-[0.382942] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
-[0.384941] MFS Superblock found in ATA 0:0
-[0.386941] RTC 2023-04-17 20:00:28 +0000
+    <pre><code>[0.250962] SYS MOROS v0.13.0
+[0.254961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
+[0.255961] MEM [0x00000000001000-0x00000000004FFF] PageTable
+[0.256961] MEM [0x00000000005000-0x00000000014FFF] Bootloader
+[0.256961] MEM [0x00000000015000-0x00000000015FFF] BootInfo
+[0.257961] MEM [0x00000000016000-0x0000000009EFFF] Kernel
+[0.258961] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
+[0.259960] MEM [0x000000000A0000-0x000000000EFFFF] Unmapped
+[0.260960] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
+[0.261960] MEM [0x00000000100000-0x0000000010BFFF] Kernel
+[0.261960] MEM [0x0000000010C000-0x0000000030BFFF] KernelStack
+[0.262960] MEM [0x0000000030C000-0x000000003FFFFF] Usable
+[0.262960] MEM [0x00000000400000-0x000000005FDFFF] Kernel
+[0.263960] MEM [0x000000005FE000-0x0000000060EFFF] PageTable
+[0.264960] MEM [0x0000000060F000-0x00000001FDFFFF] Usable
+[0.264960] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
+[0.265960] MEM [0x00000002000000-0x000000FFFBFFFF] Unmapped
+[0.265960] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
+[0.266959] RAM 32 MB
+[0.363945] CPU GenuineIntel
+[0.363945] CPU Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
+[0.368944] CPU BP:0 running
+[0.369944] CPU AP:1 waiting
+[0.398939] RNG RDRAND unavailable
+[0.413937] PCI 0000:00:00 [8086:1237]
+[0.414937] PCI 0000:01:00 [8086:7000]
+[0.414937] PCI 0000:01:01 [8086:7010]
+[0.414937] PCI 0000:01:03 [8086:7113]
+[0.415937] PCI 0000:02:00 [1234:1111]
+[0.415937] PCI 0000:03:00 [8086:100E]
+[0.422936] NET DRV E1000
+[0.424935] NET MAC 52-54-00-12-34-56
+[0.431934] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
+[0.436933] RTC 2024-11-02 18:18:38 +0000
 </code></pre>
 
     <h2>Installation</h2>
@@ -55,7 +59,7 @@ commands to test the system or <code>install</code> to setup the
 
 /
 &gt; install
-Welcome to MOROS v0.10.3 installation program!
+Welcome to MOROS v0.13.0 installation program!
 
 Proceed? [y/N] y
 
@@ -70,82 +74,74 @@ Disk successfully formatted
 MFS is now mounted to &#39;/&#39;
 
 Populating filesystem...
-Created &#39;/bin&#39;
-Created &#39;/dev&#39;
-Created &#39;/ini&#39;
-Created &#39;/lib&#39;
-Created &#39;/net&#39;
-Created &#39;/src&#39;
-Created &#39;/tmp&#39;
-Created &#39;/usr&#39;
-Created &#39;/var&#39;
-Copied &#39;/bin/clear&#39;
-Copied &#39;/bin/halt&#39;
-Copied &#39;/bin/ntp&#39;
-Copied &#39;/bin/print&#39;
-Copied &#39;/bin/reboot&#39;
-Copied &#39;/bin/sleep&#39;
-Created &#39;/dev/ata&#39;
-Created &#39;/dev/ata/0&#39;
-Created &#39;/dev/ata/0/0&#39;
-Created &#39;/dev/ata/0/1&#39;
-Created &#39;/dev/ata/1&#39;
-Created &#39;/dev/ata/1/0&#39;
-Created &#39;/dev/ata/1/1&#39;
-Created &#39;/dev/clk&#39;
-Created &#39;/dev/clk/uptime&#39;
-Created &#39;/dev/clk/realtime&#39;
-Created &#39;/dev/rtc&#39;
-Created &#39;/dev/null&#39;
-Created &#39;/dev/random&#39;
-Created &#39;/dev/console&#39;
-Created &#39;/dev/net&#39;
-Created &#39;/dev/net/tcp&#39;
-Created &#39;/dev/net/udp&#39;
-Copied &#39;/ini/banner.txt&#39;
-Copied &#39;/ini/boot.sh&#39;
-Copied &#39;/ini/lisp.lsp&#39;
-Copied &#39;/ini/shell.sh&#39;
-Copied &#39;/ini/version.txt&#39;
-Created &#39;/ini/palettes&#39;
-Copied &#39;/ini/palettes/gruvbox-dark.sh&#39;
-Copied &#39;/ini/palettes/gruvbox-light.sh&#39;
-Created &#39;/ini/fonts&#39;
-Copied &#39;/ini/fonts/zap-light-8x16.psf&#39;
-Copied &#39;/ini/fonts/zap-vga-8x16.psf&#39;
-Created &#39;/lib/lisp&#39;
-Copied &#39;/lib/lisp/alias.lsp&#39;
-Copied &#39;/lib/lisp/core.lsp&#39;
-Copied &#39;/lib/lisp/file.lsp&#39;
-Copied &#39;/tmp/alice.txt&#39;
-Copied &#39;/tmp/machines.txt&#39;
-Created &#39;/tmp/lisp&#39;
-Copied &#39;/tmp/lisp/colors.lsp&#39;
-Copied &#39;/tmp/lisp/doc.lsp&#39;
-Copied &#39;/tmp/lisp/factorial.lsp&#39;
-Copied &#39;/tmp/lisp/fibonacci.lsp&#39;
-Copied &#39;/tmp/lisp/geotime.lsp&#39;
-Copied &#39;/tmp/lisp/pi.lsp&#39;
-Copied &#39;/tmp/lisp/sum.lsp&#39;
-Created &#39;/tmp/life&#39;
-Copied &#39;/tmp/life/centinal.cells&#39;
-Copied &#39;/tmp/life/flower-of-eden.cells&#39;
-Copied &#39;/tmp/life/garden-of-eden.cells&#39;
-Copied &#39;/tmp/life/glider-gun.cells&#39;
-Copied &#39;/tmp/life/pentadecathlon.cells&#39;
-Copied &#39;/tmp/life/queen-bee-shuttle.cells&#39;
-Copied &#39;/tmp/life/ship-in-a-bottle.cells&#39;
-Copied &#39;/tmp/life/thunderbird.cells&#39;
-Copied &#39;/tmp/life/wing.cells&#39;
-Created &#39;/tmp/beep&#39;
-Copied &#39;/tmp/beep/tetris.sh&#39;
-Copied &#39;/tmp/beep/starwars.sh&#39;
-Copied &#39;/tmp/beep/mario.sh&#39;
-Created &#39;/var/log&#39;
-Created &#39;/var/www&#39;
-Copied &#39;/var/www/index.html&#39;
-Copied &#39;/var/www/moros.css&#39;
-Copied &#39;/var/www/moros.png&#39;
+Creating &#39;/bin&#39;
+Creating &#39;/dev&#39;
+Creating &#39;/ini&#39;
+Creating &#39;/lib&#39;
+Creating &#39;/net&#39;
+Creating &#39;/src&#39;
+Creating &#39;/tmp&#39;
+Creating &#39;/usr&#39;
+Creating &#39;/var&#39;
+Fetching &#39;/bin/clear&#39;
+Fetching &#39;/bin/get&#39;
+Fetching &#39;/bin/halt&#39;
+Fetching &#39;/bin/ntp&#39;
+Fetching &#39;/bin/pkg&#39;
+Fetching &#39;/bin/print&#39;
+Fetching &#39;/bin/reboot&#39;
+Fetching &#39;/bin/sleep&#39;
+Creating &#39;/dev/ata&#39;
+Creating &#39;/dev/ata/0&#39;
+Creating &#39;/dev/ata/1&#39;
+Creating &#39;/dev/clk&#39;
+Creating &#39;/dev/net&#39;
+Creating &#39;/dev/vga&#39;
+Creating &#39;/dev/ata/0/0&#39;
+Creating &#39;/dev/ata/0/1&#39;
+Creating &#39;/dev/ata/1/0&#39;
+Creating &#39;/dev/ata/1/1&#39;
+Creating &#39;/dev/clk/boot&#39;
+Creating &#39;/dev/clk/epoch&#39;
+Creating &#39;/dev/clk/rtc&#39;
+Creating &#39;/dev/console&#39;
+Creating &#39;/dev/net/tcp&#39;
+Creating &#39;/dev/net/udp&#39;
+Creating &#39;/dev/net/gw&#39;
+Creating &#39;/dev/net/ip&#39;
+Creating &#39;/dev/net/mac&#39;
+Creating &#39;/dev/net/stat&#39;
+Creating &#39;/dev/null&#39;
+Creating &#39;/dev/random&#39;
+Creating &#39;/dev/speaker&#39;
+Creating &#39;/dev/vga/buffer&#39;
+Creating &#39;/dev/vga/font&#39;
+Creating &#39;/dev/vga/mode&#39;
+Creating &#39;/dev/vga/palette&#39;
+Fetching &#39;/ini/banner.txt&#39;
+Fetching &#39;/ini/boot.sh&#39;
+Fetching &#39;/ini/lisp.lsp&#39;
+Fetching &#39;/ini/shell.sh&#39;
+Fetching &#39;/ini/version.txt&#39;
+Creating &#39;/ini/palettes&#39;
+Fetching &#39;/ini/palettes/default.sh&#39;
+Fetching &#39;/ini/palettes/gruvbox-dark.sh&#39;
+Fetching &#39;/ini/palettes/gruvbox-light.sh&#39;
+Creating &#39;/ini/fonts&#39;
+Fetching &#39;/ini/fonts/zap-light-8x16.psf&#39;
+Creating &#39;/lib/lisp&#39;
+Fetching &#39;/lib/lisp/alias.lsp&#39;
+Fetching &#39;/lib/lisp/core.lsp&#39;
+Fetching &#39;/lib/lisp/file.lsp&#39;
+Fetching &#39;/lib/lisp/math.lsp&#39;
+Fetching &#39;/tmp/alice.txt&#39;
+Fetching &#39;/tmp/machines.txt&#39;
+Creating &#39;/var/log&#39;
+Creating &#39;/var/www&#39;
+Fetching &#39;/var/www/index.html&#39;
+Fetching &#39;/var/www/moros.css&#39;
+Fetching &#39;/var/www/moros.png&#39;
+Creating &#39;/var/pkg&#39;
 
 Creating user...
 Username: vinc
@@ -186,7 +182,7 @@ Hello, World!
 tilde <code>~</code> means that you are in your home directory:</p>
 
     <pre><code>~
-&gt; print $DIR
+&gt; print $dir
 /usr/vinc
 </code></pre>
 
@@ -196,7 +192,7 @@ tilde <code>~</code> means that you are in your home directory:</p>
 &gt; /tmp
 
 /tmp
-&gt; print $DIR
+&gt; print $dir
 /tmp
 </code></pre>
 
@@ -289,7 +285,7 @@ Commands:
     <p>You can update the real time clock by writing the correct time to its device
 file:</p>
 
-    <pre><code>&gt; print &quot;2023-03-21 10:00:00&quot; =&gt; /dev/rtc
+    <pre><code>&gt; print 2023-03-21 10:00:00 =&gt; /dev/clk/rtc
 
 &gt; date
 2023-03-21 10:00:00 +0000
@@ -300,32 +296,32 @@ file:</p>
     <pre><code>&gt; calc &quot;2 * 60 * 60&quot;
 7200
 
-&gt; env TZ 7200
+&gt; set --env TZ 7200
 
 &gt; date
 2023-03-21 12:00:00 +0200
 </code></pre>
 
-    <p>Add <code>env TZ 7200</code> to <code>/ini/boot.sh</code> before <code>shell</code> to save the timezone:</p>
+    <p>Add <code>set --env TZ 7200</code> to <code>/ini/boot.sh</code> before <code>shell</code> to save the timezone:</p>
 
     <pre><code>&gt; read /ini/boot.sh
-vga set font /ini/fonts/zap-light-8x16.psf
 shell /ini/palettes/gruvbox-dark.sh
+read /ini/fonts/zap-light-8x16.psf =&gt; /dev/vga/font
 read /ini/banner.txt
 user login
-env TZ 7200
+set --env TZ 7200
 shell
 </code></pre>
 
     <p>There&#39;s a device file to get the number of seconds elapsed since Unix Epoch:</p>
 
-    <pre><code>&gt; read /dev/clk/realtime
+    <pre><code>&gt; read /dev/clk/epoch
 1682105344.624905
 </code></pre>
 
     <p>And another one since boot:</p>
 
-    <pre><code>&gt; read /dev/clk/uptime
+    <pre><code>&gt; read /dev/clk/boot
 1169.384929
 </code></pre>
 
@@ -336,7 +332,7 @@ shell
     <p>For example you can define an <code>uptime</code> command that will read the device file
 described above:</p>
 
-    <pre><code>&gt; alias uptime &quot;read /dev/clk/uptime&quot;
+    <pre><code>&gt; alias uptime &quot;read /dev/clk/boot&quot;
 
 &gt; uptime
 1406.304852
@@ -349,33 +345,34 @@ for example you can use <code>e</code> instead of <code>edit</code> to edit a fi
 
     <pre><code>&gt; read /ini/shell.sh
 # Command shortcuts
-alias c    copy
-alias d    delete
-alias e    edit
-alias f    find
-alias h    help
-alias l    list
-alias m    move
-alias p    print
-alias q    quit
-alias r    read
-alias w    write
+alias c      copy
+alias d      drop
+alias e      edit
+alias f      find
+alias g      goto
+alias h      help
+alias l      list
+alias m      move
+alias p      print
+alias q      quit
+alias r      read
+alias v      view
+alias w      write
 
-alias sh   shell
-alias dsk  disk
-alias mem  memory
-alias kbd  keyboard
+alias sh     shell
+alias dsk    disk
+alias mem    memory
 </code></pre>
 
     <h2>Network</h2>
 
-    <p>You can setup the <a href="network.html">network</a> manually with <code>net</code> or automatically
-with <code>dhcp</code>:</p>
+    <p>You can setup the <a href="network.html">network</a> manually with some network
+    <a href="devices.html">device files</a> or automatically with the <code>dhcp</code> command:</p>
 
     <pre><code>&gt; dhcp
-ip:  10.0.2.15/24
-gw:  10.0.2.2
-dns: 10.0.2.3
+[8.801660] NET IP 10.0.2.15/24
+[8.804659] NET GW 10.0.2.2
+[8.808659] NET DNS 10.0.2.3
 </code></pre>
 
     <p>A few tools are available like the generalist <code>socket</code> command that be used to
@@ -406,7 +403,8 @@ Hello, World!
     <pre><code>&gt; ntp
 2023-03-21 10:00:00
 
-&gt; ntp =&gt; /dev/rtc
+&gt; ntp =&gt; /dev/clk/rtc
+[12.111156] RTC 2023-03-21 10:00:00 +0000
 </code></pre>
   <footer><p><a href="/">MOROS</a></footer>
   </body>

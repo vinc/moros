@@ -18,17 +18,17 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         }
     }
 
-    // TODO: Avoid doing copy+delete
+    // TODO: Avoid doing copy + drop
     if usr::copy::main(args).is_ok() {
-        usr::delete::main(&args[0..2])
+        usr::drop::main(&args[0..2])
     } else {
         Err(ExitCode::Failure)
     }
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} move {}<src> <dst>{}",

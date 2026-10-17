@@ -4,8 +4,8 @@
 
 # Read
 
-(def (read-binary path)
-  "Read binary file"
+(def (read-bin path)
+  "Reads binary file"
   (do
     (var size (file/size path))
     (var file (file/open path "r"))
@@ -14,59 +14,81 @@
     data))
 
 (def (read path)
-  "Read text file"
-  (binary->string (read-binary path)))
+  "Reads text file"
+  (bin->str (read-bin path)))
 
 # Write
 
-(def (write-binary path data)
-  "Write binary to file"
+(def (write-bin path data)
+  "Writes binary to file"
   (do
     (var file (file/open path "w"))
     (file/write file data)
     (file/close file)))
 
 (def (write path text)
-  "Write text to file"
-  (write-binary path (string->binary text)))
+  "Writes text to file"
+  (write-bin path (str->bin text)))
 
 # Append
 
-(def (append-binary path data)
-  "Append binary to file"
+(def (append-bin path data)
+  "Appends binary to file"
   (do
     (var file (file/open path "a"))
     (file/write file data)
     (file/close file)))
 
 (def (append path text)
-  "Append text to file"
-  (append-binary path (string->binary text)))
+  "Appends text to file"
+  (append-bin path (str->bin text)))
 
 # Console
 
 (def (read-line)
-  "Read line from the console"
-  (string/trim (binary->string (file/read stdin 256))))
+  "Reads line from the console"
+  (str/trim (bin->str (file/read stdin 256))))
 
 (def (read-char)
-  "Read char from the console"
-  (binary->string (file/read stdin 4)))
+  "Reads char from the console"
+  (bin->str (file/read stdin 4)))
 
 (def (p exp)
-  "Print expression to the console"
+  "Prints expression to stdout"
   (do
-    (file/write stdout (string->binary (string exp)))
+    (file/write stdout (str->bin (str exp)))
     '()))
 
 (def (print exp)
-  "Print expression to the console with a newline"
-  (p (string exp "\n")))
+  "Prints expression to stdout with a newline"
+  (p (str exp "\n")))
 
-# Special
+(def (eprint exp)
+  "Prints expression to stderr with a newline"
+  (do
+    (file/write stderr (str->bin (str exp "\n")))
+    '()))
 
-(def (uptime)
-  (binary->number (read-binary "/dev/clk/uptime") "float"))
+(def (error msg)
+  "Prints error message to stderr"
+  (eprint (str "\e[91mError:\e[m " msg)))
 
-(def (realtime)
-  (binary->number (read-binary "/dev/clk/realtime") "float"))
+# Clocks
+
+(def (clock/boot)
+  "Returns the number of seconds since boot"
+  (str->num (read "/dev/clk/boot")))
+
+(def (clock/epoch)
+  "Returns the number of seconds since epoch"
+  (str->num (read "/dev/clk/epoch")))
+
+# Path
+
+(def (filename path)
+  "Returns the filename from the given path"
+  (last (str/split path "/")))
+
+(def (dirname path)
+  "Returns the given path without the filename"
+  (str/join (rev (rest (rev (str/split path "/")))) "/"))

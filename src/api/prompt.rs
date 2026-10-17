@@ -7,6 +7,7 @@ use vte::{Params, Parser, Perform};
 pub struct Prompt {
     pub completion: Completion,
     pub history: History,
+    pub eol: bool,
     offset: usize, // Offset line by the length of the prompt string
     cursor: usize,
     line: Vec<char>, // UTF-32
@@ -17,34 +18,45 @@ impl Prompt {
         Self {
             completion: Completion::new(),
             history: History::new(),
+            eol: true,
             offset: 0,
             cursor: 0,
-            line: Vec::with_capacity(80),
+            line: Vec::with_capacity(console::cols()),
         }
+    }
+
+    fn max(&self) -> usize {
+        console::cols() - self.offset
     }
 
     pub fn input(&mut self, prompt: &str) -> Option<String> {
         print!("{}", prompt);
         self.offset = offset_from_prompt(prompt);
         self.cursor = self.offset;
-        self.line = Vec::with_capacity(80);
+        self.line = Vec::with_capacity(self.max());
         let mut parser = Parser::new();
         while let Some(c) = io::stdin().read_char() {
             match c {
                 console::ETX_KEY => { // End of Text (^C)
                     self.update_completion();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return Some(String::new());
                 }
                 console::EOT_KEY => { // End of Transmission (^D)
                     self.update_completion();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return None;
                 }
                 '\n' => { // New Line
                     self.update_completion();
                     self.update_history();
-                    println!();
+                    if self.eol {
+                        println!();
+                    }
                     return Some(self.line.iter().collect());
                 }
                 c => {
@@ -155,7 +167,7 @@ impl Prompt {
         };
         let line = &self.history.entries[i];
         let blank = ' '.to_string().repeat((self.offset + bs) - self.cursor);
-        let erase = '\x08'.to_string().repeat(bs);
+        let erase = '\x08'.to_string().repeat(bs); // Erase previous entry
         print!("{}{}{}", blank, erase, line);
         self.cursor = self.offset + line.chars().count();
         self.history.pos = Some(i);
@@ -176,10 +188,18 @@ impl Prompt {
         } else {
             (None, self.line.iter().collect())
         };
-        let erase = '\x08'.to_string().repeat(bs);
+        let erase = '\x08'.to_string().repeat(bs); // Erase previous entry
         print!("{}{}", erase, line);
         self.cursor = self.offset + line.chars().count();
         self.history.pos = pos;
+    }
+
+    fn handle_page_up_key(&mut self) {
+        print!("\x1b[5~");
+    }
+
+    fn handle_page_down_key(&mut self) {
+        print!("\x1b[6~");
     }
 
     fn handle_forward_key(&mut self) {
@@ -230,7 +250,7 @@ impl Prompt {
     fn handle_printable_key(&mut self, c: char) {
         self.update_completion();
         self.update_history();
-        if console::is_printable(c) {
+        if console::is_printable(c) && self.line.len() < self.max() {
             let i = self.cursor - self.offset;
             self.line.insert(i, c);
             let s = &self.line[i..]; // UTF-32
@@ -268,8 +288,11 @@ impl Perform for Prompt {
             'Z' => self.handle_backtab_key(),
             '~' => {
                 for param in params.iter() {
-                    if param[0] == 3 { // Delete
-                        self.handle_delete_key();
+                    match param[0] {
+                        3 => self.handle_delete_key(),
+                        5 => self.handle_page_up_key(),
+                        6 => self.handle_page_down_key(),
+                        _ => continue,
                     }
                 }
             }
@@ -317,8 +340,8 @@ impl History {
     }
 
     pub fn load(&mut self, path: &str) {
-        if let Ok(lines) = fs::read_to_string(path) {
-            self.entries = lines.split('\n').map(|s| s.to_string()).collect();
+        if let Ok(contents) = fs::read_to_string(path) {
+            self.entries = contents.lines().map(|s| s.to_string()).collect();
         }
     }
 

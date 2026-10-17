@@ -1,8 +1,9 @@
-use crate::{api, sys};
+use crate::api;
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::rng;
+use crate::api::syscall;
 use crate::sys::console;
 
 use alloc::collections::BTreeSet;
@@ -38,8 +39,8 @@ impl Game {
     }
 
     pub fn load_file(&mut self, path: &str) {
-        if let Ok(lines) = fs::read_to_string(path) {
-            for (y, line) in lines.split('\n').enumerate() {
+        if let Ok(contents) = fs::read_to_string(path) {
+            for (y, line) in contents.lines().enumerate() {
                 for (x, c) in line.chars().enumerate() {
                     let cell = (x as i64, y as i64);
                     match c {
@@ -61,7 +62,7 @@ impl Game {
                 return;
             }
             print!("{}", self);
-            sys::time::sleep(1.0 / self.speed);
+            syscall::sleep((1000.0 / self.speed) as usize);
             if self.is_game_over() {
                 continue; // Display the screen until ^C is received
             }
@@ -118,7 +119,7 @@ impl Game {
     fn status(&self, title: &str, bg: &str) -> String {
         let gen = self.generation();
         let pop = self.population();
-        let color = Style::color("Black").with_background(bg);
+        let color = Style::color("black").with_background(bg);
         let reset = Style::reset();
         let stats = format!("GEN: {:04} | POP: {:04}", gen, pop);
         let size = self.cols - stats.len();
@@ -157,9 +158,9 @@ impl fmt::Display for Game {
 
         if !self.quiet {
             let line = if self.is_game_over() {
-                self.status("GAME OVER", "Yellow")
+                self.status("GAME OVER", "yellow")
             } else {
-                self.status("GAME OF LIFE", "White")
+                self.status("GAME OF LIFE", "white")
             };
             out.push_str(&line);
         }
@@ -181,9 +182,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-p" | "--population" => {
                 if i + 1 < n {
-                    game.seed_population = args[i + 1].parse().
-                        unwrap_or(game.seed_population);
                     i += 1;
+                    let opt = &mut game.seed_population;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --population <num>");
                     return Err(ExitCode::UsageError);
@@ -191,9 +192,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-i" | "--interval" => {
                 if i + 1 < n {
-                    game.seed_interval = args[i + 1].parse().
-                        unwrap_or(game.seed_interval);
                     i += 1;
+                    let opt = &mut game.seed_interval;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --interval <num>");
                     return Err(ExitCode::UsageError);
@@ -201,8 +202,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-s" | "--speed" => {
                 if i + 1 < n {
-                    game.speed = args[i + 1].parse().unwrap_or(game.speed);
                     i += 1;
+                    let opt = &mut game.speed;
+                    *opt = args[i].parse().unwrap_or(*opt);
                 } else {
                     error!("Missing --speed <num>");
                     return Err(ExitCode::UsageError);
@@ -214,13 +216,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             arg => {
                 if arg.starts_with('-') {
-                    error!("Unknown option '{}'", arg);
+                    error!("Invalid option {:?}", arg);
                     return Err(ExitCode::UsageError);
                 }
                 if i > 0 {
                     let path = arg;
                     if !fs::exists(path) {
-                        error!("Could not find file '{}'", path);
+                        error!("Could not find file {:?}", path);
                         return Err(ExitCode::UsageError);
                     }
                     game.load_file(path);
@@ -241,8 +243,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} life {}<options> [<path>]{1}",

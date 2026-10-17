@@ -3,9 +3,9 @@ use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::api::unit::SizeUnit;
 use crate::sys;
+use crate::sys::x86::addr::PhysAddr;
 
 use core::num::ParseIntError;
-use x86_64::PhysAddr;
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     match *args.get(1).unwrap_or(&"") {
@@ -43,7 +43,7 @@ fn dump(args: &[&str]) -> Result<(), ExitCode> {
     }
     let addr = parse_usize(args[0]).unwrap();
     let size = parse_usize(args[1]).unwrap();
-    let phys_addr = PhysAddr::new(addr as u64);
+    let phys_addr = PhysAddr::new(addr);
     let virt_addr = sys::mem::phys_to_virt(phys_addr);
     let buf = unsafe {
         core::slice::from_raw_parts(virt_addr.as_ptr(), size)
@@ -72,13 +72,13 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
     }
-    let size = sys::allocator::memory_size();
-    let used = sys::allocator::memory_used();
+    let size = sys::mem::memory_size();
+    let used = sys::mem::memory_used();
     let free = size - used;
     let width = [size, used, free].iter().fold(0, |acc, num|
         core::cmp::max(acc, unit.format(*num).len())
     );
-    let color = Style::color("LightCyan");
+    let color = Style::color("aqua");
     let reset = Style::reset();
     println!(
         "{}size:{} {:>width$}",
@@ -105,8 +105,8 @@ fn usage(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help_usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} memory usage {}<options>{}",
@@ -121,8 +121,8 @@ fn help_usage() {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} memory {}<command>{}",

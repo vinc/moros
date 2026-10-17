@@ -1,4 +1,5 @@
 [bits 64]
+[org 0x8000000000] ; USER_ADDR
 
 section .data
 msg: db 27, "[93m", "MOROS has reached its fate, the system is now halting.", 27, "[0m", 10

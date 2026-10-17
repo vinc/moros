@@ -1,0 +1,117 @@
+use super::sync;
+use super::cmos::CMOS;
+
+use crate::sys;
+use crate::sys::x86::int;
+use crate::sys::x86::port::*;
+
+use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+
+pub struct Timer {
+    start: u64,
+    duration: u64
+}
+
+impl Timer {
+    pub fn new(nanoseconds: u64) -> Self {
+        debug_assert!(tsc_frequency() > 0);
+        debug_assert!(nanoseconds <= u64::MAX / tsc_frequency());
+        Self {
+            start: tsc(),
+            duration: nanoseconds * tsc_frequency() / 1_000_000_000
+        }
+    }
+
+    pub fn is_elapsed(&self) -> bool {
+        tsc() - self.start >= self.duration
+    }
+}
+
+// At boot the PIT starts with a frequency divider of 0 (equivalent to 65536)
+// which will result in about 54.926 ms between ticks.
+// During init we will change the divider to 1193 to have about 1.000 ms
+// between ticks to improve time measurements accuracy.
+const PIT_FREQUENCY: f64 = 3_579_545.0 / 3.0; // 1_193_181.666 Hz
+const PIT_DIVIDER: u16 = 1193;
+const PIT_INTERVAL: f64 = (PIT_DIVIDER as f64) / PIT_FREQUENCY;
+
+static PIT_TICKS: AtomicUsize = AtomicUsize::new(0);
+static LAST_RTC_UPDATE: AtomicUsize = AtomicUsize::new(0);
+static TSC_FREQUENCY: AtomicU64 = AtomicU64::new(0);
+
+pub fn ticks() -> usize {
+    PIT_TICKS.load(Ordering::Relaxed)
+}
+
+pub fn time_between_ticks() -> f64 {
+    PIT_INTERVAL
+}
+
+pub fn last_rtc_update() -> usize {
+    LAST_RTC_UPDATE.load(Ordering::Relaxed)
+}
+
+pub fn pit_frequency() -> f64 {
+    PIT_FREQUENCY
+}
+
+// The divider must be between 0 and 65535, with 0 acting as 65536
+pub fn set_pit_frequency(divider: u16, channel: u8) {
+    int::without_interrupts(|| {
+        let bytes = divider.to_le_bytes();
+        let operating_mode = 6; // Square wave generator
+        let access_mode = 3; // Lobyte + Hibyte
+        unsafe {
+            outb(0x43, (channel << 6) | (access_mode << 4) | operating_mode);
+            outb(0x40 + channel as u16, bytes[0]);
+            outb(0x40 + channel as u16, bytes[1]);
+        }
+    });
+}
+
+// Time Stamp Counter
+pub fn tsc() -> u64 {
+    sys::x86::rdtsc()
+}
+
+pub fn tsc_frequency() -> u64 {
+    TSC_FREQUENCY.load(Ordering::Relaxed)
+}
+
+pub fn pit_interrupt_handler() {
+    PIT_TICKS.fetch_add(1, Ordering::Relaxed);
+}
+
+pub fn rtc_interrupt_handler() {
+    LAST_RTC_UPDATE.store(ticks(), Ordering::Relaxed);
+    CMOS::new().notify_end_of_interrupt();
+}
+
+pub fn init() {
+    // PIT timmer
+    let divider = PIT_DIVIDER;
+    let channel = 0; // PIC
+    set_pit_frequency(divider, channel);
+    sys::idt::set_irq_handler(sys::pic::PIT_IRQ, pit_interrupt_handler);
+
+    // RTC timmer
+    sys::idt::set_irq_handler(sys::pic::RTC_IRQ, rtc_interrupt_handler);
+    CMOS::new().enable_update_interrupt();
+
+    // TSC timmer
+    let d = 250_000;
+    let t = 1_000_000;
+    let a = tsc();
+    sync::sleep(d as f64 / t as f64); // 0.25 seconds
+    let b = tsc();
+    let f = (b - a) * t / d;
+    TSC_FREQUENCY.store(f, Ordering::Relaxed);
+}
+
+#[test_case]
+fn test_timer_ticks() {
+    // 1 tick is almost 1 ms
+    let ms = time_between_ticks() * 1000.0;
+    assert_eq!(ms, 0.9998477460124121);
+    assert!(ms < 1.0);
+}

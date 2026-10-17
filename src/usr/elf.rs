@@ -1,8 +1,8 @@
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::hex;
 use crate::api::process::ExitCode;
 
-use crate::usr;
 use object::{Object, ObjectSection};
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
@@ -15,7 +15,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Ok(());
     }
 
-    let color = Style::color("Yellow");
+    let color = Style::color("yellow");
     let reset = Style::reset();
     let pathname = args[1];
     if let Ok(buf) = fs::read_to_bytes(pathname) {
@@ -36,7 +36,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         color, name, reset, addr, size, align
                     );
                     if let Ok(data) = section.data() {
-                        usr::hex::print_hex_at(data, addr);
+                        print!("{}", hex::format_hex_at(data, addr));
                     }
                 }
             }
@@ -46,14 +46,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             Err(ExitCode::Failure)
         }
     } else {
-        error!("Could not read file '{}'", pathname);
+        error!("Could not read file {:?}", pathname);
         Err(ExitCode::Failure)
     }
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} elf {}<binary>{}",

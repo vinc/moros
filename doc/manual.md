@@ -5,36 +5,40 @@
 During boot MOROS will display its version followed by the memory layout,
 memory size, processor, devices, network cards, disks, and the real time clock.
 
-    [0.250962] MOROS v0.10.3
-    [0.250962] MEM [0x00000000000000-0x00000000000FFF] FrameZero
-    [0.250962] MEM [0x00000000001000-0x00000000004FFF] PageTable
-    [0.250962] MEM [0x00000000005000-0x00000000015FFF] Bootloader
-    [0.250962] MEM [0x00000000016000-0x00000000016FFF] BootInfo
-    [0.250962] MEM [0x00000000017000-0x0000000002DFFF] Kernel
-    [0.250962] MEM [0x0000000002E000-0x0000000009EFFF] KernelStack
-    [0.250962] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
-    [0.250962] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
-    [0.250962] MEM [0x00000000100000-0x0000000028EFFF] KernelStack
-    [0.250962] MEM [0x0000000028F000-0x000000003FFFFF] Usable
-    [0.250962] MEM [0x00000000400000-0x000000005E1FFF] Kernel
-    [0.250962] MEM [0x000000005E2000-0x000000005EFFFF] PageTable
-    [0.250962] MEM [0x000000005F0000-0x00000001FDFFFF] Usable
-    [0.250962] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
-    [0.250962] MEM [0x000000FEFFC000-0x000000FEFFFFFF] Reserved
-    [0.250962] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
-    [0.250962] MEM 32720 KB
-    [0.251962] CPU GenuineIntel
-    [0.254961] CPU Intel(R) Core(TM) i5-4300M CPU @ 2.60GHz
-    [0.284957] PCI 0000:00:00 [8086:1237]
-    [0.312952] PCI 0000:01:00 [8086:7000]
-    [0.321951] PCI 0000:01:01 [8086:7010]
-    [0.321951] PCI 0000:01:03 [8086:7113]
-    [0.322951] PCI 0000:02:00 [1234:1111]
-    [0.323951] PCI 0000:03:00 [10EC:8139]
-    [0.377942] NET RTL8139 MAC 52-54-00-12-34-56
-    [0.382942] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
-    [0.384941] MFS Superblock found in ATA 0:0
-    [0.386941] RTC 2023-04-17 20:00:28 +0000
+    [0.250962] SYS MOROS v0.13.0
+    [0.254961] MEM [0x00000000000000-0x00000000000FFF] FrameZero
+    [0.255961] MEM [0x00000000001000-0x00000000004FFF] PageTable
+    [0.256961] MEM [0x00000000005000-0x00000000014FFF] Bootloader
+    [0.256961] MEM [0x00000000015000-0x00000000015FFF] BootInfo
+    [0.257961] MEM [0x00000000016000-0x0000000009EFFF] Kernel
+    [0.258961] MEM [0x0000000009F000-0x0000000009FFFF] Reserved
+    [0.259960] MEM [0x000000000A0000-0x000000000EFFFF] Unmapped
+    [0.260960] MEM [0x000000000F0000-0x000000000FFFFF] Reserved
+    [0.261960] MEM [0x00000000100000-0x0000000010BFFF] Kernel
+    [0.261960] MEM [0x0000000010C000-0x0000000030BFFF] KernelStack
+    [0.262960] MEM [0x0000000030C000-0x000000003FFFFF] Usable
+    [0.262960] MEM [0x00000000400000-0x000000005FDFFF] Kernel
+    [0.263960] MEM [0x000000005FE000-0x0000000060EFFF] PageTable
+    [0.264960] MEM [0x0000000060F000-0x00000001FDFFFF] Usable
+    [0.264960] MEM [0x00000001FE0000-0x00000001FFFFFF] Reserved
+    [0.265960] MEM [0x00000002000000-0x000000FFFBFFFF] Unmapped
+    [0.265960] MEM [0x000000FFFC0000-0x000000FFFFFFFF] Reserved
+    [0.266959] RAM 32 MB
+    [0.363945] CPU GenuineIntel
+    [0.363945] CPU Intel(R) Core(TM)2 Duo CPU     T7700  @ 2.40GHz
+    [0.368944] CPU BP:0 running
+    [0.369944] CPU AP:1 waiting
+    [0.398939] RNG RDRAND unavailable
+    [0.413937] PCI 0000:00:00 [8086:1237]
+    [0.414937] PCI 0000:01:00 [8086:7000]
+    [0.414937] PCI 0000:01:01 [8086:7010]
+    [0.414937] PCI 0000:01:03 [8086:7113]
+    [0.415937] PCI 0000:02:00 [1234:1111]
+    [0.415937] PCI 0000:03:00 [8086:100E]
+    [0.422936] NET DRV E1000
+    [0.424935] NET MAC 52-54-00-12-34-56
+    [0.431934] ATA 0:0 QEMU HARDDISK QM00001 (32 MB)
+    [0.436933] RTC 2024-11-02 18:18:38 +0000
 
 ## Installation
 
@@ -46,7 +50,7 @@ commands to test the system or `install` to setup the
 
     /
     > install
-    Welcome to MOROS v0.10.3 installation program!
+    Welcome to MOROS v0.13.0 installation program!
 
     Proceed? [y/N] y
 
@@ -61,82 +65,74 @@ commands to test the system or `install` to setup the
     MFS is now mounted to '/'
 
     Populating filesystem...
-    Created '/bin'
-    Created '/dev'
-    Created '/ini'
-    Created '/lib'
-    Created '/net'
-    Created '/src'
-    Created '/tmp'
-    Created '/usr'
-    Created '/var'
-    Copied '/bin/clear'
-    Copied '/bin/halt'
-    Copied '/bin/ntp'
-    Copied '/bin/print'
-    Copied '/bin/reboot'
-    Copied '/bin/sleep'
-    Created '/dev/ata'
-    Created '/dev/ata/0'
-    Created '/dev/ata/0/0'
-    Created '/dev/ata/0/1'
-    Created '/dev/ata/1'
-    Created '/dev/ata/1/0'
-    Created '/dev/ata/1/1'
-    Created '/dev/clk'
-    Created '/dev/clk/uptime'
-    Created '/dev/clk/realtime'
-    Created '/dev/rtc'
-    Created '/dev/null'
-    Created '/dev/random'
-    Created '/dev/console'
-    Created '/dev/net'
-    Created '/dev/net/tcp'
-    Created '/dev/net/udp'
-    Copied '/ini/banner.txt'
-    Copied '/ini/boot.sh'
-    Copied '/ini/lisp.lsp'
-    Copied '/ini/shell.sh'
-    Copied '/ini/version.txt'
-    Created '/ini/palettes'
-    Copied '/ini/palettes/gruvbox-dark.sh'
-    Copied '/ini/palettes/gruvbox-light.sh'
-    Created '/ini/fonts'
-    Copied '/ini/fonts/zap-light-8x16.psf'
-    Copied '/ini/fonts/zap-vga-8x16.psf'
-    Created '/lib/lisp'
-    Copied '/lib/lisp/alias.lsp'
-    Copied '/lib/lisp/core.lsp'
-    Copied '/lib/lisp/file.lsp'
-    Copied '/tmp/alice.txt'
-    Copied '/tmp/machines.txt'
-    Created '/tmp/lisp'
-    Copied '/tmp/lisp/colors.lsp'
-    Copied '/tmp/lisp/doc.lsp'
-    Copied '/tmp/lisp/factorial.lsp'
-    Copied '/tmp/lisp/fibonacci.lsp'
-    Copied '/tmp/lisp/geotime.lsp'
-    Copied '/tmp/lisp/pi.lsp'
-    Copied '/tmp/lisp/sum.lsp'
-    Created '/tmp/life'
-    Copied '/tmp/life/centinal.cells'
-    Copied '/tmp/life/flower-of-eden.cells'
-    Copied '/tmp/life/garden-of-eden.cells'
-    Copied '/tmp/life/glider-gun.cells'
-    Copied '/tmp/life/pentadecathlon.cells'
-    Copied '/tmp/life/queen-bee-shuttle.cells'
-    Copied '/tmp/life/ship-in-a-bottle.cells'
-    Copied '/tmp/life/thunderbird.cells'
-    Copied '/tmp/life/wing.cells'
-    Created '/tmp/beep'
-    Copied '/tmp/beep/tetris.sh'
-    Copied '/tmp/beep/starwars.sh'
-    Copied '/tmp/beep/mario.sh'
-    Created '/var/log'
-    Created '/var/www'
-    Copied '/var/www/index.html'
-    Copied '/var/www/moros.css'
-    Copied '/var/www/moros.png'
+    Creating '/bin'
+    Creating '/dev'
+    Creating '/ini'
+    Creating '/lib'
+    Creating '/net'
+    Creating '/src'
+    Creating '/tmp'
+    Creating '/usr'
+    Creating '/var'
+    Fetching '/bin/clear'
+    Fetching '/bin/get'
+    Fetching '/bin/halt'
+    Fetching '/bin/ntp'
+    Fetching '/bin/pkg'
+    Fetching '/bin/print'
+    Fetching '/bin/reboot'
+    Fetching '/bin/sleep'
+    Creating '/dev/ata'
+    Creating '/dev/ata/0'
+    Creating '/dev/ata/1'
+    Creating '/dev/clk'
+    Creating '/dev/net'
+    Creating '/dev/vga'
+    Creating '/dev/ata/0/0'
+    Creating '/dev/ata/0/1'
+    Creating '/dev/ata/1/0'
+    Creating '/dev/ata/1/1'
+    Creating '/dev/clk/boot'
+    Creating '/dev/clk/epoch'
+    Creating '/dev/clk/rtc'
+    Creating '/dev/console'
+    Creating '/dev/net/tcp'
+    Creating '/dev/net/udp'
+    Creating '/dev/net/gw'
+    Creating '/dev/net/ip'
+    Creating '/dev/net/mac'
+    Creating '/dev/net/stat'
+    Creating '/dev/null'
+    Creating '/dev/random'
+    Creating '/dev/speaker'
+    Creating '/dev/vga/buffer'
+    Creating '/dev/vga/font'
+    Creating '/dev/vga/mode'
+    Creating '/dev/vga/palette'
+    Fetching '/ini/banner.txt'
+    Fetching '/ini/boot.sh'
+    Fetching '/ini/lisp.lsp'
+    Fetching '/ini/shell.sh'
+    Fetching '/ini/version.txt'
+    Creating '/ini/palettes'
+    Fetching '/ini/palettes/default.sh'
+    Fetching '/ini/palettes/gruvbox-dark.sh'
+    Fetching '/ini/palettes/gruvbox-light.sh'
+    Creating '/ini/fonts'
+    Fetching '/ini/fonts/zap-light-8x16.psf'
+    Creating '/lib/lisp'
+    Fetching '/lib/lisp/alias.lsp'
+    Fetching '/lib/lisp/core.lsp'
+    Fetching '/lib/lisp/file.lsp'
+    Fetching '/lib/lisp/math.lsp'
+    Fetching '/tmp/alice.txt'
+    Fetching '/tmp/machines.txt'
+    Creating '/var/log'
+    Creating '/var/www'
+    Fetching '/var/www/index.html'
+    Fetching '/var/www/moros.css'
+    Fetching '/var/www/moros.png'
+    Creating '/var/pkg'
 
     Creating user...
     Username: vinc
@@ -175,7 +171,7 @@ The line above the command prompt tells you where you are in the disk. The
 tilde `~` means that you are in your home directory:
 
     ~
-    > print $DIR
+    > print $dir
     /usr/vinc
 
 You can change directory by typing it as if it was a command:
@@ -184,7 +180,7 @@ You can change directory by typing it as if it was a command:
     > /tmp
 
     /tmp
-    > print $DIR
+    > print $dir
     /tmp
 
 From now on we'll omit the directory line in most examples.
@@ -269,7 +265,7 @@ You can print the date with `date`:
 You can update the real time clock by writing the correct time to its device
 file:
 
-    > print "2023-03-21 10:00:00" => /dev/rtc
+    > print 2023-03-21 10:00:00 => /dev/clk/rtc
 
     > date
     2023-03-21 10:00:00 +0000
@@ -279,29 +275,29 @@ You can also set the `TZ` environment variable to use your preferred timezone:
     > calc "2 * 60 * 60"
     7200
 
-    > env TZ 7200
+    > set --env TZ 7200
 
     > date
     2023-03-21 12:00:00 +0200
 
-Add `env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
+Add `set --env TZ 7200` to `/ini/boot.sh` before `shell` to save the timezone:
 
     > read /ini/boot.sh
-    vga set font /ini/fonts/zap-light-8x16.psf
     shell /ini/palettes/gruvbox-dark.sh
+    read /ini/fonts/zap-light-8x16.psf => /dev/vga/font
     read /ini/banner.txt
     user login
-    env TZ 7200
+    set --env TZ 7200
     shell
 
 There's a device file to get the number of seconds elapsed since Unix Epoch:
 
-    > read /dev/clk/realtime
+    > read /dev/clk/epoch
     1682105344.624905
 
 And another one since boot:
 
-    > read /dev/clk/uptime
+    > read /dev/clk/boot
     1169.384929
 
 ## Aliases
@@ -311,7 +307,7 @@ You can add custom commands to the shell with the `alias` command.
 For example you can define an `uptime` command that will read the device file
 described above:
 
-    > alias uptime "read /dev/clk/uptime"
+    > alias uptime "read /dev/clk/boot"
 
     > uptime
     1406.304852
@@ -323,32 +319,33 @@ for example you can use `e` instead of `edit` to edit a file.
 
     > read /ini/shell.sh
     # Command shortcuts
-    alias c    copy
-    alias d    delete
-    alias e    edit
-    alias f    find
-    alias h    help
-    alias l    list
-    alias m    move
-    alias p    print
-    alias q    quit
-    alias r    read
-    alias w    write
+    alias c      copy
+    alias d      drop
+    alias e      edit
+    alias f      find
+    alias g      goto
+    alias h      help
+    alias l      list
+    alias m      move
+    alias p      print
+    alias q      quit
+    alias r      read
+    alias v      view
+    alias w      write
 
-    alias sh   shell
-    alias dsk  disk
-    alias mem  memory
-    alias kbd  keyboard
+    alias sh     shell
+    alias dsk    disk
+    alias mem    memory
 
 ## Network
 
-You can setup the [network](network.md) manually with `net` or automatically
-with `dhcp`:
+You can setup the [network](network.md) manually with some network
+[device files](devices.md) or automatically with the `dhcp` command:
 
     > dhcp
-    ip:  10.0.2.15/24
-    gw:  10.0.2.2
-    dns: 10.0.2.3
+    [8.801660] NET IP 10.0.2.15/24
+    [8.804659] NET GW 10.0.2.2
+    [8.808659] NET DNS 10.0.2.3
 
 A few tools are available like the generalist `socket` command that be used to
 send and receive TCP packets:
@@ -376,4 +373,5 @@ There is also a `ntp` script to synchronize the clock over the network:
     > ntp
     2023-03-21 10:00:00
 
-    > ntp => /dev/rtc
+    > ntp => /dev/clk/rtc
+    [12.111156] RTC 2023-03-21 10:00:00 +0000

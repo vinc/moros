@@ -1,6 +1,13 @@
+use crate::api::fs;
+use crate::api::ini;
+use crate::api::parse::quote;
 use crate::api::syscall;
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+use alloc::collections::btree_map::BTreeMap;
+use alloc::format;
+use alloc::string::{String, ToString};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ExitCode {
     Success        =   0,
@@ -10,7 +17,8 @@ pub enum ExitCode {
     OpenError      = 128,
     ReadError      = 129,
     ExecError      = 130,
-    PageFaultError = 200,
+    PanicError     = 200,
+    PageFaultError = 201,
     ShellExit      = 255,
 }
 
@@ -23,7 +31,8 @@ impl From<usize> for ExitCode {
             128 => ExitCode::OpenError,
             129 => ExitCode::ReadError,
             130 => ExitCode::ExecError,
-            200 => ExitCode::PageFaultError,
+            200 => ExitCode::PanicError,
+            201 => ExitCode::PageFaultError,
             255 => ExitCode::ShellExit,
               _ => ExitCode::Failure,
         }
@@ -32,8 +41,56 @@ impl From<usize> for ExitCode {
 
 pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     if syscall::info(path).is_some() {
-        syscall::spawn(path, args)
+        match syscall::spawn(path, args) {
+            ExitCode::Success => Ok(()),
+            code => Err(code),
+        }
     } else {
         Err(ExitCode::OpenError)
     }
+}
+
+// TODO: Return Result<usize>
+pub fn id() -> usize {
+    let s = fs::read_to_string("/dev/proc/id").unwrap_or("0".to_string());
+    s.parse().unwrap_or(0)
+}
+
+// TODO: Return Result<String>
+pub fn dir() -> String {
+    fs::read_to_string("/dev/proc/dir").unwrap_or("/".to_string())
+}
+
+// TODO: Return Result<()>
+pub fn set_dir(path: &str) {
+    let _ = fs::write("/dev/proc/dir", path.as_bytes());
+}
+
+// TODO: Return Result<String>
+pub fn user() -> Option<String> {
+    fs::read_to_string("/dev/proc/user").ok().filter(|user| !user.is_empty())
+}
+
+pub fn set_user(user: &str) -> Result<(), ()> {
+    fs::write("/dev/proc/user", user.as_bytes()).map(|_| ())
+}
+
+// TODO: Return Result<BTreeMap<String, String>>
+pub fn env() -> BTreeMap<String, String> {
+    if let Ok(s) = fs::read_to_string("/dev/proc/env") {
+        if let Some(h) = ini::parse(&s) {
+            return h;
+        }
+    }
+    BTreeMap::new()
+}
+
+pub fn env_var(key: &str) -> Option<String> {
+    env().get(key).cloned()
+}
+
+// TODO: Return Result<()>
+pub fn set_env_var(key: &str, val: &str) {
+    let s = format!("{}={}", key, quote(val));
+    let _ = fs::write("/dev/proc/env", s.as_bytes());
 }

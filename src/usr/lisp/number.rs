@@ -6,7 +6,8 @@ use alloc::vec::Vec;
 use core::convert::TryFrom;
 use core::fmt;
 use core::num::ParseIntError;
-use core::ops::{Add, Div, Mul, Neg, Rem, Shl, Shr, Sub};
+use core::ops::{Add, Div, Mul, Neg, Rem, Sub};
+use core::ops::{BitAnd, BitOr, BitXor, Shl, Shr};
 use core::str::FromStr;
 use num_bigint::BigInt;
 use num_bigint::ParseBigIntError;
@@ -14,7 +15,7 @@ use num_traits::cast::ToPrimitive;
 use num_traits::Num;
 use num_traits::Zero;
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq)]
 pub enum Number {
     BigInt(BigInt),
     Float(f64),
@@ -66,6 +67,30 @@ macro_rules! arithmetic_method {
     };
 }
 
+macro_rules! bitwise_method {
+    ($op:ident) => {
+        pub fn $op(self, other: Number) -> Number {
+            match (self, other) {
+                (Number::BigInt(a), Number::BigInt(b)) => {
+                    Number::BigInt(a.$op(b))
+                }
+                (Number::BigInt(a), Number::Int(b)) => {
+                    Number::BigInt(a.$op(BigInt::from(b)))
+                }
+                (Number::Int(a), Number::BigInt(b)) => {
+                    Number::BigInt(BigInt::from(a).$op(b))
+                }
+                (Number::Int(a), Number::Int(b)) => {
+                    Number::Int(a.$op(b))
+                }
+                _ => {
+                    Number::Float(f64::NAN)
+                }
+            }
+        }
+    };
+}
+
 impl Number {
     trigonometric_method!(cos);
     trigonometric_method!(sin);
@@ -78,6 +103,10 @@ impl Number {
     arithmetic_method!(sub, checked_sub);
     arithmetic_method!(mul, checked_mul);
     arithmetic_method!(div, checked_div);
+
+    bitwise_method!(bitand);
+    bitwise_method!(bitxor);
+    bitwise_method!(bitor);
 
     // NOTE: Rem use `libm::fmod` for `f64` instead of `rem`
     pub fn rem(self, other: Number) -> Number {
@@ -252,6 +281,45 @@ operator!(Div, div);
 operator!(Rem, rem);
 operator!(Shl, shl);
 operator!(Shr, shr);
+operator!(BitAnd, bitand);
+operator!(BitXor, bitxor);
+operator!(BitOr, bitor);
+
+use core::cmp::Ordering;
+
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (Number::Int(a), Number::Int(b)) => {
+                a.partial_cmp(b)
+            }
+            (Number::Float(a), Number::Float(b)) => {
+                a.partial_cmp(b)
+            }
+            (Number::BigInt(a), Number::BigInt(b)) => {
+                a.partial_cmp(b)
+            }
+            (Number::Int(a), Number::Float(b)) => {
+                (*a as f64).partial_cmp(b)
+            }
+            (Number::Int(a), Number::BigInt(b)) => {
+                (*a as f64).partial_cmp(&b.to_f64().unwrap())
+            }
+            (Number::Float(a), Number::Int(b)) => {
+                a.partial_cmp(&(*b as f64))
+            }
+            (Number::Float(a), Number::BigInt(b)) => {
+                a.partial_cmp(&b.to_f64().unwrap())
+            }
+            (Number::BigInt(a), Number::Float(b))  => {
+                a.to_f64().unwrap().partial_cmp(b)
+            }
+            (Number::BigInt(a), Number::Int(b)) => {
+                a.to_f64().unwrap().partial_cmp(&(*b as f64))
+            }
+        }
+    }
+}
 
 fn parse_int(s: &str) -> Result<i64, ParseIntError> {
     if s.starts_with("0x") {
@@ -306,7 +374,7 @@ impl FromStr for Number {
 
 impl From<&str> for Number {
     fn from(s: &str) -> Self {
-        if let Ok(num) = s.parse() {
+        if let Ok(num) = s.replace("_", "").parse() {
             num
         } else {
             Number::Float(f64::NAN)

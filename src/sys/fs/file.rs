@@ -1,3 +1,4 @@
+use super::bitmap_block::BitmapBlock;
 use super::block::LinkedBlock;
 use super::dir::Dir;
 use super::dir_entry::DirEntry;
@@ -19,7 +20,11 @@ pub struct File {
     name: String,
     addr: u32,
     size: u32,
-    offset: u32,
+    cursor: u32,
+
+    // Skip rewalking the linked list of blocks on each read or write
+    resume_index: usize, // Block index in the list
+    resume_addr: u32, // Block address to resume from
 }
 
 impl From<DirEntry> for File {
@@ -29,7 +34,9 @@ impl From<DirEntry> for File {
             name: entry.name(),
             addr: entry.addr(),
             size: entry.size(),
-            offset: 0,
+            cursor: 0,
+            resume_index: 0,
+            resume_addr: entry.addr(),
         }
     }
 }
@@ -41,7 +48,9 @@ impl File {
             name: String::new(),
             addr: 0,
             size: 0,
-            offset: 0,
+            cursor: 0,
+            resume_index: 0,
+            resume_addr: 0,
         }
     }
 
@@ -79,18 +88,18 @@ impl File {
         self.size as usize
     }
 
-    pub fn seek(&mut self, pos: SeekFrom) -> Result<u32, ()> {
-        let offset = match pos {
+    pub fn seek(&mut self, from: SeekFrom) -> Result<u32, ()> {
+        let cursor = match from {
             SeekFrom::Start(i)   => i as i32,
-            SeekFrom::Current(i) => i + self.offset as i32,
+            SeekFrom::Current(i) => i + self.cursor as i32,
             SeekFrom::End(i)     => i + self.size as i32,
         };
-        if offset < 0 || offset > self.size as i32 { // TODO: offset > size?
+        if cursor < 0 || cursor > self.size as i32 { // TODO: cursor > size?
             return Err(());
         }
-        self.offset = offset as u32;
+        self.cursor = cursor as u32;
 
-        Ok(self.offset)
+        Ok(self.cursor)
     }
     // TODO: Add `read_to_end(&self, buf: &mut Vec<u8>) -> Result<u32>`
 
@@ -117,31 +126,48 @@ impl File {
             Err(())
         }
     }
+
+    fn resume(&self) -> (u32, u32) {
+        let offset = (self.resume_index * LinkedBlock::CAPACITY) as u32;
+        if self.cursor >= offset {
+            (self.resume_addr, offset)
+        } else {
+            (self.addr, 0) // Backward seek
+        }
+    }
+
+    fn set_resume(&mut self, addr: u32, offset: u32) {
+        debug_assert_eq!(offset as usize % LinkedBlock::CAPACITY, 0);
+        self.resume_index = (offset as usize) / LinkedBlock::CAPACITY;
+        self.resume_addr = addr;
+    }
 }
 
 impl FileIO for File {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        let (mut addr, mut offset) = self.resume();
         let buf_len = buf.len();
-        let mut addr = self.addr;
         let mut bytes = 0; // Number of bytes read
-        let mut pos = 0; // Position in the file
         loop {
             let block = LinkedBlock::read(addr);
             let data = block.data();
             let data_len = data.len();
             for i in 0..data_len {
-                if pos == self.offset {
-                    if bytes == buf_len || pos as usize == self.size() {
+                if offset == self.cursor {
+                    if bytes == buf_len || offset as usize == self.size() {
                         return Ok(bytes);
                     }
                     buf[bytes] = data[i];
                     bytes += 1;
-                    self.offset += 1;
+                    self.cursor += 1;
                 }
-                pos += 1;
+                offset += 1;
             }
             match block.next() {
-                Some(next_block) => addr = next_block.addr(),
+                Some(next_block) => {
+                    addr = next_block.addr();
+                    self.set_resume(addr, offset);
+                }
                 None => return Ok(bytes),
             }
         }
@@ -149,23 +175,49 @@ impl FileIO for File {
 
     fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         let buf_len = buf.len();
-        let mut addr = self.addr;
+        let (mut addr, mut offset) = self.resume();
         let mut bytes = 0; // Number of bytes written
-        let mut pos = 0; // Position in the file
+
+        // Optimization: when appending, skip to the last block
+        if self.cursor == self.size && self.size > 0 {
+            let mut block = LinkedBlock::read(addr);
+            while let Some(next_block) = block.next() {
+                addr = next_block.addr();
+                block = LinkedBlock::read(addr);
+            }
+            // If last block is full, allocate a new one
+            let block_data_len = block.capacity() as u32;
+            if self.size % block_data_len == 0 {
+                match LinkedBlock::alloc() {
+                    Some(new_block) => {
+                        let mut last_block = LinkedBlock::read(addr);
+                        last_block.set_next_addr(new_block.addr());
+                        last_block.write();
+                        addr = new_block.addr();
+                        offset = self.size;
+                    }
+                    None => return Err(()),
+                }
+            } else {
+                offset = self.size - (self.size % block_data_len);
+            }
+        }
+
         while bytes < buf_len {
+            self.set_resume(addr, offset);
             let mut block = LinkedBlock::read(addr);
             let data = block.data_mut();
             let data_len = data.len();
             for i in 0..data_len {
-                if pos == self.offset {
+                if offset == self.cursor {
                     if bytes == buf_len {
                         break;
                     }
                     data[i] = buf[bytes];
                     bytes += 1;
-                    self.offset += 1;
+                    self.cursor += 1;
                 }
-                pos += 1;
+                offset += 1;
             }
 
             addr = match block.next() {
@@ -173,7 +225,15 @@ impl FileIO for File {
                     if bytes < buf_len {
                         next_block.addr()
                     } else {
-                        // TODO: Free the next block(s)
+                        // Free next block(s)
+                        let mut free_block = next_block;
+                        loop {
+                            BitmapBlock::free(free_block.addr());
+                            match free_block.next() { // FIXME: read after free?
+                                Some(next_block) => free_block = next_block,
+                                None => break,
+                            }
+                        }
                         0
                     }
                 }
@@ -192,7 +252,7 @@ impl FileIO for File {
             block.set_next_addr(addr);
             block.write();
         }
-        self.size = self.offset;
+        self.size = self.cursor;
         if let Some(dir) = self.parent.clone() {
             dir.update_entry(&self.name, self.size);
         }
@@ -203,7 +263,7 @@ impl FileIO for File {
 
     fn poll(&mut self, event: IO) -> bool {
         match event {
-            IO::Read => self.offset < self.size,
+            IO::Read => self.cursor < self.size,
             IO::Write => true,
         }
     }

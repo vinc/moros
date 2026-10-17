@@ -24,12 +24,6 @@ use core::str::FromStr;
 use num_bigint::BigInt;
 use smoltcp::wire::IpAddress;
 
-pub fn lisp_eq(args: &[Exp]) -> Result<Exp, Err> {
-    Ok(Exp::Bool(
-        numbers(args)?.windows(2).all(|nums| nums[0] == nums[1])
-    ))
-}
-
 pub fn lisp_gt(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Bool(
         numbers(args)?.windows(2).all(|nums| nums[0] > nums[1])
@@ -119,14 +113,41 @@ pub fn lisp_exp(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(res))
 }
 
-pub fn lisp_shl(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_bit_and(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let args = numbers(args)?;
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a|
+        acc & a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bit_xor(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let args = numbers(args)?;
+    let head = args[0].clone();
+    let res = args[1..].iter().fold(head, |acc, a|
+        acc ^ a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bit_or(args: &[Exp]) -> Result<Exp, Err> {
+    let res = numbers(args)?.iter().fold(Number::Int(0), |acc, a|
+        acc | a.clone()
+    );
+    Ok(Exp::Num(res))
+}
+
+pub fn lisp_bit_shl(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let args = numbers(args)?;
     let res = args[0].clone() << args[1].clone();
     Ok(Exp::Num(res))
 }
 
-pub fn lisp_shr(args: &[Exp]) -> Result<Exp, Err> {
+pub fn lisp_bit_shr(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let args = numbers(args)?;
     let res = args[0].clone() >> args[1].clone();
@@ -171,11 +192,6 @@ pub fn lisp_tan(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Num(number(&args[0])?.tan()))
 }
 
-pub fn lisp_trunc(args: &[Exp]) -> Result<Exp, Err> {
-    ensure_length_eq!(args, 1);
-    Ok(Exp::Num(number(&args[0])?.trunc()))
-}
-
 pub fn lisp_shell(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_gt!(args, 0);
     let cmd = strings(args)?.join(" ");
@@ -183,6 +199,15 @@ pub fn lisp_shell(args: &[Exp]) -> Result<Exp, Err> {
         Ok(()) => Ok(Exp::Num(Number::from(0 as u8))),
         Err(code) => Ok(Exp::Num(Number::from(code as u8))),
     }
+}
+
+pub fn lisp_shell_binary(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_gt!(args, 0);
+    let cmd = strings(args)?.join(" ");
+    let buf = shell::exec_to_bytes(&cmd).or(could_not!("execute command"))?;
+    Ok(Exp::List(
+        buf.iter().map(|b| Exp::Num(Number::from(*b))).collect()
+    ))
 }
 
 pub fn lisp_string(args: &[Exp]) -> Result<Exp, Err> {
@@ -285,15 +310,15 @@ pub fn lisp_string_number(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_type(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     let exp = match args[0] {
-        Exp::Primitive(_) => "function",
-        Exp::Function(_) => "function",
-        Exp::Macro(_) => "macro",
+        Exp::Primitive(_) => "fun",
+        Exp::Function(_) => "fun",
+        Exp::Macro(_) => "mac",
         Exp::List(_) => "list",
         Exp::Dict(_) => "dict",
-        Exp::Bool(_) => "boolean",
-        Exp::Str(_) => "string",
-        Exp::Sym(_) => "symbol",
-        Exp::Num(_) => "number",
+        Exp::Bool(_) => "bool",
+        Exp::Str(_) => "str",
+        Exp::Sym(_) => "sym",
+        Exp::Num(_) => "num",
     };
     Ok(Exp::Str(exp.to_string()))
 }
@@ -334,24 +359,17 @@ pub fn lisp_sort(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_contains(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
+        Exp::Dict(d) => Ok(Exp::Bool(d.contains_key(&format!("{}", args[1])))),
         Exp::List(l) => Ok(Exp::Bool(l.contains(&args[1]))),
         Exp::Str(s) => Ok(Exp::Bool(s.contains(&string(&args[1])?))),
-        _ => expected!("first argument to be a list or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
 pub fn lisp_slice(args: &[Exp]) -> Result<Exp, Err> {
-    let (a, b) = match args.len() {
-        2 => (
-            usize::try_from(number(&args[1])?)?,
-            1,
-        ),
-        3 => (
-            usize::try_from(number(&args[1])?)?,
-            usize::try_from(number(&args[2])?)?,
-        ),
-        _ => return expected!("2 or 3 arguments"),
-    };
+    ensure_length_eq!(args, 3);
+    let a = usize::try_from(number(&args[1])?)?;
+    let b = usize::try_from(number(&args[2])?)?;
     match &args[0] {
         Exp::List(l) => {
             let l: Vec<Exp> = l.iter().skip(a).take(b).cloned().collect();
@@ -381,9 +399,10 @@ pub fn lisp_chunks(args: &[Exp]) -> Result<Exp, Err> {
 pub fn lisp_length(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 1);
     match &args[0] {
-        Exp::List(list) => Ok(Exp::Num(Number::from(list.len()))),
-        Exp::Str(string) => Ok(Exp::Num(Number::from(string.chars().count()))),
-        _ => expected!("a list or a string"),
+        Exp::Dict(d) => Ok(Exp::Num(Number::from(d.len()))),
+        Exp::List(l) => Ok(Exp::Num(Number::from(l.len()))),
+        Exp::Str(s) => Ok(Exp::Num(Number::from(s.chars().count()))),
+        _ => expected!("an enumerable"),
     }
 }
 
@@ -410,6 +429,19 @@ pub fn lisp_number_type(args: &[Exp]) -> Result<Exp, Err> {
         Exp::Num(Number::Float(_)) => Ok(Exp::Str("float".to_string())),
         _ => expected!("argument to be a number"),
     }
+}
+
+pub fn lisp_number_int(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    Ok(Exp::Num(number(&args[0])?.trunc()))
+}
+
+pub fn lisp_number_equal(args: &[Exp]) -> Result<Exp, Err> {
+    Ok(Exp::Bool(
+        numbers(args)?.windows(2).all(|nums|
+            nums[0] == nums[1]
+        )
+    ))
 }
 
 // Regex module
@@ -481,16 +513,16 @@ pub fn lisp_file_open(args: &[Exp]) -> Result<Exp, Err> {
     let mode = string(&args[1])?;
 
     let mut flags = match mode.as_ref() {
-        "a" => OpenFlag::Append as usize,
-        "r" => OpenFlag::Read as usize,
-        "w" => OpenFlag::Write as usize,
+        "a" => OpenFlag::Append as u8,
+        "r" => OpenFlag::Read as u8,
+        "w" => OpenFlag::Write as u8,
         _ => return expected!("valid mode"),
     };
     flags |= match syscall::info(&path) {
-        Some(info) if info.is_device() => OpenFlag::Device as usize,
-        Some(info) if info.is_dir() => OpenFlag::Dir as usize,
+        Some(info) if info.is_device() => OpenFlag::Device as u8,
+        Some(info) if info.is_dir() => OpenFlag::Dir as u8,
         None if &mode == "r" => return could_not!("open file"),
-        None => OpenFlag::Create as usize,
+        None => OpenFlag::Create as u8,
         _ => 0,
     };
 
@@ -549,7 +581,7 @@ pub fn lisp_socket_connect(args: &[Exp]) -> Result<Exp, Err> {
         Err(()) => return expected!("valid IP address"),
     };
     let port: usize = number(&args[2])?.try_into()?;
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(&format!("/dev/net/{}", kind), flags) {
         if syscall::connect(handle, addr, port as u16).is_ok() {
             return Ok(Exp::Num(Number::from(handle)));
@@ -562,7 +594,7 @@ pub fn lisp_socket_listen(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     let kind = string(&args[0])?;
     let port: usize = number(&args[1])?.try_into()?;
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(&format!("/dev/net/{}", kind), flags) {
         if syscall::listen(handle, port as u16).is_ok() {
             return Ok(Exp::Num(Number::from(handle)));
@@ -577,7 +609,7 @@ pub fn lisp_socket_accept(args: &[Exp]) -> Result<Exp, Err> {
     if let Ok(addr) = syscall::accept(handle) {
         Ok(Exp::Str(format!("{}", addr)))
     } else {
-        could_not!("accept connections")
+        Ok(Exp::List(Vec::new()))
     }
 }
 
@@ -593,21 +625,34 @@ pub fn lisp_dict(args: &[Exp]) -> Result<Exp, Err> {
     Ok(Exp::Dict(dict))
 }
 
+pub fn lisp_dict_pairs(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    match &args[0] {
+        Exp::Dict(d) => {
+            let l: Vec<Exp> = d.iter().map(|(k, v)|
+                Exp::List(vec![parse(&k).unwrap().1, v.clone()])
+            ).collect();
+            Ok(Exp::List(l))
+        }
+        _ => expected!("first argument to be a dict"),
+    }
+}
+
 pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 2);
     match &args[0] {
-        Exp::Dict(dict) => {
-            let key = format!("{}", args[1]);
-            if let Some(val) = dict.get(&key) {
-                Ok(val.clone())
+        Exp::Dict(d) => {
+            let k = format!("{}", args[1]);
+            if let Some(v) = d.get(&k) {
+                Ok(v.clone())
             } else {
                 Ok(Exp::List(vec![]))
             }
         }
         Exp::List(l) => {
             let i = usize::try_from(number(&args[1])?)?;
-            if let Some(e) = l.get(i) {
-                Ok(e.clone())
+            if let Some(v) = l.get(i) {
+                Ok(v.clone())
             } else {
                 Ok(Exp::List(Vec::new()))
             }
@@ -620,36 +665,36 @@ pub fn lisp_get(args: &[Exp]) -> Result<Exp, Err> {
                 Ok(Exp::Str("".to_string()))
             }
         }
-        _ => expected!("first argument to be a dict, a list, or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
 pub fn lisp_put(args: &[Exp]) -> Result<Exp, Err> {
     ensure_length_eq!(args, 3);
     match &args[0] {
-        Exp::Dict(dict) => {
-            let mut dict = dict.clone();
-            let key = format!("{}", args[1]);
-            let val = args[2].clone();
-            dict.insert(key, val);
-            Ok(Exp::Dict(dict))
+        Exp::Dict(d) => {
+            let mut d = d.clone();
+            let k = format!("{}", args[1]);
+            let v = args[2].clone();
+            d.insert(k, v);
+            Ok(Exp::Dict(d))
         }
-        Exp::List(list) => {
+        Exp::List(l) => {
+            let mut l = l.clone();
             let i = usize::try_from(number(&args[1])?)?;
-            let val = args[2].clone();
-            let mut list = list.clone();
-            list.insert(i, val);
-            Ok(Exp::List(list))
+            let v = args[2].clone();
+            l.insert(i, v);
+            Ok(Exp::List(l))
         }
         Exp::Str(s) => {
+            let mut s: Vec<char> = s.chars().collect();
             let i = usize::try_from(number(&args[1])?)?;
             let v: Vec<char> = string(&args[2])?.chars().collect();
-            let mut s: Vec<char> = s.chars().collect();
             s.splice(i..i, v);
             let s: String = s.into_iter().collect();
             Ok(Exp::Str(s))
         }
-        _ => expected!("first argument to be a dict, a list, or a string"),
+        _ => expected!("first argument to be an enumerable"),
     }
 }
 
@@ -668,4 +713,11 @@ pub fn lisp_date(args: &[Exp]) -> Result<Exp, Err> {
     let fmt = api::clock::DATE_TIME;
     let date = api::time::from_timestamp_utc(ts).format(fmt);
     Ok(Exp::Str(date))
+}
+
+pub fn lisp_sleep(args: &[Exp]) -> Result<Exp, Err> {
+    ensure_length_eq!(args, 1);
+    let duration = float(&args[0])?;
+    syscall::sleep((duration * 1000.0) as usize);
+    Ok(Exp::List(Vec::new()))
 }

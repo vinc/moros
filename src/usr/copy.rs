@@ -29,8 +29,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let source = args[1];
     let dest = destination(args[1], args[2]);
 
-    if fs::is_dir(source) {
-        error!("Could not copy directory '{}'", source);
+    if fs::is_dir(source) { // TODO: Implement dir copy
+        error!("Could not copy directory {:?}", source);
         return Err(ExitCode::Failure);
     }
 
@@ -38,11 +38,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         if fs::write(&dest, &contents).is_ok() {
             Ok(())
         } else {
-            error!("Could not write to '{}'", dest);
+            error!("Could not write to {:?}", dest);
             Err(ExitCode::Failure)
         }
     } else {
-        error!("Could not read file '{}'", source);
+        error!("Could not read file {:?}", source);
         Err(ExitCode::Failure)
     }
 }
@@ -58,8 +58,8 @@ fn destination(source: &str, dest: &str) -> String {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} copy {}<src> <dst>{}",

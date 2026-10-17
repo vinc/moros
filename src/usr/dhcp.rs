@@ -1,10 +1,10 @@
 use crate::api::clock;
 use crate::api::console::Style;
+use crate::api::fs;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::sys::console;
 use crate::sys::net;
-use crate::usr::shell;
 
 use alloc::format;
 use alloc::string::ToString;
@@ -34,9 +34,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             debug!("DHCP Discover transmitted");
         }
         let timeout = 30.0;
-        let started = clock::realtime();
+        let started = clock::epoch_time();
         loop {
-            if clock::realtime() - started > timeout {
+            if clock::epoch_time() - started > timeout {
                 error!("Timeout reached");
                 return Err(ExitCode::Failure);
             }
@@ -45,7 +45,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 return Err(ExitCode::Failure);
             }
 
-            let ms = (clock::realtime() * 1000000.0) as i64;
+            let ms = (clock::epoch_time() * 1000000.0) as i64;
             let time = Instant::from_micros(ms);
             iface.poll(time, device, &mut sockets);
             let event = sockets.get_mut::<dhcpv4::Socket>(dhcp_handle).poll();
@@ -65,8 +65,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
 
             if let Some(delay) = iface.poll_delay(time, &sockets) {
-                let d = (delay.total_micros() as f64) / 1000000.0;
-                syscall::sleep(d.min(0.1)); // Don't sleep longer than 0.1s
+                let duration = delay.total_millis() as usize;
+                syscall::sleep(duration.clamp(1, 100));
             }
         }
     } else {
@@ -74,23 +74,23 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         return Err(ExitCode::Failure);
     }
 
-    if let Some((address, router, dns_servers)) = dhcp_config {
-        shell::exec(&format!("net config ip {}", address)).ok();
-        shell::exec("net config ip").ok();
+    if let Some((ip, gw, dns)) = dhcp_config {
+        fs::write("/dev/net/ip", ip.to_string().as_bytes()).ok();
 
-        if let Some(router) = router {
-            shell::exec(&format!("net config gw {}", router)).ok();
+        if let Some(gw) = gw {
+            fs::write("/dev/net/gw", gw.to_string().as_bytes()).ok();
         } else {
-            shell::exec("net config gw 0.0.0.0").ok();
+            fs::write("/dev/net/gw", b"0.0.0.0").ok();
         }
-        shell::exec("net config gw").ok();
 
-        let dns: Vec<_> = dns_servers.iter().map(|s| s.to_string()).collect();
+        let dns: Vec<_> = dns.iter().map(|s| s.to_string()).collect();
         if !dns.is_empty() {
-            shell::exec(&format!("net config dns {}", dns.join(","))).ok();
+            let servers = dns.join(",");
+            let config = format!("dns = \"{}\"\n", servers);
+            if fs::write("/ini/dns.ini", config.as_bytes()).is_ok() {
+                log!("NET DNS {}", servers);
+            }
         }
-        shell::exec("net config dns").ok();
-
         return Ok(());
     }
 
@@ -98,8 +98,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} dhcp {}<options>{1}",

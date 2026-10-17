@@ -1,16 +1,13 @@
-use crate::api::fs::{FileIO, IO};
 use crate::sys;
 
-use lazy_static::lazy_static;
+use crate::sys::fs::{FileIO, IO};
+
 use rand::{RngCore, SeedableRng};
 use rand_hc::Hc128Rng;
 use sha2::{Digest, Sha256};
-use spin::Mutex;
-use x86_64::instructions::random::RdRand;
+use spin::{Once, Mutex};
 
-lazy_static! {
-    static ref RNG: Mutex<Hc128Rng> = Mutex::new(Hc128Rng::from_seed([0; 32]));
-}
+static RNG: Once<Mutex<Hc128Rng>> = Once::new();
 
 #[derive(Debug, Clone)]
 pub struct Random;
@@ -33,7 +30,7 @@ impl FileIO for Random {
     }
 
     fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
-        unimplemented!();
+        Err(())
     }
 
     fn close(&mut self) {}
@@ -47,7 +44,7 @@ impl FileIO for Random {
 }
 
 pub fn get_u64() -> u64 {
-    RNG.lock().next_u64()
+    RNG.get().expect("RNG not initialized").lock().next_u64()
 }
 
 pub fn get_u32() -> u32 {
@@ -60,13 +57,13 @@ pub fn get_u16() -> u16 {
 
 pub fn init() {
     let mut seed = [0; 32];
-    if let Some(rng) = RdRand::new() {
+    if sys::cpu::has_rdrand() {
         log!("RNG RDRAND available");
         for chunk in seed.chunks_mut(8) {
             // NOTE: Intel's Software Developer's Manual, Volume 1, 7.3.17.1
             let mut retry = true;
             for _ in 0..10 { // Retry up to 10 times
-                if let Some(num) = rng.get_u64() {
+                if let Some(num) = sys::x86::rdrand() {
                     chunk.clone_from_slice(&num.to_be_bytes());
                     retry = false;
                     break;
@@ -81,11 +78,11 @@ pub fn init() {
     } else {
         log!("RNG RDRAND unavailable");
         let mut hasher = Sha256::new();
-        hasher.update(&sys::time::ticks().to_be_bytes());
-        hasher.update(&sys::clock::realtime().to_be_bytes());
-        hasher.update(&sys::clock::uptime().to_be_bytes());
+        hasher.update(sys::clk::ticks().to_be_bytes());
+        hasher.update(sys::clk::epoch_time().to_be_bytes());
+        hasher.update(sys::clk::boot_time().to_be_bytes());
         seed = hasher.finalize().into();
     }
 
-    *RNG.lock() = Hc128Rng::from_seed(seed);
+    RNG.call_once(|| Mutex::new(Hc128Rng::from_seed(seed)));
 }

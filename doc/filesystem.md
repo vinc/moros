@@ -6,13 +6,13 @@
 A hard drive is separated in blocks of 512 bytes, grouped into 4 areas:
 
     +------------+
-    | Boot       | (4096 blocks)
+    | Boot       | (8192 blocks)
     +------------+
     | Superblock | (2 blocks)
     +------------+
-    | Bitmap     | (n / (8 * 512) blocks)
+    | Bitmap     | (n blocks)
     +------------+
-    | Data       | (n blocks)
+    | Data       | (n * 512 * 8 blocks)
     +------------+
 
 The first area contains the bootloader and the kernel, the second is a
@@ -56,6 +56,9 @@ The next step during setup is to create the directory structure:
     > write /tmp/           # Temporary files
     > write /usr/           # User directories
     > write /var/           # Variable files
+
+See the [devices](devices.md) documentation to create the device files in the
+`/dev` directory.
 
 Then the following should be added to the boot script with the
 command `edit /ini/boot.sh` to allow MOROS to finish booting:
@@ -157,7 +160,7 @@ Structure:
 A directory entry represents a file or a directory contained inside a
 directory. Each entry use a variable number of bytes that must fit inside the
 data of one block. Those bytes represent the kind of entry (file or dir), the
-address of the first block, the filesize (max 4GB), the last modified time in
+address of the first block, the filesize (max 4 GB), the last modified time in
 seconds since Unix Epoch, the length of the filename, and the filename (max
 255 chars) of the entry.
 
@@ -176,8 +179,9 @@ Structure:
 
 ### FileInfo
 
-The `info` syscall on a file or directory and the `read` syscall on a directory
-return a subset of a directory entry for userspace programs.
+The `INFO` syscall on a file or directory and the `READ` syscall on a directory
+return a subset of a directory entry for userspace programs. See the
+[syscalls](syscalls.md) documentation for more information.
 
 Structure:
 

@@ -5,7 +5,6 @@ use crate::sys::console;
 use crate::sys::fs::OpenFlag;
 use crate::usr;
 
-use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str;
@@ -57,11 +56,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let buf_len = if let Some(info) = syscall::info(socket_path) {
         info.size() as usize
     } else {
-        error!("Could not open '{}'", socket_path);
+        error!("Could not open {:?}", socket_path);
         return Err(ExitCode::Failure);
     };
 
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             error!("Could not connect to {}:{}", addr, port);
@@ -98,8 +97,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} tcp {}<host>:<port>{1}",

@@ -1,0 +1,87 @@
+#! lisp
+
+(load "/lib/lisp/core.lsp")
+(load "/lib/lisp/ini.lsp")
+
+(set base (or (get (ini/parse "/ini/pkg.ini") "pkg") "10.0.2.2:8181"))
+
+(def (pkg/fetch path) (do
+  "Download the given file"
+  (print (str "Retrieving \"" path "\""))
+  (set dir (dirname path))
+  (if (not (file/exists? dir))
+    (sh (str "write -p " dir "/")))
+  (set res (sh (str "http " base path " => " path)))
+  (if (= res 0)
+    (if (regex/match? "\\.z$" path)
+      (do
+        (print (str "Extracting \"" (slice path 0 (- (len path) 2)) "\""))
+        (sh (str "inflate " path)))
+      res)
+    res)))
+
+(def (pkg/delete path) (do
+  "Delete the given file"
+  (print (str "Deleting \"" path "\""))
+  (set dir (dirname path))
+  (sh (str "drop " path))))
+
+(def (pkg/install pkg) (do
+  "Installs the given package"
+  (set path (str "/var/pkg/" pkg))
+  (if (not (eq? pkg "index.html"))
+    (if (= (pkg/fetch path) 0)
+      (do
+        (set files (lines (read path)))
+        (map pkg/fetch files))
+      (do
+        (sh (str "drop " path))
+        (error (str "Could not find package \"" pkg "\""))))
+    (error (str "Could not find package \"" pkg "\"")))))
+
+(def (pkg/remove pkg) (do
+  "Removes the given package"
+  (set path (str "/var/pkg/" pkg))
+  (if (not (eq? pkg "index.html"))
+    (if (file/exists? path)
+      (do # The local package could list files not in the latest version
+        (set files (lines (read path)))
+        (map pkg/delete files))
+      (if (= (pkg/fetch path) 0)
+        (do # Fallback to fetching the latest version of the package
+          (set files (lines (read path)))
+          (map pkg/delete files))
+        (do
+          (sh (str "drop " path))
+          (error (str "Could not find package \"" pkg "\"")))))
+    (error (str "Could not find package \"" pkg "\"")))))
+
+(def (pkg/list)
+  (sh (str "http " base "/var/pkg/")))
+
+(def (print-usage) (do
+  (set l "\e[92m") # Lime
+  (set y "\e[93m") # Yellow
+  (set a "\e[96m") # Aqua
+  (set r "\e[m")   # Reset
+  (print (str y "Usage:" r " pkg " a "<cmd>" r))
+  (print "")
+  (print (str y "Commands:" r))
+  (print (str "  " l "l" a "ist" r "             List packages"))
+  (print (str "  " l "i" a "nstall <pkg>" r "    Install package"))
+  (print (str "  " l "r" a "emove <pkg>" r "     Remove package"))))
+
+(if (> (len args) 0)
+  (cond
+    ((contains? '("install" "i") (first args))
+      (if (= (len args) 2)
+        (pkg/install (second args))
+        (print-usage)))
+    ((contains? '("remove" "r") (first args))
+      (if (= (len args) 2)
+        (pkg/remove (second args))
+        (print-usage)))
+    ((contains? '("list" "l") (first args))
+      (pkg/list))
+    (true (print-usage)))
+  (print-usage))

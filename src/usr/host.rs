@@ -1,9 +1,11 @@
 use crate::api::console::Style;
+use crate::api::fs;
+use crate::api::ini;
 use crate::api::process::ExitCode;
 use crate::api::rng;
 use crate::api::syscall;
 use crate::sys::fs::OpenFlag;
-use crate::usr;
+
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -117,10 +119,14 @@ impl Message {
 }
 
 fn dns_address() -> Option<IpAddress> {
-    if let Some(servers) = usr::net::get_config("dns") {
-        if let Some((server, _)) = servers.split_once(',') {
-            if let Ok(addr) = IpAddress::from_str(server) {
-                return Some(addr);
+    if let Ok(buf) = fs::read_to_string("/ini/dns.ini") {
+        if let Some(config) = ini::parse(&buf) {
+            if let Some(servers) = config.get("dns") {
+                if let Some((server, _)) = servers.split_once(',') {
+                    if let Ok(addr) = IpAddress::from_str(server) {
+                        return Some(addr);
+                    }
+                }
             }
         }
     }
@@ -139,7 +145,7 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
         return Err(ResponseCode::NetworkError);
     };
 
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             syscall::close(handle);
@@ -160,18 +166,22 @@ pub fn resolve(name: &str) -> Result<IpAddress, ResponseCode> {
                 let message = Message::from(&data);
                 if message.id() == query.id() && message.is_response() {
                     syscall::close(handle);
-                    //usr::hex::print_hex(&message.datagram);
+                    //print!("{}", api::hex::format_hex(&message.datagram));
                     return match message.code() {
                         ResponseCode::NoError => {
                             // TODO: Parse the datagram instead of extracting
                             // the last 4 bytes
                             let n = message.datagram.len();
                             let data = &message.datagram[(n - 4)..];
-                            let ipv4 = Ipv4Address::from_bytes(data);
-                            if ipv4.is_unspecified() {
-                                Err(ResponseCode::NameError) // FIXME
+                            if let Ok(data) = data.try_into() {
+                                let ipv4 = Ipv4Address::from_octets(data);
+                                if ipv4.is_unspecified() {
+                                    Err(ResponseCode::NameError) // FIXME
+                                } else {
+                                    Ok(IpAddress::from(ipv4))
+                                }
                             } else {
-                                Ok(IpAddress::from(ipv4))
+                                Err(ResponseCode::NameError) // FIXME
                             }
                         }
                         code => Err(code),
@@ -206,8 +216,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} host {}<domain>{1}",

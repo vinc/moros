@@ -2,6 +2,7 @@ use crate::api::clock;
 use crate::api::clock::DATE_TIME_ZONE;
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::api::time;
@@ -21,7 +22,7 @@ use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-const MAX_CONNECTIONS: usize = 32;
+const MAX_CONNECTIONS: usize = 32; // TODO: Add dynamic pooling
 const POLL_DELAY_DIV: usize = 128;
 const INDEX: [&str; 4] = ["", "/index.html", "/index.htm", "/index.txt"];
 
@@ -181,9 +182,9 @@ impl Response {
 
 impl fmt::Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let csi_blue = Style::color("LightBlue");
-        let csi_cyan = Style::color("LightCyan");
-        let csi_pink = Style::color("Pink");
+        let csi_blue = Style::color("blue");
+        let csi_cyan = Style::color("aqua");
+        let csi_pink = Style::color("fushia");
         let csi_reset = Style::reset();
         write!(
             f,
@@ -210,7 +211,7 @@ fn get(req: &Request, res: &mut Response) {
             "Location".to_string(),
             format!("{}/", req.path),
         );
-        res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\r\n");
+        res.body.extend_from_slice(b"<h1>Moved Permanently</h1>\n");
     } else {
         let mut not_found = true;
         for index in INDEX {
@@ -221,16 +222,7 @@ fn get(req: &Request, res: &mut Response) {
             if let Ok(buf) = fs::read_to_bytes(&real_path) {
                 res.code = 200;
                 res.mime = content_type(&real_path);
-                let tmp;
-                res.body.extend_from_slice(
-                    if res.mime.starts_with("text/") {
-                        tmp = String::from_utf8_lossy(&buf).to_string().
-                            replace("\n", "\r\n");
-                        tmp.as_bytes()
-                    } else {
-                        &buf
-                    },
-                );
+                res.body.extend_from_slice(&buf);
                 not_found = false;
                 break;
             }
@@ -240,22 +232,22 @@ fn get(req: &Request, res: &mut Response) {
                 res.code = 200;
                 res.mime = "text/html".to_string();
                 res.body.extend_from_slice(
-                    format!("<h1>Index of {}</h1>\r\n", req.path).as_bytes()
+                    format!("<h1>Index of {}</h1>\n", req.path).as_bytes()
                 );
                 files.sort_by_key(|f| f.name());
                 for file in files {
-                    let path = format!("{}{}", req.path, file.name());
+                    let path = format!(
+                        "{}{}", req.path, file.name()
+                    );
                     let link = format!(
-                        "<li><a href=\"{}\">{}</a></li>\n",
-                        path,
-                        file.name()
+                        "<li><a href=\"{}\">{}</a></li>\n", path, file.name()
                     );
                     res.body.extend_from_slice(link.as_bytes());
                 }
             } else {
                 res.code = 404;
                 res.mime = "text/html".to_string();
-                res.body.extend_from_slice(b"<h1>Not Found</h1>\r\n");
+                res.body.extend_from_slice(b"<h1>Not Found</h1>\n");
             }
         }
     }
@@ -298,11 +290,11 @@ fn delete(_req: &Request, res: &mut Response) {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let csi_color = Style::color("Yellow");
+    let csi_color = Style::color("yellow");
     let csi_reset = Style::reset();
     let mut read_only = false;
     let mut port = 80;
-    let mut dir = sys::process::dir();
+    let mut dir = process::dir();
     let mut i = 1;
     let n = args.len();
     while i < n {
@@ -316,8 +308,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-p" | "--port" => {
                 if i + 1 < n {
-                    port = args[i + 1].parse().unwrap_or(port);
                     i += 1;
+                    port = args[i].parse().unwrap_or(port);
                 } else {
                     error!("Missing port number");
                     return Err(ExitCode::UsageError);
@@ -325,8 +317,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-d" | "--dir" => {
                 if i + 1 < n {
-                    dir = args[i + 1].to_string();
                     i += 1;
+                    dir = args[i].to_string();
                 } else {
                     error!("Missing directory");
                     return Err(ExitCode::UsageError);
@@ -368,7 +360,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 return Ok(());
             }
 
-            let ms = (clock::realtime() * 1000000.0) as i64;
+            let ms = (clock::epoch_time() * 1000000.0) as i64;
             let time = Instant::from_micros(ms);
             iface.poll(time, device, &mut sockets);
 
@@ -377,18 +369,21 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
                 if !socket.is_open() {
                     socket.listen(port).unwrap();
+                    *keep_alive = true; // Reset to default
                 }
+
                 let endpoint = match socket.remote_endpoint() {
                     Some(endpoint) => endpoint,
                     None => continue,
                 };
+
                 if socket.may_recv() {
                     // The amount of octets queued in the receive buffer may be
                     // larger than the contiguous slice returned by `recv` so
                     // we need to loop over chunks of it until it is empty.
                     let recv_queue = socket.recv_queue();
-                    let mut receiving = true;
                     let mut buf = vec![];
+                    let mut receiving = true;
                     while receiving {
                         let res = socket.recv(|chunk| {
                             buf.extend_from_slice(chunk);
@@ -413,7 +408,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                         delete(&req, &mut res)
                                     }
                                     _ => {
-                                        let s = b"<h1>Bad Request</h1>\r\n";
+                                        let s = b"<h1>Bad Request</h1>\n";
                                         res.body.extend_from_slice(s);
                                         res.code = 400;
                                         res.mime = "text/html".to_string();
@@ -423,7 +418,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 println!("{}", res);
                                 (chunk.len(), Some(res))
                             } else {
-                                (0, None)
+                                (0, None) // (chunk.len(), None) // TODO?
                             }
                         });
                         if receiving {
@@ -436,11 +431,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             }
                         }
                     }
+
                     if socket.can_send() {
                         if let Some(chunk) = send_queue.pop_front() {
-                            let sent = socket.send_slice(&chunk).
-                                expect("Could not send chunk");
-                            debug_assert!(sent == chunk.len());
+                            if socket.send_slice(&chunk).is_err() {
+                                // send_queue.push_front(chunk); // TODO?
+                            }
                         }
                     }
                     if send_queue.is_empty() && !*keep_alive {
@@ -448,14 +444,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                 } else if socket.may_send() {
                     socket.close();
-                    send_queue.clear();
+                    send_queue.clear(); // TODO: Remove this?
                 }
             }
+
             if let Some(delay) = iface.poll_delay(time, &sockets) {
-                let d = delay.total_micros() / POLL_DELAY_DIV as u64;
-                if d > 0 {
-                    syscall::sleep((d as f64) / 1000000.0);
-                }
+                let duration = (delay.total_millis() as usize) / POLL_DELAY_DIV;
+                syscall::sleep(duration.clamp(1, 100));
             }
         }
     } else {
@@ -467,6 +462,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 fn content_type(path: &str) -> String {
     let ext = path.rsplit_once('.').unwrap_or(("", "")).1;
     match ext {
+        "bmp"          => "image/bmp",
         "css"          => "text/css",
         "csv"          => "text/csv",
         "gif"          => "text/gif",
@@ -474,10 +470,11 @@ fn content_type(path: &str) -> String {
         "jpg" | "jpeg" => "image/jpeg",
         "js"           => "text/javascript",
         "json"         => "application/json",
-        "lsp" | "lisp" => "text/plain",
         "png"          => "image/png",
         "sh"           => "application/x-sh",
-        "txt"          => "text/plain",
+        "lsp" | "lisp" => "text/plain",
+        "ini" | "conf" => "text/plain",
+        "txt" | "md"   => "text/plain",
         _              => "application/octet-stream",
     }.to_string()
 }
@@ -492,8 +489,8 @@ fn join_path(dir: &str, path: &str) -> String {
 }
 
 fn usage() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} httpd {}<options>{1}",

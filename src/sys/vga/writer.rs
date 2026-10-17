@@ -1,0 +1,573 @@
+use super::*;
+
+use color::Color;
+
+use palette::Palette;
+
+use buffer::Buffer;
+
+use crate::api::font::Font;
+
+use crate::sys;
+
+use spin::{LazyLock, Mutex};
+use vte::{Params, Parser, Perform};
+
+const FG: Color = Color::DarkWhite;
+const BG: Color = Color::DarkBlack;
+const UNPRINTABLE: u8 = 0x00; // Unprintable chars will be replaced by this one
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
+struct ColorCode(u8);
+
+impl ColorCode {
+    fn new(foreground: Color, background: Color) -> Self {
+        Self((background as u8) << 4 | (foreground as u8))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+struct ScreenChar {
+    ascii_code: u8,
+    color_code: ColorCode,
+}
+
+impl ScreenChar {
+    const fn zeroed() -> Self {
+        Self {
+            ascii_code: 0,
+            color_code: ColorCode(0)
+        }
+    }
+
+}
+
+const SCREEN_WIDTH: usize = 80;
+const SCREEN_HEIGHT: usize = 25;
+const SCROLL_HEIGHT: usize = SCREEN_HEIGHT * 10;
+
+#[repr(transparent)]
+struct ScreenBuffer {
+    chars: [[ScreenChar; SCREEN_WIDTH]; SCREEN_HEIGHT],
+}
+
+// Using a static buffer avoids building the array on the stack, and zeroing it
+// puts the buffer in the .bss section instead of .data so it doesn't increase
+// the kernel size.
+//
+// The buffer is always written before being read. The screen is cleared during
+// init, and each row is cleared as it scrolls into view, so the null chars are
+// never rendered.
+static mut SCROLL_BUFFER: [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT] =
+    [[ScreenChar::zeroed(); SCREEN_WIDTH]; SCROLL_HEIGHT];
+
+pub static PARSER: LazyLock<Mutex<Parser>> = LazyLock::new(||
+    Mutex::new(Parser::new())
+);
+
+pub static WRITER: LazyLock<Mutex<Writer>> = LazyLock::new(||
+    Mutex::new(Writer {
+        cursor: [0; 2],
+        writer: [0; 2],
+        color_code: ColorCode::new(FG, BG),
+        screen_buffer: unsafe { &mut *(0xB8000 as *mut ScreenBuffer) },
+        scroll_buffer: unsafe { &mut *core::ptr::addr_of_mut!(SCROLL_BUFFER) },
+        scroll_reader: 0,
+        scroll_bottom: SCREEN_HEIGHT,
+    })
+);
+
+pub struct Writer {
+    cursor: [usize; 2], // x, y
+    writer: [usize; 2], // x, y
+    color_code: ColorCode,
+    screen_buffer: &'static mut ScreenBuffer,
+    scroll_buffer: &'static mut [[ScreenChar; SCREEN_WIDTH]; SCROLL_HEIGHT],
+    scroll_reader: usize, // Top of the screen
+    scroll_bottom: usize, // Bottom of the buffer
+}
+
+// Scroll Buffer
+// +----------------------------+
+// | line 01                    |
+// | line 02                    |
+// | line 03                    |
+// | line 04                    |
+// +----------------------------+
+// | line 05                    | <-- scroll_reader
+// | line 06                    |
+// | line 07                    |
+// | line 08                    |
+// +----------------------------+
+// | line 09                    |
+// | line 10                    |
+// | line 11                    |
+// | line 12                    | <-- scroll_bottom
+// |                            |
+// |                            |
+// |                            |
+// |                            |
+// +----------------------------+
+//
+// Screen Buffer
+// +----------------------------+
+// | line 05                    |
+// | line 06                    |
+// | line 07                    |
+// | line 08                    |
+// +----------------------------+
+
+impl Writer {
+    fn writer_position(&self) -> (usize, usize) {
+        (self.writer[0], self.writer[1])
+    }
+
+    fn set_writer_position(&mut self, x: usize, y: usize) {
+        self.writer = [x, y];
+    }
+
+    fn cursor_position(&self) -> (usize, usize) {
+        (self.cursor[0], self.cursor[1])
+    }
+
+    fn set_cursor_position(&mut self, x: usize, y: usize) {
+        self.cursor = [x, y];
+        self.write_cursor();
+    }
+
+    fn write_cursor(&mut self) {
+        let pos = self.cursor[0] + self.cursor[1] * SCREEN_WIDTH;
+        unsafe {
+            outb(CRTC_ADDR_REG, 0x0F);
+            outb(CRTC_DATA_REG, (pos & 0xFF) as u8);
+            outb(CRTC_ADDR_REG, 0x0E);
+            outb(CRTC_DATA_REG, ((pos >> 8) & 0xFF) as u8);
+        }
+    }
+
+    // Source: http://www.osdever.net/FreeVGA/vga/crtcreg.htm#0A
+    fn disable_cursor(&self) {
+        unsafe {
+            outb(CRTC_ADDR_REG, 0x0A);
+            outb(CRTC_DATA_REG, 0x20);
+        }
+    }
+
+    fn enable_cursor(&self) {
+        let cursor_start = 13; // Starting row
+        let cursor_end = 14; // Ending row
+        unsafe {
+            outb(CRTC_ADDR_REG, 0x0A); // Cursor Start Register
+            let b = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, (b & 0xC0) | cursor_start);
+
+            outb(CRTC_ADDR_REG, 0x0B); // Cursor End Register
+            let b = inb(CRTC_DATA_REG);
+            outb(CRTC_DATA_REG, (b & 0xE0) | cursor_end);
+        }
+    }
+
+    fn disable_echo(&self) {
+        sys::console::disable_echo();
+    }
+
+    fn enable_echo(&self) {
+        sys::console::enable_echo();
+    }
+
+    fn write_byte(&mut self, byte: u8) {
+        if self.is_scrolling() {
+            // Scroll to the current screen
+            self.scroll_reader = self.scroll_bottom - SCREEN_HEIGHT;
+            self.scroll();
+        }
+
+        match byte {
+            0x0A => {
+                // Newline
+                self.new_line();
+            }
+            0x0D => { // Carriage Return
+            }
+            0x08 => {
+                // Backspace
+                if self.writer[0] > 0 {
+                    self.writer[0] -= 1;
+                    let c = ScreenChar {
+                        ascii_code: b' ',
+                        color_code: self.color_code,
+                    };
+                    let x = self.writer[0];
+                    let y = self.writer[1];
+                    let ptr = &mut self.screen_buffer.chars[y][x];
+                    unsafe { core::ptr::write_volatile(ptr, c); }
+
+                    let dy = self.scroll_reader;
+                    self.scroll_buffer[y + dy][x] = c;
+                }
+            }
+            byte => {
+                if self.writer[0] >= SCREEN_WIDTH {
+                    self.new_line();
+                }
+
+                let x = self.writer[0];
+                let y = self.writer[1];
+                let ascii_code = if is_printable(byte) {
+                    byte
+                } else {
+                    UNPRINTABLE
+                };
+                let color_code = self.color_code;
+                let c = ScreenChar {
+                    ascii_code,
+                    color_code,
+                };
+                let ptr = &mut self.screen_buffer.chars[y][x];
+                unsafe { core::ptr::write_volatile(ptr, c); }
+                self.writer[0] += 1;
+
+                let dy = self.scroll_reader;
+                self.scroll_buffer[y + dy][x] = c;
+            }
+        }
+    }
+
+    fn new_line(&mut self) {
+        if self.writer[1] < SCREEN_HEIGHT - 1 {
+            self.writer[1] += 1;
+        } else {
+            for y in 1..SCREEN_HEIGHT {
+                self.screen_buffer.chars[y - 1] = self.screen_buffer.chars[y];
+            }
+            if self.scroll_bottom == SCROLL_HEIGHT {
+                for y in 1..SCROLL_HEIGHT {
+                    self.scroll_buffer[y - 1] = self.scroll_buffer[y];
+                }
+            } else {
+                self.scroll_reader += 1;
+                self.scroll_bottom += 1;
+            }
+            self.clear_row_after(0, SCREEN_HEIGHT - 1);
+        }
+        self.writer[0] = 0;
+    }
+
+    fn clear_row_after(&mut self, x: usize, y: usize) {
+        let c = ScreenChar {
+            ascii_code: b' ',
+            color_code: self.color_code,
+        };
+        self.screen_buffer.chars[y][x..SCREEN_WIDTH].fill(c);
+
+        let dy = self.scroll_reader;
+        self.scroll_buffer[y + dy][x..SCREEN_WIDTH].fill(c);
+    }
+
+    pub fn clear_screen(&mut self) {
+        self.scroll_reader = 0;
+        self.scroll_bottom = SCREEN_HEIGHT;
+        for y in 0..SCREEN_HEIGHT {
+            self.clear_row_after(0, y);
+        }
+    }
+
+    fn set_color(&mut self, foreground: Color, background: Color) {
+        self.color_code = ColorCode::new(foreground, background);
+    }
+
+    // Source: https://slideplayer.com/slide/3888880
+    pub fn set_font(&mut self, font: &Font) {
+        let buffer = Buffer::addr() as *mut u8;
+
+        unsafe {
+            outw(SEQUENCER_ADDR_REG, 0x0100); // do a sync reset
+            outw(SEQUENCER_ADDR_REG, 0x0402); // write plane 2 only
+            outw(SEQUENCER_ADDR_REG, 0x0704); // sequetial access
+            outw(SEQUENCER_ADDR_REG, 0x0300); // end the reset
+            outw(GRAPHICS_ADDR_REG,  0x0204); // read plane 2 only
+            outw(GRAPHICS_ADDR_REG,  0x0005); // disable odd/even
+            outw(GRAPHICS_ADDR_REG,  0x0006); // VRAM at 0xA0000
+
+            for i in 0..font.size as usize {
+                for j in 0..font.height as usize {
+                    let vga_offset = j + i * 32 as usize;
+                    let fnt_offset = j + i * font.height as usize;
+                    let ptr = buffer.add(vga_offset);
+                    ptr.write_volatile(font.data[fnt_offset]);
+                }
+            }
+
+            outw(SEQUENCER_ADDR_REG, 0x0100); // do a sync reset
+            outw(SEQUENCER_ADDR_REG, 0x0302); // write plane 0 & 1
+            outw(SEQUENCER_ADDR_REG, 0x0304); // even/odd access
+            outw(SEQUENCER_ADDR_REG, 0x0300); // end the reset
+            outw(GRAPHICS_ADDR_REG,  0x0004); // restore to default
+            outw(GRAPHICS_ADDR_REG,  0x1005); // resume odd/even
+            outw(GRAPHICS_ADDR_REG,  0x0E06); // VRAM at 0xB800
+        }
+    }
+
+    pub fn set_palette(&mut self, i: usize, r: u8, g: u8, b: u8) {
+        unsafe {
+            outb(DAC_ADDR_WRITE_MODE_REG, i as u8);
+            outb(DAC_DATA_REG, r >> 2); // Convert 8-bit to 6-bit color
+            outb(DAC_DATA_REG, g >> 2);
+            outb(DAC_DATA_REG, b >> 2);
+        }
+    }
+
+    pub fn palette(&mut self, i: usize) -> (u8, u8, u8) {
+        unsafe {
+            outb(DAC_ADDR_READ_MODE_REG, i as u8);
+            let r = inb(DAC_DATA_REG) << 2; // Convert 6-bit to 8-bit color
+            let g = inb(DAC_DATA_REG) << 2;
+            let b = inb(DAC_DATA_REG) << 2;
+            (r, g, b)
+        }
+    }
+
+    fn scroll_up(&mut self, n: usize) {
+        self.scroll_reader = self.scroll_reader.saturating_sub(n);
+        self.scroll();
+    }
+
+    fn scroll_down(&mut self, n: usize) {
+        self.scroll_reader = cmp::min(
+            self.scroll_reader + n,
+            self.scroll_bottom - SCREEN_HEIGHT
+        );
+        self.scroll();
+    }
+
+    fn scroll(&mut self) {
+        let dy = self.scroll_reader;
+        for y in 0..SCREEN_HEIGHT {
+            for x in 0..SCREEN_WIDTH {
+                let c = self.scroll_buffer[y + dy][x];
+                let ptr = &mut self.screen_buffer.chars[y][x];
+                unsafe { core::ptr::write_volatile(ptr, c); }
+            }
+        }
+        if self.is_scrolling() {
+            self.disable_cursor();
+        } else {
+            self.enable_cursor();
+        }
+    }
+
+    fn is_scrolling(&self) -> bool {
+        // If the current screen is reached we are not scrolling anymore
+        self.scroll_reader != self.scroll_bottom - SCREEN_HEIGHT
+    }
+}
+
+/// Source: https://vt100.net/emu/dec_ansi_parser
+impl Perform for Writer {
+    fn print(&mut self, c: char) {
+        self.write_byte(c as u8);
+    }
+
+    fn execute(&mut self, byte: u8) {
+        self.write_byte(byte);
+    }
+
+    fn csi_dispatch(&mut self, params: &Params, _: &[u8], _: bool, c: char) {
+        match c {
+            'm' => {
+                let mut fg = FG;
+                let mut bg = BG;
+                for param in params.iter() {
+                    match param[0] {
+                        0 => {
+                            fg = FG;
+                            bg = BG;
+                        }
+                        30..=37 | 90..=97 => {
+                            fg = Color::from_ansi_fg(param[0] as usize);
+                        }
+                        40..=47 | 100..=107 => {
+                            bg = Color::from_ansi_bg(param[0] as usize);
+                        }
+                        _ => {}
+                    }
+                }
+                self.set_color(fg, bg);
+            }
+            'A' => { // Cursor Up
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[1] = self.writer[1].saturating_sub(n);
+                self.cursor[1] = self.cursor[1].saturating_sub(n);
+            }
+            'B' => { // Cursor Down
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                let height = SCREEN_HEIGHT - 1;
+                self.writer[1] = cmp::min(self.writer[1] + n, height);
+                self.cursor[1] = cmp::min(self.cursor[1] + n, height);
+            }
+            'C' => { // Cursor Forward
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                let width = SCREEN_WIDTH - 1;
+                self.writer[0] = cmp::min(self.writer[0] + n, width);
+                self.cursor[0] = cmp::min(self.cursor[0] + n, width);
+            }
+            'D' => { // Cursor Backward
+                let mut n = 1;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                self.writer[0] = self.writer[0].saturating_sub(n);
+                self.cursor[0] = self.cursor[0].saturating_sub(n);
+            }
+            'G' => { // Cursor Horizontal Absolute
+                let (_, y) = self.cursor_position();
+                let mut x = 1;
+                for param in params.iter() {
+                    x = param[0] as usize; // 1-indexed value
+                }
+                if x == 0 || x > SCREEN_WIDTH {
+                    return;
+                }
+                self.set_writer_position(x - 1, y);
+                self.set_cursor_position(x - 1, y);
+            }
+            'H' => { // Move cursor
+                let mut x = 1;
+                let mut y = 1;
+                for (i, param) in params.iter().enumerate() {
+                    match i {
+                        0 => y = param[0] as usize, // 1-indexed value
+                        1 => x = param[0] as usize, // 1-indexed value
+                        _ => break,
+                    };
+                }
+                if x == 0 || y == 0 || x > SCREEN_WIDTH || y > SCREEN_HEIGHT {
+                    return;
+                }
+                self.set_writer_position(x - 1, y - 1);
+                self.set_cursor_position(x - 1, y - 1);
+            }
+            'J' => { // Erase in Display
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                match n {
+                    // TODO: 0 and 1, cursor to beginning or to end of screen
+                    2 => self.clear_screen(),
+                    _ => return,
+                }
+                self.set_writer_position(0, 0);
+                self.set_cursor_position(0, 0);
+            }
+            'K' => { // Erase in Line
+                let (x, y) = self.cursor_position();
+                let mut n = 0;
+                for param in params.iter() {
+                    n = param[0] as usize;
+                }
+                match n {
+                    0 => self.clear_row_after(x, y),
+                    1 => return, // TODO: self.clear_row_before(x, y),
+                    2 => self.clear_row_after(0, y),
+                    _ => return,
+                }
+                self.set_writer_position(x, y);
+                self.set_cursor_position(x, y);
+            }
+            'h' => { // Enable
+                for param in params.iter() {
+                    match param[0] {
+                        12 => self.enable_echo(),
+                        25 => self.enable_cursor(),
+                        _ => return,
+                    }
+                }
+            }
+            'l' => { // Disable
+                for param in params.iter() {
+                    match param[0] {
+                        12 => self.disable_echo(),
+                        25 => self.disable_cursor(),
+                        _ => return,
+                    }
+                }
+            }
+            '~' => {
+                for param in params.iter() {
+                    match param[0] {
+                        5 => self.scroll_up(SCREEN_HEIGHT),
+                        6 => self.scroll_down(SCREEN_HEIGHT),
+                        _ => continue,
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn osc_dispatch(&mut self, params: &[&[u8]], _: bool) {
+        if params.len() == 1 {
+            let s = core::str::from_utf8(params[0]).unwrap_or("");
+            match s.chars().next() {
+                Some('P') if s.len() == 8 => {
+                    if let Ok((i, r, g, b)) = parse_palette(&s) {
+                        let i = Color::from_ansi_index(i).register();
+                        self.set_palette(i, r, g, b);
+                    }
+                }
+                Some('R') if s.len() == 1 => {
+                    let palette = Palette::default();
+                    for (i, (r, g, b)) in palette.colors.iter().enumerate() {
+                        self.set_palette(i, *r, *g, *b);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        let mut parser = PARSER.lock();
+        for byte in s.bytes() {
+            parser.advance(self, byte);
+        }
+        let (x, y) = self.writer_position();
+        self.set_cursor_position(x, y);
+        Ok(())
+    }
+}
+
+fn parse_palette(palette: &str) -> Result<(usize, u8, u8, u8), ()> {
+    if palette.len() != 8 || !palette.starts_with('P') {
+        return Err(());
+    }
+
+    let i = usize::from_str_radix(&palette[1..2], 16).map_err(|_| ())?;
+    let r = u8::from_str_radix(&palette[2..4], 16).map_err(|_| ())?;
+    let g = u8::from_str_radix(&palette[4..6], 16).map_err(|_| ())?;
+    let b = u8::from_str_radix(&palette[6..8], 16).map_err(|_| ())?;
+
+    Ok((i, r, g, b))
+}
+
+#[test_case]
+fn test_parse_palette() {
+    assert_eq!(parse_palette("P0282828"), Ok((0x0, 0x28, 0x28, 0x28)));
+    assert_eq!(parse_palette("PADDDDED"), Ok((0xA, 0xDD, 0xDD, 0xED)));
+    assert_eq!(parse_palette("BAAAAAAD"), Err(()));
+    assert_eq!(parse_palette("BAD"), Err(()));
+}

@@ -12,8 +12,9 @@ use nom::character::complete::{char, space0};
 use nom::combinator::map;
 use nom::multi::many0;
 use nom::number::complete::double;
-use nom::sequence::{delimited, tuple};
+use nom::sequence::delimited;
 use nom::IResult;
+use nom::Parser;
 
 // Adapted from Basic Calculator
 // Copyright 2021 Balaji Sivaraman
@@ -35,32 +36,35 @@ pub enum Exp {
 fn parse(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_term(input)?;
     let (input, exps) = many0(
-        tuple((alt((char('+'), char('-'))), parse_term))
-    )(input)?;
+        (alt((char('+'), char('-'))), parse_term)
+    ).parse(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
 fn parse_term(input: &str) -> IResult<&str, Exp> {
     let (input, num1) = parse_factor(input)?;
-    let (input, exps) = many0(tuple((
+    let (input, exps) = many0((
         alt((char('%'), char('/'), char('*'))),
-        parse_factor,
-    )))(input)?;
+        parse_factor
+    )).parse(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
 fn parse_factor(input: &str) -> IResult<&str, Exp> {
-    let (input, num1) = alt((parse_parens, parse_num))(input)?;
-    let (input, exps) = many0(tuple((char('^'), parse_factor)))(input)?;
+    let (input, num1) = alt((parse_parens, parse_num)).parse(input)?;
+    let (input, exps) = many0((char('^'), parse_factor)).parse(input)?;
     Ok((input, parse_exp(num1, exps)))
 }
 
 fn parse_parens(input: &str) -> IResult<&str, Exp> {
-    delimited(space0, delimited(char('('), parse, char(')')), space0)(input)
+    delimited(
+        space0,
+        delimited(char('('), parse, char(')')), space0
+    ).parse(input)
 }
 
 fn parse_num(input: &str) -> IResult<&str, Exp> {
-    map(delimited(space0, double, space0), Exp::Num)(input)
+    map(delimited(space0, double, space0), Exp::Num).parse(input)
 }
 
 fn parse_exp(exp: Exp, rem: Vec<(char, Exp)>) -> Exp {
@@ -102,16 +106,16 @@ fn parse_eval(line: &str) -> Result<f64, String> {
             if line.is_empty() {
                 Ok(eval(parsed))
             } else {
-                Err(format!("Could not parse '{}'", line))
+                Err(format!("Could not parse {:?}", line))
             }
         }
-        Err(_) => Err(format!("Could not parse '{}'", line)),
+        Err(_) => Err(format!("Could not parse {:?}", line)),
     }
 }
 
 fn repl() -> Result<(), ExitCode> {
     println!("MOROS Calc v0.1.0\n");
-    let csi_color = Style::color("Cyan");
+    let csi_color = Style::color("teal");
     let csi_reset = Style::reset();
     let prompt_string = format!("{}>{} ", csi_color, csi_reset);
 
@@ -168,8 +172,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 }
 
 pub fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} calc {}[<exp>]{}",

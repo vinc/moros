@@ -1,13 +1,11 @@
+use crate::sys::x86::int;
+
 use alloc::string::String;
 use core::fmt;
 use core::fmt::Write;
-use lazy_static::lazy_static;
 use spin::Mutex;
-use x86_64::instructions::interrupts;
 
-lazy_static! {
-    static ref LOG: Mutex<LogBuffer> = Mutex::new(LogBuffer::new());
-}
+static LOG: Mutex<LogBuffer> = Mutex::new(LogBuffer::new());
 
 const LOG_SIZE: usize = 10 << 10; // 10 KB
 
@@ -32,13 +30,14 @@ impl LogBuffer {
 
 impl core::fmt::Write for LogBuffer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        if self.len + s.len() > LOG_SIZE {
+            self.len = 0;
+            self.buf.fill(0);
+        }
+
         let bytes = s.as_bytes();
         let i = self.len;
         let n = i + bytes.len();
-
-        if n > LOG_SIZE {
-            return Err(core::fmt::Error);
-        }
 
         self.buf[i..n].copy_from_slice(bytes);
         self.len += bytes.len();
@@ -49,13 +48,14 @@ impl core::fmt::Write for LogBuffer {
 
 #[doc(hidden)]
 pub fn write_fmt(args: fmt::Arguments) {
-    interrupts::without_interrupts(||
+    int::without_interrupts(||
         LOG.lock().write_fmt(args).expect("Could not write log")
     )
 }
 
 pub fn read() -> String {
-    let log = LOG.lock();
-    let buf = String::from_utf8_lossy(log.buf());
-    buf.into_owned()
+    int::without_interrupts(|| {
+        let log = LOG.lock();
+        String::from_utf8_lossy(log.buf()).into_owned()
+    })
 }

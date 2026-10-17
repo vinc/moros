@@ -1,18 +1,19 @@
-use crate::api::fs::IO;
 use crate::api::process::ExitCode;
-use crate::sys::fs::FileInfo;
+use crate::sys::fs::{FileInfo, FileType, IO};
 use crate::sys::syscall::number::*;
 use crate::syscall;
 
-use smoltcp::wire::IpAddress;
-use smoltcp::wire::Ipv4Address;
+use core::convert::TryInto;
+use core::convert::TryFrom;
+use core::sync::atomic::{fence, Ordering};
+use smoltcp::wire::{IpAddress, Ipv4Address};
 
 pub fn exit(code: ExitCode) {
     unsafe { syscall!(EXIT, code as usize) };
 }
 
-pub fn sleep(seconds: f64) {
-    unsafe { syscall!(SLEEP, seconds.to_bits()) };
+pub fn sleep(milliseconds: usize) {
+    unsafe { syscall!(SLEEP, milliseconds) };
 }
 
 pub fn delete(path: &str) -> Result<(), ()> {
@@ -39,7 +40,16 @@ pub fn info(path: &str) -> Option<FileInfo> {
     }
 }
 
-pub fn open(path: &str, flags: usize) -> Option<usize> {
+pub fn kind(handle: usize) -> Option<FileType> {
+    let res = unsafe { syscall!(KIND, handle) } as isize;
+    if res >= 0 {
+        FileType::try_from(res as usize).ok()
+    } else {
+        None
+    }
+}
+
+pub fn open(path: &str, flags: u8) -> Option<usize> {
     let ptr = path.as_ptr() as usize;
     let len = path.len();
     let res = unsafe { syscall!(OPEN, ptr, len, flags) } as isize;
@@ -50,12 +60,12 @@ pub fn open(path: &str, flags: usize) -> Option<usize> {
     }
 }
 
-pub fn dup(old_handle: usize, new_handle: usize) -> Option<usize> {
+pub fn dup(old_handle: usize, new_handle: usize) -> Result<(), ()> {
     let res = unsafe { syscall!(DUP, old_handle, new_handle) } as isize;
     if res >= 0 {
-        Some(res as usize)
+        Ok(())
     } else {
-        None
+        Err(())
     }
 }
 
@@ -85,7 +95,7 @@ pub fn close(handle: usize) {
     unsafe { syscall!(CLOSE, handle) };
 }
 
-pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
+pub fn spawn(path: &str, args: &[&str]) -> ExitCode {
     let path_ptr = path.as_ptr() as usize;
     let args_ptr = args.as_ptr() as usize;
     let path_len = path.len();
@@ -93,23 +103,16 @@ pub fn spawn(path: &str, args: &[&str]) -> Result<(), ExitCode> {
     let res = unsafe {
         syscall!(SPAWN, path_ptr, path_len, args_ptr, args_len)
     };
-    if res == 0 {
-        Ok(())
-    } else {
-        Err(ExitCode::from(res))
-    }
+
+    // Without the fence `res` would always be `0` instead of the code passed
+    // to the `exit` syscall by the child process.
+    fence(Ordering::SeqCst);
+
+    ExitCode::from(res)
 }
 
 pub fn stop(code: usize) {
     unsafe { syscall!(STOP, code) };
-}
-
-pub fn reboot() {
-    stop(0xCAFE);
-}
-
-pub fn halt() {
-    stop(0xDEAD);
 }
 
 pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {
@@ -124,7 +127,9 @@ pub fn poll(list: &[(usize, IO)]) -> Option<(usize, IO)> {
 }
 
 pub fn connect(handle: usize, addr: IpAddress, port: u16) -> Result<(), ()> {
-    let buf = addr.as_bytes();
+    let IpAddress::Ipv4(addr) = addr; // Only IPv4 is supported
+    let tmp = addr.octets();
+    let buf = tmp.as_slice();
     let ptr = buf.as_ptr() as usize;
     let len = buf.len();
     let res = unsafe { syscall!(CONNECT, handle, ptr, len, port) } as isize;
@@ -145,16 +150,18 @@ pub fn listen(handle: usize, port: u16) -> Result<(), ()> {
 }
 
 pub fn accept(handle: usize) -> Result<IpAddress, ()> {
-    let addr = IpAddress::v4(0, 0, 0, 0);
-    let buf = addr.as_bytes();
+    let addr = Ipv4Address::new(0, 0, 0, 0);
+    let tmp = addr.octets();
+    let buf = tmp.as_slice();
     let ptr = buf.as_ptr() as usize;
     let len = buf.len();
     let res = unsafe { syscall!(ACCEPT, handle, ptr, len) } as isize;
     if res >= 0 {
-        Ok(IpAddress::from(Ipv4Address::from_bytes(buf)))
-    } else {
-        Err(())
+        if let Ok(buf) = buf.try_into() {
+            return Ok(IpAddress::from(Ipv4Address::from_octets(buf)));
+        }
     }
+    Err(())
 }
 
 pub fn alloc(size: usize, align: usize) -> *mut u8 {
@@ -170,7 +177,9 @@ pub fn free(ptr: *mut u8, size: usize, align: usize) {
 #[test_case]
 fn test_file() {
     use crate::sys::fs::{dismount, format_mem, mount_mem, OpenFlag};
+    use alloc::string::ToString;
     use alloc::vec;
+
     mount_mem();
     format_mem();
 
@@ -178,7 +187,7 @@ fn test_file() {
     assert_eq!(open("/test", flags), None);
 
     // Write file
-    let flags = OpenFlag::Create as usize;
+    let flags = OpenFlag::Create as u8;
     assert_eq!(open("/test", flags), Some(4));
     let input = "Hello, world!".as_bytes();
     assert_eq!(write(4, &input), Some(input.len()));
@@ -194,6 +203,9 @@ fn test_file() {
     close(5);
 
     assert_eq!(open("/test", flags), Some(4));
+    assert_eq!(info("/test").map(|info| info.kind()), kind(4));
+    assert_eq!(info("/test").map(|info| info.name()), Some("test".to_string()));
+    assert_eq!(info("/test").map(|info| info.size()), Some(input.len() as u32));
 
     close(4);
 

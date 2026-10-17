@@ -98,7 +98,7 @@ current directory.</p>
     <pre><code>&gt; read foo.txt or read bar.txt
 </code></pre>
 
-    <h2>Pipes and redirections (WIP)</h2>
+    <h2>Pipes and Redirections (WIP)</h2>
 
     <p>A thin arrow <code>-&gt;</code> can be used for piping the output from one command to the
 input of another command (TODO):</p>
@@ -139,9 +139,15 @@ possible to explicitly redirect a handle to another (TODO):</p>
 </code></pre>
 
     <p>When the arrow point to the other direction the source and destination are
-swapped and the standard input is implied (TODO):</p>
+swapped and the standard input is implied:</p>
 
-    <pre><code>&gt; write &lt;= req.txt =&gt; /net/http/moros.cc
+    <pre><code>&gt; http &lt;= req.txt =&gt; res.txt
+</code></pre>
+
+    <p>Here we redirect <code>req.txt</code> to <code>stdin</code> and <code>stdout</code> to <code>res.txt</code>. If both files
+are the same we can use this shortcut:</p>
+
+    <pre><code>&gt; http &lt;=&gt; tmp.txt
 </code></pre>
 
     <p>Redirections should be declared before piping (TODO):</p>
@@ -190,11 +196,11 @@ multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
     <li>Name of the shell or the script: <code>$0</code></li>
     <li>Script arguments: <code>$1</code>, <code>$2</code>, <code>$3</code>, <code>$4</code>, ...</li>
     <li>Exit code: <code>$?</code></li>
-    <li>Process environment variable: <code>$HOME</code>, ...</li>
-    <li>Shell environment variable: <code>$foo</code>, ...</li>
+    <li>Environment variable: <code>$HOME</code>, ...</li>
+    <li>Shell variable: <code>$foo</code>, ...</li>
     </ul>
 
-    <p>Setting a variable in the shell environment is done with the following command:</p>
+    <p>Setting a variable in the shell is done with the following command:</p>
 
     <pre><code>&gt; set foo 42
 
@@ -210,13 +216,22 @@ multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
 Hello Alice and Bob
 </code></pre>
 
-    <p>The process environment is copied to the shell environment when a session is
-started. By convention a process env var should be in uppercase and a shell
-env var should be lowercase.</p>
-
     <p>Unsetting a variable is done like this:</p>
 
     <pre><code>&gt; unset foo
+</code></pre>
+
+    <p>Environment variables are copied to the shell when a session is started.
+By convention an env var should be in uppercase and a shell var should be
+lowercase. They can be changed by using <code>--env</code> or <code>-e</code>.</p>
+
+    <pre><code>&gt; date
+2026-04-21 17:24:06 +0000
+
+&gt; set --env TZ 7200
+
+&gt; date
+2026-04-21 19:24:14 +0200
 </code></pre>
 
     <h2>Globbing</h2>

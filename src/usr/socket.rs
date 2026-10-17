@@ -1,14 +1,12 @@
 use crate::api::console::Style;
-use crate::api::fs::IO;
 use crate::api::io;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::sys::console;
-use crate::sys::fs::OpenFlag;
+use crate::sys::fs::{OpenFlag, IO};
 use crate::sys::net::SocketStatus;
 use crate::usr;
 
-use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
@@ -20,6 +18,9 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut verbose = false;
     let mut read_only = false;
     let args: Vec<&str> = args.iter().filter_map(|arg| match *arg {
+        "-h" | "--help" => {
+            None
+        }
         "-l" | "--listen" => {
             listen = true;
             None
@@ -70,14 +71,14 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let buf_len = if let Some(info) = syscall::info(socket_path) {
         info.size() as usize
     } else {
-        error!("Could not open '{}'", socket_path);
+        error!("Could not open {:?}", socket_path);
         return Err(ExitCode::Failure);
     };
 
     let mut connected = false;
     let stdin = 0;
     let stdout = 1;
-    let flags = OpenFlag::Device as usize;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(socket_path, flags) {
         if listen {
             if syscall::listen(handle, port).is_err() {
@@ -111,7 +112,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 if syscall::accept(handle).is_ok() {
                     connected = true;
                 } else {
-                    syscall::sleep(0.01);
+                    syscall::sleep(10);
                     continue;
                 }
             }
@@ -129,7 +130,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                 }
             } else {
-                syscall::sleep(0.01);
+                syscall::sleep(10);
                 if connected {
                     let mut data = vec![0; 1]; // 1 byte status read
                     match syscall::read(handle, &mut data) {
@@ -151,8 +152,8 @@ fn is_closed(status: u8) -> bool {
 }
 
 fn help() {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} socket {}[<host>:]<port>{1}",

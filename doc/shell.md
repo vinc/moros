@@ -82,7 +82,7 @@ When executed without arguments, this command will print the current directory.
     > read foo.txt or read bar.txt
 
 
-## Pipes and redirections (WIP)
+## Pipes and Redirections (WIP)
 
 A thin arrow `->` can be used for piping the output from one command to the
 input of another command (TODO):
@@ -116,9 +116,14 @@ It is possible to chain multiple redirections:
     > time read foo.txt [1]=> bar.txt [2]=> time.txt
 
 When the arrow point to the other direction the source and destination are
-swapped and the standard input is implied (TODO):
+swapped and the standard input is implied:
 
-    > write <= req.txt => /net/http/moros.cc
+    > http <= req.txt => res.txt
+
+Here we redirect `req.txt` to `stdin` and `stdout` to `res.txt`. If both files
+are the same we can use this shortcut:
+
+    > http <=> tmp.txt
 
 Redirections should be declared before piping (TODO):
 
@@ -160,10 +165,10 @@ NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
 - Name of the shell or the script: `$0`
 - Script arguments: `$1`, `$2`, `$3`, `$4`, ...
 - Exit code: `$?`
-- Process environment variable: `$HOME`, ...
-- Shell environment variable: `$foo`, ...
+- Environment variable: `$HOME`, ...
+- Shell variable: `$foo`, ...
 
-Setting a variable in the shell environment is done with the following command:
+Setting a variable in the shell is done with the following command:
 
     > set foo 42
 
@@ -177,13 +182,21 @@ And accessing a variable is done with the `$` operator:
     > print "Hello $bar"
     Hello Alice and Bob
 
-The process environment is copied to the shell environment when a session is
-started. By convention a process env var should be in uppercase and a shell
-env var should be lowercase.
-
 Unsetting a variable is done like this:
 
     > unset foo
+
+Environment variables are copied to the shell when a session is started.
+By convention an env var should be in uppercase and a shell var should be
+lowercase. They can be changed by using `--env` or `-e`.
+
+    > date
+    2026-04-21 17:24:06 +0000
+
+    > set --env TZ 7200
+
+    > date
+    2026-04-21 19:24:14 +0200
 
 ## Globbing
 

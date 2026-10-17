@@ -5,28 +5,47 @@ mod device;
 mod dir;
 mod dir_entry;
 mod file;
+mod io;
+mod pipe;
 mod read_dir;
 mod super_block;
 
-use crate::sys;
-
-pub use crate::api::fs::{dirname, filename, realpath, FileIO, IO};
-pub use crate::sys::ata::BLOCK_SIZE;
+pub use io::{FileIO, IO};
 pub use bitmap_block::BITMAP_SIZE;
 pub use block_device::{
     dismount, format_ata, format_mem, is_mounted, mount_ata, mount_mem
 };
-pub use device::{Device, DeviceType};
+pub use device::{Device, device_type};
 pub use dir::Dir;
 pub use dir_entry::FileInfo;
 pub use file::{File, SeekFrom};
 
+pub use crate::api::fs::{dirname, filename};
+pub use crate::sys::ata::BLOCK_SIZE;
+
 use dir_entry::DirEntry;
 use super_block::SuperBlock;
 
-use alloc::string::{String, ToString};
+use crate::sys::process;
 
-pub const VERSION: u8 = 1;
+use alloc::format;
+use alloc::string::{String, ToString};
+use core::convert::TryFrom;
+use core::ops::BitOr;
+
+pub const VERSION: u8 = 2;
+
+// Duplicate of `api::fs::realpath`, using `process::dir()` from `sys` instead
+// of `api` to bypass syscall overhead.
+pub fn realpath(pathname: &str) -> String {
+    if pathname.starts_with('/') {
+        pathname.into()
+    } else {
+        let dirname = process::dir();
+        let sep = if dirname.ends_with('/') { "" } else { "/" };
+        format!("{}{}{}", dirname, sep, pathname)
+    }
+}
 
 // TODO: Move that to API
 #[derive(Clone, Copy)]
@@ -42,12 +61,20 @@ pub enum OpenFlag {
 }
 
 impl OpenFlag {
-    fn is_set(&self, flags: usize) -> bool {
-        flags & (*self as usize) != 0
+    fn is_set(&self, flags: u8) -> bool {
+        flags & (*self as u8) != 0
     }
 }
 
-pub fn open(path: &str, flags: usize) -> Option<Resource> {
+impl BitOr for OpenFlag {
+   type Output = u8;
+
+   fn bitor(self, rhs: Self) -> Self::Output {
+       (self as u8) | (rhs as u8)
+   }
+}
+
+pub fn open(path: &str, flags: u8) -> Option<Resource> {
     if OpenFlag::Dir.is_set(flags) {
         let res = Dir::open(path);
         if res.is_none() && OpenFlag::Create.is_set(flags) {
@@ -102,11 +129,34 @@ pub enum FileType {
     Device = 2,
 }
 
+impl TryFrom<usize> for FileType {
+    type Error = ();
+
+    fn try_from(num: usize) -> Result<Self, Self::Error> {
+        match num {
+             0 => Ok(FileType::Dir),
+             1 => Ok(FileType::File),
+             2 => Ok(FileType::Device),
+             _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Resource {
     Dir(Dir),
     File(File),
     Device(Device),
+}
+
+impl Resource {
+    pub fn kind(&self) -> FileType {
+        match self {
+            Resource::Dir(_) => FileType::Dir,
+            Resource::File(_) => FileType::File,
+            Resource::Device(_) => FileType::Device,
+        }
+    }
 }
 
 impl FileIO for Resource {
@@ -144,7 +194,7 @@ impl FileIO for Resource {
 }
 
 pub fn canonicalize(path: &str) -> Result<String, ()> {
-    match sys::process::env("HOME") {
+    match process::env_var("HOME") {
         Some(home) => {
             if path.starts_with('~') {
                 Ok(path.replace('~', &home))
@@ -157,11 +207,11 @@ pub fn canonicalize(path: &str) -> Result<String, ()> {
 }
 
 pub fn disk_size() -> usize {
-    (SuperBlock::read().block_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().block_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_used() -> usize {
-    (SuperBlock::read().alloc_count as usize) * BLOCK_SIZE
+    (SuperBlock::read().alloc_count() as usize) * BLOCK_SIZE
 }
 
 pub fn disk_free() -> usize {

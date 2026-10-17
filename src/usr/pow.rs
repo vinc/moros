@@ -2,7 +2,6 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::{console, io, rng};
 
-use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::fmt;
@@ -11,13 +10,6 @@ use vte::{Params, Parser, Perform};
 struct Game {
     score: usize,
     board: [usize; 16],
-}
-
-pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
-    print!("\x1b[?25l"); // Disable cursor
-    Game::new().run();
-    print!("\x1b[?25h"); // Enable cursor
-    Ok(())
 }
 
 impl Game {
@@ -50,7 +42,6 @@ impl Game {
 
     fn seed(&mut self) {
         let zeros: Vec<_> = (0..16).filter(|i| self.board[*i] == 0).collect();
-
         if !zeros.is_empty() {
             let i = (rng::get_u64() as usize) % zeros.len();
             self.board[zeros[i]] = 2;
@@ -119,7 +110,7 @@ impl Game {
 impl fmt::Display for Game {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let reset = Style::reset();
-        let color = Style::color("Yellow");
+        let color = Style::color("yellow");
         write!(f, "\n  {}SCORE: {:>22}{}\n\n", color, self.score, reset)?;
         for y in 0..4 {
             write!(f, "  +------+------+------+------+\n")?;
@@ -131,18 +122,18 @@ impl fmt::Display for Game {
                     write!(f, "      |")?;
                 } else {
                     let color = match v {
-                        2 => Style::color("LightGray"),
-                        4 => Style::color("LightBlue"),
-                        8 => Style::color("LightCyan"),
-                        16 => Style::color("LightGreen"),
-                        32 => Style::color("Yellow"),
-                        64 => Style::color("LightRed"),
-                        128 => Style::color("Pink"),
-                        256 => Style::color("Magenta"),
-                        512 => Style::color("Pink"),
-                        1024 => Style::color("Red"),
-                        2048 => Style::color("Brown"),
-                        _ => Style::color("White"),
+                        2 => Style::color("silver"),
+                        4 => Style::color("blue"),
+                        8 => Style::color("aqua"),
+                        16 => Style::color("lime"),
+                        32 => Style::color("yellow"),
+                        64 => Style::color("red"),
+                        128 => Style::color("fushia"),
+                        256 => Style::color("purple"),
+                        512 => Style::color("fushia"),
+                        1024 => Style::color("maroon"),
+                        2048 => Style::color("olive"),
+                        _ => Style::color("white"),
                     };
                     write!(f, " {}{:^5}{}|", color, v, reset)?;
                 }
@@ -163,6 +154,13 @@ impl Perform for Game {
             _ => {}
         }
     }
+}
+
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
+    print!("\x1b[?25l"); // Disable cursor
+    Game::new().run();
+    print!("\x1b[?25h"); // Enable cursor
+    Ok(())
 }
 
 #[test_case]

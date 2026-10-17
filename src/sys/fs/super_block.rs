@@ -12,8 +12,8 @@ pub struct SuperBlock {
     signature: &'static [u8; 8],
     version: u8,
     block_size: u32,
-    pub block_count: u32,
-    pub alloc_count: u32,
+    block_count: u32,
+    alloc_count: u32,
 }
 
 impl SuperBlock {
@@ -27,13 +27,18 @@ impl SuperBlock {
 
     pub fn new() -> Option<Self> {
         if let Some(ref dev) = *super::block_device::BLOCK_DEVICE.lock() {
-            Some(Self {
+            let mut sb = Self {
                 signature: SIGNATURE,
                 version: super::VERSION,
                 block_size: dev.block_size() as u32,
                 block_count: dev.block_count() as u32,
                 alloc_count: 0,
-            })
+            };
+
+            // Reserved blocks
+            sb.alloc_count = sb.data_area();
+
+            Some(sb)
         } else {
             None
         }
@@ -78,16 +83,33 @@ impl SuperBlock {
         self.block_count
     }
 
+    pub fn alloc_count(&self) -> u32 {
+        self.alloc_count
+    }
+
     pub fn bitmap_area(&self) -> u32 {
         SUPERBLOCK_ADDR + 2
     }
 
     pub fn data_area(&self) -> u32 {
-        let bs = super::BITMAP_SIZE as u32;
-        let total = self.block_count;
-        let offset = self.bitmap_area();
-        let rest = (total - offset) * bs / (bs + 1);
-        self.bitmap_area() + rest / bs
+        let s = self.block_size * 8;
+        let n = self.block_count;
+        let a = self.bitmap_area();
+
+        if self.version == 1 {
+            a + ((n - a) / (s + 1)) // Incorrect formula fixed in v2
+        } else {
+            let mut p; // Previous bitmap count
+            let mut b = 0; // Bitmap count
+            loop {
+                p = b;
+                b = (n - (a + b) + s - 1) / s;
+                if b == p {
+                    break;
+                }
+            }
+            a + b
+        }
     }
 }
 
@@ -99,6 +121,6 @@ pub fn inc_alloc_count() {
 
 pub fn dec_alloc_count() {
     let mut sb = SuperBlock::read();
-    sb.alloc_count -= 1;
+    sb.alloc_count -= 1; // FIXME: Use saturating substraction
     sb.write();
 }

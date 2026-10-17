@@ -3,7 +3,7 @@
 
 extern crate alloc;
 
-use alloc::string::String;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use moros::api::io;
 use moros::api::process;
@@ -20,10 +20,9 @@ fn main(_args: &[&str]) {
         if cmd == "quit" {
             syscall::exit(process::ExitCode::Success);
         } else {
-            //let args: Vec<&str> = cmd.split(' ').collect();
-            let args = Vec::new();
-            let mut path = String::from("/bin/");
-            path.push_str(cmd);
+            let args: Vec<&str> = cmd.split(' ').collect();
+            let mut path = "/bin/".to_string();
+            path.push_str(args[0]);
             let _ = process::spawn(&path, &args);
         }
     }

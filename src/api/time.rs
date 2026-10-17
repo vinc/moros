@@ -1,5 +1,5 @@
 use crate::api::clock;
-use crate::sys;
+use crate::api::process;
 
 use time::{Duration, OffsetDateTime, UtcOffset};
 
@@ -8,7 +8,7 @@ pub fn now() -> OffsetDateTime {
 }
 
 pub fn now_utc() -> OffsetDateTime {
-    let s = clock::realtime(); // Since Unix Epoch
+    let s = clock::epoch_time(); // Since Unix Epoch
     let ns = Duration::nanoseconds(
         libm::floor(1e9 * (s - libm::floor(s))) as i64
     );
@@ -24,7 +24,7 @@ pub fn from_timestamp_utc(ts: i64) -> OffsetDateTime {
 }
 
 fn offset() -> UtcOffset {
-    if let Some(tz) = sys::process::env("TZ") {
+    if let Some(tz) = process::env_var("TZ") {
         if let Ok(offset) = tz.parse::<i32>() {
             return UtcOffset::seconds(offset);
         }

@@ -1,15 +1,15 @@
 # MOROS Calculator
 
 A calculator is available in MOROS using double-precision binary floating-point
-format (binary64).
+format (float64).
 
-It can be invocked from the shell through the command `calc` with an operation
+It can be invocked from the shell with the command `calc` and an operation
 to perform in arguments:
 
     > calc 2 + 2
     4
 
-And it will open a REPL if no arguments are provided:
+It will open a REPL if no arguments are provided:
 
     > calc
     MOROS Calc v0.1.0

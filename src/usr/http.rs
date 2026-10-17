@@ -47,7 +47,7 @@ impl URL {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let csi_verbose = Style::color("LightBlue");
+    let csi_verbose = Style::color("blue");
     let csi_reset = Style::reset();
 
     // Parse command line options
@@ -67,8 +67,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             "-t" | "--timeout" => {
                 if i + 1 < n {
-                    timeout = args[i + 1].parse().unwrap_or(timeout);
                     i += 1;
+                    timeout = args[i].parse().unwrap_or(timeout);
                 } else {
                     error!("Missing timeout seconds");
                     return Err(ExitCode::UsageError);
@@ -76,7 +76,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             _ => {
                 if args[i].starts_with('-') {
-                    error!("Invalid option '{}'", args[i]);
+                    error!("Invalid option {:?}", args[i]);
                     return Err(ExitCode::UsageError);
                 } else if host.is_empty() {
                     host = args[i].
@@ -129,11 +129,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let buf_len = if let Some(info) = syscall::info(socket_path) {
         info.size() as usize
     } else {
-        error!("Could not open '{}'", socket_path);
+        error!("Could not open {:?}", socket_path);
         return Err(ExitCode::Failure);
     };
 
-    let flags = OpenFlag::Device as usize;
+    let mut code = None;
+    let flags = OpenFlag::Device as u8;
     if let Some(handle) = syscall::open(socket_path, flags) {
         if syscall::connect(handle, addr, port).is_err() {
             error!("Could not connect to {}:{}", addr, port);
@@ -157,7 +158,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let req = req.join("");
         syscall::write(handle, req.as_bytes());
 
-        let mut response_state = ResponseState::Headers;
+        let mut state = ResponseState::Headers;
         loop {
             if console::end_of_text() || console::end_of_transmission() {
                 eprintln!();
@@ -172,7 +173,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 data.resize(n, 0);
                 let mut i = 0;
                 while i < n {
-                    match response_state {
+                    match state {
                         ResponseState::Headers => {
                             let mut j = i;
                             while j < n {
@@ -183,6 +184,11 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             }
                             // TODO: check i == j
                             let line = String::from_utf8_lossy(&data[i..j]);
+                            if i == 0 {
+                                code = line.split(" ").nth(1).map(|word|
+                                    word.to_string()
+                                );
+                            }
                             if is_verbose {
                                 if i == 0 {
                                     print!("{}", csi_verbose);
@@ -193,7 +199,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 if is_verbose {
                                     print!("{}", csi_reset);
                                 }
-                                response_state = ResponseState::Body;
+                                state = ResponseState::Body;
                             }
                             i = j + 1;
                         }
@@ -213,15 +219,22 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
         }
         syscall::close(handle);
-        Ok(())
+        if let Some(s) = code {
+            if let Ok(n) = s.parse::<usize>() {
+                if n < 400 {
+                    return Ok(());
+                }
+            }
+        }
+        Err(ExitCode::Failure)
     } else {
         Err(ExitCode::Failure)
     }
 }
 
 fn help() -> Result<(), ExitCode> {
-    let csi_option = Style::color("LightCyan");
-    let csi_title = Style::color("Yellow");
+    let csi_option = Style::color("aqua");
+    let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
         "{}Usage:{} http {}<options> <url>{1}",
