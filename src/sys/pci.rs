@@ -4,7 +4,6 @@ use crate::sys::x86::port::*;
 use alloc::vec;
 use alloc::vec::Vec;
 use bit_field::BitField;
-use lazy_static::lazy_static;
 use spin::Mutex;
 
 #[derive(Debug, Clone, Copy)]
@@ -133,9 +132,7 @@ impl DeviceConfig {
     }
 }
 
-lazy_static! {
-    pub static ref PCI_DEVICES: Mutex<Vec<DeviceConfig>> = Mutex::new(vec![]);
-}
+pub static PCI_DEVICES: Mutex<Vec<DeviceConfig>> = Mutex::new(vec![]);
 
 pub fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     for &device in PCI_DEVICES.lock().iter() {

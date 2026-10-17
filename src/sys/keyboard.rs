@@ -9,16 +9,13 @@ use alloc::collections::vec_deque::VecDeque;
 use alloc::format;
 use alloc::string::String;
 use core::sync::atomic::{AtomicBool, Ordering};
-use lazy_static::lazy_static;
 use pc_keyboard::{
     layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, KeyState,
     Keyboard, ScancodeSet1,
 };
 use spin::Mutex;
 
-lazy_static! {
-    pub static ref BUF: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
-}
+pub static BUF: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
 
 pub static KEYBOARD: Mutex<Option<KeyboardDecoder>> = Mutex::new(None);
 

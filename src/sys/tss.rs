@@ -1,50 +1,48 @@
 use crate::STACK_SIZE;
 
 use core::ptr::addr_of;
-use lazy_static::lazy_static;
+use spin::LazyLock;
 
 pub const DF: usize = 0; // Double fault
 pub const PF: usize = 1; // Page fault
 pub const GP: usize = 2; // General protection
 
-lazy_static! {
-    pub static ref TSS: TaskStateSegment = {
-        let mut tss = TaskStateSegment::new();
+pub static TSS: LazyLock<TaskStateSegment> = LazyLock::new(|| {
+    let mut tss = TaskStateSegment::new();
+
+    let addr = {
+        static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+        STACK_SIZE + addr_of!(STACK) as usize
+    };
+    tss.set_kernel_stack(addr);
+
+    #[cfg(target_arch = "x86")]
+    {
+        tss.stack[0].ss = crate::sys::gdt::SYS_DATA.bits;
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    {
+        let addr = {
+            static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+            STACK_SIZE + addr_of!(STACK) as usize
+        };
+        tss.set_interrupt_stack(DF, addr);
 
         let addr = {
             static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
             STACK_SIZE + addr_of!(STACK) as usize
         };
-        tss.set_kernel_stack(addr);
+        tss.set_interrupt_stack(PF, addr);
 
-        #[cfg(target_arch = "x86")]
-        {
-            tss.stack[0].ss = crate::sys::gdt::SYS_DATA.bits;
-        }
-
-        #[cfg(target_arch = "x86_64")]
-        {
-            let addr = {
-                static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-                STACK_SIZE + addr_of!(STACK) as usize
-            };
-            tss.set_interrupt_stack(DF, addr);
-
-            let addr = {
-                static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-                STACK_SIZE + addr_of!(STACK) as usize
-            };
-            tss.set_interrupt_stack(PF, addr);
-
-            let addr = {
-                static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
-                STACK_SIZE + addr_of!(STACK) as usize
-            };
-            tss.set_interrupt_stack(GP, addr);
-        }
-        tss
-    };
-}
+        let addr = {
+            static mut STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+            STACK_SIZE + addr_of!(STACK) as usize
+        };
+        tss.set_interrupt_stack(GP, addr);
+    }
+    tss
+});
 
 #[cfg(target_arch = "x86")]
 #[repr(C)]

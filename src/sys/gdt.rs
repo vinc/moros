@@ -6,11 +6,11 @@ use crate::sys::x86::reg;
 use crate::sys::x86::seg::SegmentSelector;
 
 use bit_field::BitField;
-use lazy_static::lazy_static;
+use spin::LazyLock;
 
-lazy_static! {
-    static ref GDT: GlobalDescriptorTable = GlobalDescriptorTable::new(&tss::TSS);
-}
+static GDT: LazyLock<GlobalDescriptorTable> = LazyLock::new(||
+    GlobalDescriptorTable::new(&tss::TSS)
+);
 
 pub const SYS_CODE: SegmentSelector = SegmentSelector::new(1, 0);
 pub const SYS_DATA: SegmentSelector = SegmentSelector::new(2, 0);
