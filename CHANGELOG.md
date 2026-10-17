@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Upgrade pbkdf2 and sha2 (#935)
 - Remove lazy_static crate (#930)
 - Fix RTL8139 rx buffer overflow (#934)
 - Fix ATA on some computers (#933)
