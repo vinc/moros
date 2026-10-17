@@ -22,13 +22,20 @@ use nom::error::Error;
 use nom::multi::many0;
 use nom::multi::many1;
 use nom::multi::separated_list0;
+use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Op {
     And,
-    Or,
+    Or
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Exp<'a> {
+    Chain(Chain<'a>),
+    If(Chain<'a>, Vec<Exp<'a>>, Vec<Exp<'a>>)
 }
 
 #[derive(Debug, PartialEq)]
@@ -61,17 +68,10 @@ fn substitution(input: &str) -> IResult<&str, &str> {
     )).parse(input)
 }
 
-pub fn parse(input: &str) -> IResult<&str, Vec<Chain<'_>>> {
-    terminated(
-        preceded(many0(separator), separated_list0(many1(separator), chain)),
-        (many0(separator), blank, eof),
-    ).parse(input)
-}
-
 fn keyword<'a>(
-    kw: &'static str
+    name: &'static str
 ) -> impl Parser<&'a str, Output = &'a str, Error = Error<&'a str>> {
-    terminated(tag(kw), not(part))
+    terminated(tag(name), not(part))
 }
 
 fn op(input: &str) -> IResult<&str, Op> {
@@ -89,10 +89,6 @@ fn part(input: &str) -> IResult<&str, &str> {
     alt((quoted, substitution, tag("$"), text)).parse(input)
 }
 
-fn word(input: &str) -> IResult<&str, &str> {
-    preceded(not(op), recognize(many1(part))).parse(input)
-}
-
 fn command(input: &str) -> IResult<&str, &str> {
     preceded(space0, recognize((word, many0((space1, word))))).parse(input)
 }
@@ -100,6 +96,52 @@ fn command(input: &str) -> IResult<&str, &str> {
 fn chain(input: &str) -> IResult<&str, Chain<'_>> {
     let tail = many0((preceded(space0, op), command));
     map((command, tail), |(head, tail)| Chain { head, tail }).parse(input)
+}
+
+fn reserved(input: &str) -> IResult<&str, &str> {
+    alt((
+        keyword("and"),
+        keyword("do"),
+        keyword("else"),
+        keyword("end"),
+        keyword("if"),
+        keyword("or"),
+    )).parse(input)
+}
+
+fn word(input: &str) -> IResult<&str, &str> {
+    preceded(not(reserved), recognize(many1(part))).parse(input)
+}
+
+fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
+    let (input, _) = preceded(space0, keyword("if")).parse(input)?;
+    let (input, cond) = chain(input)?;
+    let (input, _) = alt((
+        value((), separator),
+        value((), preceded(space0, keyword("do"))),
+    )).parse(input)?;
+    let (input, then) = body(input)?;
+    let (input, other) = opt(
+        preceded(preceded(space0, keyword("else")), body)
+    ).parse(input)?;
+    let (input, _) = preceded(space0, keyword("end")).parse(input)?;
+    Ok((input, Exp::If(cond, then, other.unwrap_or_default())))
+}
+
+fn exp(input: &str) -> IResult<&str, Exp<'_>> {
+    alt((if_exp, map(chain, Exp::Chain))).parse(input)
+}
+
+fn body(input: &str) -> IResult<&str, Vec<Exp<'_>>> {
+    delimited(
+        many0(separator),
+        separated_list0(many1(separator), exp),
+        many0(separator),
+    ).parse(input)
+}
+
+pub fn parse(input: &str) -> IResult<&str, Vec<Exp<'_>>> {
+    terminated(body, (blank, eof)).parse(input)
 }
 
 #[test_case]
@@ -143,12 +185,34 @@ fn test_command() {
 fn test_parse() {
     use alloc::vec;
 
-    let foo = Chain { head: "print foo", tail: vec![] };
-    let bar = Chain { head: "bar", tail: vec![] };
-    assert_eq!(parse("print foo; bar"), Ok(("", vec![foo, bar])));
-    let chain = Chain {
-        head: "print foo",
-        tail: vec![(Op::And, "bar"), (Op::Or, "baz")],
-    };
-    assert_eq!(parse("print foo and bar or baz"), Ok(("", vec![chain])));
+    let chain = |head| Chain { head, tail: vec![] };
+    let cmd = |head| Exp::Chain(chain(head));
+
+    let script = vec![cmd("print foo"), cmd("bar")];
+    assert_eq!(parse("print foo; bar"), Ok(("", script)));
+
+    let foo = Exp::Chain(Chain {
+         head: "print foo",
+         tail: vec![(Op::And, "bar"), (Op::Or, "baz")],
+    });
+    assert_eq!(parse("print foo and bar or baz"), Ok(("", vec![foo])));
+
+    let foo = Exp::If(chain("foo"), vec![cmd("bar")], vec![cmd("baz")]);
+    assert_eq!(parse("if foo do bar else baz end"), Ok(("", vec![foo])));
+    let script = "if foo\n  bar\nelse\n  baz\nend\n";
+    let foo = Exp::If(chain("foo"), vec![cmd("bar")], vec![cmd("baz")]);
+    assert_eq!(parse(script), Ok(("", vec![foo])));
+    let foo = Exp::If(chain("foo"), vec![cmd("bar")], vec![]);
+    assert_eq!(parse("if foo; bar; end"), Ok(("", vec![foo])));
+
+    let bar = Exp::If(chain("bar"), vec![cmd("baz")], vec![]);
+    let foo = Exp::If(chain("foo"), vec![bar], vec![cmd("qux")]);
+    let script = "if foo do if bar do baz end else qux end";
+    assert_eq!(parse(script), Ok(("", vec![foo])));
+
+    assert_eq!(parse("print \"end\""), Ok(("", vec![cmd("print \"end\"")])));
+    assert!(parse("print end").is_err());
+    assert!(parse("if foo do bar").is_err());
+    assert!(parse("if foo do bar end baz").is_err());
+    assert!(parse("end").is_err());
 }

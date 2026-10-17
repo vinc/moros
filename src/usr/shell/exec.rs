@@ -1,6 +1,6 @@
 use super::Config;
 use super::expand;
-use super::parse::{parse, Chain, Op};
+use super::parse::{parse, Chain, Exp, Op};
 use super::primitive;
 
 use crate::api::fs;
@@ -291,23 +291,36 @@ fn exec_chain(chain: &Chain, config: &mut Config) -> Result<(), ExitCode> {
     res
 }
 
-pub fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
+fn exec_body(body: &[Exp], config: &mut Config) -> Result<(), ExitCode> {
     let mut res = Ok(());
-    match parse(script) {
-        Ok((_, chains)) => {
-            for chain in chains {
-                res = exec_chain(&chain, config);
+    for exp in body {
+        res = match exp {
+            Exp::Chain(chain) => exec_chain(chain, config),
+            Exp::If(cond, then, other) => {
+                let res = exec_chain(cond, config);
                 if res == Err(ExitCode::ShellExit) {
-                    break;
+                    return res;
                 }
                 set_status(res, config);
+                exec_body(if res.is_ok() { then } else { other }, config)
             }
+        };
+        if res == Err(ExitCode::ShellExit) {
+            break;
         }
-        Err(_) => {
-            error!("Could not parse script");
-            res = Err(ExitCode::Failure);
-            set_status(res, config);
-        }
+        set_status(res, config);
     }
     res
+}
+
+pub fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
+    match parse(script) {
+        Ok((_, body)) => exec_body(&body, config),
+        Err(_) => {
+            error!("Could not parse script");
+            let res = Err(ExitCode::Failure);
+            set_status(res, config);
+            res
+        }
+    }
 }
