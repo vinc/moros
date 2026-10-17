@@ -15,6 +15,7 @@ use parse::parse;
 
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::parse::quote;
 use crate::api::process::ExitCode;
 use crate::api::prompt::Prompt;
 
@@ -118,10 +119,7 @@ impl fmt::Display for Exp {
             Exp::Bool(a) => a.to_string(),
             Exp::Num(n) => n.to_string(),
             Exp::Sym(s) => s.clone(),
-            Exp::Str(s) => {
-                format!("{:?}", s).
-                    replace("\\u{8}", "\\b").replace("\\u{1b}", "\\e")
-            }
+            Exp::Str(s) => quote(s),
             Exp::List(list) => {
                 let xs: Vec<_> = list.iter().map(|x| x.to_string()).collect();
                 format!("({})", xs.join(" "))

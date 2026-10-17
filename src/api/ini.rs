@@ -1,59 +1,62 @@
+use crate::api::parse::{ignored, number, string};
+
 use alloc::collections::btree_map::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use chumsky::prelude::*;
+use nom::IResult;
+use nom::Parser;
+use nom::branch::alt;
+use nom::bytes::complete::is_not;
+use nom::bytes::complete::tag;
+use nom::character::complete::space0;
+use nom::combinator::all_consuming;
+use nom::combinator::map;
+use nom::multi::many0;
+use nom::sequence::delimited;
+use nom::sequence::preceded;
+use nom::sequence::separated_pair;
+use nom::sequence::terminated;
 
 type ConfigMap = BTreeMap<String, String>;
-type ParseResult<'a> = ConfigMap;
-type ParseError<'a> = extra::Err<Simple<'a, char>>;
 
-fn parser<'a>() -> impl Parser<'a, &'a str, ParseResult<'a>, ParseError<'a>> {
-    let whitespace = one_of(" \t").repeated();
-    let newline = one_of("\n\r").repeated().at_least(1);
-    let key = text::ident();
-    let comment = just('#').then(none_of("\n\r").repeated()).ignored();
+fn parse_key(input: &str) -> IResult<&str, &str> {
+    is_not(" \t\r\n#=").parse(input)
+}
 
-    let quoted_val = none_of("\"").
-        repeated().
-        collect::<String>().
-        delimited_by(just('"'), just('"'));
+fn parse_eq(input: &str) -> IResult<&str, &str> {
+    delimited(space0, tag("="), space0).parse(input)
+}
 
-    let unquoted_val = none_of("\n\r#").
-        repeated().
-        collect::<String>();
+fn parse_val(input: &str) -> IResult<&str, String> {
+    alt((string, map(number, String::from))).parse(input)
+}
 
-    let val = quoted_val.or(unquoted_val).map(|s| s.trim().to_string());
+fn parse_pair(input: &str) -> IResult<&str, (&str, String)> {
+    preceded(
+        ignored,
+        separated_pair(parse_key, parse_eq, parse_val)
+    ).parse(input)
+}
 
-    let pair = key.
-        then_ignore(whitespace).
-        then_ignore(just('=')).
-        then_ignore(whitespace).
-        then(val).
-        then_ignore(whitespace).
-        then_ignore(comment.or_not()).
-        map(|(k, v): (&str, String)| (k.to_string(), v));
-
-    let line = pair.
-        map(Some).
-        or(comment.to(None)).
-        or(whitespace.to(None));
-
-    line.separated_by(newline).
-        allow_trailing().
-        collect::<Vec<_>>().
-        map(|items| items.into_iter().flatten().collect())
+fn parse_pairs(input: &str) -> IResult<&str, Vec<(&str, String)>> {
+    terminated(many0(parse_pair), ignored).parse(input)
 }
 
 pub fn parse(input: &str) -> Option<ConfigMap> {
-    parser().parse(input).into_result().ok()
+    let (_, pairs) = all_consuming(parse_pairs).parse(input).ok()?;
+    let mut config = ConfigMap::new();
+    for (key, val) in pairs {
+        config.insert(key.to_string(), val);
+    }
+    Some(config)
 }
 
 #[test_case]
 fn test_parse() {
-    let input = "key1=value1\nkey2=value2";
+    let input = "key1=\"foo\"\nkey2=42";
     let expected = BTreeMap::from([
-        ("key1".to_string(), "value1".to_string()),
-        ("key2".to_string(), "value2".to_string()),
+        ("key1".to_string(), "foo".to_string()),
+        ("key2".to_string(), "42".to_string()),
     ]);
 
     assert_eq!(parse(input), Some(expected));
@@ -61,43 +64,20 @@ fn test_parse() {
 
 #[test_case]
 fn test_parse_with_whitespace() {
-    let input = "key1 = value1\nkey2 = value2";
+    let input = "key1 = \"foo\"\nkey2 = 42";
     let expected = BTreeMap::from([
-        ("key1".to_string(), "value1".to_string()),
-        ("key2".to_string(), "value2".to_string()),
+        ("key1".to_string(), "foo".to_string()),
+        ("key2".to_string(), "42".to_string()),
     ]);
 
     assert_eq!(parse(input), Some(expected));
 }
 
 #[test_case]
-fn test_parse_with_empty_lines() {
-    let input = "key1=value1\n\nkey2=value2\n";
+fn test_parse_with_spaced_value() {
+    let input = "key = \"  val  \"";
     let expected = BTreeMap::from([
-        ("key1".to_string(), "value1".to_string()),
-        ("key2".to_string(), "value2".to_string()),
-    ]);
-
-    assert_eq!(parse(input), Some(expected));
-}
-
-#[test_case]
-fn test_parse_with_spaces_in_values() {
-    let input = "key1=  value with spaces  \nkey2=another value";
-    let expected = BTreeMap::from([
-        ("key1".to_string(), "value with spaces".to_string()),
-        ("key2".to_string(), "another value".to_string()),
-    ]);
-
-    assert_eq!(parse(input), Some(expected));
-}
-
-#[test_case]
-fn test_parse_with_crlf() {
-    let input = "key1=value1\r\nkey2=value2\r\n";
-    let expected = BTreeMap::from([
-        ("key1".to_string(), "value1".to_string()),
-        ("key2".to_string(), "value2".to_string()),
+        ("key".to_string(), "  val  ".to_string()),
     ]);
 
     assert_eq!(parse(input), Some(expected));
@@ -105,10 +85,31 @@ fn test_parse_with_crlf() {
 
 #[test_case]
 fn test_parse_with_empty_value() {
-    let input = "key1=\nkey2=value2";
+    let input = "key = \"\"";
     let expected = BTreeMap::from([
-        ("key1".to_string(), "".to_string()),
-        ("key2".to_string(), "value2".to_string()),
+        ("key".to_string(), "".to_string()),
+    ]);
+
+    assert_eq!(parse(input), Some(expected));
+}
+
+#[test_case]
+fn test_parse_with_empty_lines() {
+    let input = "key1=\"foo\"\n\nkey2=42\n";
+    let expected = BTreeMap::from([
+        ("key1".to_string(), "foo".to_string()),
+        ("key2".to_string(), "42".to_string()),
+    ]);
+
+    assert_eq!(parse(input), Some(expected));
+}
+
+#[test_case]
+fn test_parse_with_crlf() {
+    let input = "key1=\"foo\"\r\nkey2=42\r\n";
+    let expected = BTreeMap::from([
+        ("key1".to_string(), "foo".to_string()),
+        ("key2".to_string(), "42".to_string()),
     ]);
 
     assert_eq!(parse(input), Some(expected));
@@ -116,7 +117,7 @@ fn test_parse_with_empty_value() {
 
 #[test_case]
 fn test_parse_with_special_chars() {
-    let input = "path=/usr/bin/test\nurl=https://example.com:8080";
+    let input = "path=\"/usr/bin/test\"\nurl=\"https://example.com:8080\"";
     let expected = BTreeMap::from([
         ("path".to_string(), "/usr/bin/test".to_string()),
         ("url".to_string(), "https://example.com:8080".to_string()),
@@ -126,23 +127,23 @@ fn test_parse_with_special_chars() {
 }
 
 #[test_case]
-fn test_parse_with_quotes() {
-    let input = "key1 = \"value1\"\nkey2 = \"value2\"";
+fn test_parse_with_comments() {
+    let input = "# comment\nkey1 = \"foo\" # comment\nkey2 = 42";
     let expected = BTreeMap::from([
-        ("key1".to_string(), "value1".to_string()),
-        ("key2".to_string(), "value2".to_string()),
+        ("key1".to_string(), "foo".to_string()),
+        ("key2".to_string(), "42".to_string()),
     ]);
 
     assert_eq!(parse(input), Some(expected));
 }
 
 #[test_case]
-fn test_parse_with_comments() {
-    let input = "# comment\nkey1 = value1 # comment\nkey2 = value2";
+fn test_parse_file() {
+    let buf = include_bytes!("../../dsk/ini/chess.ini");
+    let input = String::from_utf8_lossy(buf);
     let expected = BTreeMap::from([
-        ("key1".to_string(), "value1".to_string()),
-        ("key2".to_string(), "value2".to_string()),
+        ("puzzle".to_string(), "/tmp/chess/mi2.epd".to_string()),
     ]);
 
-    assert_eq!(parse(input), Some(expected));
+    assert_eq!(parse(&input), Some(expected));
 }

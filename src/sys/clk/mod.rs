@@ -11,6 +11,8 @@ pub use rtc::RTC;
 pub use sync::{sleep, wait};
 pub use timer::{ticks, pit_frequency, set_pit_frequency};
 
+use timer::Timer;
+
 use crate::api;
 
 use alloc::string::String;
@@ -28,4 +30,8 @@ pub fn date() -> String {
     );
     let dt = OffsetDateTime::from_unix_timestamp(s as i64) + ns;
     dt.format(api::clock::DATE_TIME_ZONE)
+}
+
+pub fn timer(nanoseconds: u64) -> Timer {
+    Timer::new(nanoseconds)
 }

@@ -7,6 +7,26 @@ use crate::sys::x86::port::*;
 
 use core::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 
+pub struct Timer {
+    start: u64,
+    duration: u64
+}
+
+impl Timer {
+    pub fn new(nanoseconds: u64) -> Self {
+        debug_assert!(tsc_frequency() > 0);
+        debug_assert!(nanoseconds <= u64::MAX / tsc_frequency());
+        Self {
+            start: tsc(),
+            duration: nanoseconds * tsc_frequency() / 1_000_000_000
+        }
+    }
+
+    pub fn is_elapsed(&self) -> bool {
+        tsc() - self.start >= self.duration
+    }
+}
+
 // At boot the PIT starts with a frequency divider of 0 (equivalent to 65536)
 // which will result in about 54.926 ms between ticks.
 // During init we will change the divider to 1193 to have about 1.000 ms

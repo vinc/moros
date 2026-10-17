@@ -1,5 +1,6 @@
 use crate::api::fs;
 use crate::api::ini;
+use crate::api::parse::quote;
 use crate::api::syscall;
 
 use alloc::collections::btree_map::BTreeMap;
@@ -90,6 +91,6 @@ pub fn env_var(key: &str) -> Option<String> {
 
 // TODO: Return Result<()>
 pub fn set_env_var(key: &str, val: &str) {
-    let s = format!("{}=\"{}\"", key, val);
+    let s = format!("{}={}", key, quote(val));
     let _ = fs::write("/dev/proc/env", s.as_bytes());
 }
