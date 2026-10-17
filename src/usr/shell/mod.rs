@@ -467,19 +467,21 @@ fn cmd_version() -> Result<(), ExitCode> {
 fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
     match parse(script) {
         Ok((_, cmds)) => {
+            let mut res = Ok(());
             for cmd in cmds {
-                if exec_command(cmd, config).is_err() {
-                    return Err(ExitCode::Failure);
+                res = exec_command(cmd, config);
+                if res == Err(ExitCode::ShellExit) {
+                    break;
                 }
             }
-            Ok(())
+            res
         }
         Err(_) => {
+            error!("Could not parse script");
             Err(ExitCode::Failure)
         }
     }
 }
-
 
 fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     let cmd = variables_expansion(cmd, config);
