@@ -464,23 +464,30 @@ fn cmd_version() -> Result<(), ExitCode> {
     Ok(())
 }
 
+fn set_status(res: Result<(), ExitCode>, config: &mut Config) {
+    let code = res.err().unwrap_or(ExitCode::Success);
+    config.env.insert("status".to_string(), format!("{}", code as u8));
+}
+
 fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
+    let mut res = Ok(());
     match parse(script) {
         Ok((_, cmds)) => {
-            let mut res = Ok(());
             for cmd in cmds {
                 res = exec_command(cmd, config);
                 if res == Err(ExitCode::ShellExit) {
                     break;
                 }
+                set_status(res, config);
             }
-            res
         }
         Err(_) => {
             error!("Could not parse script");
-            Err(ExitCode::Failure)
+            res = Err(ExitCode::Failure);
+            set_status(res, config);
         }
     }
+    res
 }
 
 fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
@@ -736,15 +743,13 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
     prompt.history.load(history_file);
     prompt.completion.set(&shell_completer);
 
-    let mut code = ExitCode::Success;
-    let success = code;
-    while let Some(cmd) = prompt.input(&prompt_string(code == success)) {
-        code = match exec_script(&cmd, config) {
-            Err(ExitCode::ShellExit) => break,
-            Err(e) => e,
-            Ok(()) => ExitCode::Success,
-        };
-        config.env.insert("status".to_string(), format!("{}", code as u8));
+    let mut success = true;
+    while let Some(cmd) = prompt.input(&prompt_string(success)) {
+        let res = exec_script(&cmd, config);
+        if res == Err(ExitCode::ShellExit) {
+            break;
+        }
+        success = res.is_ok();
         prompt.history.add(&cmd);
         prompt.history.save(history_file);
         sys::console::drain();
