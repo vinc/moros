@@ -309,7 +309,6 @@ dependencies = [
  "bit_field",
  "bootloader",
  "geodate",
- "lazy_static",
  "libm",
  "limine",
  "linked_list_allocator",
