@@ -201,6 +201,8 @@ fn test_split_args() {
 
 #[test_case]
 fn test_variables_expansion() {
+    use super::exec::exec_command;
+
     let mut config = Config::new();
     exec_command("set foo 42", &mut config).ok();
     exec_command("set bar \"Alice and Bob\"", &mut config).ok();

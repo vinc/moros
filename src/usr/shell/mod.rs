@@ -220,6 +220,8 @@ fn help() -> Result<(), ExitCode> {
 #[cfg(target_arch = "x86_64")] // TODO: Remove
 #[test_case]
 fn test_shell() {
+    use exec::exec_command;
+    use crate::usr;
     use alloc::string::ToString;
 
     sys::fs::mount_mem();
