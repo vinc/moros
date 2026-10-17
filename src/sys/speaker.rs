@@ -1,9 +1,10 @@
 use super::clk;
 
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
+
+use crate::sys::x86::port::*;
 
 use alloc::string::String;
-use x86_64::instructions::port::Port;
 
 #[derive(Debug, Clone)]
 pub struct Speaker;
@@ -46,21 +47,21 @@ impl FileIO for Speaker {
 // See: https://wiki.osdev.org/PC_Speaker
 
 const SPEAKER_PORT: u16 = 0x61;
+const SPEAKER_CHANNEL: u8 = 0x02;
+const SPEAKER_ENABLED: u8 = 0x03;
+const SPEAKER_DISABLED: u8 = 0xFC;
 
-fn start_sound(freq: f64) {
-    let divider = (clk::pit_frequency() / freq) as u16;
-    let channel = 2; // PC Speaker
-    clk::set_pit_frequency(divider, channel);
+fn start_sound(frequency: f64) {
+    stop_sound();
 
-    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
-    let tmp = unsafe { speaker.read() };
-    if tmp != (tmp | 3) {
-        unsafe { speaker.write(tmp | 3) };
-    }
+    let divider = (clk::pit_frequency() / frequency) as u16;
+    clk::set_pit_frequency(divider, SPEAKER_CHANNEL);
+
+    let tmp = unsafe { inb(SPEAKER_PORT) };
+    unsafe { outb(SPEAKER_PORT, tmp | SPEAKER_ENABLED) };
 }
 
 fn stop_sound() {
-    let mut speaker: Port<u8> = Port::new(SPEAKER_PORT);
-    let tmp = unsafe { speaker.read() } & 0xFC;
-    unsafe { speaker.write(tmp) };
+    let tmp = unsafe { inb(SPEAKER_PORT) };
+    unsafe { outb(SPEAKER_PORT, tmp & SPEAKER_DISABLED) };
 }

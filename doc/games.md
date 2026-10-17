@@ -1,5 +1,9 @@
 # MOROS Games
 
+## DOOM
+
+![doom](images/doom.png)
+
 ## Chess
 
 ![chess](images/chess.png)
@@ -7,6 +11,10 @@
 ## Conway's Game of Life
 
 ![life](images/life.png)
+
+## Minesweeper
+
+![minesweeper](images/minesweeper.png)
 
 ## 2048
 

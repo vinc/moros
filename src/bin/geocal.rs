@@ -10,35 +10,101 @@ use geodate::geodate::*;
 use geodate::reverse::*;
 use geodate::ephemeris::*;
 use moros::entry_point;
+use moros::{println, print};
 use moros::api::clock;
-use moros::api::syscall;
+use moros::api::fs;
+use moros::api::ini;
+use moros::api::console::Style;
 
 entry_point!(main);
+
+const GEO_FILE: &str = "/ini/geo.ini";
 
 fn main(args: &[&str]) {
     let mut show_ephemeris = false;
     let mut solar_calendar = false;
-    let args: Vec<&&str> = args.iter().filter(|arg| {
-        match **arg {
-            "--ephem" => show_ephemeris = true,
-            "--solar" => solar_calendar = true,
-            _ => {},
+    let mut latitude = None;
+    let mut longitude = None;
+    let mut timestamp = None;
+    let mut i = 1;
+    let n = args.len();
+    while i < n {
+        match args[i] {
+            "-h" | "--help" => {
+                help();
+                return;
+            }
+            "-e" | "--ephem" => {
+                show_ephemeris = true;
+            }
+            "-s" | "--solar" => {
+                solar_calendar = true;
+            }
+            "-x" | "--longitude" => {
+                i += 1;
+                if i < n {
+                    if let Ok(value) = args[i].parse() {
+                        longitude = Some(value);
+                    }
+                }
+            }
+            "-y" | "--latitude" => {
+                i += 1;
+                if i < n {
+                    if let Ok(value) = args[i].parse() {
+                        latitude = Some(value);
+                    }
+                }
+            }
+            "-t" | "--timestamp" => {
+                i += 1;
+                if i < n {
+                    if let Ok(value) = args[i].parse() {
+                        timestamp = Some(value);
+                    }
+                }
+            }
+            _ => {
+                help();
+                return;
+            }
         }
-        !arg.starts_with("--")
-    }).collect();
+        i += 1;
+    }
 
-    if args.len() < 3 {
-        syscall::write(1, b"Usage: geocal <latitude> <longitude> [<timestamp>]\n");
+    if timestamp.is_none() {
+        timestamp = Some(clock::epoch_time())
+    }
+
+    if longitude.is_none() || latitude.is_none() {
+        if let Ok(buf) = fs::read_to_string(GEO_FILE) {
+            if let Some(config) = ini::parse(&buf) {
+                if longitude.is_none() {
+                    if let Some(value) = config.get("lon") {
+                        if let Ok(value) = value.parse() {
+                            longitude = Some(value);
+                        }
+                    }
+                }
+                if latitude.is_none() {
+                    if let Some(value) = config.get("lat") {
+                        if let Ok(value) = value.parse() {
+                            latitude = Some(value);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if timestamp.is_none() || longitude.is_none() || latitude.is_none() {
+        help();
         return;
     }
 
-    let latitude = args[1].parse().unwrap();
-    let longitude = args[2].parse().unwrap();
-    let timestamp = if args.len() == 4 {
-        args[3].parse().unwrap()
-    } else {
-        clock::epoch_time() as i64
-    };
+    let timestamp = timestamp.unwrap() as i64;
+    let longitude = longitude.unwrap();
+    let latitude = latitude.unwrap();
 
     let week;
     let format;
@@ -55,21 +121,22 @@ fn main(args: &[&str]) {
     let formatted_date = get_formatted_date(&format, timestamp, longitude);
     let date: Vec<_> = formatted_date.split(":").collect();
 
-    syscall::write(1, b"\n");
+    println!();
     let sep = "|";
     print_line(week);
 
     // Date
     let is_negative = date[0].starts_with('-');
     let colored_title = "Date";
-    let colored_date = ["\x1b[91m", date[0], date[1], "-", date[2], "-", date[3], "\x1b[0m"].join("");
+    let colored_date = [
+        "\x1b[91m", date[0], date[1], "-", date[2], "-", date[3], "\x1b[0m"
+    ].join("");
     let mut spacing = (3 * week) - 17;
     if is_negative {
         spacing -= 1;
     }
     let space = " ".repeat(spacing);
-    let line = [" ", sep, colored_title, &space, &colored_date, sep, "\n"].join(" ");
-    syscall::write(1, line.as_bytes());
+    println!("  {sep} {colored_title} {space} {colored_date} {sep}");
     print_line(week);
 
     // Calendar
@@ -78,43 +145,40 @@ fn main(args: &[&str]) {
     } else {
         [" ", sep, "So Me Ve Te Ma Ju Sa Lu", ""].join(" ")
     };
-    syscall::write(1, line.as_bytes());
+    print!("{line}");
     let n = last_day + 1;
     for i in 0..n {
         // Weekend
         if solar_calendar {
             if i % week == 0 {
-                let line = ["|\n ", sep, ""].join(" ");
-                syscall::write(1, line.as_bytes());
+                print!("|\n  {sep} ");
             }
         } else if i == 0 || i == 7 || i == 15 || i == 22 {
             // The lunisolar calendar has a leap day at the end of the
             // second week and another at the end of the last week if
             // the month is long (30 days).
             if i == 7 || i == 22 {
-                syscall::write(1, b"   ");
+                print!("   ");
             }
-            let line = ["|\n ", sep, ""].join(" ");
-            syscall::write(1, line.as_bytes());
+            print!("|\n  {sep} ");
         }
 
         let mut day = format!("{:02}", i);
         if day == date[3] {
             day = ["\x1b[91m", &day, "\x1b[0m"].join("");
         }
-        syscall::write(1, day.as_bytes());
-        syscall::write(1, b" ");
+        print!("{day} ");
     }
-    if solar_calendar {
-        if last_day > 89 {
-            syscall::write(1, "   ".repeat(99 - last_day).as_bytes());
-        } else {
-            syscall::write(1, "   ".repeat(89 - last_day).as_bytes());
-        }
+
+    let n = if solar_calendar {
+        (if last_day > 89 { 99 } else { 89 }) - last_day
     } else if last_day == 28 {
-        syscall::write(1, b"   ");
-    }
-    syscall::write(1, b"|\n");
+        1
+    } else {
+        0
+    };
+    let space = "   ".repeat(n);
+    println!("{space}|");
     print_line(week);
 
     // Time
@@ -122,8 +186,7 @@ fn main(args: &[&str]) {
     let colored_time = ["\x1b[91m", date[4], ":", date[5], "\x1b[0m"].join("");
     let spacing = (3 * week) - 12;
     let space = " ".repeat(spacing);
-    let line = [" ", sep, colored_title, &space, &colored_time, sep, "\n"].join(" ");
-    syscall::write(1, line.as_bytes());
+    println!("  {sep} {colored_title} {space} {colored_time} {sep}");
     print_line(week);
 
     // Ephemeris
@@ -139,8 +202,7 @@ fn main(args: &[&str]) {
             let time = get_formatted_date("%c:%b", t, longitude);
             let spacing = (3 * week) - 8 - name.len();
             let space = " ".repeat(spacing);
-            let line = [" ", sep, name, &space, &time, sep, "\n"].join(" ");
-            syscall::write(1, line.as_bytes());
+            println!("  {sep} {name} {space} {time} {sep}");
         }
         print_line(week);
     }
@@ -180,7 +242,37 @@ fn last_day_of_solar_month(timestamp: i64, longitude: f64) -> usize {
 }
 
 fn print_line(week: usize) {
-    syscall::write(1, b"  +-");
-    syscall::write(1, "-".repeat(3 * week).as_bytes());
-    syscall::write(1, b"+\n");
+    let s = "-".repeat(3 * week);
+    println!("  +-{s}+");
+}
+
+fn help() {
+    let csi_opt = Style::color("aqua");
+    let csi_title = Style::color("yellow");
+    let csi_reset = Style::reset();
+    println!(
+        "{}Usage:{} geocal {}<options>{1}", csi_title, csi_reset, csi_opt
+    );
+    println!();
+    println!("{}Options:{}", csi_title, csi_reset);
+    println!(
+        "  {0}-e{1}, {0}--ephem{1}                 Show ephemeris",
+        csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-s{1}, {0}--solar{1}                 Use solar calendar",
+        csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-t{1}, {0}--timestamp <number>{1}    Set timestamp",
+        csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-x{1}, {0}--longitude <number>{1}    Set longitude",
+        csi_opt, csi_reset
+    );
+    println!(
+        "  {0}-y{1}, {0}--latitude <number>{1}     Set latitude",
+        csi_opt, csi_reset
+    );
 }

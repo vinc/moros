@@ -2,7 +2,6 @@ use crate::api::console::Style;
 use crate::api::process::ExitCode;
 use crate::api::{console, io, rng};
 
-use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::fmt;
@@ -11,13 +10,6 @@ use vte::{Params, Parser, Perform};
 struct Game {
     score: usize,
     board: [usize; 16],
-}
-
-pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
-    print!("\x1b[?25l"); // Disable cursor
-    Game::new().run();
-    print!("\x1b[?25h"); // Enable cursor
-    Ok(())
 }
 
 impl Game {
@@ -50,7 +42,6 @@ impl Game {
 
     fn seed(&mut self) {
         let zeros: Vec<_> = (0..16).filter(|i| self.board[*i] == 0).collect();
-
         if !zeros.is_empty() {
             let i = (rng::get_u64() as usize) % zeros.len();
             self.board[zeros[i]] = 2;
@@ -163,6 +154,13 @@ impl Perform for Game {
             _ => {}
         }
     }
+}
+
+pub fn main(_args: &[&str]) -> Result<(), ExitCode> {
+    print!("\x1b[?25l"); // Disable cursor
+    Game::new().run();
+    print!("\x1b[?25h"); // Enable cursor
+    Ok(())
 }
 
 #[test_case]

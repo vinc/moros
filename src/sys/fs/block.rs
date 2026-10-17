@@ -4,17 +4,12 @@ use super::block_device::BLOCK_DEVICE;
 
 use core::convert::TryInto;
 
-const DATA_OFFSET: usize = 4;
-
 #[derive(Clone)]
 pub struct Block {
     addr: u32,
     buf: [u8; super::BLOCK_SIZE],
 }
 
-// Block structure:
-// 0..4 => next block address
-// 4..512 => block data
 impl Block {
     pub fn new(addr: u32) -> Self {
         let buf = [0; super::BLOCK_SIZE];
@@ -68,12 +63,6 @@ impl Block {
     pub fn data_mut(&mut self) -> &mut [u8] {
         &mut self.buf[..]
     }
-
-    /*
-    pub fn len(&self) -> usize {
-        self.buf.len()
-    }
-    */
 }
 
 pub struct LinkedBlock {
@@ -81,6 +70,14 @@ pub struct LinkedBlock {
 }
 
 impl LinkedBlock {
+    // The first 4 bytes of the block buffer are used for the next block address
+    // and the remaining bytes for the data.
+    pub const CAPACITY: usize = super::BLOCK_SIZE - 4;
+
+    pub const fn capacity(&self) -> usize {
+        Self::CAPACITY
+    }
+
     pub fn new(addr: u32) -> Self {
         Self {
             block: Block::new(addr),
@@ -106,19 +103,27 @@ impl LinkedBlock {
     }
 
     pub fn data(&self) -> &[u8] {
-        &self.block.buf[DATA_OFFSET..super::BLOCK_SIZE]
+        &self.block.buf[4..super::BLOCK_SIZE]
     }
 
     pub fn data_mut(&mut self) -> &mut [u8] {
-        &mut self.block.buf[DATA_OFFSET..super::BLOCK_SIZE]
+        &mut self.block.buf[4..super::BLOCK_SIZE]
     }
 
-    pub fn len(&self) -> usize {
-        super::BLOCK_SIZE - DATA_OFFSET
+    pub fn is_empty(&self) -> bool {
+        self.data().iter().all(|&b| b == 0)
+    }
+
+    pub fn next_addr(&self) -> u32 {
+        u32::from_be_bytes(self.block.buf[0..4].try_into().unwrap())
+    }
+
+    pub fn set_next_addr(&mut self, addr: u32) {
+        self.block.buf[0..4].clone_from_slice(&addr.to_be_bytes());
     }
 
     pub fn next(&self) -> Option<Self> {
-        let addr = u32::from_be_bytes(self.block.buf[0..4].try_into().unwrap());
+        let addr = self.next_addr();
         if addr == 0 {
             None
         } else {
@@ -131,9 +136,5 @@ impl LinkedBlock {
         self.set_next_addr(new_block.addr());
         self.write();
         Some(new_block)
-    }
-
-    pub fn set_next_addr(&mut self, addr: u32) {
-        self.block.buf[0..4].clone_from_slice(&addr.to_be_bytes());
     }
 }

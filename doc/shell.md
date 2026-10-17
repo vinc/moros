@@ -165,10 +165,10 @@ NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
 - Name of the shell or the script: `$0`
 - Script arguments: `$1`, `$2`, `$3`, `$4`, ...
 - Exit code: `$?`
-- Process environment variable: `$HOME`, ...
-- Shell environment variable: `$foo`, ...
+- Environment variable: `$HOME`, ...
+- Shell variable: `$foo`, ...
 
-Setting a variable in the shell environment is done with the following command:
+Setting a variable in the shell is done with the following command:
 
     > set foo 42
 
@@ -182,13 +182,21 @@ And accessing a variable is done with the `$` operator:
     > print "Hello $bar"
     Hello Alice and Bob
 
-The process environment is copied to the shell environment when a session is
-started. By convention a process env var should be in uppercase and a shell
-env var should be lowercase.
-
 Unsetting a variable is done like this:
 
     > unset foo
+
+Environment variables are copied to the shell when a session is started.
+By convention an env var should be in uppercase and a shell var should be
+lowercase. They can be changed by using `--env` or `-e`.
+
+    > date
+    2026-04-21 17:24:06 +0000
+
+    > set --env TZ 7200
+
+    > date
+    2026-04-21 19:24:14 +0200
 
 ## Globbing
 

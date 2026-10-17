@@ -1,7 +1,27 @@
-use raw_cpuid::CpuId;
+use raw_cpuid::{CpuId, CpuIdReader};
+
+#[cfg(target_arch = "x86")]
+pub fn cpuid() -> CpuId<impl CpuIdReader> {
+    // The crate requires sse on x86 which we don't have inside the kernel
+    // See: https://github.com/gz/rust-cpuid/issues/134
+    CpuId::with_cpuid_fn(|leaf, sub_leaf| {
+        let res = core::arch::x86::__cpuid_count(leaf, sub_leaf);
+        raw_cpuid::CpuIdResult {
+            eax: res.eax,
+            ebx: res.ebx,
+            ecx: res.ecx,
+            edx: res.edx,
+        }
+    })
+}
+
+#[cfg(target_arch = "x86_64")]
+pub fn cpuid() -> CpuId<impl CpuIdReader> {
+    CpuId::new()
+}
 
 pub fn init() {
-    let cpuid = CpuId::new();
+    let cpuid = cpuid();
 
     if let Some(vendor_info) = cpuid.get_vendor_info() {
         log!("CPU {}", vendor_info);
@@ -17,4 +37,22 @@ pub fn init() {
             log!("CPU {} MHz", frequency);
         }
     }
+}
+
+// RDRAND (Read Random)
+//
+// Support:
+// - Intel Ivy Bridge (2012)
+// - AMD Excavator (2015)
+pub fn has_rdrand() -> bool {
+    cpuid().get_feature_info().is_some_and(|info| info.has_rdrand())
+}
+
+// PSE (Page Size Extension)
+//
+// Support:
+// - Intel Pentium (1993)
+// - AMD Athlon (1999)
+pub fn has_pse() -> bool {
+    cpuid().get_feature_info().is_some_and(|info| info.has_pse())
 }

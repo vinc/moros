@@ -1,14 +1,10 @@
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
 use crate::api::process::ExitCode;
 use crate::sys;
-use crate::sys::fs::Device;
-use crate::sys::fs::FileInfo;
-use crate::sys::fs::Resource;
-use crate::sys::process::Process;
+use crate::sys::fs::{Device, FileInfo, Resource, SeekFrom};
 
 use alloc::vec;
 use core::alloc::Layout;
-use core::arch::asm;
 use smoltcp::wire::IpAddress;
 
 pub fn exit(code: ExitCode) -> ExitCode {
@@ -16,8 +12,8 @@ pub fn exit(code: ExitCode) -> ExitCode {
     code
 }
 
-pub fn sleep(seconds: f64) {
-    sys::clk::sleep(seconds);
+pub fn sleep(milliseconds: usize) {
+    sys::clk::sleep(milliseconds as f64 / 1000.0);
 }
 
 pub fn delete(path: &str) -> isize {
@@ -62,14 +58,6 @@ pub fn open(path: &str, flags: u8) -> isize {
     -1
 }
 
-pub fn dup(old_handle: usize, new_handle: usize) -> isize {
-    if let Some(file) = sys::process::handle(old_handle) {
-        sys::process::update_handle(new_handle, *file);
-        return 0;
-    }
-    -1
-}
-
 pub fn read(handle: usize, buf: &mut [u8]) -> isize {
     if let Some(mut file) = sys::process::handle(handle) {
         if let Ok(bytes) = file.read(buf) {
@@ -97,6 +85,39 @@ pub fn close(handle: usize) {
     }
 }
 
+pub fn dup(old_handle: usize, new_handle: usize) -> isize {
+    if let Some(file) = sys::process::handle(old_handle) {
+        sys::process::update_handle(new_handle, *file);
+        return 0;
+    }
+    -1
+}
+
+pub fn seek(handle: usize, from: SeekFrom) -> isize {
+    if let Some(file) = sys::process::handle(handle) {
+        let mut res = *file;
+        match &mut res {
+            Resource::File(f) => {
+                if let Ok(cursor) = f.seek(from) {
+                    sys::process::update_handle(handle, res);
+                    cursor as isize
+                } else {
+                    -3
+                }
+            }
+            _ => -2
+        }
+    } else {
+        -1
+    }
+}
+
+#[cfg(target_arch = "x86")]
+pub fn spawn(_path: &str, _args_ptr: usize, _args_len: usize) -> ExitCode {
+    ExitCode::ExecError
+}
+
+#[cfg(target_arch = "x86_64")] // TODO: Remove this
 pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
     let path = match sys::fs::canonicalize(path) {
         Ok(path) => path,
@@ -106,7 +127,7 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
         let mut buf = vec![0; file.size()];
         if let Ok(bytes) = file.read(&mut buf) {
             buf.resize(bytes, 0);
-            if let Err(code) = Process::spawn(&buf, args_ptr, args_len) {
+            if let Err(code) = sys::process::spawn(buf, args_ptr, args_len) {
                 code
             } else {
                 unreachable!(); // The kernel switched to the child process
@@ -122,9 +143,8 @@ pub fn spawn(path: &str, args_ptr: usize, args_len: usize) -> ExitCode {
 pub fn stop(code: usize) -> usize {
     match code {
         0xCAFE => { // Reboot
-            unsafe {
-                asm!("xor rax, rax", "mov cr3, rax");
-            }
+            // TODO: Implement ACPI reset but keep IDT reset as fallback
+            sys::idt::reset();
         }
         0xDEAD => { // Halt
             sys::process::exit();
@@ -181,6 +201,11 @@ pub fn listen(handle: usize, port: u16) -> isize {
     -1
 }
 
+// TODO: This should return a new file handle for the connection in addition
+// to an address and a port to keep the listening socket open when the
+// connection is closed: `Result<(usize, IpAddress, u16), ()>`.
+// TODO: Remove the blocking+timeout as waiting should be done by polling the
+// listening socket instead.
 pub fn accept(handle: usize) -> Result<IpAddress, ()> {
     if let Some(file) = sys::process::handle(handle) {
         return match *file {
@@ -200,8 +225,8 @@ pub fn alloc(size: usize, align: usize) -> *mut u8 {
     }
 }
 
-pub fn free(ptr: *mut u8, size: usize, align: usize) {
+pub unsafe fn free(ptr: *mut u8, size: usize, align: usize) {
     if let Ok(layout) = Layout::from_size_align(size, align) {
-        unsafe { sys::process::free(ptr, layout) };
+        sys::process::free(ptr, layout);
     }
 }

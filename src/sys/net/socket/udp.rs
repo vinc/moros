@@ -1,6 +1,7 @@
 use crate::sys;
 
-use crate::api::fs::{FileIO, IO};
+use crate::sys::fs::{FileIO, IO};
+
 use crate::sys::net::SocketStatus;
 
 use super::SOCKETS;
@@ -79,7 +80,7 @@ impl UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
         }
         self.remote_endpoint = Some(IpEndpoint::new(addr, port));
@@ -122,7 +123,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
             Ok(bytes)
         } else {
@@ -160,7 +161,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
             Ok(buf.len())
         } else {
@@ -185,7 +186,7 @@ impl FileIO for UdpSocket {
                 if let Some(d) = iface.poll_delay(sys::net::time(), &sockets) {
                     wait(d);
                 }
-                sys::clk::halt();
+                sys::x86::hlt();
             }
         }
     }

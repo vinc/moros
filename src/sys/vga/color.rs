@@ -22,7 +22,7 @@ pub enum Color {
 }
 
 impl Color {
-    pub fn from_index(code: usize) -> Color {
+    pub fn from_vga_index(code: usize) -> Color {
         match code {
             0x0 => Color::DarkBlack,
             0x1 => Color::DarkBlue,
@@ -44,26 +44,34 @@ impl Color {
         }
     }
 
-    pub fn from_ansi(code: u8) -> Color {
+    pub fn from_ansi_index(code: usize) -> Color {
         match code {
-            30 => Color::DarkBlack,
-            31 => Color::DarkRed,
-            32 => Color::DarkGreen,
-            33 => Color::DarkYellow,
-            34 => Color::DarkBlue,
-            35 => Color::DarkMagenta,
-            36 => Color::DarkCyan,
-            37 => Color::DarkWhite,
-            90 => Color::BrightBlack,
-            91 => Color::BrightRed,
-            92 => Color::BrightGreen,
-            93 => Color::BrightYellow,
-            94 => Color::BrightBlue,
-            95 => Color::BrightMagenta,
-            96 => Color::BrightCyan,
-            97 => Color::BrightWhite,
+            0x0 => Color::DarkBlack,
+            0x1 => Color::DarkRed,
+            0x2 => Color::DarkGreen,
+            0x3 => Color::DarkYellow,
+            0x4 => Color::DarkBlue,
+            0x5 => Color::DarkMagenta,
+            0x6 => Color::DarkCyan,
+            0x7 => Color::DarkWhite,
+            0x8 => Color::BrightBlack,
+            0x9 => Color::BrightRed,
+            0xA => Color::BrightGreen,
+            0xB => Color::BrightYellow,
+            0xC => Color::BrightBlue,
+            0xD => Color::BrightMagenta,
+            0xE => Color::BrightCyan,
+            0xF => Color::BrightWhite,
             _  => Color::DarkBlack, // TODO: Error
         }
+    }
+
+    pub fn from_ansi_fg(code: usize) -> Color {
+        Self::from_ansi_index((if code < 90 { code } else { code + 8 }) % 30)
+    }
+
+    pub fn from_ansi_bg(code: usize) -> Color {
+        Self::from_ansi_fg(code - 10)
     }
 
     pub fn register(&self) -> usize {
@@ -90,7 +98,15 @@ impl Color {
 
 #[test_case]
 fn test_color() {
-    assert_eq!(Color::from_index(6), Color::DarkYellow);
-    assert_eq!(Color::from_ansi(33), Color::DarkYellow);
+    assert_eq!(Color::from_vga_index(6), Color::DarkYellow);
+    assert_eq!(Color::from_ansi_index(3), Color::DarkYellow);
+    assert_eq!(Color::from_ansi_fg(33), Color::DarkYellow);
+    assert_eq!(Color::from_ansi_bg(43), Color::DarkYellow);
     assert_eq!(Color::DarkYellow.register(), 0x14);
+
+    assert_eq!(Color::from_vga_index(11), Color::BrightCyan);
+    assert_eq!(Color::from_ansi_index(14), Color::BrightCyan);
+    assert_eq!(Color::from_ansi_fg(96), Color::BrightCyan);
+    assert_eq!(Color::from_ansi_bg(106), Color::BrightCyan);
+    assert_eq!(Color::BrightCyan.register(), 0x3B);
 }

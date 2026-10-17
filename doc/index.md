@@ -12,8 +12,8 @@ BIOS, typically from 2005 to 2020. It also runs well on most
 ## Usage
 
 MOROS is open source. You can [build](https://github.com/vinc/moros) or
-[download](https://github.com/vinc/moros/releases) an image. Check out
-the [manual](manual.md) for details on how to use it.
+[download](https://github.com/vinc/moros/releases) an image. Check the
+[manual](manual.md) for details on how to use it.
 
 ## Features
 
@@ -57,11 +57,6 @@ And it's quite [customizable](colors.md):
 
 ![light mode screenshot](images/light.png)
 
-## Demo (currently disabled)
+## Demo
 
-Log in to a demo using the name of the system as the password for the guest
-account:
-
-    $ ssh guest@try.moros.cc
-
-Happy hacking!
+Try a [demo](demo) inside your browser.

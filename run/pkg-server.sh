@@ -1,3 +1,4 @@
 #!/bin/sh
-
-python -m http.server -d dsk 8181
+SCRIPT_DIR="$(dirname "$0")"
+cd "$SCRIPT_DIR/.."
+python3 -m http.server -d dsk 8181

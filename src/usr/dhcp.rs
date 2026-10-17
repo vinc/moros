@@ -65,8 +65,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
 
             if let Some(delay) = iface.poll_delay(time, &sockets) {
-                let d = (delay.total_micros() as f64) / 1000000.0;
-                syscall::sleep(d.min(0.1)); // Don't sleep longer than 0.1s
+                let duration = delay.total_millis() as usize;
+                syscall::sleep(duration.clamp(1, 100));
             }
         }
     } else {
@@ -86,7 +86,8 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
         let dns: Vec<_> = dns.iter().map(|s| s.to_string()).collect();
         if !dns.is_empty() {
             let servers = dns.join(",");
-            if fs::write("/ini/dns", servers.as_bytes()).is_ok() {
+            let config = format!("dns = \"{}\"\n", servers);
+            if fs::write("/ini/dns.ini", config.as_bytes()).is_ok() {
                 log!("NET DNS {}", servers);
             }
         }

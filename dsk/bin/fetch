@@ -4,5 +4,6 @@
 
 (var url (first args))
 (var dst (filename url))
+(var cmd (str "http " url " => " dst))
 
-(shell (str "http " url " => " dst))
+(sh cmd)

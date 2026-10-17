@@ -4,7 +4,7 @@
 
 # Read
 
-(def (read-binary path)
+(def (read-bin path)
   "Reads binary file"
   (do
     (var size (file/size path))
@@ -15,11 +15,11 @@
 
 (def (read path)
   "Reads text file"
-  (binary->string (read-binary path)))
+  (bin->str (read-bin path)))
 
 # Write
 
-(def (write-binary path data)
+(def (write-bin path data)
   "Writes binary to file"
   (do
     (var file (file/open path "w"))
@@ -28,11 +28,11 @@
 
 (def (write path text)
   "Writes text to file"
-  (write-binary path (string->binary text)))
+  (write-bin path (str->bin text)))
 
 # Append
 
-(def (append-binary path data)
+(def (append-bin path data)
   "Appends binary to file"
   (do
     (var file (file/open path "a"))
@@ -41,37 +41,37 @@
 
 (def (append path text)
   "Appends text to file"
-  (append-binary path (string->binary text)))
+  (append-bin path (str->bin text)))
 
 # Console
 
 (def (read-line)
   "Reads line from the console"
-  (string/trim (binary->string (file/read stdin 256))))
+  (str/trim (bin->str (file/read stdin 256))))
 
 (def (read-char)
   "Reads char from the console"
-  (binary->string (file/read stdin 4)))
+  (bin->str (file/read stdin 4)))
 
 (def (p exp)
   "Prints expression to stdout"
   (do
-    (file/write stdout (string->binary (string exp)))
+    (file/write stdout (str->bin (str exp)))
     '()))
 
 (def (print exp)
   "Prints expression to stdout with a newline"
-  (p (string exp "\n")))
+  (p (str exp "\n")))
 
 (def (eprint exp)
   "Prints expression to stderr with a newline"
   (do
-    (file/write stderr (string->binary (string exp "\n")))
+    (file/write stderr (str->bin (str exp "\n")))
     '()))
 
 (def (error msg)
   "Prints error message to stderr"
-  (eprint (string "\e[91mError:\e[m " msg)))
+  (eprint (str "\e[91mError:\e[m " msg)))
 
 # Clocks
 

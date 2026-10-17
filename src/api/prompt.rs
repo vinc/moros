@@ -167,7 +167,7 @@ impl Prompt {
         };
         let line = &self.history.entries[i];
         let blank = ' '.to_string().repeat((self.offset + bs) - self.cursor);
-        let erase = '\x08'.to_string().repeat(bs);
+        let erase = '\x08'.to_string().repeat(bs); // Erase previous entry
         print!("{}{}{}", blank, erase, line);
         self.cursor = self.offset + line.chars().count();
         self.history.pos = Some(i);
@@ -188,7 +188,7 @@ impl Prompt {
         } else {
             (None, self.line.iter().collect())
         };
-        let erase = '\x08'.to_string().repeat(bs);
+        let erase = '\x08'.to_string().repeat(bs); // Erase previous entry
         print!("{}{}", erase, line);
         self.cursor = self.offset + line.chars().count();
         self.history.pos = pos;

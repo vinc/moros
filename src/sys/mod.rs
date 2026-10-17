@@ -39,6 +39,7 @@ macro_rules! log {
 
 pub mod acpi;
 pub mod ata;
+pub mod boot;
 pub mod clk;
 pub mod console;
 pub mod cpu;
@@ -54,6 +55,9 @@ pub mod pic;
 pub mod process;
 pub mod rng;
 pub mod serial;
+pub mod snd;
 pub mod speaker;
 pub mod syscall;
+pub mod tss;
 pub mod vga;
+pub mod x86;

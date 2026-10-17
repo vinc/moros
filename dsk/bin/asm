@@ -1,0 +1,184 @@
+#! lisp
+
+(load "/lib/lisp/core.lsp")
+
+(set addr 0)
+(set labels (dict))
+
+(def (emit-bytes bytes) (do
+  (set addr (+ addr (reduce + (map (fun (b) (if (str? b) 4 1)) bytes))))
+  bytes))
+
+(def (encode-u32 n)
+  (slice (rev (num->bin n)) 0 4))
+
+(def (encode-mod mod dst src)
+  (| (<< mod 6) (<< dst 3) src))
+
+(def (reg-x reg)
+  (case (first reg)
+    ("e" (list))
+    ("r" (list 0x48))))
+
+(def (reg-id name)
+  (case name
+    ("eax" 0)
+    ("ecx" 1)
+    ("edx" 2)
+    ("ebx" 3)
+    ("esp" 4)
+    ("ebp" 5)
+    ("esi" 6)
+    ("edi" 7)
+    ("rax" 0)
+    ("rcx" 1)
+    ("rdx" 2)
+    ("rbx" 3)
+    ("rsp" 4)
+    ("rbp" 5)
+    ("rsi" 6)
+    ("rdi" 7)))
+
+(def (asm-int params) (do
+  (list 0xCD (str->num (get params 0)))))
+
+(def (asm-add params)
+  (asm-alu 0 params))
+
+(def (asm-or params)
+  (asm-alu 1 params))
+
+(def (asm-and params)
+  (asm-alu 4 params))
+
+(def (asm-sub params)
+  (asm-alu 5 params))
+
+(def (asm-xor params)
+  (asm-alu 6 params))
+
+(def (asm-cmp params)
+  (asm-alu 7 params))
+
+(def (asm-alu ext params) (do
+  (set dst (get params 0))
+  (set src (get params 1))
+  (cond
+    # <instr> <reg> <reg>
+    ((or (eq? (first src) "e") (eq? (first src) "r"))
+      (concat
+        (reg-x dst)
+        (list (+ (* ext 8) 3) (encode-mod 3 (reg-id dst) (reg-id src)))))
+
+    # <instr> <reg> imm32
+    (true
+      (concat
+        (reg-x dst)
+        (list 0x81 (encode-mod 3 ext (reg-id dst)))
+        (encode-u32 (str->num src)))))))
+
+(def (asm-mov params) (do
+  (set dst (get params 0))
+  (set src (get params 1))
+  (cond
+    # mov reg64 <mem>
+    ((and (eq? (first src) "[") (eq? (last src) "]")) (do
+      (set exps (str/split (slice src 1 (- (len src) 2)) "+"))
+      (set src (first exps))
+        (if (eq? (len exps) 1)
+          # mov <reg> [<reg>]
+          (concat
+            (reg-x dst)
+            (list 0x8B (encode-mod 0 (reg-id dst) (reg-id src))))
+
+          # mov <reg> [<reg>+imm32]
+          (concat
+            (reg-x dst)
+            (list 0x8B (encode-mod 2 (reg-id dst) (reg-id src)))
+            (encode-u32 (str->num (last exps)))))))
+
+    # mov <reg> <reg>
+    ((or (eq? (first src) "e") (eq? (first src) "r"))
+       (concat
+         (reg-x dst)
+         (list 0x8B (encode-mod 3 (reg-id dst) (reg-id src)))))
+
+    # mov <reg> imm32
+    (true
+      (concat
+        (case (first dst)
+          ("e" (list (+ 0xB8 (reg-id dst))))
+          ("r" (list 0x48 0xC7 (encode-mod 3 0 (reg-id dst)))))
+        (encode-u32 (str->num src)))))))
+
+(def (asm-jmp params) (do
+  (set key (get params 0))
+  (list 0xE9 key)))
+
+(def (asm-jne params) (do
+  (set key (get params 0))
+  (list 0x0F 0x85 key)))
+
+(def (asm-lea params) (do
+  (set reg (get params 0))
+  (set key (get params 1))
+
+  # lea <reg> [label]
+  (if (and (eq? (first key) "[") (eq? (last key) "]"))
+    (set key (slice key 1 (- (len key) 2))))
+  (set src (encode-mod 0 (reg-id reg) 5))
+  (concat (reg-x reg) (list 0x8D src key))))
+
+(def (parse-line line) (do
+  (set line (str/trim (head (str/split line "#"))))
+  (set params (words line))
+  (set op (head params))
+
+  # label
+  (if (eq? (last op) ":") (do
+    (put! labels (slice op 0 (- (len op) 1)) addr)
+    (if (> (len params) 1) (do
+      (set params (tail params))
+      (set op (head params))))))
+
+  # instr
+  (if (> (len params) 1) (do
+    (set params (tail params))
+    (if (not (empty? op))
+      (emit-bytes (case op
+        ("str" (str->bin (parse (str/join params " "))))
+        ("add" (asm-add params))
+        ("or" (asm-or params))
+        ("and" (asm-and params))
+        ("sub" (asm-sub params))
+        ("xor" (asm-xor params))
+        ("cmp" (asm-cmp params))
+        ("int" (asm-int params))
+        ("lea" (asm-lea params))
+        ("jmp" (asm-jmp params))
+        ("jne" (asm-jne params))
+        ("jnz" (asm-jne params))
+        ("mov" (asm-mov params)))))))))
+
+(def (parse-file file)
+  (reduce concat (map parse-line (lines file))))
+
+(def (replace-labels buf i)
+  (if (not (empty? buf)) (do
+    (var cur (head buf))
+    (var res (tail buf))
+    (if (str? cur) (do
+      (var ptr (encode-u32 (- (get labels cur) (+ i 4))))
+      (set cur (head ptr))
+      (set res (concat (tail ptr) res))))
+    (cons cur (replace-labels res (+ i 1))))))
+
+(if (< (len args) 2)
+  (print "Usage: asm <file.asm> <file.bin>")
+  (do
+    (set file-asm (get args 0))
+    (set file-bin (get args 1))
+    (set buffer (parse-file (read file-asm)))
+    (set buffer (replace-labels buffer 0))
+    (set header (cons 0x7F (str->bin "BIN")))
+    (write-bin file-bin (concat header buffer))))

@@ -40,12 +40,21 @@ pub struct Buffer {
 
 impl From<&str> for Buffer {
     fn from(pathname: &str) -> Self {
-        let cursor = Coords { x: 0, y: 0 };
-        let offset = Coords { x: 0, y: 0 };
+        let p: Vec<&str> = pathname.split(':').collect();
+        let pathname = p[0].to_string();
+        let y = p.get(1).and_then(|s| {
+            s.parse::<usize>().ok()
+        }).unwrap_or(1).saturating_sub(1);
+        let x = p.get(2).and_then(|s| {
+            s.parse::<usize>().ok()
+        }).unwrap_or(1).saturating_sub(1);
+
+        let cursor = Coords { x: x % cols(), y: y % rows() };
+        let offset = Coords { x: x - cursor.x, y: y - cursor.y };
         let highlighted = Vec::new();
         let mut lines = Vec::new();
 
-        match fs::read_to_string(pathname) {
+        match fs::read_to_string(&pathname) {
             Ok(contents) => {
                 for line in contents.lines() {
                     lines.push(line.into());
@@ -58,7 +67,6 @@ impl From<&str> for Buffer {
                 lines.push(String::new());
             }
         };
-        let pathname = pathname.into();
 
         Self {
             pathname,
@@ -154,11 +162,11 @@ impl Editor {
         if fs::write(path, contents.as_bytes()).is_ok() {
             self.pathname = path.into();
             let n = self.lines.len();
-            let status = format!("Wrote {}L to '{}'", n, path);
+            let status = format!("Wrote {}L to {:?}", n, path);
             self.print_status(&status, "yellow");
             Ok(())
         } else {
-            let status = format!("Could not write to '{}'", path);
+            let status = format!("Could not write to {:?}", path);
             self.print_status(&status, "red");
             Err(ExitCode::Failure)
         }
@@ -183,7 +191,7 @@ impl Editor {
             path.truncate(max - 3);
             path.push_str("...");
         }
-        let start = format!("Editing '{}'", path);
+        let start = format!("Editing {:?}", path);
 
         let x = self.offset.x + self.cursor.x + 1;
         let y = self.offset.y + self.cursor.y + 1;
@@ -356,7 +364,7 @@ impl Editor {
         self.print_screen();
         self.print_editing_status();
         self.print_highlighted();
-        print!("\x1b[1;1H"); // Move cursor to the top of the screen
+        print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
 
         let mut escape = false;
         let mut csi = false;
@@ -368,7 +376,7 @@ impl Editor {
             print!("\x1b[{};{}H", self.cursor.y + 1, self.cursor.x + 1);
 
             match c {
-                '\x1B' => { // ESC
+                '\x1B' => { // Esc
                     escape = true;
                     continue;
                 }
@@ -380,17 +388,17 @@ impl Editor {
                 '\0' => {
                     continue;
                 }
-                '\x11' | '\x03' => { // Ctrl Q or Ctrl C
+                '\x11' | '\x03' => { // Ctrl + Q or Ctrl + C
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
                     break;
                 }
-                '\x17' => { // Ctrl W
+                '\x17' => { // Ctrl + W
                     self.save(&self.pathname.clone()).ok();
                     print!("\x1b[?25h"); // Enable cursor
                     continue;
                 }
-                '\x18' => { // Ctrl X
+                '\x18' => { // Ctrl + X
                     let res = self.save(&self.pathname.clone());
                     print!("\x1b[2J\x1b[1;1H"); // Clear screen and move to top
                     print!("\x1b[?25h"); // Enable cursor
@@ -410,6 +418,18 @@ impl Editor {
                 }
                 'B' if csi => { // Arrow Down
                     self.handle_arrow_down();
+                }
+                'C' if csi && csi_params == "1;3" => { // Alt + Arrow Right
+                    self.handle_ctrl_arrow_right();
+                }
+                'D' if csi && csi_params == "1;3" => { // Alt + Arrow Left
+                    self.handle_ctrl_arrow_left();
+                }
+                'C' if csi && csi_params == "1;5" => { // Ctrl + Arrow Right
+                    self.handle_ctrl_arrow_right();
+                }
+                'D' if csi && csi_params == "1;5" => { // Ctrl + Arrow Left
+                    self.handle_ctrl_arrow_left();
                 }
                 'C' if csi => { // Arrow Right
                     let line = &self.lines[self.offset.y + self.cursor.y];
@@ -454,26 +474,26 @@ impl Editor {
                     self.previous_buffer();
                     self.print_screen();
                 }
-                '\x14' => { // Ctrl T -> Go to top of file
+                '\x14' => { // Ctrl + T -> Go to top of file
                     self.cursor.x = 0;
                     self.cursor.y = 0;
                     self.offset.x = 0;
                     self.offset.y = 0;
                     self.print_screen();
                 }
-                '\x02' => { // Ctrl B -> Go to bottom of file
+                '\x02' => { // Ctrl + B -> Go to bottom of file
                     self.cursor.x = 0;
                     self.cursor.y = cmp::min(rows(), self.lines.len()) - 1;
                     self.offset.x = 0;
                     self.offset.y = self.lines.len() - 1 - self.cursor.y;
                     self.print_screen();
                 }
-                '\x01' => { // Ctrl A -> Go to beginning of line
+                '\x01' => { // Ctrl + A -> Go to beginning of line
                     self.cursor.x = 0;
                     self.offset.x = 0;
                     self.print_screen();
                 }
-                '\x05' => { // Ctrl E -> Go to end of line
+                '\x05' => { // Ctrl + E -> Go to end of line
                     let line = &self.lines[self.offset.y + self.cursor.y];
                     let n = line.chars().count();
                     let w = cols();
@@ -481,32 +501,36 @@ impl Editor {
                     self.offset.x = w * (n / w);
                     self.print_screen();
                 }
-                '\x04' => { // Ctrl D -> Delete (cut) line
+                '\x04' => { // Ctrl + D -> Delete (cut) line
                     self.cut_line();
                 }
-                '\x19' => { // Ctrl Y -> Yank (copy) line
+                '\x19' => { // Ctrl + Y -> Yank (copy) line
                     self.copy_line();
                 }
-                '\x10' => { // Ctrl P -> Put (paste) line
+                '\x10' => { // Ctrl + P -> Put (paste) line
                     self.paste_line();
                 }
-                '\x06' => { // Ctrl F -> Find
+                '\x06' => { // Ctrl + F -> Find
                     self.find();
                     self.print_screen();
                 }
-                '\x0E' => { // Ctrl N -> Find next
+                '\x0E' => { // Ctrl + N -> Find next
                     self.find_next();
                     self.print_screen();
                 }
-                '\x0F' => { // Ctrl O -> Open buffer
+                'N' if csi && csi_params == "1;6" => { // Ctrl + Shift + N
+                    self.find_prev();
+                    self.print_screen();
+                }
+                '\x0F' => { // Ctrl + O -> Open buffer
                     self.open();
                     self.print_screen();
                 }
-                '\x0B' => { // Ctrl X -> Kill buffer
+                '\x0B' => { // Ctrl + X -> Kill buffer
                     self.kill_buffer();
                     self.print_screen();
                 }
-                '\x0C' => { // Ctrl L -> Line mode
+                '\x0C' => { // Ctrl + L -> Line mode
                     match self.exec() {
                         Some(Cmd::Quit) => {
                             print!("\x1b[2J"); // Clear screen
@@ -688,6 +712,22 @@ impl Editor {
         }
     }
 
+    fn handle_ctrl_arrow_right(&mut self) {
+        let tmp = self.search_query.clone();
+        self.search_query = "\\w+".to_string();
+        self.find_next();
+        self.print_screen();
+        self.search_query = tmp;
+    }
+
+    fn handle_ctrl_arrow_left(&mut self) {
+        let tmp = self.search_query.clone();
+        self.search_query = "\\w+".to_string();
+        self.find_prev();
+        self.print_screen();
+        self.search_query = tmp;
+    }
+
     fn cut_line(&mut self) {
         let i = self.offset.y + self.cursor.y;
         self.clipboard = Some(self.lines.remove(i));
@@ -834,18 +874,52 @@ impl Editor {
     }
 
     pub fn find_next(&mut self) {
+        let re = Regex::new(&self.search_query);
         let dx = self.offset.x + self.cursor.x;
         let dy = self.offset.y + self.cursor.y;
         for (y, line) in self.lines.iter().enumerate() {
-            let mut o = 0;
+            let mut j = 0;
             if y < dy {
                 continue;
             }
             if y == dy {
-                o = cmp::min(dx + 1, line.len());
+                j = cmp::min(dx, line.len());
+                if let Some((i, end)) = re.find(&line[j..]) {
+                    if i == 0 {
+                        j += end; // Skip past current match
+                    }
+                }
             }
-            if let Some(i) = line[o..].find(&self.search_query) {
-                let x = o + i;
+            if let Some((i, _)) = re.find(&line[j..]) {
+                let x = j + i;
+                self.cursor.x = x % cols();
+                self.cursor.y = y % rows();
+                self.offset.x = x - self.cursor.x;
+                self.offset.y = y - self.cursor.y;
+                break;
+            }
+        }
+    }
+
+    pub fn find_prev(&mut self) {
+        let re = Regex::new(&self.search_query);
+        let dx = self.offset.x + self.cursor.x;
+        let dy = self.offset.y + self.cursor.y;
+        for (y, line) in self.lines.iter().enumerate().rev() {
+            let mut j = line.len();
+            if y > dy {
+                continue;
+            }
+            if y == dy {
+                j = cmp::min(dx, line.len());
+                if let Some((i, end)) = re.find(&line[..j]) {
+                    if end == j {
+                        j = i;
+                    }
+                }
+            }
+            if let Some((i, _)) = re.rfind(&line[..j]) {
+                let x = i;
                 self.cursor.x = x % cols();
                 self.cursor.y = y % rows();
                 self.offset.x = x - self.cursor.x;
@@ -942,7 +1016,7 @@ fn help() {
     let csi_title = Style::color("yellow");
     let csi_reset = Style::reset();
     println!(
-        "{}Usage:{} edit {}<options> <path>+{1}",
+        "{}Usage:{} edit {}<options> (<path>[:row[:col]])+{1}",
         csi_title, csi_reset, csi_option
     );
     println!();
@@ -975,7 +1049,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
             }
             _ => {
                 if args[i].starts_with('-') {
-                    error!("Invalid option '{}'", args[i]);
+                    error!("Invalid option {:?}", args[i]);
                     return Err(ExitCode::UsageError);
                 } else {
                     paths.push(args[i])

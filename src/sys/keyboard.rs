@@ -1,56 +1,64 @@
-use crate::api;
 use crate::sys;
 
+use crate::sys::fs::{FileIO, IO};
+
+use crate::sys::x86::int;
+use crate::sys::x86::port::*;
+
+use alloc::collections::vec_deque::VecDeque;
+use alloc::format;
+use alloc::string::String;
 use core::sync::atomic::{AtomicBool, Ordering};
 use pc_keyboard::{
     layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, KeyState,
-    Keyboard, ScancodeSet1,
+    PS2Keyboard, ScancodeSet1,
 };
 use spin::Mutex;
-use x86_64::instructions::port::Port;
 
-pub static KEYBOARD: Mutex<Option<KeyboardLayout>> = Mutex::new(None);
+pub static BUF: Mutex<VecDeque<u8>> = Mutex::new(VecDeque::new());
+
+pub static KEYBOARD: Mutex<Option<KeyboardDecoder>> = Mutex::new(None);
 
 pub static ALT: AtomicBool = AtomicBool::new(false);
 pub static CTRL: AtomicBool = AtomicBool::new(false);
 pub static SHIFT: AtomicBool = AtomicBool::new(false);
 
-pub enum KeyboardLayout {
-    Azerty(Keyboard<layouts::Azerty, ScancodeSet1>),
-    Dvorak(Keyboard<layouts::Dvorak104Key, ScancodeSet1>),
-    Qwerty(Keyboard<layouts::Us104Key, ScancodeSet1>),
+pub enum KeyboardDecoder {
+    Azerty(PS2Keyboard<layouts::Azerty, ScancodeSet1>),
+    Dvorak(PS2Keyboard<layouts::Dvorak104Key, ScancodeSet1>),
+    Qwerty(PS2Keyboard<layouts::Us104Key, ScancodeSet1>),
 }
 
-impl KeyboardLayout {
+impl KeyboardDecoder {
     fn add_byte(&mut self, scancode: u8) -> Result<Option<KeyEvent>, Error> {
         match self {
-            KeyboardLayout::Azerty(kb) => kb.add_byte(scancode),
-            KeyboardLayout::Dvorak(kb) => kb.add_byte(scancode),
-            KeyboardLayout::Qwerty(kb) => kb.add_byte(scancode),
+            KeyboardDecoder::Azerty(kb) => kb.add_byte(scancode),
+            KeyboardDecoder::Dvorak(kb) => kb.add_byte(scancode),
+            KeyboardDecoder::Qwerty(kb) => kb.add_byte(scancode),
         }
     }
 
     fn process_keyevent(&mut self, event: KeyEvent) -> Option<DecodedKey> {
         match self {
-            KeyboardLayout::Azerty(kb) => kb.process_keyevent(event),
-            KeyboardLayout::Dvorak(kb) => kb.process_keyevent(event),
-            KeyboardLayout::Qwerty(kb) => kb.process_keyevent(event),
+            KeyboardDecoder::Azerty(kb) => kb.process_keyevent(event),
+            KeyboardDecoder::Dvorak(kb) => kb.process_keyevent(event),
+            KeyboardDecoder::Qwerty(kb) => kb.process_keyevent(event),
         }
     }
 
     fn from(name: &str) -> Option<Self> {
         match name {
-            "azerty" => Some(KeyboardLayout::Azerty(Keyboard::new(
+            "azerty" => Some(KeyboardDecoder::Azerty(PS2Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Azerty,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "dvorak" => Some(KeyboardLayout::Dvorak(Keyboard::new(
+            "dvorak" => Some(KeyboardDecoder::Dvorak(PS2Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Dvorak104Key,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "qwerty" => Some(KeyboardLayout::Qwerty(Keyboard::new(
+            "qwerty" => Some(KeyboardDecoder::Qwerty(PS2Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Us104Key,
                 HandleControl::MapLettersToUnicode,
@@ -60,23 +68,71 @@ impl KeyboardLayout {
     }
 }
 
-pub fn set_keyboard(layout: &str) -> bool {
-    if let Some(keyboard) = KeyboardLayout::from(layout) {
-        *KEYBOARD.lock() = Some(keyboard);
+fn set_keyboard(layout: &str) -> bool {
+    if let Some(keyboard) = KeyboardDecoder::from(layout) {
+        int::without_interrupts(||
+            *KEYBOARD.lock() = Some(keyboard)
+        );
         true
     } else {
         false
     }
 }
 
-pub fn init() {
-    set_keyboard(option_env!("MOROS_KEYBOARD").unwrap_or("qwerty"));
-    sys::idt::set_irq_handler(1, interrupt_handler);
+#[derive(Debug, Clone)]
+pub struct KeyboardLayout;
+
+impl KeyboardLayout {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn size() -> usize {
+        16
+    }
+}
+
+impl FileIO for KeyboardLayout {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        int::without_interrupts(|| {
+            let layout = match *KEYBOARD.lock() {
+                Some(KeyboardDecoder::Azerty(_)) => "azerty",
+                Some(KeyboardDecoder::Dvorak(_)) => "dvorak",
+                Some(KeyboardDecoder::Qwerty(_)) => "qwerty",
+                _ => return Err(()),
+            };
+            let n = layout.len();
+            if n > buf.len() {
+                return Err(());
+            }
+            buf[0..n].copy_from_slice(layout.as_bytes());
+            Ok(n)
+        })
+    }
+
+    fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
+        if let Ok(layout) = String::from_utf8(buf.to_vec()) {
+            if set_keyboard(layout.trim()) {
+                return Ok(buf.len());
+            }
+        }
+        Err(())
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        int::without_interrupts(||
+            match event {
+                IO::Read => true,
+                IO::Write => true,
+            }
+        )
+    }
 }
 
 fn read_scancode() -> u8 {
-    let mut port = Port::new(0x60);
-    unsafe { port.read() }
+    unsafe { inb(0x60) }
 }
 
 fn send_key(c: char) {
@@ -91,9 +147,58 @@ fn send_csi(code: &str) {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct KeyboardBuffer;
+
+impl KeyboardBuffer {
+    pub fn new() -> Self {
+        int::without_interrupts(|| BUF.lock().clear());
+        Self {}
+    }
+
+    pub fn size() -> usize {
+        4
+    }
+}
+
+impl FileIO for KeyboardBuffer {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
+        int::without_interrupts(||
+            if let Some(scancode) = BUF.lock().pop_front() {
+                buf[0] = scancode;
+                Ok(1)
+            } else {
+                Ok(0)
+            }
+        )
+    }
+
+    fn write(&mut self, _buf: &[u8]) -> Result<usize, ()> {
+        Err(())
+    }
+
+    fn close(&mut self) {}
+
+    fn poll(&mut self, event: IO) -> bool {
+        int::without_interrupts(||
+            match event {
+                IO::Read => !BUF.lock().is_empty(),
+                IO::Write => false,
+            }
+        )
+    }
+}
+
 fn interrupt_handler() {
     if let Some(ref mut keyboard) = *KEYBOARD.lock() {
         let scancode = read_scancode();
+
+        let mut buf = BUF.lock();
+        if buf.len() > 256 {
+            buf.pop_front();
+        }
+        buf.push_back(scancode);
+
         if let Ok(Some(event)) = keyboard.add_byte(scancode) {
             let ord = Ordering::Relaxed;
             match event.code {
@@ -113,12 +218,12 @@ fn interrupt_handler() {
             let is_shift = SHIFT.load(ord);
             if let Some(key) = keyboard.process_keyevent(event) {
                 match key {
-                    // Ctrl Alt Del
+                    // Ctrl + Alt + Del
                     DecodedKey::Unicode('\u{7f}') if is_alt && is_ctrl => {
-                        api::power::reboot()
+                        sys::idt::reset();
                     }
 
-                    // [Ctrl] [Shift] Tab
+                    // [Ctrl +] [Shift +] Tab
                     DecodedKey::Unicode('\t') => {
                         if is_ctrl {
                             if is_shift {
@@ -135,19 +240,68 @@ fn interrupt_handler() {
                         }
                     }
 
-                    DecodedKey::RawKey(KeyCode::ArrowUp) => send_csi("A"),
-                    DecodedKey::RawKey(KeyCode::ArrowDown) => send_csi("B"),
-                    DecodedKey::RawKey(KeyCode::ArrowRight) => send_csi("C"),
-                    DecodedKey::RawKey(KeyCode::ArrowLeft) => send_csi("D"),
+                    DecodedKey::RawKey(KeyCode::ArrowUp) => {
+                        if is_ctrl {
+                            send_csi("1;5A")
+                        } else if is_alt {
+                            send_csi("1;3A")
+                        } else {
+                            send_csi("A")
+                        }
+                    }
+
+                    DecodedKey::RawKey(KeyCode::ArrowDown) => {
+                        if is_ctrl {
+                            send_csi("1;5B")
+                        } else if is_alt {
+                            send_csi("1;3B")
+                        } else {
+                            send_csi("B")
+                        }
+                    }
+
+                    DecodedKey::RawKey(KeyCode::ArrowRight) => {
+                        if is_ctrl {
+                            send_csi("1;5C")
+                        } else if is_alt {
+                            send_csi("1;3C")
+                        } else {
+                            send_csi("C")
+                        }
+                    }
+
+                    DecodedKey::RawKey(KeyCode::ArrowLeft) => {
+                        if is_ctrl {
+                            send_csi("1;5D")
+                        } else if is_alt {
+                            send_csi("1;3D")
+                        } else {
+                            send_csi("D")
+                        }
+                    }
 
                     DecodedKey::RawKey(KeyCode::PageUp) => send_csi("5~"),
+
                     DecodedKey::RawKey(KeyCode::PageDown) => send_csi("6~"),
 
-                    DecodedKey::Unicode(c) => send_key(c),
+                    DecodedKey::Unicode(c) => {
+                        let letter = (c as u8 | 0x40) as char;
+                        if is_ctrl && is_shift && letter.is_ascii_uppercase() {
+                            // Ctrl + Shift + Letter
+                            send_csi(&format!("1;6{}", letter));
+                        } else {
+                            send_key(c)
+                        }
+                    }
 
                     _ => {}
                 };
             }
         }
     }
+}
+
+pub fn init() {
+    set_keyboard(option_env!("MOROS_KEYBOARD").unwrap_or("qwerty"));
+    sys::idt::set_irq_handler(sys::pic::KBD_IRQ, interrupt_handler);
 }

@@ -1,7 +1,6 @@
 use crate::api::process::ExitCode;
 use crate::{sys, usr};
 
-use alloc::format;
 use num_bigint::BigInt;
 use usr::lisp::Number;
 

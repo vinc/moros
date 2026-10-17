@@ -1,4 +1,5 @@
 use super::bitmap_block::BitmapBlock;
+use super::block::Block;
 use super::dir::Dir;
 use super::super_block::SuperBlock;
 
@@ -6,7 +7,11 @@ use crate::sys;
 
 use alloc::vec;
 use alloc::vec::Vec;
+use core::cmp;
 use spin::Mutex;
+
+const ATA_CACHE_SIZE: usize = 4 << 20; // 4 MB
+const ATA_READ_AHEAD: usize = 32;
 
 pub static BLOCK_DEVICE: Mutex<Option<BlockDevice>> = Mutex::new(None);
 
@@ -101,18 +106,17 @@ pub fn format_mem() {
     }
 }
 
-const ATA_CACHE_SIZE: usize = 1024;
-
 #[derive(Clone)]
 pub struct AtaBlockDevice {
-    cache: [Option<(u32, Vec<u8>)>; ATA_CACHE_SIZE],
+    cache: Vec<Option<(u32, Vec<u8>)>>,
     dev: sys::ata::Drive,
 }
 
 impl AtaBlockDevice {
     pub fn new(bus: u8, dsk: u8) -> Option<Self> {
         sys::ata::Drive::open(bus, dsk).map(|dev| {
-            let cache = [(); ATA_CACHE_SIZE].map(|_| None);
+            let count = ATA_CACHE_SIZE / super::BLOCK_SIZE;
+            let cache = vec![None; count];
             Self { dev, cache }
         })
     }
@@ -141,28 +145,35 @@ impl AtaBlockDevice {
         let h = self.hash(block_addr);
         self.cache[h] = Some((block_addr, buf.to_vec()));
     }
-
-    fn unset_cached_block(&mut self, block_addr: u32) {
-        let h = self.hash(block_addr);
-        self.cache[h] = None;
-    }
 }
 
 impl BlockDeviceIO for AtaBlockDevice {
     fn read(&mut self, block_addr: u32, buf: &mut [u8]) -> Result<(), ()> {
+        if block_addr as usize > self.block_count() {
+            return Err(());
+        }
         if let Some(cached) = self.cached_block(block_addr) {
             buf.copy_from_slice(cached);
             return Ok(());
         }
 
-        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, buf)?;
-        self.set_cached_block(block_addr, buf);
+        let max = self.block_count() - block_addr as usize;
+        let n = cmp::min(ATA_READ_AHEAD, max);
+        let mut blocks = vec![0; n * super::BLOCK_SIZE];
+        sys::ata::read(self.dev.bus, self.dev.dsk, block_addr, &mut blocks)?;
+        for (i, chunk) in blocks.chunks(super::BLOCK_SIZE).enumerate() {
+            self.set_cached_block(block_addr + i as u32, chunk);
+        }
+        buf.copy_from_slice(&blocks[..super::BLOCK_SIZE]);
         Ok(())
     }
 
     fn write(&mut self, block_addr: u32, buf: &[u8]) -> Result<(), ()> {
+        if block_addr as usize > self.block_count() {
+            return Err(());
+        }
         sys::ata::write(self.dev.bus, self.dev.dsk, block_addr, buf)?;
-        self.unset_cached_block(block_addr);
+        self.set_cached_block(block_addr, buf);
         Ok(())
     }
 
@@ -186,6 +197,9 @@ pub fn format_ata() {
 
         // Write zeros into block bitmaps
         super::bitmap_block::free_all();
+
+        // Write zeros into root dir block
+        Block::new(sb.data_area()).write();
 
         // Allocate root dir
         debug_assert!(is_mounted());

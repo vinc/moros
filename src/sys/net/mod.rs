@@ -2,10 +2,10 @@ mod nic;
 pub mod gw;
 pub mod ip;
 pub mod mac;
-pub mod usage;
+pub mod stat;
 pub mod socket;
 
-use crate::{sys, usr};
+use crate::{api, sys};
 use crate::sys::pci::DeviceConfig;
 
 use alloc::format;
@@ -37,9 +37,10 @@ fn time() -> Instant {
 
 #[derive(Clone)]
 pub enum EthernetDevice {
-    RTL8139(nic::rtl8139::Device),
-    PCNET(nic::pcnet::Device),
     E1000(nic::e1000::Device),
+    NE2K(nic::ne2k::Device),
+    PCNET(nic::pcnet::Device),
+    RTL8139(nic::rtl8139::Device),
     //VirtIO,
 }
 
@@ -54,41 +55,46 @@ pub trait EthernetDeviceIO {
 impl EthernetDeviceIO for EthernetDevice {
     fn config(&self) -> Arc<Config> {
         match self {
-            EthernetDevice::RTL8139(dev) => dev.config(),
-            EthernetDevice::PCNET(dev) => dev.config(),
             EthernetDevice::E1000(dev) => dev.config(),
+            EthernetDevice::NE2K(dev) => dev.config(),
+            EthernetDevice::PCNET(dev) => dev.config(),
+            EthernetDevice::RTL8139(dev) => dev.config(),
         }
     }
 
     fn stats(&self) -> Arc<Stats> {
         match self {
-            EthernetDevice::RTL8139(dev) => dev.stats(),
-            EthernetDevice::PCNET(dev) => dev.stats(),
             EthernetDevice::E1000(dev) => dev.stats(),
+            EthernetDevice::NE2K(dev) => dev.stats(),
+            EthernetDevice::PCNET(dev) => dev.stats(),
+            EthernetDevice::RTL8139(dev) => dev.stats(),
         }
     }
 
     fn receive_packet(&mut self) -> Option<Vec<u8>> {
         match self {
-            EthernetDevice::RTL8139(dev) => dev.receive_packet(),
-            EthernetDevice::PCNET(dev) => dev.receive_packet(),
             EthernetDevice::E1000(dev) => dev.receive_packet(),
+            EthernetDevice::NE2K(dev) => dev.receive_packet(),
+            EthernetDevice::PCNET(dev) => dev.receive_packet(),
+            EthernetDevice::RTL8139(dev) => dev.receive_packet(),
         }
     }
 
     fn transmit_packet(&mut self, len: usize) {
         match self {
-            EthernetDevice::RTL8139(dev) => dev.transmit_packet(len),
-            EthernetDevice::PCNET(dev) => dev.transmit_packet(len),
             EthernetDevice::E1000(dev) => dev.transmit_packet(len),
+            EthernetDevice::NE2K(dev) => dev.transmit_packet(len),
+            EthernetDevice::PCNET(dev) => dev.transmit_packet(len),
+            EthernetDevice::RTL8139(dev) => dev.transmit_packet(len),
         }
     }
 
     fn next_tx_buffer(&mut self, len: usize) -> &mut [u8] {
         match self {
-            EthernetDevice::RTL8139(dev) => dev.next_tx_buffer(len),
-            EthernetDevice::PCNET(dev) => dev.next_tx_buffer(len),
             EthernetDevice::E1000(dev) => dev.next_tx_buffer(len),
+            EthernetDevice::NE2K(dev) => dev.next_tx_buffer(len),
+            EthernetDevice::PCNET(dev) => dev.next_tx_buffer(len),
+            EthernetDevice::RTL8139(dev) => dev.next_tx_buffer(len),
         }
     }
 }
@@ -111,7 +117,7 @@ impl<'a> smoltcp::phy::Device for EthernetDevice {
         if let Some(buffer) = self.receive_packet() {
             if self.config().is_debug_enabled() {
                 debug!("NET Packet Received");
-                usr::hex::print_hex(&buffer);
+                printk!("{}", api::hex::format_hex(&buffer));
             }
             self.stats().rx_add(buffer.len() as u64);
             let rx = RxToken { buffer };
@@ -163,7 +169,7 @@ impl smoltcp::phy::TxToken for TxToken {
         let res = f(buf);
         if config.is_debug_enabled() {
             debug!("NET Packet Transmitted");
-            usr::hex::print_hex(buf);
+            printk!("{}", api::hex::format_hex(buf));
         }
         self.device.transmit_packet(len);
         self.device.stats().tx_add(len as u64);
@@ -258,7 +264,7 @@ fn find_device(vendor_id: u16, device_id: u16) -> Option<DeviceConfig> {
     }
 }
 
-const E1000_DEVICES: [u16; 9] = [
+const E1000_DEVICES: [u16; 11] = [
     0x1004, // 82543GC (Intel PRO/1000 T)
     0x100C, // 82544GC (Intel PRO/1000 T)
     0x100E, // 82540EM (Intel PRO/1000 MT)
@@ -268,6 +274,8 @@ const E1000_DEVICES: [u16; 9] = [
     0x10D3, // 82574L
     0x10F5, // 82567LM
     0x153A, // I217-LM
+    0x1570, // I219-V
+    0x15D7, // I219-LM
 ];
 
 pub fn init() {
@@ -284,21 +292,28 @@ pub fn init() {
         }
     };
     if let Some(dev) = find_device(0x10EC, 0x8139) {
-        let io = dev.io_base();
+        let io = dev.bar_io(0);
         let nic = nic::rtl8139::Device::new(io);
         add(EthernetDevice::RTL8139(nic), "RTL8139");
     }
+    if let Some(dev) = find_device(0x10EC, 0x8029) {
+        let io = dev.bar_io(0);
+        let nic = nic::ne2k::Device::new(io);
+        add(EthernetDevice::NE2K(nic), "NE2K");
+    }
     if let Some(dev) = find_device(0x1022, 0x2000) {
-        let io = dev.io_base();
+        let io = dev.bar_io(0);
         let nic = nic::pcnet::Device::new(io);
         add(EthernetDevice::PCNET(nic), "PCNET");
     }
     for id in E1000_DEVICES {
         if let Some(dev) = find_device(0x8086, id) {
-            let io = dev.io_base();
-            let mem = dev.mem_base();
-            let bar = dev.bar_type();
-            let nic = nic::e1000::Device::new(io, mem, bar);
+            let base = if dev.is_io() {
+                nic::e1000::Base::IO(dev.bar_io(0))
+            } else {
+                nic::e1000::Base::Mem(dev.mem_base())
+            };
+            let nic = nic::e1000::Device::new(base);
             add(EthernetDevice::E1000(nic), "E1000");
         }
     }

@@ -67,7 +67,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     usr::http::main(&["http", host, &path])
                 }
                 _ => {
-                    error!("Unknown protocol '{}'", parts[2]);
+                    error!("Unknown protocol {:?}", parts[2]);
                     Err(ExitCode::Failure)
                 }
             }
@@ -80,7 +80,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                 syscall::write(1, &buf);
                 Ok(())
             } else {
-                error!("Could not read '{}'", path);
+                error!("Could not read {:?}", path);
                 Err(ExitCode::Failure)
             }
         } else if info.is_dir() {
@@ -100,6 +100,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     return Ok(());
                 }
                 if let Ok(bytes) = fs::read_to_bytes(path) {
+                    if bytes.is_empty() {
+                        print!("");
+                        return Ok(());
+                    }
                     if is_char_device && bytes.len() == 1 {
                         match bytes[0] as char {
                             api::console::ETX_KEY => {
@@ -121,16 +125,16 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                         return Ok(());
                     }
                 } else {
-                    error!("Could not read '{}'", path);
+                    error!("Could not read {:?}", path);
                     return Err(ExitCode::Failure);
                 }
             }
         } else {
-            error!("Could not read type of '{}'", path);
+            error!("Could not read type of {:?}", path);
             Err(ExitCode::Failure)
         }
     } else {
-        error!("Could not find file '{}'", path);
+        error!("Could not find file {:?}", path);
         Err(ExitCode::Failure)
     }
 }
@@ -145,6 +149,7 @@ fn help() {
     );
     println!();
     println!("{}Paths:{}", csi_title, csi_reset);
-    println!("  {0}<dir>/{1}     Read directory", csi_option, csi_reset);
+    println!("  {0}<dev>{1}      Read device", csi_option, csi_reset);
+    println!("  {0}<dir>[/]{1}   Read directory", csi_option, csi_reset);
     println!("  {0}<file>{1}     Read file", csi_option, csi_reset);
 }

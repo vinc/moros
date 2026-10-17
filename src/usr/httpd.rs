@@ -2,6 +2,7 @@ use crate::api::clock;
 use crate::api::clock::DATE_TIME_ZONE;
 use crate::api::console::Style;
 use crate::api::fs;
+use crate::api::process;
 use crate::api::process::ExitCode;
 use crate::api::syscall;
 use crate::api::time;
@@ -21,7 +22,7 @@ use smoltcp::socket::tcp;
 use smoltcp::time::Instant;
 use smoltcp::wire::IpAddress;
 
-const MAX_CONNECTIONS: usize = 32;
+const MAX_CONNECTIONS: usize = 32; // TODO: Add dynamic pooling
 const POLL_DELAY_DIV: usize = 128;
 const INDEX: [&str; 4] = ["", "/index.html", "/index.htm", "/index.txt"];
 
@@ -293,7 +294,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let csi_reset = Style::reset();
     let mut read_only = false;
     let mut port = 80;
-    let mut dir = sys::process::dir();
+    let mut dir = process::dir();
     let mut i = 1;
     let n = args.len();
     while i < n {
@@ -368,18 +369,21 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
                 if !socket.is_open() {
                     socket.listen(port).unwrap();
+                    *keep_alive = true; // Reset to default
                 }
+
                 let endpoint = match socket.remote_endpoint() {
                     Some(endpoint) => endpoint,
                     None => continue,
                 };
+
                 if socket.may_recv() {
                     // The amount of octets queued in the receive buffer may be
                     // larger than the contiguous slice returned by `recv` so
                     // we need to loop over chunks of it until it is empty.
                     let recv_queue = socket.recv_queue();
-                    let mut receiving = true;
                     let mut buf = vec![];
+                    let mut receiving = true;
                     while receiving {
                         let res = socket.recv(|chunk| {
                             buf.extend_from_slice(chunk);
@@ -414,7 +418,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                                 println!("{}", res);
                                 (chunk.len(), Some(res))
                             } else {
-                                (0, None)
+                                (0, None) // (chunk.len(), None) // TODO?
                             }
                         });
                         if receiving {
@@ -427,11 +431,12 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                             }
                         }
                     }
+
                     if socket.can_send() {
                         if let Some(chunk) = send_queue.pop_front() {
-                            let sent = socket.send_slice(&chunk).
-                                expect("Could not send chunk");
-                            debug_assert!(sent == chunk.len());
+                            if socket.send_slice(&chunk).is_err() {
+                                // send_queue.push_front(chunk); // TODO?
+                            }
                         }
                     }
                     if send_queue.is_empty() && !*keep_alive {
@@ -439,14 +444,13 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
                     }
                 } else if socket.may_send() {
                     socket.close();
-                    send_queue.clear();
+                    send_queue.clear(); // TODO: Remove this?
                 }
             }
+
             if let Some(delay) = iface.poll_delay(time, &sockets) {
-                let d = delay.total_micros() / POLL_DELAY_DIV as u64;
-                if d > 0 {
-                    syscall::sleep((d as f64) / 1000000.0);
-                }
+                let duration = (delay.total_millis() as usize) / POLL_DELAY_DIV;
+                syscall::sleep(duration.clamp(1, 100));
             }
         }
     } else {
@@ -466,9 +470,10 @@ fn content_type(path: &str) -> String {
         "jpg" | "jpeg" => "image/jpeg",
         "js"           => "text/javascript",
         "json"         => "application/json",
-        "lsp" | "lisp" => "text/plain",
         "png"          => "image/png",
         "sh"           => "application/x-sh",
+        "lsp" | "lisp" => "text/plain",
+        "ini" | "conf" => "text/plain",
         "txt" | "md"   => "text/plain",
         _              => "application/octet-stream",
     }.to_string()

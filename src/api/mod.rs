@@ -4,11 +4,11 @@ macro_rules! entry_point {
     ($path:path) => {
         #[panic_handler]
         fn panic(_info: &core::panic::PanicInfo) -> ! {
-            let msg = b"\x1b[91mError:\x1b[m An exception occured\n";
+            let msg = b"\x1b[91mError:\x1b[m Panicked\n";
             $crate::api::syscall::write(2, msg);
-            let code = $crate::api::process::ExitCode::ExecError;
+            let code = $crate::api::process::ExitCode::PanicError;
             $crate::api::syscall::exit(code);
-            loop {}
+            loop {} // Unreachable after exit
         }
 
         #[export_name = "_start"]
@@ -88,7 +88,10 @@ pub mod clock;
 pub mod console;
 pub mod font;
 pub mod fs;
+pub mod hex;
+pub mod ini;
 pub mod io;
+pub mod parse;
 pub mod power;
 pub mod process;
 pub mod prompt;
@@ -98,4 +101,3 @@ pub mod syscall;
 pub mod time;
 pub mod unit;
 pub mod vga;
-// TODO: add mod wildcard
