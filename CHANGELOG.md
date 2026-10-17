@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Upgrade pc-keyboard from 0.8.0 to 0.9.0 (#937)
 - Upgrade pbkdf2 and sha2 (#935)
 - Remove lazy_static crate (#930)
 - Fix RTL8139 rx buffer overflow (#934)
