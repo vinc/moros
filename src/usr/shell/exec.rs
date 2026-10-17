@@ -1,6 +1,6 @@
 use super::Config;
 use super::expand;
-use super::parse::parse;
+use super::parse::{parse, Chain, Op};
 use super::primitive;
 
 use crate::api::fs;
@@ -275,12 +275,28 @@ pub fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     res
 }
 
+fn exec_chain(chain: &Chain, config: &mut Config) -> Result<(), ExitCode> {
+    let mut res = exec_command(chain.head, config);
+    for &(op, cmd) in &chain.tail {
+        if res == Err(ExitCode::ShellExit) {
+            break;
+        }
+        set_status(res, config);
+        res = match op {
+            Op::And if res.is_ok() => exec_command(cmd, config),
+            Op::Or if res.is_err() => exec_command(cmd, config),
+            _ => res,
+        };
+    }
+    res
+}
+
 pub fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
     let mut res = Ok(());
     match parse(script) {
-        Ok((_, cmds)) => {
-            for cmd in cmds {
-                res = exec_command(cmd, config);
+        Ok((_, chains)) => {
+            for chain in chains {
+                res = exec_chain(&chain, config);
                 if res == Err(ExitCode::ShellExit) {
                     break;
                 }
