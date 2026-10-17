@@ -16,7 +16,6 @@ use nom::combinator::eof;
 use nom::combinator::map;
 use nom::combinator::not;
 use nom::combinator::opt;
-use nom::combinator::peek;
 use nom::combinator::recognize;
 use nom::combinator::value;
 use nom::error::Error;
@@ -72,13 +71,14 @@ pub fn parse(input: &str) -> IResult<&str, Vec<Chain<'_>>> {
 fn keyword<'a>(
     kw: &'static str
 ) -> impl Parser<&'a str, Output = &'a str, Error = Error<&'a str>> {
-    terminated(tag(kw), peek(alt((space1, eof, recognize(one_of(";\n#"))))))
+    terminated(tag(kw), not(part))
 }
 
 fn op(input: &str) -> IResult<&str, Op> {
-    alt(
-        (value(Op::And, keyword("and")), value(Op::Or, keyword("or")))
-    ).parse(input)
+    alt((
+        value(Op::And, keyword("and")),
+        value(Op::Or, keyword("or"))
+    )).parse(input)
 }
 
 fn text(input: &str) -> IResult<&str, &str> {
