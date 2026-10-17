@@ -1,3 +1,7 @@
+mod parse;
+
+use parse::parse;
+
 use crate::api::console::Style;
 use crate::api::fs;
 use crate::api::process;
@@ -460,7 +464,24 @@ fn cmd_version() -> Result<(), ExitCode> {
     Ok(())
 }
 
-fn exec_with_config(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
+fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
+    match parse(script) {
+        Ok((_, cmds)) => {
+            for cmd in cmds {
+                if exec_command(cmd, config).is_err() {
+                    return Err(ExitCode::Failure);
+                }
+            }
+            Ok(())
+        }
+        Err(_) => {
+            Err(ExitCode::Failure)
+        }
+    }
+}
+
+
+fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     let cmd = variables_expansion(cmd, config);
     let mut args = split_args(cmd.trim());
     if args.is_empty() {
@@ -716,7 +737,7 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
     let mut code = ExitCode::Success;
     let success = code;
     while let Some(cmd) = prompt.input(&prompt_string(code == success)) {
-        code = match exec_with_config(&cmd, config) {
+        code = match exec_script(&cmd, config) {
             Err(ExitCode::ShellExit) => break,
             Err(e) => e,
             Ok(()) => ExitCode::Success,
@@ -733,7 +754,7 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
 
 pub fn exec(cmd: &str) -> Result<(), ExitCode> {
     let mut config = Config::new();
-    exec_with_config(cmd, &mut config)
+    exec_script(cmd, &mut config)
 }
 
 pub fn exec_to_bytes(cmd: &str) -> Result<Vec<u8>, ExitCode> {
@@ -766,10 +787,8 @@ pub fn exec_to_bytes(cmd: &str) -> Result<Vec<u8>, ExitCode> {
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut config = Config::new();
 
-    if let Ok(contents) = fs::read_to_string("/ini/shell.sh") {
-        for cmd in contents.lines() {
-            exec_with_config(cmd, &mut config).ok();
-        }
+    if let Ok(buf) = fs::read_to_string("/ini/shell.sh") {
+        exec_command(&buf, &mut config).ok();
     }
 
     if args.len() < 2 {
@@ -789,11 +808,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
         let path = args[1];
         if let Ok(buf) = api::fs::read_to_string(path) {
-            for line in buf.lines() {
-                if !line.is_empty() {
-                    exec_with_config(line, &mut config).ok();
-                }
-            }
+            exec_script(&buf, &mut config).ok();
             Ok(())
         } else {
             error!("Could not read file {:?}", path);
@@ -842,8 +857,8 @@ fn test_shell() {
         contains("Could not read file \"/nope\""));
 
     let mut config = Config::new();
-    exec_with_config("set b 42", &mut config).ok();
-    exec_with_config("echo a $b $c d => /test", &mut config).ok();
+    exec_command("set b 42", &mut config).ok();
+    exec_command("echo a $b $c d => /test", &mut config).ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();
@@ -876,8 +891,8 @@ fn test_split_args() {
 #[test_case]
 fn test_variables_expansion() {
     let mut config = Config::new();
-    exec_with_config("set foo 42", &mut config).ok();
-    exec_with_config("set bar \"Alice and Bob\"", &mut config).ok();
+    exec_command("set foo 42", &mut config).ok();
+    exec_command("set bar \"Alice and Bob\"", &mut config).ok();
     assert_eq!(variables_expansion("print $foo", &mut config), "print 42");
     assert_eq!(
         variables_expansion("print \"Hello $bar\"", &mut config),

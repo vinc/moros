@@ -21,7 +21,7 @@ use nom::sequence::delimited;
 use nom::sequence::preceded;
 use nom::sequence::terminated;
 
-fn comment(input: &str) -> IResult<&str, &str> {
+pub fn comment(input: &str) -> IResult<&str, &str> {
     preceded(char('#'), not_line_ending).parse(input)
 }
 
