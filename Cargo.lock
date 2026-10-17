@@ -215,9 +215,9 @@ dependencies = [
 
 [[package]]
 name = "lazy_static"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 dependencies = [
  "spin 0.9.9",
 ]
@@ -251,9 +251,9 @@ dependencies = [
 
 [[package]]
 name = "littlewing"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "137fd6e70531762a43b52d613e8eb3e2422a8b52f446daf9cd74f039f9ad8258"
+checksum = "1cc2eb2c452142c81fb851f87e5fdd50714393a10e11ee1934ac52af3d40900c"
 dependencies = [
  "branches",
  "lazy_static",
