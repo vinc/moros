@@ -11,7 +11,7 @@ use alloc::string::String;
 use core::sync::atomic::{AtomicBool, Ordering};
 use pc_keyboard::{
     layouts, DecodedKey, Error, HandleControl, KeyCode, KeyEvent, KeyState,
-    Keyboard, ScancodeSet1,
+    PS2Keyboard, ScancodeSet1,
 };
 use spin::Mutex;
 
@@ -24,9 +24,9 @@ pub static CTRL: AtomicBool = AtomicBool::new(false);
 pub static SHIFT: AtomicBool = AtomicBool::new(false);
 
 pub enum KeyboardDecoder {
-    Azerty(Keyboard<layouts::Azerty, ScancodeSet1>),
-    Dvorak(Keyboard<layouts::Dvorak104Key, ScancodeSet1>),
-    Qwerty(Keyboard<layouts::Us104Key, ScancodeSet1>),
+    Azerty(PS2Keyboard<layouts::Azerty, ScancodeSet1>),
+    Dvorak(PS2Keyboard<layouts::Dvorak104Key, ScancodeSet1>),
+    Qwerty(PS2Keyboard<layouts::Us104Key, ScancodeSet1>),
 }
 
 impl KeyboardDecoder {
@@ -48,17 +48,17 @@ impl KeyboardDecoder {
 
     fn from(name: &str) -> Option<Self> {
         match name {
-            "azerty" => Some(KeyboardDecoder::Azerty(Keyboard::new(
+            "azerty" => Some(KeyboardDecoder::Azerty(PS2Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Azerty,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "dvorak" => Some(KeyboardDecoder::Dvorak(Keyboard::new(
+            "dvorak" => Some(KeyboardDecoder::Dvorak(PS2Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Dvorak104Key,
                 HandleControl::MapLettersToUnicode,
             ))),
-            "qwerty" => Some(KeyboardDecoder::Qwerty(Keyboard::new(
+            "qwerty" => Some(KeyboardDecoder::Qwerty(PS2Keyboard::new(
                 ScancodeSet1::new(),
                 layouts::Us104Key,
                 HandleControl::MapLettersToUnicode,
