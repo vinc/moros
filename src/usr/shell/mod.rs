@@ -790,7 +790,7 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
     let mut config = Config::new();
 
     if let Ok(buf) = fs::read_to_string("/ini/shell.sh") {
-        exec_command(&buf, &mut config).ok();
+        exec_script(&buf, &mut config).ok();
     }
 
     if args.len() < 2 {
