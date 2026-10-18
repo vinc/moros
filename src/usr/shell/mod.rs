@@ -62,8 +62,8 @@ fn autocomplete_commands() -> Vec<String> {
 
 fn shell_completer(line: &str) -> Vec<String> {
     let mut entries = Vec::new();
-    let mut args = expand::split_args(line);
-    if line.ends_with(' ') {
+    let mut args = expand::split_args(line, false);
+    if args.is_empty() || line.ends_with(' ') {
         args.push(String::new());
     }
     let i = args.len() - 1;
@@ -238,6 +238,14 @@ fn test_shell() {
     sys::fs::mount_mem();
     sys::fs::format_mem();
     usr::install::copy_files(false);
+
+    // Split and glob all arguments
+    let args = expand::split_args("/ini/*.sh", true);
+    assert_eq!(args, vec!["/ini/boot.sh", "/ini/shell.sh"]);
+
+    // Split and glob all arguments except the first
+    let args = expand::split_args("/ini/*.sh", false);
+    assert_eq!(args, vec!["/ini/*.sh"]);
 
     // Redirect standard output
     exec("echo test1 => /tmp/test1").ok();

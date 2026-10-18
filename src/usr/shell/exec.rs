@@ -153,7 +153,7 @@ fn set_status(res: Result<(), ExitCode>, config: &mut Config) {
 
 pub fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     let cmd = expand::variables_expansion(cmd, config);
-    let mut args = expand::split_args(cmd.trim());
+    let mut args = expand::split_args(cmd.trim(), false);
     if args.is_empty() {
         return Ok(());
     }
@@ -310,7 +310,7 @@ fn exec_exp(exp: &Exp, config: &mut Config) -> Result<(), ExitCode> {
         Exp::For(var, list, body) => {
             let list = expand::variables_expansion(list, config);
             let mut res = Ok(());
-            for item in expand::split_list(&list) {
+            for item in expand::split_args(&list, true) {
                 config.env.insert(var.to_string(), item);
                 res = exec_body(body, config);
                 if res == Err(ExitCode::ShellExit) {

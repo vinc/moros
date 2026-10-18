@@ -82,7 +82,8 @@ pub fn parse_str(s: &str) -> String {
     res
 }
 
-pub fn split_args(cmd: &str) -> Vec<String> {
+// Split and glob args
+pub fn split_args(cmd: &str, glob_first: bool) -> Vec<String> {
     let mut args = Vec::new();
     let mut i = 0;
     let mut n = cmd.len();
@@ -95,10 +96,10 @@ pub fn split_args(cmd: &str) -> Vec<String> {
             break;
         } else if c.is_ascii_whitespace() && !is_quote {
             if i != j && !cmd[i..j].trim().is_empty() {
-                if args.is_empty() {
-                    args.push(cmd[i..j].to_string()) // program name
+                if args.is_empty() && !glob_first {
+                    args.push(cmd[i..j].to_string())
                 } else {
-                    args.extend(glob(&cmd[i..j])) // program args
+                    args.extend(glob(&cmd[i..j]))
                 }
             }
             i = j + 1;
@@ -120,24 +121,14 @@ pub fn split_args(cmd: &str) -> Vec<String> {
         if is_quote {
             n -= 1;
             args.push(cmd[i..n].to_string());
-        } else if args.is_empty() {
+        } else if args.is_empty() && !glob_first {
             args.push(cmd[i..n].to_string());
         } else if !cmd[i..n].trim().is_empty() {
             args.extend(glob(&cmd[i..n]))
         }
     }
 
-    if n == 0 {
-        args.push("".to_string());
-    }
-
     args.iter().map(|s| tilde_expansion(s)).collect()
-}
-
-pub fn split_list(list: &str) -> Vec<String> {
-    let mut args = split_args(&format!("_ {}", list));
-    args.remove(0);
-    args
 }
 
 // Replace `~` with the value of `$HOME` when it's at the begining of an arg
@@ -184,25 +175,64 @@ pub fn variables_expansion(cmd: &str, config: &mut Config) -> String {
 #[test_case]
 fn test_split_args() {
     use alloc::vec;
-    assert_eq!(split_args(""), vec![""]);
-    assert_eq!(split_args("print"), vec!["print"]);
-    assert_eq!(split_args("print "), vec!["print"]);
-    assert_eq!(split_args("print  "), vec!["print"]);
-    assert_eq!(split_args("print # comment"), vec!["print"]);
-    assert_eq!(split_args("print foo"), vec!["print", "foo"]);
-    assert_eq!(split_args("print foo "), vec!["print", "foo"]);
-    assert_eq!(split_args("print foo  "), vec!["print", "foo"]);
-    assert_eq!(split_args("print foo # comment"), vec!["print", "foo"]);
-    assert_eq!(split_args("print foo bar"), vec!["print", "foo", "bar"]);
-    assert_eq!(split_args("print foo   bar"), vec!["print", "foo", "bar"]);
-    assert_eq!(split_args("print   foo   bar"), vec!["print", "foo", "bar"]);
-    assert_eq!(split_args("print foo \"bar\""), vec!["print", "foo", "bar"]);
-    assert_eq!(split_args("print foo \"\""), vec!["print", "foo", ""]);
+
     assert_eq!(
-        split_args("print foo \"bar\" "),
-        vec!["print", "foo", "bar"]
+        split_args("", true), Vec::<String>::new()
     );
-    assert_eq!(split_args("print foo \"\" "), vec!["print", "foo", ""]);
+    assert_eq!(
+        split_args(" ", true), Vec::<String>::new()
+    );
+    assert_eq!(
+        split_args("", false), Vec::<String>::new()
+    );
+    assert_eq!(
+        split_args(" ", false), Vec::<String>::new()
+    );
+    assert_eq!(
+        split_args("print", false), vec!["print"]
+    );
+    assert_eq!(
+        split_args("print ", false), vec!["print"]
+    );
+    assert_eq!(
+        split_args("print  ", false), vec!["print"]
+    );
+    assert_eq!(
+        split_args("print # comment", false), vec!["print"]
+    );
+    assert_eq!(
+        split_args("print foo", false), vec!["print", "foo"]
+    );
+    assert_eq!(
+        split_args("print foo ", false), vec!["print", "foo"]
+    );
+    assert_eq!(
+        split_args("print foo  ", false), vec!["print", "foo"]
+    );
+    assert_eq!(
+        split_args("print foo # comment", false), vec!["print", "foo"]
+    );
+    assert_eq!(
+        split_args("print foo bar", false), vec!["print", "foo", "bar"]
+    );
+    assert_eq!(
+        split_args("print foo   bar", false), vec!["print", "foo", "bar"]
+    );
+    assert_eq!(
+        split_args("print   foo   bar", false), vec!["print", "foo", "bar"]
+    );
+    assert_eq!(
+        split_args("print foo \"bar\"", false), vec!["print", "foo", "bar"]
+    );
+    assert_eq!(
+        split_args("print foo \"\"", false), vec!["print", "foo", ""]
+    );
+    assert_eq!(
+        split_args("print foo \"bar\" ", false), vec!["print", "foo", "bar"]
+    );
+    assert_eq!(
+        split_args("print foo \"\" ", false), vec!["print", "foo", ""]
+    );
 }
 
 #[test_case]
@@ -212,7 +242,10 @@ fn test_variables_expansion() {
     let mut config = Config::new();
     exec_command("set foo 42", &mut config).ok();
     exec_command("set bar \"Alice and Bob\"", &mut config).ok();
-    assert_eq!(variables_expansion("print $foo", &mut config), "print 42");
+    assert_eq!(
+        variables_expansion("print $foo", &mut config),
+        "print 42"
+    );
     assert_eq!(
         variables_expansion("print \"Hello $bar\"", &mut config),
         "print \"Hello Alice and Bob\""
