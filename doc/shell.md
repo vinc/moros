@@ -12,7 +12,7 @@ additional common aliases.
 
 **Alias** command:
 
-    > alias d delete
+    > alias p print
 
 <!--
 **Append** to file:
@@ -21,10 +21,10 @@ additional common aliases.
     > append a.txt
 -->
 
-**Delete** file:
+**Drop** file:
 
     > d a.txt
-    > delete a.txt
+    > drop a.txt
 
 **Copy** file:
 
