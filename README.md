@@ -29,16 +29,16 @@ be accomplished after completing an OSDev tutorial, while reading the
   customizable font and color palette
 - Serial output (using [uart_16550][7])
 - Heap allocation (using [linked_list_allocator][8])
-- ACPI shutdown (using [acpi][9] and [aml][10])
+- ACPI shutdown (using [acpi][9])
 - RTC clock with userspace NTP synchronization
 - Intel 8259 PIC
 - PCI devices
 - ATA PIO mode
 - Custom [filesystem](doc/filesystem.md) with bitmap allocation, linked blocks,
   block caching, and support for files, directories, and device nodes
-- Random number generator (using [rand_hc][11])
+- Random number generator (using [rand_hc][10])
 - Intel PRO/1000, RTL8139, and AMD PCNET network cards
-- DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][12])
+- DHCP/IP/TCP/UDP/DNS/HTTP network protocols (using [smoltcp][11])
 - AC97 and SB16 sound cards
 - Paging with bitmap frame allocator
 - Processes with isolated address spaces and demand paging
@@ -118,9 +118,8 @@ MOROS is released under MIT.
 [7]: https://crates.io/crates/uart_16550
 [8]: https://crates.io/crates/linked_list_allocator
 [9]: https://crates.io/crates/acpi
-[10]: https://crates.io/crates/aml
-[11]: https://crates.io/crates/rand_hc
-[12]: https://crates.io/crates/smoltcp
+[10]: https://crates.io/crates/rand_hc
+[11]: https://crates.io/crates/smoltcp
 
 [s1]: https://img.shields.io/github/actions/workflow/status/vinc/moros/rust.yml
 [s2]: https://img.shields.io/crates/v/moros.svg

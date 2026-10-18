@@ -3,7 +3,7 @@
 A Lisp interpreter is available in MOROS to extend the capabilities of the
 shell.
 
-MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby!
+MOROS Lisp is a Lisp-1 dialect inspired by Scheme, Clojure, and Ruby.
 
 ## Overview
 

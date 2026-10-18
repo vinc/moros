@@ -1,5 +1,7 @@
 # MOROS Shell
 
+MOROS Shell is a scripting language inspired by the Unix shell and Ruby.
+
 ## Configuration
 
 The shell will read `/ini/shell.sh` during initialization to setup its
@@ -69,7 +71,7 @@ current directory.
     > goto /usr/alice # deprecated
     > /usr/alice
 
-The current directory is set in the `$dir` variable:
+The current directory is stored in the `$dir` variable:
 
     > print $dir
 
