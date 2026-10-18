@@ -1,4 +1,4 @@
-use super::Config;
+use super::Context;
 
 use crate::api::console::Style;
 use crate::api::fs;
@@ -8,16 +8,16 @@ use crate::sys;
 
 use alloc::string::ToString;
 
-pub fn print(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+pub fn print(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
     println!("{}", args[1..].join(" "));
 
     // Handle dir changed with `print /tmp => /dev/proc/dir`
-    config.env.insert("dir".to_string(), process::dir());
+    ctx.env.insert("dir".to_string(), process::dir());
 
     Ok(())
 }
 
-pub fn change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+pub fn change_dir(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
     match args.len() {
         1 => {
             println!("{}", process::dir());
@@ -30,7 +30,7 @@ pub fn change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             }
             if fs::is_dir(&path) {
                 process::set_dir(&path);
-                config.env.insert("dir".to_string(), process::dir());
+                ctx.env.insert("dir".to_string(), process::dir());
                 Ok(())
             } else {
                 error!("Could not find file {:?}", path);
@@ -41,7 +41,7 @@ pub fn change_dir(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
     }
 }
 
-pub fn alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+pub fn alias(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
     if args.len() != 3 {
         let csi_option = Style::color("aqua");
         let csi_title = Style::color("yellow");
@@ -52,11 +52,11 @@ pub fn alias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         );
         return Err(ExitCode::UsageError);
     }
-    config.aliases.insert(args[1].to_string(), args[2].to_string());
+    ctx.aliases.insert(args[1].to_string(), args[2].to_string());
     Ok(())
 }
 
-pub fn unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+pub fn unalias(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
     if args.len() != 2 {
         let csi_option = Style::color("aqua");
         let csi_title = Style::color("yellow");
@@ -68,7 +68,7 @@ pub fn unalias(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    if config.aliases.remove(args[1]).is_none() {
+    if ctx.aliases.remove(args[1]).is_none() {
         error!("Could not unalias {:?}", args[1]);
         return Err(ExitCode::Failure);
     }
@@ -83,7 +83,7 @@ enum VarScope {
     Env,
 }
 
-pub fn set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+pub fn set(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
     let mut scope = VarScope::Local;
     let mut key = None;
     let mut val = None;
@@ -137,14 +137,14 @@ pub fn set(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             if scope == VarScope::Env {
                 process::set_env_var(key, val);
             }
-            config.env.insert(key.to_string(), val.to_string());
+            ctx.env.insert(key.to_string(), val.to_string());
             return Ok(());
         }
     }
     Err(ExitCode::UsageError)
 }
 
-pub fn unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+pub fn unset(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
     // TODO: Unset env var
     if args.len() != 2 {
         let csi_option = Style::color("aqua");
@@ -157,7 +157,7 @@ pub fn unset(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         return Err(ExitCode::UsageError);
     }
 
-    if config.env.remove(args[1]).is_none() {
+    if ctx.env.remove(args[1]).is_none() {
         error!("Could not unset {:?}", args[1]);
         return Err(ExitCode::Failure);
     }

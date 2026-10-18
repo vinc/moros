@@ -1,4 +1,4 @@
-use super::{Config, Function};
+use super::{Context, Function};
 use super::expand;
 use super::parse::{parse, Chain, Exp, Op};
 use super::primitive;
@@ -25,14 +25,14 @@ pub const AUTOCOMPLETE_COMMANDS: [&str; 47] = [
     "time", "true", "user", "view", "write"
 ];
 
-fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
-    if let Some(function) = config.functions.get(args[0]) {
-        return exec_function(function, &args[1..], config);
+fn dispatch(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
+    if let Some(function) = ctx.functions.get(args[0]) {
+        return exec_function(function, &args[1..], ctx);
     }
     match args[0] {
         ""          => Ok(()),
         "2048"      => usr::pow::main(args),
-        "alias"     => primitive::alias(args, config),
+        "alias"     => primitive::alias(args, ctx),
         "brainfuck" => usr::brainfuck::main(args),
         "calc"      => usr::calc::main(args),
         "chess"     => usr::chess::main(args),
@@ -49,7 +49,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "elf"       => usr::elf::main(args),
         "encode"    => usr::encode::main(args),
         "find"      => usr::find::main(args),
-        "goto"      => primitive::change_dir(args, config), // TODO: Remove this
+        "goto"      => primitive::change_dir(args, ctx), // TODO: Remove this
         "hash"      => usr::hash::main(args),
         "help"      => usr::help::main(args),
         "hex"       => usr::hex::main(args),
@@ -68,18 +68,18 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
         "net"       => usr::net::main(args),
         "pci"       => usr::pci::main(args),
         "pi"        => usr::pi::main(args),
-        "print"     => primitive::print(args, config),
+        "print"     => primitive::print(args, ctx),
         "quit"      => Err(ExitCode::ShellExit),
         "read"      => usr::read::main(args),
         "render"    => usr::render::main(args),
-        "set"       => primitive::set(args, config),
+        "set"       => primitive::set(args, ctx),
         "shell"     => usr::shell::main(args),
         "socket"    => usr::socket::main(args),
         "spell"     => usr::spell::main(args),
         "tcp"       => usr::tcp::main(args),
         "time"      => usr::time::main(args),
-        "unalias"   => primitive::unalias(args, config),
-        "unset"     => primitive::unset(args, config),
+        "unalias"   => primitive::unalias(args, ctx),
+        "unset"     => primitive::unset(args, ctx),
         "version"   => primitive::version(),
         "user"      => usr::user::main(args),
         "view"      => usr::view::main(args),
@@ -95,15 +95,15 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
             match syscall::info(&path).map(|info| info.kind()) {
                 Some(FileType::Dir) => {
                     process::set_dir(&path);
-                    config.env.insert("dir".to_string(), process::dir());
+                    ctx.env.insert("dir".to_string(), process::dir());
                     Ok(())
                 }
                 Some(FileType::File) => {
-                    spawn(&path, args, config)
+                    spawn(&path, args, ctx)
                 }
                 _ => {
                     let path = format!("/bin/{}", args[0]);
-                    spawn(&path, args, config)
+                    spawn(&path, args, ctx)
                 }
             }
         }
@@ -113,7 +113,7 @@ fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
 fn spawn(
     path: &str,
     args: &[&str],
-    config: &mut Config
+    ctx: &mut Context
 ) -> Result<(), ExitCode> {
     // Script
     if let Ok(contents) = fs::read_to_string(path) {
@@ -123,7 +123,7 @@ fn spawn(
                 new_args.push(line[2..].trim());
                 new_args.push(path);
                 new_args.extend(&args[1..]);
-                return dispatch(&new_args, config);
+                return dispatch(&new_args, ctx);
             }
         }
     }
@@ -146,20 +146,20 @@ fn spawn(
     }
 }
 
-fn set_status(res: Result<(), ExitCode>, config: &mut Config) {
+fn set_status(res: Result<(), ExitCode>, ctx: &mut Context) {
     let code = res.err().unwrap_or(ExitCode::Success);
-    config.env.insert("status".to_string(), format!("{}", code as u8));
+    ctx.env.insert("status".to_string(), format!("{}", code as u8));
 }
 
-pub fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
-    let cmd = expand::variables_expansion(cmd, config);
+pub fn exec_command(cmd: &str, ctx: &mut Context) -> Result<(), ExitCode> {
+    let cmd = expand::variables_expansion(cmd, ctx);
     let mut args = expand::split_args(cmd.trim(), false);
     if args.is_empty() {
         return Ok(());
     }
 
     // Replace command alias
-    if let Some(alias) = config.aliases.get(&args[0]) {
+    if let Some(alias) = ctx.aliases.get(&args[0]) {
         args.remove(0);
         for arg in alias.split(' ').rev() {
             args.insert(0, arg.to_string())
@@ -268,7 +268,7 @@ pub fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     }
 
     fence(Ordering::SeqCst);
-    let res = dispatch(&args, config);
+    let res = dispatch(&args, ctx);
 
     // TODO: Remove this when redirections are done in spawned process
     if restore_handles {
@@ -280,39 +280,39 @@ pub fn exec_command(cmd: &str, config: &mut Config) -> Result<(), ExitCode> {
     res
 }
 
-fn exec_chain(chain: &Chain, config: &mut Config) -> Result<(), ExitCode> {
-    let mut res = exec_command(chain.head, config);
+fn exec_chain(chain: &Chain, ctx: &mut Context) -> Result<(), ExitCode> {
+    let mut res = exec_command(chain.head, ctx);
     for &(op, cmd) in &chain.tail {
         if res == Err(ExitCode::ShellExit) {
             break;
         }
-        set_status(res, config);
+        set_status(res, ctx);
         res = match op {
-            Op::And if res.is_ok() => exec_command(cmd, config),
-            Op::Or if res.is_err() => exec_command(cmd, config),
+            Op::And if res.is_ok() => exec_command(cmd, ctx),
+            Op::Or if res.is_err() => exec_command(cmd, ctx),
             _ => res,
         };
     }
     res
 }
 
-fn exec_exp(exp: &Exp, config: &mut Config) -> Result<(), ExitCode> {
+fn exec_exp(exp: &Exp, ctx: &mut Context) -> Result<(), ExitCode> {
     match exp {
-        Exp::Chain(chain) => exec_chain(chain, config),
+        Exp::Chain(chain) => exec_chain(chain, ctx),
         Exp::If(cond, then, other) => {
-            let res = exec_chain(cond, config);
+            let res = exec_chain(cond, ctx);
             if res == Err(ExitCode::ShellExit) {
                 return res;
             }
-            set_status(res, config);
-            exec_body(if res.is_ok() { then } else { other }, config)
+            set_status(res, ctx);
+            exec_body(if res.is_ok() { then } else { other }, ctx)
         }
         Exp::For(var, list, body) => {
-            let list = expand::variables_expansion(list, config);
+            let list = expand::variables_expansion(list, ctx);
             let mut res = Ok(());
             for item in expand::split_args(&list, true) {
-                config.env.insert(var.to_string(), item);
-                res = exec_body(body, config);
+                ctx.env.insert(var.to_string(), item);
+                res = exec_body(body, ctx);
                 if res == Err(ExitCode::ShellExit) {
                     break;
                 }
@@ -323,53 +323,53 @@ fn exec_exp(exp: &Exp, config: &mut Config) -> Result<(), ExitCode> {
             let params = params.iter().map(|p| p.to_string()).collect();
             let body = body.to_string();
             let function = Function { params, body };
-            config.functions.insert(name.to_string(), function);
+            ctx.functions.insert(name.to_string(), function);
             Ok(())
         }
     }
 }
 
-fn exec_body(body: &[Exp], config: &mut Config) -> Result<(), ExitCode> {
+fn exec_body(body: &[Exp], ctx: &mut Context) -> Result<(), ExitCode> {
     let mut res = Ok(());
     for exp in body {
-        res = exec_exp(&exp, config);
+        res = exec_exp(&exp, ctx);
         if res == Err(ExitCode::ShellExit) {
             break;
         }
-        set_status(res, config);
+        set_status(res, ctx);
     }
     res
 }
 
-fn set_var(key: &str, val: Option<&str>, config: &mut Config) {
+fn set_var(key: &str, val: Option<&str>, ctx: &mut Context) {
     match val {
-        Some(val) => config.env.insert(key.to_string(), val.to_string()),
-        None => config.env.remove(key),
+        Some(val) => ctx.env.insert(key.to_string(), val.to_string()),
+        None => ctx.env.remove(key),
     };
 }
 
 fn exec_function(
     function: &Function,
     args: &[&str],
-    config: &Config
+    ctx: &Context
 ) -> Result<(), ExitCode> {
-    let mut config = config.clone();
+    let mut ctx = ctx.clone();
     for (i, param) in function.params.iter().enumerate() {
-        set_var(param, args.get(i).copied(), &mut config);
+        set_var(param, args.get(i).copied(), &mut ctx);
     }
     for i in 1..10 {
-        set_var(&i.to_string(), args.get(i - 1).copied(), &mut config);
+        set_var(&i.to_string(), args.get(i - 1).copied(), &mut ctx);
     }
-    exec_script(&function.body, &mut config)
+    exec_script(&function.body, &mut ctx)
 }
 
-pub fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
+pub fn exec_script(script: &str, ctx: &mut Context) -> Result<(), ExitCode> {
     match parse(script) {
-        Ok((_, body)) => exec_body(&body, config),
+        Ok((_, body)) => exec_body(&body, ctx),
         Err(_) => {
             error!("Could not parse script");
             let res = Err(ExitCode::Failure);
-            set_status(res, config);
+            set_status(res, ctx);
             res
         }
     }

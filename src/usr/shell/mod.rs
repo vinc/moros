@@ -26,14 +26,14 @@ struct Function {
 }
 
 #[derive(Clone)]
-struct Config {
+struct Context {
     env: BTreeMap<String, String>,
     aliases: BTreeMap<String, String>,
     functions: BTreeMap<String, Function>
 }
 
-impl Config {
-    fn new() -> Config {
+impl Context {
+    fn new() -> Context {
         let functions = BTreeMap::new();
         let aliases = BTreeMap::new();
         let mut env = BTreeMap::new();
@@ -43,7 +43,7 @@ impl Config {
         }
         env.insert("dir".to_string(), process::dir());
         env.insert("status".to_string(), "0".to_string());
-        Config { env, aliases, functions }
+        Context { env, aliases, functions }
     }
 }
 
@@ -126,7 +126,7 @@ pub fn prompt_string(success: bool) -> String {
     format!("{}\n{}", line1, line2)
 }
 
-fn repl(config: &mut Config) -> Result<(), ExitCode> {
+fn repl(ctx: &mut Context) -> Result<(), ExitCode> {
     println!();
 
     let mut prompt = Prompt::new();
@@ -136,7 +136,7 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
 
     let mut success = true;
     while let Some(cmd) = prompt.input(&prompt_string(success)) {
-        let res = exec_script(&cmd, config);
+        let res = exec_script(&cmd, ctx);
         if res == Err(ExitCode::ShellExit) {
             break;
         }
@@ -151,8 +151,8 @@ fn repl(config: &mut Config) -> Result<(), ExitCode> {
 }
 
 pub fn exec(cmd: &str) -> Result<(), ExitCode> {
-    let mut config = Config::new();
-    exec_script(cmd, &mut config)
+    let mut ctx = Context::new();
+    exec_script(cmd, &mut ctx)
 }
 
 pub fn exec_to_bytes(cmd: &str) -> Result<Vec<u8>, ExitCode> {
@@ -183,30 +183,30 @@ pub fn exec_to_bytes(cmd: &str) -> Result<Vec<u8>, ExitCode> {
 }
 
 pub fn main(args: &[&str]) -> Result<(), ExitCode> {
-    let mut config = Config::new();
+    let mut ctx = Context::new();
 
     if let Ok(buf) = fs::read_to_string("/ini/shell.sh") {
-        exec_script(&buf, &mut config).ok();
+        exec_script(&buf, &mut ctx).ok();
     }
 
     if args.len() < 2 {
-        config.env.insert(0.to_string(), args[0].to_string());
+        ctx.env.insert(0.to_string(), args[0].to_string());
 
-        repl(&mut config)
+        repl(&mut ctx)
     } else {
         if args[1] == "-h" || args[1] == "--help" {
             return help();
         }
-        config.env.insert(0.to_string(), args[1].to_string());
+        ctx.env.insert(0.to_string(), args[1].to_string());
 
         // Add script arguments to the environment as `$1`, `$2`, `$3`, ...
         for (i, arg) in args[2..].iter().enumerate() {
-            config.env.insert((i + 1).to_string(), arg.to_string());
+            ctx.env.insert((i + 1).to_string(), arg.to_string());
         }
 
         let path = args[1];
         if let Ok(buf) = api::fs::read_to_string(path) {
-            match exec_script(&buf, &mut config) {
+            match exec_script(&buf, &mut ctx) {
                 Err(ExitCode::ShellExit) => Ok(()),
                 res => res,
             }
@@ -266,9 +266,9 @@ fn test_shell() {
     assert!(api::fs::read_to_string("/tmp/test3").unwrap().
         contains("Could not read file \"/nope\""));
 
-    let mut config = Config::new();
-    exec_command("set b 42", &mut config).ok();
-    exec_command("echo a $b $c d => /test", &mut config).ok();
+    let mut ctx = Context::new();
+    exec_command("set b 42", &mut ctx).ok();
+    exec_command("echo a $b $c d => /test", &mut ctx).ok();
     assert_eq!(api::fs::read_to_string("/test"), Ok("a 42 d\n".to_string()));
 
     sys::fs::dismount();

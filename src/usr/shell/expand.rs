@@ -1,4 +1,4 @@
-use super::Config;
+use super::Context;
 
 use crate::api::fs;
 use crate::api::process;
@@ -142,7 +142,7 @@ fn tilde_expansion(arg: &str) -> String {
     arg.to_string()
 }
 
-pub fn variables_expansion(cmd: &str, config: &mut Config) -> String {
+pub fn variables_expansion(cmd: &str, ctx: &mut Context) -> String {
     let mut cmd = cmd.to_string();
 
     // Special cases for non alphanum (\w) variables
@@ -154,7 +154,7 @@ pub fn variables_expansion(cmd: &str, config: &mut Config) -> String {
     let re = Regex::new("\\$\\w+");
     while let Some((a, b)) = re.find(&cmd) {
         let key: String = cmd.chars().skip(a + 1).take(b - a - 1).collect();
-        let val = config.env.get(&key).map_or("", String::as_str);
+        let val = ctx.env.get(&key).map_or("", String::as_str);
         cmd = cmd.replace(&format!("${}", key), val);
     }
 
@@ -239,15 +239,15 @@ fn test_split_args() {
 fn test_variables_expansion() {
     use super::exec::exec_command;
 
-    let mut config = Config::new();
-    exec_command("set foo 42", &mut config).ok();
-    exec_command("set bar \"Alice and Bob\"", &mut config).ok();
+    let mut ctx = Context::new();
+    exec_command("set foo 42", &mut ctx).ok();
+    exec_command("set bar \"Alice and Bob\"", &mut ctx).ok();
     assert_eq!(
-        variables_expansion("print $foo", &mut config),
+        variables_expansion("print $foo", &mut ctx),
         "print 42"
     );
     assert_eq!(
-        variables_expansion("print \"Hello $bar\"", &mut config),
+        variables_expansion("print \"Hello $bar\"", &mut ctx),
         "print \"Hello Alice and Bob\""
     );
 }
