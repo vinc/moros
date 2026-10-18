@@ -7,6 +7,7 @@ use nom::branch::alt;
 use nom::bytes::complete::escaped;
 use nom::bytes::complete::is_not;
 use nom::bytes::complete::tag;
+use nom::bytes::complete::take_while1;
 use nom::character::complete::anychar;
 use nom::character::complete::char;
 use nom::character::complete::one_of;
@@ -35,7 +36,8 @@ pub enum Op {
 #[derive(Debug, PartialEq)]
 pub enum Exp<'a> {
     Chain(Chain<'a>),
-    If(Chain<'a>, Vec<Exp<'a>>, Vec<Exp<'a>>)
+    If(Chain<'a>, Vec<Exp<'a>>, Vec<Exp<'a>>),
+    For(&'a str, &'a str, Vec<Exp<'a>>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -104,13 +106,19 @@ fn reserved(input: &str) -> IResult<&str, &str> {
         keyword("do"),
         keyword("else"),
         keyword("end"),
+        keyword("for"),
         keyword("if"),
+        keyword("in"),
         keyword("or"),
     )).parse(input)
 }
 
 fn word(input: &str) -> IResult<&str, &str> {
     preceded(not(reserved), recognize(many1(part))).parse(input)
+}
+
+fn identifier(input: &str) -> IResult<&str, &str> {
+    take_while1(|c: char| c.is_alphanumeric() || c == '_').parse(input)
 }
 
 fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
@@ -140,8 +148,36 @@ fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
     Ok((input, Exp::If(cond, then, other.unwrap_or_default())))
 }
 
+fn for_exp(input: &str) -> IResult<&str, Exp<'_>> {
+    // for
+    let (input, _) = preceded(space0, keyword("for")).parse(input)?;
+
+    // <var>
+    let (input, var) = preceded(space1, identifier).parse(input)?;
+
+    // in
+    let (input, _) = preceded(space1, keyword("in")).parse(input)?;
+
+    // <list>
+    let (input, list) = opt(command).parse(input)?;
+
+    // [do]
+    let (input, _) = alt((
+        value((), separator),
+        value((), preceded(space0, keyword("do"))),
+    )).parse(input)?;
+
+    // <body>
+    let (input, body) = body(input)?;
+
+    // end
+    let (input, _) = preceded(space0, keyword("end")).parse(input)?;
+
+    Ok((input, Exp::For(var, list.unwrap_or_default(), body)))
+}
+
 fn exp(input: &str) -> IResult<&str, Exp<'_>> {
-    alt((if_exp, map(chain, Exp::Chain))).parse(input)
+    alt((if_exp, for_exp, map(chain, Exp::Chain))).parse(input)
 }
 
 fn body(input: &str) -> IResult<&str, Vec<Exp<'_>>> {
@@ -235,6 +271,18 @@ fn test_parse() {
         vec![cmd("qux")])
     ])));
 
+    assert_eq!(parse("for x in a $b c do print $x end"), Ok(("", vec![
+        Exp::For("x", "a $b c", vec![cmd("print $x")])
+    ])));
+
+    assert_eq!(parse("for x in a $b c\n  print $x\nend\n"), Ok(("", vec![
+        Exp::For("x", "a $b c", vec![cmd("print $x")])
+    ])));
+
+    assert_eq!(parse("for x in; print $x; end"), Ok(("", vec![
+        Exp::For("x", "", vec![cmd("print $x")])
+    ])));
+
     assert_eq!(parse("print \"end\""), Ok(("", vec![
         cmd("print \"end\"")
     ])));
@@ -242,5 +290,7 @@ fn test_parse() {
     assert!(parse("print end").is_err());
     assert!(parse("if foo do bar").is_err());
     assert!(parse("if foo do bar end baz").is_err());
+    assert!(parse("for x a b do print $x end").is_err());
+    assert!(parse("for $x in a b do print $x end").is_err());
     assert!(parse("end").is_err());
 }

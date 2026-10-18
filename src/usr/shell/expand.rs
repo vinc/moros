@@ -93,7 +93,7 @@ pub fn split_args(cmd: &str) -> Vec<String> {
         if c == '#' && !is_quote {
             n = j; // Discard comments
             break;
-        } else if c == ' ' && !is_quote {
+        } else if c.is_ascii_whitespace() && !is_quote {
             if i != j && !cmd[i..j].trim().is_empty() {
                 if args.is_empty() {
                     args.push(cmd[i..j].to_string()) // program name
@@ -132,6 +132,12 @@ pub fn split_args(cmd: &str) -> Vec<String> {
     }
 
     args.iter().map(|s| tilde_expansion(s)).collect()
+}
+
+pub fn split_list(list: &str) -> Vec<String> {
+    let mut args = split_args(&format!("_ {}", list));
+    args.remove(0);
+    args
 }
 
 // Replace `~` with the value of `$HOME` when it's at the begining of an arg

@@ -306,6 +306,18 @@ fn exec_body(body: &[Exp], config: &mut Config) -> Result<(), ExitCode> {
                 set_status(res, config);
                 exec_body(if res.is_ok() { then } else { other }, config)
             }
+            Exp::For(var, list, body) => {
+                let list = expand::variables_expansion(list, config);
+                let mut res = Ok(());
+                for item in expand::split_list(&list) {
+                    config.env.insert(var.to_string(), item);
+                    res = exec_body(body, config);
+                    if res == Err(ExitCode::ShellExit) {
+                        break;
+                    }
+                }
+                res
+            }
         };
         if res == Err(ExitCode::ShellExit) {
             break;
