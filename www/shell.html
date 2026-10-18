@@ -26,54 +26,56 @@ additional common aliases.</p>
     <!--
 **Append** to file:
 
-    > a a.txt
     > append a.txt
+    > a a.txt
 -->
 
     <p><strong>Drop</strong> file:</p>
 
-    <pre><code>&gt; d a.txt
-&gt; drop a.txt
+    <pre><code>&gt; drop a.txt
+&gt; d a.txt
 </code></pre>
 
     <p><strong>Copy</strong> file:</p>
 
-    <pre><code>&gt; c a.txt b.txt
-&gt; copy a.txt b.txt
+    <pre><code>&gt; copy a.txt b.txt
+&gt; c a.txt b.txt
 </code></pre>
 
     <p><strong>Move</strong> file:</p>
 
-    <pre><code>&gt; m a.txt b.txt
-&gt; move a.txt b.txt
+    <pre><code>&gt; move a.txt b.txt
+&gt; m a.txt b.txt
 </code></pre>
 
     <p><strong>Print</strong> string:</p>
 
-    <pre><code>&gt; p &quot;Hi&quot;
-&gt; print &quot;Hi&quot;
+    <pre><code>&gt; print &quot;Hi&quot;
+&gt; p &quot;Hi&quot;
 </code></pre>
 
     <p><strong>Read</strong> file:</p>
 
-    <pre><code>&gt; r a.txt
-&gt; read a.txt
+    <pre><code>&gt; read a.txt
+&gt; r a.txt
 </code></pre>
 
     <p><strong>Write</strong> file:</p>
 
-    <pre><code>&gt; w a.txt
-&gt; write a.txt
+    <pre><code>&gt; write a.txt
+&gt; w a.txt
 </code></pre>
 
     <p><strong>Write</strong> dir:</p>
 
     <pre><code>&gt; write /usr/alice/ # with a trailing slash to create a dir instead of a file
+&gt; w /usr/alice/
 </code></pre>
 
     <p><strong>List</strong> files in dir:</p>
 
     <pre><code>&gt; list /usr/alice
+&gt; l /usr/alice
 </code></pre>
 
     <p>When executed without arguments, this command will list the files of the
@@ -85,6 +87,11 @@ current directory.</p>
 </code></pre>
 
     <p>When executed without arguments, this command will print the current directory.</p>
+
+    <p>It is also possible to change the current directory by directly typing its path:</p>
+
+    <pre><code>&gt; /usr/alice
+</code></pre>
 
     <h2>Combiners</h2>
 

@@ -17,47 +17,49 @@ additional common aliases.
 <!--
 **Append** to file:
 
-    > a a.txt
     > append a.txt
+    > a a.txt
 -->
 
 **Drop** file:
 
-    > d a.txt
     > drop a.txt
+    > d a.txt
 
 **Copy** file:
 
-    > c a.txt b.txt
     > copy a.txt b.txt
+    > c a.txt b.txt
 
 **Move** file:
 
-    > m a.txt b.txt
     > move a.txt b.txt
+    > m a.txt b.txt
 
 **Print** string:
 
-    > p "Hi"
     > print "Hi"
+    > p "Hi"
 
 **Read** file:
 
-    > r a.txt
     > read a.txt
+    > r a.txt
 
 **Write** file:
 
-    > w a.txt
     > write a.txt
+    > w a.txt
 
 **Write** dir:
 
     > write /usr/alice/ # with a trailing slash to create a dir instead of a file
+    > w /usr/alice/
 
 **List** files in dir:
 
     > list /usr/alice
+    > l /usr/alice
 
 When executed without arguments, this command will list the files of the
 current directory.
@@ -67,6 +69,10 @@ current directory.
     > goto /usr/alice
 
 When executed without arguments, this command will print the current directory.
+
+It is also possible to change the current directory by directly typing its path:
+
+    > /usr/alice
 
 ## Combiners
 
