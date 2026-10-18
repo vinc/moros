@@ -63,8 +63,8 @@ additional common aliases.
     > list /usr/alice
     > l /usr/alice
 
-When executed without arguments, this command will list the files of the
-current directory.
+When executed without arguments, this command lists the files of the current
+directory.
 
 **Change** dir:
 
@@ -149,8 +149,8 @@ NOTE: The following handles are available when a process is created:
 - `stderr(2)`
 - `stdnull(3)`
 
-A redirection with a single arrow head will truncate its destination while
-multiple heads like `=>>` will append to it.
+A redirection with a single arrow head truncates its destination while multiple
+heads like `=>>` append to it.
 
 NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
 
@@ -222,8 +222,8 @@ The output of a command can be used as an argument of another command:
 ## Globbing
 
 MOROS Shell supports filename expansion or globbing for `*` and `?` wildcard
-characters, where a pattern given in an argument of a command will be replaced
-by files matching the pattern.
+characters, where a pattern given in an argument of a command is replaced by
+files matching the pattern.
 
 - `*` means zero or more chars except `/`
 - `?` means any char except `/`
@@ -233,8 +233,8 @@ For example `/tmp/*.txt` will match any file with the `txt` extension inside
 
 ## Tilde expansion
 
-The tilde character `~` is a shortcut to `$HOME` so `~/test` will be expanded
-to `$HOME/test` by the shell.
+The tilde character `~` is a shortcut to `$HOME` so `~/test` is expanded to
+`$HOME/test` by the shell.
 
 ## Conditionals
 
