@@ -296,45 +296,56 @@ fn exec_chain(chain: &Chain, config: &mut Config) -> Result<(), ExitCode> {
     res
 }
 
+fn exec_exp(exp: &Exp, config: &mut Config) -> Result<(), ExitCode> {
+    match exp {
+        Exp::Chain(chain) => exec_chain(chain, config),
+        Exp::If(cond, then, other) => {
+            let res = exec_chain(cond, config);
+            if res == Err(ExitCode::ShellExit) {
+                return res;
+            }
+            set_status(res, config);
+            exec_body(if res.is_ok() { then } else { other }, config)
+        }
+        Exp::For(var, list, body) => {
+            let list = expand::variables_expansion(list, config);
+            let mut res = Ok(());
+            for item in expand::split_list(&list) {
+                config.env.insert(var.to_string(), item);
+                res = exec_body(body, config);
+                if res == Err(ExitCode::ShellExit) {
+                    break;
+                }
+            }
+            res
+        }
+        Exp::Def(name, params, body) => {
+            let params = params.iter().map(|p| p.to_string()).collect();
+            let body = body.to_string();
+            let function = Function { params, body };
+            config.functions.insert(name.to_string(), function);
+            Ok(())
+        }
+    }
+}
+
 fn exec_body(body: &[Exp], config: &mut Config) -> Result<(), ExitCode> {
     let mut res = Ok(());
     for exp in body {
-        res = match exp {
-            Exp::Chain(chain) => exec_chain(chain, config),
-            Exp::If(cond, then, other) => {
-                let res = exec_chain(cond, config);
-                if res == Err(ExitCode::ShellExit) {
-                    return res;
-                }
-                set_status(res, config);
-                exec_body(if res.is_ok() { then } else { other }, config)
-            }
-            Exp::For(var, list, body) => {
-                let list = expand::variables_expansion(list, config);
-                let mut res = Ok(());
-                for item in expand::split_list(&list) {
-                    config.env.insert(var.to_string(), item);
-                    res = exec_body(body, config);
-                    if res == Err(ExitCode::ShellExit) {
-                        break;
-                    }
-                }
-                res
-            }
-            Exp::Def(name, params, body) => {
-                let params = params.iter().map(|p| p.to_string()).collect();
-                let body = body.to_string();
-                let function = Function { params, body };
-                config.functions.insert(name.to_string(), function);
-                Ok(())
-            }
-        };
+        res = exec_exp(&exp, config);
         if res == Err(ExitCode::ShellExit) {
             break;
         }
         set_status(res, config);
     }
     res
+}
+
+fn set_var(key: &str, val: Option<&str>, config: &mut Config) {
+    match val {
+        Some(val) => config.env.insert(key.to_string(), val.to_string()),
+        None => config.env.remove(key),
+    };
 }
 
 fn exec_function(
@@ -344,19 +355,12 @@ fn exec_function(
 ) -> Result<(), ExitCode> {
     let mut config = config.clone();
     for (i, param) in function.params.iter().enumerate() {
-        set_var(param, args.get(i), &mut config);
+        set_var(param, args.get(i).copied(), &mut config);
     }
     for i in 1..10 {
-        set_var(&i.to_string(), args.get(i - 1), &mut config);
+        set_var(&i.to_string(), args.get(i - 1).copied(), &mut config);
     }
     exec_script(&function.body, &mut config)
-}
-
-fn set_var(key: &str, val: Option<&&str>, config: &mut Config) {
-    match val {
-        Some(val) => config.env.insert(key.to_string(), val.to_string()),
-        None => config.env.remove(key),
-    };
 }
 
 pub fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
