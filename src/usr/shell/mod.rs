@@ -206,8 +206,10 @@ pub fn main(args: &[&str]) -> Result<(), ExitCode> {
 
         let path = args[1];
         if let Ok(buf) = api::fs::read_to_string(path) {
-            exec_script(&buf, &mut config).ok();
-            Ok(())
+            match exec_script(&buf, &mut config) {
+                Err(ExitCode::ShellExit) => Ok(()),
+                res => res,
+            }
         } else {
             error!("Could not read file {:?}", path);
             Err(ExitCode::Failure)
