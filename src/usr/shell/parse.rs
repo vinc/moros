@@ -38,12 +38,13 @@ pub enum Exp<'a> {
     Chain(Chain<'a>),
     If(Chain<'a>, Vec<Exp<'a>>, Vec<Exp<'a>>),
     For(&'a str, &'a str, Vec<Exp<'a>>),
+    Def(&'a str, Vec<&'a str>, &'a str)
 }
 
 #[derive(Debug, PartialEq)]
 pub struct Chain<'a> {
     pub head: &'a str,
-    pub tail: Vec<(Op, &'a str)>,
+    pub tail: Vec<(Op, &'a str)>
 }
 
 fn blank(input: &str) -> IResult<&str, ()> {
@@ -103,13 +104,14 @@ fn chain(input: &str) -> IResult<&str, Chain<'_>> {
 fn reserved(input: &str) -> IResult<&str, &str> {
     alt((
         keyword("and"),
+        keyword("def"),
         keyword("do"),
         keyword("else"),
         keyword("end"),
         keyword("for"),
         keyword("if"),
         keyword("in"),
-        keyword("or"),
+        keyword("or")
     )).parse(input)
 }
 
@@ -118,7 +120,8 @@ fn word(input: &str) -> IResult<&str, &str> {
 }
 
 fn identifier(input: &str) -> IResult<&str, &str> {
-    take_while1(|c: char| c.is_alphanumeric() || c == '_').parse(input)
+    let chars = take_while1(|c: char| c.is_alphanumeric() || c == '_');
+    preceded(not(reserved), chars).parse(input)
 }
 
 fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
@@ -176,8 +179,33 @@ fn for_exp(input: &str) -> IResult<&str, Exp<'_>> {
     Ok((input, Exp::For(var, list.unwrap_or_default(), body)))
 }
 
+fn def_exp(input: &str) -> IResult<&str, Exp<'_>> {
+    // def
+    let (input, _) = preceded(space0, keyword("def")).parse(input)?;
+
+    // <name>
+    let (input, name) = preceded(space1, identifier).parse(input)?;
+
+    // <params>
+    let (input, params) = many0(preceded(space1, identifier)).parse(input)?;
+
+    // [do]
+    let (input, _) = alt((
+        value((), separator),
+        value((), preceded(space0, keyword("do"))),
+    )).parse(input)?;
+
+    // <body>
+    let (input, body) = recognize(body).parse(input)?;
+
+    // end
+    let (input, _) = preceded(space0, keyword("end")).parse(input)?;
+
+    Ok((input, Exp::Def(name, params, body)))
+}
+
 fn exp(input: &str) -> IResult<&str, Exp<'_>> {
-    alt((if_exp, for_exp, map(chain, Exp::Chain))).parse(input)
+    alt((if_exp, for_exp, def_exp, map(chain, Exp::Chain))).parse(input)
 }
 
 fn body(input: &str) -> IResult<&str, Vec<Exp<'_>>> {
@@ -281,6 +309,14 @@ fn test_parse() {
 
     assert_eq!(parse("for x in; print $x; end"), Ok(("", vec![
         Exp::For("x", "", vec![cmd("print $x")])
+    ])));
+
+    assert_eq!(parse("def foo bar do print $bar end"), Ok(("", vec![
+        Exp::Def("foo", vec!["bar"], " print $bar")
+    ])));
+
+    assert_eq!(parse("def foo\n  print $1\nend\n"), Ok(("", vec![
+        Exp::Def("foo", vec![], "  print $1\n")
     ])));
 
     assert_eq!(parse("print \"end\""), Ok(("", vec![

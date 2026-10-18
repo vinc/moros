@@ -19,13 +19,22 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
+#[derive(Clone)]
+struct Function {
+    params: Vec<String>,
+    body: String
+}
+
+#[derive(Clone)]
 struct Config {
     env: BTreeMap<String, String>,
     aliases: BTreeMap<String, String>,
+    functions: BTreeMap<String, Function>
 }
 
 impl Config {
     fn new() -> Config {
+        let functions = BTreeMap::new();
         let aliases = BTreeMap::new();
         let mut env = BTreeMap::new();
         for (key, val) in process::env() {
@@ -34,7 +43,7 @@ impl Config {
         }
         env.insert("dir".to_string(), process::dir());
         env.insert("status".to_string(), "0".to_string());
-        Config { env, aliases }
+        Config { env, aliases, functions }
     }
 }
 

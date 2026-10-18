@@ -1,4 +1,4 @@
-use super::Config;
+use super::{Config, Function};
 use super::expand;
 use super::parse::{parse, Chain, Exp, Op};
 use super::primitive;
@@ -26,6 +26,9 @@ pub const AUTOCOMPLETE_COMMANDS: [&str; 47] = [
 ];
 
 fn dispatch(args: &[&str], config: &mut Config) -> Result<(), ExitCode> {
+    if let Some(function) = config.functions.get(args[0]) {
+        return exec_function(function, &args[1..], config);
+    }
     match args[0] {
         ""          => Ok(()),
         "2048"      => usr::pow::main(args),
@@ -318,6 +321,13 @@ fn exec_body(body: &[Exp], config: &mut Config) -> Result<(), ExitCode> {
                 }
                 res
             }
+            Exp::Def(name, params, body) => {
+                let params = params.iter().map(|p| p.to_string()).collect();
+                let body = body.to_string();
+                let function = Function { params, body };
+                config.functions.insert(name.to_string(), function);
+                Ok(())
+            }
         };
         if res == Err(ExitCode::ShellExit) {
             break;
@@ -325,6 +335,28 @@ fn exec_body(body: &[Exp], config: &mut Config) -> Result<(), ExitCode> {
         set_status(res, config);
     }
     res
+}
+
+fn exec_function(
+    function: &Function,
+    args: &[&str],
+    config: &Config
+) -> Result<(), ExitCode> {
+    let mut config = config.clone();
+    for (i, param) in function.params.iter().enumerate() {
+        set_var(param, args.get(i), &mut config);
+    }
+    for i in 1..10 {
+        set_var(&i.to_string(), args.get(i - 1), &mut config);
+    }
+    exec_script(&function.body, &mut config)
+}
+
+fn set_var(key: &str, val: Option<&&str>, config: &mut Config) {
+    match val {
+        Some(val) => config.env.insert(key.to_string(), val.to_string()),
+        None => config.env.remove(key),
+    };
 }
 
 pub fn exec_script(script: &str, config: &mut Config) -> Result<(), ExitCode> {
