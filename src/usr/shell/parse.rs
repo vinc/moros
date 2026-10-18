@@ -188,29 +188,45 @@ fn test_parse() {
     let chain = |head| Chain { head, tail: vec![] };
     let cmd = |head| Exp::Chain(chain(head));
 
-    let script = vec![cmd("print foo"), cmd("bar")];
-    assert_eq!(parse("print foo; bar"), Ok(("", script)));
+    assert_eq!(parse("print foo; bar"), Ok(("", vec![
+        cmd("print foo"), cmd("bar")
+    ])));
 
-    let foo = Exp::Chain(Chain {
-         head: "print foo",
-         tail: vec![(Op::And, "bar"), (Op::Or, "baz")],
-    });
-    assert_eq!(parse("print foo and bar or baz"), Ok(("", vec![foo])));
+    assert_eq!(parse("print foo and bar or baz"), Ok(("", vec![
+        Exp::Chain(Chain {
+             head: "print foo",
+             tail: vec![(Op::And, "bar"), (Op::Or, "baz")],
+        })
+    ])));
 
-    let foo = Exp::If(chain("foo"), vec![cmd("bar")], vec![cmd("baz")]);
-    assert_eq!(parse("if foo do bar else baz end"), Ok(("", vec![foo])));
-    let script = "if foo\n  bar\nelse\n  baz\nend\n";
-    let foo = Exp::If(chain("foo"), vec![cmd("bar")], vec![cmd("baz")]);
-    assert_eq!(parse(script), Ok(("", vec![foo])));
-    let foo = Exp::If(chain("foo"), vec![cmd("bar")], vec![]);
-    assert_eq!(parse("if foo; bar; end"), Ok(("", vec![foo])));
+    assert_eq!(parse("if foo do bar else baz end"), Ok(("", vec![
+        Exp::If(chain("foo"),
+        vec![cmd("bar")],
+        vec![cmd("baz")])
+    ])));
 
-    let bar = Exp::If(chain("bar"), vec![cmd("baz")], vec![]);
-    let foo = Exp::If(chain("foo"), vec![bar], vec![cmd("qux")]);
-    let script = "if foo do if bar do baz end else qux end";
-    assert_eq!(parse(script), Ok(("", vec![foo])));
+    assert_eq!(parse("if foo\n  bar\nelse\n  baz\nend\n"), Ok(("", vec![
+        Exp::If(chain("foo"),
+        vec![cmd("bar")],
+        vec![cmd("baz")])
+    ])));
 
-    assert_eq!(parse("print \"end\""), Ok(("", vec![cmd("print \"end\"")])));
+    assert_eq!(parse("if foo; bar; end"), Ok(("", vec![
+        Exp::If(chain("foo"),
+        vec![cmd("bar")],
+        vec![])
+    ])));
+
+    assert_eq!(parse("if foo do if bar do baz end else qux end"), Ok(("", vec![
+        Exp::If(chain("foo"),
+        vec![Exp::If(chain("bar"), vec![cmd("baz")], vec![])],
+        vec![cmd("qux")])
+    ])));
+
+    assert_eq!(parse("print \"end\""), Ok(("", vec![
+        cmd("print \"end\"")
+    ])));
+
     assert!(parse("print end").is_err());
     assert!(parse("if foo do bar").is_err());
     assert!(parse("if foo do bar end baz").is_err());
