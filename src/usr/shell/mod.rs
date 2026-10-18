@@ -36,11 +36,7 @@ impl Context {
     fn new() -> Context {
         let functions = BTreeMap::new();
         let aliases = BTreeMap::new();
-        let mut env = BTreeMap::new();
-        for (key, val) in process::env() {
-            // Copy the process environment to the shell environment
-            env.insert(key, val);
-        }
+        let mut env = process::env();
         env.insert("dir".to_string(), process::dir());
         env.insert("status".to_string(), "0".to_string());
         Context { env, aliases, functions }
