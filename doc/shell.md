@@ -128,7 +128,7 @@ It is possible to chain multiple redirections:
 
     > time read foo.txt [1]=> bar.txt [2]=> time.txt
 
-When the arrow points to the other direction the source and destination are
+When the arrow points in the other direction the source and destination are
 swapped and the standard input is implied:
 
     > http <= req.txt => res.txt
@@ -214,7 +214,7 @@ be in uppercase and a shell var should be lowercase.
 
 ## Substitutions
 
-The output of a command can be used as an argument of another command:
+The output of a command can be used as an argument to another command:
 
     > print "Today is $(date)"
     Today is 2026-10-18 12:18:20 +0200

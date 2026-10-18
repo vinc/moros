@@ -157,7 +157,7 @@ possible to explicitly redirect a handle to another (TODO):</p>
     <pre><code>&gt; time read foo.txt [1]=&gt; bar.txt [2]=&gt; time.txt
 </code></pre>
 
-    <p>When the arrow points to the other direction the source and destination are
+    <p>When the arrow points in the other direction the source and destination are
 swapped and the standard input is implied:</p>
 
     <pre><code>&gt; http &lt;= req.txt =&gt; res.txt
@@ -256,7 +256,7 @@ be in uppercase and a shell var should be lowercase.</p>
 
     <h2>Substitutions</h2>
 
-    <p>The output of a command can be used as an argument of another command:</p>
+    <p>The output of a command can be used as an argument to another command:</p>
 
     <pre><code>&gt; print &quot;Today is $(date)&quot;
 Today is 2026-10-18 12:18:20 +0200
