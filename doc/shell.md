@@ -64,15 +64,14 @@ additional common aliases.
 When executed without arguments, this command will list the files of the
 current directory.
 
-**Goto** dir:
+**Change** dir:
 
-    > goto /usr/alice
-
-When executed without arguments, this command will print the current directory.
-
-It is also possible to change the current directory by directly typing its path:
-
+    > goto /usr/alice # deprecated
     > /usr/alice
+
+The current directory is set in the `$dir` variable:
+
+    > print $dir
 
 ## Combiners
 

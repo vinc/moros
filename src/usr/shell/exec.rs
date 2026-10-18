@@ -27,7 +27,9 @@ pub const AUTOCOMPLETE_COMMANDS: [&str; 47] = [
 
 fn dispatch(args: &[&str], ctx: &mut Context) -> Result<(), ExitCode> {
     if let Some(function) = ctx.functions.get(args[0]) {
-        return exec_function(function, &args[1..], ctx);
+        let res = exec_function(function, &args[1..], ctx);
+        ctx.env.insert("dir".to_string(), process::dir());
+        return res;
     }
     match args[0] {
         ""          => Ok(()),

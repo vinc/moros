@@ -81,16 +81,15 @@ additional common aliases.</p>
     <p>When executed without arguments, this command will list the files of the
 current directory.</p>
 
-    <p><strong>Goto</strong> dir:</p>
+    <p><strong>Change</strong> dir:</p>
 
-    <pre><code>&gt; goto /usr/alice
+    <pre><code>&gt; goto /usr/alice # deprecated
+&gt; /usr/alice
 </code></pre>
 
-    <p>When executed without arguments, this command will print the current directory.</p>
+    <p>The current directory is set in the <code>$dir</code> variable:</p>
 
-    <p>It is also possible to change the current directory by directly typing its path:</p>
-
-    <pre><code>&gt; /usr/alice
+    <pre><code>&gt; print $dir
 </code></pre>
 
     <h2>Combiners</h2>
