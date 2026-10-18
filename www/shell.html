@@ -86,7 +86,11 @@ current directory.</p>
 
     <p>When executed without arguments, this command will print the current directory.</p>
 
-    <h2>Combiners (TODO)</h2>
+    <h2>Combiners</h2>
+
+    <p>The command after <code>and</code> is run only if the previous one succeeded, and the
+command after <code>or</code> only if it failed. The exit code of the last command run is
+available in <code>$?</code>.</p>
 
     <p><strong>And combiner:</strong></p>
 
@@ -96,6 +100,13 @@ current directory.</p>
     <p><strong>Or combiners:</strong></p>
 
     <pre><code>&gt; read foo.txt or read bar.txt
+</code></pre>
+
+    <p>The shell also accepts commands separated by a semicolon:</p>
+
+    <pre><code>&gt; print hello; print world
+hello
+world
 </code></pre>
 
     <h2>Pipes and Redirections (WIP)</h2>
@@ -234,6 +245,14 @@ lowercase. They can be changed by using <code>--env</code> or <code>-e</code>.</
 2026-04-21 19:24:14 +0200
 </code></pre>
 
+    <h2>Substitutions</h2>
+
+    <p>The output of a command can be used as argument of another command:</p>
+
+    <pre><code>&gt; print &quot;Today is $(date)&quot;
+Today is 2026-10-18 12:18:20 +0200
+</code></pre>
+
     <h2>Globbing</h2>
 
     <p>MOROS Shell support filename expansion or globbing for <code>*</code> and <code>?</code> wildcard
@@ -252,6 +271,74 @@ by files matching the pattern.</p>
 
     <p>The tilde character <code>~</code> is a shortcut to <code>$HOME</code> so <code>~/test</code> will be expanded
 to <code>$HOME/test</code> by the shell.</p>
+
+    <h2>Conditionals</h2>
+
+    <p>The condition is a command, or a chain of commands with <code>and</code> and <code>or</code>, and the
+first branch is taken if it succeeds. The <code>true</code> and <code>false</code> commands always
+respectively succeed and fail.</p>
+
+    <pre><code>&gt; if true do print yeah else print nope end
+yeah
+
+&gt; if true do print yeah end
+yeah
+</code></pre>
+
+    <p>The <code>do</code> keyword can be replaced by a semicolon or a newline in a script:</p>
+
+    <pre><code>#! shell
+
+if true
+  print yeah
+else
+  print nope
+end
+</code></pre>
+
+    <h2>Loops</h2>
+
+    <pre><code>&gt; for i in 1 2 3 do print $i end
+1
+2
+3
+</code></pre>
+
+    <p>The <code>do</code> keyword can be replaced by a semicolon or a newline in a script:</p>
+
+    <pre><code>#! shell
+
+for file in $(find -f &quot;*.sh&quot;)
+  print $file
+  copy $file $file.old
+end
+</code></pre>
+
+    <h2>Functions</h2>
+
+    <pre><code>&gt; def hello name do print &quot;Hello $name&quot; end
+
+&gt; hello Alice
+Hello Alice
+</code></pre>
+
+    <p>The <code>do</code> keyword can be replaced by a semicolon or a newline in a script:</p>
+
+    <pre><code>#! shell
+
+def backup file
+  copy $file $file.old and print &quot;Saved $file.old&quot;
+end
+</code></pre>
+
+    <h2>Reserved words</h2>
+
+    <p>The words <code>and</code>, <code>def</code>, <code>do</code>, <code>else</code>, <code>end</code>, <code>for</code>, <code>if</code>, <code>in</code> and <code>or</code> are
+reserved and cannot be used as arguments unless quoted:</p>
+
+    <pre><code>&gt; print &quot;end&quot;
+end
+</code></pre>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

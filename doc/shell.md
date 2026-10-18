@@ -1,11 +1,9 @@
 # MOROS Shell
 
-
 ## Configuration
 
 The shell will read `/ini/shell.sh` during initialization to setup its
 configuration.
-
 
 ## Commands
 
@@ -70,8 +68,11 @@ current directory.
 
 When executed without arguments, this command will print the current directory.
 
+## Combiners
 
-## Combiners (TODO)
+The command after `and` is run only if the previous one succeeded, and the
+command after `or` only if it failed. The exit code of the last command run is
+available in `$?`.
 
 **And combiner:**
 
@@ -81,6 +82,11 @@ When executed without arguments, this command will print the current directory.
 
     > read foo.txt or read bar.txt
 
+The shell also accepts commands separated by a semicolon:
+
+    > print hello; print world
+    hello
+    world
 
 ## Pipes and Redirections (WIP)
 
@@ -198,6 +204,13 @@ lowercase. They can be changed by using `--env` or `-e`.
     > date
     2026-04-21 19:24:14 +0200
 
+## Substitutions
+
+The output of a command can be used as argument of another command:
+
+    > print "Today is $(date)"
+    Today is 2026-10-18 12:18:20 +0200
+
 ## Globbing
 
 MOROS Shell support filename expansion or globbing for `*` and `?` wildcard
@@ -210,8 +223,68 @@ by files matching the pattern.
 For example `/tmp/*.txt` will match any files with the `txt` extension inside
 `/tmp`, and `a?c.txt` will match a file named `abc.txt`.
 
-
 ## Tilde Expansion
 
 The tilde character `~` is a shortcut to `$HOME` so `~/test` will be expanded
 to `$HOME/test` by the shell.
+
+## Conditionals
+
+The condition is a command, or a chain of commands with `and` and `or`, and the
+first branch is taken if it succeeds. The `true` and `false` commands always
+respectively succeed and fail.
+
+    > if true do print yeah else print nope end
+    yeah
+
+    > if true do print yeah end
+    yeah
+
+The `do` keyword can be replaced by a semicolon or a newline in a script:
+
+    #! shell
+
+    if true
+      print yeah
+    else
+      print nope
+    end
+
+## Loops
+
+    > for i in 1 2 3 do print $i end
+    1
+    2
+    3
+
+The `do` keyword can be replaced by a semicolon or a newline in a script:
+
+    #! shell
+
+    for file in $(find -f "*.sh")
+      print $file
+      copy $file $file.old
+    end
+
+## Functions
+
+    > def hello name do print "Hello $name" end
+
+    > hello Alice
+    Hello Alice
+
+The `do` keyword can be replaced by a semicolon or a newline in a script:
+
+    #! shell
+
+    def backup file
+      copy $file $file.old and print "Saved $file.old"
+    end
+
+## Reserved words
+
+The words `and`, `def`, `do`, `else`, `end`, `for`, `if`, `in` and `or` are
+reserved and cannot be used as arguments unless quoted:
+
+    > print "end"
+    end
