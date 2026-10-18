@@ -12,7 +12,7 @@
 
     <h2>Configuration</h2>
 
-    <p>The shell will read <code>/ini/shell.sh</code> during initialization to setup its
+    <p>The shell reads <code>/ini/shell.sh</code> during initialization to set up its
 configuration.</p>
 
     <h2>Commands</h2>
@@ -105,7 +105,7 @@ available in <code>$?</code>.</p>
     <pre><code>&gt; read foo.txt and read bar.txt
 </code></pre>
 
-    <p><strong>Or combiners:</strong></p>
+    <p><strong>Or combiner:</strong></p>
 
     <pre><code>&gt; read foo.txt or read bar.txt
 </code></pre>
@@ -117,7 +117,7 @@ hello
 world
 </code></pre>
 
-    <h2>Pipes and Redirections (WIP)</h2>
+    <h2>Pipes and redirections (WIP)</h2>
 
     <p>A thin arrow <code>-&gt;</code> can be used for piping the output from one command to the
 input of another command (TODO):</p>
@@ -157,7 +157,7 @@ possible to explicitly redirect a handle to another (TODO):</p>
     <pre><code>&gt; time read foo.txt [1]=&gt; bar.txt [2]=&gt; time.txt
 </code></pre>
 
-    <p>When the arrow point to the other direction the source and destination are
+    <p>When the arrow points to the other direction the source and destination are
 swapped and the standard input is implied:</p>
 
     <pre><code>&gt; http &lt;= req.txt =&gt; res.txt
@@ -213,7 +213,8 @@ multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
 
     <ul>
     <li>Name of the shell or the script: <code>$0</code></li>
-    <li>Script arguments: <code>$1</code>, <code>$2</code>, <code>$3</code>, <code>$4</code>, ...</li>
+    <li>Script or function arguments: <code>$1</code>, <code>$2</code>, <code>$3</code>, ...</li>
+    <li>All the arguments: <code>$*</code></li>
     <li>Exit code: <code>$?</code></li>
     <li>Environment variable: <code>$HOME</code>, ...</li>
     <li>Shell variable: <code>$foo</code>, ...</li>
@@ -241,8 +242,8 @@ Hello Alice and Bob
 </code></pre>
 
     <p>Environment variables are copied to the shell when a session is started.
-By convention an env var should be in uppercase and a shell var should be
-lowercase. They can be changed by using <code>--env</code> or <code>-e</code>.</p>
+They can be changed by using <code>--env</code> or <code>-e</code>. By convention an env var should
+be in uppercase and a shell var should be lowercase.</p>
 
     <pre><code>&gt; date
 2026-04-21 17:24:06 +0000
@@ -255,7 +256,7 @@ lowercase. They can be changed by using <code>--env</code> or <code>-e</code>.</
 
     <h2>Substitutions</h2>
 
-    <p>The output of a command can be used as argument of another command:</p>
+    <p>The output of a command can be used as an argument of another command:</p>
 
     <pre><code>&gt; print &quot;Today is $(date)&quot;
 Today is 2026-10-18 12:18:20 +0200
@@ -263,7 +264,7 @@ Today is 2026-10-18 12:18:20 +0200
 
     <h2>Globbing</h2>
 
-    <p>MOROS Shell support filename expansion or globbing for <code>*</code> and <code>?</code> wildcard
+    <p>MOROS Shell supports filename expansion or globbing for <code>*</code> and <code>?</code> wildcard
 characters, where a pattern given in an argument of a command will be replaced
 by files matching the pattern.</p>
 
@@ -272,10 +273,10 @@ by files matching the pattern.</p>
     <li><code>?</code> means any char except <code>/</code></li>
     </ul>
 
-    <p>For example <code>/tmp/*.txt</code> will match any files with the <code>txt</code> extension inside
+    <p>For example <code>/tmp/*.txt</code> will match any file with the <code>txt</code> extension inside
     <code>/tmp</code>, and <code>a?c.txt</code> will match a file named <code>abc.txt</code>.</p>
 
-    <h2>Tilde Expansion</h2>
+    <h2>Tilde expansion</h2>
 
     <p>The tilde character <code>~</code> is a shortcut to <code>$HOME</code> so <code>~/test</code> will be expanded
 to <code>$HOME/test</code> by the shell.</p>
@@ -283,8 +284,8 @@ to <code>$HOME/test</code> by the shell.</p>
     <h2>Conditionals</h2>
 
     <p>The condition is a command, or a chain of commands with <code>and</code> and <code>or</code>, and the
-first branch is taken if it succeeds. The <code>true</code> and <code>false</code> commands always
-respectively succeed and fail.</p>
+first branch is taken if it succeeds. The <code>true</code> command always succeeds and
+the <code>false</code> command always fails.</p>
 
     <pre><code>&gt; if true do print yeah else print nope end
 yeah
@@ -293,7 +294,7 @@ yeah
 yeah
 </code></pre>
 
-    <p>The <code>do</code> keyword can be replaced by a semicolon or a newline in a script:</p>
+    <p>The <code>do</code> keyword can be replaced by a semicolon, or a newline in a script:</p>
 
     <pre><code>#! shell
 
@@ -306,13 +307,16 @@ end
 
     <h2>Loops</h2>
 
+    <p>The body of a loop is run once for each word of the list, with the variable
+set to that word:</p>
+
     <pre><code>&gt; for i in 1 2 3 do print $i end
 1
 2
 3
 </code></pre>
 
-    <p>The <code>do</code> keyword can be replaced by a semicolon or a newline in a script:</p>
+    <p>The <code>do</code> keyword can be replaced by a semicolon, or a newline in a script:</p>
 
     <pre><code>#! shell
 

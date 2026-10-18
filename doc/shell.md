@@ -4,7 +4,7 @@ MOROS Shell is a scripting language inspired by the Unix shell and Ruby.
 
 ## Configuration
 
-The shell will read `/ini/shell.sh` during initialization to setup its
+The shell reads `/ini/shell.sh` during initialization to set up its
 configuration.
 
 ## Commands
@@ -85,7 +85,7 @@ available in `$?`.
 
     > read foo.txt and read bar.txt
 
-**Or combiners:**
+**Or combiner:**
 
     > read foo.txt or read bar.txt
 
@@ -95,7 +95,7 @@ The shell also accepts commands separated by a semicolon:
     hello
     world
 
-## Pipes and Redirections (WIP)
+## Pipes and redirections (WIP)
 
 A thin arrow `->` can be used for piping the output from one command to the
 input of another command (TODO):
@@ -128,7 +128,7 @@ It is possible to chain multiple redirections:
 
     > time read foo.txt [1]=> bar.txt [2]=> time.txt
 
-When the arrow point to the other direction the source and destination are
+When the arrow points to the other direction the source and destination are
 swapped and the standard input is implied:
 
     > http <= req.txt => res.txt
@@ -176,7 +176,8 @@ NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
 ## Variables
 
 - Name of the shell or the script: `$0`
-- Script arguments: `$1`, `$2`, `$3`, `$4`, ...
+- Script or function arguments: `$1`, `$2`, `$3`, ...
+- All the arguments: `$*`
 - Exit code: `$?`
 - Environment variable: `$HOME`, ...
 - Shell variable: `$foo`, ...
@@ -200,8 +201,8 @@ Unsetting a variable is done like this:
     > unset foo
 
 Environment variables are copied to the shell when a session is started.
-By convention an env var should be in uppercase and a shell var should be
-lowercase. They can be changed by using `--env` or `-e`.
+They can be changed by using `--env` or `-e`. By convention an env var should
+be in uppercase and a shell var should be lowercase.
 
     > date
     2026-04-21 17:24:06 +0000
@@ -213,24 +214,24 @@ lowercase. They can be changed by using `--env` or `-e`.
 
 ## Substitutions
 
-The output of a command can be used as argument of another command:
+The output of a command can be used as an argument of another command:
 
     > print "Today is $(date)"
     Today is 2026-10-18 12:18:20 +0200
 
 ## Globbing
 
-MOROS Shell support filename expansion or globbing for `*` and `?` wildcard
+MOROS Shell supports filename expansion or globbing for `*` and `?` wildcard
 characters, where a pattern given in an argument of a command will be replaced
 by files matching the pattern.
 
 - `*` means zero or more chars except `/`
 - `?` means any char except `/`
 
-For example `/tmp/*.txt` will match any files with the `txt` extension inside
+For example `/tmp/*.txt` will match any file with the `txt` extension inside
 `/tmp`, and `a?c.txt` will match a file named `abc.txt`.
 
-## Tilde Expansion
+## Tilde expansion
 
 The tilde character `~` is a shortcut to `$HOME` so `~/test` will be expanded
 to `$HOME/test` by the shell.
@@ -238,8 +239,8 @@ to `$HOME/test` by the shell.
 ## Conditionals
 
 The condition is a command, or a chain of commands with `and` and `or`, and the
-first branch is taken if it succeeds. The `true` and `false` commands always
-respectively succeed and fail.
+first branch is taken if it succeeds. The `true` command always succeeds and
+the `false` command always fails.
 
     > if true do print yeah else print nope end
     yeah
@@ -247,7 +248,7 @@ respectively succeed and fail.
     > if true do print yeah end
     yeah
 
-The `do` keyword can be replaced by a semicolon or a newline in a script:
+The `do` keyword can be replaced by a semicolon, or a newline in a script:
 
     #! shell
 
@@ -259,12 +260,15 @@ The `do` keyword can be replaced by a semicolon or a newline in a script:
 
 ## Loops
 
+The body of a loop is run once for each word of the list, with the variable
+set to that word:
+
     > for i in 1 2 3 do print $i end
     1
     2
     3
 
-The `do` keyword can be replaced by a semicolon or a newline in a script:
+The `do` keyword can be replaced by a semicolon, or a newline in a script:
 
     #! shell
 
