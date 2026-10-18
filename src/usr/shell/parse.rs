@@ -55,26 +55,14 @@ fn separator(input: &str) -> IResult<&str, char> {
     preceded(blank, one_of(";\n")).parse(input)
 }
 
-fn quoted(input: &str) -> IResult<&str, &str> {
-    recognize((
-        char('"'),
-        opt(escaped(is_not("\\\""), '\\', anychar)),
-        char('"'),
-    )).parse(input)
-}
-
-fn substitution(input: &str) -> IResult<&str, &str> {
-    recognize((
-        tag("$("),
-        many0(alt((quoted, substitution, is_not("\"()")))),
-        char(')'),
-    )).parse(input)
-}
-
 fn keyword<'a>(
     name: &'static str
 ) -> impl Parser<&'a str, Output = &'a str, Error = Error<&'a str>> {
-    terminated(tag(name), not(part))
+    delimited(space0, tag(name), not(part))
+}
+
+fn start(input: &str) -> IResult<&str, ()> {
+    alt((value((), separator), value((), keyword("do")))).parse(input)
 }
 
 fn op(input: &str) -> IResult<&str, Op> {
@@ -82,23 +70,6 @@ fn op(input: &str) -> IResult<&str, Op> {
         value(Op::And, keyword("and")),
         value(Op::Or, keyword("or"))
     )).parse(input)
-}
-
-fn text(input: &str) -> IResult<&str, &str> {
-    is_not(" \t\"$;#\n").parse(input)
-}
-
-fn part(input: &str) -> IResult<&str, &str> {
-    alt((quoted, substitution, tag("$"), text)).parse(input)
-}
-
-fn command(input: &str) -> IResult<&str, &str> {
-    preceded(space0, recognize((word, many0((space1, word))))).parse(input)
-}
-
-fn chain(input: &str) -> IResult<&str, Chain<'_>> {
-    let tail = many0((preceded(space0, op), command));
-    map((command, tail), |(head, tail)| Chain { head, tail }).parse(input)
 }
 
 fn reserved(input: &str) -> IResult<&str, &str> {
@@ -123,83 +94,72 @@ fn identifier(input: &str) -> IResult<&str, &str> {
     preceded(not(reserved), take_while1(char::is_alphanumeric)).parse(input)
 }
 
+fn quoted(input: &str) -> IResult<&str, &str> {
+    recognize((
+        char('"'),
+        opt(escaped(is_not("\\\""), '\\', anychar)),
+        char('"'),
+    )).parse(input)
+}
+
+fn substitution(input: &str) -> IResult<&str, &str> {
+    recognize((
+        tag("$("),
+        many0(alt((quoted, substitution, is_not("\"()")))),
+        char(')'),
+    )).parse(input)
+}
+
+fn text(input: &str) -> IResult<&str, &str> {
+    is_not(" \t\"$;#\n").parse(input)
+}
+
+fn part(input: &str) -> IResult<&str, &str> {
+    alt((quoted, substitution, tag("$"), text)).parse(input)
+}
+
+fn command(input: &str) -> IResult<&str, &str> {
+    preceded(space0, recognize((word, many0((space1, word))))).parse(input)
+}
+
+fn chain(input: &str) -> IResult<&str, Chain<'_>> {
+    let tail = many0((op, command));
+    map((command, tail), |(head, tail)| Chain { head, tail }).parse(input)
+}
+
+// if <cond> [do] <body> [else <body>] end
 fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
-    // if
     let (input, _) = preceded(space0, keyword("if")).parse(input)?;
-
-    // <cond>
     let (input, cond) = chain(input)?;
-
-    // [do]
-    let (input, _) = alt((
-        value((), separator),
-        value((), preceded(space0, keyword("do"))),
-    )).parse(input)?;
-
-    // <body>
+    let (input, _) = start(input)?;
     let (input, then) = body(input)?;
-
-    // [else <body>]
     let (input, other) = opt(
         preceded(preceded(space0, keyword("else")), body)
     ).parse(input)?;
-
-    // end
     let (input, _) = preceded(space0, keyword("end")).parse(input)?;
-
     Ok((input, Exp::If(cond, then, other.unwrap_or_default())))
 }
 
+// for <var> in <list> [do] <body> end
 fn for_exp(input: &str) -> IResult<&str, Exp<'_>> {
-    // for
     let (input, _) = preceded(space0, keyword("for")).parse(input)?;
-
-    // <var>
     let (input, var) = preceded(space1, identifier).parse(input)?;
-
-    // in
     let (input, _) = preceded(space1, keyword("in")).parse(input)?;
-
-    // <list>
     let (input, list) = opt(command).parse(input)?;
-
-    // [do]
-    let (input, _) = alt((
-        value((), separator),
-        value((), preceded(space0, keyword("do"))),
-    )).parse(input)?;
-
-    // <body>
+    let (input, _) = start(input)?;
     let (input, body) = body(input)?;
-
-    // end
     let (input, _) = preceded(space0, keyword("end")).parse(input)?;
-
     Ok((input, Exp::For(var, list.unwrap_or_default(), body)))
 }
 
+// def <name> <params> [do] <body> end
 fn def_exp(input: &str) -> IResult<&str, Exp<'_>> {
-    // def
     let (input, _) = preceded(space0, keyword("def")).parse(input)?;
-
-    // <name>
     let (input, name) = preceded(space1, identifier).parse(input)?;
-
-    // <params>
     let (input, params) = many0(preceded(space1, identifier)).parse(input)?;
-
-    // [do]
-    let (input, _) = alt((
-        value((), separator),
-        value((), preceded(space0, keyword("do"))),
-    )).parse(input)?;
-
-    // <body>
+    let (input, _) = start(input)?;
     let (input, body) = recognize(body).parse(input)?;
-
-    // end
     let (input, _) = preceded(space0, keyword("end")).parse(input)?;
-
     Ok((input, Exp::Def(name, params, body)))
 }
 
