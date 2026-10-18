@@ -129,37 +129,35 @@ fn chain(input: &str) -> IResult<&str, Chain<'_>> {
 
 // if <cond> [do] <body> [else <body>] end
 fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
-    let (input, _) = preceded(space0, keyword("if")).parse(input)?;
+    let (input, _) = keyword("if").parse(input)?;
     let (input, cond) = chain(input)?;
     let (input, _) = start(input)?;
     let (input, then) = body(input)?;
-    let (input, other) = opt(
-        preceded(preceded(space0, keyword("else")), body)
-    ).parse(input)?;
-    let (input, _) = preceded(space0, keyword("end")).parse(input)?;
+    let (input, other) = opt(preceded(keyword("else"), body)).parse(input)?;
+    let (input, _) = keyword("end").parse(input)?;
     Ok((input, Exp::If(cond, then, other.unwrap_or_default())))
 }
 
 // for <var> in <list> [do] <body> end
 fn for_exp(input: &str) -> IResult<&str, Exp<'_>> {
-    let (input, _) = preceded(space0, keyword("for")).parse(input)?;
+    let (input, _) = keyword("for").parse(input)?;
     let (input, var) = preceded(space1, identifier).parse(input)?;
     let (input, _) = preceded(space1, keyword("in")).parse(input)?;
     let (input, list) = opt(command).parse(input)?;
     let (input, _) = start(input)?;
     let (input, body) = body(input)?;
-    let (input, _) = preceded(space0, keyword("end")).parse(input)?;
+    let (input, _) = keyword("end").parse(input)?;
     Ok((input, Exp::For(var, list.unwrap_or_default(), body)))
 }
 
 // def <name> <params> [do] <body> end
 fn def_exp(input: &str) -> IResult<&str, Exp<'_>> {
-    let (input, _) = preceded(space0, keyword("def")).parse(input)?;
+    let (input, _) = keyword("def").parse(input)?;
     let (input, name) = preceded(space1, identifier).parse(input)?;
     let (input, params) = many0(preceded(space1, identifier)).parse(input)?;
     let (input, _) = start(input)?;
     let (input, body) = recognize(body).parse(input)?;
-    let (input, _) = preceded(space0, keyword("end")).parse(input)?;
+    let (input, _) = keyword("end").parse(input)?;
     Ok((input, Exp::Def(name, params, body)))
 }
 

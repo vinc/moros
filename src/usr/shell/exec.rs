@@ -332,7 +332,7 @@ fn exec_exp(exp: &Exp, ctx: &mut Context) -> Result<(), ExitCode> {
 fn exec_body(body: &[Exp], ctx: &mut Context) -> Result<(), ExitCode> {
     let mut res = Ok(());
     for exp in body {
-        res = exec_exp(&exp, ctx);
+        res = exec_exp(exp, ctx);
         if res == Err(ExitCode::ShellExit) {
             break;
         }
