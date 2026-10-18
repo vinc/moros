@@ -114,17 +114,29 @@ fn word(input: &str) -> IResult<&str, &str> {
 }
 
 fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
+    // if
     let (input, _) = preceded(space0, keyword("if")).parse(input)?;
+
+    // <cond>
     let (input, cond) = chain(input)?;
+
+    // [do]
     let (input, _) = alt((
         value((), separator),
         value((), preceded(space0, keyword("do"))),
     )).parse(input)?;
+
+    // <body>
     let (input, then) = body(input)?;
+
+    // [else <body>]
     let (input, other) = opt(
         preceded(preceded(space0, keyword("else")), body)
     ).parse(input)?;
+
+    // end
     let (input, _) = preceded(space0, keyword("end")).parse(input)?;
+
     Ok((input, Exp::If(cond, then, other.unwrap_or_default())))
 }
 
