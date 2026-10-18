@@ -120,8 +120,7 @@ fn word(input: &str) -> IResult<&str, &str> {
 }
 
 fn identifier(input: &str) -> IResult<&str, &str> {
-    let chars = take_while1(|c: char| c.is_alphanumeric() || c == '_');
-    preceded(not(reserved), chars).parse(input)
+    preceded(not(reserved), take_while1(char::is_alphanumeric)).parse(input)
 }
 
 fn if_exp(input: &str) -> IResult<&str, Exp<'_>> {
