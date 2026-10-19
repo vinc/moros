@@ -23,7 +23,7 @@ line. Each program is designed to ensure a cohesive user interface across the
 entire system.
 
 The [shell](shell.md) is the hearth of MOROS, used to navigate the
-[filesystem](filesystem.md) and run other programs:
+[filesystem](filesystem.md) and run other programs or scripts:
 
 ![shell screenshot](images/shell.png)
 

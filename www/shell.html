@@ -8,9 +8,11 @@
   <body>
     <h1>MOROS Shell</h1>
 
+    <p>MOROS Shell is a scripting language inspired by the Unix shell and Ruby.</p>
+
     <h2>Configuration</h2>
 
-    <p>The shell will read <code>/ini/shell.sh</code> during initialization to setup its
+    <p>The shell reads <code>/ini/shell.sh</code> during initialization to set up its
 configuration.</p>
 
     <h2>Commands</h2>
@@ -20,85 +22,102 @@ additional common aliases.</p>
 
     <p><strong>Alias</strong> command:</p>
 
-    <pre><code>&gt; alias d delete
+    <pre><code>&gt; alias p print
 </code></pre>
 
     <!--
 **Append** to file:
 
-    > a a.txt
     > append a.txt
+    > a a.txt
 -->
 
-    <p><strong>Delete</strong> file:</p>
+    <p><strong>Drop</strong> file:</p>
 
-    <pre><code>&gt; d a.txt
-&gt; delete a.txt
+    <pre><code>&gt; drop a.txt
+&gt; d a.txt
 </code></pre>
 
     <p><strong>Copy</strong> file:</p>
 
-    <pre><code>&gt; c a.txt b.txt
-&gt; copy a.txt b.txt
+    <pre><code>&gt; copy a.txt b.txt
+&gt; c a.txt b.txt
 </code></pre>
 
     <p><strong>Move</strong> file:</p>
 
-    <pre><code>&gt; m a.txt b.txt
-&gt; move a.txt b.txt
+    <pre><code>&gt; move a.txt b.txt
+&gt; m a.txt b.txt
 </code></pre>
 
     <p><strong>Print</strong> string:</p>
 
-    <pre><code>&gt; p &quot;Hi&quot;
-&gt; print &quot;Hi&quot;
+    <pre><code>&gt; print &quot;Hi&quot;
+&gt; p &quot;Hi&quot;
 </code></pre>
 
     <p><strong>Read</strong> file:</p>
 
-    <pre><code>&gt; r a.txt
-&gt; read a.txt
+    <pre><code>&gt; read a.txt
+&gt; r a.txt
 </code></pre>
 
     <p><strong>Write</strong> file:</p>
 
-    <pre><code>&gt; w a.txt
-&gt; write a.txt
+    <pre><code>&gt; write a.txt
+&gt; w a.txt
 </code></pre>
 
     <p><strong>Write</strong> dir:</p>
 
     <pre><code>&gt; write /usr/alice/ # with a trailing slash to create a dir instead of a file
+&gt; w /usr/alice/
 </code></pre>
 
     <p><strong>List</strong> files in dir:</p>
 
     <pre><code>&gt; list /usr/alice
+&gt; l /usr/alice
 </code></pre>
 
-    <p>When executed without arguments, this command will list the files of the
-current directory.</p>
+    <p>When executed without arguments, this command lists the files of the current
+directory.</p>
 
-    <p><strong>Goto</strong> dir:</p>
+    <p><strong>Change</strong> dir:</p>
 
-    <pre><code>&gt; goto /usr/alice
+    <pre><code>&gt; goto /usr/alice # deprecated
+&gt; /usr/alice
 </code></pre>
 
-    <p>When executed without arguments, this command will print the current directory.</p>
+    <p>The current directory is stored in the <code>$dir</code> variable:</p>
 
-    <h2>Combiners (TODO)</h2>
+    <pre><code>&gt; print $dir
+</code></pre>
+
+    <h2>Combiners</h2>
+
+    <p>The command after <code>and</code> is run only if the previous one succeeded, and the
+command after <code>or</code> only if it failed. The exit code of the last command run is
+available in <code>$?</code>.</p>
 
     <p><strong>And combiner:</strong></p>
 
     <pre><code>&gt; read foo.txt and read bar.txt
 </code></pre>
 
-    <p><strong>Or combiners:</strong></p>
+    <p><strong>Or combiner:</strong></p>
 
     <pre><code>&gt; read foo.txt or read bar.txt
 </code></pre>
 
-    <h2>Pipes and Redirections (WIP)</h2>
+    <p>The shell also accepts commands separated by a semicolon:</p>
+
+    <pre><code>&gt; print hello; print world
+hello
+world
+</code></pre>
+
+    <h2>Pipes and redirections (WIP)</h2>
 
     <p>A thin arrow <code>-&gt;</code> can be used for piping the output from one command to the
 input of another command (TODO):</p>
@@ -138,7 +157,7 @@ possible to explicitly redirect a handle to another (TODO):</p>
     <pre><code>&gt; time read foo.txt [1]=&gt; bar.txt [2]=&gt; time.txt
 </code></pre>
 
-    <p>When the arrow point to the other direction the source and destination are
+    <p>When the arrow points in the other direction the source and destination are
 swapped and the standard input is implied:</p>
 
     <pre><code>&gt; http &lt;= req.txt =&gt; res.txt
@@ -164,8 +183,8 @@ are the same we can use this shortcut:</p>
     <li><code>stdnull(3)</code></li>
     </ul>
 
-    <p>A redirection with a single arrow head will truncate its destination while
-multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
+    <p>A redirection with a single arrow head truncates its destination while multiple
+heads like <code>=&gt;&gt;</code> append to it.</p>
 
     <p>NOTE: Arrows can be longer, and also shorter in the case of fat arrows:</p>
 
@@ -194,7 +213,8 @@ multiple heads like <code>=&gt;&gt;</code> will append to it.</p>
 
     <ul>
     <li>Name of the shell or the script: <code>$0</code></li>
-    <li>Script arguments: <code>$1</code>, <code>$2</code>, <code>$3</code>, <code>$4</code>, ...</li>
+    <li>Script or function arguments: <code>$1</code>, <code>$2</code>, <code>$3</code>, ...</li>
+    <li>All the arguments: <code>$*</code></li>
     <li>Exit code: <code>$?</code></li>
     <li>Environment variable: <code>$HOME</code>, ...</li>
     <li>Shell variable: <code>$foo</code>, ...</li>
@@ -222,8 +242,8 @@ Hello Alice and Bob
 </code></pre>
 
     <p>Environment variables are copied to the shell when a session is started.
-By convention an env var should be in uppercase and a shell var should be
-lowercase. They can be changed by using <code>--env</code> or <code>-e</code>.</p>
+They can be changed by using <code>--env</code> or <code>-e</code>. By convention an env var should
+be in uppercase and a shell var should be lowercase.</p>
 
     <pre><code>&gt; date
 2026-04-21 17:24:06 +0000
@@ -234,24 +254,103 @@ lowercase. They can be changed by using <code>--env</code> or <code>-e</code>.</
 2026-04-21 19:24:14 +0200
 </code></pre>
 
+    <h2>Substitutions</h2>
+
+    <p>The output of a command can be used as an argument to another command:</p>
+
+    <pre><code>&gt; print &quot;Today is $(date)&quot;
+Today is 2026-10-18 12:18:20 +0200
+</code></pre>
+
     <h2>Globbing</h2>
 
-    <p>MOROS Shell support filename expansion or globbing for <code>*</code> and <code>?</code> wildcard
-characters, where a pattern given in an argument of a command will be replaced
-by files matching the pattern.</p>
+    <p>MOROS Shell supports filename expansion or globbing for <code>*</code> and <code>?</code> wildcard
+characters, where a pattern given in an argument of a command is replaced by
+files matching the pattern.</p>
 
     <ul>
     <li><code>*</code> means zero or more chars except <code>/</code></li>
     <li><code>?</code> means any char except <code>/</code></li>
     </ul>
 
-    <p>For example <code>/tmp/*.txt</code> will match any files with the <code>txt</code> extension inside
+    <p>For example <code>/tmp/*.txt</code> will match any file with the <code>txt</code> extension inside
     <code>/tmp</code>, and <code>a?c.txt</code> will match a file named <code>abc.txt</code>.</p>
 
-    <h2>Tilde Expansion</h2>
+    <h2>Tilde expansion</h2>
 
-    <p>The tilde character <code>~</code> is a shortcut to <code>$HOME</code> so <code>~/test</code> will be expanded
-to <code>$HOME/test</code> by the shell.</p>
+    <p>The tilde character <code>~</code> is a shortcut to <code>$HOME</code> so <code>~/test</code> is expanded to
+    <code>$HOME/test</code> by the shell.</p>
+
+    <h2>Conditionals</h2>
+
+    <p>The condition is a command, or a chain of commands with <code>and</code> and <code>or</code>, and the
+first branch is taken if it succeeds. The <code>true</code> command always succeeds and
+the <code>false</code> command always fails.</p>
+
+    <pre><code>&gt; if true do print yeah else print nope end
+yeah
+
+&gt; if true do print yeah end
+yeah
+</code></pre>
+
+    <p>The <code>do</code> keyword can be replaced by a semicolon, or a newline in a script:</p>
+
+    <pre><code>#! shell
+
+if true
+  print yeah
+else
+  print nope
+end
+</code></pre>
+
+    <h2>Loops</h2>
+
+    <p>The body of a loop is run once for each word of the list, with the variable
+set to that word:</p>
+
+    <pre><code>&gt; for i in 1 2 3 do print $i end
+1
+2
+3
+</code></pre>
+
+    <p>The <code>do</code> keyword can be replaced by a semicolon, or a newline in a script:</p>
+
+    <pre><code>#! shell
+
+for file in *.sh
+  print $file
+  copy $file $file.old
+end
+</code></pre>
+
+    <h2>Functions</h2>
+
+    <pre><code>&gt; def hello name do print &quot;Hello $name&quot; end
+
+&gt; hello Alice
+Hello Alice
+</code></pre>
+
+    <p>The <code>do</code> keyword can be replaced by a semicolon or a newline in a script:</p>
+
+    <pre><code>#! shell
+
+def backup file
+  copy $file $file.old and print &quot;Saved $file.old&quot;
+end
+</code></pre>
+
+    <h2>Reserved words</h2>
+
+    <p>The words <code>and</code>, <code>def</code>, <code>do</code>, <code>else</code>, <code>end</code>, <code>for</code>, <code>if</code>, <code>in</code> and <code>or</code> are
+reserved and cannot be used as arguments unless quoted:</p>
+
+    <pre><code>&gt; print &quot;end&quot;
+end
+</code></pre>
   <footer><p><a href="/">MOROS</a></footer>
   </body>
 </html>

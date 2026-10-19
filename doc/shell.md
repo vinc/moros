@@ -1,11 +1,11 @@
 # MOROS Shell
 
+MOROS Shell is a scripting language inspired by the Unix shell and Ruby.
 
 ## Configuration
 
-The shell will read `/ini/shell.sh` during initialization to setup its
+The shell reads `/ini/shell.sh` during initialization to set up its
 configuration.
-
 
 ## Commands
 
@@ -14,75 +14,88 @@ additional common aliases.
 
 **Alias** command:
 
-    > alias d delete
+    > alias p print
 
 <!--
 **Append** to file:
 
-    > a a.txt
     > append a.txt
+    > a a.txt
 -->
 
-**Delete** file:
+**Drop** file:
 
+    > drop a.txt
     > d a.txt
-    > delete a.txt
 
 **Copy** file:
 
-    > c a.txt b.txt
     > copy a.txt b.txt
+    > c a.txt b.txt
 
 **Move** file:
 
-    > m a.txt b.txt
     > move a.txt b.txt
+    > m a.txt b.txt
 
 **Print** string:
 
-    > p "Hi"
     > print "Hi"
+    > p "Hi"
 
 **Read** file:
 
-    > r a.txt
     > read a.txt
+    > r a.txt
 
 **Write** file:
 
-    > w a.txt
     > write a.txt
+    > w a.txt
 
 **Write** dir:
 
     > write /usr/alice/ # with a trailing slash to create a dir instead of a file
+    > w /usr/alice/
 
 **List** files in dir:
 
     > list /usr/alice
+    > l /usr/alice
 
-When executed without arguments, this command will list the files of the
-current directory.
+When executed without arguments, this command lists the files of the current
+directory.
 
-**Goto** dir:
+**Change** dir:
 
-    > goto /usr/alice
+    > goto /usr/alice # deprecated
+    > /usr/alice
 
-When executed without arguments, this command will print the current directory.
+The current directory is stored in the `$dir` variable:
 
+    > print $dir
 
-## Combiners (TODO)
+## Combiners
+
+The command after `and` is run only if the previous one succeeded, and the
+command after `or` only if it failed. The exit code of the last command run is
+available in `$?`.
 
 **And combiner:**
 
     > read foo.txt and read bar.txt
 
-**Or combiners:**
+**Or combiner:**
 
     > read foo.txt or read bar.txt
 
+The shell also accepts commands separated by a semicolon:
 
-## Pipes and Redirections (WIP)
+    > print hello; print world
+    hello
+    world
+
+## Pipes and redirections (WIP)
 
 A thin arrow `->` can be used for piping the output from one command to the
 input of another command (TODO):
@@ -115,7 +128,7 @@ It is possible to chain multiple redirections:
 
     > time read foo.txt [1]=> bar.txt [2]=> time.txt
 
-When the arrow point to the other direction the source and destination are
+When the arrow points in the other direction the source and destination are
 swapped and the standard input is implied:
 
     > http <= req.txt => res.txt
@@ -136,8 +149,8 @@ NOTE: The following handles are available when a process is created:
 - `stderr(2)`
 - `stdnull(3)`
 
-A redirection with a single arrow head will truncate its destination while
-multiple heads like `=>>` will append to it.
+A redirection with a single arrow head truncates its destination while multiple
+heads like `=>>` append to it.
 
 NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
 
@@ -163,7 +176,8 @@ NOTE: Arrows can be longer, and also shorter in the case of fat arrows:
 ## Variables
 
 - Name of the shell or the script: `$0`
-- Script arguments: `$1`, `$2`, `$3`, `$4`, ...
+- Script or function arguments: `$1`, `$2`, `$3`, ...
+- All the arguments: `$*`
 - Exit code: `$?`
 - Environment variable: `$HOME`, ...
 - Shell variable: `$foo`, ...
@@ -187,8 +201,8 @@ Unsetting a variable is done like this:
     > unset foo
 
 Environment variables are copied to the shell when a session is started.
-By convention an env var should be in uppercase and a shell var should be
-lowercase. They can be changed by using `--env` or `-e`.
+They can be changed by using `--env` or `-e`. By convention an env var should
+be in uppercase and a shell var should be lowercase.
 
     > date
     2026-04-21 17:24:06 +0000
@@ -198,20 +212,90 @@ lowercase. They can be changed by using `--env` or `-e`.
     > date
     2026-04-21 19:24:14 +0200
 
+## Substitutions
+
+The output of a command can be used as an argument to another command:
+
+    > print "Today is $(date)"
+    Today is 2026-10-18 12:18:20 +0200
+
 ## Globbing
 
-MOROS Shell support filename expansion or globbing for `*` and `?` wildcard
-characters, where a pattern given in an argument of a command will be replaced
-by files matching the pattern.
+MOROS Shell supports filename expansion or globbing for `*` and `?` wildcard
+characters, where a pattern given in an argument of a command is replaced by
+files matching the pattern.
 
 - `*` means zero or more chars except `/`
 - `?` means any char except `/`
 
-For example `/tmp/*.txt` will match any files with the `txt` extension inside
+For example `/tmp/*.txt` will match any file with the `txt` extension inside
 `/tmp`, and `a?c.txt` will match a file named `abc.txt`.
 
+## Tilde expansion
 
-## Tilde Expansion
+The tilde character `~` is a shortcut to `$HOME` so `~/test` is expanded to
+`$HOME/test` by the shell.
 
-The tilde character `~` is a shortcut to `$HOME` so `~/test` will be expanded
-to `$HOME/test` by the shell.
+## Conditionals
+
+The condition is a command, or a chain of commands with `and` and `or`, and the
+first branch is taken if it succeeds. The `true` command always succeeds and
+the `false` command always fails.
+
+    > if true do print yeah else print nope end
+    yeah
+
+    > if true do print yeah end
+    yeah
+
+The `do` keyword can be replaced by a semicolon, or a newline in a script:
+
+    #! shell
+
+    if true
+      print yeah
+    else
+      print nope
+    end
+
+## Loops
+
+The body of a loop is run once for each word of the list, with the variable
+set to that word:
+
+    > for i in 1 2 3 do print $i end
+    1
+    2
+    3
+
+The `do` keyword can be replaced by a semicolon, or a newline in a script:
+
+    #! shell
+
+    for file in *.sh
+      print $file
+      copy $file $file.old
+    end
+
+## Functions
+
+    > def hello name do print "Hello $name" end
+
+    > hello Alice
+    Hello Alice
+
+The `do` keyword can be replaced by a semicolon or a newline in a script:
+
+    #! shell
+
+    def backup file
+      copy $file $file.old and print "Saved $file.old"
+    end
+
+## Reserved words
+
+The words `and`, `def`, `do`, `else`, `end`, `for`, `if`, `in` and `or` are
+reserved and cannot be used as arguments unless quoted:
+
+    > print "end"
+    end
