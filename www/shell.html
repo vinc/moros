@@ -320,7 +320,7 @@ set to that word:</p>
 
     <pre><code>#! shell
 
-for file in $(find -f &quot;*.sh&quot;)
+for file in *.sh
   print $file
   copy $file $file.old
 end

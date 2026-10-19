@@ -272,7 +272,7 @@ The `do` keyword can be replaced by a semicolon, or a newline in a script:
 
     #! shell
 
-    for file in $(find -f "*.sh")
+    for file in *.sh
       print $file
       copy $file $file.old
     end
